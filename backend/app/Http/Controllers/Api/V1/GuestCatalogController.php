@@ -132,9 +132,9 @@ class GuestCatalogController extends Controller
             ->firstOrFail();
 
         $storeProduct = DB::table('store_products')
-                ->where('store_id', $storeId)
-                ->where('product_id', $item->id)
-                ->where('is_active', true)
+            ->where('store_id', $storeId)
+            ->where('product_id', $item->id)
+            ->where('is_active', true)
             ->first();
 
         abort_if($storeProduct === null, 404);
