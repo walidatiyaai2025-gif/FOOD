@@ -1,13 +1,13 @@
-# Update Center Framework
+# Update Center
 
-Dashboard target: **Settings > System Update**.
+FOODEX system updates are a privileged, backend-owned workflow. Only the dedicated `system.update` ability may start an update; the built-in `SUPER_ADMIN` role receives it through the canonical permission matrix.
 
-Mandatory sequence:
+The execution coordinator uses this mandatory sequence:
 
-`Upload Package -> Validate Package -> Verify Signature/Hash -> Preflight -> Backup Files -> Backup Database -> Maintenance Mode -> Extract New Release -> Run Migrations -> Clear/Rebuild Cache -> Health Check -> Success`
+`Validate package -> Preflight -> Backup files -> Backup database when needed -> Maintenance mode -> Extract release -> Run migrations when declared -> Rebuild caches -> Health check -> Exit maintenance -> Record version/history`
 
-Failure sequence:
+The package SHA-256 is checked before any backup or mutation. The target version must be newer than the installed version and the current version must satisfy the package minimum.
 
-`Log Failure -> Rollback Files -> Rollback DB when safely possible -> Restore Previous Version -> Exit Maintenance Mode -> Report Failure`
+If a stage fails after backups exist, the coordinator attempts file rollback, database rollback when a database backup exists, and maintenance-mode exit. The failure stored in `update_history` identifies the stage but does not persist raw exception details or credentials. Both successful and failed executions emit audit events.
 
-The foundation code defines pipeline stages and update package manifest only. M7 implementation adds privileged UI, package storage, current/target versions, release notes, compatibility, disk/PHP/Laravel checks, migration detection, backup/rollback orchestration, update logs/history and health reports.
+The runtime adapter that performs production filesystem/database operations is intentionally separated from the coordinator so preflight, backup and rollback behavior can be tested independently and platform-specific backup mechanics can fail closed rather than bypassing safety.

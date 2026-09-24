@@ -3,6 +3,7 @@
 return [
     'abilities' => [
         'platform.manage' => 'Manage platform-wide settings and permissions',
+        'system.update' => 'Install validated FOODEX system updates',
         'b2b.accounts.manage' => 'Manage B2B customer accounts',
         'b2b.pricing.manage' => 'Manage B2B pricing and approvals',
         'catalog.manage' => 'Manage products and catalog data',
