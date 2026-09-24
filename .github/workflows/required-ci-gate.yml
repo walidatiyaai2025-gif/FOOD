@@ -73,55 +73,7 @@ jobs:
     name: Backend validation
     needs: changes
     if: ${{ needs.changes.outputs.backend == 'true' }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.3"
-          extensions: mbstring, intl, pdo_sqlite
-          coverage: none
-
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
-
-      - name: Prepare test environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-          touch database/database.sqlite
-
-      - name: Validate migrations
-        run: php artisan migrate:fresh --force
-        env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: database/database.sqlite
-
-      - name: Validate seed data
-        run: php artisan db:seed --force
-        env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: database/database.sqlite
-
-      - name: Backend tests
-        run: composer test
-
-      - name: Backend lint
-        run: composer lint
-
-      - name: Backend static analysis
-        run: composer analyse
-
-      - name: Composer security audit
-        run: composer audit
-
-      - name: Validate OpenAPI
-        working-directory: .
-        run: npx --yes @redocly/cli@latest lint docs/api/openapi.yaml
+    uses: ./.github/workflows/backend-ci.yml
 
   customer-validation:
     name: Customer Flutter validation
