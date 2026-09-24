@@ -146,7 +146,7 @@ final class InstallerEnvironment
 
         return '"'.str_replace(
             ['\\', '"', "\r", "\n"],
-            ["\\\\", '\\"', '\\r', '\\n'],
+            ['\\\\', '\\"', '\\r', '\\n'],
             $string,
         ).'"';
     }
