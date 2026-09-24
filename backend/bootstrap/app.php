@@ -24,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Throwable $exception, \Illuminate\Http\Request $request) {
-            if (! $request->is('api/*')) {
+            if (! $request->is('api/*') || $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface || $exception instanceof \Illuminate\Validation\ValidationException || $exception instanceof \Illuminate\Auth\AuthenticationException) {
                 return null;
             }
 
