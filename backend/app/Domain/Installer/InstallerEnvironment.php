@@ -33,7 +33,7 @@ final class InstallerEnvironment
     {
         foreach (array_keys($values) as $key) {
             if (! in_array($key, self::ALLOWED_KEYS, true)) {
-                throw new InvalidArgumentException("Environment key [$key] is not installer-writable.");
+                throw new InvalidArgumentException('Environment key ['.$key.'] is not installer-writable.');
             }
         }
 
@@ -60,7 +60,7 @@ final class InstallerEnvironment
 
         @chmod($temporary, 0600);
 
-        if (! @rename($temporary, $path)) {
+        if (!@rename($temporary, $path)) {
             @unlink($temporary);
             throw new RuntimeException('Environment configuration could not be finalized.');
         }
@@ -114,7 +114,7 @@ final class InstallerEnvironment
 
         $directory = dirname($path);
 
-        if (! is_dir($directory) && ! @mkdir($directory, 0750, true) && ! is_dir($directory)) {
+        if (! is_dir($directory) && !@mkdir($directory, 0750, true) && ! is_dir($directory)) {
             throw new RuntimeException('Environment directory is not writable.');
         }
 
@@ -158,7 +158,7 @@ final class InstallerEnvironment
 
             return str_replace(
                 ['\\n', '\\r', '\\"', '\\\\'],
-                ["\n", "\r", '"', "\\"],
+                ["\n", "\r", '"', '\\'],
                 $value,
             );
         }
