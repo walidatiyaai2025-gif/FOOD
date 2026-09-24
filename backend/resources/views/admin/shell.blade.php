@@ -58,6 +58,10 @@
                 {{ __($item['label']) }}
             </a>
         @endforeach
+
+        @can('system.update')
+            <a class="nav-link" href="{{ route('admin.system-update.index') }}">System Update</a>
+        @endcan
     </aside>
 
     <main class="main">
