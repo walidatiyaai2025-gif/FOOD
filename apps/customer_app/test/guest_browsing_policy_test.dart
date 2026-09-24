@@ -4,7 +4,7 @@ import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 void main() {
   test('B2C browsing routes stay public while account and checkout stay gated', () {
     CustomerRouteDefinition route(String pattern) =>
-        customerRouteDefinitions.single(
+        customerRouteDefinitions.singleWhere(
           (definition) => definition.pattern == pattern,
         );
 
