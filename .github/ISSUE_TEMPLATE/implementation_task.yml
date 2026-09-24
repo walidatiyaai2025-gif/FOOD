@@ -1,0 +1,67 @@
+name: FOODEX implementation task
+description: One Task = One Owner = One Branch
+title: "[TASK] "
+body:
+  - type: textarea
+    id: objective
+    attributes: { label: Objective }
+    validations: { required: true }
+  - type: textarea
+    id: scope
+    attributes: { label: Scope }
+    validations: { required: true }
+  - type: textarea
+    id: out_of_scope
+    attributes: { label: Out of scope }
+  - type: input
+    id: apps
+    attributes: { label: Affected apps }
+  - type: input
+    id: modules
+    attributes: { label: Affected modules }
+  - type: textarea
+    id: dependencies
+    attributes: { label: Dependencies }
+  - type: textarea
+    id: acceptance
+    attributes: { label: Acceptance criteria }
+    validations: { required: true }
+  - type: textarea
+    id: api
+    attributes: { label: API changes }
+  - type: textarea
+    id: db
+    attributes: { label: DB changes }
+  - type: textarea
+    id: permissions
+    attributes: { label: Permission rules }
+  - type: textarea
+    id: tests
+    attributes: { label: Tests required }
+    validations: { required: true }
+  - type: input
+    id: design
+    attributes: { label: Design reference }
+  - type: input
+    id: branch
+    attributes: { label: Branch name }
+    validations: { required: true }
+  - type: input
+    id: owner
+    attributes: { label: Owner }
+    validations: { required: true }
+  - type: input
+    id: lease_start
+    attributes: { label: Lease start }
+    validations: { required: true }
+  - type: input
+    id: lease_expiry
+    attributes: { label: Lease expiry }
+    validations: { required: true }
+  - type: textarea
+    id: takeover
+    attributes: { label: Takeover history }
+  - type: textarea
+    id: dod
+    attributes: { label: Definition of done }
+    validations: { required: true }

@@ -1,0 +1,235 @@
+openapi: 3.1.0
+info:
+  title: FOODEX API
+  version: 0.1.0
+  description: Bootstrap contract skeleton. Product behavior is implemented issue by issue.
+servers:
+  - url: /api/v1
+tags:
+  - name: Authentication
+  - name: Stores
+  - name: Catalog
+  - name: Cart
+  - name: Checkout
+  - name: Orders
+  - name: B2B
+  - name: Drivers
+  - name: Notifications
+  - name: Version
+paths:
+  /version:
+    get:
+      tags: [Version]
+      operationId: getPlatformVersion
+      responses:
+        "200":
+          description: Platform/API version
+  /app-version:
+    get:
+      tags: [Version]
+      operationId: getAppVersionPolicy
+      parameters:
+        - in: query
+          name: platform
+          required: true
+          schema: { type: string, enum: [android, ios] }
+        - in: query
+          name: app
+          required: true
+          schema: { type: string, enum: [customer, driver] }
+      responses:
+        "200":
+          description: Mobile version policy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppVersionPolicy" }
+  /auth/login:
+    post:
+      tags: [Authentication]
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200": { description: Authenticated session/token response }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      operationId: logout
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Logged out }
+  /stores:
+    get:
+      tags: [Stores]
+      operationId: listStores
+      responses:
+        "200": { description: Store collection }
+  /stores/{store}/categories:
+    get:
+      tags: [Catalog]
+      operationId: listStoreCategories
+      parameters: [{ $ref: "#/components/parameters/StoreId" }]
+      responses:
+        "200": { description: Category collection }
+  /stores/{store}/products:
+    get:
+      tags: [Catalog]
+      operationId: listStoreProducts
+      parameters: [{ $ref: "#/components/parameters/StoreId" }]
+      responses:
+        "200": { description: Product collection }
+  /products/{product}:
+    get:
+      tags: [Catalog]
+      operationId: showProduct
+      parameters:
+        - in: path
+          name: product
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Product detail }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /cart:
+    get:
+      tags: [Cart]
+      operationId: showCart
+      responses:
+        "200": { description: Current cart }
+  /cart/items:
+    post:
+      tags: [Cart]
+      operationId: addCartItem
+      responses:
+        "201": { description: Cart item created }
+  /cart/items/{item}:
+    patch:
+      tags: [Cart]
+      operationId: updateCartItem
+      parameters:
+        - in: path
+          name: item
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Cart item updated }
+    delete:
+      tags: [Cart]
+      operationId: deleteCartItem
+      parameters:
+        - in: path
+          name: item
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Cart item removed }
+  /checkout:
+    post:
+      tags: [Checkout]
+      operationId: checkout
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Order created }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /orders:
+    get:
+      tags: [Orders]
+      operationId: listOrders
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Authenticated order collection }
+  /orders/{order}:
+    get:
+      tags: [Orders]
+      operationId: showOrder
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: order
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Authorized order detail }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /b2b/products:
+    get:
+      tags: [B2B]
+      operationId: listB2bProducts
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Approved B2B catalog }
+  /b2b/orders:
+    get:
+      tags: [B2B]
+      operationId: listB2bOrders
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: B2B order collection }
+  /drivers/assignments:
+    get:
+      tags: [Drivers]
+      operationId: listDriverAssignments
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Assignments filtered by exact driver role/channel }
+  /notifications:
+    get:
+      tags: [Notifications]
+      operationId: listNotifications
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: User notification collection }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    StoreId:
+      in: path
+      name: store
+      required: true
+      schema: { type: integer }
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    AppVersionPolicy:
+      type: object
+      required: [latest_version, minimum_supported_version, force_update]
+      properties:
+        latest_version: { type: string }
+        minimum_supported_version: { type: string }
+        force_update: { type: boolean }
+        store_url: { type: [string, "null"], format: uri }
+        release_notes: { type: [string, "null"] }
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+        code: { type: [string, "null"] }
+        errors: { type: [object, "null"], additionalProperties: true }
+  responses:
+    Unauthenticated:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found or not visible in authorized scope
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
