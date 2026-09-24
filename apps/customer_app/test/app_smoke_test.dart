@@ -3,11 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
 
 void main() {
-  testWidgets('customer bootstrap is Arabic-first and RTL', (tester) async {
+  testWidgets('customer shell is Arabic-first and RTL', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp());
 
     expect(find.text('FOODEX Customer'), findsOneWidget);
-    expect(find.text('Bootstrap foundation'), findsOneWidget);
+    expect(find.text('Splash'), findsOneWidget);
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('ar'));
