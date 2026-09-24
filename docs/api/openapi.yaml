@@ -3,30 +3,47 @@ info:
   title: FOODEX API
   version: 0.1.0
   description: Bootstrap contract skeleton. Product behavior is implemented issue by issue.
+  license:
+    name: Proprietary
 servers:
   - url: /api/v1
+security: []
 tags:
   - name: Authentication
+    description: Login, logout and authenticated identity boundaries.
   - name: Stores
+    description: Public and authorized store discovery.
   - name: Catalog
+    description: Store-scoped categories and products.
   - name: Cart
+    description: Guest or authenticated shopping cart operations.
   - name: Checkout
+    description: Authenticated order creation boundary.
   - name: Orders
+    description: Authenticated customer order access.
   - name: B2B
+    description: Approved wholesale customer operations.
   - name: Drivers
+    description: Driver-role-scoped assignment operations.
   - name: Notifications
+    description: Authenticated notification access.
   - name: Version
+    description: Platform and mobile application version policy.
 paths:
   /version:
     get:
       tags: [Version]
+      summary: Get platform API version
       operationId: getPlatformVersion
       responses:
         "200":
           description: Platform/API version
+        "400":
+          $ref: "#/components/responses/BadRequest"
   /app-version:
     get:
       tags: [Version]
+      summary: Get mobile application version policy
       operationId: getAppVersionPolicy
       parameters:
         - in: query
@@ -43,9 +60,12 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AppVersionPolicy" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
   /auth/login:
     post:
       tags: [Authentication]
+      summary: Authenticate a FOODEX user
       operationId: login
       requestBody:
         required: true
@@ -53,38 +73,59 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/LoginRequest" }
       responses:
-        "200": { description: Authenticated session/token response }
-        "422": { $ref: "#/components/responses/ValidationError" }
+        "200":
+          description: Authenticated session/token response
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /auth/logout:
     post:
       tags: [Authentication]
+      summary: Log out the authenticated user
       operationId: logout
       security: [{ bearerAuth: [] }]
       responses:
-        "204": { description: Logged out }
+        "204":
+          description: Logged out
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
   /stores:
     get:
       tags: [Stores]
+      summary: List stores visible to the current client
       operationId: listStores
       responses:
-        "200": { description: Store collection }
+        "200":
+          description: Store collection
+        "400":
+          $ref: "#/components/responses/BadRequest"
   /stores/{store}/categories:
     get:
       tags: [Catalog]
+      summary: List categories for a store
       operationId: listStoreCategories
-      parameters: [{ $ref: "#/components/parameters/StoreId" }]
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
       responses:
-        "200": { description: Category collection }
+        "200":
+          description: Category collection
+        "404":
+          $ref: "#/components/responses/NotFound"
   /stores/{store}/products:
     get:
       tags: [Catalog]
+      summary: List products for a store
       operationId: listStoreProducts
-      parameters: [{ $ref: "#/components/parameters/StoreId" }]
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
       responses:
-        "200": { description: Product collection }
+        "200":
+          description: Product collection
+        "404":
+          $ref: "#/components/responses/NotFound"
   /products/{product}:
     get:
       tags: [Catalog]
+      summary: Get product details
       operationId: showProduct
       parameters:
         - in: path
@@ -92,23 +133,34 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        "200": { description: Product detail }
-        "404": { $ref: "#/components/responses/NotFound" }
+        "200":
+          description: Product detail
+        "404":
+          $ref: "#/components/responses/NotFound"
   /cart:
     get:
       tags: [Cart]
+      summary: Get the current cart
       operationId: showCart
       responses:
-        "200": { description: Current cart }
+        "200":
+          description: Current cart
+        "400":
+          $ref: "#/components/responses/BadRequest"
   /cart/items:
     post:
       tags: [Cart]
+      summary: Add an item to the current cart
       operationId: addCartItem
       responses:
-        "201": { description: Cart item created }
+        "201":
+          description: Cart item created
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /cart/items/{item}:
     patch:
       tags: [Cart]
+      summary: Update a cart item
       operationId: updateCartItem
       parameters:
         - in: path
@@ -116,9 +168,13 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        "200": { description: Cart item updated }
+        "200":
+          description: Cart item updated
+        "422":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Cart]
+      summary: Remove a cart item
       operationId: deleteCartItem
       parameters:
         - in: path
@@ -126,25 +182,38 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        "204": { description: Cart item removed }
+        "204":
+          description: Cart item removed
+        "404":
+          $ref: "#/components/responses/NotFound"
   /checkout:
     post:
       tags: [Checkout]
+      summary: Create an order from the authenticated cart
       operationId: checkout
       security: [{ bearerAuth: [] }]
       responses:
-        "201": { description: Order created }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "201":
+          description: Order created
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /orders:
     get:
       tags: [Orders]
+      summary: List authenticated customer orders
       operationId: listOrders
       security: [{ bearerAuth: [] }]
       responses:
-        "200": { description: Authenticated order collection }
+        "200":
+          description: Authenticated order collection
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
   /orders/{order}:
     get:
       tags: [Orders]
+      summary: Get an authorized order
       operationId: showOrder
       security: [{ bearerAuth: [] }]
       parameters:
@@ -153,36 +222,62 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        "200": { description: Authorized order detail }
-        "404": { $ref: "#/components/responses/NotFound" }
+        "200":
+          description: Authorized order detail
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /b2b/products:
     get:
       tags: [B2B]
+      summary: List the approved B2B catalog
       operationId: listB2bProducts
       security: [{ bearerAuth: [] }]
       responses:
-        "200": { description: Approved B2B catalog }
+        "200":
+          description: Approved B2B catalog
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /b2b/orders:
     get:
       tags: [B2B]
+      summary: List B2B customer orders
       operationId: listB2bOrders
       security: [{ bearerAuth: [] }]
       responses:
-        "200": { description: B2B order collection }
+        "200":
+          description: B2B order collection
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /drivers/assignments:
     get:
       tags: [Drivers]
+      summary: List assignments for the authenticated driver role
       operationId: listDriverAssignments
       security: [{ bearerAuth: [] }]
       responses:
-        "200": { description: Assignments filtered by exact driver role/channel }
+        "200":
+          description: Assignments filtered by exact driver role and channel
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /notifications:
     get:
       tags: [Notifications]
+      summary: List notifications for the authenticated user
       operationId: listNotifications
       security: [{ bearerAuth: [] }]
       responses:
-        "200": { description: User notification collection }
+        "200":
+          description: User notification collection
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
 components:
   securitySchemes:
     bearerAuth:
@@ -218,8 +313,18 @@ components:
         code: { type: [string, "null"] }
         errors: { type: [object, "null"], additionalProperties: true }
   responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     Unauthenticated:
       description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Authenticated but not authorized
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
