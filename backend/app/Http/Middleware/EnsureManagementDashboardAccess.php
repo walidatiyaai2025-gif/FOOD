@@ -10,9 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureManagementDashboardAccess
 {
-    public function __construct(private readonly AdminNavigation $navigation)
-    {
-    }
+    public function __construct(private readonly AdminNavigation $navigation) {}
 
     public function handle(Request $request, Closure $next): Response
     {
