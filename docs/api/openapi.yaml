@@ -185,6 +185,26 @@ paths:
           schema:
             type: string
             maxLength: 120
+        - in: query
+          name: min_price
+          schema:
+            type: number
+            minimum: 0
+        - in: query
+          name: max_price
+          schema:
+            type: number
+            minimum: 0
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [name, price]
+        - in: query
+          name: direction
+          schema:
+            type: string
+            enum: [asc, desc]
       responses:
         "200":
           description: Product collection
@@ -223,6 +243,7 @@ paths:
         - $ref: "#/components/parameters/ProductId"
         - in: query
           name: store
+          required: true
           description: Store context used for active availability and B2C pricing.
           schema:
             type: integer
