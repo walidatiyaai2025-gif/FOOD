@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Updater\LaravelUpdateRuntime;
+use App\Domain\Updater\UpdateRuntime;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -14,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
     }
 
     public function boot(): void
