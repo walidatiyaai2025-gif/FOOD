@@ -43,7 +43,7 @@
 <div class="layout">
     <aside>
         <h1>FOODEX</h1>
-        <p>FOODEX Setup Wizard<br>معالج الإعداد الأولي / First-run Setup Wizard</p>
+        <p>معالج الإعداد الأولي / First-run Setup Wizard</p>
         <ol>
             @foreach ($steps as $number => $item)
                 @php($done = $number <= $completedStep)
@@ -102,15 +102,17 @@
                 <input type="hidden" name="installer_token" value="{{ $installerToken }}">
 
                 @if ($currentStep === 1)
-                    <div class="notice">سيتم تنفيذ الإعداد بالتتابع. لا تُسجل كلمات المرور أو مفاتيح الاتصال في السجلات، ويُغلق المعالج نهائيًا بعد نجاح التثبيت.</div>
+                    <div class="notice">سيتم تنفيذ الإعداد بالتتابع، ولن يتم عرض كلمات المرور المخزنة أو الأسرار مرة أخرى.</div>
                 @elseif ($currentStep === 4)
                     <div class="fields" dir="ltr">
                         <label>Database host<input name="db_host" value="{{ $input['db_host'] ?? ($values['DB_HOST'] ?: '127.0.0.1') }}" required></label>
                         <label>Port<input name="db_port" type="number" min="1" max="65535" value="{{ $input['db_port'] ?? ($values['DB_PORT'] ?: '5432') }}" required></label>
                         <label>Database<input name="db_database" value="{{ $input['db_database'] ?? ($values['DB_DATABASE'] ?: 'foodex') }}" required></label>
                         <label>Username<input name="db_username" value="{{ $input['db_username'] ?? ($values['DB_USERNAME'] ?: 'foodex') }}" required></label>
-                        <label class="full">Password<input name="db_password" type="password" value=""><small>لا يتم عرض كلمة المرور المخزنة مرة أخرى.</small></label>
+                        <label class="full">Password<input name="db_password" type="password" value=""><small>Stored passwords are never rendered back.</small></label>
                     </div>
+                @elseif ($currentStep === 5)
+                    <div class="notice">سيتم اختبار اتصال قاعدة البيانات باستخدام الإعدادات المحفوظة.</div>
                 @elseif ($currentStep === 6)
                     <div class="fields">
                         <label>اسم المنصة<input name="app_name" value="{{ $input['app_name'] ?? ($values['APP_NAME'] ?: 'FOODEX') }}" required></label>
@@ -127,10 +129,13 @@
                         <label>الاسم<input name="admin_name" value="{{ $input['admin_name'] ?? '' }}" required></label>
                         <label dir="ltr">Email<input name="admin_email" type="email" value="{{ $input['admin_email'] ?? '' }}" required></label>
                         <label>اللغة
-                            <select name="admin_locale"><option value="ar">العربية</option><option value="en">English</option></select>
+                            <select name="admin_locale">
+                                <option value="ar">العربية</option>
+                                <option value="en">English</option>
+                            </select>
                         </label>
                         <label dir="ltr">Password<input name="admin_password" type="password" minlength="12" required></label>
-                        <label class="full" dir="ltr">Confirm password<input name="admin_password_confirmation" type="password" minlength="12" required><small>يتم حفظ hash فقط أثناء المعالج، وليس كلمة المرور الأصلية.</small></label>
+                        <label class="full" dir="ltr">Confirm password<input name="admin_password_confirmation" type="password" minlength="12" required></label>
                     </div>
                 @elseif ($currentStep === 8)
                     <div class="fields">
@@ -144,21 +149,37 @@
                 @elseif ($currentStep === 9)
                     <div class="fields" dir="ltr">
                         <label>Cache
-                            <select name="cache_store"><option value="redis" @selected(($input['cache_store'] ?? ($values['CACHE_STORE'] ?: 'redis')) === 'redis')>redis</option><option value="file" @selected(($input['cache_store'] ?? $values['CACHE_STORE']) === 'file')>file</option></select>
+                            <select name="cache_store">
+                                <option value="redis" @selected(($input['cache_store'] ?? ($values['CACHE_STORE'] ?: 'redis')) === 'redis')>redis</option>
+                                <option value="file" @selected(($input['cache_store'] ?? $values['CACHE_STORE']) === 'file')>file</option>
+                            </select>
                         </label>
                         <label>Queue
-                            <select name="queue_connection"><option value="redis" @selected(($input['queue_connection'] ?? ($values['QUEUE_CONNECTION'] ?: 'redis')) === 'redis')>redis</option><option value="sync" @selected(($input['queue_connection'] ?? $values['QUEUE_CONNECTION']) === 'sync')>sync</option></select>
+                            <select name="queue_connection">
+                                <option value="redis" @selected(($input['queue_connection'] ?? ($values['QUEUE_CONNECTION'] ?: 'redis')) === 'redis')>redis</option>
+                                <option value="sync" @selected(($input['queue_connection'] ?? $values['QUEUE_CONNECTION']) === 'sync')>sync</option>
+                            </select>
                         </label>
                         <label>Redis host<input name="redis_host" value="{{ $input['redis_host'] ?? ($values['REDIS_HOST'] ?: '127.0.0.1') }}"></label>
                         <label>Redis port<input name="redis_port" type="number" min="1" max="65535" value="{{ $input['redis_port'] ?? ($values['REDIS_PORT'] ?: '6379') }}"></label>
-                        <label class="full">Redis password<input name="redis_password" type="password" value=""><small>اتركها فارغة عندما لا يحتاج Redis إلى كلمة مرور.</small></label>
+                        <label class="full">Redis password<input name="redis_password" type="password" value=""></label>
                     </div>
                 @elseif ($currentStep === 10)
                     <div class="fields" dir="ltr">
                         <label>Mailer
-                            <select name="mail_mailer"><option value="log" @selected(($input['mail_mailer'] ?? ($values['MAIL_MAILER'] ?: 'log')) === 'log')>log</option><option value="array" @selected(($input['mail_mailer'] ?? $values['MAIL_MAILER']) === 'array')>array</option><option value="smtp" @selected(($input['mail_mailer'] ?? $values['MAIL_MAILER']) === 'smtp')>smtp</option></select>
+                            <select name="mail_mailer">
+                                <option value="log" @selected(($input['mail_mailer'] ?? ($values['MAIL_MAILER'] ?: 'log')) === 'log')>log</option>
+                                <option value="array" @selected(($input['mail_mailer'] ?? $values['MAIL_MAILER']) === 'array')>array</option>
+                                <option value="smtp" @selected(($input['mail_mailer'] ?? $values['MAIL_MAILER']) === 'smtp')>smtp</option>
+                            </select>
                         </label>
-                        <label>SMTP scheme<select name="mail_scheme"><option value="">default</option><option value="smtp" @selected(($input['mail_scheme'] ?? $values['MAIL_SCHEME']) === 'smtp')>smtp</option><option value="smtps" @selected(($input['mail_scheme'] ?? $values['MAIL_SCHEME']) === 'smtps')>smtps</option></select></label>
+                        <label>SMTP scheme
+                            <select name="mail_scheme">
+                                <option value="">default</option>
+                                <option value="smtp" @selected(($input['mail_scheme'] ?? $values['MAIL_SCHEME']) === 'smtp')>smtp</option>
+                                <option value="smtps" @selected(($input['mail_scheme'] ?? $values['MAIL_SCHEME']) === 'smtps')>smtps</option>
+                            </select>
+                        </label>
                         <label>SMTP host<input name="mail_host" value="{{ $input['mail_host'] ?? ($values['MAIL_HOST'] ?: '127.0.0.1') }}"></label>
                         <label>SMTP port<input name="mail_port" type="number" min="1" max="65535" value="{{ $input['mail_port'] ?? ($values['MAIL_PORT'] ?: '587') }}"></label>
                         <label>Username<input name="mail_username" value="{{ $input['mail_username'] ?? $values['MAIL_USERNAME'] }}"></label>
@@ -166,17 +187,26 @@
                         <label>From address<input name="mail_from_address" type="email" value="{{ $input['mail_from_address'] ?? ($values['MAIL_FROM_ADDRESS'] ?: 'noreply@example.com') }}" required></label>
                         <label>From name<input name="mail_from_name" value="{{ $input['mail_from_name'] ?? ($values['MAIL_FROM_NAME'] ?: 'FOODEX') }}" required></label>
                     </div>
-                @elseif ($currentStep === 5)
-                    <div class="notice">سيتم اختبار الاتصال باستخدام الإعدادات المحفوظة في الخطوة السابقة. تفاصيل credentials لا تظهر في رسالة الخطأ.</div>
                 @elseif ($currentStep === 11)
                     <div class="notice">سيتم تشغيل migrations المعتمدة فقط باستخدام <code>--force</code>.</div>
                 @elseif ($currentStep === 12)
-                    <div class="notice">سيتم تشغيل seed المعتمد للـroles والـpermissions والبيانات المرجعية الأساسية.</div>
+                    <div class="notice">سيتم تشغيل seed المعتمد للأدوار والصلاحيات والبيانات المرجعية الأساسية.</div>
                 @elseif ($currentStep === 13)
-                    <div class="notice">سيتم إنشاء <code>APP_KEY</code> عضb6)�)�b�6+6+�b�+�6b6+v`v.6a�6`vb�6ava6`H6)�a6*6b�)�*H6`v`�-ˏ�]���[�ZY�
-	�\��[��\OOHM
-B�]��\��H���X�H��,�b�*�aH6)�a6*�+v`�`�6ava�]X�\�H
-��ܘY�H
-��X�H
-�]Y]YH6`�*6a6)�a6,�av)�+H6*6)va�a�)�(H6)�a6*�*�*6b�*���]���[�ZY�
-	�\��[��\OOHMJB�]��\��H���X�H��,�b�*�aH6)va�-6)�(H�\\�YZ[�#6*�,�+6b�a6)v-v+�)�,H���V6)�a6+v)�a6b�6`vb���O��\�[Wݙ\��[ۜ����O�#6)va�-6)�(H[��[\����#6*�aH6*�+vb6b�a6`�6)va6bH6a6b6+v*H6)�a6)v+�)�,v*K��]���[�Y���]��\��H�X�[ۜȏ���]ۈ\OH��X�Z]����	�\��[��\OOHMH�	�)va�a�)�(H6)�a6*�*�*6b�*���	�av*�)�*6.v*I�_O؝]ۏ���]���ٛܛO����X�[ۏ���XZ[����]���؛�O���[�
+                    <div class="notice">سيتم إنشاء <code>APP_KEY</code> جديد وآمن للتثبيت.</div>
+                @elseif ($currentStep === 14)
+                    <div class="notice">سيتم التحقق من قاعدة البيانات والتخزين والـcache والـqueue قبل الإنهاء.</div>
+                @elseif ($currentStep === 15)
+                    <div class="notice">سيتم إنشاء حساب Super Admin النهائي، تسجيل نسخة النظام، كتابة install lock، ثم إغلاق المعالج.</div>
+                @endif
+
+                <div class="actions">
+                    <button type="submit">
+                        {{ $currentStep === 15 ? 'Finish / إنهاء التثبيت' : 'Continue / متابعة' }}
+                    </button>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+</body>
+</html>
