@@ -14,9 +14,10 @@ Route::prefix('v1')->group(function (): void {
         'message' => 'App version policy storage is prepared; policy evaluation is an implementation issue.',
     ]));
 
-    Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('/auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:login');
 
-    Route::middleware('auth:sanctum')->group(function (): void {
+    Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/profile', [AuthController::class, 'profile']);
     });
