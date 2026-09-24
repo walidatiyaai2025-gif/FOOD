@@ -9,4 +9,9 @@ class AppVersion extends Model
     protected $table = 'app_versions';
 
     protected $guarded = [];
+
+    protected function casts(): array
+    {
+        return ['force_update' => 'boolean'];
+    }
 }
