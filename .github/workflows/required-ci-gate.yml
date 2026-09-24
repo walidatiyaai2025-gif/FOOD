@@ -35,15 +35,174 @@ jobs:
           customer=false
           driver=false
 
-          if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$|\.github/workflows/required-ci-gate\.yml$)' changed-files.txt; then
+          if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$)' changed-files.txt; then
             backend=true
           fi
 
-          if grep -Eq '^apps/customer_app/' changed-files.txt; then
+          if grep -Eq '^(apps/customer_app/|packages/design_tokens/|\.github/workflows/customer-app-ci\.yml$)' changed-files.txt; then
             customer=true
           fi
 
-          if grep -Eq '^apps/driver_app/' changed-files.txt; then
+          if grep -Eq '^(apps/driver_app/|packages/design_tokens/|\.github/workflows/driver-app-ci\.yml$)' changed-files.txt; then
+            driver=true
+          fi
+
+          if grep -Eq '^\.github/workflows/required-ci-gate\.yml
+
+          {
+            echo "backend=$backend"
+            echo "customer=$customer"
+            echo "driver=$driver"
+          } >> "$GITHUB_OUTPUT"
+
+  repository-policy:
+    name: Repository Policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate repository foundation
+        run: ./scripts/validate-repo.sh
+
+      - name: Require issue-style PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="${{ github.head_ref }}"
+          [[ "$branch" =~ ^(feat|fix|chore|docs|refactor)/[0-9]+-[a-z0-9-]+$ ]]
+
+  backend-validation:
+    name: Backend validation
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    uses: ./.github/workflows/backend-ci.yml
+
+  customer-validation:
+    name: Customer validation
+    needs: changes
+    if: ${{ needs.changes.outputs.customer == 'true' }}
+    uses: ./.github/workflows/customer-app-ci.yml
+
+  driver-validation:
+    name: Driver Flutter validation
+    needs: changes
+    if: ${{ needs.changes.outputs.driver == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/driver_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Prepare Android/iOS scaffolding
+        run: flutter create --platforms=android,ios --project-name foodex_driver_app .
+
+      - name: Remove generated default widget test
+        run: rm -f test/widget_test.dart
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Android debug build
+        run: flutter build apk --debug
+
+  driver-ios-validation:
+    name: Driver iOS no-codesign validation
+    needs: changes
+    if: ${{ needs.changes.outputs.driver == 'true' }}
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apps/driver_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Prepare iOS scaffolding
+        run: flutter create --platforms=ios --project-name foodex_driver_app .
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: iOS debug build without codesign
+        run: flutter build ios --debug --no-codesign
+
+  required-ci-gate:
+    name: required-ci-gate
+    if: ${{ always() }}
+    needs:
+      - changes
+      - repository-policy
+      - backend-validation
+      - customer-validation
+      - driver-validation
+      - driver-ios-validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce applicable validation results
+        shell: bash
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          POLICY_RESULT: ${{ needs.repository-policy.result }}
+          BACKEND_CHANGED: ${{ needs.changes.outputs.backend }}
+          BACKEND_RESULT: ${{ needs.backend-validation.result }}
+          CUSTOMER_CHANGED: ${{ needs.changes.outputs.customer }}
+          CUSTOMER_RESULT: ${{ needs.customer-validation.result }}
+          DRIVER_CHANGED: ${{ needs.changes.outputs.driver }}
+          DRIVER_RESULT: ${{ needs.driver-validation.result }}
+          DRIVER_IOS_RESULT: ${{ needs.driver-ios-validation.result }}
+        run: |
+          set -euo pipefail
+
+          require_success() {
+            local name="$1"
+            local result="$2"
+            if [[ "$result" != "success" ]]; then
+              echo "::error::$name did not succeed (result: $result)"
+              exit 1
+            fi
+          }
+
+          require_applicable_success() {
+            local changed="$1"
+            local name="$2"
+            local result="$3"
+
+            if [[ "$changed" == "true" ]]; then
+              require_success "$name" "$result"
+            elif [[ "$result" != "skipped" && "$result" != "success" ]]; then
+              echo "::error::$name had unexpected result for unchanged area: $result"
+              exit 1
+            fi
+          }
+
+          require_success "Change detection" "$CHANGES_RESULT"
+          require_success "Repository Policy" "$POLICY_RESULT"
+
+          require_applicable_success "$BACKEND_CHANGED" "Backend validation" "$BACKEND_RESULT"
+          require_applicable_success "$CUSTOMER_CHANGED" "Customer Flutter validation" "$CUSTOMER_RESULT"
+          require_applicable_success "$DRIVER_CHANGED" "Driver Flutter validation" "$DRIVER_RESULT"
+          require_applicable_success "$DRIVER_CHANGED" "Driver iOS validation" "$DRIVER_IOS_RESULT"
+
+          echo "All required validations for changed areas passed."
+ changed-files.txt; then
+            backend=true
+            customer=true
             driver=true
           fi
 
