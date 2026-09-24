@@ -1,0 +1,50 @@
+<?php
+
+return [
+    'abilities' => [
+        'platform.manage' => 'Manage platform-wide settings and permissions',
+        'b2b.accounts.manage' => 'Manage B2B customer accounts',
+        'b2b.pricing.manage' => 'Manage B2B pricing and approvals',
+        'catalog.manage' => 'Manage products and catalog data',
+        'inventory.manage' => 'Manage inventory',
+        'orders.manage' => 'Manage orders',
+        'customers.manage' => 'Manage customer records',
+        'promotions.manage' => 'Manage promotions and storefront content',
+        'finance.manage' => 'Manage finance and invoices',
+        'reports.view' => 'View operational and business reports',
+        'support.manage' => 'Manage customer support operations',
+        'drivers.b2b.manage' => 'Manage B2B drivers and delivery operations',
+        'drivers.b2c.manage' => 'Manage B2C drivers and delivery operations',
+        'deliveries.b2b.execute' => 'Execute B2B delivery assignments',
+        'deliveries.b2c.execute' => 'Execute B2C delivery assignments',
+    ],
+
+    'roles' => [
+        'SUPER_ADMIN' => ['*'],
+        'B2B_ADMIN' => [
+            'b2b.accounts.manage',
+            'b2b.pricing.manage',
+            'catalog.manage',
+            'inventory.manage',
+            'orders.manage',
+            'finance.manage',
+            'reports.view',
+            'drivers.b2b.manage',
+        ],
+        'B2C_STORE_ADMIN' => [
+            'catalog.manage',
+            'inventory.manage',
+            'orders.manage',
+            'customers.manage',
+            'promotions.manage',
+            'reports.view',
+            'drivers.b2c.manage',
+        ],
+        'OPERATIONS' => ['orders.manage', 'drivers.b2b.manage', 'drivers.b2c.manage', 'reports.view'],
+        'INVENTORY' => ['catalog.manage', 'inventory.manage'],
+        'FINANCE' => ['finance.manage', 'reports.view'],
+        'CUSTOMER_SUPPORT' => ['support.manage', 'customers.manage', 'orders.manage'],
+        'B2B_DRIVER' => ['deliveries.b2b.execute'],
+        'B2C_DRIVER' => ['deliveries.b2c.execute'],
+    ],
+];
