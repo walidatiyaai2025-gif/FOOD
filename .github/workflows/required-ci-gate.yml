@@ -88,63 +88,10 @@ jobs:
     uses: ./.github/workflows/customer-app-ci.yml
 
   driver-validation:
-    name: Driver Flutter validation
+    name: Driver validation
     needs: changes
     if: ${{ needs.changes.outputs.driver == 'true' }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/driver_app
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Prepare Android/iOS scaffolding
-        run: flutter create --platforms=android,ios --project-name foodex_driver_app .
-
-      - name: Remove generated default widget test
-        run: rm -f test/widget_test.dart
-
-      - name: Resolve dependencies
-        run: flutter pub get
-
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Test
-        run: flutter test
-
-      - name: Android debug build
-        run: flutter build apk --debug
-
-  driver-ios-validation:
-    name: Driver iOS no-codesign validation
-    needs: changes
-    if: ${{ needs.changes.outputs.driver == 'true' }}
-    runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: apps/driver_app
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Prepare iOS scaffolding
-        run: flutter create --platforms=ios --project-name foodex_driver_app .
-
-      - name: Resolve dependencies
-        run: flutter pub get
-
-      - name: iOS debug build without codesign
-        run: flutter build ios --debug --no-codesign
+    uses: ./.github/workflows/driver-app-ci.yml
 
   required-ci-gate:
     name: required-ci-gate
@@ -155,7 +102,6 @@ jobs:
       - backend-validation
       - customer-validation
       - driver-validation
-      - driver-ios-validation
     runs-on: ubuntu-latest
     steps:
       - name: Enforce applicable validation results
@@ -169,7 +115,6 @@ jobs:
           CUSTOMER_RESULT: ${{ needs.customer-validation.result }}
           DRIVER_CHANGED: ${{ needs.changes.outputs.driver }}
           DRIVER_RESULT: ${{ needs.driver-validation.result }}
-          DRIVER_IOS_RESULT: ${{ needs.driver-ios-validation.result }}
         run: |
           set -euo pipefail
 
@@ -200,7 +145,6 @@ jobs:
 
           require_applicable_success "$BACKEND_CHANGED" "Backend validation" "$BACKEND_RESULT"
           require_applicable_success "$CUSTOMER_CHANGED" "Customer validation" "$CUSTOMER_RESULT"
-          require_applicable_success "$DRIVER_CHANGED" "Driver Flutter validation" "$DRIVER_RESULT"
-          require_applicable_success "$DRIVER_CHANGED" "Driver iOS validation" "$DRIVER_IOS_RESULT"
+          require_applicable_success "$DRIVER_CHANGED" "Driver validation" "$DRIVER_RESULT"
 
           echo "All required validations for changed areas passed."
