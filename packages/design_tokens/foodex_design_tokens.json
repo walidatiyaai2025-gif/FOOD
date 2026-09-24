@@ -1,0 +1,45 @@
+{
+  "note": "Reference tokens derived from approved visual direction. Calibrate against original brand/Figma before production.",
+  "colors": {
+    "brand": {
+      "primary_900": "#004B35",
+      "primary_800": "#005C3F",
+      "primary_700": "#087347",
+      "primary_600": "#0B8A50",
+      "primary_500": "#16A05D",
+      "accent_lime": "#9BEA4B",
+      "surface_mint": "#EAF7F0",
+      "surface_soft": "#F6FBF8"
+    },
+    "semantic": {
+      "success": "#22C55E",
+      "warning": "#F59E0B",
+      "error": "#EF4444",
+      "info": "#2F80ED"
+    },
+    "neutral": {
+      "text_primary": "#0D2430",
+      "text_secondary": "#667A73",
+      "border": "#D8E7E1",
+      "white": "#FFFFFF",
+      "black": "#111827"
+    }
+  },
+  "spacing_px": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_px": {
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "pill": 999
+  },
+  "rtl": true
+}
