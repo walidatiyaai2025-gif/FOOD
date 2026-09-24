@@ -106,6 +106,35 @@ class CoreSchemaTest extends TestCase
         }
     }
 
+    public function test_core_schema_index_migration_can_be_rolled_back_and_reapplied(): void
+    {
+        $migration = require database_path(
+            'migrations/2026_09_24_000600_harden_core_schema_indexes.php',
+        );
+
+        $migration->down();
+
+        $this->assertNotContains(
+            'orders_store_channel_status_idx',
+            array_column(Schema::getIndexes('orders'), 'name'),
+        );
+        $this->assertNotContains(
+            'stores_type_active_idx',
+            array_column(Schema::getIndexes('stores'), 'name'),
+        );
+
+        $migration->up();
+
+        $this->assertContains(
+            'orders_store_channel_status_idx',
+            array_column(Schema::getIndexes('orders'), 'name'),
+        );
+        $this->assertContains(
+            'stores_type_active_idx',
+            array_column(Schema::getIndexes('stores'), 'name'),
+        );
+    }
+
     public function test_store_role_assignment_is_unique(): void
     {
         $fixture = $this->createStoreRoleAssignmentFixture();
