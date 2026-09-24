@@ -4,9 +4,12 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
+use App\Http\Controllers\Api\V1\HealthController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
+    Route::get('/health', HealthController::class);
+
     Route::get('/version', fn () => response()->json([
         'api' => 'v1',
         'platform_version' => trim((string) @file_get_contents(base_path('../VERSION'))),
