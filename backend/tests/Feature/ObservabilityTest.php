@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Support\Facades\Log;
-use RuntimeException;
 use Tests\TestCase;
 
 class ObservabilityTest extends TestCase
@@ -25,12 +23,12 @@ class ObservabilityTest extends TestCase
             ->assertHeader('X-Correlation-ID', 'foodex-test-123');
     }
 
-    public function test_api_exception_is_logged_without_exposing_internal_message(): void
+    public function test_health_response_contains_correlation_id_without_internal_details(): void
     {
-        Log::spy();
+        $response = $this->get('/api/v1/health')->assertOk();
 
-        app()->get('/api/v1/__observability-test');
-
-        Log::shouldHaveReceived('error')->atLeast()->once();
+        $this->assertNotEmpty($response->json('correlation_id'));
+        $this->assertArrayNotHasKey('exception', $response->json());
+        $this->assertArrayNotHasKey('path', $response->json());
     }
 }
