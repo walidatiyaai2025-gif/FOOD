@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\App;
 
 class AdminShellController extends Controller
 {
-    public function __construct(private readonly AdminNavigation $navigation)
-    {
-    }
+    public function __construct(private readonly AdminNavigation $navigation) {}
 
     public function index(Request $request): View
     {
