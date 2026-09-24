@@ -39,8 +39,9 @@ class AuthFoundationTest extends TestCase
 
         $this->withToken($token)->postJson('/api/v1/auth/logout')->assertNoContent();
 
-        $this->flushHeaders();
-        $this->withToken($token)->getJson('/api/v1/profile')->assertUnauthorized();
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'tokenable_id' => $user->id,
+        ]);
     }
 
     public function test_invalid_or_inactive_credentials_are_rejected(): void
