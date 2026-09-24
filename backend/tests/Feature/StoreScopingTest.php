@@ -216,7 +216,7 @@ class StoreScopingTest extends TestCase
             Setting::query()->create([
                 'store_id' => $store->id,
                 'key' => 'scope.key.'.$store->id,
-                'value' => ['enabled' => true],
+                'value' => json_encode(['enabled' => true], JSON_THROW_ON_ERROR),
             ]);
         }
 
