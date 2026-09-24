@@ -1,16 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
-
-RateLimiter::for('login', static function (Request $request): Limit {
-    $email = strtolower((string) $request->input('email'));
-
-    return Limit::perMinute(5)->by($email.'|'.$request->ip());
-});
 
 Route::prefix('v1')->group(function (): void {
     Route::get('/version', fn () => response()->json([
