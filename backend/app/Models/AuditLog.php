@@ -9,4 +9,9 @@ class AuditLog extends Model
     protected $table = 'audit_logs';
 
     protected $guarded = [];
+
+    protected function casts(): array
+    {
+        return ['before' => 'array', 'after' => 'array'];
+    }
 }
