@@ -59,6 +59,10 @@
             </a>
         @endforeach
 
+        @can('platform.manage')
+            <a class="nav-link" href="{{ route('admin.app-versions.index') }}">App Versions</a>
+        @endcan
+
         @can('system.update')
             <a class="nav-link" href="{{ route('admin.system-update.index') }}">System Update</a>
         @endcan

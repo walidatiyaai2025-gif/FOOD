@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AppVersionController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
@@ -15,10 +16,7 @@ Route::prefix('v1')->group(function (): void {
         'platform_version' => trim((string) @file_get_contents(base_path('../VERSION'))),
     ]));
 
-    Route::get('/app-version', fn () => response()->json([
-        'status' => 'foundation',
-        'message' => 'App version policy storage is prepared; policy evaluation is an implementation issue.',
-    ]));
+    Route::get('/app-version', AppVersionController::class);
 
     Route::post('/auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:login');
