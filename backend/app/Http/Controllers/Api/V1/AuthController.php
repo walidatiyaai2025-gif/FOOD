@@ -7,7 +7,9 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
@@ -19,15 +21,17 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::query()->where('email', $credentials['email'])->first();
+        $email = Str::lower($credentials['email']);
+
+        $user = User::query()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->first();
 
         if (! $user || ! $user->is_active || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are invalid.'],
             ]);
         }
-
-        $user->tokens()->delete();
 
         return response()->json([
             'token' => $user->createToken('foodex-client')->plainTextToken,
@@ -38,15 +42,20 @@ class AuthController extends Controller
 
     public function logout(Request $request): Response
     {
-        $request->user()?->currentAccessToken()?->delete();
+        $accessToken = $request->user()?->currentAccessToken();
+
+        if ($accessToken instanceof PersonalAccessToken) {
+            $accessToken->delete();
+        }
 
         return response()->noContent();
     }
 
     public function profile(Request $request): JsonResponse
     {
-        /** @var User $user */
         $user = $request->user();
+
+        abort_unless($user instanceof User, 401);
 
         return response()->json($this->identity($user));
     }
@@ -54,29 +63,27 @@ class AuthController extends Controller
     /** @return array{id:int,name:string,email:string,locale:string,roles:list<string>,store_ids:list<int>} */
     private function identity(User $user): array
     {
-        $roles = $user->newQuery()
-            ->whereKey($user->getKey())
-            ->join('role_user', 'users.id', '=', 'role_user.user_id')
-            ->join('roles', 'roles.id', '=', 'role_user.role_id')
+        $roles = $user->roles()
+            ->orderBy('roles.code')
             ->pluck('roles.code')
-            ->unique()
+            ->map(static fn ($code): string => (string) $code)
             ->values()
             ->all();
 
-        $storeIds = $user->newQuery()
-            ->whereKey($user->getKey())
-            ->join('user_store_roles', 'users.id', '=', 'user_store_roles.user_id')
-            ->pluck('user_store_roles.store_id')
-            ->unique()
-            ->values()
+        $storeIds = $user->storeRoleAssignments()
+            ->select('store_id')
+            ->distinct()
+            ->orderBy('store_id')
+            ->pluck('store_id')
             ->map(static fn ($id): int => (int) $id)
+            ->values()
             ->all();
 
         return [
             'id' => (int) $user->getKey(),
-            'name' => $user->name,
-            'email' => $user->email,
-            'locale' => $user->locale,
+            'name' => (string) $user->name,
+            'email' => (string) $user->email,
+            'locale' => (string) $user->locale,
             'roles' => $roles,
             'store_ids' => $storeIds,
         ];
