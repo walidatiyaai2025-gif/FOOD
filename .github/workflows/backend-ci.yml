@@ -1,40 +1,66 @@
 name: Backend CI
+
 on:
-  pull_request:
-    paths: ["backend/**","docs/api/openapi.yaml",".github/workflows/backend-ci.yml"]
-  push:
-    branches: ["chore/1-bootstrap-foundation"]
+  workflow_call:
+
 permissions:
   contents: read
+
 jobs:
   backend:
+    name: Backend validation
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
           extensions: mbstring, intl, pdo_sqlite
           coverage: none
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: cp .env.example .env
-      - run: php artisan key:generate
-      - run: touch database/database.sqlite
-      - run: php artisan migrate:fresh --force
+
+      - name: Validate Composer manifest
+        run: composer validate --strict --no-check-lock
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare test environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+
+      - name: Validate fresh migrations
+        run: php artisan migrate:fresh --force
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite
-      - run: php artisan db:seed --force
+
+      - name: Validate deterministic seed data
+        run: php artisan db:seed --force
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite
-      - run: composer test
-      - run: composer lint
-      - run: composer analyse
-      - run: composer audit
-      - name: Validate OpenAPI
+
+      - name: Run backend tests
+        run: composer test
+
+      - name: Run backend lint
+        run: composer lint
+
+      - name: Run backend static analysis
+        run: composer analyse
+
+      - name: Run Composer security audit
+        run: composer audit
+
+      - name: Validate OpenAPI contract
         working-directory: .
         run: npx --yes @redocly/cli@latest lint docs/api/openapi.yaml
