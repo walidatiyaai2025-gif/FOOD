@@ -126,6 +126,39 @@ class GuestBrowsingTest extends TestCase
             ->assertJsonPath('data.0.name', 'Guest Offer');
     }
 
+    public function test_catalog_filters_paginates_and_requires_store_scoped_product_detail(): void
+    {
+        $this->getJson("/api/v1/stores/{$this->storeId}/products?q=Guest&min_price=1&max_price=1.3&sort=price&direction=desc&per_page=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $this->productId)
+            ->assertJsonPath('meta.per_page', 1);
+
+        $this->getJson("/api/v1/stores/{$this->storeId}/products?min_price=2&max_price=1")
+            ->assertUnprocessable();
+
+        $this->getJson("/api/v1/products/{$this->productId}")
+            ->assertUnprocessable();
+
+        DB::table('store_products')->where('store_id', $this->otherStoreId)->where('product_id', $this->productId)->update(['is_active' => false]);
+
+        $this->getJson("/api/v1/products/{$this->productId}?store={$this->otherStoreId}")
+            ->assertNotFound();
+    }
+
+    public function test_inactive_catalog_rows_and_expired_offers_are_hidden(): void
+    {
+        DB::table('products')->where('id', $this->productId)->update(['is_active' => false]);
+
+        $this->getJson("/api/v1/stores/{$this->storeId}/products")->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson("/api/v1/stores/{$this->storeId}/categories")->assertOk()->assertJsonCount(0, 'data');
+
+        DB::table('products')->where('id', $this->productId)->update(['is_active' => true]);
+        DB::table('promotions')->where('store_id', $this->storeId)->update(['ends_at' => now()->subMinute()]);
+
+        $this->getJson("/api/v1/stores/{$this->storeId}/offers")->assertOk()->assertJsonCount(0, 'data');
+    }
+
     public function test_guest_cart_is_created_and_mutated_with_opaque_token(): void
     {
         $empty = $this->getJson("/api/v1/cart?store={$this->storeId}")
