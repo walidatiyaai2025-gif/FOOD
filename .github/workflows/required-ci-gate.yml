@@ -35,15 +35,21 @@ jobs:
           customer=false
           driver=false
 
-          if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$|\.github/workflows/required-ci-gate\.yml$)' changed-files.txt; then
+          if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$)' changed-files.txt; then
             backend=true
           fi
 
-          if grep -Eq '^apps/customer_app/' changed-files.txt; then
+          if grep -Eq '^(apps/customer_app/|packages/design_tokens/|\.github/workflows/customer-app-ci\.yml$)' changed-files.txt; then
             customer=true
           fi
 
-          if grep -Eq '^apps/driver_app/' changed-files.txt; then
+          if grep -Eq '^(apps/driver_app/|packages/design_tokens/|\.github/workflows/driver-app-ci\.yml$)' changed-files.txt; then
+            driver=true
+          fi
+
+          if grep -Eq '^\.github/workflows/required-ci-gate\.yml$' changed-files.txt; then
+            backend=true
+            customer=true
             driver=true
           fi
 
@@ -76,63 +82,10 @@ jobs:
     uses: ./.github/workflows/backend-ci.yml
 
   customer-validation:
-    name: Customer Flutter validation
+    name: Customer validation
     needs: changes
     if: ${{ needs.changes.outputs.customer == 'true' }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/customer_app
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Prepare Android/iOS scaffolding
-        run: flutter create --platforms=android,ios --project-name foodex_customer_app .
-
-      - name: Remove generated default widget test
-        run: rm -f test/widget_test.dart
-
-      - name: Resolve dependencies
-        run: flutter pub get
-
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Test
-        run: flutter test
-
-      - name: Android debug build
-        run: flutter build apk --debug
-
-  customer-ios-validation:
-    name: Customer iOS no-codesign validation
-    needs: changes
-    if: ${{ needs.changes.outputs.customer == 'true' }}
-    runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: apps/customer_app
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Prepare iOS scaffolding
-        run: flutter create --platforms=ios --project-name foodex_customer_app .
-
-      - name: Resolve dependencies
-        run: flutter pub get
-
-      - name: iOS debug build without codesign
-        run: flutter build ios --debug --no-codesign
+    uses: ./.github/workflows/customer-app-ci.yml
 
   driver-validation:
     name: Driver Flutter validation
@@ -201,7 +154,6 @@ jobs:
       - repository-policy
       - backend-validation
       - customer-validation
-      - customer-ios-validation
       - driver-validation
       - driver-ios-validation
     runs-on: ubuntu-latest
@@ -215,7 +167,6 @@ jobs:
           BACKEND_RESULT: ${{ needs.backend-validation.result }}
           CUSTOMER_CHANGED: ${{ needs.changes.outputs.customer }}
           CUSTOMER_RESULT: ${{ needs.customer-validation.result }}
-          CUSTOMER_IOS_RESULT: ${{ needs.customer-ios-validation.result }}
           DRIVER_CHANGED: ${{ needs.changes.outputs.driver }}
           DRIVER_RESULT: ${{ needs.driver-validation.result }}
           DRIVER_IOS_RESULT: ${{ needs.driver-ios-validation.result }}
@@ -248,8 +199,7 @@ jobs:
           require_success "Repository Policy" "$POLICY_RESULT"
 
           require_applicable_success "$BACKEND_CHANGED" "Backend validation" "$BACKEND_RESULT"
-          require_applicable_success "$CUSTOMER_CHANGED" "Customer Flutter validation" "$CUSTOMER_RESULT"
-          require_applicable_success "$CUSTOMER_CHANGED" "Customer iOS validation" "$CUSTOMER_IOS_RESULT"
+          require_applicable_success "$CUSTOMER_CHANGED" "Customer validation" "$CUSTOMER_RESULT"
           require_applicable_success "$DRIVER_CHANGED" "Driver Flutter validation" "$DRIVER_RESULT"
           require_applicable_success "$DRIVER_CHANGED" "Driver iOS validation" "$DRIVER_IOS_RESULT"
 
