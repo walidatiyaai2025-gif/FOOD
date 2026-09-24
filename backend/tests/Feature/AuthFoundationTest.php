@@ -38,6 +38,8 @@ class AuthFoundationTest extends TestCase
             ->assertJsonPath('email', $user->email);
 
         $this->withToken($token)->postJson('/api/v1/auth/logout')->assertNoContent();
+
+        $this->flushHeaders();
         $this->withToken($token)->getJson('/api/v1/profile')->assertUnauthorized();
     }
 
