@@ -60,7 +60,7 @@ final class InstallerEnvironment
 
         @chmod($temporary, 0600);
 
-        if (!@rename($temporary, $path)) {
+        if (! @rename($temporary, $path)) {
             @unlink($temporary);
             throw new RuntimeException('Environment configuration could not be finalized.');
         }
@@ -114,7 +114,7 @@ final class InstallerEnvironment
 
         $directory = dirname($path);
 
-        if (! is_dir($directory) && !@mkdir($directory, 0750, true) && ! is_dir($directory)) {
+        if (! is_dir($directory) && ! @mkdir($directory, 0750, true) && ! is_dir($directory)) {
             throw new RuntimeException('Environment directory is not writable.');
         }
 
@@ -145,7 +145,7 @@ final class InstallerEnvironment
         }
 
         return '"'.str_replace(
-            ["\\", '"', "\r", "\n"],
+            ['\\', '"', "\r", "\n"],
             ["\\\\", '\\"', '\\r', '\\n'],
             $string,
         ).'"';
