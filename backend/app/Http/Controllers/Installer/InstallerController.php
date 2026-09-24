@@ -159,11 +159,11 @@ class InstallerController extends Controller
                         'mail_password' => ['nullable', 'string', 'max:512'],
                         'mail_scheme' => ['nullable', 'in:smtp,smtps'],
                         'mail_from_address' => ['required', 'email', 'max:255'],
-                        'mail_from_name' => ['required', 'string','max:120'],
+                        'mail_from_name' => ['required', 'string', 'max:120'],
                     ]);
                     $workflow->saveMailConfiguration([
                         'mailer' => (string) $validated['mail_mailer'],
-                       'host' => (string) ($validated['mail_host'] ?? ''),
+                        'host' => (string) ($validated['mail_host'] ?? ''),
                         'port' => (int) ($validated['mail_port'] ?? 587),
                         'username' => (string) ($validated['mail_username'] ?? ''),
                         'password' => (string) ($validated['mail_password'] ?? ''),
