@@ -57,6 +57,10 @@ class GuestCatalogController extends Controller
         $validated = $request->validate([
             'category' => ['nullable', 'integer', 'min:1'],
             'q' => ['nullable', 'string', 'max:120'],
+            'min_price' => ['nullable', 'numeric', 'min:0'],
+            'max_price' => ['nullable', 'numeric', 'min:0', 'gte:min_price'],
+            'sort' => ['nullable', 'in:name,price'],
+            'direction' => ['nullable', 'in:asc,desc'],
         ]);
 
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
@@ -81,7 +85,20 @@ class GuestCatalogController extends Controller
             });
         }
 
+        if (isset($validated['min_price'])) {
+            $query->where('store_products.price', '>=', $validated['min_price']);
+        }
+
+        if (isset($validated['max_price'])) {
+            $query->where('store_products.price', '<=', $validated['max_price']);
+        }
+
+        $sort = $validated['sort'] ?? 'name';
+        $direction = $validated['direction'] ?? 'asc';
+        $sortColumn = $sort === 'price' ? 'store_products.price' : 'products.name';
+
         $products = $query
+            ->orderBy($sortColumn, $direction)
             ->orderBy('products.id')
             ->paginate($perPage);
 
@@ -103,29 +120,25 @@ class GuestCatalogController extends Controller
 
     public function product(Request $request, int $product): JsonResponse
     {
-        $storeId = $request->integer('store');
-
-        if ($storeId > 0) {
-            $this->activeB2cStore($storeId);
-        }
+        $validated = $request->validate([
+            'store' => ['required', 'integer', 'min:1'],
+        ]);
+        $storeId = (int) $validated['store'];
+        $this->activeB2cStore($storeId);
 
         $item = Product::query()
             ->whereKey($product)
             ->where('is_active', true)
             ->firstOrFail();
 
-        $price = null;
+        $storeProduct = DB::table('store_products')
+            ->where('store_id', $storeId)
+            ->where('product_id', $item->id)
+            ->where('is_active', true)
+            ->first();
 
-        if ($storeId > 0) {
-            $storeProduct = DB::table('store_products')
-                ->where('store_id', $storeId)
-                ->where('product_id', $item->id)
-                ->where('is_active', true)
-                ->first();
-
-            abort_if($storeProduct === null, 404);
-            $price = $storeProduct->price;
-        }
+        abort_if($storeProduct === null, 404);
+        $price = $storeProduct->price;
 
         $images = DB::table('product_images')
             ->where('product_id', $item->id)
