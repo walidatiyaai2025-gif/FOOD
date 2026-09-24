@@ -40,7 +40,9 @@ class AuditLogger
 
     public function redact(?array $values): ?array
     {
-        if ($values === null) return null;
+        if ($values === null) {
+            return null;
+        }
 
         $clean = [];
         foreach ($values as $key => $value) {
@@ -61,7 +63,9 @@ class AuditLogger
         $normalized = strtolower(str_replace(['-', ' '], '_', $key));
 
         foreach (self::SENSITIVE_KEYS as $sensitive) {
-            if ($normalized === $sensitive || str_ends_with($normalized, '_'.$sensitive)) return true;
+            if ($normalized === $sensitive || str_ends_with($normalized, '_'.$sensitive)) {
+                return true;
+            }
         }
 
         return false;
