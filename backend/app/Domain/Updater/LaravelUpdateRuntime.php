@@ -452,7 +452,6 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     private function runProcess(array $command, array $extraEnvironment = []): void
     {
         $environment = getenv();
-        $environment = is_array($environment) ? $environment : [];
 
         foreach ($extraEnvironment as $key => $value) {
             $environment[$key] = $value;
