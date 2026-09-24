@@ -43,7 +43,7 @@
 <div class="layout">
     <aside>
         <h1>FOODEX</h1>
-        <p>معالج الإعداد الأولي / First-run Setup Wizard</p>
+        <p>FOODEX Setup Wizard<br>معالج الإعداد الأولي / First-run Setup Wizard</p>
         <ol>
             @foreach ($steps as $number => $item)
                 @php($done = $number <= $completedStep)
