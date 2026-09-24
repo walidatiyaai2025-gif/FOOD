@@ -11,7 +11,8 @@ trait ScopesStoreAccess
 {
     /**
      * @template TModel of Model
-     * @param Builder<TModel> $query
+     *
+     * @param  Builder<TModel>  $query
      * @return Builder<TModel>
      */
     public function scopeAccessibleTo(Builder $query, User $user): Builder

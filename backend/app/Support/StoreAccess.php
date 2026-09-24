@@ -32,7 +32,8 @@ final class StoreAccess
 
     /**
      * @template TModel of Model
-     * @param Builder<TModel> $query
+     *
+     * @param  Builder<TModel>  $query
      * @return Builder<TModel>
      */
     public function scopeStores(Builder $query, User $user): Builder
@@ -49,7 +50,8 @@ final class StoreAccess
 
     /**
      * @template TModel of Model
-     * @param Builder<TModel> $query
+     *
+     * @param  Builder<TModel>  $query
      * @return Builder<TModel>
      */
     public function scopeStoreOwned(Builder $query, User $user, string $storeColumn = 'store_id'): Builder

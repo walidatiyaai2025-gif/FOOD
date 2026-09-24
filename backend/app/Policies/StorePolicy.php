@@ -8,9 +8,7 @@ use App\Support\StoreAccess;
 
 class StorePolicy
 {
-    public function __construct(private readonly StoreAccess $storeAccess)
-    {
-    }
+    public function __construct(private readonly StoreAccess $storeAccess) {}
 
     public function viewAny(User $user): bool
     {
