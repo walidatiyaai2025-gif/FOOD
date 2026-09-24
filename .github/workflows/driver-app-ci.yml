@@ -1,0 +1,35 @@
+name: Driver App CI
+on:
+  pull_request:
+    paths: ["apps/driver_app/**","packages/design_tokens/**",".github/workflows/driver-app-ci.yml"]
+  push:
+    branches: ["chore/1-bootstrap-foundation"]
+permissions:
+  contents: read
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/driver_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter create --platforms=android,ios --project-name foodex_driver_app .
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build apk --debug
+  ios-validate:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apps/driver_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter create --platforms=ios --project-name foodex_driver_app .
+      - run: flutter pub get
+      - run: flutter build ios --debug --no-codesign

@@ -1,0 +1,18 @@
+name: Repository Policy
+on:
+  pull_request:
+  push:
+    branches: ["chore/1-bootstrap-foundation"]
+permissions:
+  contents: read
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/validate-repo.sh
+      - name: Require issue-style PR branch
+        if: github.event_name == 'pull_request'
+        run: |
+          branch="${{ github.head_ref }}"
+          [[ "$branch" =~ ^(feat|fix|chore|docs|refactor)/[0-9]+-[a-z0-9-]+$ ]]

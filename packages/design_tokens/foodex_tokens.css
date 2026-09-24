@@ -1,0 +1,20 @@
+:root {
+  --foodex-brand-primary-900: #004B35;
+  --foodex-brand-primary-800: #005C3F;
+  --foodex-brand-primary-700: #087347;
+  --foodex-brand-primary-600: #0B8A50;
+  --foodex-brand-primary-500: #16A05D;
+  --foodex-brand-accent-lime: #9BEA4B;
+  --foodex-brand-surface-mint: #EAF7F0;
+  --foodex-brand-surface-soft: #F6FBF8;
+  --foodex-semantic-success: #22C55E;
+  --foodex-semantic-warning: #F59E0B;
+  --foodex-semantic-error: #EF4444;
+  --foodex-semantic-info: #2F80ED;
+  --foodex-neutral-text-primary: #0D2430;
+  --foodex-neutral-text-secondary: #667A73;
+  --foodex-neutral-border: #D8E7E1;
+  --foodex-neutral-white: #FFFFFF;
+  --foodex-neutral-black: #111827;
+}
+html[dir="rtl"] { direction: rtl; }
