@@ -11,3 +11,7 @@ FOODEX is one commerce platform in one monorepo:
 The repository is in Bootstrap/Foundation phase. Product feature development is blocked until the bootstrap report says READY TO START IMPLEMENTATION: YES.
 
 The repository was initially empty, so GitHub required one minimal seed commit on main before an issue branch could exist. Commit 0a918d3dda373390d1962a8c049056737ffc1108 is that one-time seed exception. All substantive work starts on Issue #1 / chore/1-bootstrap-foundation and enters main through Pull Request.
+## Product execution
+
+The authoritative post-foundation implementation queue is in [`docs/PRODUCT_COMPLETION_PLAN.md`](docs/PRODUCT_COMPLETION_PLAN.md). Workers and the Coordinator must use that plan to instantiate atomic Issues, respect dependencies, and measure Product completion separately from Foundation completion.
+
