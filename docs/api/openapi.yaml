@@ -420,6 +420,48 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /admin/b2b/accounts:
+    get:
+      tags: [B2B]
+      summary: List B2B accounts for authorized management users
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Paginated B2B accounts
+        "403":
+          description: Missing b2b.accounts.manage permission
+    post:
+      tags: [B2B]
+      summary: Create a dashboard-managed pending B2B account
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Pending B2B account created
+        "403":
+          description: Missing b2b.accounts.manage permission
+        "422":
+          description: Validation error
+  /admin/b2b/accounts/{account}/status:
+    patch:
+      tags: [B2B]
+      summary: Approve, deny or suspend a B2B account
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: account
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: B2B account lifecycle state updated
+        "403":
+          description: Missing b2b.accounts.manage permission
+        "422":
+          description: Validation error
   /b2b/dashboard:
     get:
       tags: [B2B]
