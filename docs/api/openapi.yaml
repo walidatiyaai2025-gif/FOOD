@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: FOODEX API
-  version: 0.1.0
-  description: Bootstrap contract skeleton. Product behavior is implemented issue by issue.
+  version: 0.2.0
+  description: Implementation baseline for FOODEX v1 mobile and web clients.
   license:
     name: Proprietary
 servers:
@@ -10,25 +10,26 @@ servers:
 security: []
 tags:
   - name: Authentication
-    description: Login, logout and authenticated identity boundaries.
+    description: Login, logout, profile and authenticated identity boundaries.
   - name: Stores
     description: Public and authorized store discovery.
   - name: Catalog
-    description: Store-scoped categories and products.
+    description: Store-scoped categories, products and offers.
   - name: Cart
     description: Guest or authenticated shopping cart operations.
   - name: Checkout
-    description: Authenticated order creation boundary.
+    description: Authenticated, idempotent order creation boundary.
   - name: Orders
     description: Authenticated customer order access.
   - name: B2B
-    description: Approved wholesale customer operations.
+    description: Approved wholesale customer operations; public self-registration is forbidden.
   - name: Drivers
     description: Driver-role-scoped assignment operations.
   - name: Notifications
     description: Authenticated notification access.
   - name: Version
     description: Platform and mobile application version policy.
+
 paths:
   /version:
     get:
@@ -38,8 +39,11 @@ paths:
       responses:
         "200":
           description: Platform/API version
-        "400":
-          $ref: "#/components/responses/BadRequest"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiVersion"
+
   /app-version:
     get:
       tags: [Version]
@@ -49,19 +53,25 @@ paths:
         - in: query
           name: platform
           required: true
-          schema: { type: string, enum: [android, ios] }
+          schema:
+            type: string
+            enum: [android, ios]
         - in: query
           name: app
           required: true
-          schema: { type: string, enum: [customer, driver] }
+          schema:
+            type: string
+            enum: [customer, driver]
       responses:
         "200":
           description: Mobile version policy
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/AppVersionPolicy" }
+              schema:
+                $ref: "#/components/schemas/AppVersionPolicy"
         "400":
           $ref: "#/components/responses/BadRequest"
+
   /auth/login:
     post:
       tags: [Authentication]
@@ -71,33 +81,66 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/LoginRequest" }
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
       responses:
         "200":
           description: Authenticated session/token response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
         "422":
           $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
   /auth/logout:
     post:
       tags: [Authentication]
       summary: Log out the authenticated user
       operationId: logout
-      security: [{ bearerAuth: [] }]
+      security:
+        - bearerAuth: []
       responses:
         "204":
           description: Logged out
         "401":
           $ref: "#/components/responses/Unauthenticated"
+
+  /profile:
+    get:
+      tags: [Authentication]
+      summary: Get the authenticated customer profile
+      operationId: getProfile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Authenticated identity and customer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserIdentity"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
   /stores:
     get:
       tags: [Stores]
-      summary: List stores visible to the current client
+      summary: List active stores visible to the current client
       operationId: listStores
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
       responses:
         "200":
           description: Store collection
-        "400":
-          $ref: "#/components/responses/BadRequest"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreCollection"
+
   /stores/{store}/categories:
     get:
       tags: [Catalog]
@@ -105,71 +148,150 @@ paths:
       operationId: listStoreCategories
       parameters:
         - $ref: "#/components/parameters/StoreId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
       responses:
         "200":
           description: Category collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryCollection"
         "404":
           $ref: "#/components/responses/NotFound"
+
   /stores/{store}/products:
     get:
       tags: [Catalog]
-      summary: List products for a store
+      summary: List active products for a store
       operationId: listStoreProducts
       parameters:
         - $ref: "#/components/parameters/StoreId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - in: query
+          name: category
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: q
+          schema:
+            type: string
+            maxLength: 120
       responses:
         "200":
           description: Product collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductCollection"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /stores/{store}/offers:
+    get:
+      tags: [Catalog]
+      summary: List active offers for a store
+      operationId: listStoreOffers
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+      responses:
+        "200":
+          description: Store offer collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferCollection"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /products/{product}:
     get:
       tags: [Catalog]
       summary: Get product details
       operationId: showProduct
       parameters:
-        - in: path
-          name: product
-          required: true
-          schema: { type: integer }
+        - $ref: "#/components/parameters/ProductId"
+        - in: query
+          name: store
+          description: Store context used for active availability and B2C pricing.
+          schema:
+            type: integer
+            minimum: 1
       responses:
         "200":
           description: Product detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
         "404":
           $ref: "#/components/responses/NotFound"
+
   /cart:
     get:
       tags: [Cart]
-      summary: Get the current cart
+      summary: Get the current guest or authenticated cart
       operationId: showCart
+      parameters:
+        - $ref: "#/components/parameters/GuestToken"
       responses:
         "200":
           description: Current cart
-        "400":
-          $ref: "#/components/responses/BadRequest"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+
   /cart/items:
     post:
       tags: [Cart]
       summary: Add an item to the current cart
       operationId: addCartItem
+      parameters:
+        - $ref: "#/components/parameters/GuestToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCartItemRequest"
       responses:
         "201":
           description: Cart item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
         "422":
           $ref: "#/components/responses/ValidationError"
+
   /cart/items/{item}:
     patch:
       tags: [Cart]
       summary: Update a cart item
       operationId: updateCartItem
       parameters:
-        - in: path
-          name: item
-          required: true
-          schema: { type: integer }
+        - $ref: "#/components/parameters/CartItemId"
+        - $ref: "#/components/parameters/GuestToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCartItemRequest"
       responses:
         "200":
           description: Cart item updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/ValidationError"
     delete:
@@ -177,164 +299,973 @@ paths:
       summary: Remove a cart item
       operationId: deleteCartItem
       parameters:
-        - in: path
-          name: item
-          required: true
-          schema: { type: integer }
+        - $ref: "#/components/parameters/CartItemId"
+        - $ref: "#/components/parameters/GuestToken"
       responses:
         "204":
           description: Cart item removed
         "404":
           $ref: "#/components/responses/NotFound"
+
   /checkout:
     post:
       tags: [Checkout]
       summary: Create an order from the authenticated cart
       operationId: checkout
-      security: [{ bearerAuth: [] }]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutRequest"
       responses:
         "201":
           description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/ValidationError"
+
   /orders:
     get:
       tags: [Orders]
       summary: List authenticated customer orders
       operationId: listOrders
-      security: [{ bearerAuth: [] }]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
       responses:
         "200":
           description: Authenticated order collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderCollection"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+
   /orders/{order}:
     get:
       tags: [Orders]
       summary: Get an authorized order
       operationId: showOrder
-      security: [{ bearerAuth: [] }]
+      security:
+        - bearerAuth: []
       parameters:
-        - in: path
-          name: order
-          required: true
-          schema: { type: integer }
+        - $ref: "#/components/parameters/OrderId"
       responses:
         "200":
           description: Authorized order detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "404":
           $ref: "#/components/responses/NotFound"
-  /b2b/products:
+
+  /b2b/dashboard:
     get:
       tags: [B2B]
-      summary: List the approved B2B catalog
-      operationId: listB2bProducts
-      security: [{ bearerAuth: [] }]
+      summary: Get approved B2B account dashboard summary
+      operationId: getB2bDashboard
+      security:
+        - bearerAuth: []
       responses:
         "200":
-          description: Approved B2B catalog
+          description: B2B dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/B2bDashboard"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
           $ref: "#/components/responses/Forbidden"
+
+  /b2b/products:
+    get:
+      tags: [B2B]
+      summary: List the approved B2B catalog with account pricing
+      operationId: listB2bProducts
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+      responses:
+        "200":
+          description: Approved B2B catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/B2bProductCollection"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
   /b2b/orders:
     get:
       tags: [B2B]
       summary: List B2B customer orders
       operationId: listB2bOrders
-      security: [{ bearerAuth: [] }]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
       responses:
         "200":
           description: B2B order collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderCollection"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
           $ref: "#/components/responses/Forbidden"
+
+  /b2b/orders/{order}:
+    get:
+      tags: [B2B]
+      summary: Get an authorized B2B order
+      operationId: showB2bOrder
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Authorized B2B order detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /b2b/invoices:
+    get:
+      tags: [B2B]
+      summary: List invoices for the approved B2B account
+      operationId: listB2bInvoices
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+      responses:
+        "200":
+          description: B2B invoice collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceCollection"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /b2b/invoices/{invoice}:
+    get:
+      tags: [B2B]
+      summary: Get an authorized B2B invoice
+      operationId: showB2bInvoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/InvoiceId"
+      responses:
+        "200":
+          description: B2B invoice detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /b2b/account-statement:
+    get:
+      tags: [B2B]
+      summary: Get the approved B2B account statement
+      operationId: getB2bAccountStatement
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: B2B account statement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/B2bAccountStatement"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
   /drivers/assignments:
     get:
       tags: [Drivers]
       summary: List assignments for the authenticated driver role
       operationId: listDriverAssignments
-      security: [{ bearerAuth: [] }]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
       responses:
         "200":
           description: Assignments filtered by exact driver role and channel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DriverAssignmentCollection"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
           $ref: "#/components/responses/Forbidden"
+
   /notifications:
     get:
       tags: [Notifications]
       summary: List notifications for the authenticated user
       operationId: listNotifications
-      security: [{ bearerAuth: [] }]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
       responses:
         "200":
           description: User notification collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationCollection"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+
+  /notifications/{notification}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark one authorized notification as read
+      operationId: markNotificationRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/NotificationId"
+      responses:
+        "204":
+          description: Notification marked as read
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
+
   parameters:
     StoreId:
       in: path
       name: store
       required: true
-      schema: { type: integer }
+      schema:
+        type: integer
+        minimum: 1
+    ProductId:
+      in: path
+      name: product
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    CartItemId:
+      in: path
+      name: item
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    OrderId:
+      in: path
+      name: order
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    InvoiceId:
+      in: path
+      name: invoice
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    NotificationId:
+      in: path
+      name: notification
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    Page:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PerPage:
+      in: query
+      name: per_page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    GuestToken:
+      in: header
+      name: X-Guest-Token
+      required: false
+      description: Opaque cart identity for guest browsing. Ignored when the authenticated cart is authoritative.
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 200
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      description: Client-generated key preventing duplicate order creation for a retried checkout.
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 100
+
   schemas:
+    ApiVersion:
+      type: object
+      required: [version]
+      properties:
+        version:
+          type: string
+
     LoginRequest:
       type: object
+      additionalProperties: false
       required: [email, password]
       properties:
-        email: { type: string, format: email }
-        password: { type: string, format: password }
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        token_type:
+          type: string
+          const: Bearer
+        user:
+          $ref: "#/components/schemas/UserIdentity"
+
+    UserIdentity:
+      type: object
+      required: [id, name, email, roles]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        locale:
+          type: string
+          enum: [ar, en]
+        roles:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        store_ids:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+
+    Store:
+      type: object
+      required: [id, code, name, store_type, is_active]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        store_type:
+          type: string
+        is_active:
+          type: boolean
+
+    Category:
+      type: object
+      required: [id, name, slug, is_active]
+      properties:
+        id:
+          type: integer
+        parent_id:
+          type: [integer, "null"]
+        name:
+          type: string
+        slug:
+          type: string
+        is_active:
+          type: boolean
+
+    ProductSummary:
+      type: object
+      required: [id, sku, name, is_active]
+      properties:
+        id:
+          type: integer
+        sku:
+          type: string
+        name:
+          type: string
+        category_id:
+          type: [integer, "null"]
+        brand_id:
+          type: [integer, "null"]
+        is_active:
+          type: boolean
+        price:
+          type: [number, "null"]
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [KWD]
+
+    Product:
+      allOf:
+        - $ref: "#/components/schemas/ProductSummary"
+        - type: object
+          properties:
+            description:
+              type: [string, "null"]
+            images:
+              type: array
+              items:
+                type: string
+                format: uri-reference
+
+    Offer:
+      type: object
+      required: [id, name, type, is_active]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        value:
+          type: [number, "null"]
+          multipleOf: 0.001
+        starts_at:
+          type: [string, "null"]
+          format: date-time
+        ends_at:
+          type: [string, "null"]
+          format: date-time
+        is_active:
+          type: boolean
+
+    CartItem:
+      type: object
+      required: [id, product, quantity]
+      properties:
+        id:
+          type: integer
+        product:
+          $ref: "#/components/schemas/ProductSummary"
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        unit_price_snapshot:
+          type: [number, "null"]
+          multipleOf: 0.001
+        line_total:
+          type: [number, "null"]
+          multipleOf: 0.001
+
+    Cart:
+      type: object
+      required: [id, store_id, channel, items]
+      properties:
+        id:
+          type: integer
+        store_id:
+          type: integer
+        channel:
+          type: string
+          enum: [b2c, b2b]
+        guest_token:
+          type: [string, "null"]
+        currency:
+          type: string
+          enum: [KWD]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartItem"
+        subtotal:
+          type: number
+          multipleOf: 0.001
+
+    AddCartItemRequest:
+      type: object
+      additionalProperties: false
+      required: [store_id, product_id, quantity]
+      properties:
+        store_id:
+          type: integer
+          minimum: 1
+        product_id:
+          type: integer
+          minimum: 1
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+
+    UpdateCartItemRequest:
+      type: object
+      additionalProperties: false
+      required: [quantity]
+      properties:
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+
+    CheckoutRequest:
+      type: object
+      additionalProperties: false
+      required: [address_id]
+      properties:
+        address_id:
+          type: integer
+          minimum: 1
+        payment_method:
+          type: [string, "null"]
+        note:
+          type: [string, "null"]
+          maxLength: 1000
+
+    OrderItem:
+      type: object
+      required: [id, product_id, sku, name, quantity, unit_price, line_total]
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        unit_price:
+          type: number
+          multipleOf: 0.001
+        line_total:
+          type: number
+          multipleOf: 0.001
+
+    Order:
+      type: object
+      required:
+        [id, order_number, store_id, channel, status, currency, subtotal, grand_total, items, created_at]
+      properties:
+        id:
+          type: integer
+        order_number:
+          type: string
+        store_id:
+          type: integer
+        channel:
+          type: string
+          enum: [b2c, b2b]
+        status:
+          type: string
+        currency:
+          type: string
+          enum: [KWD]
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        grand_total:
+          type: number
+          multipleOf: 0.001
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        created_at:
+          type: string
+          format: date-time
+
+    B2bProduct:
+      allOf:
+        - $ref: "#/components/schemas/ProductSummary"
+        - type: object
+          required: [account_price]
+          properties:
+            account_price:
+              type: number
+              multipleOf: 0.001
+            minimum_order_quantity:
+              type: number
+              minimum: 0
+              multipleOf: 0.001
+            price_tier:
+              type: [string, "null"]
+
+    B2bDashboard:
+      type: object
+      required: [open_orders, outstanding_balance, currency]
+      properties:
+        open_orders:
+          type: integer
+          minimum: 0
+        outstanding_balance:
+          type: number
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [KWD]
+
+    Invoice:
+      type: object
+      required: [id, invoice_number, status, currency, total]
+      properties:
+        id:
+          type: integer
+        invoice_number:
+          type: string
+        order_id:
+          type: [integer, "null"]
+        status:
+          type: string
+        currency:
+          type: string
+          enum: [KWD]
+        total:
+          type: number
+          multipleOf: 0.001
+        issued_at:
+          type: [string, "null"]
+          format: date-time
+        due_at:
+          type: [string, "null"]
+          format: date-time
+
+    B2bAccountStatement:
+      type: object
+      required: [currency, balance, entries]
+      properties:
+        currency:
+          type: string
+          enum: [KWD]
+        balance:
+          type: number
+          multipleOf: 0.001
+        entries:
+          type: array
+          items:
+            type: object
+            required: [date, type, amount]
+            properties:
+              date:
+                type: string
+                format: date
+              type:
+                type: string
+              reference:
+                type: [string, "null"]
+              amount:
+                type: number
+                multipleOf: 0.001
+
+    DriverAssignment:
+      type: object
+      required: [id, order_id, assignment_type, status]
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+        assignment_type:
+          type: string
+          enum: [b2c, b2b]
+        status:
+          type: string
+        assigned_at:
+          type: [string, "null"]
+          format: date-time
+        completed_at:
+          type: [string, "null"]
+          format: date-time
+
+    Notification:
+      type: object
+      required: [id, channel, type, title, body, created_at]
+      properties:
+        id:
+          type: integer
+        channel:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        data:
+          type: [object, "null"]
+          additionalProperties: true
+        read_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
     AppVersionPolicy:
       type: object
       required: [latest_version, minimum_supported_version, force_update]
       properties:
-        latest_version: { type: string }
-        minimum_supported_version: { type: string }
-        force_update: { type: boolean }
-        store_url: { type: [string, "null"], format: uri }
-        release_notes: { type: [string, "null"] }
+        latest_version:
+          type: string
+        minimum_supported_version:
+          type: string
+        force_update:
+          type: boolean
+        store_url:
+          type: [string, "null"]
+          format: uri
+        release_notes:
+          type: [string, "null"]
+
+    PaginationMeta:
+      type: object
+      required: [current_page, per_page, total]
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+        per_page:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+
+    StoreCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Store"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    CategoryCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    ProductCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductSummary"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    OfferCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Offer"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    OrderCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    B2bProductCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/B2bProduct"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    InvoiceCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invoice"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    DriverAssignmentCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DriverAssignment"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    NotificationCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
     Error:
       type: object
       required: [message]
       properties:
-        message: { type: string }
-        code: { type: [string, "null"] }
-        errors: { type: [object, "null"], additionalProperties: true }
+        message:
+          type: string
+        code:
+          type: [string, "null"]
+        errors:
+          type: [object, "null"]
+          additionalProperties: true
+
   responses:
     BadRequest:
       description: Invalid request
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            $ref: "#/components/schemas/Error"
     Unauthenticated:
       description: Authentication required
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            $ref: "#/components/schemas/Error"
     Forbidden:
       description: Authenticated but not authorized
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            $ref: "#/components/schemas/Error"
     ValidationError:
       description: Validation failed
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            $ref: "#/components/schemas/Error"
     NotFound:
       description: Resource not found or not visible in authorized scope
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Request conflicts with current resource state or idempotency key
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
