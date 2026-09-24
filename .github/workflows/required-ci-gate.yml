@@ -35,7 +35,7 @@ jobs:
           customer=false
           driver=false
 
-          if grep -Eq '^(backend/|docs/api/openapi\.yaml$)' changed-files.txt; then
+          if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$|\.github/workflows/required-ci-gate\.yml$)' changed-files.txt; then
             backend=true
           fi
 
