@@ -33,8 +33,8 @@ class AuditLogger
             'auditable_id' => is_object($target) && method_exists($target, 'getKey') ? $target->getKey() : null,
             'before' => $this->redact($before),
             'after' => $this->redact($after),
-            'ip_address' => $request?->ip(),
-            'user_agent' => $request?->userAgent(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
     }
 
