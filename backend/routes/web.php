@@ -1,7 +1,7 @@
 <?php
 
-use App\Domain\Installer\InstallState;
 use App\Domain\Installer\InstallerChecklist;
+use App\Domain\Installer\InstallState;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => response()->json([

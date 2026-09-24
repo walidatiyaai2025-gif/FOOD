@@ -13,7 +13,7 @@ class FoundationSmokeTest extends TestCase
 
     public function test_api_version_endpoint_boots(): void
     {
-        $this->get('/api/v1/version')->assertOk()->assertJsonPath('api','v1');
+        $this->get('/api/v1/version')->assertOk()->assertJsonPath('api', 'v1');
     }
 
     public function test_installer_foundation_is_available_before_lock(): void
