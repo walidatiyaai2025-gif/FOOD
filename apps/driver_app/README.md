@@ -1,16 +1,24 @@
-# FOODEX Driver App Bootstrap
+# FOODEX Driver App
 
-Issue #5 owns the Flutter Driver App platform baseline only. Delivery workflows remain separate issue-owned work.
+The Driver App uses one Flutter codebase for Android and iOS and one navigation shell for both driver channels.
 
-## Platform baseline
+## Navigation architecture
 
-- One Flutter codebase targets Android and iOS.
-- The shared app shell is reserved for both B2C_DRIVER and B2B_DRIVER roles; channel separation remains backend-authoritative and is not implemented as product behavior in this bootstrap issue.
-- CI materializes native Android/iOS scaffolding with `flutter create` and validates both targets.
-- Android validation builds a debug APK.
-- iOS validation performs a debug `--no-codesign` build.
-- The root app is Arabic-first with explicit RTL direction.
-- Arabic and English are the supported bootstrap locales.
+- `DriverChannel.b2c` is restricted to `/driver/b2c/**`.
+- `DriverChannel.b2b` is restricted to `/driver/b2b/**`.
+- Cross-channel navigation is rejected by the router before a product screen is rendered.
+- Unknown routes inside the active channel resolve to a deterministic not-found screen.
+- The shell is Arabic-first with explicit RTL direction and supports Arabic and English.
+- Backend authorization remains authoritative; client route separation is an additional UX boundary, not a security substitute.
+
+Current shell routes:
+
+- `/driver/b2c/home`
+- `/driver/b2c/deliveries`
+- `/driver/b2b/home`
+- `/driver/b2b/deliveries`
+
+Delivery workflows, assignment state and product behavior remain separate issue-owned work.
 
 ## Validation
 
@@ -24,4 +32,4 @@ flutter build apk --debug
 flutter build ios --debug --no-codesign
 ```
 
-The repository `required-ci-gate` runs the applicable Driver Flutter and Driver iOS validations whenever `apps/driver_app/**` changes.
+The repository `required-ci-gate` runs Driver Flutter and iOS validation whenever `apps/driver_app/**` changes.

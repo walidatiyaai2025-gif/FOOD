@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Domain\Updater\LaravelUpdateRuntime;
+use App\Domain\Updater\UpdateRuntime;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -12,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
     }
 
     public function boot(): void
@@ -25,5 +29,12 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(5)->by('login:'.$email.'|'.$request->ip()),
             ];
         });
+
+        foreach (array_keys((array) config('permissions.abilities', [])) as $ability) {
+            Gate::define(
+                $ability,
+                static fn (User $user, ?int $storeId = null): bool => $user->hasPermission($ability, $storeId),
+            );
+        }
     }
 }

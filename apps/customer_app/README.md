@@ -1,17 +1,20 @@
-# FOODEX Customer App Bootstrap
+# FOODEX Customer App
 
-Issue #4 owns the Flutter Customer App platform baseline only. Product journeys remain separate issue-owned work.
+The Customer App is one Flutter codebase for Android and iOS with Arabic-first RTL behavior and English support.
 
-## Platform baseline
+## Navigation architecture
 
-- One Flutter codebase targets Android and iOS.
-- CI materializes native Android/iOS scaffolding with `flutter create` and validates both targets.
-- Android validation builds a debug APK.
-- iOS validation performs a debug `--no-codesign` build.
-- The root app is Arabic-first with explicit RTL direction.
-- Arabic and English are the supported bootstrap locales.
+Issue #14 establishes one central navigation registry under `lib/core/routing/`.
 
-## Validation
+- B2C guest routes include entry, store selection, home, offers, catalog, product details and cart.
+- B2C account/checkout routes are protected by the authentication boundary.
+- B2B routes are a separate logical partition under `/b2b/**`; protected B2B routes require an authenticated B2B customer session.
+- A B2C authenticated session cannot enter protected B2B routes and vice versa.
+- Route definitions support dynamic reference paths such as `/products/:id`, `/orders/:id/track` and `/b2b/orders/:id`.
+- The current route widgets are intentionally shell placeholders. Product UI remains owned by later feature issues.
+- Backend authorization remains authoritative; Flutter guards are navigation boundaries, not security enforcement.
+
+## Platform validation
 
 From `apps/customer_app/`:
 
