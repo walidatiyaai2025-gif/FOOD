@@ -435,13 +435,38 @@ A PC item may be split into smaller atomic Issues if implementation risk is too 
 
 ## 8. Readiness policy
 
-Immediately after this plan is merged:
-- Existing Issue #22 continues under its current lease until merged.
-- Create Issues for PC-01 through PC-19.
-- Mark PC-01, PC-05, PC-06 and PC-10 `status:ready` only when their stated Foundation dependencies are already closed.
-- Keep all dependency-blocked PC items `status:backlog`.
-- Scheduler promotes blocked items automatically when their dependencies close.
+The product queue is now instantiated as canonical GitHub Issues:
+
+| Queue item | Issue |
+|---|---:|
+| PC-01 | #51 |
+| PC-02 | #52 |
+| PC-03 | #53 |
+| PC-04 | #54 |
+| PC-05 | #55 |
+| PC-06 | #56 |
+| PC-07 | #57 |
+| PC-08 | #58 |
+| PC-09 | #59 |
+| PC-10 | #60 |
+| PC-11 | #61 |
+| PC-12 | #62 |
+| PC-13 | #63 |
+| PC-14 | #64 |
+| PC-15 | #65 |
+| PC-16 | #66 |
+| PC-17 | #67 |
+| PC-18 | #68 |
+| PC-19 | #69 |
+
+Initial scheduling:
+- PC-01 #51 and PC-06 #56 are the only dependency-unblocked starting items from this queue.
+- PC-05 #55 remains `status:backlog` until PC-01 #51 is merged.
+- PC-10 #60 remains `status:backlog` until PC-01 #51 is merged.
+- All other dependency-blocked PC items remain `status:backlog`.
+- Scheduler promotes blocked items automatically when every listed dependency is closed and merged.
 - Project-board status is updated when available; repository labels remain the scheduling fallback.
+- Issue #22 (App version policy) is an independent existing work item and is also a release dependency for PC-19 #69.
 
 ## 9. Completion measurement
 
