@@ -234,17 +234,33 @@ paths:
   /cart:
     get:
       tags: [Cart]
-      summary: Get the current guest or authenticated cart
+      summary: Get or initialize the current guest cart
       operationId: showCart
       parameters:
         - $ref: "#/components/parameters/GuestToken"
+        - in: query
+          name: store
+          required: false
+          description: Required only when initializing a guest cart without X-Guest-Token.
+          schema:
+            type: integer
+            minimum: 1
       responses:
         "200":
-          description: Current cart
+          description: Current guest cart. The response also returns X-Guest-Token.
+          headers:
+            X-Guest-Token:
+              description: Opaque guest cart identity for subsequent cart requests.
+              schema:
+                type: string
+                minLength: 16
+                maxLength: 200
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Cart"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /cart/items:
     post:
