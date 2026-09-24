@@ -52,6 +52,7 @@ class AdminShellTest extends TestCase
             'email' => 'b2c-admin-shell@example.test',
             'password' => 'password',
             'locale' => 'ar',
+            'is_active' => true,
         ]);
 
         $this->assignStoreRole($user, $storeId, 'B2C_STORE_ADMIN');
@@ -111,6 +112,7 @@ class AdminShellTest extends TestCase
             'email' => strtolower($roleCode).'-shell@example.test',
             'password' => 'password',
             'locale' => $locale,
+            'is_active' => true,
         ]);
 
         $role = Role::query()->where('code', $roleCode)->firstOrFail();
