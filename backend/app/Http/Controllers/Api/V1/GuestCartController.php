@@ -438,6 +438,16 @@ class GuestCartController extends Controller
                 || $quantity <= $state['available_quantity'];
             $isAvailable = $state['is_available'] && $quantityAvailable;
             $unitPrice = $isAvailable ? $state['price'] : null;
+
+            if ($isAvailable && (string) $cart->channel === 'b2b' && $cart->customer_id !== null) {
+                $customer = Customer::query()->find($cart->customer_id);
+                if ($customer instanceof Customer) {
+                    $pricing = app(B2bPriceResolver::class)->resolve($customer, (int) $cart->store_id, (int) $row->product_id);
+                    $isAvailable = $quantity >= $pricing['minimum_quantity'];
+                    $unitPrice = $isAvailable ? $pricing['price'] : null;
+                }
+            }
+
             $lineTotal = $unitPrice === null ? null : round($quantity * $unitPrice, 3);
 
             if ($isAvailable && $unitPrice !== null) {
