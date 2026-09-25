@@ -107,6 +107,46 @@ class UpdateManagerTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'updater.failed']);
     }
 
+    public function test_failed_file_rollback_keeps_maintenance_enabled(): void
+    {
+        $this->assertFailedRollbackKeepsMaintenance('rollback_files');
+    }
+
+    public function test_failed_database_rollback_keeps_maintenance_enabled(): void
+    {
+        $this->assertFailedRollbackKeepsMaintenance('rollback_database');
+    }
+
+    private function assertFailedRollbackKeepsMaintenance(string $rollbackStage): void
+    {
+        $runtime = new RecordingUpdateRuntime('health_check', $rollbackStage);
+        $manager = new UpdateManager(
+            new UpdatePackageValidator,
+            $runtime,
+            app(AuditLogger::class),
+        );
+
+        try {
+            $manager->execute($this->manifest(true), '1.0.0', $this->packagePath);
+            $this->fail('An incomplete rollback must not report success.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('manual recovery is required', $exception->getMessage());
+            $this->assertStringContainsString('Maintenance mode remains enabled', $exception->getMessage());
+            $this->assertStringNotContainsString('Simulated update runtime failure', $exception->getMessage());
+        }
+
+        $this->assertContains('rollback_files', $runtime->calls);
+        $this->assertContains('rollback_database', $runtime->calls);
+        $this->assertNotContains('exit_maintenance_mode', $runtime->calls);
+        $this->assertDatabaseHas('update_history', [
+            'to_version' => '1.1.0',
+            'status' => 'failed',
+            'failure_reason' => 'Update failed during [health_check]. Rollback was attempted. Rollback is incomplete; manual recovery is required. Maintenance mode remains enabled.',
+        ]);
+        $this->assertDatabaseMissing('system_versions', ['version' => '1.1.0']);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'updater.failed']);
+    }
+
     private function manifest(bool $containsMigrations): UpdatePackageManifest
     {
         return new UpdatePackageManifest(
@@ -126,7 +166,10 @@ final class RecordingUpdateRuntime implements UpdateRuntime
      */
     public array $calls = [];
 
-    public function __construct(private readonly ?string $failAt = null) {}
+    public function __construct(
+        private readonly ?string $failAt = null,
+        private readonly ?string $failRollbackAt = null,
+    ) {}
 
     public function preflight(UpdatePackageManifest $manifest, string $packagePath): void
     {
@@ -191,7 +234,7 @@ final class RecordingUpdateRuntime implements UpdateRuntime
     {
         $this->calls[] = $stage;
 
-        if ($this->failAt === $stage) {
+        if ($this->failAt === $stage || $this->failRollbackAt === $stage) {
             throw new RuntimeException('Simulated update runtime failure.');
         }
     }
