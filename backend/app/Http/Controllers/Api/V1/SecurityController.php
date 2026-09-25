@@ -247,12 +247,12 @@ final class SecurityController extends Controller
             ])->sortBy('code')->values(),
             'store_roles' => $user->storeRoleAssignments->map(static fn ($assignment): array => [
                 'store_id' => (int) $assignment->store_id,
-                'store_code' => (string) $assignment->store?->code,
-                'store_name' => (string) $assignment->store?->name,
+                'store_code' => (string) $assignment->store->code,
+                'store_name' => (string) $assignment->store->name,
                 'role_id' => (int) $assignment->role_id,
-                'role_code' => (string) $assignment->role?->code,
-                'role_name' => (string) $assignment->role?->name,
-                'role_active' => (bool) $assignment->role?->is_active,
+                'role_code' => (string) $assignment->role->code,
+                'role_name' => (string) $assignment->role->name,
+                'role_active' => (bool) $assignment->role->is_active,
             ])->values(),
             'effective_permissions' => $user->effectivePermissionCodes($storeId),
         ];
