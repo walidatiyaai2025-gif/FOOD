@@ -64,3 +64,69 @@ jobs:
       - name: Validate OpenAPI contract
         working-directory: .
         run: npx --yes @redocly/cli@latest lint docs/api/openapi.yaml
+
+  production-services:
+    name: PostgreSQL Redis deployment acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: foodex_acceptance
+          POSTGRES_USER: foodex
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U foodex -d foodex_acceptance"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: foodex_acceptance
+      DB_USERNAME: foodex
+      DB_PASSWORD: ci-only-password
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      FOODEX_DISPOSABLE_SERVICES: 'true'
+      FOODEX_PG_DUMP_BINARY: /usr/lib/postgresql/16/bin/pg_dump
+      FOODEX_PG_RESTORE_BINARY: /usr/lib/postgresql/16/bin/pg_restore
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_pgsql, redis, zip
+          coverage: none
+      - name: Install matching PostgreSQL backup tools
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      - name: Install backend dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare disposable configuration
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+      - name: Run real install upgrade and recovery acceptance
+        run: vendor/bin/phpunit tests/Deployment --log-junit deployment-results.xml
+      - name: Preserve test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-services-acceptance
+          path: backend/deployment-results.xml
+          if-no-files-found: warn
