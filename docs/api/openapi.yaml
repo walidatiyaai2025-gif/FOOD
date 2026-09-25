@@ -378,6 +378,12 @@ paths:
             schema:
               $ref: "#/components/schemas/CheckoutRequest"
       responses:
+        "200":
+          description: Idempotent replay of the previously created order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
         "201":
           description: Order created
           content:
@@ -386,6 +392,10 @@ paths:
                 $ref: "#/components/schemas/Order"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "422":
@@ -951,8 +961,11 @@ components:
     CheckoutRequest:
       type: object
       additionalProperties: false
-      required: [address_id]
+      required: [store_id, address_id]
       properties:
+        store_id:
+          type: integer
+          minimum: 1
         address_id:
           type: integer
           minimum: 1
@@ -996,6 +1009,8 @@ components:
           type: string
         store_id:
           type: integer
+        address_id:
+          type: [integer, "null"]
         channel:
           type: string
           enum: [b2c, b2b]
@@ -1016,6 +1031,12 @@ components:
         grand_total:
           type: number
           multipleOf: 0.001
+        payment_method:
+          type: [string, "null"]
+        payment:
+          anyOf:
+            - $ref: "#/components/schemas/PaymentSummary"
+            - type: "null"
         items:
           type: array
           items:
@@ -1023,6 +1044,23 @@ components:
         created_at:
           type: string
           format: date-time
+
+    PaymentSummary:
+      type: object
+      required: [id, provider, status, amount, currency]
+      properties:
+        id:
+          type: integer
+        provider:
+          type: string
+        status:
+          type: string
+        amount:
+          type: number
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [KWD]
 
     B2bProduct:
       allOf:
