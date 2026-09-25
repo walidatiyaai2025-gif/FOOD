@@ -85,14 +85,14 @@ class ManagementReportingSuiteTest extends TestCase
     {
         $admin = $this->userWithRole('SUPER_ADMIN');
 
-        app()->setLocale('ar');
+        $admin->update(['locale' => 'ar']);
         $this->actingAs($admin)->get('/admin/reports?report=orders&store_id='.$this->storeA)
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('تقارير الإدارة');
 
-        app()->setLocale('en');
-        $this->actingAs($admin)->get('/admin/reports?report=orders&store_id='.$this->storeA)
+        $admin->update(['locale' => 'en']);
+        $this->actingAs($admin->fresh())->get('/admin/reports?report=orders&store_id='.$this->storeA)
             ->assertOk()
             ->assertSee('dir="ltr"', false)
             ->assertSee('Management Reports');

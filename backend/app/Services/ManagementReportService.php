@@ -187,9 +187,17 @@ final class ManagementReportService
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('products', 'products.id', '=', 'order_items.product_id')
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
-            ->whereNotIn('orders.status', self::NON_REVENUE_STATUSES);
+            ->whereNotIn('orders.status', self::NON_REVENUE_STATUSES)
+            ->when(
+                $filters['product_id'] !== null,
+                fn (Builder $query) => $query->where('products.id', $filters['product_id']),
+            )
+            ->when(
+                $filters['category_id'] !== null,
+                fn (Builder $query) => $query->where('products.category_id', $filters['category_id']),
+            );
 
-        $this->applyOrderFilters($sales, $filters);
+        $this->applyOrderFilters($sales, $filters, false);
 
         $ranked = (clone $sales)
             ->selectRaw(
@@ -205,7 +213,7 @@ final class ManagementReportService
         $leastByQuantity = $ranked->sortBy('quantity')->values();
         $leastByRevenue = $ranked->sortBy('revenue')->values();
 
-        $zeroSales = DB::table('products')
+        $zeroSalesQuery = DB::table('products')
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
             ->where('products.is_active', true)
             ->when(
@@ -234,7 +242,10 @@ final class ManagementReportService
                     ->whereNotIn('orders.status', self::NON_REVENUE_STATUSES);
 
                 $this->applyOrderFilters($sub, $filters, false);
-            })
+            });
+
+        $zeroSalesCount = (clone $zeroSalesQuery)->count('products.id');
+        $zeroSales = $zeroSalesQuery
             ->select(['products.sku', 'products.name', 'categories.name as category'])
             ->orderBy('products.name')
             ->limit($limit)
@@ -278,7 +289,7 @@ final class ManagementReportService
             'quantity_sold' => round((float) $ranked->sum('quantity'), 3),
             'product_revenue' => round((float) $ranked->sum('revenue'), 3),
             'selling_products' => $ranked->count(),
-            'zero_sale_products' => count($zeroSales),
+            'zero_sale_products' => $zeroSalesCount,
         ];
 
         return $this->reportPayload(
@@ -487,9 +498,18 @@ final class ManagementReportService
     {
         $query = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->whereNotIn('orders.status', self::NON_REVENUE_STATUSES);
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->whereNotIn('orders.status', self::NON_REVENUE_STATUSES)
+            ->when(
+                $filters['product_id'] !== null,
+                fn (Builder $builder) => $builder->where('products.id', $filters['product_id']),
+            )
+            ->when(
+                $filters['category_id'] !== null,
+                fn (Builder $builder) => $builder->where('products.category_id', $filters['category_id']),
+            );
 
-        $this->applyOrderFilters($query, $filters);
+        $this->applyOrderFilters($query, $filters, false);
 
         return [
             'quantity' => round((float) (clone $query)->sum('order_items.quantity'), 3),
