@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\RbacManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -186,8 +187,9 @@ final class SecurityController extends Controller
         return $request->validate($rules);
     }
 
-    /** @param array<string, mixed> $validated
-     *  @return array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}
      */
     private function roleValues(array $validated): array
     {
