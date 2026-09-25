@@ -503,3 +503,80 @@ User-approved on 2026-09-25. This wave becomes authoritative for new FOODEX pres
 - #116 PH-05E — visual regression + cross-surface acceptance. Branch: `test/116-foodex-premium-visual-e2e`. Depends on #113, #114 and #115.
 
 Mandatory PH-05 rule: workers use `docs/architecture/FOODEX_BRAND_SYSTEM.md` and `docs/design-reference/PH05_PREMIUM_DASHBOARD.md` as visual authorities. Any shared change must include explicit B2C Admin, Customer App and Driver App impact assessment. No worker may introduce a separate palette, dashboard-only business state or mock-only production metric.
+
+## 12. Wave I — Usable-product acceptance and release closure (2026-09-25)
+
+This section supersedes historical **initial scheduling** and any claim that closed
+foundation/product issues alone prove production readiness. Existing business scope
+and architecture remain unchanged.
+
+### Verified baseline
+
+- Inspected main: `d290520d14a2f962770e1f3b52d4152bf93ef7fd`.
+- PH-05A/B/C/D are merged. PR #120 head `fc946317a9a5de6127bab2c9777c46045323c4d1`
+  passed backend, both Flutter Android/iOS validations and required-ci-gate.
+- CI currently runs on PRs: no main push workflow runs/check-runs were returned.
+  Associate CI evidence with the actual tested PR head; do not invent a main run.
+- #116 is reserved by the existing QA owner; consult its latest lease/heartbeat,
+  not this snapshot, before scheduling. #111 remains open until its acceptance passes.
+- INDEX.md still marks 46 screens reference-only. This is an evidence gap, not proof
+  that all 46 implementations are absent. Audit each row before changing its status.
+- Production release checklist is unchecked; release-readiness.sh checks structure,
+  not a successful deployment. Flutter CI currently builds debug Android/iOS targets.
+- TranslationCatalog currently omits existing reports/mobile_settings language groups.
+
+### Atomic execution queue
+
+| Task | Exact branch | Dependency / claim status at creation | Acceptance |
+|---|---|---|---|
+| #121 Plan reconciliation | `docs/121-usable-product-plan` | This documentation task | Current evidence, explicit queue and worker gates |
+| #122 Translation Center coverage | `fix/122-translation-catalog-coverage` | Ready; claim live lease first | Reports/mobile settings editable in AR/EN; override/reset/audit/API regression |
+| #123 Screen coverage evidence | `test/123-screen-coverage-evidence` | Backlog until #116 merged | Per-screen implementation + route + role/store + visual/functional AR/EN evidence |
+| #124 Deployment acceptance | `test/124-deployment-acceptance` | Ready; independent test scope | Real PostgreSQL/Redis clean install, upgrade, backup/restore and failure recovery evidence |
+| #125 Mobile release artifacts | `release/125-mobile-release-artifacts` | Ready; coordinate CI/native files | Branded release builds, endpoint configuration, version/commit/checksums and explicit signing blockers |
+
+Issues are the live source of ownership/status. All newly discovered gaps become small,
+non-duplicate issues tied to an approved PC/PH/RC requirement; do not silently expand a
+reserved worker's scope. A queued audit is not equivalent to a passing release gate.
+
+### Worker scheduling and coordination
+
+1. Refresh all open/closed issues, PRs, branches, required checks and main before each
+   cycle. Check manual, Codex and GPTDesktop workers through live owner/lease/heartbeat records.
+2. One Task = One Owner = One Branch. Use the exact issue branch. Record owner, UTC or
+   offset-bearing lease start and expiry (two hours), scope and touched shared files.
+3. Renew only on meaningful commit, PR update, progress finding or test evidence. Recheck
+   owner and expiry immediately before every push. Never duplicate an active reservation.
+4. Expired lease with no meaningful heartbeat: read issue criteria, commits, changed files,
+   PR discussions, tests and blockers; post TAKEOVER and continue the same branch.
+5. Red main/required gate takes priority: pause new feature scheduling, create/reuse a P0
+   repair task. Fix failed PRs on the same branch; update from main and resolve conflicts
+   inside that task's scope. Do not bypass required checks.
+6. If no Ready item exists, promote dependency-unblocked approved backlog work. GitHub
+   Project status should mirror labels when available; labels are the scheduling fallback.
+7. Every shared change records impact on B2C Admin, B2B Admin, Customer and Driver apps.
+   Coordinate central routing/auth/OpenAPI/migrations/CI/design tokens before editing.
+8. PR to main only -> all required checks -> resolved reviews -> functional/visual QA ->
+   squash merge -> branch deletion -> issue Done -> refresh next eligible task.
+
+### Release exit gates and evidence format
+
+For each gate record tested commit, environment, exact command/journey, result and an
+artifact or CI URL. Missing/unexecuted evidence stays **Not verified**, never PASS.
+
+- All 46 reference rows have implementation and visual/functional AR RTL + EN LTR evidence.
+- PH-05 brand uses canonical FOODEX tokens/assets across all surfaces; deterministic demo
+  data reproduces the approved dashboard without entering production bootstrap.
+- Complete B2C guest/cart/auth/checkout/tracking, B2B account/pricing/order/finance and
+  role-separated Driver delivery journeys pass against the real backend.
+- Buttons/actions, empty/error/loading states, validation, permissions, store/channel
+  isolation, notifications, editable translation coverage and audit are verified.
+- Deployment/upgrade/rollback, queues, logs and production configuration pass with
+  PostgreSQL/Redis. Existing checklist items require individual evidence.
+- Both mobile release builds pass. Unsigned validation is recorded separately from signed,
+  installable/store-ready artifacts; absent identifiers/credentials stay explicit blockers.
+- No open P0/P1 defects, OpenAPI matches routes, and every applicable CI gate is green.
+
+Report implementation, verified screen coverage and release readiness separately.
+Do not calculate product percentage from issue closure alone. Close this release wave
+only after the evidence above and any resulting defects are resolved.
