@@ -100,6 +100,18 @@ class AdminShellTest extends TestCase
             ->assertSee('Search navigation');
     }
 
+    public function test_shared_shell_exposes_foodex_brand_contract(): void
+    {
+        $user = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
+
+        $this->actingAs($user)
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee('data-foodex-brand="v1"', false)
+            ->assertSee('--foodex-green:#158A3A', false)
+            ->assertSee('--foodex-orange:#EE731C', false);
+    }
+
     public function test_workspace_uses_shared_sidebar_active_state_and_preserves_deep_link(): void
     {
         $storeId = $this->createB2cStore();

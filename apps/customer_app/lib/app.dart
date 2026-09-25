@@ -7,6 +7,7 @@ import 'core/auth/customer_session.dart';
 import 'core/localization/app_translations.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
+import 'core/theme/foodex_theme.dart';
 
 class FoodexCustomerApp extends StatefulWidget {
   const FoodexCustomerApp({
@@ -109,6 +110,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FOODEX Customer',
+      theme: FoodexTheme.light(),
       locale: widget.locale,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

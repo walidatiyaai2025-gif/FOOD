@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/localization/driver_translations.dart';
+import 'core/theme/foodex_theme.dart';
 import 'navigation.dart';
 
 class FoodexDriverApp extends StatefulWidget {
@@ -74,6 +75,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FOODEX Driver',
+      theme: FoodexTheme.light(),
       locale: widget.locale,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
