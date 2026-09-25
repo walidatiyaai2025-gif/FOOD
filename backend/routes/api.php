@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AppVersionController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
@@ -36,8 +37,6 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/profile', [AuthController::class, 'profile']);
 
-        Route::post('/checkout', static fn () => response()->json([
-            'message' => 'Checkout execution is not implemented in the guest browsing foundation.',
-        ], 501));
+        Route::post('/checkout', CheckoutController::class);
     });
 });
