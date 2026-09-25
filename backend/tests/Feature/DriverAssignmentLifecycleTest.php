@@ -22,7 +22,8 @@ class DriverAssignmentLifecycleTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
         [$storeId, $order] = $this->order('b2c');
         $admin = $this->roleUser('B2C_STORE_ADMIN', 'delivery-admin@example.test');
-        DB::table('user_store_scopes')->insert(['user_id' => $admin->id, 'store_id' => $storeId, 'created_at' => now(), 'updated_at' => now()]);
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert(['user_id' => $admin->id, 'store_id' => $storeId, 'role_id' => $roleId, 'created_at' => now(), 'updated_at' => now()]);
         $driverUser = $this->roleUser('B2C_DRIVER', 'delivery-driver@example.test');
         $driver = Driver::query()->create(['user_id' => $driverUser->id, 'driver_type' => 'b2c', 'is_available' => true, 'is_active' => true]);
         Sanctum::actingAs($admin);
