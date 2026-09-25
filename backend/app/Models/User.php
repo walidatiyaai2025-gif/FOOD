@@ -9,6 +9,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property bool $is_active
+ * @property \Illuminate\Support\Carbon|null $deactivated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Role> $roles
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, UserStoreRole> $storeRoleAssignments
+ */
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -17,11 +23,13 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
+    /** @return BelongsToMany<Role, $this> */
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'role_user');
     }
 
+    /** @return HasMany<UserStoreRole, $this> */
     public function storeRoleAssignments(): HasMany
     {
         return $this->hasMany(UserStoreRole::class);
@@ -91,7 +99,7 @@ class User extends Authenticatable
     public function effectivePermissionCodes(?int $storeId = null): array
     {
         if ($this->hasRole('SUPER_ADMIN')) {
-            return array_values(array_keys((array) config('permissions.abilities', [])));
+            return array_keys((array) config('permissions.abilities', []));
         }
 
         $codes = $this->roles()
