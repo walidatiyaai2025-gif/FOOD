@@ -117,19 +117,205 @@ paths:
   /profile:
     get:
       tags: [Authentication]
-      summary: Get the authenticated customer profile
+      summary: Get the authenticated identity and customer profile
       operationId: getProfile
       security:
         - bearerAuth: []
       responses:
         "200":
-          description: Authenticated identity and customer profile
+          description: Authenticated identity and customer-owned profile resources
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserIdentity"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+    patch:
+      tags: [Authentication]
+      summary: Update authenticated customer profile data
+      operationId: updateProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdateRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserIdentity"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /profile/addresses:
+    get:
+      tags: [Authentication]
+      summary: List authenticated customer's saved addresses
+      operationId: listProfileAddresses
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Customer-owned addresses
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Authentication]
+      summary: Create a saved address for the authenticated customer
+      operationId: createProfileAddress
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressCreateRequest"
+      responses:
+        "201":
+          description: Address created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /profile/addresses/{address}:
+    patch:
+      tags: [Authentication]
+      summary: Update an authenticated customer's saved address
+      operationId: updateProfileAddress
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AddressId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressUpdateRequest"
+      responses:
+        "200":
+          description: Address updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Authentication]
+      summary: Delete an authenticated customer's saved address
+      operationId: deleteProfileAddress
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AddressId"
+      responses:
+        "204":
+          description: Address deleted
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /profile/favorites:
+    get:
+      tags: [Authentication]
+      summary: List authenticated customer's active favorite products
+      operationId: listProfileFavorites
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Active favorite products
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProductSummary"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /profile/favorites/{product}:
+    post:
+      tags: [Authentication]
+      summary: Add an active product to authenticated customer's favorites
+      operationId: addProfileFavorite
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        "200":
+          description: Favorite already existed
+        "201":
+          description: Favorite created
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Authentication]
+      summary: Remove a product from authenticated customer's favorites
+      operationId: removeProfileFavorite
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        "204":
+          description: Favorite removed
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /stores:
     get:
@@ -705,6 +891,13 @@ components:
       schema:
         type: integer
         minimum: 1
+    AddressId:
+      in: path
+      name: address
+      required: true
+      schema:
+        type: integer
+        minimum: 1
     CartItemId:
       in: path
       name: item
@@ -823,6 +1016,149 @@ components:
           uniqueItems: true
           items:
             type: integer
+        customer:
+          anyOf:
+            - $ref: "#/components/schemas/CustomerProfile"
+            - type: "null"
+        addresses:
+          type: array
+          items:
+            $ref: "#/components/schemas/Address"
+        favorites:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductSummary"
+
+    ProfileUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: [string, "null"]
+          maxLength: 50
+        locale:
+          type: string
+          enum: [ar, en]
+
+    CustomerProfile:
+      type: object
+      required: [id, type, name]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [b2c, b2b]
+        name:
+          type: string
+        phone:
+          type: [string, "null"]
+        email:
+          type: [string, "null"]
+          format: email
+
+    Address:
+      type: object
+      required: [id, line1, city, country_code, is_default]
+      properties:
+        id:
+          type: integer
+        label:
+          type: [string, "null"]
+        line1:
+          type: string
+        line2:
+          type: [string, "null"]
+        city:
+          type: string
+        area:
+          type: [string, "null"]
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        latitude:
+          type: [number, "null"]
+        longitude:
+          type: [number, "null"]
+        is_default:
+          type: boolean
+
+    AddressCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [line1, city, country_code]
+      properties:
+        label:
+          type: [string, "null"]
+          maxLength: 100
+        line1:
+          type: string
+          maxLength: 255
+        line2:
+          type: [string, "null"]
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        area:
+          type: [string, "null"]
+          maxLength: 120
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        latitude:
+          type: [number, "null"]
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: [number, "null"]
+          minimum: -180
+          maximum: 180
+        is_default:
+          type: boolean
+
+    AddressUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        label:
+          type: [string, "null"]
+          maxLength: 100
+        line1:
+          type: string
+          maxLength: 255
+        line2:
+          type: [string, "null"]
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        area:
+          type: [string, "null"]
+          maxLength: 120
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        latitude:
+          type: [number, "null"]
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: [number, "null"]
+          minimum: -180
+          maximum: 180
+        is_default:
+          type: boolean
 
     Store:
       type: object
