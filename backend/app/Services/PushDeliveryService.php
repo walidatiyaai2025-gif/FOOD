@@ -6,6 +6,7 @@ use App\Models\Notification;
 use App\Models\PushDeliveryLog;
 use App\Models\PushDeviceToken;
 use App\Models\PushProviderSetting;
+use App\Models\User;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
@@ -15,29 +16,7 @@ final class PushDeliveryService
 {
     public function validateProvider(PushProviderSetting $provider): void
     {
-        $credentials = $provider->credentials_encrypted;
-
-        if (! is_array($credentials)) {
-            throw ValidationException::withMessages([
-                'credentials_json' => 'Provider credentials are required.',
-            ]);
-        }
-
-        $required = $provider->platform === 'android'
-            ? ['project_id', 'access_token']
-            : ['bundle_id', 'bearer_token'];
-
-        foreach ($required as $key) {
-            if (
-                ! isset($credentials[$key])
-                || ! is_string($credentials[$key])
-                || trim($credentials[$key]) === ''
-            ) {
-                throw ValidationException::withMessages([
-                    'credentials_json' => "Missing provider credential: {$key}.",
-                ]);
-            }
-        }
+        $this->credentials($provider);
     }
 
     public function send(
@@ -57,8 +36,7 @@ final class PushDeliveryService
         ]);
 
         try {
-            $this->validateProvider($provider);
-            $credentials = $provider->credentials_encrypted;
+            $credentials = $this->credentials($provider);
 
             $response = $provider->platform === 'android'
                 ? $this->firebase($provider, $device, $payload, $credentials)
@@ -142,7 +120,8 @@ final class PushDeliveryService
                 continue;
             }
 
-            $english = $device->user?->locale === 'en';
+            $user = $device->user;
+            $english = $user instanceof User && $user->locale === 'en';
 
             $this->send($provider, $device, [
                 'title' => $english
@@ -157,6 +136,39 @@ final class PushDeliveryService
                 ],
             ]);
         }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function credentials(PushProviderSetting $provider): array
+    {
+        $credentials = $provider->getAttribute('credentials_encrypted');
+
+        if (! is_array($credentials)) {
+            throw ValidationException::withMessages([
+                'credentials_json' => 'Provider credentials are required.',
+            ]);
+        }
+
+        $required = $provider->platform === 'android'
+            ? ['project_id', 'access_token']
+            : ['bundle_id', 'bearer_token'];
+
+        foreach ($required as $key) {
+            if (
+                ! isset($credentials[$key])
+                || ! is_string($credentials[$key])
+                || trim($credentials[$key]) === ''
+            ) {
+                throw ValidationException::withMessages([
+                    'credentials_json' => "Missing provider credential: {$key}.",
+                ]);
+            }
+        }
+
+        /** @var array<string, string> $credentials */
+        return $credentials;
     }
 
     private function firebase(

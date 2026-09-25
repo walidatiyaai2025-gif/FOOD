@@ -186,7 +186,8 @@ final class MobileSettingsController extends Controller
             ]);
         }
 
-        $english = $device->user?->locale === 'en';
+        $deviceUser = $device->user;
+        $english = $deviceUser instanceof User && $deviceUser->locale === 'en';
         $log = $push->send(
             $provider,
             $device,
