@@ -73,7 +73,7 @@ jobs:
         run: |
           set -euo pipefail
           branch="${{ github.head_ref }}"
-          [[ "$branch" =~ ^(feat|fix|chore|docs|refactor)/[0-9]+-[a-z0-9-]+$ ]]
+          [[ "$branch" =~ ^(feat|fix|chore|docs|refactor|test|release)/[0-9]+-[a-z0-9-]+$ ]]
 
   backend-validation:
     name: Backend validation
