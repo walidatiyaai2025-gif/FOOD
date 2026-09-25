@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Illuminate\Translation\LoaderInterface;
+use Illuminate\Contracts\Translation\Loader;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
         $this->app->extend(
             'translation.loader',
-            static fn (LoaderInterface $loader): LoaderInterface => new DatabaseTranslationLoader($loader),
+            static fn (Loader $loader): Loader => new DatabaseTranslationLoader($loader),
         );
     }
 
