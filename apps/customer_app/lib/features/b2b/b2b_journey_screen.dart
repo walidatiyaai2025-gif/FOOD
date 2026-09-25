@@ -64,6 +64,7 @@ class B2bJourneyScreen extends StatelessWidget {
       case CustomerRoutePaths.b2bPurchaseReports: return '/api/v1/b2b/reports/purchases';
       case CustomerRoutePaths.b2bTopProducts:
       case CustomerRoutePaths.b2bProducts: return '/api/v1/b2b/products${uri.hasQuery ? '?${uri.query}' : ''}';
+      case CustomerRoutePaths.b2bProductDetails: return null;
       case CustomerRoutePaths.b2bInvoices: return '/api/v1/b2b/invoices';
       case CustomerRoutePaths.b2bInvoiceDetails: return '/api/v1/b2b/invoices/${segments.last}';
       case CustomerRoutePaths.b2bAccountStatement: return '/api/v1/b2b/account-statement';
