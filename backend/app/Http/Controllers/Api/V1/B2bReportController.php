@@ -31,8 +31,12 @@ class B2bReportController extends Controller
         $customer = $this->approvedCustomer($request);
         $validated = $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', 'after_or_equal:from']]);
         $query = DB::table('orders')->where('customer_id', $customer->getKey())->where('channel', 'b2b')->where('status', '!=', 'cancelled');
-        if (isset($validated['from'])) $query->whereDate('created_at', '>=', $validated['from']);
-        if (isset($validated['to'])) $query->whereDate('created_at', '<=', $validated['to']);
+        if (isset($validated['from'])) {
+            $query->whereDate('created_at', '>=', $validated['from']);
+        }
+        if (isset($validated['to'])) {
+            $query->whereDate('created_at', '<=', $validated['to']);
+        }
         $rows = $query->selectRaw('DATE(created_at) as period, COUNT(*) as orders_count, SUM(grand_total) as purchase_total')->groupByRaw('DATE(created_at)')->orderBy('period')->get();
 
         return response()->json(['data' => $rows, 'currency' => 'KWD']);
