@@ -30,7 +30,7 @@ void main() {
     expect(find.text('إضافة إلى السلة'), findsOneWidget);
 
     await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text('السلة فارغة'), findsOneWidget);
     expect(find.text('إتمام الطلب'), findsOneWidget);
   });
