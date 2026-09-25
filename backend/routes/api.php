@@ -3,8 +3,8 @@
 use App\Http\Controllers\Api\V1\AppVersionController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\B2bAccountController;
-use App\Http\Controllers\Api\V1\B2bPricingController;
 use App\Http\Controllers\Api\V1\B2bFinanceController;
+use App\Http\Controllers\Api\V1\B2bPricingController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
