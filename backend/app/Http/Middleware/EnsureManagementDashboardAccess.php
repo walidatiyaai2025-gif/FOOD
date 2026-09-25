@@ -24,6 +24,10 @@ class EnsureManagementDashboardAccess
         abort_unless($user->is_active, 403);
         abort_unless($this->navigation->canUseDashboard($user), 403);
 
+        if ($user->last_seen_at === null || $user->last_seen_at->lt(now()->subMinute())) {
+            $user->forceFill(['last_seen_at' => now()])->saveQuietly();
+        }
+
         return $next($request);
     }
 }

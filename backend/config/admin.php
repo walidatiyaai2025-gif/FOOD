@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'active_user_window_minutes' => (int) env('FOODEX_ACTIVE_USER_WINDOW_MINUTES', 15),
+    'low_stock_threshold' => (float) env('FOODEX_LOW_STOCK_THRESHOLD', 12),
+
     'dashboard_roles' => [
         'SUPER_ADMIN', 'B2B_ADMIN', 'B2C_STORE_ADMIN', 'OPERATIONS', 'INVENTORY', 'FINANCE', 'CUSTOMER_SUPPORT',
     ],
