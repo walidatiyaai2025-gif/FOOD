@@ -48,8 +48,7 @@ class B2bAccountLifecycleTest extends TestCase
         $this->assertDatabaseHas('users',['email'=>'denied@example.test','is_active'=>false]);
 
         $finance = $this->admin('FINANCE');
-        $this->flushHeaders();
-        $this->withToken($finance->createToken('test')->plainTextToken)->postJson('/api/v1/admin/b2b/accounts', [
+        $this->actingAs($finance, 'sanctum')->postJson('/api/v1/admin/b2b/accounts', [
             'name'=>'No','email'=>'no@example.test','password'=>'password123','company_name'=>'No Co',
         ])->assertForbidden();
     }
