@@ -5,7 +5,8 @@ import 'package:foodex_customer_app/app.dart';
 void main() {
   testWidgets('customer app renders English LTR from the bilingual catalog', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(locale: Locale('en')));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('FOODEX'), findsWidgets);
     expect(find.text('Everything you need in one place'), findsOneWidget);
@@ -30,7 +31,8 @@ void main() {
         },
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('فودكس المخصص'), findsOneWidget);
     expect(find.text('كل احتياجاتك في مكان واحد'), findsOneWidget);
