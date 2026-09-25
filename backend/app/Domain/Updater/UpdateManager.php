@@ -93,12 +93,13 @@ final class UpdateManager
             return $history->refresh();
         } catch (Throwable $exception) {
             $reason = "Update failed during [{$stage}]. Rollback was attempted.";
+            $rollbackSucceeded = true;
 
             if ($fileBackup !== null) {
                 try {
                     $this->runtime->rollbackFiles($fileBackup);
                 } catch (Throwable) {
-                    // Continue rollback attempts; the stored failure remains generic.
+                    $rollbackSucceeded = false;
                 }
             }
 
@@ -106,16 +107,25 @@ final class UpdateManager
                 try {
                     $this->runtime->rollbackDatabase($databaseBackup);
                 } catch (Throwable) {
-                    // Continue to leave maintenance mode even when DB restore fails.
+                    $rollbackSucceeded = false;
                 }
             }
 
-            if ($maintenanceMode) {
+            if ($maintenanceMode && $rollbackSucceeded) {
                 try {
                     $this->runtime->exitMaintenanceMode();
+                    $maintenanceMode = false;
                 } catch (Throwable) {
-                    // The failure report remains authoritative; operators can recover manually.
+                    // Keep the recovery state explicit when maintenance cannot be disabled.
                 }
+            }
+
+            if (! $rollbackSucceeded) {
+                $reason .= ' Rollback is incomplete; manual recovery is required.';
+            }
+
+            if ($maintenanceMode) {
+                $reason .= ' Maintenance mode remains enabled.';
             }
 
             $history->forceFill([
