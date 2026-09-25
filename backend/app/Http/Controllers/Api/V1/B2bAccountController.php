@@ -41,9 +41,12 @@ class B2bAccountController extends Controller
 
         $account = DB::transaction(function () use ($data): B2bAccount {
             $user = User::query()->create(['name' => $data['name'], 'email' => $data['email'], 'password' => Hash::make($data['password']), 'is_active' => false]);
+
             $customer = Customer::query()->create(['user_id' => $user->id, 'type' => 'b2b', 'name' => $data['name'], 'phone' => $data['phone'] ?? null, 'email' => $data['email']]);
+
             return B2bAccount::query()->create(['customer_id' => $customer->id, 'company_name' => $data['company_name'], 'tax_number' => $data['tax_number'] ?? null, 'status' => 'pending']);
         });
+
         $account->load('customer.user');
 
         app(AuditLogger::class)->record('b2b.account.created', $request->user(), $account, null, ['status' => 'pending', 'company_name' => $account->company_name], $request);
@@ -55,7 +58,9 @@ class B2bAccountController extends Controller
     {
         Gate::authorize('b2b.accounts.manage');
         $data = $request->validate(['status' => ['required', Rule::in(['pending', 'active', 'denied', 'suspended'])]]);
+
         $before = $account->status;
+
         $account->update(['status' => $data['status']]);
         $account->customer()->with('user')->first()?->user?->update(['is_active' => $data['status'] === 'active']);
 
