@@ -148,7 +148,7 @@ class AdminNavigation
      */
     private function module(User $user, array $channels, string $channel, string $module, string $label, ?string $permission): ?array
     {
-        if (! array_key_exists($channel, $channels) || ! $this->hasChannelPermission($user, $channel, $permission)) {
+        if (array_key_exists($channel, $channels) === false || $this->hasChannelPermission($user, $channel, $permission) === false) {
             return null;
         }
 
@@ -183,7 +183,7 @@ class AdminNavigation
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
     private function routeItem(User $user, string $key, string $label, string $route, string $permission): ?array
     {
-        if (! Route::has($route) || ! $user->hasPermission($permission)) {
+        if (Route::has($route) === false || $user->hasPermission($permission) === false) {
             return null;
         }
 
