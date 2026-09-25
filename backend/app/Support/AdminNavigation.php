@@ -63,6 +63,7 @@ class AdminNavigation
                 $this->routeItem($user, 'notifications', 'notifications.title', 'admin.notifications.index', 'notifications.view'),
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
+                $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
                 $this->module($user, $channels, 'b2b', 'reports', 'admin.b2b_workspace.modules.reports', 'reports.view'),
             ]),
