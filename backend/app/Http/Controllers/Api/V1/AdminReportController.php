@@ -43,7 +43,7 @@ class AdminReportController extends Controller
         $requested = $request->integer('store_id');
         if ($requested <= 0) throw ValidationException::withMessages(['store_id' => ['A store_id is required for store-scoped reports.']]);
         abort_unless($user->hasPermission('reports.view', $requested), 403);
-        abort_unless($user->stores()->whereKey($requested)->exists(), 403);
+        abort_unless($user->storeRoleAssignments()->where('store_id', $requested)->exists(), 403);
 
         return $requested;
     }
