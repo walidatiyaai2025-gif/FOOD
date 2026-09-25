@@ -34,9 +34,9 @@ class B2cWorkspaceController extends Controller
     private function storeIds(User $user): array
     {
         if ($user->roles()->where('roles.code', 'SUPER_ADMIN')->exists()) {
-            return DB::table('stores')->join('store_types', 'store_types.id', '=', 'stores.store_type_id')->where('store_types.code', 'B2C')->pluck('stores.id')->map(fn($id) => (int) $id)->all();
+            return DB::table('stores')->join('store_types', 'store_types.id', '=', 'stores.store_type_id')->where('store_types.code', 'B2C')->pluck('stores.id')->map(fn ($id) => (int) $id)->all();
         }
 
-        return $user->storeRoleAssignments()->whereHas('role', fn($q) => $q->where('code', 'B2C_STORE_ADMIN'))->pluck('store_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
+        return $user->storeRoleAssignments()->whereHas('role', fn ($q) => $q->where('code', 'B2C_STORE_ADMIN'))->pluck('store_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
     }
 }
