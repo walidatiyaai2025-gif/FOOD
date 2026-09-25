@@ -15,15 +15,21 @@ final class TranslationCatalog
     public function defaults(): array
     {
         $catalog = [];
-        $arabic = Arr::dot(require lang_path('ar/admin.php'));
-        $english = Arr::dot(require lang_path('en/admin.php'));
 
-        foreach (array_unique([...array_keys($arabic), ...array_keys($english)]) as $key) {
-            $catalog['admin.'.$key] = [
-                'ar' => (string) ($arabic[$key] ?? ''),
-                'en' => (string) ($english[$key] ?? ''),
-                'surface' => 'admin',
-            ];
+        foreach ([
+            'admin' => 'admin',
+            'notifications' => 'admin',
+        ] as $group => $surface) {
+            $arabic = Arr::dot(require lang_path("ar/{$group}.php"));
+            $english = Arr::dot(require lang_path("en/{$group}.php"));
+
+            foreach (array_unique([...array_keys($arabic), ...array_keys($english)]) as $key) {
+                $catalog[$group.'.'.$key] = [
+                    'ar' => (string) ($arabic[$key] ?? ''),
+                    'en' => (string) ($english[$key] ?? ''),
+                    'surface' => $surface,
+                ];
+            }
         }
 
         foreach ((array) config('ui_translations', []) as $key => $values) {
