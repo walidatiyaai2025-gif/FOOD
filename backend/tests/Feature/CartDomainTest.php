@@ -153,11 +153,12 @@ class CartDomainTest extends TestCase
 
         $this->assertDatabaseMissing('carts', ['guest_token' => $token]);
 
-        $this->postJson('/api/v1/cart/items', [
-            'store_id' => $this->b2cStoreId,
-            'product_id' => $this->productId,
-            'quantity' => 1,
-        ])->assertCreated()
+        $this->withHeader('X-Guest-Token', '')
+            ->postJson('/api/v1/cart/items', [
+                'store_id' => $this->b2cStoreId,
+                'product_id' => $this->productId,
+                'quantity' => 1,
+            ])->assertCreated()
             ->assertJsonPath('id', $merged->json('id'))
             ->assertJsonPath('items.0.quantity', 2)
             ->assertJsonPath('subtotal', 3);
@@ -230,11 +231,12 @@ class CartDomainTest extends TestCase
             ->getJson("/api/v1/cart?store={$this->b2bStoreId}")
             ->assertConflict();
 
-        $this->postJson('/api/v1/cart/items', [
-            'store_id' => $this->b2bStoreId,
-            'product_id' => $this->productId,
-            'quantity' => 1,
-        ])->assertCreated()
+        $this->withHeader('X-Guest-Token', '')
+            ->postJson('/api/v1/cart/items', [
+                'store_id' => $this->b2bStoreId,
+                'product_id' => $this->productId,
+                'quantity' => 1,
+            ])->assertCreated()
             ->assertJsonPath('channel', 'b2b');
     }
 
