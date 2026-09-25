@@ -3,6 +3,7 @@
 return [
     'abilities' => [
         'platform.manage' => 'Manage platform-wide settings and permissions',
+        'translations.manage' => 'Manage Arabic and English UI translations',
         'system.update' => 'Install validated FOODEX system updates',
         'translations.manage' => 'Manage Arabic and English UI translations',
         'b2b.accounts.manage' => 'Manage B2B customer accounts',
