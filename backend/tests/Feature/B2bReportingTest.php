@@ -28,7 +28,8 @@ class B2bReportingTest extends TestCase
         $this->order($store, $customer->id, 9, 'cancelled');
         $this->order($store, $other->id, 100, 'pending');
         DB::table('order_items')->insert(['order_id' => $order, 'product_id' => $product, 'sku_snapshot' => 'TOP-1', 'name_snapshot' => 'Top Product', 'quantity' => 2, 'unit_price' => 12.5, 'line_total' => 25, 'created_at' => now(), 'updated_at' => now()]);
-        DB::table('invoices')->insert(['customer_id' => $customer->id, 'invoice_number' => 'REP-1', 'status' => 'issued', 'currency' => 'KWD', 'total' => 25, 'balance_due' => 10, 'issued_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        $invoice = (int) DB::table('invoices')->insertGetId(['customer_id' => $customer->id, 'invoice_number' => 'REP-1', 'status' => 'issued', 'currency' => 'KWD', 'total' => 25, 'issued_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('payments')->insert(['invoice_id' => $invoice, 'provider' => 'account', 'status' => 'paid', 'amount' => 15, 'currency' => 'KWD', 'created_at' => now(), 'updated_at' => now()]);
         Sanctum::actingAs($user);
 
         $this->getJson('/api/v1/b2b/dashboard')->assertOk()->assertJsonPath('open_orders', 1)->assertJsonPath('purchase_total', 25)->assertJsonPath('outstanding_balance', 10)->assertJsonPath('top_products.0.sku', 'TOP-1');
