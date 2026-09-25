@@ -36,9 +36,7 @@
             "@php artisan test"
         ],
         "lint": [
-            "vendor/bin/pint app/Support/AdminNavigation.php",
-            "git diff -- app/Support/AdminNavigation.php",
-            "false"
+            "vendor/bin/pint --test app routes tests"
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=1G"
