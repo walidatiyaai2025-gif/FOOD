@@ -67,6 +67,10 @@
             <a class="nav-link" href="{{ route('admin.translations.index') }}">{{ __('admin.translation_center') }}</a>
         @endcan
 
+        @can('notifications.manage')
+            <a class="nav-link" href="{{ route('admin.notifications.index') }}">{{ __('notifications.title') }}</a>
+        @endcan
+
         @can('platform.manage')
             <a class="nav-link" href="{{ route('admin.app-versions.index') }}">{{ __('admin.app_versions') }}</a>
         @endcan

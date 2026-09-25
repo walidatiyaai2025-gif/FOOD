@@ -26,6 +26,13 @@ class AdminManagementEntryPointsTest extends TestCase
         $user->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         $this->actingAs($user)
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee(route('admin.translations.index'))
+            ->assertSee(route('admin.notifications.index'))
+            ->assertSee(__('notifications.title'));
+
+        $this->actingAs($user)
             ->get('/admin/settings/translations')
             ->assertOk()
             ->assertSee(route('admin.notifications.index'))
