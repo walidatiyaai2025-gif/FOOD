@@ -49,10 +49,14 @@ class DriverTranslations extends InheritedWidget {
     return overrides[key] ?? defaults[key] ?? key;
   }
 
-  static DriverTranslations of(BuildContext context) {
-    final value = context.dependOnInheritedWidgetOfExactType<DriverTranslations>();
-    assert(value != null, 'DriverTranslations is missing above this context.');
-    return value!;
+  static DriverTranslations? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<DriverTranslations>();
+  }
+
+  static String fallback(BuildContext context, String key) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('ar');
+    final defaults = locale.languageCode == 'en' ? _en : _ar;
+    return defaults[key] ?? key;
   }
 
   @override
@@ -62,7 +66,7 @@ class DriverTranslations extends InheritedWidget {
 }
 
 extension DriverTranslationContext on BuildContext {
-  String tr(String key) => DriverTranslations.of(this).text(key);
+  String tr(String key) => DriverTranslations.maybeOf(this)?.text(key) ?? DriverTranslations.fallback(this, key);
 }
 
 Future<Map<String, String>> fetchDriverTranslationBundle(String baseUrl, String locale) async {
