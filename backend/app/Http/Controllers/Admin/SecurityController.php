@@ -11,6 +11,7 @@ use App\Services\RbacManager;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -79,7 +80,7 @@ final class SecurityController extends Controller
                 $validated['reason'] ?? null,
                 $request,
             );
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             return back()->withErrors($exception->errors());
         }
 
@@ -176,8 +177,9 @@ final class SecurityController extends Controller
         return $request->validate($rules);
     }
 
-    /** @param array<string, mixed> $validated
-     *  @return array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}
      */
     private function roleValues(array $validated): array
     {
