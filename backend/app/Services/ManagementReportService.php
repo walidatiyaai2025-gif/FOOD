@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -533,11 +532,11 @@ final class ManagementReportService
     }
 
     /**
-     * @param array<string, mixed> $filters
-     * @param array<string, int|float> $kpis
-     * @param list<string> $columns
-     * @param list<array<string, mixed>> $rows
-     * @param array<string, mixed> $extra
+     * @param  array<string, mixed>  $filters
+     * @param  array<string, int|float>  $kpis
+     * @param  list<string>  $columns
+     * @param  list<array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $extra
      */
     private function reportPayload(
         string $report,

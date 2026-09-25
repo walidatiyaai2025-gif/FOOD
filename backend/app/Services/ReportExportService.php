@@ -8,7 +8,7 @@ use ZipArchive;
 final class ReportExportService
 {
     /**
-     * @param array<string, mixed> $report
+     * @param  array<string, mixed>  $report
      * @return array{content:string,mime:string,extension:string}
      */
     public function build(array $report, string $format, string $locale): array
@@ -69,6 +69,7 @@ final class ReportExportService
                 $reference = $this->columnLetter($columnIndex + 1).($rowIndex + 1);
                 if (is_int($value) || is_float($value)) {
                     $cells[] = '<c r="'.$reference.'" t="n"><v>'.$value.'</v></c>';
+
                     continue;
                 }
 
@@ -219,7 +220,7 @@ final class ReportExportService
 
             $objects[$pageId] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] '
                 .'/Resources << /Font << /F1 '.$fontId.' 0 R >> >> /Contents '.$contentId.' 0 R >>';
-            $objects[$contentId] = "<< /Length ".strlen($content)." >>\nstream\n{$content}\nendstream";
+            $objects[$contentId] = '<< /Length '.strlen($content)." >>\nstream\n{$content}\nendstream";
         }
 
         $objects[$fontId] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
