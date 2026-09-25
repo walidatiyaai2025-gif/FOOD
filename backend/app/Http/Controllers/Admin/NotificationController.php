@@ -50,7 +50,7 @@ final class NotificationController extends Controller
 
         $audit->record('notification.created', $actor, $notification, null, $notification->toArray(), $request);
 
-        return back()->with('status', __('admin.notifications.created'));
+        return back()->with('status', __('notifications.created'));
     }
 
     public function update(Request $request, Notification $notification, AuditLogger $audit): RedirectResponse
@@ -68,7 +68,7 @@ final class NotificationController extends Controller
 
         $audit->record('notification.updated', $actor, $notification, $before, $notification->fresh()->toArray(), $request);
 
-        return back()->with('status', __('admin.notifications.updated'));
+        return back()->with('status', __('notifications.updated'));
     }
 
     public function publish(Request $request, Notification $notification, AuditLogger $audit): RedirectResponse
@@ -78,7 +78,7 @@ final class NotificationController extends Controller
         $notification->update(['status' => 'published', 'published_at' => now()]);
         $audit->record('notification.published', $actor, $notification, $before, $notification->fresh()->toArray(), $request);
 
-        return back()->with('status', __('admin.notifications.published'));
+        return back()->with('status', __('notifications.published'));
     }
 
     public function destroy(Request $request, Notification $notification, AuditLogger $audit): RedirectResponse
@@ -88,7 +88,7 @@ final class NotificationController extends Controller
         $audit->record('notification.deleted', $actor, $notification, $before, null, $request);
         $notification->delete();
 
-        return back()->with('status', __('admin.notifications.deleted'));
+        return back()->with('status', __('notifications.deleted'));
     }
 
     private function authorizeManage(Request $request): User
@@ -111,6 +111,7 @@ final class NotificationController extends Controller
             'audience' => ['required', 'in:all,customer,driver,user'],
             'app' => ['required', 'in:all,customer,driver'],
             'target_channel' => ['required', 'in:all,b2c,b2b'],
+            'channel' => ['required', 'in:in_app,push,both'],
             'user_id' => ['nullable', 'required_if:audience,user', 'integer', 'exists:users,id'],
         ]);
     }
