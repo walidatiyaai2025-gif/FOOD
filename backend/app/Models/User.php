@@ -2,18 +2,20 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\HasApiTokens;
 
 /**
  * @property bool $is_active
- * @property \Illuminate\Support\Carbon|null $deactivated_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, Role> $roles
- * @property-read \Illuminate\Database\Eloquent\Collection<int, UserStoreRole> $storeRoleAssignments
+ * @property Carbon|null $deactivated_at
+ * @property-read Collection<int, Role> $roles
+ * @property-read Collection<int, UserStoreRole> $storeRoleAssignments
  */
 class User extends Authenticatable
 {
