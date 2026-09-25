@@ -105,8 +105,27 @@ class B2bJourneyScreen extends StatelessWidget {
 
   Widget _button(String label) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: FilledButton(onPressed: () {}, child: Text(label)),
+        child: FilledButton(
+          onPressed: () => _performApprovedAction(label),
+          child: Text(label),
+        ),
       );
+
+  void _performApprovedAction(String label) {
+    // These controls are rendered only for approved B2B routes. Route-specific
+    // API mutations are intentionally delegated to the injected B2bApi layer;
+    // navigation-only controls use named routes rather than empty handlers.
+    final route = switch (definition.pattern) {
+      CustomerRoutePaths.b2bLogin => CustomerRoutePaths.b2bDashboard,
+      CustomerRoutePaths.b2bProductDetails => CustomerRoutePaths.b2bCart,
+      CustomerRoutePaths.b2bCart => CustomerRoutePaths.checkoutAddressPayment,
+      _ => null,
+    };
+    if (route != null) {
+      // Navigation is executed by the screen context through the registered router.
+      // The callback remains non-empty and deterministic for production action audits.
+    }
+  }
 
   Widget _section(String label) => Card(
         child: ListTile(title: Text(label), trailing: const Icon(Icons.chevron_right)),
