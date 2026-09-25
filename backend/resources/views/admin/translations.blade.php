@@ -33,6 +33,7 @@
         .pagination { margin-top:18px; }
         @media(max-width:800px){ body{padding:16px}.filters{grid-template-columns:1fr}.langs{grid-template-columns:1fr}.top{flex-direction:column} }
     </style>
+    @include('admin._brand-components')
 </head>
 <body>
 <div class="wrap">

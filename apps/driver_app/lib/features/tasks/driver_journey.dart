@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/localization/driver_translations.dart';
+import '../../core/theme/foodex_theme.dart';
 import '../../navigation.dart';
 
 enum DriverLoadState { loading, ready, empty, error, offline }
@@ -110,7 +111,25 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                     (assignment) => ListTile(
                       key: Key('assignment-${assignment.id}'),
                       title: Text(assignment.reference),
-                      subtitle: Text(assignment.status),
+                      subtitle: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: FoodexBrand.statusSurface(assignment.status),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: Text(
+                            assignment.status,
+                            style: TextStyle(
+                              color: FoodexBrand.statusColor(assignment.status),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
                       trailing: FilledButton(
                         key: Key('assignment-action-${assignment.id}'),
                         onPressed: _transitioning.contains(assignment.id) ? null : () => _transition(assignment, 'advance'),
