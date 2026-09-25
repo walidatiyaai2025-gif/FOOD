@@ -80,6 +80,87 @@ class TranslationCenterTest extends TestCase
         $this->getJson('/api/v1/translations/fr')->assertNotFound();
     }
 
+
+    public function test_all_admin_language_files_are_available_in_the_catalog_and_public_bundles(): void
+    {
+        $catalog = app(TranslationCatalog::class);
+
+        foreach (['admin', 'notifications', 'reports', 'mobile_settings'] as $group) {
+            foreach (['ar', 'en'] as $locale) {
+                $defaults = \Illuminate\Support\Arr::dot(require lang_path("{$locale}/{$group}.php"));
+                $response = $this->getJson("/api/v1/translations/{$locale}")->assertOk();
+
+                foreach ($defaults as $key => $value) {
+                    $fullKey = $group.'.'.$key;
+                    $this->assertSame($value, $catalog->defaultsFor($fullKey)[$locale]);
+                    $response->assertJsonFragment([$fullKey => $value]);
+                }
+            }
+        }
+    }
+
+    public function test_reports_and_mobile_settings_can_be_edited_synced_and_reset(): void
+    {
+        $this->actingAs($this->userWithRole('SUPER_ADMIN'));
+        $catalog = app(TranslationCatalog::class);
+
+        foreach (['reports.title', 'mobile_settings.title'] as $key) {
+            $this->get('/admin/settings/translations?surface=admin&q='.urlencode($key))
+                ->assertOk()->assertSee($key);
+
+            $translation = AppTranslation::query()->where('key', $key)->firstOrFail();
+            $this->patch("/admin/settings/translations/{$translation->id}", [
+                'ar' => 'عنوان فودكس مخصص',
+                'en' => 'Custom FOODEX title',
+            ])->assertRedirect();
+
+            $catalog->syncDefaults();
+            $this->assertDatabaseHas('translations', [
+                'id' => $translation->id,
+                'ar' => 'عنوان فودكس مخصص',
+                'en' => 'Custom FOODEX title',
+                'surface' => 'admin',
+            ]);
+
+            $this->getJson('/api/v1/translations/ar')->assertOk()
+                ->assertJsonFragment([$key => 'عنوان فودكس مخصص']);
+            $this->getJson('/api/v1/translations/en')->assertOk()
+                ->assertJsonFragment([$key => 'Custom FOODEX title']);
+
+            $this->post("/admin/settings/translations/{$translation->id}/reset")->assertRedirect();
+            $defaults = $catalog->defaultsFor($key);
+            $this->assertDatabaseHas('translations', [
+                'id' => $translation->id,
+                'ar' => $defaults['ar'],
+                'en' => $defaults['en'],
+            ]);
+            $this->getJson('/api/v1/translations/en')->assertOk()
+                ->assertJsonFragment([$key => $defaults['en']]);
+        }
+
+        $this->assertDatabaseHas('audit_logs', ['event' => 'translation.updated']);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'translation.reset']);
+    }
+
+    public function test_unauthorized_admin_cannot_edit_or_reset_new_catalog_groups(): void
+    {
+        app(TranslationCatalog::class)->syncDefaults();
+        $this->actingAs($this->userWithRole('B2B_ADMIN'));
+
+        foreach (['reports.title', 'mobile_settings.title'] as $key) {
+            $translation = AppTranslation::query()->where('key', $key)->firstOrFail();
+            $this->patch("/admin/settings/translations/{$translation->id}", [
+                'ar' => 'تغيير غير مصرح',
+                'en' => 'Unauthorized change',
+            ])->assertForbidden();
+            $this->post("/admin/settings/translations/{$translation->id}/reset")->assertForbidden();
+            $this->assertDatabaseHas('translations', [
+                'id' => $translation->id,
+                'en' => $translation->en,
+            ]);
+        }
+    }
+
     private function userWithRole(string $roleCode): User
     {
         $user = User::query()->create([
