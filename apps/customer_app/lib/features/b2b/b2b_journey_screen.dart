@@ -41,7 +41,7 @@ class B2bJourneyScreen extends StatelessWidget {
       case CustomerRoutePaths.b2bPurchaseReports: return ('تقارير المشتريات', 'تقارير حساب الأعمال من الخادم', [_empty('لا توجد بيانات للفترة المحددة')]);
       case CustomerRoutePaths.b2bTopProducts: return ('الأكثر شراءً', 'المنتجات الأعلى شراءً للحساب', [_empty('لا توجد مشتريات بعد')]);
       case CustomerRoutePaths.b2bProducts: return ('منتجات الجملة', 'الأسعار والكميات الدنيا حسب الحساب المعتمد', [const SearchBar(hintText: 'ابحث عن منتج'), _empty('لا توجد منتجات متاحة')]);
-      case CustomerRoutePaths.b2bProductDetails: return ('تفاصيل منتج الجملة', 'السعر والحد الأدنى للطلب محسوبان من الخادم', [_button('إضافة إلى السلة')]);
+      case CustomerRoutePaths.b2bProductDetails: return ('تفاصيل منتج الجملة', 'السعر والحد الأدنى للطلب محسوبان من الخادم', [_section('الحد الأدنى للطلب'), _button('إضافة إلى السلة')]);
       case CustomerRoutePaths.b2bInvoices: return ('الفواتير', 'فواتير حساب الأعمال', [_empty('لا توجد فواتير')]);
       case CustomerRoutePaths.b2bInvoiceDetails: return ('تفاصيل الفاتورة', 'تفاصيل الفاتورة وحالة السداد', [_section('بنود الفاتورة'), _section('حالة السداد')]);
       case CustomerRoutePaths.b2bAccountStatement: return ('كشف الحساب', 'الرصيد والحركات المالية للحساب', [_empty('لا توجد حركات مالية')]);
