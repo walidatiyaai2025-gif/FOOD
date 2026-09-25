@@ -27,7 +27,7 @@ class B2bJourneyScreen extends StatelessWidget {
             Text(content.$2),
             const SizedBox(height: 20),
             if (!hasRemoteState || keepLocalActions) ...content.$3,
-            if (hasRemoteState) _RemoteState(api: api!, endpoint: _endpoint()!),
+            if (hasRemoteState && !keepLocalActions) _RemoteState(api: api!, endpoint: _endpoint()!),
 
             Text(location, key: const ValueKey('customer-route-location'), style: Theme.of(context).textTheme.labelSmall),
           ],
