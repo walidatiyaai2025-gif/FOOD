@@ -7,12 +7,12 @@ use App\Domain\Updater\UpdateRuntime;
 use App\Models\User;
 use App\Services\DatabaseTranslationLoader;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Translation\Loader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Illuminate\Contracts\Translation\Loader;
 
 class AppServiceProvider extends ServiceProvider
 {
