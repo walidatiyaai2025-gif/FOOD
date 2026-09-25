@@ -23,14 +23,17 @@ void main() {
     expect(find.text('كشف الحساب'), findsOneWidget);
   });
 
-  testWidgets('B2B products and cart expose authoritative pricing constraints', (tester) async {
+  testWidgets('B2B product details expose authoritative pricing constraints', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/products/42', b2bApi: _StaticB2bApi()));
     await tester.pumpAndSettle();
     expect(find.textContaining('الحد الأدنى'), findsWidgets);
     expect(find.text('إضافة إلى السلة'), findsOneWidget);
+  });
 
+  testWidgets('B2B cart exposes authoritative checkout action', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart', b2bApi: _StaticB2bApi()));
     await tester.pumpAndSettle();
+    expect(find.text('سلة الجملة'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -300));
     await tester.pumpAndSettle();
     expect(find.text('إتمام الطلب'), findsOneWidget);
