@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
 
 import '../api/b2b_api.dart';
+import '../api/customer_action_api.dart';
 import '../auth/customer_session.dart';
-import 'customer_routes.dart';
-import '../../features/home/b2c_journey_screen.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
+import '../../features/home/b2c_journey_screen.dart';
+import '../../shared/customer_action_widgets.dart';
+import 'customer_routes.dart';
 
 class CustomerAppRouter {
-  const CustomerAppRouter(this.session, {this.b2bApi});
+  const CustomerAppRouter(
+    this.session, {
+    required this.actionApi,
+    required this.onAuthenticated,
+    this.b2bApi,
+  });
 
   final CustomerSession session;
   final B2bApi? b2bApi;
+  final CustomerActionApi actionApi;
+  final CustomerAuthenticated onAuthenticated;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final requestedLocation = settings.name ?? CustomerRoutePaths.splash;
@@ -81,8 +90,19 @@ class CustomerAppRouter {
     return MaterialPageRoute<void>(
       settings: settings,
       builder: (_) => definition.channel == CustomerChannel.b2b
-          ? B2bJourneyScreen(definition: definition, location: requestedLocation, api: b2bApi)
-          : B2cJourneyScreen(definition: definition, location: requestedLocation),
+          ? B2bJourneyScreen(
+              definition: definition,
+              location: requestedLocation,
+              api: b2bApi,
+              actionApi: actionApi,
+              onAuthenticated: onAuthenticated,
+            )
+          : B2cJourneyScreen(
+              definition: definition,
+              location: requestedLocation,
+              actionApi: actionApi,
+              onAuthenticated: onAuthenticated,
+            ),
     );
   }
 }
