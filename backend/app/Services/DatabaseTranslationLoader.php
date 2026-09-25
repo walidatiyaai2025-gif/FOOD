@@ -18,12 +18,12 @@ final class DatabaseTranslationLoader implements Loader
     {
         $lines = $this->base->load($locale, $group, $namespace);
 
-        if (! in_array($namespace, [null, '*'], true) || ! in_array($locale, ['ar', 'en'], true)) {
+        if (in_array($namespace, [null, '*'], true) === false || in_array($locale, ['ar', 'en'], true) === false) {
             return $lines;
         }
 
         try {
-            if (!Schema::hasTable('translations')) {
+            if (Schema::hasTable('translations') === false) {
                 return $lines;
             }
 
