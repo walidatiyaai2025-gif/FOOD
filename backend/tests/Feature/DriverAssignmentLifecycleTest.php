@@ -28,6 +28,7 @@ class DriverAssignmentLifecycleTest extends TestCase
         $driver = Driver::query()->create(['user_id' => $driverUser->id, 'driver_type' => 'b2c', 'is_available' => true, 'is_active' => true]);
         Sanctum::actingAs($admin);
         $created = $this->postJson('/api/v1/admin/deliveries/assign', ['driver_id' => $driver->id, 'order_id' => $order->id])->assertCreated()->assertJsonPath('data.assignment_type', 'b2c');
+
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.created']);
         Sanctum::actingAs($driverUser);
         $id = $created->json('data.id');
@@ -57,6 +58,7 @@ class DriverAssignmentLifecycleTest extends TestCase
         $customerUser = User::query()->create(['name' => 'Customer', 'email' => $channel.'-delivery-customer@example.test', 'password' => 'password', 'is_active' => true]);
         $customer = Customer::query()->create(['user_id' => $customerUser->id, 'type' => $channel, 'name' => 'Customer', 'email' => $customerUser->email]);
         $order = Order::query()->create(['store_id' => $storeId, 'customer_id' => $customer->id, 'order_number' => 'DEL-'.strtoupper($channel).'-1', 'channel' => $channel, 'status' => 'pending', 'currency' => 'KWD', 'subtotal' => 1, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 1]);
+
         return [$storeId, $order];
     }
 
@@ -64,6 +66,7 @@ class DriverAssignmentLifecycleTest extends TestCase
     {
         $user = User::query()->create(['name' => $role, 'email' => $email, 'password' => 'password', 'is_active' => true]);
         $user->roles()->attach(Role::query()->where('code', $role)->firstOrFail());
+
         return $user;
     }
 }
