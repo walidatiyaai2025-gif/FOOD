@@ -117,9 +117,9 @@ class User extends Authenticatable
                     ->where('store_id', $storeId)
                     ->with('role.permissions:id,code')
                     ->get()
-                    ->filter(fn (UserStoreRole $assignment): bool => (bool) $assignment->role?->is_active
-                        && in_array($assignment->role?->scope, ['store', 'both'], true))
-                    ->flatMap(fn (UserStoreRole $assignment) => $assignment->role?->permissions->pluck('code') ?? collect()),
+                    ->filter(fn (UserStoreRole $assignment): bool => (bool) $assignment->role->is_active
+                        && in_array($assignment->role->scope, ['store', 'both'], true))
+                    ->flatMap(fn (UserStoreRole $assignment) => $assignment->role->permissions->pluck('code')),
             );
         }
 
