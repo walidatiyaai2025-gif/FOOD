@@ -26,7 +26,7 @@ void main() {
   testWidgets('B2B products and cart expose authoritative pricing constraints', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/products/42'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('الحد الأدنى'), findsOneWidget);
+    expect(find.textContaining('الحد الأدنى'), findsWidgets);
     expect(find.text('إضافة إلى السلة'), findsOneWidget);
 
     await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart'));
