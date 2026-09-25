@@ -58,7 +58,7 @@ class TranslationCenterTest extends TestCase
         $this->getJson('/api/v1/translations/en')
             ->assertOk()
             ->assertJsonPath('direction', 'ltr')
-            ->assertJsonPath('translations.admin.title', 'FOODEX Console');
+            ->assertJsonFragment(['admin.title' => 'FOODEX Console']);
     }
 
     public function test_non_authorized_admin_cannot_manage_translations(): void
@@ -75,7 +75,7 @@ class TranslationCenterTest extends TestCase
         $this->getJson('/api/v1/translations/ar')
             ->assertOk()
             ->assertJsonPath('direction', 'rtl')
-            ->assertJsonPath('translations.customer.splash.title', 'فودكس');
+            ->assertJsonFragment(['customer.splash.title' => 'فودكس']);
 
         $this->getJson('/api/v1/translations/fr')->assertNotFound();
     }
