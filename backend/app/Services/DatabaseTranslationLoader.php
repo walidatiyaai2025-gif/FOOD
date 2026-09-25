@@ -18,7 +18,7 @@ final class DatabaseTranslationLoader implements LoaderInterface
     {
         $lines = $this->base->load($locale, $group, $namespace);
 
-        if ($namespace !== null || ! in_array($locale, ['ar', 'en'], true)) {
+        if (! in_array($namespace, [null, '*'], true) || ! in_array($locale, ['ar', 'en'], true)) {
             return $lines;
         }
 
