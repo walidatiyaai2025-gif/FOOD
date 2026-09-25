@@ -6,6 +6,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 
 final class B2cDashboardService
 {
@@ -235,7 +236,7 @@ final class B2cDashboardService
         if ($user->hasPermission('orders.view')) {
             $actions[] = ['key' => 'manage_orders', 'route' => 'admin.b2c.module', 'params' => ['module' => 'orders']];
         }
-        if ($user->hasPermission('notifications.manage') && \Illuminate\Support\Facades\Route::has('admin.notifications.index')) {
+        if ($user->hasPermission('notifications.manage') && Route::has('admin.notifications.index')) {
             $actions[] = ['key' => 'send_notification', 'route' => 'admin.notifications.index', 'params' => []];
         }
         if ($user->hasPermission('reports.view')) {
