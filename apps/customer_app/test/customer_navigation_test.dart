@@ -70,7 +70,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('B2B login'), findsOneWidget);
+    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
     expect(find.text('/b2b/login'), findsOneWidget);
   });
 
@@ -98,7 +98,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('B2B order details'), findsOneWidget);
+    expect(find.text('تفاصيل الطلب'), findsOneWidget);
     expect(find.text('/b2b/orders/101'), findsOneWidget);
   });
 
@@ -112,7 +112,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('B2B login'), findsOneWidget);
+    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
     expect(find.text('/b2b/login'), findsOneWidget);
   });
 }
