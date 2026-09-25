@@ -330,7 +330,7 @@ final class ManagementReportService
             ])
             ->selectRaw('COUNT(orders.id) as order_count')
             ->selectRaw(
-                "COALESCE(SUM(CASE WHEN orders.status NOT IN ('cancelled','refunded') THEN orders.grand_total ELSE 0 END), 0) as order_value",
+                'COALESCE(SUM(CASE WHEN orders.status NOT IN (\'cancelled\',\'refunded\') THEN orders.grand_total ELSE 0 END), 0) as order_value',
             )
             ->selectSub(
                 DB::table('orders as first_orders')
@@ -392,10 +392,10 @@ final class ManagementReportService
 
         $rows = (clone $orders)
             ->selectRaw(
-                "stores.name as store, orders.channel, COUNT(*) as orders, ".
-                "COALESCE(SUM(CASE WHEN orders.status NOT IN ('cancelled','refunded') THEN orders.grand_total ELSE 0 END), 0) as revenue, ".
-                "SUM(CASE WHEN orders.status = 'delivered' THEN 1 ELSE 0 END) as delivered, ".
-                "SUM(CASE WHEN orders.status = 'cancelled' THEN 1 ELSE 0 END) as cancelled",
+                'stores.name as store, orders.channel, COUNT(*) as orders, '.
+                'COALESCE(SUM(CASE WHEN orders.status NOT IN (\'cancelled\',\'refunded\') THEN orders.grand_total ELSE 0 END), 0) as revenue, '.
+                'SUM(CASE WHEN orders.status = \'delivered\' THEN 1 ELSE 0 END) as delivered, '.
+                'SUM(CASE WHEN orders.status = \'cancelled\' THEN 1 ELSE 0 END) as cancelled',
             )
             ->groupBy('stores.id', 'stores.name', 'orders.channel')
             ->orderByDesc('revenue')

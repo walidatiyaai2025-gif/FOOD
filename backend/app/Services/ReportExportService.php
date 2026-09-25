@@ -41,7 +41,7 @@ final class ReportExportService
 
         $trimmed = ltrim($value);
 
-        return preg_match('/^[=+\-@]/u', $trimmed) === 1 ? "'".$value : $value;
+        return preg_match('/^[=+\-@]/u', $trimmed) === 1 ? chr(39).$value : $value;
     }
 
     /** @param array<string, mixed> $report */
@@ -215,7 +215,7 @@ final class ReportExportService
             foreach ($pageLines as $line) {
                 $content .= '('.$this->pdfEscape($this->pdfLine((string) $line, $locale)).") Tj\nT*\n";
             }
-            $content .= "ET";
+            $content .= 'ET';
 
             $objects[$pageId] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] '
                 .'/Resources << /Font << /F1 '.$fontId.' 0 R >> >> /Contents '.$contentId.' 0 R >>';
