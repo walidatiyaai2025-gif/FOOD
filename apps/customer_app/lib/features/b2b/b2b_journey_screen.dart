@@ -59,13 +59,13 @@ class B2bJourneyScreen extends StatelessWidget {
       case CustomerRoutePaths.b2bDashboard: return '/api/v1/b2b/dashboard';
       case CustomerRoutePaths.b2bPurchaseReports: return '/api/v1/b2b/reports/purchases';
       case CustomerRoutePaths.b2bTopProducts:
-      case CustomerRoutePaths.b2bProducts: return '/api/v1/b2b/products${uri.hasQuery ? '?\${uri.query}' : ''}';
+      case CustomerRoutePaths.b2bProducts: return '/api/v1/b2b/products${uri.hasQuery ? '?${uri.query}' : ''}';
       case CustomerRoutePaths.b2bInvoices: return '/api/v1/b2b/invoices';
       case CustomerRoutePaths.b2bInvoiceDetails: return '/api/v1/b2b/invoices/${segments.last}';
       case CustomerRoutePaths.b2bAccountStatement: return '/api/v1/b2b/account-statement';
       case CustomerRoutePaths.b2bOrders: return '/api/v1/b2b/orders';
       case CustomerRoutePaths.b2bOrderDetails: return '/api/v1/b2b/orders/${segments.last}';
-      case CustomerRoutePaths.b2bCart: return '/api/v1/cart${uri.hasQuery ? '?\${uri.query}' : ''}';
+      case CustomerRoutePaths.b2bCart: return '/api/v1/cart${uri.hasQuery ? '?${uri.query}' : ''}';
       case CustomerRoutePaths.b2bProfile: return '/api/v1/profile';
       default: return null;
     }
