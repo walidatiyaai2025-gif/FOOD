@@ -20,12 +20,16 @@ class AdminReportController extends Controller
         $storeId = $this->storeScope($request, $user);
 
         $orders = DB::table('orders');
-        if ($storeId !== null) $orders->where('store_id', $storeId);
+        if ($storeId !== null) {
+            $orders->where('store_id', $storeId);
+        }
         $orderCount = (clone $orders)->count();
         $revenue = (float) (clone $orders)->whereNotIn('status', ['cancelled'])->sum('grand_total');
 
         $inventory = DB::table('inventories')->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id');
-        if ($storeId !== null) $inventory->where('warehouses.store_id', $storeId);
+        if ($storeId !== null) {
+            $inventory->where('warehouses.store_id', $storeId);
+        }
 
         return response()->json(['data' => [
             'scope' => $storeId === null ? 'platform' : 'store',
@@ -39,9 +43,13 @@ class AdminReportController extends Controller
 
     private function storeScope(Request $request, User $user): ?int
     {
-        if ($user->hasRole('SUPER_ADMIN')) return $request->filled('store_id') ? $request->integer('store_id') : null;
+        if ($user->hasRole('SUPER_ADMIN')) {
+            return $request->filled('store_id') ? $request->integer('store_id') : null;
+        }
         $requested = $request->integer('store_id');
-        if ($requested <= 0) throw ValidationException::withMessages(['store_id' => ['A store_id is required for store-scoped reports.']]);
+        if ($requested <= 0) {
+            throw ValidationException::withMessages(['store_id' => ['A store_id is required for store-scoped reports.']]);
+        }
         abort_unless($user->hasPermission('reports.view', $requested), 403);
         abort_unless($user->storeRoleAssignments()->where('store_id', $requested)->exists(), 403);
 
