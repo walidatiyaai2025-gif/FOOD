@@ -7,8 +7,9 @@ import 'package:foodex_driver_app/navigation.dart';
 class FakeRepo implements DriverAssignmentRepository {
   FakeRepo(this.rows, {this.offline = false});
   final List<DriverAssignment> rows; final bool offline;
+  int? transitionedId; String? transitionedAction; DriverChannel? transitionedChannel;
   @override Future<List<DriverAssignment>> list(DriverChannel channel) async { if (offline) throw const DriverOfflineException(); return rows; }
-  @override Future<void> transition(int id, DriverChannel channel, String action) async {}
+  @override Future<void> transition(int id, DriverChannel channel, String action) async { transitionedId = id; transitionedChannel = channel; transitionedAction = action; }
 }
 
 void main() {
@@ -17,6 +18,15 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: DriverJourneyPage(channel: DriverChannel.b2c, repository: repo)));
     await tester.pumpAndSettle();
     expect(find.text('B2C-1'), findsOneWidget); expect(find.text('B2B-1'), findsNothing);
+  });
+
+  testWidgets('assignment action is wired to repository with channel boundary', (tester) async {
+    final repo = FakeRepo(const [DriverAssignment(id: 7, channel: DriverChannel.b2b, reference: 'B2B-7', status: 'assigned')]);
+    await tester.pumpWidget(MaterialApp(home: DriverJourneyPage(channel: DriverChannel.b2b, repository: repo)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('assignment-action-7')));
+    await tester.pumpAndSettle();
+    expect(repo.transitionedId, 7); expect(repo.transitionedChannel, DriverChannel.b2b); expect(repo.transitionedAction, 'advance');
   });
 
   testWidgets('empty and offline states are explicit', (tester) async {

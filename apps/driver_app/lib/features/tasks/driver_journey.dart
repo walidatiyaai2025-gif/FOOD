@@ -30,6 +30,8 @@ class DriverJourneyPage extends StatefulWidget {
 class _DriverJourneyPageState extends State<DriverJourneyPage> {
   DriverLoadState state = DriverLoadState.loading;
   List<DriverAssignment> assignments = const [];
+  final Set<int> _transitioning = <int>{};
+  String? _actionError;
 
   @override
   void initState() {
@@ -62,6 +64,19 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     }
   }
 
+  Future<void> _transition(DriverAssignment assignment, String action) async {
+    if (_transitioning.contains(assignment.id)) return;
+    setState(() { _transitioning.add(assignment.id); _actionError = null; });
+    try {
+      await widget.repository.transition(assignment.id, widget.channel, action);
+      await _load();
+    } catch (_) {
+      if (mounted) setState(() => _actionError = context.tr('driver.error'));
+    } finally {
+      if (mounted) setState(() => _transitioning.remove(assignment.id));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,7 +85,9 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
           context.tr(widget.channel == DriverChannel.b2c ? 'driver.b2c.title' : 'driver.b2b.title'),
         ),
       ),
-      body: switch (state) {
+      body: Column(children: [
+        if (_actionError != null) MaterialBanner(content: Text(_actionError!, key: const Key('driver-action-error')), actions: [TextButton(onPressed: () => setState(() => _actionError = null), child: Text(context.tr('driver.retry')))]),
+        Expanded(child: switch (state) {
         DriverLoadState.loading => const Center(child: CircularProgressIndicator(key: Key('driver-loading'))),
         DriverLoadState.empty => Center(child: Text(context.tr('driver.empty'), key: const Key('driver-empty'))),
         DriverLoadState.error => _Retry(
@@ -94,12 +111,18 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                       key: Key('assignment-${assignment.id}'),
                       title: Text(assignment.reference),
                       subtitle: Text(assignment.status),
+                      trailing: FilledButton(
+                        key: Key('assignment-action-${assignment.id}'),
+                        onPressed: _transitioning.contains(assignment.id) ? null : () => _transition(assignment, 'advance'),
+                        child: _transitioning.contains(assignment.id) ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)) : Text(context.tr('driver.action.advance')),
+                      ),
                     ),
                   )
                   .toList(),
             ),
           ),
-      },
+      }),
+      ]),
     );
   }
 }
