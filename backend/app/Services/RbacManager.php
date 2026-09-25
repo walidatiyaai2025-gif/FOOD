@@ -238,7 +238,7 @@ final class RbacManager
 
     public function isLastActiveSuperAdmin(User $target): bool
     {
-        if (! $target->is_active {
+        if (! $target->is_active) {
             return false;
         }
 
@@ -247,7 +247,7 @@ final class RbacManager
             ->where('roles.is_active', true)
             ->exists();
 
-        if (! $hasSuperAdmin {
+        if (! $hasSuperAdmin) {
             return false;
         }
 
