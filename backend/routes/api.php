@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +43,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/admin/b2b/accounts', [B2bAccountController::class, 'index']);
         Route::post('/admin/b2b/accounts', [B2bAccountController::class, 'store']);
         Route::patch('/admin/b2b/accounts/{account}/status', [B2bAccountController::class, 'updateStatus']);
+        Route::get('/admin/inventory', [InventoryController::class, 'index']);
+        Route::post('/admin/inventory/{inventory}/adjust', [InventoryController::class, 'adjust']);
         Route::get('/admin/b2b/prices', [B2bPricingController::class, 'index']);
         Route::put('/admin/b2b/prices', [B2bPricingController::class, 'upsert']);
         Route::get('/b2b/products', [B2bPricingController::class, 'products']);
