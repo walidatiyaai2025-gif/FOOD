@@ -21,6 +21,7 @@ class B2bAccountController extends Controller
     public function __construct(AuditLogger $audit)
     {
         $this->audit = $audit;
+
     }
 
     public function index(Request $request): JsonResponse
