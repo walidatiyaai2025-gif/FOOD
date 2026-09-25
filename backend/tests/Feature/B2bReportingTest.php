@@ -22,10 +22,12 @@ class B2bReportingTest extends TestCase
         $other = Customer::query()->create(['type' => 'b2b', 'name' => 'Other']);
         $storeType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         $store = (int) DB::table('stores')->insertGetId(['store_type_id' => $storeType, 'code' => 'REPORT-B2B', 'name' => 'Report Store', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $unit = (int) DB::table('units')->insertGetId(['code' => 'REPORT-EA', 'name' => 'Each', 'decimal_places' => 0, 'created_at' => now(), 'updated_at' => now()]);
+        $product = (int) DB::table('products')->insertGetId(['unit_id' => $unit, 'sku' => 'TOP-1', 'name' => 'Top Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $order = $this->order($store, $customer->id, 25, 'pending');
         $this->order($store, $customer->id, 9, 'cancelled');
         $this->order($store, $other->id, 100, 'pending');
-        DB::table('order_items')->insert(['order_id' => $order, 'product_id' => null, 'sku_snapshot' => 'TOP-1', 'name_snapshot' => 'Top Product', 'quantity' => 2, 'unit_price' => 12.5, 'line_total' => 25, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('order_items')->insert(['order_id' => $order, 'product_id' => $product, 'sku_snapshot' => 'TOP-1', 'name_snapshot' => 'Top Product', 'quantity' => 2, 'unit_price' => 12.5, 'line_total' => 25, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('invoices')->insert(['customer_id' => $customer->id, 'invoice_number' => 'REP-1', 'status' => 'issued', 'currency' => 'KWD', 'total' => 25, 'balance_due' => 10, 'issued_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
         Sanctum::actingAs($user);
 
