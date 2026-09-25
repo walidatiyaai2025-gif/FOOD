@@ -129,7 +129,7 @@ class AdminNavigation
     }
 
     /**
-     * @param list<array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null> $children
+     * @param  list<array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null>  $children
      * @return array{key:string,label:string,icon:string,children:list<array{key:string,label:string,route:string,params:array<string,string>,permission:?string}>}
      */
     private function group(string $key, string $label, string $icon, array $children): array
@@ -143,7 +143,7 @@ class AdminNavigation
     }
 
     /**
-     * @param array<string, array<string, mixed>> $channels
+     * @param  array<string, array<string, mixed>>  $channels
      * @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null
      */
     private function module(User $user, array $channels, string $channel, string $module, string $label, ?string $permission): ?array
