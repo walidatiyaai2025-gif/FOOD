@@ -45,6 +45,7 @@ class B2bAccountController extends Controller
             return B2bAccount::query()->create(['customer_id' => $customer->id, 'company_name' => $data['company_name'], 'tax_number' => $data['tax_number'] ?? null, 'status' => 'pending']);
         });
         $account->load('customer.user');
+
         app(AuditLogger::class)->record('b2b.account.created', $request->user(), $account, null, ['status' => 'pending', 'company_name' => $account->company_name], $request);
 
         return response()->json(['data' => $this->resource($account)], 201);
@@ -57,7 +58,9 @@ class B2bAccountController extends Controller
         $before = $account->status;
         $account->update(['status' => $data['status']]);
         $account->customer()->with('user')->first()?->user?->update(['is_active' => $data['status'] === 'active']);
+
         app(AuditLogger::class)->record('b2b.account.status_changed', $request->user(), $account, ['status' => $before], ['status' => $account->status], $request);
+
         $account->load('customer.user');
 
         return response()->json(['data' => $this->resource($account)]);
