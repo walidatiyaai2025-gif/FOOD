@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Pricing\B2bPriceResolver;
 use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\Cart;
@@ -155,6 +156,11 @@ class CheckoutController extends Controller
 
                 $quantity = (float) $cartItem->quantity;
                 $unitPrice = (float) $storeProduct->price;
+                if ($channel === 'b2b') {
+                    $pricing = app(B2bPriceResolver::class)->resolve($customer, $storeId, (int) $cartItem->product_id);
+                    abort_if($quantity < $pricing['minimum_quantity'], 409, 'Quantity is below the B2B minimum purchase quantity.');
+                    $unitPrice = $pricing['price'];
+                }
                 $lineTotal = round($quantity * $unitPrice, 3);
 
                 $inventoryRows = DB::table('inventories')
