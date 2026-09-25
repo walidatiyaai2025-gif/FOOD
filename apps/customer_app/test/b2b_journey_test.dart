@@ -32,7 +32,6 @@ void main() {
     await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart', b2bApi: _StaticB2bApi()));
     await tester.pumpAndSettle();
     final checkoutButton = find.text('إتمام الطلب');
-    await tester.scrollUntilVisible(checkoutButton, 200);
     expect(checkoutButton, findsOneWidget);
   });
 
