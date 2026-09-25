@@ -28,8 +28,8 @@ class InventoryController extends Controller
     {
         $user = $request->user(); abort_unless($user instanceof User, 401);
         $warehouse = Warehouse::query()->findOrFail($inventory->warehouse_id);
-        abort_unless($user->hasPermission('inventory.manage', (int) $warehouse->store_id), 403);
         abort_unless(Inventory::query()->accessibleTo($user)->whereKey($inventory->getKey())->exists(), 404);
+        abort_unless($user->hasPermission('inventory.manage', (int) $warehouse->store_id), 403);
         $data = $request->validate(['quantity_delta' => ['required','numeric','not_in:0'], 'reason' => ['required','string','max:255']]);
         $before = $inventory->toArray();
         DB::transaction(function () use ($inventory, $data, $user): void {
