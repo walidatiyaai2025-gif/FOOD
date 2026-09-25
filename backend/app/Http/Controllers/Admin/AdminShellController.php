@@ -63,6 +63,8 @@ class AdminShellController extends Controller
         return view('admin.shell', [
             'user' => $user,
             'navigation' => $navigation,
+            'navGroups' => $this->navigation->groupsFor($user),
+            'navContext' => $activeChannel === null ? 'overview' : $activeChannel.'_dashboard',
             'activeChannel' => $activeChannel,
             'roleCodes' => array_values(array_unique([...$globalRoles, ...$storeRoles])),
         ]);

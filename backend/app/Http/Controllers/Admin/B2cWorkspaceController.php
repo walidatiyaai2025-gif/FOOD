@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class B2cWorkspaceController extends Controller
 {
+    public function __construct(private readonly AdminNavigation $navigation) {}
+
     public function show(Request $request, string $module = 'dashboard'): View
     {
         $user = $request->user();
@@ -28,7 +31,10 @@ class B2cWorkspaceController extends Controller
             'inventory' => DB::table('inventories')->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')->whereIn('warehouses.store_id', $storeIds)->count(),
         ];
 
-        return view('admin.b2c-workspace', compact('user', 'module', 'storeIds', 'counts'));
+        $navGroups = $this->navigation->groupsFor($user);
+        $navContext = 'b2c_'.$module;
+
+        return view('admin.b2c-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext'));
     }
 
     private function storeIds(User $user): array

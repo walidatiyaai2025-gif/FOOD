@@ -46,38 +46,7 @@
 <body>
 <div class="shell">
     <aside class="sidebar">
-        <div class="brand">FOODEX</div>
-        <p class="nav-title">{{ __('admin.navigation') }}</p>
-
-        <a class="nav-link {{ $activeChannel === null ? 'active' : '' }}" href="{{ route('admin.index') }}">
-            {{ __('admin.overview') }}
-        </a>
-
-        @foreach ($navigation as $channel => $item)
-            <a class="nav-link {{ $activeChannel === $channel ? 'active' : '' }}" href="{{ route($item['route']) }}">
-                {{ __($item['label']) }}
-            </a>
-        @endforeach
-
-        @can('security.view')
-            <a class="nav-link" href="{{ route('admin.security.index') }}">{{ __('admin.security_center') }}</a>
-        @endcan
-
-        @can('translations.manage')
-            <a class="nav-link" href="{{ route('admin.translations.index') }}">{{ __('admin.translation_center') }}</a>
-        @endcan
-
-        @can('notifications.manage')
-            <a class="nav-link" href="{{ route('admin.notifications.index') }}">{{ __('notifications.title') }}</a>
-        @endcan
-
-        @can('platform.manage')
-            <a class="nav-link" href="{{ route('admin.app-versions.index') }}">{{ __('admin.app_versions') }}</a>
-        @endcan
-
-        @can('system.update')
-            <a class="nav-link" href="{{ route('admin.system-update.index') }}">{{ __('admin.system_update') }}</a>
-        @endcan
+        @include('admin._sidebar')
     </aside>
 
     <main class="main">
