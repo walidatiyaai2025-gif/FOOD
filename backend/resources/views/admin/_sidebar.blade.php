@@ -1,5 +1,26 @@
+@include('admin._brand')
 <style>
-    .sidebar{background:#0f172a;color:#e2e8f0;padding:20px;overflow:auto}.brand-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px}.brand-link{color:#fff;text-decoration:none;font-weight:800;letter-spacing:.08em}.sidebar-toggle{display:none;border:1px solid #334155;background:#1e293b;color:#fff;border-radius:9px;padding:7px 10px;cursor:pointer}.nav-search{width:100%;border:1px solid #334155;background:#111827;color:#fff;border-radius:10px;padding:10px 12px;margin-bottom:12px}.nav-home,.nav-child{display:flex;gap:8px;align-items:center;color:#cbd5e1;text-decoration:none;border-radius:10px;padding:9px 11px}.nav-home{margin-bottom:8px}.nav-home:hover,.nav-child:hover,.nav-home.active,.nav-child.active{background:#1e293b;color:#fff}.nav-group{border-top:1px solid rgba(148,163,184,.14);padding-top:6px;margin-top:6px}.nav-group summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:10px 8px;border-radius:10px;font-weight:650}.nav-group summary::-webkit-details-marker{display:none}.nav-group summary:hover{background:#172033}.nav-group-title{display:flex;align-items:center;gap:9px}.nav-children{display:grid;gap:2px;padding:0 8px 7px}.nav-child{font-size:.92rem;padding-inline-start:30px}.nav-group[open] .nav-chevron{transform:rotate(180deg)}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .sidebar{background:var(--foodex-surface);color:var(--foodex-ink);padding:20px;overflow:auto;border-inline-start:1px solid var(--foodex-border)}
+    .brand-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px}
+    .brand-link{display:inline-flex;align-items:center;gap:8px;color:var(--foodex-green-dark);text-decoration:none;font-weight:900;letter-spacing:.04em;font-size:1.08rem}
+    .brand-mark{position:relative;width:22px;height:22px;display:inline-block}
+    .brand-mark::before,.brand-mark::after{content:"";position:absolute;border-radius:100% 0 100% 0;transform:rotate(-30deg)}
+    .brand-mark::before{width:14px;height:19px;inset:0 auto auto 5px;background:var(--foodex-green)}
+    .brand-mark::after{width:10px;height:13px;inset:9px auto auto 0;background:var(--foodex-orange)}
+    .sidebar-toggle{display:none;border:1px solid var(--foodex-border);background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-radius:9px;padding:7px 10px;cursor:pointer}
+    .nav-search{width:100%;border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:10px;padding:10px 12px;margin-bottom:12px;outline:none}
+    .nav-search:focus{border-color:var(--foodex-green);box-shadow:0 0 0 3px rgba(21,138,58,.12)}
+    .nav-home,.nav-child{display:flex;gap:8px;align-items:center;color:#344054;text-decoration:none;border-radius:10px;padding:9px 11px}
+    .nav-home{margin-bottom:8px}
+    .nav-home:hover,.nav-child:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+    .nav-home.active,.nav-child.active{background:var(--foodex-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.18)}
+    .nav-group{border-top:1px solid var(--foodex-border);padding-top:6px;margin-top:6px}
+    .nav-group summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:10px 8px;border-radius:10px;font-weight:700;color:var(--foodex-ink)}
+    .nav-group summary::-webkit-details-marker{display:none}
+    .nav-group summary:hover{background:var(--foodex-orange-soft)}
+    .nav-group-title{display:flex;align-items:center;gap:9px}.nav-children{display:grid;gap:2px;padding:0 8px 7px}
+    .nav-child{font-size:.92rem;padding-inline-start:30px}.nav-group[open] .nav-chevron{transform:rotate(180deg)}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
     @media(max-width:760px){.sidebar-toggle{display:block}.sidebar.collapsed #admin-navigation,.sidebar.collapsed .nav-search-wrap{display:none}}
 </style>
 @php
@@ -7,8 +28,8 @@
         ? ' · B2B'
         : (str_starts_with((string) ($navContext ?? ''), 'b2c_') ? ' · B2C' : '');
 @endphp
-<div class="brand-row">
-    <a class="brand-link" href="{{ route('admin.index') }}">FOODEX{{ $brandSuffix }}</a>
+<div class="brand-row" data-foodex-brand="v1">
+    <a class="brand-link" href="{{ route('admin.index') }}"><span class="brand-mark" aria-hidden="true"></span><span>FOODEX{{ $brandSuffix }}</span></a>
     <button class="sidebar-toggle" type="button" aria-label="{{ __('admin.sidebar_toggle') }}" aria-controls="admin-navigation" aria-expanded="true">☰</button>
 </div>
 

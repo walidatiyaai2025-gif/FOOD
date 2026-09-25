@@ -489,3 +489,17 @@ A worker must stop and mark the Issue blocked rather than guess when:
 - A dependency is not merged.
 
 All other normal implementation/test/review failures are fixed by the worker on the same Issue/branch without requesting manual intervention.
+
+
+## 11. Wave H — PH-05 Premium FOODEX visual system and dashboard parity
+
+User-approved on 2026-09-25. This wave becomes authoritative for new FOODEX presentation work while preserving all backend/business rules from prior waves.
+
+- Epic #111 — premium dashboard reference, brand system, demo data and cross-surface rollout.
+- #112 PH-05A — centralized FOODEX brand tokens + design contract. Branch: `feat/112-foodex-brand-design-contract`.
+- #113 PH-05B — pixel-match premium Management Dashboard. Branch: `feat/113-premium-dashboard-pixel-match`. Depends on #112.
+- #114 PH-05C — deterministic visual-QA/demo seed dataset. Branch: `feat/114-dashboard-demo-seed`. Depends on #112.
+- #115 PH-05D — branding/dashboard impact rollout across B2C and Customer/Driver mobile. Branch: `feat/115-brand-cross-surface-rollout`. Depends on #112 and #113.
+- #116 PH-05E — visual regression + cross-surface acceptance. Branch: `test/116-foodex-premium-visual-e2e`. Depends on #113, #114 and #115.
+
+Mandatory PH-05 rule: workers use `docs/architecture/FOODEX_BRAND_SYSTEM.md` and `docs/design-reference/PH05_PREMIUM_DASHBOARD.md` as visual authorities. Any shared change must include explicit B2C Admin, Customer App and Driver App impact assessment. No worker may introduce a separate palette, dashboard-only business state or mock-only production metric.
