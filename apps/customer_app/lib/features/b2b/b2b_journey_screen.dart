@@ -27,7 +27,7 @@ class B2bJourneyScreen extends StatelessWidget {
             Text(content.$2),
             const SizedBox(height: 20),
             if (!hasRemoteState || keepLocalActions) ...content.$3,
-            if (hasRemoteState && keepLocalActions) _RemoteState(api: api!, endpoint: _endpoint()!),
+            if (hasRemoteState && keepLocalActions) _RemoteState(api: api!, endpoint: _endpoint()!, showEmpty: false),
             if (hasRemoteState && !keepLocalActions) _RemoteState(api: api!, endpoint: _endpoint()!),
 
             Text(location, key: const ValueKey('customer-route-location'), style: Theme.of(context).textTheme.labelSmall),
@@ -83,9 +83,10 @@ class B2bJourneyScreen extends StatelessWidget {
 
 
 class _RemoteState extends StatelessWidget {
-  const _RemoteState({required this.api, required this.endpoint});
+  const _RemoteState({required this.api, required this.endpoint, this.showEmpty = true});
   final B2bApi api;
   final String endpoint;
+  final bool showEmpty;
 
   @override
   Widget build(BuildContext context) => FutureBuilder<Object?>(
@@ -95,7 +96,7 @@ class _RemoteState extends StatelessWidget {
       if (snapshot.hasError) return const Card(key: ValueKey('b2b-error'), child: Padding(padding: EdgeInsets.all(16), child: Text('تعذر تحميل البيانات. حاول مرة أخرى.')));
       final value = snapshot.data;
       final empty = value == null || (value is List && value.isEmpty) || (value is Map && value['data'] is List && (value['data'] as List).isEmpty);
-      if (empty) return const Card(key: ValueKey('b2b-empty'), child: Padding(padding: EdgeInsets.all(16), child: Text('لا توجد بيانات')));
+      if (empty) return showEmpty ? const Card(key: ValueKey('b2b-empty'), child: Padding(padding: EdgeInsets.all(16), child: Text('لا توجد بيانات'))) : const SizedBox.shrink();
       return const Card(key: ValueKey('b2b-loaded'), child: Padding(padding: EdgeInsets.all(16), child: Text('تم تحميل البيانات من فودكس')));
     },
   );
