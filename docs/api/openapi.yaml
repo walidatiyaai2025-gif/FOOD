@@ -785,6 +785,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/Locale"
       responses:
         "200":
           description: User notification collection
@@ -794,6 +795,28 @@ paths:
                 $ref: "#/components/schemas/NotificationCollection"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+
+  /notifications/{notification}:
+    get:
+      tags: [Notifications]
+      summary: Get one authorized notification in the requested locale
+      operationId: getNotification
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/NotificationId"
+        - $ref: "#/components/parameters/Locale"
+      responses:
+        "200":
+          description: Localized notification detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /notifications/{notification}/read:
     post:
@@ -1104,6 +1127,14 @@ components:
       schema:
         type: integer
         minimum: 1
+    Locale:
+      in: query
+      name: locale
+      description: Requested localized notification content. Falls back to the authenticated user's locale.
+      schema:
+        type: string
+        enum: [ar, en]
+
     Page:
       in: query
       name: page
@@ -1532,22 +1563,34 @@ components:
 
     Notification:
       type: object
-      required: [id, channel, type, title, body, created_at]
+      required: [id, channel, target_channel, type, title, body, locale, created_at]
       properties:
         id:
           type: integer
         channel:
           type: string
+          enum: [in_app, push, both]
+        target_channel:
+          type: string
+          enum: [all, b2c, b2b]
         type:
           type: string
         title:
           type: string
+          description: Localized title selected for the requested/user locale.
         body:
           type: string
+          description: Localized body selected for the requested/user locale.
+        locale:
+          type: string
+          enum: [ar, en]
         data:
           type: [object, "null"]
           additionalProperties: true
         read_at:
+          type: [string, "null"]
+          format: date-time
+        published_at:
           type: [string, "null"]
           format: date-time
         created_at:
