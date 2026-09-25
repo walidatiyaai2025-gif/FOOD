@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/driver_translations.dart';
 import '../../navigation.dart';
 
 enum DriverLoadState { loading, ready, empty, error, offline }
@@ -31,42 +32,105 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
   List<DriverAssignment> assignments = const [];
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   Future<void> _load() async {
     setState(() => state = DriverLoadState.loading);
     try {
       final rows = await widget.repository.list(widget.channel);
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
+
       assignments = rows.where((row) => row.channel == widget.channel).toList(growable: false);
       state = assignments.isEmpty ? DriverLoadState.empty : DriverLoadState.ready;
     } on DriverOfflineException {
-      if (mounted) setState(() => state = DriverLoadState.offline);
+      if (mounted) {
+        setState(() => state = DriverLoadState.offline);
+      }
     } catch (_) {
-      if (mounted) setState(() => state = DriverLoadState.error);
+      if (mounted) {
+        setState(() => state = DriverLoadState.error);
+      }
     }
-    if (mounted) setState(() {});
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(textDirection: Directionality.of(context), child: Scaffold(
-      appBar: AppBar(title: Text(widget.channel == DriverChannel.b2c ? 'توصيلات التجزئة' : 'توصيلات الجملة')),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          context.tr(widget.channel == DriverChannel.b2c ? 'driver.b2c.title' : 'driver.b2b.title'),
+        ),
+      ),
       body: switch (state) {
         DriverLoadState.loading => const Center(child: CircularProgressIndicator(key: Key('driver-loading'))),
-        DriverLoadState.empty => const Center(child: Text('لا توجد توصيلات مسندة', key: Key('driver-empty'))),
-        DriverLoadState.error => _Retry(message: 'تعذر تحميل التوصيلات', onRetry: _load, keyName: 'driver-error'),
-        DriverLoadState.offline => _Retry(message: 'لا يوجد اتصال. أعد المحاولة عند عودة الشبكة.', onRetry: _load, keyName: 'driver-offline'),
-        DriverLoadState.ready => RefreshIndicator(onRefresh: _load, child: ListView(children: assignments.map((a) => ListTile(key: Key('assignment-${a.id}'), title: Text(a.reference), subtitle: Text(a.status))).toList())),
+        DriverLoadState.empty => Center(child: Text(context.tr('driver.empty'), key: const Key('driver-empty'))),
+        DriverLoadState.error => _Retry(
+            message: context.tr('driver.error'),
+            retryLabel: context.tr('driver.retry'),
+            onRetry: _load,
+            keyName: 'driver-error',
+          ),
+        DriverLoadState.offline => _Retry(
+            message: context.tr('driver.offline'),
+            retryLabel: context.tr('driver.retry'),
+            onRetry: _load,
+            keyName: 'driver-offline',
+          ),
+        DriverLoadState.ready => RefreshIndicator(
+            onRefresh: _load,
+            child: ListView(
+              children: assignments
+                  .map(
+                    (assignment) => ListTile(
+                      key: Key('assignment-${assignment.id}'),
+                      title: Text(assignment.reference),
+                      subtitle: Text(assignment.status),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
       },
-    ));
+    );
   }
 }
 
 class _Retry extends StatelessWidget {
-  const _Retry({required this.message, required this.onRetry, required this.keyName});
-  final String message; final VoidCallback onRetry; final String keyName;
-  @override Widget build(BuildContext context) => Center(key: Key(keyName), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(message), const SizedBox(height: 12), FilledButton(onPressed: onRetry, child: const Text('إعادة المحاولة'))]));
+  const _Retry({
+    required this.message,
+    required this.retryLabel,
+    required this.onRetry,
+    required this.keyName,
+  });
+
+  final String message;
+  final String retryLabel;
+  final VoidCallback onRetry;
+  final String keyName;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        key: Key(keyName),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: onRetry, child: Text(retryLabel)),
+          ],
+        ),
+      );
 }
 
-class DriverOfflineException implements Exception { const DriverOfflineException(); }
+class DriverOfflineException implements Exception {
+  const DriverOfflineException();
+}
