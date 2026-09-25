@@ -14,6 +14,7 @@ class B2bJourneyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final rtl = Directionality.of(context) == TextDirection.rtl;
     final content = _contentFor(definition.pattern);
+    final hasRemoteState = api != null && _endpoint() != null;
     return Scaffold(
       appBar: AppBar(title: Text(rtl ? 'فودكس للأعمال' : 'FOODEX Business')),
       body: SafeArea(
@@ -24,8 +25,8 @@ class B2bJourneyScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(content.$2),
             const SizedBox(height: 20),
-            ...content.$3,
-            if (api != null && _endpoint() != null) _RemoteState(api: api!, endpoint: _endpoint()!),
+            if (!hasRemoteState) ...content.$3,
+            if (hasRemoteState) _RemoteState(api: api!, endpoint: _endpoint()!),
             Text(location, key: const ValueKey('customer-route-location'), style: Theme.of(context).textTheme.labelSmall),
           ],
         ),
