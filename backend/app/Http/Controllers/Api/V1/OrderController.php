@@ -160,6 +160,13 @@ class OrderController extends Controller
         $channel = strtolower((string) $customer->type);
         abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403, 'Unsupported customer channel.');
 
+        $routeChannel = $request->is('api/v1/b2b/*') ? 'b2b' : 'b2c';
+        abort_unless(
+            $channel === $routeChannel,
+            403,
+            'Customer channel does not match this order endpoint.',
+        );
+
         return [$customer, $channel];
     }
 
