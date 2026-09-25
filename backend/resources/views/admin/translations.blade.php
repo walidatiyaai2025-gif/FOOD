@@ -81,12 +81,12 @@
                     </div>
                     <div class="actions">
                         <button class="primary" type="submit">{{ __('admin.translations.save') }}</button>
+                    </div>
                 </form>
-                <form method="post" action="{{ route('admin.translations.reset', $translation) }}">
+                <form method="post" action="{{ route('admin.translations.reset', $translation) }}" style="margin-top:8px">
                     @csrf
                     <button class="secondary" type="submit">{{ __('admin.translations.reset') }}</button>
                 </form>
-                    </div>
             </article>
         @empty
             <div class="card empty">{{ __('admin.translations.empty') }}</div>
