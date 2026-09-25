@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/customer_session.dart';
 import 'customer_routes.dart';
+import '../../features/home/b2c_journey_screen.dart';
 
 class CustomerAppRouter {
   const CustomerAppRouter(this.session);
@@ -76,10 +77,9 @@ class CustomerAppRouter {
   }) {
     return MaterialPageRoute<void>(
       settings: settings,
-      builder: (_) => CustomerRoutePlaceholder(
-        definition: definition,
-        location: requestedLocation,
-      ),
+      builder: (_) => definition.channel == CustomerChannel.b2b
+          ? CustomerRoutePlaceholder(definition: definition, location: requestedLocation)
+          : B2cJourneyScreen(definition: definition, location: requestedLocation),
     );
   }
 }

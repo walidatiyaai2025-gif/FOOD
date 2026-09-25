@@ -48,7 +48,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('B2C product details'), findsOneWidget);
+    expect(find.text('تفاصيل المنتج'), findsOneWidget);
     expect(find.text('/products/42'), findsOneWidget);
   });
 
@@ -59,7 +59,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('B2C checkout login'), findsOneWidget);
+    expect(find.text('تسجيل الدخول'), findsWidgets);
     expect(find.text('/auth/checkout'), findsOneWidget);
   });
 
@@ -84,7 +84,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('B2C profile'), findsOneWidget);
+    expect(find.text('حسابي'), findsWidgets);
     expect(find.text('/profile'), findsOneWidget);
   });
 
