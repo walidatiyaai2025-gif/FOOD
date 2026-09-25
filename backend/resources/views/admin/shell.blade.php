@@ -59,6 +59,10 @@
             </a>
         @endforeach
 
+        @can('security.view')
+            <a class="nav-link" href="{{ route('admin.security.index') }}">{{ __('admin.security_center') }}</a>
+        @endcan
+
         @can('translations.manage')
             <a class="nav-link" href="{{ route('admin.translations.index') }}">{{ __('admin.translation_center') }}</a>
         @endcan
