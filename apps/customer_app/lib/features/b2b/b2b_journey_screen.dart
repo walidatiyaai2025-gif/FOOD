@@ -73,7 +73,7 @@ class B2bJourneyScreen extends StatelessWidget {
 
   Widget _button(String label) => Padding(padding: const EdgeInsets.only(bottom: 12), child: FilledButton(onPressed: () {}, child: Text(label)));
   Widget _section(String label) => Card(child: ListTile(title: Text(label), trailing: const Icon(Icons.chevron_right)));
-  Widget _empty(String label) => Card(child: Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(label))));
+  Widget _empty(String label) => Card(key: const ValueKey('b2b-empty'), child: Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(label))));
 }
 
 
