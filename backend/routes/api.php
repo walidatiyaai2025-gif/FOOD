@@ -3,10 +3,12 @@
 use App\Http\Controllers\Api\V1\AppVersionController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\B2bAccountController;
+use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\OrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -40,8 +42,12 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/admin/b2b/accounts', [B2bAccountController::class, 'store']);
         Route::patch('/admin/b2b/accounts/{account}/status', [B2bAccountController::class, 'updateStatus']);
 
-        Route::post('/checkout', static fn () => response()->json([
-            'message' => 'Checkout execution is not implemented in the guest browsing foundation.',
-        ], 501));
+        Route::post('/checkout', CheckoutController::class);
+
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
+        Route::get('/b2b/orders', [OrderController::class, 'index']);
+        Route::get('/b2b/orders/{order}', [OrderController::class, 'show']);
+        Route::post('/orders/{order}/status', [OrderController::class, 'transition']);
     });
 });
