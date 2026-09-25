@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\SecurityController;
@@ -89,6 +90,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/b2b/orders', [OrderController::class, 'index']);
         Route::get('/b2b/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/status', [OrderController::class, 'transition']);
+        Route::get('/admin/reports/orders', [ManagementReportController::class, 'orders']);
+        Route::get('/admin/reports/products', [ManagementReportController::class, 'products']);
         Route::post('/admin/deliveries/assign', [DriverAssignmentController::class, 'assign']);
         Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
         Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition']);
