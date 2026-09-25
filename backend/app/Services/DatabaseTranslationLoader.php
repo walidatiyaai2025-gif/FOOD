@@ -10,9 +10,7 @@ use Throwable;
 
 final class DatabaseTranslationLoader implements Loader
 {
-    public function __construct(private readonly Loader $base)
-    {
-    }
+    public function __construct(private readonly Loader $base) {}
 
     public function load($locale, $group, $namespace = null): array
     {
