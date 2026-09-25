@@ -49,7 +49,13 @@ class DriverAssignmentController extends Controller
         $allowed = ['assigned' => ['accepted'], 'accepted' => ['picked_up'], 'picked_up' => ['out_for_delivery'], 'out_for_delivery' => ['delivered', 'failed'], 'failed' => ['out_for_delivery']];
         abort_unless(in_array($data['status'], $allowed[$model->status] ?? [], true), 409, 'Invalid delivery transition.');
         $before = ['status' => $model->status];
-        DB::transaction(function () use ($model, $data): void { $model->status = $data['status']; if ($data['status'] === 'delivered') $model->completed_at = now(); $model->save(); });
+        DB::transaction(function () use ($model, $data): void {
+            $model->status = $data['status'];
+            if ($data['status'] === 'delivered') {
+                $model->completed_at = now();
+            }
+            $model->save();
+        });
         $auditLogger->record('delivery.assignment.status_changed', $request->user(), $model, $before, ['status' => $model->status], $request);
 
         return response()->json(['data' => $model->fresh()]);
@@ -57,9 +63,12 @@ class DriverAssignmentController extends Controller
 
     private function driverContext(Request $request): array
     {
-        $user = $request->user(); abort_unless($user instanceof User, 401);
-        $driver = Driver::query()->where('user_id', $user->getKey())->where('is_active', true)->first(); abort_unless($driver instanceof Driver, 403, 'Active driver profile is required.');
-        $channel = strtolower((string) $driver->driver_type); abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $driver = Driver::query()->where('user_id', $user->getKey())->where('is_active', true)->first();
+        abort_unless($driver instanceof Driver, 403, 'Active driver profile is required.');
+        $channel = strtolower((string) $driver->driver_type);
+        abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403);
         abort_unless($user->hasPermission("deliveries.{$channel}.execute"), 403);
 
         return [$driver, $channel];
