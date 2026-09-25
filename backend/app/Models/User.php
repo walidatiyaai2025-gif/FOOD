@@ -56,6 +56,16 @@ class User extends Authenticatable
             return true;
         }
 
+        if ($storeId !== null && $this->storeRoleAssignments()->exists()) {
+            return $this->storeRoleAssignments()
+                ->where('store_id', $storeId)
+                ->whereHas('role', fn ($query) => $query
+                    ->where('is_active', true)
+                    ->whereIn('scope', ['store', 'both'])
+                    ->whereHas('permissions', fn ($permissions) => $permissions->where('code', $permissionCode)))
+                ->exists();
+        }
+
         if ($this->roles()
             ->where('roles.is_active', true)
             ->whereIn('roles.scope', ['global', 'both'])
