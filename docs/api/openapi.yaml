@@ -812,6 +812,235 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+
+  /admin/security/permissions:
+    get:
+      tags: [Security]
+      summary: List the declared FOODEX permission catalog
+      operationId: listSecurityPermissions
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Permission catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityPermissionCollection"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/security/roles:
+    get:
+      tags: [Security]
+      summary: List roles and their permissions
+      operationId: listSecurityRoles
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Role collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityRoleCollection"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Security]
+      summary: Create a delegated role
+      operationId: createSecurityRole
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecurityRoleWrite"
+      responses:
+        "201":
+          description: Role created
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/security/roles/{role}:
+    patch:
+      tags: [Security]
+      summary: Update a role and permission matrix
+      operationId: updateSecurityRole
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecurityRoleWrite"
+      responses:
+        "200":
+          description: Role updated
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Security]
+      summary: Delete an unassigned custom role
+      operationId: deleteSecurityRole
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Role deleted
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/security/roles/{role}/clone:
+    post:
+      tags: [Security]
+      summary: Clone a role
+      operationId: cloneSecurityRole
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Role cloned
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/security/users:
+    get:
+      tags: [Security]
+      summary: List users with account status and role assignments
+      operationId: listSecurityUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - in: query
+          name: q
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [all, active, inactive]
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User access collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityUserCollection"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/security/users/{user}:
+    get:
+      tags: [Security]
+      summary: Get effective access for one user
+      operationId: getSecurityUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: user
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User access detail
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/security/users/{user}/roles:
+    put:
+      tags: [Security]
+      summary: Replace global and store-scoped role assignments
+      operationId: replaceSecurityUserRoles
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: user
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecurityUserRolesWrite"
+      responses:
+        "200":
+          description: Role assignments updated
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/security/users/{user}/status:
+    patch:
+      tags: [Security]
+      summary: Activate or deactivate a user account
+      operationId: updateSecurityUserStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: user
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecurityUserStatusWrite"
+      responses:
+        "200":
+          description: User status updated
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /admin/deliveries/assign:
     post:
       tags: [Drivers]
@@ -1345,6 +1574,164 @@ components:
           format: uri
         release_notes:
           type: [string, "null"]
+
+
+    SecurityPermission:
+      type: object
+      required: [id, code, name, module, action]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        module:
+          type: string
+        action:
+          type: string
+
+    SecurityPermissionCollection:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityPermission"
+
+    SecurityRole:
+      type: object
+      required: [id, code, name, scope, is_system, is_active, permissions]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        scope:
+          type: string
+          enum: [global, store, both]
+        is_system:
+          type: boolean
+        is_active:
+          type: boolean
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityPermission"
+
+    SecurityRoleCollection:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityRole"
+
+    SecurityRoleWrite:
+      type: object
+      required: [name, scope, is_active, permission_ids]
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9_]{2,49}$"
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        scope:
+          type: string
+          enum: [global, store, both]
+        is_active:
+          type: boolean
+        permission_ids:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+
+    SecurityUser:
+      type: object
+      required: [id, name, email, is_active, global_roles, store_roles, effective_permissions]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        locale:
+          type: string
+          enum: [ar, en]
+        is_active:
+          type: boolean
+        deactivated_at:
+          type: [string, "null"]
+          format: date-time
+        deactivation_reason:
+          type: [string, "null"]
+        global_roles:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        store_roles:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        effective_permissions:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+
+    SecurityUserCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityUser"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    SecurityUserRolesWrite:
+      type: object
+      required: [global_role_ids, store_roles]
+      properties:
+        global_role_ids:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+        store_roles:
+          type: array
+          items:
+            type: object
+            required: [store_id, role_id]
+            properties:
+              store_id:
+                type: integer
+              role_id:
+                type: integer
+
+    SecurityUserStatusWrite:
+      type: object
+      required: [is_active]
+      properties:
+        is_active:
+          type: boolean
+        reason:
+          type: [string, "null"]
+          maxLength: 500
 
     PaginationMeta:
       type: object
