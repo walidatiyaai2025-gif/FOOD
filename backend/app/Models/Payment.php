@@ -9,4 +9,11 @@ class Payment extends Model
     protected $table = 'payments';
 
     protected $guarded = [];
+
+    protected function casts(): array
+    {
+        return [
+            'metadata' => 'array',
+        ];
+    }
 }
