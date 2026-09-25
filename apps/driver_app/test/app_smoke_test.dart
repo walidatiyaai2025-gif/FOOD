@@ -6,7 +6,7 @@ void main() {
   testWidgets('driver bootstrap is Arabic-first and RTL', (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
 
-    expect(find.text('FOODEX Driver'), findsOneWidget);
+    expect(find.text('فودكس للسائق'), findsOneWidget);
     expect(find.text('/driver/b2c/home'), findsOneWidget);
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));

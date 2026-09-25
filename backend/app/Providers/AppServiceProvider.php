@@ -5,7 +5,9 @@ namespace App\Providers;
 use App\Domain\Updater\LaravelUpdateRuntime;
 use App\Domain\Updater\UpdateRuntime;
 use App\Models\User;
+use App\Services\DatabaseTranslationLoader;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Translation\Loader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -17,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
+        $this->app->extend(
+            'translation.loader',
+            static fn (Loader $loader): Loader => new DatabaseTranslationLoader($loader),
+        );
     }
 
     public function boot(): void
