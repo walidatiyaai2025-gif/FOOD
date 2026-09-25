@@ -112,7 +112,7 @@ final class RbacManager
             ->exists();
         $newHasSuperAdmin = $globalRoles->contains(static fn (Role $role): bool => $role->code === 'SUPER_ADMIN');
 
-        if ($targetHasSuperAdmin && ! $newHasSuperAdmin && $this->isLastActiveSuperAdmin($target)) {
+        if ($targetHasSuperAdmin && $newHasSuperAdmin === false && $this->isLastActiveSuperAdmin($target)) {
             throw ValidationException::withMessages(['global_role_ids' => [__('admin.security.errors.last_super_admin_role')]]);
         }
 
