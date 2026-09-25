@@ -5,12 +5,12 @@ namespace App\Services;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Translation\LoaderInterface;
+use Illuminate\Contracts\Translation\Loader;
 use Throwable;
 
-final class DatabaseTranslationLoader implements LoaderInterface
+final class DatabaseTranslationLoader implements Loader
 {
-    public function __construct(private readonly LoaderInterface $base)
+    public function __construct(private readonly Loader $base)
     {
     }
 
