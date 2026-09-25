@@ -59,12 +59,16 @@
             </a>
         @endforeach
 
+        @can('translations.manage')
+            <a class="nav-link" href="{{ route('admin.translations.index') }}">{{ __('admin.translation_center') }}</a>
+        @endcan
+
         @can('platform.manage')
-            <a class="nav-link" href="{{ route('admin.app-versions.index') }}">App Versions</a>
+            <a class="nav-link" href="{{ route('admin.app-versions.index') }}">{{ __('admin.app_versions') }}</a>
         @endcan
 
         @can('system.update')
-            <a class="nav-link" href="{{ route('admin.system-update.index') }}">System Update</a>
+            <a class="nav-link" href="{{ route('admin.system-update.index') }}">{{ __('admin.system_update') }}</a>
         @endcan
     </aside>
 
