@@ -60,13 +60,15 @@ class AdminNavigation
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
                 $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
                 $this->module($user, $channels, 'b2c', 'content', 'admin.b2c_workspace.modules.content', 'promotions.view'),
-                $this->routeItem($user, 'notifications', 'admin.nav_items.notifications', 'admin.notifications.index', 'notifications.view'),
+                $this->routeItem($user, 'notifications', 'notifications.title', 'admin.notifications.index', 'notifications.view'),
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
                 $this->module($user, $channels, 'b2b', 'reports', 'admin.b2b_workspace.modules.reports', 'reports.view'),
             ]),
             $this->group('administration', 'admin.nav_groups.administration', '⚙', [
+                $this->module($user, $channels, 'b2c', 'settings', 'admin.b2c_workspace.modules.settings', null),
+                $this->module($user, $channels, 'b2b', 'settings', 'admin.b2b_workspace.modules.settings', null),
                 $this->routeItem($user, 'security', 'admin.security_center', 'admin.security.index', 'security.view'),
                 $this->routeItem($user, 'translations', 'admin.translation_center', 'admin.translations.index', 'translations.manage'),
                 $this->routeItem($user, 'app_versions', 'admin.app_versions', 'admin.app-versions.index', 'platform.manage'),
@@ -146,7 +148,7 @@ class AdminNavigation
      */
     private function module(User $user, array $channels, string $channel, string $module, string $label, ?string $permission): ?array
     {
-        if (! array_key_exists($channel, $channels) || ($permission !== null && ! $user->hasPermission($permission))) {
+        if (! array_key_exists($channel, $channels) || ! $this->hasChannelPermission($user, $channel, $permission)) {
             return null;
         }
 
@@ -157,6 +159,25 @@ class AdminNavigation
             'params' => ['module' => $module],
             'permission' => $permission,
         ];
+    }
+
+    private function hasChannelPermission(User $user, string $channel, ?string $permission): bool
+    {
+        if ($permission === null || $user->hasPermission($permission)) {
+            return true;
+        }
+
+        $storeRoles = array_values(array_filter((array) config("admin.channels.{$channel}.store_roles", []), 'is_string'));
+
+        if ($storeRoles === []) {
+            return false;
+        }
+
+        return $user->storeRoleAssignments()->whereHas('role', fn ($query) => $query
+            ->where('roles.is_active', true)
+            ->whereIn('roles.scope', ['store', 'both'])
+            ->whereIn('roles.code', $storeRoles)
+            ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', $permission)))->exists();
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
