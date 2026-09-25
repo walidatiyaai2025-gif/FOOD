@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -71,12 +72,13 @@ final class NotificationController extends Controller
         return back()->with('status', __('notifications.updated'));
     }
 
-    public function publish(Request $request, Notification $notification, AuditLogger $audit): RedirectResponse
+    public function publish(Request $request, Notification $notification, AuditLogger $audit, PushDeliveryService $push): RedirectResponse
     {
         $actor = $this->authorizeManage($request);
         $before = $notification->toArray();
         $notification->update(['status' => 'published', 'published_at' => now()]);
         $audit->record('notification.published', $actor, $notification, $before, $notification->fresh()->toArray(), $request);
+        $push->dispatchNotification($notification->fresh());
 
         return back()->with('status', __('notifications.published'));
     }
