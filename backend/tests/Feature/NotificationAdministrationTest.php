@@ -37,6 +37,7 @@ class NotificationAdministrationTest extends TestCase
             'audience' => 'customer',
             'app' => 'customer',
             'target_channel' => 'b2c',
+            'channel' => 'both',
         ])->assertRedirect();
 
         $notification = Notification::query()->firstOrFail();
