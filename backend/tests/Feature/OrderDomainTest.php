@@ -19,13 +19,21 @@ class OrderDomainTest extends TestCase
     use RefreshDatabase;
 
     private int $b2cStoreId;
+
     private int $b2cOtherStoreId;
+
     private int $b2bStoreId;
+
     private int $productId;
+
     private int $inventoryId;
+
     private User $b2cUser;
+
     private Customer $b2cCustomer;
+
     private User $b2bUser;
+
     private Customer $b2bCustomer;
 
     protected function setUp(): void
