@@ -420,6 +420,41 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /admin/inventory:
+    get:
+      tags: [Stores]
+      summary: List inventory visible to the authorized store scope
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Scoped inventory collection
+        "403":
+          description: Missing inventory.manage permission
+
+  /admin/inventory/{inventory}/adjust:
+    post:
+      tags: [Stores]
+      summary: Adjust inventory within the authorized store scope
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: inventory
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Inventory adjusted and audited
+        "403":
+          description: Missing inventory.manage permission
+        "404":
+          description: Inventory is outside the caller store scope or does not exist
+        "422":
+          description: Invalid adjustment or would reduce stock below reserved quantity
+
   /admin/b2b/accounts:
     get:
       tags: [B2B]
