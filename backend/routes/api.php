@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\OrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -38,5 +39,11 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/profile', [AuthController::class, 'profile']);
 
         Route::post('/checkout', CheckoutController::class);
+
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
+        Route::get('/b2b/orders', [OrderController::class, 'index']);
+        Route::get('/b2b/orders/{order}', [OrderController::class, 'show']);
+        Route::post('/orders/{order}/status', [OrderController::class, 'transition']);
     });
 });

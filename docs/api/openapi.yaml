@@ -442,6 +442,39 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /orders/{order}/status:
+    post:
+      tags: [Orders]
+      summary: Transition an order status using an authorized management role
+      operationId: transitionOrderStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderStatusUpdateRequest"
+      responses:
+        "200":
+          description: Order status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /b2b/dashboard:
     get:
       tags: [B2B]
@@ -1001,7 +1034,7 @@ components:
     Order:
       type: object
       required:
-        [id, order_number, store_id, channel, status, currency, subtotal, grand_total, items, created_at]
+        [id, order_number, store_id, channel, status, currency, subtotal, grand_total, items, status_history, created_at]
       properties:
         id:
           type: integer
@@ -1041,8 +1074,40 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/OrderItem"
+        status_history:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderStatusHistoryEntry"
         created_at:
           type: string
+          format: date-time
+
+    OrderStatusUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, confirmed, preparing, ready, out_for_delivery, delivered, failed, cancelled]
+        note:
+          type: [string, "null"]
+          maxLength: 1000
+
+    OrderStatusHistoryEntry:
+      type: object
+      required: [id, from_status, to_status, note, created_at]
+      properties:
+        id:
+          type: integer
+        from_status:
+          type: [string, "null"]
+        to_status:
+          type: string
+        note:
+          type: [string, "null"]
+        created_at:
+          type: [string, "null"]
           format: date-time
 
     PaymentSummary:
