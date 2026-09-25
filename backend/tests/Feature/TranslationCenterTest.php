@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\TranslationCatalog;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Arr;
 use Tests\TestCase;
 
 class TranslationCenterTest extends TestCase
@@ -80,14 +81,13 @@ class TranslationCenterTest extends TestCase
         $this->getJson('/api/v1/translations/fr')->assertNotFound();
     }
 
-
     public function test_all_admin_language_files_are_available_in_the_catalog_and_public_bundles(): void
     {
         $catalog = app(TranslationCatalog::class);
 
         foreach (['admin', 'notifications', 'reports', 'mobile_settings'] as $group) {
             foreach (['ar', 'en'] as $locale) {
-                $defaults = \Illuminate\Support\Arr::dot(require lang_path("{$locale}/{$group}.php"));
+                $defaults = Arr::dot(require lang_path("{$locale}/{$group}.php"));
                 $response = $this->getJson("/api/v1/translations/{$locale}")->assertOk();
 
                 foreach ($defaults as $key => $value) {
