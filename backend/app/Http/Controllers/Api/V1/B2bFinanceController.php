@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,6 +18,7 @@ class B2bFinanceController extends Controller
     public function invoices(Request $request): JsonResponse
     {
         $customer = $this->approvedCustomer($request);
+        app(AuditLogger::class)->record('b2b.finance.invoices_viewed', $request->user(), $customer, null, null, $request);
         $paginator = Invoice::query()->where('customer_id', $customer->getKey())->latest('id')->paginate(min(max($request->integer('per_page', 20), 1), 100));
 
         return response()->json(['data' => collect($paginator->items())->map(fn (Invoice $invoice) => $this->invoicePayload($invoice))->values(), 'meta' => ['total' => $paginator->total()]]);
@@ -26,6 +28,7 @@ class B2bFinanceController extends Controller
     {
         $customer = $this->approvedCustomer($request);
         abort_unless((int) $invoice->customer_id === (int) $customer->getKey(), 404);
+        app(AuditLogger::class)->record('b2b.finance.invoice_viewed', $request->user(), $invoice, null, null, $request);
 
         return response()->json(['data' => $this->invoicePayload($invoice, true)]);
     }
@@ -35,6 +38,7 @@ class B2bFinanceController extends Controller
         $customer = $this->approvedCustomer($request);
         $invoices = Invoice::query()->where('customer_id', $customer->getKey())->orderBy('issued_at')->orderBy('id')->get();
         $invoiceIds = $invoices->pluck('id');
+        app(AuditLogger::class)->record('b2b.finance.statement_viewed', $request->user(), $customer, null, null, $request);
         $payments = Payment::query()->whereIn('invoice_id', $invoiceIds)->where('status', 'paid')->orderBy('created_at')->orderBy('id')->get();
         $debits = round((float) $invoices->sum('total'), 3);
         $credits = round((float) $payments->sum('amount'), 3);
