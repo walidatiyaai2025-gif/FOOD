@@ -85,6 +85,54 @@ class AdminShellTest extends TestCase
             ->assertSee('href="'.route('admin.b2c.dashboard').'"', false);
     }
 
+    public function test_super_admin_sees_grouped_permission_aware_navigation(): void
+    {
+        $user = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
+
+        $this->actingAs($user)
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee('Operations')
+            ->assertSee('Catalog')
+            ->assertSee('Analytics & Reports')
+            ->assertSee('Administration')
+            ->assertSee('data-nav-group="operations"', false)
+            ->assertSee('Search navigation');
+    }
+
+    public function test_workspace_uses_shared_sidebar_active_state_and_preserves_deep_link(): void
+    {
+        $storeId = $this->createB2cStore();
+        $user = User::query()->create([
+            'name' => 'B2C Navigation',
+            'email' => 'b2c-navigation@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $this->assignStoreRole($user, $storeId, 'B2C_STORE_ADMIN');
+
+        $this->actingAs($user)
+            ->get('/admin/b2c/orders')
+            ->assertOk()
+            ->assertSee('data-nav-group="operations"', false)
+            ->assertSee('aria-current="page"', false)
+            ->assertSee('Orders');
+    }
+
+    public function test_navigation_hides_modules_without_effective_permission(): void
+    {
+        $user = $this->userWithGlobalRole('FINANCE', 'en');
+
+        $this->actingAs($user)
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee('Analytics & Reports')
+            ->assertDontSee('Users & Permissions')
+            ->assertDontSee('Translation Center')
+            ->assertDontSee('System Update');
+    }
+
     public function test_driver_role_is_denied_management_dashboard_access(): void
     {
         $driver = $this->userWithGlobalRole('B2C_DRIVER');
