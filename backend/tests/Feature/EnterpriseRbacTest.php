@@ -80,7 +80,7 @@ class EnterpriseRbacTest extends TestCase
     public function test_last_active_super_admin_cannot_be_deactivated_by_delegated_operator(): void
     {
         $superAdmin = $this->userWithGlobalRole('SUPER_ADMIN');
-        $operator = User::factory()->create();
+        $operator = User::factory()->create(['is_active' => true]);
         $role = Role::query()->create([
             'code' => 'SECURITY_OPERATOR',
             'name' => 'Security Operator',
@@ -123,7 +123,7 @@ class EnterpriseRbacTest extends TestCase
 
     public function test_delegated_operator_cannot_grant_permissions_above_own_authority(): void
     {
-        $operator = User::factory()->create();
+        $operator = User::factory()->create(['is_active' => true]);
         $operatorRole = Role::query()->create([
             'code' => 'ROLE_OPERATOR',
             'name' => 'Role Operator',
