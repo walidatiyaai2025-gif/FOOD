@@ -26,6 +26,7 @@ return new class extends Migration {
         ])->update(['is_system' => true]);
 
         DB::table('roles')->where('code', 'B2C_STORE_ADMIN')->update(['scope' => 'store']);
+        DB::table('roles')->whereIn('code', ['OPERATIONS', 'INVENTORY', 'FINANCE', 'CUSTOMER_SUPPORT'])->update(['scope' => 'both']);
     }
 
     public function down(): void
