@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Pricing\B2bPriceResolver;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
@@ -120,6 +121,11 @@ class GuestCartController extends Controller
         }
 
         $state = $this->productState($storeId, $productId, true);
+        if ($user instanceof User && $channel === 'b2b') {
+            $pricing = app(B2bPriceResolver::class)->resolve($customer, $storeId, $productId);
+            abort_if($quantity < $pricing['minimum_quantity'], 409, 'Quantity is below the B2B minimum purchase quantity.');
+            $state['price'] = $pricing['price'];
+        }
 
         $item = CartItem::query()->firstOrNew([
             'cart_id' => $cart->id,
