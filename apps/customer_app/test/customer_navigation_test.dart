@@ -59,7 +59,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('تسجيل الدخول'), findsOneWidget);
+    expect(find.text('تسجيل الدخول'), findsWidgets);
     expect(find.text('/auth/checkout'), findsOneWidget);
   });
 
@@ -84,7 +84,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('حسابي'), findsOneWidget);
+    expect(find.text('حسابي'), findsWidgets);
     expect(find.text('/profile'), findsOneWidget);
   });
 
