@@ -6,12 +6,15 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class RbacManager
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(private readonly AuditLogger $audit)
+    {
+    }
 
     public function setUserActive(User $actor, User $target, bool $active, ?string $reason, Request $request): User
     {
@@ -43,8 +46,9 @@ final class RbacManager
         return $fresh;
     }
 
-    /** @param list<int> $globalRoleIds
-     *  @param list<array{store_id:int,role_id:int}> $storeRoles
+    /**
+     * @param  list<int>  $globalRoleIds
+     * @param  list<array{store_id:int,role_id:int}>  $storeRoles
      */
     public function replaceUserRoles(User $actor, User $target, array $globalRoleIds, array $storeRoles, Request $request): User
     {
@@ -140,7 +144,7 @@ final class RbacManager
         return $fresh;
     }
 
-    /** @param array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>} $values */
+    /** @param  array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}  $values */
     public function createRole(User $actor, string $code, array $values, Request $request): Role
     {
         $this->assertActorCanGrantPermissions($actor, $values['permission_ids']);
@@ -273,7 +277,7 @@ final class RbacManager
         }
     }
 
-    /** @param list<int> $permissionIds */
+    /** @param  list<int>  $permissionIds */
     private function assertActorCanGrantPermissions(User $actor, array $permissionIds): void
     {
         if ($actor->hasRole('SUPER_ADMIN')) {
