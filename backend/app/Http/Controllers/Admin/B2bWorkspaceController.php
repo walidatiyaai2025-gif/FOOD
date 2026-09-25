@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class B2bWorkspaceController extends Controller
 {
+    public function __construct(private readonly AdminNavigation $navigation) {}
+
     public function show(Request $request, string $module = 'dashboard'): View
     {
         $user = $request->user();
@@ -29,6 +32,9 @@ class B2bWorkspaceController extends Controller
             'pricing' => DB::table('b2b_price_rules')->count(),
         ];
 
-        return view('admin.b2b-workspace', compact('user', 'module', 'counts'));
+        $navGroups = $this->navigation->groupsFor($user);
+        $navContext = 'b2b_'.$module;
+
+        return view('admin.b2b-workspace', compact('user', 'module', 'counts', 'navGroups', 'navContext'));
     }
 }
