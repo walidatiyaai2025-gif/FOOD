@@ -43,6 +43,11 @@ class OpenApiContractTest extends TestCase
             '/drivers/assignments',
             '/notifications',
             '/app-version',
+            '/admin/security/permissions',
+            '/admin/security/roles',
+            '/admin/security/users',
+            '/admin/security/users/{user}/roles',
+            '/admin/security/users/{user}/status',
         ];
 
         foreach ($paths as $path) {
@@ -68,6 +73,11 @@ class OpenApiContractTest extends TestCase
             'DriverAssignment',
             'Notification',
             'AppVersionPolicy',
+            'SecurityPermission',
+            'SecurityRole',
+            'SecurityUser',
+            'SecurityUserRolesWrite',
+            'SecurityUserStatusWrite',
             'PaginationMeta',
             'Error',
         ];
