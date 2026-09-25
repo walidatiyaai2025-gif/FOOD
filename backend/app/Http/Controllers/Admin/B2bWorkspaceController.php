@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class B2bWorkspaceController extends Controller
 {
+    public function __construct(private readonly AdminNavigation $navigation) {}
+
     public function show(Request $request, string $module = 'dashboard'): View
     {
         $user = $request->user();
