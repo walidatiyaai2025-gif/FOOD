@@ -28,4 +28,29 @@ return [
     'deleted' => 'Notification deleted.',
     'preview_ar' => 'Arabic preview',
     'preview_en' => 'English preview',
+    'audience_options' => [
+        'all' => 'Everyone',
+        'customer' => 'Customers',
+        'driver' => 'Drivers',
+        'user' => 'Specific user',
+    ],
+    'app_options' => [
+        'all' => 'All apps',
+        'customer' => 'Customer App',
+        'driver' => 'Driver App',
+    ],
+    'channel_options' => [
+        'all' => 'All channels',
+        'b2c' => 'B2C Retail',
+        'b2b' => 'B2B Wholesale',
+    ],
+    'delivery_options' => [
+        'in_app' => 'In-app',
+        'push' => 'Push',
+        'both' => 'In-app + Push',
+    ],
+    'status_options' => [
+        'draft' => 'Draft',
+        'published' => 'Published',
+    ],
 ];
