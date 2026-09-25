@@ -68,7 +68,7 @@ final class RbacManager
         }
 
         foreach ($globalRoles as $role) {
-            if (!$role->is_active) {
+            if (! $role->is_active) {
                 throw ValidationException::withMessages(['global_role_ids' => [__('admin.security.errors.role_inactive', ['role' => $role->code])]]);
             }
 
@@ -87,7 +87,7 @@ final class RbacManager
         }
 
         foreach ($storeModels as $role) {
-            if (!$role->is_active) {
+            if (! $role->is_active) {
                 throw ValidationException::withMessages(['store_roles' => [__('admin.security.errors.role_inactive', ['role' => $role->code])]]);
             }
 
@@ -238,7 +238,7 @@ final class RbacManager
 
     public function isLastActiveSuperAdmin(User $target): bool
     {
-        if (!$target->is_active) {
+        if (! $target->is_active {
             return false;
         }
 
@@ -247,7 +247,7 @@ final class RbacManager
             ->where('roles.is_active', true)
             ->exists();
 
-        if (!$hasSuperAdmin) {
+        if (! $hasSuperAdmin {
             return false;
         }
 
