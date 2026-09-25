@@ -18,16 +18,17 @@ class InventoryController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        Gate::authorize('inventory.manage');
         $user = $request->user(); abort_unless($user instanceof User, 401);
+        abort_unless($user->hasPermission('inventory.manage') || $user->storeRoleAssignments()->whereHas('role.permissions', fn ($query) => $query->where('permissions.code', 'inventory.manage'))->exists(), 403);
         $rows = Inventory::query()->accessibleTo($user)->orderBy('id')->paginate(min(max($request->integer('per_page', 20), 1), 100));
         return response()->json(['data' => $rows->items(), 'meta' => ['total' => $rows->total()]]);
     }
 
     public function adjust(Request $request, Inventory $inventory, AuditLogger $audit): JsonResponse
     {
-        Gate::authorize('inventory.manage');
         $user = $request->user(); abort_unless($user instanceof User, 401);
+        $warehouse = Warehouse::query()->findOrFail($inventory->warehouse_id);
+        abort_unless($user->hasPermission('inventory.manage', (int) $warehouse->store_id), 403);
         abort_unless(Inventory::query()->accessibleTo($user)->whereKey($inventory->getKey())->exists(), 404);
         $data = $request->validate(['quantity_delta' => ['required','numeric','not_in:0'], 'reason' => ['required','string','max:255']]);
         $before = $inventory->toArray();
