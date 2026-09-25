@@ -50,6 +50,7 @@ class AdminReportingTest extends TestCase
         foreach ([[$a, 10], [$b, 20]] as [$store, $total]) {
             DB::table('orders')->insert(['store_id' => $store, 'customer_id' => $customer->id, 'order_number' => 'RPT-'.$store, 'channel' => 'b2c', 'status' => 'delivered', 'currency' => 'KWD', 'subtotal' => $total, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => $total, 'created_at' => now(), 'updated_at' => now()]);
         }
+
         return [$a, $b];
     }
 
@@ -57,6 +58,7 @@ class AdminReportingTest extends TestCase
     {
         $user = User::query()->create(['name' => $role, 'email' => strtolower($role).'@reports.test', 'password' => 'password', 'is_active' => true]);
         $user->roles()->attach(Role::query()->where('code', $role)->firstOrFail());
+
         return $user;
     }
 }
