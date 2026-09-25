@@ -1,11 +1,20 @@
 <?php
+
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Model;
+
 class MobileAppSetting extends Model
 {
     protected $guarded = [];
+
     protected function casts(): array
     {
-        return ['force_update'=>'boolean','maintenance_mode'=>'boolean','deep_link_config'=>'array','store_readiness'=>'array'];
+        return [
+            'force_update' => 'boolean',
+            'maintenance_mode' => 'boolean',
+            'deep_link_config' => 'array',
+            'store_readiness' => 'array',
+        ];
     }
 }
