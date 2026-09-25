@@ -19,6 +19,7 @@
         label{display:block;font-size:.8rem;font-weight:700;margin-bottom:6px;color:#475569}
         @media(max-width:850px){body{padding:16px}.grid,.preview{grid-template-columns:1fr}.top,.row{align-items:stretch;flex-direction:column}}
     </style>
+    @include('admin._brand-components')
 </head>
 <body><div class="wrap">
     <div class="top">

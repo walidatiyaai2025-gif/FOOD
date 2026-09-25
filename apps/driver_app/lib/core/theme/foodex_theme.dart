@@ -15,6 +15,64 @@ abstract final class FoodexBrand {
   static const surface = Color(0xFFFFFFFF);
   static const background = Color(0xFFF7F9FC);
   static const border = Color(0xFFE6EAF0);
+
+  static Color statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'delivered':
+      case 'completed':
+      case 'success':
+        return green;
+      case 'assigned':
+      case 'picked_up':
+      case 'out_for_delivery':
+      case 'in_transit':
+      case 'info':
+        return blue;
+      case 'cancelled':
+      case 'refunded':
+      case 'failed':
+      case 'error':
+        return red;
+      case 'pending':
+      case 'confirmed':
+      case 'processing':
+      case 'paid':
+      case 'accepted':
+      case 'warning':
+        return orange;
+      default:
+        return muted;
+    }
+  }
+
+  static Color statusSurface(String status) {
+    switch (status.toLowerCase()) {
+      case 'delivered':
+      case 'completed':
+      case 'success':
+        return greenSoft;
+      case 'assigned':
+      case 'picked_up':
+      case 'out_for_delivery':
+      case 'in_transit':
+      case 'info':
+        return const Color(0xFFEDF4FF);
+      case 'cancelled':
+      case 'refunded':
+      case 'failed':
+      case 'error':
+        return const Color(0xFFFFF0F0);
+      case 'pending':
+      case 'confirmed':
+      case 'processing':
+      case 'paid':
+      case 'accepted':
+      case 'warning':
+        return orangeSoft;
+      default:
+        return const Color(0xFFF2F4F7);
+    }
+  }
 }
 
 abstract final class FoodexTheme {
@@ -34,11 +92,32 @@ abstract final class FoodexTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: FoodexBrand.background,
+      cardColor: FoodexBrand.surface,
+      dividerColor: FoodexBrand.border,
       appBarTheme: const AppBarTheme(
         backgroundColor: FoodexBrand.surface,
         foregroundColor: FoodexBrand.ink,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+      ),
+      navigationBarTheme: const NavigationBarThemeData(
+        backgroundColor: FoodexBrand.surface,
+        indicatorColor: FoodexBrand.greenSoft,
+        surfaceTintColor: Colors.transparent,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: FoodexBrand.green,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: FoodexBrand.greenDark,
+        ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: FoodexBrand.green,

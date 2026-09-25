@@ -85,7 +85,11 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(context.tr(_error!), key: const ValueKey('customer-action-error')),
+            Text(
+              context.tr(_error!),
+              key: const ValueKey('customer-action-error'),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ],
           const SizedBox(height: 12),
           FilledButton(
@@ -185,7 +189,12 @@ class _AddCartActionState extends State<AddCartAction> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(labelText: context.tr('customer.cart.quantity')),
           ),
-          if (_error != null) Text(context.tr(_error!), key: const ValueKey('customer-action-error')),
+          if (_error != null)
+            Text(
+              context.tr(_error!),
+              key: const ValueKey('customer-action-error'),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           const SizedBox(height: 12),
           FilledButton(
             key: const ValueKey('customer-add-cart'),

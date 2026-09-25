@@ -26,6 +26,7 @@
         th, td { padding: 10px; text-align: start; border-bottom: 1px solid #e2e8f0; }
         code { direction: ltr; unicode-bidi: embed; }
     </style>
+    @include('admin._brand-components')
 </head>
 <body>
 <main>
@@ -77,7 +78,7 @@
                 <input type="checkbox" name="contains_migrations" value="1">
                 Package contains database migrations
             </label>
-            <button type="submit">Validate and install update</button>
+            <button class="foodex-primary" type="submit">Validate and install update</button>
         </form>
     </section>
 
