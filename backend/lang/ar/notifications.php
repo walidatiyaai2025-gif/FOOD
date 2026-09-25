@@ -27,5 +27,30 @@ return [
     'published' => 'تم نشر الإشعار.',
     'deleted' => 'تم حذف الإشعار.',
     'preview_ar' => 'معاينة العربية',
-    'preview_en' => 'English preview',
+    'preview_en' => 'معاينة الإنجليزية',
+    'audience_options' => [
+        'all' => 'الجميع',
+        'customer' => 'العملاء',
+        'driver' => 'السائقون',
+        'user' => 'مستخدم محدد',
+    ],
+    'app_options' => [
+        'all' => 'كل التطبيقات',
+        'customer' => 'تطبيق العميل',
+        'driver' => 'تطبيق السائق',
+    ],
+    'channel_options' => [
+        'all' => 'كل القنوات',
+        'b2c' => 'التجزئة B2C',
+        'b2b' => 'الجملة B2B',
+    ],
+    'delivery_options' => [
+        'in_app' => 'داخل التطبيق',
+        'push' => 'إشعار Push',
+        'both' => 'داخل التطبيق وPush',
+    ],
+    'status_options' => [
+        'draft' => 'مسودة',
+        'published' => 'منشور',
+    ],
 ];
