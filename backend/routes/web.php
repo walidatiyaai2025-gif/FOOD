@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminShellController;
 use App\Http\Controllers\Admin\AppVersionController;
+use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Installer\InstallerController;
@@ -36,7 +37,8 @@ Route::prefix('admin')
     ->middleware('management.dashboard')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
-        Route::get('/b2b/dashboard', [AdminShellController::class, 'b2b'])->name('b2b.dashboard');
+        Route::get('/b2b/dashboard', [B2bWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2b.dashboard');
+        Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
         Route::get('/b2c/{module}', [B2cWorkspaceController::class, 'show'])->name('b2c.module');
         Route::get('/settings/app-versions', [AppVersionController::class, 'index'])->name('app-versions.index');
