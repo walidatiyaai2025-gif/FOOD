@@ -31,7 +31,7 @@ void main() {
 
     await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart'));
     await tester.pumpAndSettle();
-    expect(find.text('السلة فارغة'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-empty')), findsOneWidget);
     expect(find.text('إتمام الطلب'), findsOneWidget);
   });
 
