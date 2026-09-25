@@ -20,7 +20,12 @@ class CustomerProfileController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
-        [$user, $customer] = $this->context($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $customer = Customer::query()
+            ->where('user_id', $user->getKey())
+            ->first();
 
         return response()->json($this->profilePayload($user, $customer));
     }
@@ -329,7 +334,7 @@ class CustomerProfileController extends Controller
         return [$user, $customer];
     }
 
-    private function profilePayload(User $user, Customer $customer): array
+    private function profilePayload(User $user, ?Customer $customer): array
     {
         $roles = $user->roles()
             ->orderBy('roles.code')
@@ -347,14 +352,16 @@ class CustomerProfileController extends Controller
             ->values()
             ->all();
 
-        $addresses = Address::query()
-            ->where('customer_id', $customer->getKey())
-            ->orderByDesc('is_default')
-            ->orderBy('id')
-            ->get()
-            ->map(fn (Address $address): array => $this->addressPayload($address))
-            ->values()
-            ->all();
+        $addresses = $customer instanceof Customer
+            ? Address::query()
+                ->where('customer_id', $customer->getKey())
+                ->orderByDesc('is_default')
+                ->orderBy('id')
+                ->get()
+                ->map(fn (Address $address): array => $this->addressPayload($address))
+                ->values()
+                ->all()
+            : [];
 
         return [
             'id' => (int) $user->getKey(),
@@ -363,15 +370,17 @@ class CustomerProfileController extends Controller
             'locale' => (string) $user->locale,
             'roles' => $roles,
             'store_ids' => $storeIds,
-            'customer' => [
+            'customer' => $customer instanceof Customer ? [
                 'id' => (int) $customer->getKey(),
                 'type' => (string) $customer->type,
                 'name' => (string) $customer->name,
                 'phone' => $customer->phone,
                 'email' => $customer->email,
-            ],
+            ] : null,
             'addresses' => $addresses,
-            'favorites' => $this->favoriteRows($customer),
+            'favorites' => $customer instanceof Customer
+                ? $this->favoriteRows($customer)
+                : [],
         ];
     }
 
