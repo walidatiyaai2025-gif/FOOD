@@ -35,6 +35,8 @@ tags:
     description: Customer and Driver runtime/store configuration without provider secrets.
   - name: Push Devices
     description: Authenticated mobile push-device registration and revocation.
+  - name: Management Reporting
+    description: Permission and scope-aware management reporting catalog.
 
 paths:
   /version:
@@ -459,6 +461,57 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /admin/reports/{report}:
+    get:
+      tags: [Management Reporting]
+      summary: Run a scoped management report
+      operationId: getManagementReport
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: report
+          required: true
+          schema:
+            type: string
+            enum: [orders, products, customers, operations]
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+        - in: query
+          name: store_id
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: channel
+          schema: { type: string, enum: [b2b, b2c] }
+        - in: query
+          name: status
+          schema: { type: string, maxLength: 64 }
+        - in: query
+          name: product_id
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: category_id
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: customer_id
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: payment_provider
+          schema: { type: string, maxLength: 64 }
+      responses:
+        "200":
+          description: KPI summary, report rows, applied filters and report-specific breakdowns
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /admin/reports/dashboard:
     get:

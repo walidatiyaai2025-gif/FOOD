@@ -14,9 +14,11 @@ use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
 use App\Http\Controllers\Api\V1\HealthController;
-use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\InventoryController;
+use App\Http\Controllers\Api\V1\ManagementReportController;
+use App\Http\Controllers\Api\V1\MobileRuntimeController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\TranslationController;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +32,7 @@ Route::prefix('v1')->group(function (): void {
     ]));
 
     Route::get('/app-version', AppVersionController::class);
+    Route::get('/mobile/runtime', MobileRuntimeController::class);
     Route::get('/translations/{locale}', TranslationController::class)->whereIn('locale', ['ar', 'en']);
 
     Route::post('/auth/login', [AuthController::class, 'login'])
@@ -48,6 +51,8 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/push/devices', [PushDeviceController::class, 'store']);
+        Route::delete('/push/devices/{device}', [PushDeviceController::class, 'destroy']);
         Route::get('/admin/security/permissions', [SecurityController::class, 'permissions']);
         Route::get('/admin/security/roles', [SecurityController::class, 'roles']);
         Route::post('/admin/security/roles', [SecurityController::class, 'storeRole']);
@@ -59,6 +64,8 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/admin/security/users/{user}/roles', [SecurityController::class, 'updateUserRoles']);
         Route::patch('/admin/security/users/{user}/status', [SecurityController::class, 'updateUserStatus']);
         Route::get('/admin/reports/dashboard', [AdminReportController::class, 'dashboard']);
+        Route::get('/admin/reports/{report}', [ManagementReportController::class, 'show'])
+            ->whereIn('report', ['orders', 'products', 'customers', 'operations']);
         Route::get('/admin/b2b/accounts', [B2bAccountController::class, 'index']);
         Route::post('/admin/b2b/accounts', [B2bAccountController::class, 'store']);
         Route::patch('/admin/b2b/accounts/{account}/status', [B2bAccountController::class, 'updateStatus']);
@@ -90,8 +97,6 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/b2b/orders', [OrderController::class, 'index']);
         Route::get('/b2b/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/status', [OrderController::class, 'transition']);
-        Route::get('/admin/reports/orders', [ManagementReportController::class, 'orders']);
-        Route::get('/admin/reports/products', [ManagementReportController::class, 'products']);
         Route::post('/admin/deliveries/assign', [DriverAssignmentController::class, 'assign']);
         Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
         Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition']);
