@@ -303,7 +303,7 @@ final class RbacManager
             'store_roles' => $user->storeRoleAssignments
                 ->map(static fn ($assignment): array => [
                     'store_id' => (int) $assignment->store_id,
-                    'role' => (string) $assignment->role?->code,
+                    'role' => (string) $assignment->role->code,
                 ])
                 ->sortBy(static fn (array $assignment): string => sprintf('%020d:%s', $assignment['store_id'], $assignment['role']))
                 ->values()
