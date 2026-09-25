@@ -271,7 +271,7 @@ class _CheckoutActionState extends State<CheckoutAction> {
             key: const ValueKey('customer-checkout-address'),
             controller: _address,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: context.tr('customer.checkout.address_id')),
+            decoration: InputDecoration(labelText: context.tr('customer.checkout.address')),
           ),
           const SizedBox(height: 10),
           TextField(
