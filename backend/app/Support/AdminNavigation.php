@@ -71,6 +71,7 @@ class AdminNavigation
                 $this->module($user, $channels, 'b2b', 'settings', 'admin.b2b_workspace.modules.settings', null),
                 $this->routeItem($user, 'security', 'admin.security_center', 'admin.security.index', 'security.view'),
                 $this->routeItem($user, 'translations', 'admin.translation_center', 'admin.translations.index', 'translations.manage'),
+                $this->routeItemAny($user, 'mobile_settings', 'mobile_settings.title', 'admin.mobile-settings.index', ['mobile_settings.manage', 'push_settings.manage', 'push_settings.test']),
                 $this->routeItem($user, 'app_versions', 'admin.app_versions', 'admin.app-versions.index', 'platform.manage'),
                 $this->routeItem($user, 'system_update', 'admin.system_update', 'admin.system-update.index', 'system.update'),
             ]),
@@ -178,6 +179,22 @@ class AdminNavigation
             ->whereIn('roles.scope', ['store', 'both'])
             ->whereIn('roles.code', $storeRoles)
             ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', $permission)))->exists();
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function routeItemAny(User $user, string $key, string $label, string $route, array $permissions): ?array
+    {
+        if (! Route::has($route)) {
+            return null;
+        }
+
+        foreach ($permissions as $permission) {
+            if ($user->hasPermission($permission)) {
+                return ['key' => $key, 'label' => $label, 'route' => $route, 'params' => [], 'permission' => null];
+            }
+        }
+
+        return null;
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */

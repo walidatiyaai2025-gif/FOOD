@@ -1,0 +1,3 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_customer_app/mobile_runtime.dart';
+void main(){test('customer runtime contract exposes maintenance and update policy',(){final uri=CustomerMobileRuntime.endpoint(Uri.parse('https://api.example.test/api/v1/'),environment:'production',locale:'en');expect(uri.queryParameters['app'],'customer');final r=CustomerMobileRuntime.fromJson({'data':{'environment':'production','maintenance_mode':true,'force_update':true,'minimum_supported_version':'3.0.0','recommended_version':'3.2.0','maintenance_message':'Maintenance','release_notes':'New'}});expect(r.maintenanceMode,isTrue);expect(r.forceUpdate,isTrue);expect(r.recommendedVersion,'3.2.0');});}
