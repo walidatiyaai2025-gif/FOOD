@@ -40,15 +40,18 @@ class B2bPricingTest extends TestCase
     {
         $this->seed(CoreReferenceSeeder::class);
         [$storeId, $productId, $tierId] = $this->catalog();
+
         DB::table('b2b_price_rules')->insert(['price_tier_id' => $tierId, 'store_id' => $storeId, 'product_id' => $productId, 'unit_price' => 4, 'minimum_quantity' => 2, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $finance = $this->userWithRole('FINANCE', 'pricing-finance@example.test');
         Sanctum::actingAs($finance);
+
         $this->putJson('/api/v1/admin/b2b/prices', ['price_tier_id' => $tierId, 'store_id' => $storeId, 'product_id' => $productId, 'unit_price' => 1, 'minimum_quantity' => 1])->assertForbidden();
 
         $buyer = User::query()->create(['name' => 'Pending', 'email' => 'pending-price@example.test', 'password' => 'password', 'is_active' => true]);
         $customer = Customer::query()->create(['user_id' => $buyer->id, 'type' => 'b2b', 'name' => 'Pending', 'email' => $buyer->email]);
         B2bAccount::query()->create(['customer_id' => $customer->id, 'price_tier_id' => $tierId, 'company_name' => 'Pending Co', 'status' => 'pending']);
         Sanctum::actingAs($buyer);
+
         $this->getJson("/api/v1/b2b/products?store_id={$storeId}")->assertForbidden();
     }
 
@@ -60,6 +63,7 @@ class B2bPricingTest extends TestCase
         $product = (int) DB::table('products')->insertGetId(['unit_id' => $unit, 'sku' => 'B2B-P-1', 'name' => 'Wholesale Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('store_products')->insert(['store_id' => $store, 'product_id' => $product, 'price' => 10, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $tier = (int) DB::table('b2b_price_tiers')->insertGetId(['code' => 'GOLD', 'name' => 'Gold', 'priority' => 10, 'created_at' => now(), 'updated_at' => now()]);
+
         return [$store, $product, $tier];
     }
 
@@ -67,6 +71,7 @@ class B2bPricingTest extends TestCase
     {
         $user = User::query()->create(['name' => $role, 'email' => $email, 'password' => 'password', 'is_active' => true]);
         $user->roles()->attach(Role::query()->where('code', $role)->firstOrFail());
+
         return $user;
     }
 }
