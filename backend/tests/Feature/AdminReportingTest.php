@@ -43,20 +43,20 @@ class AdminReportingTest extends TestCase
     private function storesWithOrders(): array
     {
         $type = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
-        $a = (int) DB::table('stores')->insertGetId(['store_type_id'=>$type,'code'=>'RPT-A','name'=>'A','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
-        $b = (int) DB::table('stores')->insertGetId(['store_type_id'=>$type,'code'=>'RPT-B','name'=>'B','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
+        $a = (int) DB::table('stores')->insertGetId(['store_type_id' => $type, 'code' => 'RPT-A', 'name' => 'A', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $b = (int) DB::table('stores')->insertGetId(['store_type_id' => $type, 'code' => 'RPT-B', 'name' => 'B', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $customerUser = User::query()->create(['name' => 'Report Customer', 'email' => 'customer@reports.test', 'password' => 'password', 'is_active' => true]);
         $customer = Customer::query()->create(['user_id' => $customerUser->id, 'type' => 'b2c', 'name' => 'Report Customer', 'email' => $customerUser->email]);
         foreach ([[$a, 10], [$b, 20]] as [$store, $total]) {
             DB::table('orders')->insert(['store_id' => $store, 'customer_id' => $customer->id, 'order_number' => 'RPT-'.$store, 'channel' => 'b2c', 'status' => 'delivered', 'currency' => 'KWD', 'subtotal' => $total, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => $total, 'created_at' => now(), 'updated_at' => now()]);
         }
-        return [$a,$b];
+        return [$a, $b];
     }
 
     private function userWithRole(string $role): User
     {
-        $user=User::query()->create(['name'=>$role,'email'=>strtolower($role).'@reports.test','password'=>'password','is_active'=>true]);
-        $user->roles()->attach(Role::query()->where('code',$role)->firstOrFail());
+        $user = User::query()->create(['name' => $role, 'email' => strtolower($role).'@reports.test', 'password' => 'password', 'is_active' => true]);
+        $user->roles()->attach(Role::query()->where('code', $role)->firstOrFail());
         return $user;
     }
 }
