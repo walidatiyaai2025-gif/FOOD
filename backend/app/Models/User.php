@@ -14,6 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 /**
  * @property bool $is_active
  * @property Carbon|null $deactivated_at
+ * @property Carbon|null $last_seen_at
  * @property-read Collection<int, Role> $roles
  * @property-read Collection<int, UserStoreRole> $storeRoleAssignments
  */
@@ -21,7 +22,7 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'locale', 'is_active', 'deactivated_at', 'deactivation_reason'];
+    protected $fillable = ['name', 'email', 'password', 'locale', 'is_active', 'deactivated_at', 'deactivation_reason', 'last_seen_at'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -138,6 +139,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'deactivated_at' => 'datetime',
+            'last_seen_at' => 'datetime',
         ];
     }
 }

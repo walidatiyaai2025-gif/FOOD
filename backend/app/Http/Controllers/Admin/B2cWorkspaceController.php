@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\B2cDashboardService;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -12,7 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class B2cWorkspaceController extends Controller
 {
-    public function __construct(private readonly AdminNavigation $navigation) {}
+    public function __construct(
+        private readonly AdminNavigation $navigation,
+        private readonly B2cDashboardService $dashboard,
+    ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View
     {
@@ -33,8 +37,16 @@ class B2cWorkspaceController extends Controller
 
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2c_'.$module;
+        $dashboard = $module === 'dashboard'
+            ? $this->dashboard->build(
+                $user,
+                $storeIds,
+                $request->filled('date') ? $request->string('date')->toString() : null,
+                $request->filled('q') ? $request->string('q')->toString() : null,
+            )
+            : null;
 
-        return view('admin.b2c-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext'));
+        return view('admin.b2c-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'dashboard'));
     }
 
     private function storeIds(User $user): array

@@ -18,6 +18,10 @@ class EnsureActiveUser
             App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
         }
 
+        if ($user instanceof User && $user->is_active && ($user->last_seen_at === null || $user->last_seen_at->lt(now()->subMinute()))) {
+            $user->forceFill(['last_seen_at' => now()])->saveQuietly();
+        }
+
         if ($user instanceof User && ! $user->is_active) {
             $user->tokens()->delete();
 
