@@ -43,8 +43,12 @@ class B2bFinanceController extends Controller
         $debits = round((float) $invoices->sum('total'), 3);
         $credits = round((float) $payments->sum('amount'), 3);
         $transactions = collect();
-        foreach ($invoices as $invoice) $transactions->push(['type' => 'invoice', 'reference' => $invoice->invoice_number, 'debit' => (float) $invoice->total, 'credit' => 0.0, 'occurred_at' => $invoice->issued_at ?? $invoice->created_at]);
-        foreach ($payments as $payment) $transactions->push(['type' => 'payment', 'reference' => $payment->provider_reference ?? ('PAY-'.$payment->id), 'debit' => 0.0, 'credit' => (float) $payment->amount, 'occurred_at' => $payment->created_at]);
+        foreach ($invoices as $invoice) {
+            $transactions->push(['type' => 'invoice', 'reference' => $invoice->invoice_number, 'debit' => (float) $invoice->total, 'credit' => 0.0, 'occurred_at' => $invoice->issued_at ?? $invoice->created_at]);
+        }
+        foreach ($payments as $payment) {
+            $transactions->push(['type' => 'payment', 'reference' => $payment->provider_reference ?? ('PAY-'.$payment->id), 'debit' => 0.0, 'credit' => (float) $payment->amount, 'occurred_at' => $payment->created_at]);
+        }
 
         return response()->json(['data' => ['currency' => 'KWD', 'total_debits' => $debits, 'total_credits' => $credits, 'balance' => round($debits - $credits, 3), 'transactions' => $transactions->sortBy('occurred_at')->values()]]);
     }
@@ -63,7 +67,9 @@ class B2bFinanceController extends Controller
     private function invoicePayload(Invoice $invoice, bool $withItems = false): array
     {
         $payload = ['id' => (int) $invoice->getKey(), 'invoice_number' => (string) $invoice->invoice_number, 'status' => (string) $invoice->status, 'currency' => (string) $invoice->currency, 'total' => (float) $invoice->total, 'issued_at' => $invoice->issued_at, 'due_at' => $invoice->due_at];
-        if ($withItems) $payload['items'] = InvoiceItem::query()->where('invoice_id', $invoice->getKey())->orderBy('id')->get();
+        if ($withItems) {
+            $payload['items'] = InvoiceItem::query()->where('invoice_id', $invoice->getKey())->orderBy('id')->get();
+        }
 
         return $payload;
     }
