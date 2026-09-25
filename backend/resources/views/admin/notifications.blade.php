@@ -21,7 +21,15 @@
     </style>
 </head>
 <body><div class="wrap">
-    <div class="top"><div><h1>{{ __('notifications.title') }}</h1><p>{{ __('notifications.description') }}</p></div><a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a></div>
+    <div class="top">
+        <div><h1>{{ __('notifications.title') }}</h1><p>{{ __('notifications.description') }}</p></div>
+        <div class="actions">
+            @if(auth()->user()?->hasPermission('translations.manage'))
+                <a href="{{ route('admin.translations.index') }}">{{ __('admin.translations.title') }}</a>
+            @endif
+            <a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a>
+        </div>
+    </div>
     @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
 
     <section class="panel">
