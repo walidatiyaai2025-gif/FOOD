@@ -19,6 +19,8 @@ final class TranslationCatalog
         foreach ([
             'admin' => 'admin',
             'notifications' => 'admin',
+            'reports' => 'admin',
+            'mobile_settings' => 'admin',
         ] as $group => $surface) {
             $arabic = Arr::dot(require lang_path("ar/{$group}.php"));
             $english = Arr::dot(require lang_path("en/{$group}.php"));
