@@ -14,9 +14,18 @@ class AdminReportController extends Controller
 {
     public function dashboard(Request $request): JsonResponse
     {
-        Gate::authorize('reports.view');
         $user = $request->user();
         abort_unless($user instanceof User, 401);
+        abort_unless(
+            Gate::allows('reports.view')
+            || $user->storeRoleAssignments()
+                ->whereHas('role', fn ($query) => $query
+                    ->where('roles.is_active', true)
+                    ->whereIn('roles.scope', ['store', 'both'])
+                    ->whereHas('permissions', fn ($permissions) => $permissions->where('code', 'reports.view')))
+                ->exists(),
+            403,
+        );
         $storeId = $this->storeScope($request, $user);
 
         $orders = DB::table('orders');
