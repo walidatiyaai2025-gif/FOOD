@@ -47,6 +47,9 @@ final class ManagementReportService
             'products' => $this->productsReport($filters, $limit),
             'customers' => $this->customersReport($filters, $limit),
             'operations' => $this->operationsReport($filters, $limit),
+            default => throw ValidationException::withMessages([
+                'report' => __('reports.invalid_report'),
+            ]),
         };
     }
 
@@ -415,7 +418,7 @@ final class ManagementReportService
 
         $completedMinutes = $deliveryRows
             ->filter(fn (object $row): bool => $row->assigned_at !== null && $row->completed_at !== null)
-            ->map(fn (object $row): int => CarbonImmutable::parse((string) $row->assigned_at, 'UTC')
+            ->map(fn (object $row): float => CarbonImmutable::parse((string) $row->assigned_at, 'UTC')
                 ->diffInMinutes(CarbonImmutable::parse((string) $row->completed_at, 'UTC')));
 
         $deliveryBreakdown = $deliveryRows
