@@ -225,10 +225,14 @@ class AppTranslations extends InheritedWidget {
     return overrides[key] ?? defaults[key] ?? key;
   }
 
-  static AppTranslations of(BuildContext context) {
-    final value = context.dependOnInheritedWidgetOfExactType<AppTranslations>();
-    assert(value != null, 'AppTranslations is missing above this context.');
-    return value!;
+  static AppTranslations? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<AppTranslations>();
+  }
+
+  static String fallback(BuildContext context, String key) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('ar');
+    final defaults = locale.languageCode == 'en' ? _en : _ar;
+    return defaults[key] ?? key;
   }
 
   @override
@@ -238,7 +242,7 @@ class AppTranslations extends InheritedWidget {
 }
 
 extension TranslationContext on BuildContext {
-  String tr(String key) => AppTranslations.of(this).text(key);
+  String tr(String key) => AppTranslations.maybeOf(this)?.text(key) ?? AppTranslations.fallback(this, key);
 }
 
 Future<Map<String, String>> fetchTranslationBundle(String baseUrl, String locale) async {
