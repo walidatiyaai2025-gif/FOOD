@@ -26,6 +26,7 @@ abstract final class CustomerRoutePaths {
   static const b2bOrders = '/b2b/orders';
   static const b2bOrderDetails = '/b2b/orders/:id';
   static const b2bCart = '/b2b/cart';
+  static const b2bCheckout = '/b2b/checkout';
   static const b2bProfile = '/b2b/profile';
 }
 
@@ -202,6 +203,12 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bCart,
     label: 'B2B cart',
+    channel: CustomerChannel.b2b,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.b2bCheckout,
+    label: 'B2B checkout',
     channel: CustomerChannel.b2b,
     requiresAuth: true,
   ),
