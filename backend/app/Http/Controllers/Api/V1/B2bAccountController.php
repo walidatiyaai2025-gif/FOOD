@@ -62,7 +62,8 @@ class B2bAccountController extends Controller
         $before = $account->status;
 
         $account->update(['status' => $data['status']]);
-        $account->customer()->with('user')->first()?->user?->update(['is_active' => $data['status'] === 'active']);
+        $customer = Customer::query()->with('user')->find($account->customer_id);
+        $customer?->user?->update(['is_active' => $data['status'] === 'active']);
 
         app(AuditLogger::class)->record('b2b.account.status_changed', $request->user(), $account, ['status' => $before], ['status' => $account->status], $request);
 
@@ -73,16 +74,19 @@ class B2bAccountController extends Controller
 
     private function resource(B2bAccount $account): array
     {
+        /** @var Customer $customer */
+        $customer = $account->customer;
+
         return [
             'id' => (int) $account->id,
             'company_name' => $account->company_name,
             'tax_number' => $account->tax_number,
             'status' => $account->status,
             'customer' => [
-                'id' => (int) $account->customer->id,
-                'name' => $account->customer->name,
-                'email' => $account->customer->email,
-                'phone' => $account->customer->phone,
+                'id' => (int) $customer->id,
+                'name' => $customer->name,
+                'email' => $customer->email,
+                'phone' => $customer->phone,
             ],
         ];
     }
