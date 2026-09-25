@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
-use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Installer\InstallerController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -47,9 +46,6 @@ Route::prefix('admin')
         Route::post('/settings/app-versions', [AppVersionController::class, 'store'])->name('app-versions.store');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
-        Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');
-        Route::patch('/settings/translations/{translation}', [TranslationController::class, 'update'])->name('translations.update');
-        Route::post('/settings/translations/{translation}/reset', [TranslationController::class, 'reset'])->name('translations.reset');
         Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');
         Route::patch('/settings/translations/{translation}', [TranslationController::class, 'update'])->name('translations.update');
         Route::post('/settings/translations/{translation}/reset', [TranslationController::class, 'reset'])->name('translations.reset');
