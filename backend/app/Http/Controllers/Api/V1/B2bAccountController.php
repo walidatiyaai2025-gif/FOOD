@@ -65,6 +65,17 @@ class B2bAccountController extends Controller
 
     private function resource(B2bAccount $account): array
     {
-        return ['id' => (int) $account->id, 'company_name' => $account->company_name, 'tax_number' => $account->tax_number, 'status' => $account->status, 'customer' => ['id' => (int) $account->customer->id, 'name' => $account->customer->name, 'email' => $account->customer->email, 'phone' => $account->customer->phone]];
+        return [
+            'id' => (int) $account->id,
+            'company_name' => $account->company_name,
+            'tax_number' => $account->tax_number,
+            'status' => $account->status,
+            'customer' => [
+                'id' => (int) $account->customer->id,
+                'name' => $account->customer->name,
+                'email' => $account->customer->email,
+                'phone' => $account->customer->phone,
+            ],
+        ];
     }
 }
