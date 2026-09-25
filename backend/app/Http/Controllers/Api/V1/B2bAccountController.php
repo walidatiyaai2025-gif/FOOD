@@ -19,6 +19,7 @@ class B2bAccountController extends Controller
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('b2b.accounts.manage');
+
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
         $accounts = B2bAccount::query()->with('customer.user')->orderBy('id')->paginate($perPage);
 
@@ -28,6 +29,7 @@ class B2bAccountController extends Controller
     public function store(Request $request): JsonResponse
     {
         Gate::authorize('b2b.accounts.manage');
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
