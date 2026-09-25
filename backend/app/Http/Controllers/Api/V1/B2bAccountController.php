@@ -16,7 +16,10 @@ use Illuminate\Validation\Rule;
 
 class B2bAccountController extends Controller
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(private readonly AuditLogger $audit)
+    {
+        // Dependency injection only.
+    }
 
     public function index(Request $request): JsonResponse
     {
