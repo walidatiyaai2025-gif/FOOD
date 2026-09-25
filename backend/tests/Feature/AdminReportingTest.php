@@ -31,7 +31,8 @@ class AdminReportingTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
         [$storeA, $storeB] = $this->storesWithOrders();
         $admin = $this->userWithRole('B2C_STORE_ADMIN');
-        DB::table('user_store')->insert(['user_id' => $admin->id, 'store_id' => $storeA, 'created_at' => now(), 'updated_at' => now()]);
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert(['user_id' => $admin->id, 'store_id' => $storeA, 'role_id' => $roleId, 'created_at' => now(), 'updated_at' => now()]);
         Sanctum::actingAs($admin);
 
         $this->getJson('/api/v1/admin/reports/dashboard')->assertUnprocessable();
