@@ -27,6 +27,10 @@ class B2bJourneyScreen extends StatelessWidget {
             const SizedBox(height: 20),
             if (!hasRemoteState) ...content.$3,
             if (hasRemoteState) _RemoteState(api: api!, endpoint: _endpoint()!),
+            if (hasRemoteState && definition.pattern == CustomerRoutePaths.b2bCart) ...[
+              const SizedBox(height: 12),
+              _button('إتمام الطلب'),
+            ],
             Text(location, key: const ValueKey('customer-route-location'), style: Theme.of(context).textTheme.labelSmall),
           ],
         ),
