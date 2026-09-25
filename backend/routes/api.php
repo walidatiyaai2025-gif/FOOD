@@ -17,7 +17,6 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\TranslationController;
-use App\Http\Controllers\Api\V1\TranslationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -29,7 +28,6 @@ Route::prefix('v1')->group(function (): void {
     ]));
 
     Route::get('/app-version', AppVersionController::class);
-    Route::get('/translations/{locale}', TranslationController::class)->whereIn('locale', ['ar', 'en']);
     Route::get('/translations/{locale}', TranslationController::class)->whereIn('locale', ['ar', 'en']);
 
     Route::post('/auth/login', [AuthController::class, 'login'])
