@@ -36,7 +36,7 @@
             "@php artisan test"
         ],
         "lint": [
-            "vendor/bin/pint --test --diff app routes tests"
+            "vendor/bin/pint app routes tests && git --no-pager diff -- app routes tests && exit 1"
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=1G"
