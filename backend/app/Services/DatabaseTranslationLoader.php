@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
+use Illuminate\Contracts\Translation\Loader;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Contracts\Translation\Loader;
 use Throwable;
 
 final class DatabaseTranslationLoader implements Loader
