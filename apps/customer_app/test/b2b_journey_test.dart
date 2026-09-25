@@ -24,12 +24,12 @@ void main() {
   });
 
   testWidgets('B2B products and cart expose authoritative pricing constraints', (tester) async {
-    await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/products/42'));
+    await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/products/42', b2bApi: _StaticB2bApi()));
     await tester.pumpAndSettle();
     expect(find.textContaining('الحد الأدنى'), findsWidgets);
     expect(find.text('إضافة إلى السلة'), findsOneWidget);
 
-    await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart'));
+    await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart', b2bApi: _StaticB2bApi()));
     await tester.pumpAndSettle();
     expect(find.text('إتمام الطلب'), findsOneWidget);
   });
@@ -67,4 +67,10 @@ class _FakeB2bApi implements B2bApi {
 class _FailingB2bApi implements B2bApi {
   @override
   Future<Object?> get(String path) async => throw const B2bApiException('test');
+}
+
+class _StaticB2bApi implements B2bApi {
+  const _StaticB2bApi();
+  @override
+  Future<Object?> get(String path) async => null;
 }
