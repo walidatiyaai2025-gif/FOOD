@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
 import 'package:foodex_driver_app/navigation.dart';
 
@@ -20,10 +21,11 @@ void main() {
 
   testWidgets('empty and offline states are explicit', (tester) async {
     await tester.pumpWidget(MaterialApp(home: DriverJourneyPage(channel: DriverChannel.b2b, repository: FakeRepo(const [])))); await tester.pumpAndSettle(); expect(find.byKey(const Key('driver-empty')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox()); await tester.pump();
     await tester.pumpWidget(MaterialApp(home: DriverJourneyPage(channel: DriverChannel.b2b, repository: FakeRepo(const [], offline: true)))); await tester.pumpAndSettle(); expect(find.byKey(const Key('driver-offline')), findsOneWidget);
   });
 
   testWidgets('Arabic locale renders RTL', (tester) async {
-    await tester.pumpWidget(MaterialApp(locale: const Locale('ar'), home: DriverJourneyPage(channel: DriverChannel.b2c, repository: FakeRepo(const [])))); await tester.pumpAndSettle(); expect(Directionality.of(tester.element(find.byType(Scaffold))), TextDirection.rtl);
+    await tester.pumpWidget(MaterialApp(locale: const Locale('ar'), supportedLocales: const [Locale('ar'), Locale('en')], localizationsDelegates: GlobalMaterialLocalizations.delegates, home: DriverJourneyPage(channel: DriverChannel.b2c, repository: FakeRepo(const [])))); await tester.pumpAndSettle(); expect(Directionality.of(tester.element(find.byType(Scaffold))), TextDirection.rtl);
   });
 }
