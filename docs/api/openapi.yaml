@@ -1127,9 +1127,38 @@ components:
           type: boolean
 
     AddressUpdateRequest:
-      allOf:
-        - $ref: "#/components/schemas/AddressCreateRequest"
-      required: []
+      type: object
+      additionalProperties: false
+      properties:
+        label:
+          type: [string, "null"]
+          maxLength: 100
+        line1:
+          type: string
+          maxLength: 255
+        line2:
+          type: [string, "null"]
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        area:
+          type: [string, "null"]
+          maxLength: 120
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        latitude:
+          type: [number, "null"]
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: [number, "null"]
+          minimum: -180
+          maximum: 180
+        is_default:
+          type: boolean
 
     Store:
       type: object
