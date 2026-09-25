@@ -1,0 +1,19 @@
+name: FOODEX Release Validation
+
+on:
+  pull_request:
+    paths:
+      - 'docs/release/**'
+      - 'scripts/release-readiness.sh'
+      - '.github/workflows/release-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  release-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release evidence
+        run: ./scripts/release-readiness.sh
