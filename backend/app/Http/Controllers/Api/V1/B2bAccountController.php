@@ -60,7 +60,7 @@ class B2bAccountController extends Controller
         $this->audit->record('b2b.account.status_changed', $request->user(), $account, ['status' => $before], ['status' => $account->status], $request);
         $account->load('customer.user');
 
-        return response()->json(['data'=>$this->resource($account)]);
+        return response()->json(['data' => $this->resource($account)]);
     }
 
     private function resource(B2bAccount $account): array
