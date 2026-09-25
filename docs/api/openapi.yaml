@@ -261,23 +261,26 @@ paths:
   /cart:
     get:
       tags: [Cart]
-      summary: Get or initialize the current guest cart
+      summary: Get or initialize the current guest or authenticated customer cart
       operationId: showCart
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/GuestToken"
         - in: query
           name: store
           required: false
-          description: Required only when initializing a guest cart without X-Guest-Token.
+          description: Store context required when initializing a cart without an existing guest token.
           schema:
             type: integer
             minimum: 1
       responses:
         "200":
-          description: Current guest cart. The response also returns X-Guest-Token.
+          description: Current cart. Guest responses also return X-Guest-Token.
           headers:
             X-Guest-Token:
-              description: Opaque guest cart identity for subsequent cart requests.
+              description: Opaque guest cart identity for subsequent guest requests.
               schema:
                 type: string
                 minLength: 16
@@ -294,6 +297,9 @@ paths:
       tags: [Cart]
       summary: Add an item to the current cart
       operationId: addCartItem
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/GuestToken"
       requestBody:
@@ -317,6 +323,9 @@ paths:
       tags: [Cart]
       summary: Update a cart item
       operationId: updateCartItem
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/CartItemId"
         - $ref: "#/components/parameters/GuestToken"
@@ -341,6 +350,9 @@ paths:
       tags: [Cart]
       summary: Remove a cart item
       operationId: deleteCartItem
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/CartItemId"
         - $ref: "#/components/parameters/GuestToken"
@@ -697,7 +709,7 @@ components:
       in: header
       name: X-Guest-Token
       required: false
-      description: Opaque cart identity for guest browsing. Ignored when the authenticated cart is authoritative.
+      description: Opaque B2C guest cart identity. An authenticated B2C customer may supply it to merge that guest cart into the customer cart for the same store; B2B merge is rejected.
       schema:
         type: string
         minLength: 16
@@ -859,7 +871,7 @@ components:
 
     CartItem:
       type: object
-      required: [id, product, quantity]
+      required: [id, product, quantity, is_available, available_quantity]
       properties:
         id:
           type: integer
@@ -875,15 +887,23 @@ components:
         line_total:
           type: [number, "null"]
           multipleOf: 0.001
+        is_available:
+          type: boolean
+        available_quantity:
+          type: [number, "null"]
+          minimum: 0
+          multipleOf: 0.001
 
     Cart:
       type: object
-      required: [id, store_id, channel, items]
+      required: [id, store_id, customer_id, channel, guest_token, currency, items, subtotal, has_unavailable_items]
       properties:
         id:
           type: integer
         store_id:
           type: integer
+        customer_id:
+          type: [integer, "null"]
         channel:
           type: string
           enum: [b2c, b2b]
@@ -899,6 +919,8 @@ components:
         subtotal:
           type: number
           multipleOf: 0.001
+        has_unavailable_items:
+          type: boolean
 
     AddCartItemRequest:
       type: object
