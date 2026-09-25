@@ -732,6 +732,20 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /admin/deliveries/assign:
+    post:
+      tags: [Drivers]
+      summary: Assign an order to a driver of the same channel
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Delivery assignment created
+        "403":
+          description: Missing channel management permission or store scope
+        "409":
+          description: Driver and order channels do not match
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1420,3 +1434,4 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+

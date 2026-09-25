@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\B2bAccountController;
 use App\Http\Controllers\Api\V1\B2bPricingController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
+use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
@@ -66,5 +67,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/b2b/orders', [OrderController::class, 'index']);
         Route::get('/b2b/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/status', [OrderController::class, 'transition']);
+        Route::post('/admin/deliveries/assign', [DriverAssignmentController::class, 'assign']);
+        Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
+        Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition']);
     });
 });
