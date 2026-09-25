@@ -25,7 +25,7 @@ class B2bWorkspaceController extends Controller
             'clients' => DB::table('b2b_accounts')->count(),
             'products' => DB::table('store_products')->whereIn('store_id', $storeIds)->count(),
             'orders' => DB::table('orders')->whereIn('store_id', $storeIds)->where('channel', 'b2b')->count(),
-            'drivers' => DB::table('driver_profiles')->where('driver_type', 'b2b')->count(),
+            'drivers' => DB::table('users')->join('role_user', 'role_user.user_id', '=', 'users.id')->join('roles', 'roles.id', '=', 'role_user.role_id')->where('roles.code', 'B2B_DRIVER')->distinct('users.id')->count('users.id'),
             'pricing' => DB::table('b2b_price_rules')->count(),
         ];
 
