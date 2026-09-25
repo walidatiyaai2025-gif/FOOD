@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\B2bAccountController;
 use App\Http\Controllers\Api\V1\B2bFinanceController;
 use App\Http\Controllers\Api\V1\B2bPricingController;
+use App\Http\Controllers\Api\V1\B2bReportController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
@@ -50,6 +51,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/admin/b2b/prices', [B2bPricingController::class, 'index']);
         Route::put('/admin/b2b/prices', [B2bPricingController::class, 'upsert']);
         Route::get('/b2b/products', [B2bPricingController::class, 'products']);
+        Route::get('/b2b/dashboard', [B2bReportController::class, 'dashboard']);
+        Route::get('/b2b/reports/purchases', [B2bReportController::class, 'purchases']);
         Route::get('/b2b/invoices', [B2bFinanceController::class, 'invoices']);
         Route::get('/b2b/invoices/{invoice}', [B2bFinanceController::class, 'invoice']);
         Route::get('/b2b/account-statement', [B2bFinanceController::class, 'statement']);
