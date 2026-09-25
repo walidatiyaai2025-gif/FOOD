@@ -203,7 +203,8 @@ final class ReportExportService
         $pages = array_chunk($lines, 42);
         $objects = [];
         $pageObjectIds = [];
-        $nextId = 3;
+        $fontId = 3;
+        $nextId = 4;
 
         foreach ($pages as $pageLines) {
             $pageId = $nextId++;
@@ -217,11 +218,10 @@ final class ReportExportService
             $content .= "ET";
 
             $objects[$pageId] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] '
-                .'/Resources << /Font << /F1 '.($nextId).' 0 R >> >> /Contents '.$contentId.' 0 R >>';
+                .'/Resources << /Font << /F1 '.$fontId.' 0 R >> >> /Contents '.$contentId.' 0 R >>';
             $objects[$contentId] = "<< /Length ".strlen($content)." >>\nstream\n{$content}\nendstream";
         }
 
-        $fontId = $nextId;
         $objects[$fontId] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
         $objects[1] = '<< /Type /Catalog /Pages 2 0 R /Lang ('.($locale === 'ar' ? 'ar-KW' : 'en-US').') >>';
         $objects[2] = '<< /Type /Pages /Kids ['.implode(' ', array_map(
