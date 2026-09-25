@@ -168,7 +168,7 @@ final class RbacManager
         return $fresh;
     }
 
-    /** @param array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>} $values */
+    /** @param  array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}  $values */
     public function updateRole(User $actor, Role $role, array $values, Request $request): Role
     {
         if ($role->code === 'SUPER_ADMIN') {
