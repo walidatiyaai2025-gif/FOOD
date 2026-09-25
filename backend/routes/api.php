@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AppVersionController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\B2bAccountController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
@@ -37,10 +38,15 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
-        Route::get('/profile', [AuthController::class, 'profile']);
-        Route::get('/admin/b2b/accounts', [B2bAccountController::class, 'index']);
-        Route::post('/admin/b2b/accounts', [B2bAccountController::class, 'store']);
-        Route::patch('/admin/b2b/accounts/{account}/status', [B2bAccountController::class, 'updateStatus']);
+        Route::get('/profile', [CustomerProfileController::class, 'show']);
+        Route::patch('/profile', [CustomerProfileController::class, 'update']);
+        Route::get('/profile/addresses', [CustomerProfileController::class, 'addresses']);
+        Route::post('/profile/addresses', [CustomerProfileController::class, 'storeAddress']);
+        Route::patch('/profile/addresses/{address}', [CustomerProfileController::class, 'updateAddress']);
+        Route::delete('/profile/addresses/{address}', [CustomerProfileController::class, 'destroyAddress']);
+        Route::get('/profile/favorites', [CustomerProfileController::class, 'favorites']);
+        Route::post('/profile/favorites/{product}', [CustomerProfileController::class, 'addFavorite']);
+        Route::delete('/profile/favorites/{product}', [CustomerProfileController::class, 'removeFavorite']);
 
         Route::post('/checkout', CheckoutController::class);
 
