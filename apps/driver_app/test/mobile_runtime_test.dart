@@ -1,0 +1,3 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_driver_app/mobile_runtime.dart';
+void main(){test('driver runtime contract exposes maintenance and update policy',(){final uri=DriverMobileRuntime.endpoint(Uri.parse('https://api.example.test/api/v1/'),environment:'staging',locale:'ar');expect(uri.queryParameters['app'],'driver');final r=DriverMobileRuntime.fromJson({'data':{'environment':'staging','maintenance_mode':false,'force_update':false,'minimum_supported_version':'2.0.0','recommended_version':'2.4.0','maintenance_message':'جاهز','release_notes':'تحسينات'}});expect(r.maintenanceMode,isFalse);expect(r.minimumSupportedVersion,'2.0.0');});}

@@ -31,6 +31,10 @@ tags:
     description: Arabic and English runtime translation bundles.
   - name: Version
     description: Platform and mobile application version policy.
+  - name: Mobile Runtime
+    description: Customer and Driver runtime/store configuration without provider secrets.
+  - name: Push Devices
+    description: Authenticated mobile push-device registration and revocation.
 
 paths:
   /version:
@@ -1077,6 +1081,62 @@ paths:
           description: Missing channel management permission or store scope
         "409":
           description: Driver and order channels do not match
+
+  /mobile/runtime:
+    get:
+      tags: [Mobile Runtime]
+      summary: Get Customer or Driver runtime and store settings
+      operationId: getMobileRuntime
+      parameters:
+        - in: query
+          name: app
+          required: true
+          schema: { type: string, enum: [customer, driver] }
+        - in: query
+          name: environment
+          required: true
+          schema: { type: string, enum: [development, staging, production] }
+        - in: query
+          name: locale
+          schema: { type: string, enum: [ar, en], default: ar }
+      responses:
+        "200":
+          description: Public non-secret runtime configuration
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /push/devices:
+    post:
+      tags: [Push Devices]
+      summary: Register or refresh an authenticated user's push device
+      operationId: registerPushDevice
+      security:
+        - bearerAuth: []
+      responses:
+        "200": { description: Existing registration refreshed }
+        "201": { description: Device registered }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /push/devices/{device}:
+    delete:
+      tags: [Push Devices]
+      summary: Revoke an authenticated user's push device
+      operationId: revokePushDevice
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: device
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200": { description: Device revoked }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
 components:
   securitySchemes:
