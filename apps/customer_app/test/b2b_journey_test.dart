@@ -31,8 +31,9 @@ void main() {
 
     await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart', b2bApi: _StaticB2bApi()));
     await tester.pumpAndSettle();
-    final checkoutButton = find.text('إتمام الطلب');
-    expect(checkoutButton, findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(find.text('إتمام الطلب'), findsOneWidget);
   });
 
   testWidgets('B2C session cannot enter B2B protected journey', (tester) async {
