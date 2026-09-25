@@ -91,9 +91,11 @@ class EnterpriseRbacTest extends TestCase
         $role->permissions()->attach(Permission::query()->where('code', 'users.status.manage')->value('id'));
         $operator->roles()->attach($role);
 
-        $this->actingAs($operator)
-            ->patch("/admin/security/users/{$superAdmin->id}/status", ['is_active' => false])
-            ->assertSessionHasErrors('is_active');
+        Sanctum::actingAs($operator);
+
+        $this->patchJson("/api/v1/admin/security/users/{$superAdmin->id}/status", ['is_active' => false])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('is_active');
 
         $this->assertTrue($superAdmin->fresh()->is_active);
     }
