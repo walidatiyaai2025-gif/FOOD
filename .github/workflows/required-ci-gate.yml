@@ -47,7 +47,7 @@ jobs:
             driver=true
           fi
 
-          if grep -Eq '^\.github/workflows/required-ci-gate\.yml$' changed-files.txt; then
+          if grep -Eq '^(\.github/workflows/required-ci-gate\.yml|\.github/workflows/release-validation\.yml|scripts/release-readiness\.sh|docs/release/)' changed-files.txt; then
             backend=true
             customer=true
             driver=true
