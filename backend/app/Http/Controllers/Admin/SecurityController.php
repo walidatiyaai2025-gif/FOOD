@@ -71,13 +71,17 @@ final class SecurityController extends Controller
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $rbac->setUserActive(
-            $this->actor($request),
-            $user,
-            (bool) $validated['is_active'],
-            $validated['reason'] ?? null,
-            $request,
-        );
+        try {
+            $rbac->setUserActive(
+                $this->actor($request),
+                $user,
+                (bool) $validated['is_active'],
+                $validated['reason'] ?? null,
+                $request,
+            );
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return back()->withErrors($exception->errors());
+        }
 
         return back()->with('status', (bool) $validated['is_active']
             ? __('admin.security.user_activated')
