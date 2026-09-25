@@ -27,6 +27,8 @@ tags:
     description: Driver-role-scoped assignment operations.
   - name: Notifications
     description: Authenticated notification access.
+  - name: Localization
+    description: Arabic and English runtime translation bundles.
   - name: Version
     description: Platform and mobile application version policy.
 
@@ -77,6 +79,40 @@ paths:
                 $ref: "#/components/schemas/AppVersionPolicy"
         "400":
           $ref: "#/components/responses/BadRequest"
+
+  /translations/{locale}:
+    get:
+      tags: [Localization]
+      summary: Get the runtime translation bundle for a supported locale
+      operationId: getTranslationBundle
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema:
+            type: string
+            enum: [ar, en]
+      responses:
+        "200":
+          description: Translation key/value bundle with text direction
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [locale, direction, translations]
+                properties:
+                  locale:
+                    type: string
+                    enum: [ar, en]
+                  direction:
+                    type: string
+                    enum: [rtl, ltr]
+                  translations:
+                    type: object
+                    additionalProperties:
+                      type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /auth/login:
     post:
