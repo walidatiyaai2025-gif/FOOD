@@ -11,6 +11,7 @@ class Customer extends Model
     protected $table = 'customers';
 
     protected $guarded = [];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
