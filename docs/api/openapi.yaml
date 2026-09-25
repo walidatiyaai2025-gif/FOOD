@@ -542,6 +542,30 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
+  /b2b/reports/purchases:
+    get:
+      tags: [B2B]
+      summary: Get approved B2B purchase report aggregates
+      operationId: getB2bPurchaseReports
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Date-grouped B2B purchase totals
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          description: Invalid date range
+
   /b2b/products:
     get:
       tags: [B2B]
