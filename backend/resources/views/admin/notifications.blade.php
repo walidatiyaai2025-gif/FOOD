@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{{ __('admin.notifications.title') }} · FOODEX</title>
+    <style>
+        :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#17202a;background:#f5f7fa}
+        *{box-sizing:border-box}body{margin:0;padding:28px}.wrap{max-width:1500px;margin:auto}
+        .top,.row,.actions{display:flex;gap:12px;align-items:center}.top{justify-content:space-between;margin-bottom:18px}
+        .panel,.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:16px}.panel{margin-bottom:16px}
+        .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}
+        input,select,textarea,button{font:inherit}input,select,textarea{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px}
+        textarea{min-height:100px}button{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+        .primary{background:#111827;color:#fff}.secondary{background:#eef2ff;color:#3730a3}.danger{background:#fee2e2;color:#991b1b}
+        .cards{display:grid;gap:12px}.badge{display:inline-block;padding:4px 9px;border-radius:999px;background:#f1f5f9;font-size:.8rem}
+        .preview{display:grid;grid-template-columns:1fr 1fr;gap:12px}.preview>div{padding:12px;border:1px solid #e2e8f0;border-radius:12px}
+        .flash{background:#ecfdf5;border:1px solid #a7f3d0;padding:12px 16px;border-radius:12px;margin-bottom:16px}
+        @media(max-width:850px){body{padding:16px}.grid,.preview{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+    </style>
+</head>
+<body><div class="wrap">
+    <div class="top"><div><h1>{{ __('admin.notifications.title') }}</h1><p>{{ __('admin.notifications.description') }}</p></div><a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a></div>
+    @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
+
+    <section class="panel">
+        <h2>{{ __('admin.notifications.create') }}</h2>
+        <form method="post" action="{{ route('admin.notifications.store') }}">@csrf
+            <div class="grid">
+                <div><label>{{ __('admin.notifications.title_ar') }}</label><input name="title_ar" required></div>
+                <div><label>{{ __('admin.notifications.title_en') }}</label><input name="title_en" required></div>
+                <div><label>{{ __('admin.notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl"></textarea></div>
+                <div><label>{{ __('admin.notifications.body_en') }}</label><textarea name="body_en" required dir="ltr"></textarea></div>
+                <div><label>{{ __('admin.notifications.type') }}</label><input name="type" value="general" required></div>
+                <div><label>{{ __('admin.notifications.audience') }}</label><select name="audience"><option value="all">ALL</option><option value="customer">CUSTOMER</option><option value="driver">DRIVER</option><option value="user">USER</option></select></div>
+                <div><label>{{ __('admin.notifications.app') }}</label><select name="app"><option value="all">ALL</option><option value="customer">CUSTOMER</option><option value="driver">DRIVER</option></select></div>
+                <div><label>{{ __('admin.notifications.channel') }}</label><select name="target_channel"><option value="all">ALL</option><option value="b2c">B2C</option><option value="b2b">B2B</option></select></div>
+                <div><label>{{ __('admin.notifications.user_id') }}</label><input name="user_id" type="number" min="1"></div>
+                <div class="full"><button class="primary" type="submit">{{ __('admin.notifications.save_draft') }}</button></div>
+            </div>
+        </form>
+    </section>
+
+    <form class="panel row" method="get">
+        <input name="q" value="{{ $search }}" placeholder="{{ __('admin.notifications.search') }}">
+        <select name="status"><option value="">{{ __('admin.notifications.all_statuses') }}</option><option value="draft" @selected($status==='draft')>DRAFT</option><option value="published" @selected($status==='published')>PUBLISHED</option></select>
+        <button class="primary">{{ __('admin.notifications.filter') }}</button>
+    </form>
+
+    <div class="cards">
+    @forelse($notifications as $notification)
+        <article class="card">
+            <div class="row"><strong>#{{ $notification->id }}</strong><span class="badge">{{ strtoupper($notification->status) }}</span><span class="badge">{{ strtoupper($notification->audience) }}</span><span class="badge">{{ strtoupper($notification->app) }}/{{ strtoupper($notification->target_channel) }}</span></div>
+            <div class="preview">
+                <div dir="rtl"><strong>{{ $notification->title_ar }}</strong><p>{{ $notification->body_ar }}</p></div>
+                <div dir="ltr"><strong>{{ $notification->title_en }}</strong><p>{{ $notification->body_en }}</p></div>
+            </div>
+            <form method="post" action="{{ route('admin.notifications.update',$notification) }}">@csrf @method('PATCH')
+                <input type="hidden" name="title_ar" value="{{ $notification->title_ar }}"><input type="hidden" name="title_en" value="{{ $notification->title_en }}">
+                <input type="hidden" name="body_ar" value="{{ $notification->body_ar }}"><input type="hidden" name="body_en" value="{{ $notification->body_en }}">
+                <input type="hidden" name="type" value="{{ $notification->type }}"><input type="hidden" name="audience" value="{{ $notification->audience }}">
+                <input type="hidden" name="app" value="{{ $notification->app }}"><input type="hidden" name="target_channel" value="{{ $notification->target_channel }}">
+                @if($notification->user_id)<input type="hidden" name="user_id" value="{{ $notification->user_id }}">@endif
+                <div class="actions">
+                    @if($notification->status !== 'published')
+                    <button class="secondary" formaction="{{ route('admin.notifications.publish',$notification) }}" formmethod="post">{{ __('admin.notifications.publish') }}</button>
+                    @endif
+                    <button class="danger" formaction="{{ route('admin.notifications.destroy',$notification) }}" formmethod="post" name="_method" value="DELETE">{{ __('admin.notifications.delete') }}</button>
+                </div>
+            </form>
+        </article>
+    @empty
+        <div class="panel">{{ __('admin.notifications.empty') }}</div>
+    @endforelse
+    </div>
+    <div>{{ $notifications->links() }}</div>
+</div></body></html>
