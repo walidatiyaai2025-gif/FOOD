@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\B2bAccount;
 use App\Models\Customer;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
@@ -212,12 +213,15 @@ class CartDomainTest extends TestCase
             'password' => 'secret-password',
             'is_active' => true,
         ]);
-        Customer::query()->create([
+        $b2bCustomer = Customer::query()->create([
             'user_id' => $b2bUser->id,
             'type' => 'b2b',
             'name' => 'B2B Customer',
             'email' => $b2bUser->email,
         ]);
+        $tierId = (int) DB::table('b2b_price_tiers')->insertGetId(['code' => 'CART-TIER', 'name' => 'Cart Tier', 'priority' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        B2bAccount::query()->create(['customer_id' => $b2bCustomer->id, 'price_tier_id' => $tierId, 'company_name' => 'Cart Buyer', 'status' => 'active']);
+        DB::table('b2b_price_rules')->insert(['price_tier_id' => $tierId, 'store_id' => $this->b2bStoreId, 'product_id' => $this->productId, 'unit_price' => 2.500, 'minimum_quantity' => 1, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
 
         Sanctum::actingAs($b2bUser);
 

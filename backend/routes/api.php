@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AppVersionController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\B2bAccountController;
+use App\Http\Controllers\Api\V1\B2bPricingController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\GuestCartController;
@@ -41,6 +42,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/admin/b2b/accounts', [B2bAccountController::class, 'index']);
         Route::post('/admin/b2b/accounts', [B2bAccountController::class, 'store']);
         Route::patch('/admin/b2b/accounts/{account}/status', [B2bAccountController::class, 'updateStatus']);
+        Route::get('/admin/b2b/prices', [B2bPricingController::class, 'index']);
+        Route::put('/admin/b2b/prices', [B2bPricingController::class, 'upsert']);
+        Route::get('/b2b/products', [B2bPricingController::class, 'products']);
 
         Route::get('/profile', [CustomerProfileController::class, 'show']);
         Route::patch('/profile', [CustomerProfileController::class, 'update']);

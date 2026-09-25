@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Pricing\B2bPriceResolver;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
@@ -120,6 +121,11 @@ class GuestCartController extends Controller
         }
 
         $state = $this->productState($storeId, $productId, true);
+        if ($user instanceof User && $channel === 'b2b') {
+            $pricing = app(B2bPriceResolver::class)->resolve($customer, $storeId, $productId);
+            abort_if($quantity < $pricing['minimum_quantity'], 409, 'Quantity is below the B2B minimum purchase quantity.');
+            $state['price'] = $pricing['price'];
+        }
 
         $item = CartItem::query()->firstOrNew([
             'cart_id' => $cart->id,
@@ -432,6 +438,16 @@ class GuestCartController extends Controller
                 || $quantity <= $state['available_quantity'];
             $isAvailable = $state['is_available'] && $quantityAvailable;
             $unitPrice = $isAvailable ? $state['price'] : null;
+
+            if ($isAvailable && (string) $cart->channel === 'b2b' && $cart->customer_id !== null) {
+                $customer = Customer::query()->find($cart->customer_id);
+                if ($customer instanceof Customer) {
+                    $pricing = app(B2bPriceResolver::class)->resolve($customer, (int) $cart->store_id, (int) $row->product_id);
+                    $isAvailable = $quantity >= $pricing['minimum_quantity'];
+                    $unitPrice = $isAvailable ? $pricing['price'] : null;
+                }
+            }
+
             $lineTotal = $unitPrice === null ? null : round($quantity * $unitPrice, 3);
 
             if ($isAvailable && $unitPrice !== null) {
