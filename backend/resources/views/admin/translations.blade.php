@@ -41,7 +41,12 @@
             <h1>{{ __('admin.translations.title') }}</h1>
             <p class="muted">{{ __('admin.translations.description') }}</p>
         </div>
-        <a class="back" href="{{ route('admin.index') }}">← {{ __('admin.overview') }}</a>
+        <div class="actions">
+            @if(auth()->user()?->hasPermission('notifications.manage'))
+                <a class="back" href="{{ route('admin.notifications.index') }}">{{ __('notifications.title') }}</a>
+            @endif
+            <a class="back" href="{{ route('admin.index') }}">← {{ __('admin.overview') }}</a>
+        </div>
     </div>
 
     @if (session('status'))
