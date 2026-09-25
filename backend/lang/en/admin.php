@@ -14,4 +14,5 @@ return [
         'b2c' => 'B2C Retail',
         'b2c_description' => 'Authorized retail-store operations inside the single management dashboard.',
     ],
+    'b2c_workspace' => ['title'=>'B2C Retail Management','assigned_scope'=>'Authorized store scope','authoritative'=>'Data and operations remain server-authoritative and permission scoped','empty_hint'=>'Available records appear here; empty states remain explicit when no records exist.','modules'=>['dashboard'=>'Dashboard','products'=>'Products','inventory'=>'Inventory','orders'=>'Orders','customers'=>'Customers','promotions'=>'Promotions','drivers'=>'Drivers & Delivery','storefront'=>'Storefront Preview','content'=>'Content & Banners','reports'=>'Reports','settings'=>'Settings']],
 ];
