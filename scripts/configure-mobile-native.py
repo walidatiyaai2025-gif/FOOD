@@ -108,10 +108,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--app', required=True, choices=sorted(IDENTITIES))
     parser.add_argument('--app-dir', required=True, type=Path)
+    parser.add_argument('--platform', choices=('all', 'android', 'ios'), default='all')
     args = parser.parse_args()
     identity = IDENTITIES[args.app]
-    patch_android(args.app_dir, identity['bundle_id'])
-    patch_ios(args.app_dir, identity['bundle_id'], identity['label'])
+    if args.platform in ('all', 'android'):
+        patch_android(args.app_dir, identity['bundle_id'])
+    if args.platform in ('all', 'ios'):
+        patch_ios(args.app_dir, identity['bundle_id'], identity['label'])
     print(f"{args.app}: {identity['bundle_id']}")
 
 
