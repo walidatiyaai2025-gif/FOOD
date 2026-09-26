@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/b2c_catalog_api.dart';
+import '../../core/api/b2c_account_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/localization/app_translations.dart';
@@ -13,7 +14,9 @@ class B2cJourneyScreen extends StatefulWidget {
     required this.location,
     required this.actionApi,
     required this.catalogApi,
+    required this.accountApi,
     required this.onAuthenticated,
+    required this.onSessionExpired,
     super.key,
   });
 
@@ -21,7 +24,9 @@ class B2cJourneyScreen extends StatefulWidget {
   final String location;
   final CustomerActionApi actionApi;
   final B2cCatalogApi catalogApi;
+  final B2cAccountApi accountApi;
   final CustomerAuthenticated onAuthenticated;
+  final VoidCallback onSessionExpired;
 
   @override
   State<B2cJourneyScreen> createState() => _B2cJourneyScreenState();
@@ -36,6 +41,11 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
             Uri.parse(widget.location).queryParameters['store_id'] ??
             '',
       );
+
+  int? get _orderId {
+    final segments = Uri.parse(widget.location).pathSegments;
+    return segments.length < 2 ? null : int.tryParse(segments[1]);
+  }
 
   int? get _productId {
     final segments = Uri.parse(widget.location).pathSegments;
@@ -53,7 +63,8 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.location != widget.location ||
         oldWidget.definition.pattern != widget.definition.pattern ||
-        oldWidget.catalogApi != widget.catalogApi) {
+        oldWidget.catalogApi != widget.catalogApi ||
+        oldWidget.accountApi != widget.accountApi) {
       _remote = _load();
     }
   }
@@ -82,9 +93,25 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         return storeId == null || productId == null
             ? null
             : widget.catalogApi.product(productId, storeId: storeId);
+      case CustomerRoutePaths.cart:
+        return widget.accountApi.cart(storeId: storeId);
+      case CustomerRoutePaths.orderTracking:
+        final orderId = _orderId;
+        return orderId == null ? null : widget.accountApi.order(orderId);
+      case CustomerRoutePaths.profile:
+        return _loadProfile();
       default:
         return null;
     }
+  }
+
+  Future<_ProfileData> _loadProfile() async {
+    final results = await Future.wait<Object?>([
+      widget.accountApi.profile(),
+      widget.accountApi.addresses(),
+      widget.accountApi.favorites(),
+    ]);
+    return _ProfileData(profile: results[0], addresses: results[1], favorites: results[2]);
   }
 
   Future<_HomeData> _loadHome(int storeId) async {
@@ -269,7 +296,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           context.tr('customer.cart.title'),
           context.tr('customer.cart.subtitle'),
           [
-            _empty(context.tr('customer.cart.empty')),
+            _remoteBuilder(_buildCart, context.tr('customer.cart.empty')),
             _button(
               context,
               context.tr('customer.action.checkout'),
@@ -305,21 +332,13 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         return (
           context.tr('customer.tracking.title'),
           context.tr('customer.tracking.subtitle'),
-          [
-            _section(context.tr('customer.tracking.received')),
-            _section(context.tr('customer.tracking.preparing')),
-            _section(context.tr('customer.tracking.on_way')),
-          ],
+          [_remoteBuilder(_buildOrder, context.tr('customer.empty'))],
         );
       case CustomerRoutePaths.profile:
         return (
           context.tr('customer.profile.title'),
           context.tr('customer.profile.subtitle'),
-          [
-            _section(context.tr('customer.profile.addresses')),
-            _section(context.tr('customer.profile.favorites')),
-            _section(context.tr('customer.profile.orders')),
-          ],
+          [_remoteBuilder(_buildProfile, context.tr('customer.empty'))],
         );
       default:
         return (
@@ -351,19 +370,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           );
         }
         if (snapshot.hasError) {
-          return Card(
-            key: const ValueKey('b2c-catalog-error'),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Text(context.tr('customer.error.action_failed')),
-                  const SizedBox(height: 8),
-                  OutlinedButton(onPressed: _reload, child: const Icon(Icons.refresh)),
-                ],
-              ),
-            ),
-          );
+          return _remoteError(snapshot.error);
         }
 
         final data = snapshot.data;
@@ -372,6 +379,191 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       },
     );
   }
+
+  Widget _remoteError(Object? error) {
+    var messageKey = 'customer.error.action_failed';
+    var stateKey = 'b2c-catalog-error';
+    var sessionExpired = false;
+
+    if (error is B2cAccountException) {
+      if (error.code == 'network_unavailable') {
+        messageKey = 'customer.error.offline';
+        stateKey = 'b2c-offline';
+      } else if (error.code == 'session_expired' ||
+          error.code == 'authentication_required') {
+        messageKey = 'customer.error.session_expired';
+        stateKey = 'b2c-session-expired';
+        sessionExpired = true;
+      } else if (error.code == 'forbidden') {
+        messageKey = 'customer.error.forbidden';
+        stateKey = 'b2c-forbidden';
+      }
+    }
+
+    return Card(
+      key: ValueKey(stateKey),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Text(context.tr(messageKey)),
+            const SizedBox(height: 8),
+            if (sessionExpired)
+              FilledButton(
+                key: const ValueKey('b2c-sign-in-recovery'),
+                onPressed: () {
+                  widget.onSessionExpired();
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    CustomerRoutePaths.checkoutAuth,
+                    (route) => false,
+                  );
+                },
+                child: Text(context.tr('customer.action.login')),
+              )
+            else
+              OutlinedButton(
+                key: const ValueKey('b2c-retry'),
+                onPressed: _reload,
+                child: Text(context.tr('customer.action.retry')),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _changeCartItem(int itemId, double quantity) async {
+    try {
+      if (quantity <= 0) {
+        await widget.accountApi.removeCartItem(itemId);
+      } else {
+        await widget.accountApi.updateCartItem(itemId, quantity);
+      }
+
+      final refreshed = await widget.accountApi.cart(storeId: _storeId);
+      if (!mounted) return;
+      setState(() {
+        _remote = Future<Object?>.value(refreshed);
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('customer.error.action_failed'))),
+        );
+      }
+    }
+  }
+
+  Widget _buildCart(Object data) {
+    final cart = data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
+    final rawItems = cart['items'];
+    final items = rawItems is List ? rawItems.whereType<Map>().toList() : <Map>[];
+    if (items.isEmpty) return _empty(context.tr('customer.cart.empty'));
+    return Column(
+      key: const ValueKey('b2c-cart-data'),
+      children: [
+        ...items.map((raw) {
+          final item = Map<String, dynamic>.from(raw);
+          final product = item['product'] is Map
+              ? Map<String, dynamic>.from(item['product'] as Map)
+              : <String, dynamic>{};
+          final itemId = (item['id'] as num?)?.toInt();
+          final quantity = (item['quantity'] as num?)?.toDouble() ?? 0;
+          return Card(
+            child: ListTile(
+              key: ValueKey('b2c-cart-item-${itemId ?? 'unknown'}'),
+              title: Text(product['name']?.toString() ?? ''),
+              subtitle: Text(
+                '${quantity.toStringAsFixed(2)} · ${item['line_total'] ?? ''} ${cart['currency'] ?? 'KWD'}',
+              ),
+              trailing: itemId == null
+                  ? null
+                  : Wrap(
+                      spacing: 2,
+                      children: [
+                        IconButton(
+                          key: ValueKey('b2c-cart-dec-$itemId'),
+                          onPressed: () => _changeCartItem(itemId, quantity - 1),
+                          icon: const Icon(Icons.remove),
+                        ),
+                        IconButton(
+                          key: ValueKey('b2c-cart-inc-$itemId'),
+                          onPressed: () => _changeCartItem(itemId, quantity + 1),
+                          icon: const Icon(Icons.add),
+                        ),
+                        IconButton(
+                          key: ValueKey('b2c-cart-remove-$itemId'),
+                          onPressed: () => _changeCartItem(itemId, 0),
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      ],
+                    ),
+            ),
+          );
+        }),
+        _dataCard('Subtotal', '${cart['subtotal'] ?? 0} ${cart['currency'] ?? 'KWD'}'),
+      ],
+    );
+  }
+
+  Widget _buildOrder(Object data) {
+    final order = data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
+    final status = order['status']?.toString() ?? '';
+    return Column(
+      key: const ValueKey('b2c-order-data'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _dataCard('#${order['id'] ?? ''}', status),
+        ..._mapCards(order, skip: const {'id', 'status', 'items'}),
+        if (order['items'] is List)
+          ...(order['items'] as List).whereType<Map>().map(
+                (item) => _dataCard(
+                  item['product_name']?.toString() ??
+                      (item['product'] is Map ? (item['product'] as Map)['name']?.toString() : null) ??
+                      '#${item['product_id'] ?? ''}',
+                  'x${item['quantity'] ?? ''} · ${item['line_total'] ?? item['total'] ?? ''}',
+                ),
+              ),
+      ],
+    );
+  }
+
+  Widget _buildProfile(Object data) {
+    final profile = data as _ProfileData;
+    return Column(
+      key: const ValueKey('b2c-profile-data'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ..._objectCards(profile.profile),
+        _section(context.tr('customer.profile.addresses')),
+        ..._objectCards(profile.addresses),
+        _section(context.tr('customer.profile.favorites')),
+        ..._objectCards(profile.favorites),
+      ],
+    );
+  }
+
+  List<Widget> _objectCards(Object? value) {
+    if (value is Map) {
+      final map = Map<String, dynamic>.from(value);
+      if (map['data'] is List) {
+        return (map['data'] as List)
+            .whereType<Map>()
+            .expand((item) => _mapCards(Map<String, dynamic>.from(item)))
+            .toList();
+      }
+      return _mapCards(map);
+    }
+    if (value is List) {
+      return value.whereType<Map>().expand((item) => _mapCards(Map<String, dynamic>.from(item))).toList();
+    }
+    return value == null ? <Widget>[] : [_dataCard('', value.toString())];
+  }
+
+  List<Widget> _mapCards(Map<String, dynamic> map, {Set<String> skip = const {}}) => map.entries
+      .where((entry) => !skip.contains(entry.key) && entry.value != null && entry.value is! Map && entry.value is! List)
+      .map((entry) => _dataCard(entry.key.replaceAll('_', ' '), entry.value.toString()))
+      .toList(growable: false);
 
   Widget _buildStores(Object data) {
     final stores = data as List<B2cStore>;
@@ -537,4 +729,11 @@ class _HomeData {
   final List<B2cCategory> categories;
   final List<B2cOffer> offers;
   final List<B2cProduct> products;
+}
+
+class _ProfileData {
+  const _ProfileData({required this.profile, required this.addresses, required this.favorites});
+  final Object? profile;
+  final Object? addresses;
+  final Object? favorites;
 }
