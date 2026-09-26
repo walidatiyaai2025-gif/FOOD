@@ -1,7 +1,7 @@
 @include('admin._brand')
 <style id="foodex-admin-component-tokens">
     *,*::before,*::after{box-sizing:border-box}
-    html,body{background:var(--foodex-background)!important;color:var(--foodex-ink)!important}
+    html,body{max-width:100%;overflow-x:hidden;background:var(--foodex-background)!important;color:var(--foodex-ink)!important}
     body{font-family:var(--foodex-font-ui)!important;font-size:var(--foodex-text-sm);font-weight:var(--foodex-font-weight-regular);line-height:var(--foodex-leading-normal);text-rendering:optimizeLegibility}
     :lang(en),.foodex-en,.foodex-number{font-family:var(--foodex-font-en)!important}
     .foodex-number{font-variant-numeric:tabular-nums lining-nums}
@@ -63,11 +63,14 @@
     .pagination [aria-current="page"],.pager [aria-current="page"]{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff}
     .badge{display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:3px 9px;border-radius:999px;background:var(--foodex-background);color:var(--foodex-muted);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-medium)}
 
+    @media(max-width:1023px){
+        .foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{grid-template-columns:1fr}
+        .foodex-admin-layout>.sidebar,html[dir=ltr] .foodex-admin-layout>.sidebar{grid-column:1;grid-row:1;min-height:auto;height:auto;max-height:320px;overflow:auto;position:relative;border-inline:0;border-bottom:1px solid var(--foodex-border)}
+        .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{grid-column:1;grid-row:2;padding:var(--foodex-space-6)}
+    }
     @media(max-width:767px){
         .foodex-admin-page{padding:var(--foodex-space-4)}
         .foodex-page-header{flex-direction:column}
-        .foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{grid-template-columns:1fr}
-        .foodex-admin-layout>.sidebar,html[dir=ltr] .foodex-admin-layout>.sidebar{grid-column:1;grid-row:1;min-height:auto;border-inline:0;border-bottom:1px solid var(--foodex-border)}
-        .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{grid-column:1;grid-row:2;padding:var(--foodex-space-4)}
+        .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{padding:var(--foodex-space-4)}
     }
 </style>
