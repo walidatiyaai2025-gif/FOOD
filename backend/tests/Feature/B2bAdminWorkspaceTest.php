@@ -219,6 +219,25 @@ class B2bAdminWorkspaceTest extends TestCase
         }
     }
 
+    public function test_b2b_workspace_inherits_premium_shared_visual_primitives(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $admin = $this->user('SUPER_ADMIN', 'en');
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/dashboard')
+            ->assertOk()
+            ->assertSee('data-b2b-premium="v1"', false)
+            ->assertSee('class="main foodex-admin-page"', false)
+            ->assertSee('foodex-page-header', false)
+            ->assertSee('foodex-card metric-card', false)
+            ->assertSee('workspace-tabs', false)
+            ->assertSee('foodex-table', false)
+            ->assertSee('var(--foodex-sidebar-width)', false)
+            ->assertSee('var(--foodex-radius-card)', false)
+            ->assertDontSee('font-weight:850', false);
+    }
+
     private function user(string $role, string $locale): User
     {
         $user = User::query()->create(['name' => $role, 'email' => strtolower($role).'-'.$locale.'@workspace.test', 'password' => 'password', 'locale' => $locale, 'is_active' => true]);
