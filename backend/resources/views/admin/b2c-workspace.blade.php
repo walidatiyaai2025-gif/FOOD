@@ -118,22 +118,28 @@
         .store-links{display:flex;justify-content:center;gap:8px;margin-top:9px}
         .store-links a{min-width:32px;min-height:32px;display:grid;place-items:center;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-sm);font-size:.75rem}
 
-        /* Existing module routes remain authoritative; visual rollout follows in PH-06.6. */
-        .module-layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-        .module-layout aside{background:var(--foodex-surface);border-inline-end:1px solid var(--foodex-border);padding:24px}
-        .module-layout main{padding:28px}
-        .module-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
-        .module-card,.module-panel{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:18px}
-        .module-panel{margin-top:18px}
+        /* PH-06.6: non-dashboard B2C routes inherit the same Premium system as the Golden dashboard. */
+        .module-layout{display:grid;grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr);min-height:100vh;background:var(--foodex-background)}
+        .module-layout aside{background:var(--foodex-surface);border-inline-end:1px solid var(--foodex-border);padding:var(--foodex-space-5);position:sticky;inset-block-start:0;height:100vh}
+        .module-layout main{width:100%;max-width:none!important;padding:var(--foodex-space-8)}
+        .module-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-5)}
+        .module-card{position:relative;overflow:hidden;min-height:116px;padding:var(--foodex-space-5)!important}
+        .module-card:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--foodex-green)}
+        .module-card:nth-child(2n):before{background:var(--foodex-orange)}
+        .module-card strong{font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-medium);color:var(--foodex-muted)}
+        .module-card p{font-family:var(--foodex-font-en);font-size:1.75rem;font-weight:var(--foodex-font-weight-bold);line-height:1.1;margin:var(--foodex-space-3) 0 0}
+        .module-panel{margin-top:var(--foodex-space-4);padding:var(--foodex-space-5)!important;box-shadow:var(--foodex-shadow)!important}
         .empty{color:var(--foodex-muted)}
-        .module-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
-        .module-table-wrap{overflow:auto;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md)}
-        .module-table{width:100%;border-collapse:collapse;min-width:760px}
-        .module-table th,.module-table td{padding:12px 14px;border-bottom:1px solid var(--foodex-border);text-align:start;font-size:13px}
-        .module-table th{background:var(--foodex-background);color:var(--foodex-muted);font-size:12px}
-        .module-table tr:last-child td{border-bottom:0}
-        .state-dot{display:inline-flex;align-items:center;gap:6px}.state-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--foodex-green)}.state-dot.off:before{background:var(--foodex-muted)}
-        .module-links{display:flex;flex-wrap:wrap;gap:8px}.module-links a{border:1px solid var(--foodex-border);background:var(--foodex-surface);border-radius:var(--foodex-radius-control);padding:8px 11px;font-size:12px;font-weight:var(--foodex-font-weight-bold)}.module-links a.active{background:var(--foodex-green-soft);border-color:var(--foodex-border);color:var(--foodex-green-dark)}
+        .module-toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-4)}
+        .module-toolbar>div:first-child{max-width:520px}.module-toolbar p{margin:var(--foodex-space-1) 0 0}
+        .module-table-wrap{overflow:auto;border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-sm)}
+        .module-table{min-width:760px}
+        .module-table th,.module-table td{vertical-align:middle}
+        .state-dot{display:inline-flex;align-items:center;gap:6px;font-weight:var(--foodex-font-weight-medium)}.state-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--foodex-green)}.state-dot.off:before{background:var(--foodex-muted)}
+        .module-links{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center;justify-content:flex-end}.module-links a{min-height:var(--foodex-control-height);display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--foodex-border);background:var(--foodex-surface);border-radius:var(--foodex-radius-control);padding:0 var(--foodex-space-3);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold)}.module-links a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.module-links a.active{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff;box-shadow:0 8px 20px rgba(21,138,58,.14)}
+        .module-actions{justify-content:flex-start;margin-bottom:var(--foodex-space-4)}
+        .module-actions a{background:var(--foodex-green)!important;color:#fff!important;border-color:var(--foodex-green)!important}
+        .module-empty-state{display:grid;place-items:center;min-height:160px;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;padding:var(--foodex-space-6);color:var(--foodex-muted)}
 
         @media(max-width:1180px){
             .topbar{grid-template-columns:minmax(180px,.8fr) minmax(140px,.4fr) minmax(300px,1.4fr);padding-inline:var(--foodex-space-4)}
@@ -321,13 +327,17 @@
     </aside>
 </div>
 @else
-<div class="module-layout">
+<div class="module-layout" data-b2c-premium="v1">
     <aside class="sidebar">@include('admin._sidebar')</aside>
-    <main>
-        <div><a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a> / {{ __('admin.b2c_workspace.modules.'.$module) }}</div>
-        <p>{{ __('admin.b2c_workspace.assigned_scope') }}: {{ implode(', ', $storeIds) }}</p>
-        <h1>{{ __('admin.b2c_workspace.modules.'.$module) }}</h1>
-        <div class="module-cards">@foreach($counts as $key=>$value)<div class="module-card"><strong>{{ __('admin.b2c_workspace.modules.'.$key) }}</strong><p>{{ $value }}</p></div>@endforeach</div>
+    <main class="foodex-admin-page">
+        <div class="foodex-page-header">
+            <div>
+                <div class="empty"><a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a> / {{ __('admin.b2c_workspace.modules.'.$module) }}</div>
+                <h1>{{ __('admin.b2c_workspace.modules.'.$module) }}</h1>
+                <p>{{ __('admin.b2c_workspace.assigned_scope') }}: {{ implode(', ', $storeIds) }}</p>
+            </div>
+        </div>
+        <div class="module-cards">@foreach($counts as $key=>$value)<div class="module-card foodex-card"><strong>{{ __('admin.b2c_workspace.modules.'.$key) }}</strong><p>{{ $value }}</p></div>@endforeach</div>
         @if($moduleData)
         @php
             $labels = app()->getLocale()==='ar'
@@ -344,7 +354,7 @@
                     'phone'=>'Phone','email'=>'Email','orders'=>'Orders','spent'=>'Total spent','last_order'=>'Last order','type'=>'Type','value'=>'Value','period'=>'Period','driver_type'=>'Driver type','order'=>'Order','assignment_status'=>'Delivery status','availability'=>'Availability','products'=>'Products','banners'=>'Banners','title'=>'Title','image'=>'Image','target'=>'Target','sort_order'=>'Sort order','average'=>'Average order','setting'=>'Setting','actions'=>'Actions',
                 ];
         @endphp
-        <section class="module-panel">
+        <section class="module-panel foodex-card">
             <div class="module-toolbar">
                 <div>
                     <strong>{{ __('admin.b2c_workspace.authoritative') }}</strong>
@@ -357,7 +367,7 @@
                 </nav>
             </div>
             @if(!empty($moduleData['actions']))
-                <div class="module-links" style="margin-bottom:14px">
+                <div class="module-links module-actions">
                     @foreach($moduleData['actions'] as $action)
                         <a href="{{ $action['url'] }}">{{ $action['label'] }}</a>
                     @endforeach
@@ -365,7 +375,7 @@
             @endif
             @if(count($moduleData['rows']))
                 <div class="module-table-wrap">
-                    <table class="module-table">
+                    <table class="module-table foodex-table">
                         <thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column] ?? $column }}</th>@endforeach</tr></thead>
                         <tbody>
                         @foreach($moduleData['rows'] as $row)
@@ -391,11 +401,11 @@
                     </table>
                 </div>
             @else
-                <p class="empty">{{ app()->getLocale()==='ar' ? 'لا توجد بيانات في هذا القسم للمتاجر المصرح بها.' : 'No records are available in this section for the assigned stores.' }}</p>
+                <div class="module-empty-state" role="status">{{ app()->getLocale()==='ar' ? 'لا توجد بيانات في هذا القسم للمتاجر المصرح بها.' : 'No records are available in this section for the assigned stores.' }}</div>
             @endif
         </section>
         @else
-        <section class="module-panel"><strong>{{ __('admin.b2c_workspace.authoritative') }}</strong><p class="empty">{{ __('admin.b2c_workspace.empty_hint') }}</p></section>
+        <section class="module-panel foodex-card"><strong>{{ __('admin.b2c_workspace.authoritative') }}</strong><p class="empty">{{ __('admin.b2c_workspace.empty_hint') }}</p></section>
         @endif
     </main>
 </div>
