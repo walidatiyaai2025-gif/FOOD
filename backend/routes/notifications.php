@@ -9,6 +9,9 @@ Route::middleware(['web', 'management.dashboard'])
     ->name('admin.notifications.')
     ->group(function (): void {
         Route::get('/', [AdminNotificationController::class, 'index'])->name('index');
+        Route::get('/live', [AdminNotificationController::class, 'live'])->name('live');
+        Route::post('/read-all', [AdminNotificationController::class, 'markAllRead'])->name('read-all');
+        Route::post('/{notification}/read', [AdminNotificationController::class, 'markRead'])->name('read');
         Route::post('/', [AdminNotificationController::class, 'store'])->name('store');
         Route::patch('/{notification}', [AdminNotificationController::class, 'update'])->name('update');
         Route::post('/{notification}/publish', [AdminNotificationController::class, 'publish'])->name('publish');

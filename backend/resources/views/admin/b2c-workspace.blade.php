@@ -204,7 +204,7 @@
             </form>
             <div class="top-actions">
                 <span class="language">@include('admin._premium-icon',['name'=>'globe']) {{ app()->getLocale()==='ar' ? 'العربية' : 'English' }}</span>
-                <span class="bell">@include('admin._premium-icon',['name'=>'bell']) @if($dashboard['notifications_unread']>0)<b></b>@endif</span>
+                @include('admin._live-notifications')
             </div>
         </header>
 

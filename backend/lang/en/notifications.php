@@ -37,6 +37,7 @@ return [
     'app_options' => [
         'all' => 'All apps',
         'customer' => 'Customer App',
+        'dashboard' => 'Management Dashboard',
         'driver' => 'Driver App',
     ],
     'channel_options' => [

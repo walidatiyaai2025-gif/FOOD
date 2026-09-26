@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\DashboardOperationalNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -74,6 +75,7 @@ class OrderController extends Controller
         Request $request,
         int $order,
         AuditLogger $auditLogger,
+        DashboardOperationalNotifier $dashboardNotifier,
     ): JsonResponse {
         $validated = $request->validate([
             'status' => [
@@ -90,6 +92,7 @@ class OrderController extends Controller
         $model = Order::query()->findOrFail($order);
         abort_unless($this->canManageOrder($user, $model), 403);
 
+        $previousStatus = (string) $model->status;
         $targetStatus = (string) $validated['status'];
         $note = isset($validated['note']) ? (string) $validated['note'] : null;
 
@@ -145,7 +148,10 @@ class OrderController extends Controller
             return $locked;
         }, 3);
 
-        return response()->json($this->orderPayload($updated->fresh()));
+        $fresh = $updated->fresh();
+        $dashboardNotifier->orderStatusChanged($fresh, $previousStatus, (string) $fresh->status);
+
+        return response()->json($this->orderPayload($fresh));
     }
 
     /** @return array{0: Customer, 1: string} */

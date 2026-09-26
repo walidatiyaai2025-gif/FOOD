@@ -8,6 +8,7 @@ use App\Models\DriverAssignment;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\DashboardOperationalNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ class DriverAssignmentController extends Controller
         return response()->json(['data' => $rows]);
     }
 
-    public function assign(Request $request, AuditLogger $auditLogger): JsonResponse
+    public function assign(Request $request, AuditLogger $auditLogger, DashboardOperationalNotifier $dashboardNotifier): JsonResponse
     {
         $data = $request->validate(['driver_id' => ['required', 'integer', 'exists:drivers,id'], 'order_id' => ['required', 'integer', 'exists:orders,id']]);
         $driver = Driver::query()->findOrFail($data['driver_id']);
@@ -41,11 +42,12 @@ class DriverAssignmentController extends Controller
 
         $assignment = DriverAssignment::query()->create(['driver_id' => $driver->getKey(), 'order_id' => $order->getKey(), 'assignment_type' => $channel, 'status' => 'assigned', 'assigned_at' => now()]);
         $auditLogger->record('delivery.assignment.created', $user, $assignment, null, $assignment->toArray(), $request);
+        $dashboardNotifier->deliveryChanged($order, 'assigned');
 
         return response()->json(['data' => $assignment], 201);
     }
 
-    public function transition(Request $request, int $assignment, AuditLogger $auditLogger): JsonResponse
+    public function transition(Request $request, int $assignment, AuditLogger $auditLogger, DashboardOperationalNotifier $dashboardNotifier): JsonResponse
     {
         [$driver, $channel] = $this->driverContext($request);
         $data = $request->validate(['status' => ['required', Rule::in(['accepted', 'picked_up', 'out_for_delivery', 'delivered', 'failed'])]]);
@@ -64,6 +66,10 @@ class DriverAssignmentController extends Controller
 
         $fresh = $model->fresh();
         $fresh->setAttribute('available_statuses', $allowed[$fresh->status] ?? []);
+        $order = Order::query()->find($fresh->order_id);
+        if ($order instanceof Order) {
+            $dashboardNotifier->deliveryChanged($order, (string) $fresh->status);
+        }
 
         return response()->json(['data' => $fresh]);
     }

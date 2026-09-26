@@ -18,6 +18,7 @@
             <h1>{{ __('admin.b2b_workspace.modules.'.$module) }}</h1>
             <div class="muted">{{ app()->getLocale()==='ar' ? 'FOODEX · إدارة الجملة ببيانات مباشرة من النظام' : 'FOODEX · B2B management with live server data' }}</div>
         </div>
+        @include('admin._live-notifications')
     </div>
     <section class="cards" aria-label="{{ app()->getLocale()==='ar' ? 'مؤشرات إدارة الجملة' : 'B2B management metrics' }}">
         @foreach($counts as $key=>$value)

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\DashboardOperationalNotifier;
 use App\Services\ManagementReportService;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -60,6 +61,7 @@ class B2bWorkspaceController extends Controller
         int $order,
         OrderController $orders,
         AuditLogger $audit,
+        DashboardOperationalNotifier $dashboardNotifier,
     ): RedirectResponse {
         $isB2b = DB::table('orders')
             ->join('stores', 'stores.id', '=', 'orders.store_id')
@@ -69,7 +71,7 @@ class B2bWorkspaceController extends Controller
             ->where('store_types.code', 'B2B')
             ->exists();
         abort_unless($isB2b, 404);
-        $orders->transition($request, $order, $audit);
+        $orders->transition($request, $order, $audit, $dashboardNotifier);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تحديث حالة الطلب.' : 'Order status updated.');
     }
@@ -77,13 +79,14 @@ class B2bWorkspaceController extends Controller
     public function assignDriver(
         Request $request,
         DriverAssignmentController $deliveries,
-        AuditLogger $audit
+        AuditLogger $audit,
+        DashboardOperationalNotifier $dashboardNotifier,
     ): RedirectResponse {
         $driverId = $request->integer('driver_id');
         $orderId = $request->integer('order_id');
         abort_unless(DB::table('drivers')->where('id', $driverId)->where('driver_type', 'b2b')->exists(), 422);
         abort_unless(DB::table('orders')->where('id', $orderId)->where('channel', 'b2b')->exists(), 422);
-        $deliveries->assign($request, $audit);
+        $deliveries->assign($request, $audit, $dashboardNotifier);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تعيين السائق.' : 'Driver assigned.');
     }

@@ -37,6 +37,7 @@ return [
     'app_options' => [
         'all' => 'كل التطبيقات',
         'customer' => 'تطبيق العميل',
+        'dashboard' => 'لوحة الإدارة',
         'driver' => 'تطبيق السائق',
     ],
     'channel_options' => [
