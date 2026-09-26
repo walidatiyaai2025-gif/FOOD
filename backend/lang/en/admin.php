@@ -20,6 +20,18 @@ return [
     'nav_items' => [
         'notifications' => 'Notifications',
     ],
+    'premium_nav' => [
+        'dashboard' => 'Dashboard',
+        'orders' => 'Orders',
+        'products' => 'Products',
+        'customers' => 'Customers',
+        'delivery' => 'Delivery',
+        'notifications' => 'Notifications',
+        'mobile_apps' => 'Mobile Apps',
+        'reports' => 'Reports',
+        'settings' => 'Settings',
+        'more' => 'More',
+    ],
     'app_versions' => 'App Versions',
     'system_update' => 'System Update',
     'translation_center' => 'Translation Center',
