@@ -21,4 +21,21 @@ void main() {
     );
     expect(directionality.textDirection, TextDirection.rtl);
   });
+
+  testWidgets('customer shell mirrors to English LTR', (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(locale: Locale('en')),
+    );
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.locale, const Locale('en'));
+
+    final directionality = tester.widget<Directionality>(
+      find.ancestor(
+        of: find.byType(Scaffold),
+        matching: find.byType(Directionality),
+      ).first,
+    );
+    expect(directionality.textDirection, TextDirection.ltr);
+  });
 }
