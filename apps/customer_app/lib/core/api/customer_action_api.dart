@@ -75,7 +75,6 @@ class HttpCustomerActionApi implements CustomerActionApi {
     required int productId,
     required double quantity,
   }) async {
-    _requireToken();
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/cart/items'),
       headers: _headers,
