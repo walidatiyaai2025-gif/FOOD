@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "available": false,
+  "package": null,
+  "target_version": "1.0.0",
+  "minimum_current_version": "1.0.0",
+  "sha256": null,
+  "contains_migrations": false,
+  "requires_full_redeploy": false,
+  "reason": "No newer server update exists yet. This is the first-install baseline.",
+  "release_notes": "fix: repair trial distribution workflow startup (#221)",
+  "dashboard_fields": {
+    "target_version": "1.0.0",
+    "minimum_current_version": "1.0.0",
+    "sha256": "",
+    "contains_migrations": false,
+    "release_notes": "fix: repair trial distribution workflow startup (#221)"
+  }
+}
