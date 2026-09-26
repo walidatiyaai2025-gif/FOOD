@@ -7,9 +7,9 @@ use App\Models\Notification;
 use App\Models\NotificationRead;
 use App\Models\User;
 use App\Services\AuditLogger;
-use App\Services\NotificationAudience;
 use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,13 +38,13 @@ final class NotificationController extends Controller
         return view('admin.notifications', compact('notifications', 'search', 'status'));
     }
 
-    public function live(Request $request, NotificationAudience $audience): JsonResponse
+    public function live(Request $request): JsonResponse
     {
         $user = $this->dashboardUser($request);
         $locale = in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar';
         $afterId = max(0, (int) $request->query('after_id', 0));
 
-        $visible = $audience->apply(Notification::query(), $user);
+        $visible = $this->dashboardNotifications($user);
         $unreadCount = (clone $visible)
             ->whereNotIn('notifications.id', NotificationRead::query()
                 ->where('user_id', $user->id)
@@ -84,10 +84,9 @@ final class NotificationController extends Controller
     public function markRead(
         Request $request,
         Notification $notification,
-        NotificationAudience $audience,
     ): Response {
         $user = $this->dashboardUser($request);
-        abort_unless($audience->apply(Notification::query(), $user)->whereKey($notification->id)->exists(), 404);
+        abort_unless($this->dashboardNotifications($user)->whereKey($notification->id)->exists(), 404);
 
         NotificationRead::query()->updateOrCreate(
             ['notification_id' => $notification->id, 'user_id' => $user->id],
@@ -97,11 +96,11 @@ final class NotificationController extends Controller
         return response()->noContent();
     }
 
-    public function markAllRead(Request $request, NotificationAudience $audience): Response
+    public function markAllRead(Request $request): Response
     {
         $user = $this->dashboardUser($request);
         $now = now();
-        $rows = $audience->apply(Notification::query(), $user)
+        $rows = $this->dashboardNotifications($user)
             ->pluck('notifications.id')
             ->map(fn ($notificationId) => [
                 'notification_id' => (int) $notificationId,
@@ -180,6 +179,20 @@ final class NotificationController extends Controller
         $notification->delete();
 
         return back()->with('status', __('notifications.deleted'));
+    }
+
+    private function dashboardNotifications(User $user): Builder
+    {
+        return Notification::query()
+            ->where('status', 'published')
+            ->whereNotNull('published_at')
+            ->where('published_at', '<=', now())
+            ->whereIn('app', ['all', 'dashboard'])
+            ->where('target_channel', 'all')
+            ->where(function (Builder $audience) use ($user): void {
+                $audience->where('audience', 'all')
+                    ->orWhere('user_id', $user->id);
+            });
     }
 
     private function dashboardUser(Request $request): User
