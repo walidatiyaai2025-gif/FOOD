@@ -580,3 +580,61 @@ artifact or CI URL. Missing/unexecuted evidence stays **Not verified**, never PA
 Report implementation, verified screen coverage and release readiness separately.
 Do not calculate product percentage from issue closure alone. Close this release wave
 only after the evidence above and any resulting defects are resolved.
+
+## 10. Production activation additions — approved 2026-09-26
+
+The first production installation is approved at `https://foodex.50sols.com`.
+Its non-secret deployment identity is maintained in
+`docs/release/PRODUCTION_CONFIGURATION.md` after PR #212 merges. PostgreSQL database
+and username are both `solscool_foodex`; passwords and signing/provider secrets remain
+external and must never be committed.
+
+### RC-06 — Firebase mobile push integration — #210
+
+Branch: `feat/210-mobile-firebase-push`
+
+- One Firebase production project for the two approved Flutter binaries.
+- Firebase project display name: **FOODEX Production**.
+- Customer Firebase app nickname: **FOODEX Customer**.
+- Driver Firebase app nickname: **FOODEX Driver**.
+- Suggested Firebase project ID: `foodex-50sols-prod`, subject to Firebase availability.
+- Final Android application IDs and iOS bundle IDs remain explicit required inputs and
+  must exactly match Firebase registrations; workers must not invent production IDs.
+- Customer and Driver must register/refresh/revoke device tokens against the existing
+  backend push-device contract.
+- Foreground/background delivery, tap/deep-link handling, AR/EN presentation and
+  B2B/B2C audience isolation are mandatory.
+- Firebase service-account keys, APNs keys and mobile signing secrets remain external.
+
+Dependencies: existing Notifications Center + Mobile Push Settings; final native IDs
+must be approved before Firebase app registration can be completed.
+
+Definition of Done: real-device Customer + Driver push acceptance passes on Android/iOS,
+required CI is green, and no provider secret is stored in git.
+
+### PC-20 — Live Management Dashboard notifications — #211
+
+Branch: `feat/211-dashboard-live-notifications`
+
+- Add authenticated real-time notification delivery to the Management Dashboard.
+- Header bell shows a live unread count and a Premium FOODEX notification feed.
+- New authorized events appear without a full page refresh.
+- Support mark-read / mark-all-read and navigation to the Notifications Center.
+- Cover approved operational events including new orders and relevant
+  order/payment/delivery/administrative notification changes.
+- Server-side user/role/store/channel scoping remains authoritative.
+- Arabic RTL and English LTR, reconnect/fallback, duplicate suppression, empty/error/
+  offline states and responsive web behavior are required.
+
+Dependencies: existing Notifications Center (#93) and its per-user read state.
+
+Definition of Done: live delivery and unread state pass authorization/store-isolation
+tests, reconnect does not duplicate events, visual QA passes, and required CI is green.
+
+### Scheduling
+
+#210 and #211 are separate tasks with separate owners/branches. They may run in parallel
+only when their active files do not conflict. #210 remains blocked on final native
+application/bundle IDs and Firebase configuration inputs. #211 is implementation-ready.
+Neither task may bypass required CI or direct-push to `main`.
+
