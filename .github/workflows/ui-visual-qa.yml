@@ -1,0 +1,107 @@
+name: FOODEX UI Visual QA
+
+on:
+  pull_request:
+    paths:
+      - "backend/resources/views/admin/**"
+      - "backend/app/Services/AdminDashboardService.php"
+      - "backend/database/seeders/ScreenshotEvidenceSeeder.php"
+      - "scripts/capture_web_screenshots.mjs"
+      - "docs/architecture/FOODEX_BRAND_SYSTEM.md"
+      - "docs/design-reference/FOODEX_PREMIUM_DASHBOARD_REFERENCE.png"
+      - ".github/workflows/ui-visual-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  capture-web:
+    name: Capture real Web runtime evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, intl, pdo_sqlite
+          coverage: none
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare deterministic visual-QA database
+        working-directory: backend
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: file
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          rm -f database/database.sqlite
+          touch database/database.sqlite
+          php artisan migrate:fresh --force
+          php artisan db:seed --class=Database\\Seeders\\ScreenshotEvidenceSeeder --force
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start FOODEX runtime
+        working-directory: backend
+        env:
+          APP_ENV: local
+          APP_URL: http://127.0.0.1:8000
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: file
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 > /tmp/foodex-ui-qa-server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8000/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/foodex-ui-qa-server.log
+          exit 1
+
+      - name: Capture Arabic and English Admin runtime screenshots
+        working-directory: backend
+        env:
+          FOODEX_SCREENSHOT_BASE_URL: http://127.0.0.1:8000
+        run: node ../scripts/capture_web_screenshots.mjs
+
+      - name: Verify Web evidence pack
+        run: |
+          set -euo pipefail
+          count="$(find ScreenShots/02_Web -type f -name '*.png' | wc -l | tr -d ' ')"
+          test "$count" -ge 44
+          test -s "ScreenShots/02_Web/B2C_Admin/02_لوحة_التحكم_الرئيسية_B2C__populated__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/02_لوحة_التحكم_الرئيسية_B2C__populated__en.png"
+          echo "Captured Web runtime PNGs: $count"
+
+      - name: Upload visual-QA evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-ui-visual-qa-${{ github.event.pull_request.number }}
+          path: ScreenShots/02_Web/
+          if-no-files-found: error
+          retention-days: 14
