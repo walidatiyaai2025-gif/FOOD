@@ -654,7 +654,7 @@ class _AuthoritativeDataView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 10, bottom: 4),
             child: Text(
-              _label(key),
+              _label(context, key),
               style: Theme.of(context).textTheme.titleSmall,
             ),
           ),
@@ -670,7 +670,7 @@ class _AuthoritativeDataView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 10, bottom: 4),
             child: Text(
-              _label(key),
+              _label(context, key),
               style: Theme.of(context).textTheme.titleSmall,
             ),
           ),
@@ -697,15 +697,16 @@ class _AuthoritativeDataView extends StatelessWidget {
       widgets.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 6),
-          child: Text('${_label(key)}: ${_formatValue(value)}'),
+          child: Text('${_label(context, key)}: ${_formatValue(value)}'),
         ),
       );
     }
     return widgets;
   }
 
-  String _label(String key) {
-    const labels = <String, String>{
+  String _label(BuildContext context, String key) {
+    final arabic = Directionality.of(context) == TextDirection.rtl;
+    const en = <String, String>{
       'id': 'ID',
       'sku': 'SKU',
       'name': 'Name',
@@ -735,6 +736,37 @@ class _AuthoritativeDataView extends StatelessWidget {
       'items': 'Items',
       'data': 'Data',
     };
+    const ar = <String, String>{
+      'id': 'المعرّف',
+      'sku': 'SKU',
+      'name': 'الاسم',
+      'product_name': 'المنتج',
+      'order_number': 'الطلب',
+      'invoice_number': 'الفاتورة',
+      'status': 'الحالة',
+      'payment_status': 'حالة السداد',
+      'currency': 'العملة',
+      'total': 'الإجمالي',
+      'grand_total': 'الإجمالي النهائي',
+      'subtotal': 'الإجمالي الفرعي',
+      'balance': 'الرصيد',
+      'quantity': 'الكمية',
+      'unit_price': 'سعر الوحدة',
+      'account_price': 'سعر الحساب',
+      'minimum_quantity': 'الحد الأدنى للكمية',
+      'minimum_order_quantity': 'الحد الأدنى للطلب',
+      'available_quantity': 'الكمية المتاحة',
+      'company_name': 'الشركة',
+      'email': 'البريد الإلكتروني',
+      'phone': 'الهاتف',
+      'tax_number': 'الرقم الضريبي',
+      'created_at': 'تاريخ الإنشاء',
+      'updated_at': 'آخر تحديث',
+      'period': 'الفترة',
+      'items': 'البنود',
+      'data': 'البيانات',
+    };
+    final labels = arabic ? ar : en;
     return labels[key] ??
         key
             .split('_')
