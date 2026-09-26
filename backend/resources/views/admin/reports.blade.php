@@ -10,10 +10,10 @@
     @include('admin._brand-components')
 </head>
 <body>
-<div class="layout">
+<div class="layout foodex-admin-layout" data-foodex-utility="reports">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'reports_center', 'user' => auth()->user()])</aside>
-    <main class="main">
-        <div class="hero">
+    <main class="main foodex-admin-main">
+        <div class="hero foodex-page-header">
             <div><h1>{{ __('reports.title') }}</h1><p class="muted">{{ __('reports.description') }}</p></div>
             @if(auth()->user()->hasPermission('reports.export') || request('store_id') && auth()->user()->hasPermission('reports.export', (int) request('store_id')))
             <div class="export">
