@@ -24,6 +24,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.authRepository,
     this.assignmentRepositoryFactory,
     this.initialSession,
+    this.theme,
   });
 
   final String initialRoute;
@@ -34,6 +35,7 @@ class FoodexDriverApp extends StatefulWidget {
   final DriverAuthRepository? authRepository;
   final DriverAssignmentRepositoryFactory? assignmentRepositoryFactory;
   final DriverSession? initialSession;
+  final ThemeData? theme;
 
   @override
   State<FoodexDriverApp> createState() => _FoodexDriverAppState();
@@ -138,7 +140,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FOODEX Driver',
-      theme: FoodexTheme.light(),
+      theme: widget.theme ?? FoodexTheme.light(),
       locale: widget.locale,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
