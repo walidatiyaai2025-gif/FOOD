@@ -3,12 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
 
 void main() {
-  testWidgets('driver bootstrap is Arabic-first, RTL and requires configured API',
+  testWidgets('driver bootstrap is Arabic-first, RTL and uses configured production API',
       (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
 
     expect(find.text('فودكس للسائق'), findsOneWidget);
-    expect(find.byKey(const Key('driver-config-missing')), findsOneWidget);
+    expect(find.byKey(const Key('driver-config-missing')), findsNothing);
+    expect(find.byKey(const Key('driver-login-email')), findsOneWidget);
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('ar'));
