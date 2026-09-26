@@ -85,6 +85,18 @@ return [
             'cannot_grant_higher' => 'لا يمكنك منح صلاحيات أعلى من صلاحياتك الفعلية.',
         ],
     ],
+    'premium_nav' => [
+        'dashboard' => 'لوحة التحكم',
+        'orders' => 'الطلبات',
+        'products' => 'المنتجات',
+        'customers' => 'العملاء',
+        'delivery' => 'التوصيل',
+        'notifications' => 'الإشعارات',
+        'mobile_apps' => 'تطبيقات الجوال',
+        'reports' => 'التقارير',
+        'settings' => 'الإعدادات',
+        'more' => 'المزيد',
+    ],
     'b2c_dashboard' => [
         'system_manager' => 'مدير النظام',
         'search_placeholder' => 'البحث في الطلبات، المنتجات، العملاء ...',

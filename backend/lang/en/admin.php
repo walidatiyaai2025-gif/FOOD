@@ -91,6 +91,18 @@ return [
             'cannot_grant_higher' => 'You cannot grant permissions that are outside your own effective authority.',
         ],
     ],
+    'premium_nav' => [
+        'dashboard' => 'Dashboard',
+        'orders' => 'Orders',
+        'products' => 'Products',
+        'customers' => 'Customers',
+        'delivery' => 'Delivery',
+        'notifications' => 'Notifications',
+        'mobile_apps' => 'Mobile Apps',
+        'reports' => 'Reports',
+        'settings' => 'Settings',
+        'more' => 'More',
+    ],
     'b2c_dashboard' => [
         'system_manager' => 'System Manager',
         'search_placeholder' => 'Search orders, products, customers ...',

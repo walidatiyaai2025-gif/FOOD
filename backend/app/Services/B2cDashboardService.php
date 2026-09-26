@@ -161,15 +161,20 @@ final class B2cDashboardService
         return DB::table('inventories')
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
             ->join('products', 'products.id', '=', 'inventories.product_id')
+            ->leftJoin('product_images', function ($join): void {
+                $join->on('product_images.product_id', '=', 'products.id')
+                    ->where('product_images.is_primary', true);
+            })
             ->whereIn('warehouses.store_id', $storeIds)
             ->where('products.is_active', true)
             ->select([
                 'products.id',
                 'products.name',
                 'products.sku',
+                'product_images.path as image',
             ])
             ->selectRaw('SUM(inventories.quantity - inventories.reserved_quantity) as available')
-            ->groupBy('products.id', 'products.name', 'products.sku')
+            ->groupBy('products.id', 'products.name', 'products.sku', 'product_images.path')
             ->havingRaw('SUM(inventories.quantity - inventories.reserved_quantity) <= ?', [$threshold])
             ->orderBy('available')
             ->limit(5)
@@ -178,6 +183,7 @@ final class B2cDashboardService
                 'id' => (int) $row->id,
                 'name' => (string) $row->name,
                 'sku' => (string) $row->sku,
+                'image' => $row->image === null ? null : (string) $row->image,
                 'available' => round((float) $row->available, 3),
             ])
             ->all();
@@ -200,7 +206,7 @@ final class B2cDashboardService
                 'orders.created_at',
                 'customers.name as customer',
             ])
-            ->selectRaw('COUNT(order_items.id) as items_count')
+            ->selectRaw('COALESCE(SUM(order_items.quantity), 0) as items_count')
             ->groupBy(
                 'orders.id',
                 'orders.order_number',
