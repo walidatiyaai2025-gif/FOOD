@@ -113,6 +113,144 @@ void main() {
     expect(find.textContaining('144.5 KWD'), findsOneWidget);
   });
 
+  testWidgets('B2B remote routes visibly render authoritative payload fields', (tester) async {
+    final cases = <({String route, Object? payload, String expected})>[
+      (
+        route: '/b2b/dashboard',
+        payload: {
+          'purchases_total': 321.75,
+          'open_invoices': 4,
+          'balance': 88.5,
+          'currency': 'KWD',
+        },
+        expected: '321.75',
+      ),
+      (
+        route: '/b2b/reports/purchases',
+        payload: {
+          'period': {'from': '2026-09-01', 'to': '2026-09-30'},
+          'data': [
+            {'product_name': 'Bulk Rice', 'quantity': 12, 'total': 48.0},
+          ],
+        },
+        expected: 'Bulk Rice',
+      ),
+      (
+        route: '/b2b/invoices',
+        payload: {
+          'data': [
+            {
+              'id': 31,
+              'invoice_number': 'INV-31',
+              'payment_status': 'paid',
+              'total': 55.25,
+              'currency': 'KWD',
+            },
+          ],
+        },
+        expected: 'INV-31',
+      ),
+      (
+        route: '/b2b/account-statement',
+        payload: {
+          'balance': 19.75,
+          'currency': 'KWD',
+          'data': <Object?>[],
+        },
+        expected: '19.75',
+      ),
+      (
+        route: '/b2b/orders',
+        payload: {
+          'data': [
+            {
+              'id': 77,
+              'order_number': 'B2B-77',
+              'status': 'processing',
+              'grand_total': 101.0,
+            },
+          ],
+        },
+        expected: 'B2B-77',
+      ),
+      (
+        route: '/b2b/cart?store=7',
+        payload: {
+          'store_id': 7,
+          'subtotal': 36.25,
+          'items': [
+            {
+              'product_id': 42,
+              'name': 'Wholesale Product',
+              'quantity': 5,
+              'unit_price': 7.25,
+            },
+          ],
+        },
+        expected: 'Wholesale Product',
+      ),
+      (
+        route: '/b2b/profile',
+        payload: {
+          'company_name': 'Acme Foods',
+          'email': 'buyer@example.test',
+          'tax_number': 'TX-900',
+        },
+        expected: 'Acme Foods',
+      ),
+    ];
+
+    for (final item in cases) {
+      final api = _FakeB2bApi(item.payload);
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: item.route,
+          b2bApi: api,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('b2b-loaded')),
+        findsNothing,
+        reason: item.route,
+      );
+      expect(find.textContaining(item.expected), findsWidgets, reason: item.route);
+      expect(
+        Directionality.of(tester.element(find.textContaining(item.expected).first)),
+        TextDirection.rtl,
+        reason: item.route,
+      );
+    }
+  });
+
+  testWidgets('B2B collections expose approved detail navigation', (tester) async {
+    final api = _FakeB2bApi({
+      'data': [
+        {
+          'id': 31,
+          'invoice_number': 'INV-31',
+          'payment_status': 'paid',
+        },
+      ],
+    });
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/invoices',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('INV-31'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('/b2b/invoices/31'), findsOneWidget);
+    expect(api.lastPath, '/api/v1/b2b/invoices/31');
+  });
+
   testWidgets('B2B remote journey renders loading and empty states', (tester) async {
     final api = _FakeB2bApi(const {'data': []});
     await tester.pumpWidget(FoodexCustomerApp(session: b2b, initialRoute: '/b2b/invoices', b2bApi: api));
