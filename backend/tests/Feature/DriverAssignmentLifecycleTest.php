@@ -32,8 +32,25 @@ class DriverAssignmentLifecycleTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.created']);
         Sanctum::actingAs($driverUser);
         $id = $created->json('data.id');
+        $this->getJson('/api/v1/driver/assignments')
+            ->assertOk()
+            ->assertJsonPath('data.0.available_statuses.0', 'accepted');
+
+        $expectedNext = [
+            'accepted' => 'picked_up',
+            'picked_up' => 'out_for_delivery',
+            'out_for_delivery' => 'delivered',
+            'delivered' => null,
+        ];
         foreach (['accepted', 'picked_up', 'out_for_delivery', 'delivered'] as $status) {
-            $this->postJson("/api/v1/driver/assignments/{$id}/status", ['status' => $status])->assertOk()->assertJsonPath('data.status', $status);
+            $response = $this->postJson("/api/v1/driver/assignments/{$id}/status", ['status' => $status])
+                ->assertOk()
+                ->assertJsonPath('data.status', $status);
+            if ($expectedNext[$status] === null) {
+                $response->assertJsonCount(0, 'data.available_statuses');
+            } else {
+                $response->assertJsonPath('data.available_statuses.0', $expectedNext[$status]);
+            }
         }
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.status_changed']);
     }
