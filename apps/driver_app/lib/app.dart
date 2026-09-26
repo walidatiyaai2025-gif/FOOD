@@ -158,10 +158,10 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
             )
           : assignments == null
               ? const _DriverRuntimeConfigurationError()
-              : null,
-      initialRoute:
-          session != null && assignments != null ? widget.initialRoute : null,
-      onGenerateRoute: navigator?.onGenerateRoute,
+              : Navigator(
+                  initialRoute: widget.initialRoute,
+                  onGenerateRoute: navigator!.onGenerateRoute,
+                ),
     );
   }
 }
