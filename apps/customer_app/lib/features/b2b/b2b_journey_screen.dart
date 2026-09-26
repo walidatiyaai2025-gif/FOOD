@@ -53,7 +53,9 @@ class B2bJourneyScreen extends StatelessWidget {
                 showEmpty: false,
               ),
             if (hasRemoteState && !keepLocalActions)
-              _RemoteState(api: api!, endpoint: _endpoint()!),
+              definition.pattern == CustomerRoutePaths.b2bTopProducts
+                  ? _TopProductsRemoteState(api: api!, endpoint: _endpoint()!)
+                  : _RemoteState(api: api!, endpoint: _endpoint()!),
             Text(
               location,
               key: const ValueKey('customer-route-location'),
@@ -214,6 +216,7 @@ class B2bJourneyScreen extends StatelessWidget {
       case CustomerRoutePaths.b2bPurchaseReports:
         return '/api/v1/b2b/reports/purchases';
       case CustomerRoutePaths.b2bTopProducts:
+        return '/api/v1/b2b/products/top${uri.hasQuery ? '?${uri.query}' : ''}';
       case CustomerRoutePaths.b2bProducts:
         return '/api/v1/b2b/products${uri.hasQuery ? '?${uri.query}' : ''}';
       case CustomerRoutePaths.b2bProductDetails:
@@ -263,6 +266,68 @@ class B2bJourneyScreen extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: Center(child: Text(label)),
         ),
+      );
+}
+
+class _TopProductsRemoteState extends StatelessWidget {
+  const _TopProductsRemoteState({required this.api, required this.endpoint});
+
+  final B2bApi api;
+  final String endpoint;
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Object?>(
+        future: api.get(endpoint),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              key: ValueKey('b2b-loading'),
+              child: CircularProgressIndicator(),
+            );
+          }
+          if (snapshot.hasError) {
+            return Card(
+              key: const ValueKey('b2b-error'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(context.tr('b2b.remote.error')),
+              ),
+            );
+          }
+
+          final value = snapshot.data;
+          final rows = value is Map && value['data'] is List
+              ? (value['data'] as List).whereType<Map>().toList(growable: false)
+              : const <Map>[];
+          if (rows.isEmpty) {
+            return Card(
+              key: const ValueKey('b2b-empty'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(context.tr('b2b.empty.purchases')),
+              ),
+            );
+          }
+
+          return Column(
+            key: const ValueKey('b2b-top-products-data'),
+            children: rows.map((row) {
+              final rank = row['rank']?.toString() ?? '-';
+              final name = row['name']?.toString() ?? '';
+              final sku = row['sku']?.toString() ?? '';
+              final quantity = row['quantity']?.toString() ?? '0';
+              final total = row['total']?.toString() ?? '0';
+              final currency = row['currency']?.toString() ?? 'KWD';
+              return Card(
+                child: ListTile(
+                  key: ValueKey('b2b-top-product-$rank'),
+                  title: Text('#$rank · $name'),
+                  subtitle: Text('$sku · $quantity · $total $currency'),
+                ),
+              );
+            }).toList(growable: false),
+          );
+        },
       );
 }
 
