@@ -93,9 +93,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+        await tester.pump(const Duration(milliseconds: 150));
       await tester.tap(find.byKey(const Key('assignment-3')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+        await tester.pump(const Duration(milliseconds: 150));
       await _writeBoundary(
         key,
         '01_Mobile/Driver_B2C/04_driver_delivery_detail__actions__$localeCode.png',
@@ -150,7 +152,8 @@ Future<void> _captureApp(
 ) async {
   final key = GlobalKey();
   await tester.pumpWidget(RepaintBoundary(key: key, child: app));
-  await tester.pumpAndSettle();
+  await tester.pump();
+        await tester.pump(const Duration(milliseconds: 150));
   await _writeBoundary(key, relativePath);
 }
 
