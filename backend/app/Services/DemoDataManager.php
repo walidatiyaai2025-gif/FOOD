@@ -7,10 +7,15 @@ use Illuminate\Support\Facades\DB;
 final class DemoDataManager
 {
     public const STORE_PREFIX = 'FOODEX-DEMO-B2C-';
+
     public const PRODUCT_PREFIX = 'FOODEX-DEMO-P';
+
     public const ORDER_PREFIX = 'FOODEX-DEMO-ORDER-';
+
     public const CUSTOMER_EMAIL_SUFFIX = '@demo.foodex.test';
+
     public const CATEGORY_PREFIX = 'foodex-demo-';
+
     public const UNIT_CODE = 'FOODEX-DEMO-PC';
 
     /** @return array<string, int> */
