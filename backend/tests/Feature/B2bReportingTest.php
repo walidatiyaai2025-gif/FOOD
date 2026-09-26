@@ -34,6 +34,14 @@ class B2bReportingTest extends TestCase
 
         $this->getJson('/api/v1/b2b/dashboard')->assertOk()->assertJsonPath('open_orders', 1)->assertJsonPath('purchase_total', 25)->assertJsonPath('outstanding_balance', 10)->assertJsonPath('top_products.0.sku', 'TOP-1');
         $this->getJson('/api/v1/b2b/reports/purchases')->assertOk()->assertJsonPath('data.0.orders_count', 1)->assertJsonPath('data.0.purchase_total', 25);
+        $this->getJson('/api/v1/b2b/products/top?limit=5')
+            ->assertOk()
+            ->assertJsonPath('data.0.rank', 1)
+            ->assertJsonPath('data.0.product_id', $product)
+            ->assertJsonPath('data.0.sku', 'TOP-1')
+            ->assertJsonPath('data.0.quantity', 2)
+            ->assertJsonPath('data.0.total', 25)
+            ->assertJsonPath('data.0.currency', 'KWD');
     }
 
     public function test_reporting_rejects_unapproved_account_and_invalid_date_range(): void
@@ -46,6 +54,7 @@ class B2bReportingTest extends TestCase
         [$active] = $this->buyer('report-active@example.test', 'active');
         Sanctum::actingAs($active);
         $this->getJson('/api/v1/b2b/reports/purchases?from=2026-09-25&to=2026-09-24')->assertUnprocessable();
+        $this->getJson('/api/v1/b2b/products/top?from=2026-09-25&to=2026-09-24')->assertUnprocessable();
     }
 
     private function buyer(string $email, string $status): array
