@@ -263,68 +263,14 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
   }
 
   Widget _buildSplash() => Scaffold(
-        backgroundColor: const Color(0xFF005C3F),
-        body: SafeArea(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Positioned(
-                left: -60,
-                bottom: 30,
-                child: Icon(
-                  Icons.eco_rounded,
-                  size: 280,
-                  color: Colors.white.withValues(alpha: 0.06),
-                ),
-              ),
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 92,
-                      height: 92,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      child: const Icon(
-                        Icons.shopping_bag_rounded,
-                        size: 52,
-                        color: Color(0xFF087347),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'FOODEX',
-                      key: const ValueKey('foodex-splash-logo'),
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      context.tr('customer.splash.subtitle'),
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.82)),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 22,
-                child: Text(
-                  context.tr('customer.splash.copyright'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.58),
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
+        backgroundColor: const Color(0xFF003223),
+        body: SizedBox.expand(
+          child: Image.asset(
+            'assets/branding/splash_full.png',
+            key: const ValueKey('foodex-splash-logo'),
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.high,
           ),
         ),
       );
