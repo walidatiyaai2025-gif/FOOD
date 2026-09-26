@@ -76,6 +76,69 @@ class NotificationAdministrationTest extends TestCase
             ->assertOk()->assertJsonPath('data.0.title', 'مرحبا')->assertJsonPath('data.0.read_at', null);
     }
 
+    public function test_management_dashboard_live_feed_tracks_unread_and_read_state(): void
+    {
+        $admin = $this->user('live-admin@example.test', 'en');
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $first = Notification::query()->create([
+            'channel' => 'in_app', 'type' => 'order',
+            'title' => 'طلب جديد', 'body' => 'تم إنشاء طلب',
+            'title_ar' => 'طلب جديد', 'title_en' => 'New order',
+            'body_ar' => 'تم إنشاء طلب', 'body_en' => 'An order was created',
+            'audience' => 'all', 'app' => 'all', 'target_channel' => 'all',
+            'status' => 'published', 'published_at' => now(),
+        ]);
+        $second = Notification::query()->create([
+            'channel' => 'in_app', 'type' => 'delivery',
+            'title' => 'تحديث التوصيل', 'body' => 'تم تحديث الحالة',
+            'title_ar' => 'تحديث التوصيل', 'title_en' => 'Delivery update',
+            'body_ar' => 'تم تحديث الحالة', 'body_en' => 'Delivery status changed',
+            'audience' => 'all', 'app' => 'all', 'target_channel' => 'all',
+            'status' => 'published', 'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->getJson('/admin/notifications/live')
+            ->assertOk()
+            ->assertJsonPath('meta.unread_count', 2)
+            ->assertJsonPath('data.0.title', 'Delivery update');
+
+        $this->actingAs($admin)->postJson("/admin/notifications/{$second->id}/read")
+            ->assertNoContent();
+        $this->actingAs($admin)->getJson("/admin/notifications/live?after_id={$first->id}")
+            ->assertOk()
+            ->assertJsonPath('meta.unread_count', 1)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.read', true);
+
+        $this->actingAs($admin)->postJson('/admin/notifications/read-all')->assertNoContent();
+        $this->actingAs($admin)->getJson('/admin/notifications/live')
+            ->assertOk()
+            ->assertJsonPath('meta.unread_count', 0);
+    }
+
+    public function test_management_live_feed_does_not_leak_user_targeted_notification(): void
+    {
+        $admin = $this->user('live-scope-admin@example.test');
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+        $other = $this->user('live-other@example.test');
+
+        Notification::query()->create([
+            'channel' => 'in_app', 'type' => 'general',
+            'title' => 'خاص', 'body' => 'خاص',
+            'title_ar' => 'خاص', 'title_en' => 'Private',
+            'body_ar' => 'خاص', 'body_en' => 'Private body',
+            'audience' => 'user', 'user_id' => $other->id,
+            'app' => 'all', 'target_channel' => 'all',
+            'status' => 'published', 'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->getJson('/admin/notifications/live')
+            ->assertOk()
+            ->assertJsonCount(0, 'data')
+            ->assertJsonPath('meta.unread_count', 0);
+    }
+
     public function test_b2b_customer_cannot_receive_b2c_targeted_notification(): void
     {
         $user = $this->user('b2b-notification@example.test');
