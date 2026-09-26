@@ -51,41 +51,45 @@ void main() {
     const _CaptureCase('01_Mobile/B2C_Customer/12_الملف_الشخصي_والمفضلة__populated__ar.png', '/profile', session: _b2c),
   ];
 
-  for (final item in cases) {
-    testWidgets('capture ${item.path}', (tester) async {
-      tester.view.physicalSize = const Size(430, 932);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+  for (final locale in const [Locale('ar'), Locale('en')]) {
+    for (final item in cases) {
+      final localeCode = locale.languageCode;
+      final path = item.path.replaceAll('__ar.png', '__$localeCode.png');
+      testWidgets('capture $path', (tester) async {
+        tester.view.physicalSize = const Size(430, 932);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      final boundaryKey = GlobalKey();
-      await tester.pumpWidget(
-        RepaintBoundary(
-          key: boundaryKey,
-          child: FoodexCustomerApp(
-            key: ValueKey(item.route),
-            session: item.session ?? const CustomerSession.guest(),
-            initialRoute: item.route,
-            b2bApi: const _EvidenceB2bApi(),
-            b2cCatalogApi: const _EvidenceCatalogApi(),
-            b2cAccountApi: const _EvidenceAccountApi(),
-            actionApi: const _EvidenceActionApi(),
-            locale: const Locale('ar'),
+        final boundaryKey = GlobalKey();
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundaryKey,
+            child: FoodexCustomerApp(
+              key: ValueKey('${item.route}-$localeCode'),
+              session: item.session ?? const CustomerSession.guest(),
+              initialRoute: item.route,
+              b2bApi: const _EvidenceB2bApi(),
+              b2cCatalogApi: const _EvidenceCatalogApi(),
+              b2cAccountApi: const _EvidenceAccountApi(),
+              actionApi: const _EvidenceActionApi(),
+              locale: locale,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-      final image = await boundary.toImage(pixelRatio: 1);
-      final data = await image.toByteData(format: ui.ImageByteFormat.png);
-      final file = File('../../ScreenShots/${item.path}');
-      await file.parent.create(recursive: true);
-      await file.writeAsBytes(data!.buffer.asUint8List(), flush: true);
-      expect(await file.length(), greaterThan(1000));
-    });
+        final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final image = await boundary.toImage(pixelRatio: 1);
+        final data = await image.toByteData(format: ui.ImageByteFormat.png);
+        final file = File('../../ScreenShots/$path');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(data!.buffer.asUint8List(), flush: true);
+        expect(await file.length(), greaterThan(1000));
+      });
+    }
   }
 }
 
