@@ -104,20 +104,9 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       case CustomerRoutePaths.home:
         return storeId == null ? null : _loadHome(storeId);
       case CustomerRoutePaths.categories:
-        return (
-          context.tr('customer.home.categories'),
-          context.tr('customer.products.subtitle'),
-          [
-            if (_storeId == null)
-              _storeRequired()
-            else
-              _remoteBuilder(_buildCategories, context.tr('customer.empty')),
-          ],
-        );
+        return storeId == null ? null : widget.catalogApi.categories(storeId);
       case CustomerRoutePaths.offers:
         return storeId == null ? null : widget.catalogApi.offers(storeId);
-      case CustomerRoutePaths.categories:
-        return storeId == null ? null : widget.catalogApi.categories(storeId);
       case CustomerRoutePaths.products:
         return storeId == null
             ? null
@@ -143,50 +132,13 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       case CustomerRoutePaths.favorites:
         return widget.accountApi.favorites();
       case CustomerRoutePaths.notifications:
-        return widget.accountApi.notifications(locale: WidgetsBinding.instance.platformDispatcher.locale.languageCode);
+        return widget.accountApi.notifications(
+          locale: WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+        );
       case CustomerRoutePaths.addresses:
         return widget.accountApi.addresses();
       case CustomerRoutePaths.settings:
         return widget.accountApi.profile();
-      case CustomerRoutePaths.orders:
-        return (
-          context.tr('customer.profile.orders'),
-          context.tr('customer.orders.subtitle'),
-          [_remoteBuilder(_buildOrders, context.tr('customer.orders.empty'))],
-        );
-      case CustomerRoutePaths.favorites:
-        return (
-          context.tr('customer.profile.favorites'),
-          context.tr('customer.favorites.subtitle'),
-          [_remoteBuilder(_buildFavorites, context.tr('customer.favorites.empty'))],
-        );
-      case CustomerRoutePaths.notifications:
-        return (
-          context.tr('customer.notifications.title'),
-          context.tr('customer.notifications.subtitle'),
-          [_remoteBuilder(_buildNotifications, context.tr('customer.notifications.empty'))],
-        );
-      case CustomerRoutePaths.addresses:
-        return (
-          context.tr('customer.profile.addresses'),
-          context.tr('customer.addresses.subtitle'),
-          [
-            FilledButton.icon(
-              key: const ValueKey('b2c-address-add'),
-              onPressed: _addAddress,
-              icon: const Icon(Icons.add_location_alt_outlined),
-              label: Text(context.tr('customer.addresses.add')),
-            ),
-            const SizedBox(height: 12),
-            _remoteBuilder(_buildAddresses, context.tr('customer.addresses.empty')),
-          ],
-        );
-      case CustomerRoutePaths.settings:
-        return (
-          context.tr('customer.settings.title'),
-          context.tr('customer.settings.subtitle'),
-          [_remoteBuilder(_buildSettings, context.tr('customer.empty'))],
-        );
       case CustomerRoutePaths.profile:
         return _loadProfile();
       default:
@@ -423,6 +375,17 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
               _remoteBuilder(_buildHome, context.tr('customer.empty')),
           ],
         );
+      case CustomerRoutePaths.categories:
+        return (
+          context.tr('customer.home.categories'),
+          context.tr('customer.products.subtitle'),
+          [
+            if (_storeId == null)
+              _storeRequired()
+            else
+              _remoteBuilder(_buildCategories, context.tr('customer.empty')),
+          ],
+        );
       case CustomerRoutePaths.offers:
         return (
           context.tr('customer.offers.title'),
@@ -469,7 +432,10 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              _remoteBuilder(_buildProducts, context.tr('customer.products.empty')),
+              _remoteBuilder(
+                _buildProducts,
+                context.tr('customer.products.empty'),
+              ),
             ],
           ],
         );
@@ -526,6 +492,53 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           context.tr('customer.tracking.title'),
           context.tr('customer.tracking.subtitle'),
           [_remoteBuilder(_buildOrder, context.tr('customer.empty'))],
+        );
+      case CustomerRoutePaths.orders:
+        return (
+          context.tr('customer.profile.orders'),
+          context.tr('customer.orders.subtitle'),
+          [_remoteBuilder(_buildOrders, context.tr('customer.orders.empty'))],
+        );
+      case CustomerRoutePaths.favorites:
+        return (
+          context.tr('customer.profile.favorites'),
+          context.tr('customer.favorites.subtitle'),
+          [_remoteBuilder(_buildFavorites, context.tr('customer.favorites.empty'))],
+        );
+      case CustomerRoutePaths.notifications:
+        return (
+          context.tr('customer.notifications.title'),
+          context.tr('customer.notifications.subtitle'),
+          [
+            _remoteBuilder(
+              _buildNotifications,
+              context.tr('customer.notifications.empty'),
+            ),
+          ],
+        );
+      case CustomerRoutePaths.addresses:
+        return (
+          context.tr('customer.profile.addresses'),
+          context.tr('customer.addresses.subtitle'),
+          [
+            FilledButton.icon(
+              key: const ValueKey('b2c-address-add'),
+              onPressed: _addAddress,
+              icon: const Icon(Icons.add_location_alt_outlined),
+              label: Text(context.tr('customer.addresses.add')),
+            ),
+            const SizedBox(height: 12),
+            _remoteBuilder(
+              _buildAddresses,
+              context.tr('customer.addresses.empty'),
+            ),
+          ],
+        );
+      case CustomerRoutePaths.settings:
+        return (
+          context.tr('customer.settings.title'),
+          context.tr('customer.settings.subtitle'),
+          [_remoteBuilder(_buildSettings, context.tr('customer.empty'))],
         );
       case CustomerRoutePaths.profile:
         return (
