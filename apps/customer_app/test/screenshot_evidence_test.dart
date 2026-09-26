@@ -82,8 +82,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 150));
 
-        await tester.runAsync(() async {
-          final boundary =
+        final boundary =
               boundaryKey.currentContext!.findRenderObject()!
                   as RenderRepaintBoundary;
           final image = await boundary.toImage(pixelRatio: 1);
@@ -91,8 +90,7 @@ void main() {
           final file = File('../../ScreenShots/$path');
           file.parent.createSync(recursive: true);
           file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
-          expect(file.lengthSync(), greaterThan(1000));
-        });
+        expect(file.lengthSync(), greaterThan(1000));
       });
     }
   }
