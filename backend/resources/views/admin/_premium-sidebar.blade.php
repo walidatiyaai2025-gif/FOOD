@@ -93,8 +93,8 @@
             <a class="premium-nav-item {{ ($navContext ?? '') === $item['key'] ? 'active' : '' }}" href="{{ route($item['route'], $item['params']) }}" @if(($navContext ?? '') === $item['key']) aria-current="page" @endif>
                 @include('admin._premium-icon',['name'=>$item['icon']])
                 <span class="premium-nav-copy">
-                    <strong>{{ __($item['premium_label']) }}</strong>
-                    <small lang="{{ $secondaryLocale }}">{{ __($item['premium_label'], [], $secondaryLocale) }}</small>
+                    <strong>{{ __($item['label']) }}</strong>
+                    <small lang="{{ $secondaryLocale }}">{{ __($item['label'], [], $secondaryLocale) }}</small>
                 </span>
                 <span class="premium-nav-chevron" aria-hidden="true">‹</span>
             </a>
