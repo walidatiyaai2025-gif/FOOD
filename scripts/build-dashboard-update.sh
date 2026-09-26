@@ -29,7 +29,7 @@ write_manifest() {
   local reason="$5"
   local notes="$6"
 
-  AVAILABLE="$available"   PACKAGE_SHA="$sha"   CONTAINS_MIGRATIONS="$migrations"   REQUIRES_FULL_REDEPLOY="$full_redeploy"   REASON="$reason"   RELEASE_NOTES="$notes"   MINIMUM_VERSION="$minimum_version"   TARGET_VERSION="$target_version"   python3 - <<'PY'
+  AVAILABLE="$available"   PACKAGE_SHA="$sha"   CONTAINS_MIGRATIONS="$migrations"   REQUIRES_FULL_REDEPLOY="$full_redeploy"   REASON="$reason"   RELEASE_NOTES="$notes"   MINIMUM_VERSION="$minimum_version"   TARGET_VERSION="$target_version"   MANIFEST_PATH="$manifest_path"   python3 - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -53,7 +53,7 @@ payload = {
         "release_notes": os.environ["RELEASE_NOTES"],
     },
 }
-Path("Release/Updates/FOODEX-Update.json").write_text(
+Path(os.environ["MANIFEST_PATH"]).write_text(
     json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
     encoding="utf-8",
 )
@@ -99,6 +99,12 @@ release_paths=(
 )
 
 git archive --format=zip --output="$zip_path" HEAD "${release_paths[@]}"
+
+if unzip -Z1 "$zip_path" | grep -Eq '(^|/)(\.env$|vendor/|storage/|\.git/)'; then
+  echo "Generated update package contains a protected runtime path." >&2
+  rm -f "$zip_path"
+  exit 1
+fi
 
 sha="$(sha256sum "$zip_path" | awk '{print $1}')"
 write_manifest true "$sha" "$contains_migrations" false "" "$notes"
