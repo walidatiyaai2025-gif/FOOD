@@ -31,13 +31,13 @@ return [
     'audience_options' => [
         'all' => 'الجميع',
         'customer' => 'العملاء',
-        'dashboard' => 'لوحة الإدارة',
         'driver' => 'السائقون',
         'user' => 'مستخدم محدد',
     ],
     'app_options' => [
         'all' => 'كل التطبيقات',
         'customer' => 'تطبيق العميل',
+        'dashboard' => 'لوحة الإدارة',
         'driver' => 'تطبيق السائق',
     ],
     'channel_options' => [
