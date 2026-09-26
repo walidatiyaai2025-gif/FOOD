@@ -169,6 +169,46 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('السلة فارغة'), findsOneWidget);
   });
+  testWidgets('B2C account offline state is explicit and retryable', (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: '/cart?store=7',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: const _ErrorAccountApi(
+          B2cAccountException('network_unavailable'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2c-offline')), findsOneWidget);
+    expect(find.textContaining('تعذر الاتصال'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2c-retry')), findsOneWidget);
+  });
+
+  testWidgets('B2C expired session clears auth and exposes sign-in recovery', (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: const CustomerSession.authenticated(
+          CustomerChannel.b2c,
+          accessToken: 'expired-token',
+        ),
+        initialRoute: '/profile',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: const _ErrorAccountApi(
+          B2cAccountException('session_expired'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2c-session-expired')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('b2c-sign-in-recovery')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('customer-login-email')), findsOneWidget);
+    expect(find.byKey(const ValueKey('customer-login-submit')), findsOneWidget);
+  });
 }
 
 class _FakeCatalogApi implements B2cCatalogApi {
@@ -296,4 +336,34 @@ class _FakeAccountApi implements B2cAccountApi {
           {'id': 42, 'name': 'Tomato Box'},
         ],
       };
+}
+
+
+class _ErrorAccountApi implements B2cAccountApi {
+  const _ErrorAccountApi(this.error);
+
+  final B2cAccountException error;
+
+  Never _fail() => throw error;
+
+  @override
+  Future<Object?> cart({int? storeId}) async => _fail();
+
+  @override
+  Future<Object?> updateCartItem(int itemId, double quantity) async => _fail();
+
+  @override
+  Future<void> removeCartItem(int itemId) async => _fail();
+
+  @override
+  Future<Object?> order(int orderId) async => _fail();
+
+  @override
+  Future<Object?> profile() async => _fail();
+
+  @override
+  Future<Object?> addresses() async => _fail();
+
+  @override
+  Future<Object?> favorites() async => _fail();
 }
