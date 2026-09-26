@@ -276,6 +276,25 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /stores/{store}/banners:
+    get:
+      tags: [Catalog]
+      summary: List active storefront banners for a B2C store
+      operationId: listStoreBanners
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+      responses:
+        "200":
+          description: Store banner collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BannerCollection"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /products/{product}:
     get:
       tags: [Catalog]
@@ -1472,6 +1491,9 @@ components:
           type: string
         is_active:
           type: boolean
+        image_url:
+          type: [string, "null"]
+          format: uri-reference
 
     ProductSummary:
       type: object
@@ -1495,6 +1517,9 @@ components:
         currency:
           type: string
           enum: [KWD]
+        image_url:
+          type: [string, "null"]
+          format: uri-reference
 
     Product:
       allOf:
@@ -1530,6 +1555,23 @@ components:
           format: date-time
         is_active:
           type: boolean
+
+    Banner:
+      type: object
+      required: [id, title, sort_order]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        image_url:
+          type: [string, "null"]
+          format: uri-reference
+        target_url:
+          type: [string, "null"]
+          format: uri-reference
+        sort_order:
+          type: integer
 
     CartItem:
       type: object
@@ -2126,6 +2168,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Offer"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    BannerCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Banner"
         meta:
           $ref: "#/components/schemas/PaginationMeta"
 
