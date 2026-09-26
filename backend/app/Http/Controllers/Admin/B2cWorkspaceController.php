@@ -45,7 +45,7 @@ class B2cWorkspaceController extends Controller
                 $request->filled('q') ? $request->string('q')->toString() : null,
             )
             : null;
-        $moduleData = in_array($module, ['products', 'inventory', 'orders', 'customers'], true)
+        $moduleData = in_array($module, ['products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content'], true)
             ? $this->moduleData($module, $storeIds)
             : null;
 
@@ -152,6 +152,91 @@ class B2cWorkspaceController extends Controller
                         'orders' => (int) $row->orders_count,
                         'spent' => 'KWD '.number_format((float) $row->total_spent, 3),
                         'last_order' => (string) $row->last_order,
+                    ])->all(),
+            ],
+            'promotions' => [
+                'columns' => ['name', 'store', 'type', 'value', 'period', 'status'],
+                'rows' => DB::table('promotions')
+                    ->join('stores', 'stores.id', '=', 'promotions.store_id')
+                    ->whereIn('promotions.store_id', $storeIds)
+                    ->orderByDesc('promotions.created_at')
+                    ->limit(100)
+                    ->get([
+                        'promotions.name',
+                        'stores.name as store',
+                        'promotions.type',
+                        'promotions.value',
+                        'promotions.starts_at',
+                        'promotions.ends_at',
+                        'promotions.is_active as status',
+                    ])->map(fn ($row) => [
+                        'name' => $row->name,
+                        'store' => $row->store,
+                        'type' => $row->type,
+                        'value' => $row->value === null ? '-' : number_format((float) $row->value, 3),
+                        'period' => trim(($row->starts_at ?: '-').' → '.($row->ends_at ?: '-')),
+                        'status' => (bool) $row->status,
+                    ])->all(),
+            ],
+            'drivers' => [
+                'columns' => ['name', 'driver_type', 'order', 'assignment_status', 'availability'],
+                'rows' => DB::table('driver_assignments')
+                    ->join('orders', 'orders.id', '=', 'driver_assignments.order_id')
+                    ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+                    ->join('users', 'users.id', '=', 'drivers.user_id')
+                    ->whereIn('orders.store_id', $storeIds)
+                    ->where('orders.channel', 'b2c')
+                    ->orderByDesc('driver_assignments.created_at')
+                    ->limit(100)
+                    ->get([
+                        'users.name',
+                        'drivers.driver_type',
+                        'drivers.is_available',
+                        'orders.order_number as order_number',
+                        'driver_assignments.status as assignment_status',
+                    ])->map(fn ($row) => [
+                        'name' => $row->name,
+                        'driver_type' => $row->driver_type,
+                        'order' => $row->order_number,
+                        'assignment_status' => $row->assignment_status,
+                        'availability' => (bool) $row->is_available,
+                    ])->all(),
+            ],
+            'storefront' => [
+                'columns' => ['store', 'products', 'banners', 'status'],
+                'rows' => DB::table('stores')
+                    ->whereIn('stores.id', $storeIds)
+                    ->orderBy('stores.name')
+                    ->get(['stores.id', 'stores.name', 'stores.is_active'])
+                    ->map(fn ($store) => [
+                        'store' => $store->name,
+                        'products' => DB::table('store_products')->where('store_id', $store->id)->where('is_active', true)->count(),
+                        'banners' => DB::table('banners')->where('store_id', $store->id)->where('is_active', true)->count(),
+                        'status' => (bool) $store->is_active,
+                    ])->all(),
+            ],
+            'content' => [
+                'columns' => ['title', 'store', 'image', 'target', 'sort_order', 'status'],
+                'rows' => DB::table('banners')
+                    ->join('stores', 'stores.id', '=', 'banners.store_id')
+                    ->whereIn('banners.store_id', $storeIds)
+                    ->orderBy('banners.sort_order')
+                    ->orderByDesc('banners.id')
+                    ->limit(100)
+                    ->get([
+                        'banners.title',
+                        'stores.name as store',
+                        'banners.image_path as image',
+                        'banners.target_url as target',
+                        'banners.sort_order',
+                        'banners.is_active as status',
+                    ])->map(fn ($row) => [
+                        'title' => $row->title,
+                        'store' => $row->store,
+                        'image' => $row->image,
+                        'target' => $row->target ?: '-',
+                        'sort_order' => (int) $row->sort_order,
+                        'status' => (bool) $row->status,
                     ])->all(),
             ],
             default => ['columns' => [], 'rows' => []],
