@@ -1,15 +1,19 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
+import 'package:foodex_driver_app/core/theme/foodex_theme.dart';
 import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(_loadEvidenceFont);
 
   for (final locale in const [Locale('ar'), Locale('en')]) {
     final localeCode = locale.languageCode;
@@ -33,6 +37,7 @@ void main() {
       await _captureApp(
         tester,
         FoodexDriverApp(
+          theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
           authRepository: const _EvidenceAuthRepository(),
           locale: locale,
         ),
@@ -67,6 +72,7 @@ void main() {
         await _captureApp(
           tester,
           FoodexDriverApp(
+          theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
             initialSession: item.session,
             initialRoute: item.route,
             locale: locale,
@@ -85,6 +91,7 @@ void main() {
         RepaintBoundary(
           key: key,
           child: FoodexDriverApp(
+          theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
             initialSession: b2cSession,
             initialRoute: '/driver/b2c/deliveries',
             locale: locale,
@@ -110,6 +117,7 @@ void main() {
       await _captureApp(
         tester,
         FoodexDriverApp(
+          theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
           initialSession: b2cSession,
           initialRoute: '/driver/b2c/deliveries',
           locale: locale,
@@ -125,6 +133,7 @@ void main() {
       await _captureApp(
         tester,
         FoodexDriverApp(
+          theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
           initialSession: b2cSession,
           initialRoute: '/driver/b2c/deliveries',
           locale: locale,
@@ -135,6 +144,38 @@ void main() {
       );
     });
   }
+}
+
+
+const _evidenceFontFamily = 'FoodexEvidence';
+
+Future<void> _loadEvidenceFont() async {
+  const candidates = <String>[
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf',
+    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+    'C:/Windows/Fonts/arial.ttf',
+  ];
+
+  File? fontFile;
+  for (final path in candidates) {
+    final candidate = File(path);
+    if (candidate.existsSync()) {
+      fontFile = candidate;
+      break;
+    }
+  }
+
+  if (fontFile == null) {
+    throw StateError(
+      'No Arabic-capable evidence font found. Install DejaVu Sans, Noto Sans Arabic, or Arial before screenshot capture.',
+    );
+  }
+
+  final bytes = await fontFile.readAsBytes();
+  final loader = FontLoader(_evidenceFontFamily)
+    ..addFont(Future<ByteData>.value(ByteData.sublistView(bytes)));
+  await loader.load();
 }
 
 Future<void> _setup(WidgetTester tester) async {
