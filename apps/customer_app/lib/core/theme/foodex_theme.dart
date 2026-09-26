@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 abstract final class FoodexBrand {
   static const green = Color(0xFF158A3A);
@@ -76,7 +77,7 @@ abstract final class FoodexBrand {
 }
 
 abstract final class FoodexTheme {
-  static ThemeData light({String? fontFamily}) {
+  static ThemeData light() {
     const scheme = ColorScheme.light(
       primary: FoodexBrand.green,
       onPrimary: Colors.white,
@@ -88,10 +89,18 @@ abstract final class FoodexTheme {
       onError: Colors.white,
     );
 
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
-      fontFamily: fontFamily,
       colorScheme: scheme,
+    );
+    final tajawalTextTheme = GoogleFonts.tajawalTextTheme(base.textTheme).apply(
+      bodyColor: FoodexBrand.ink,
+      displayColor: FoodexBrand.ink,
+    );
+
+    return base.copyWith(
+      textTheme: tajawalTextTheme,
+      primaryTextTheme: GoogleFonts.tajawalTextTheme(base.primaryTextTheme),
       scaffoldBackgroundColor: FoodexBrand.background,
       cardColor: FoodexBrand.surface,
       dividerColor: FoodexBrand.border,
