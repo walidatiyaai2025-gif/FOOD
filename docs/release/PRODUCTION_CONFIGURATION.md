@@ -31,9 +31,25 @@ Use one Firebase project for the production environment:
 - Android/iOS app nickname: **FOODEX Customer** for the Customer binary
 - Android/iOS app nickname: **FOODEX Driver** for the Driver binary
 
-The Firebase Android package names and iOS bundle IDs must exactly match the final
-approved native application IDs. They are intentionally not invented in this repository.
-Track the client integration in #210.
+Final native identities for the first production release:
+
+- Customer Android applicationId / iOS bundle ID: `com.fiftysolution.foodex.customer`
+- Driver Android applicationId / iOS bundle ID: `com.fiftysolution.foodex.driver`
+
+These identifiers are enforced in Customer/Driver CI after Flutter scaffolding and are
+the package/bundle IDs to register in Firebase.
+
+Firebase client values are public application configuration but remain external so one
+repository can target controlled environments. Supply each mobile build with:
+
+- `FOODEX_FIREBASE_API_KEY`
+- `FOODEX_FIREBASE_APP_ID`
+- `FOODEX_FIREBASE_MESSAGING_SENDER_ID`
+- `FOODEX_FIREBASE_PROJECT_ID`
+
+Do not commit service-account private keys, OAuth access tokens, APNs keys, signing
+keystores, Apple certificates, or provisioning profiles. The mobile client disables
+Firebase gracefully when the four Firebase build values are absent.
 
 ## Dashboard live notifications
 

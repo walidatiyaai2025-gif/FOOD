@@ -7,4 +7,9 @@ abstract final class FoodexEnvironment {
     'FOODEX_API_BASE_URL',
     defaultValue: 'https://foodex.50sols.com',
   );
+
+  static const pushEnvironment = String.fromEnvironment(
+    'FOODEX_PUSH_ENVIRONMENT',
+    defaultValue: 'production',
+  );
 }

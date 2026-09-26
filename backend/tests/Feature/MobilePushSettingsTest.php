@@ -157,6 +157,81 @@ class MobilePushSettingsTest extends TestCase
         ]);
     }
 
+    public function test_ios_fcm_device_uses_firebase_http_v1(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->put('/admin/settings/mobile/push', [
+            'app' => 'customer',
+            'platform' => 'ios',
+            'environment' => 'production',
+            'enabled' => '1',
+            'credentials_json' => json_encode(
+                ['project_id' => 'foodex-prod', 'access_token' => 'ios-fcm-access-token'],
+                JSON_THROW_ON_ERROR,
+            ),
+            'default_sound' => 'default',
+            'default_category' => 'orders',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('push_provider_settings', [
+            'app' => 'customer',
+            'platform' => 'ios',
+            'environment' => 'production',
+            'provider' => 'firebase',
+            'enabled' => 1,
+        ]);
+
+        $customer = User::query()->create([
+            'name' => 'iOS Customer',
+            'email' => 'push-ios@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        Customer::query()->create([
+            'user_id' => $customer->id,
+            'type' => 'b2c',
+            'name' => 'iOS Customer',
+            'email' => $customer->email,
+        ]);
+
+        Sanctum::actingAs($customer);
+        $device = $this->postJson('/api/v1/push/devices', [
+            'app' => 'customer',
+            'platform' => 'ios',
+            'environment' => 'production',
+            'token' => 'ios-fcm-token-123',
+        ])->assertCreated()->json('data.id');
+
+        Http::fake([
+            'fcm.googleapis.com/*' => Http::response(
+                ['name' => 'projects/foodex-prod/messages/ios-1'],
+                200,
+            ),
+        ]);
+
+        $this->actingAs($admin)->post('/admin/settings/mobile/test-push', [
+            'device_id' => $device,
+            'title_ar' => 'اختبار iOS',
+            'title_en' => 'iOS Test',
+            'body_ar' => 'رسالة',
+            'body_en' => 'Message',
+        ])->assertRedirect();
+
+        Http::assertSent(
+            fn ($request) => str_contains($request->url(), 'fcm.googleapis.com/v1/projects/foodex-prod/messages:send')
+                && data_get($request->data(), 'message.token') === 'ios-fcm-token-123'
+                && data_get($request->data(), 'message.apns.payload.aps.category') === 'orders'
+        );
+
+        $this->assertDatabaseHas('push_delivery_logs', [
+            'device_id' => $device,
+            'platform' => 'ios',
+            'status' => 'sent',
+        ]);
+    }
+
     public function test_non_privileged_admin_is_denied(): void
     {
         $user = User::query()->create([

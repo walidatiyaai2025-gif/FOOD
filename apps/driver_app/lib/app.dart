@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -5,6 +7,7 @@ import 'core/api/http_driver_api.dart';
 import 'core/auth/driver_session.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/localization/driver_translations.dart';
+import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/auth/driver_login.dart';
 import 'features/tasks/driver_journey.dart';
@@ -26,6 +29,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.assignmentRepositoryFactory,
     this.initialSession,
     this.theme,
+    this.pushService,
   });
 
   final String initialRoute;
@@ -37,6 +41,7 @@ class FoodexDriverApp extends StatefulWidget {
   final DriverAssignmentRepositoryFactory? assignmentRepositoryFactory;
   final DriverSession? initialSession;
   final ThemeData? theme;
+  final DriverFirebasePushService? pushService;
 
   @override
   State<FoodexDriverApp> createState() => _FoodexDriverAppState();
@@ -45,6 +50,10 @@ class FoodexDriverApp extends StatefulWidget {
 class _FoodexDriverAppState extends State<FoodexDriverApp> {
   late Map<String, String> _translations;
   DriverSession? _session;
+  final GlobalKey<NavigatorState> _driverNavigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  StreamSubscription<void>? _pushOpenSubscription;
+  StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
 
   String get _baseUrl =>
       widget.apiBaseUrl ??
@@ -56,6 +65,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     _session = widget.initialSession;
     _translations = Map<String, String>.from(widget.translationOverrides);
     _loadRemoteTranslations();
+    _configurePush();
   }
 
   @override
@@ -65,6 +75,15 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
         oldWidget.translationOverrides != widget.translationOverrides) {
       _translations = Map<String, String>.from(widget.translationOverrides);
       _loadRemoteTranslations();
+    }
+    if (oldWidget.initialSession != widget.initialSession && widget.initialSession != null) {
+      _session = widget.initialSession;
+      _bindPushSession();
+    }
+    if (oldWidget.pushService != widget.pushService) {
+      unawaited(_pushOpenSubscription?.cancel());
+      unawaited(_pushAlertSubscription?.cancel());
+      _configurePush();
     }
   }
 
@@ -100,16 +119,54 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     }
   }
 
+  void _configurePush() {
+    final service = widget.pushService;
+    if (service == null) return;
+    _pushOpenSubscription = service.opens.listen((_) => _openFromPush());
+    _pushAlertSubscription = service.alerts.listen(_showPushAlert);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (service.takePendingOpen()) _openFromPush();
+    });
+    _bindPushSession();
+  }
+
+  void _bindPushSession() {
+    final service = widget.pushService;
+    final session = _session;
+    if (service != null && session != null) {
+      unawaited(service.bindSession(session.token));
+    }
+  }
+
+  void _openFromPush() {
+    final session = _session;
+    if (session == null) return;
+    final route = session.channel == DriverChannel.b2c
+        ? DriverRoutes.b2cDeliveries
+        : DriverRoutes.b2bDeliveries;
+    _driverNavigatorKey.currentState?.pushNamed(route);
+  }
+
+  void _showPushAlert(DriverPushAlert alert) {
+    final message = alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
+    _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(message)));
+  }
+
   void _authenticated(DriverSession session) {
     if (mounted) setState(() => _session = session);
+    _bindPushSession();
   }
 
   void _sessionExpired() {
+    final service = widget.pushService;
+    if (service != null) unawaited(service.revokeSession());
     if (mounted) setState(() => _session = null);
   }
 
   Future<void> _logout() async {
     final session = _session;
+    final service = widget.pushService;
+    if (service != null) unawaited(service.revokeSession());
     if (mounted) setState(() => _session = null);
     if (session == null) return;
     final repository = _authRepository();
@@ -119,6 +176,13 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     } catch (_) {
       // Local logout is immediate; remote token expiry remains server-controlled.
     }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_pushOpenSubscription?.cancel());
+    unawaited(_pushAlertSubscription?.cancel());
+    super.dispose();
   }
 
   @override
@@ -139,6 +203,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
           );
 
     return MaterialApp(
+      scaffoldMessengerKey: _messengerKey,
       debugShowCheckedModeBanner: false,
       title: 'FOODEX Driver',
       theme: widget.theme ?? FoodexTheme.light(),
@@ -162,6 +227,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
           : assignments == null
               ? const _DriverRuntimeConfigurationError()
               : Navigator(
+                  key: _driverNavigatorKey,
                   initialRoute: widget.initialRoute,
                   onGenerateRoute: navigator!.onGenerateRoute,
                 ),

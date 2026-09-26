@@ -8,5 +8,10 @@ Issue #98 centralizes Customer and Driver runtime/store metadata and push delive
 - Settings mutations and test sends are audited without credentials or device-token values.
 - GET /api/v1/mobile/runtime returns non-secret maintenance, update, store-link, release-note, deep-link, readiness and push-capability metadata.
 - Authenticated clients register/revoke devices through POST /api/v1/push/devices and DELETE /api/v1/push/devices/{device}.
-- Android delivery uses Firebase HTTP v1; iOS delivery uses APNs bearer-token requests.
+- Android and iOS device tokens are Firebase Cloud Messaging registration tokens. Both platforms deliver through Firebase HTTP v1; Firebase routes iOS messages through the configured APNs integration.
 - Publishing a notification with push/both dispatches through this provider path for matching registered devices.
+
+- Customer native identity: `com.fiftysolution.foodex.customer`; Driver native identity: `com.fiftysolution.foodex.driver`.
+- Android creates the `foodex_updates` notification channel; iOS uses the production push entitlement and Firebase/APNs bridge.
+- Client token refresh re-registers the device; logout/session teardown revokes the current server device record.
+- Notification taps are constrained to approved in-app destinations and foreground pushes surface in-app without bypassing authorization.
