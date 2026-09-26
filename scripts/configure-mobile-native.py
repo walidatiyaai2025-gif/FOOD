@@ -33,7 +33,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BRAND_ROOT = REPO_ROOT / 'assets' / 'mobile_brand'
 APP_ICON = BRAND_ROOT / 'app_icon_1024.png'
 APP_ICON_FOREGROUND = BRAND_ROOT / 'app_icon_foreground_1024.png'
-SPLASH_IMAGE = BRAND_ROOT / 'splash_master_1290x2796.png'
+SPLASH_IMAGE = BRAND_ROOT / 'splash_master.png'
 SPLASH_BACKGROUND = '#003223'
 SPLASH_ACCENT = '#92D853'
 
@@ -339,7 +339,7 @@ def _write_ios_splash(ios: Path) -> None:
         ET.SubElement(
             resources,
             'image',
-            {'name': 'FoodexSplash', 'width': '1290', 'height': '2796'},
+            {'name': 'FoodexSplash', 'width': '432', 'height': '936'},
         )
 
     ET.indent(tree, space='    ')
