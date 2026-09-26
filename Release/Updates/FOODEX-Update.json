@@ -1,19 +1,19 @@
 {
   "schema_version": 1,
-  "available": false,
-  "package": null,
-  "target_version": "1.0.0",
+  "available": true,
+  "package": "FOODEX-Update.zip",
+  "target_version": "1.0.1",
   "minimum_current_version": "1.0.0",
-  "sha256": null,
+  "sha256": "5f087a4d687a604d469ef6e13121269bebcf9281015e56f05abeff19525c36d3",
   "contains_migrations": false,
   "requires_full_redeploy": false,
-  "reason": "No newer server update exists yet. This is the first-install baseline.",
-  "release_notes": "fix: repair trial distribution workflow startup (#221)",
+  "reason": null,
+  "release_notes": "feat(mobile): finalize FOODEX branding and premium typography (#225)",
   "dashboard_fields": {
-    "target_version": "1.0.0",
+    "target_version": "1.0.1",
     "minimum_current_version": "1.0.0",
-    "sha256": "",
+    "sha256": "5f087a4d687a604d469ef6e13121269bebcf9281015e56f05abeff19525c36d3",
     "contains_migrations": false,
-    "release_notes": "fix: repair trial distribution workflow startup (#221)"
+    "release_notes": "feat(mobile): finalize FOODEX branding and premium typography (#225)"
   }
 }
