@@ -38,6 +38,8 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
   final _search = TextEditingController();
   late Future<Object?>? _remote;
   Timer? _splashTimer;
+  String _locale = 'ar';
+  bool _dependenciesReady = false;
 
   int? get _categoryId => int.tryParse(Uri.parse(widget.location).queryParameters['category'] ?? '');
   String? get _query => Uri.parse(widget.location).queryParameters['q'];
@@ -66,6 +68,21 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
     _search.text = _query ?? '';
     _remote = _load();
     _scheduleSplash();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextLocale = Localizations.localeOf(context).languageCode;
+    if (_dependenciesReady &&
+        nextLocale != _locale &&
+        widget.definition.pattern == CustomerRoutePaths.notifications) {
+      _locale = nextLocale;
+      _remote = _load();
+    } else {
+      _locale = nextLocale;
+    }
+    _dependenciesReady = true;
   }
 
   @override
@@ -132,9 +149,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       case CustomerRoutePaths.favorites:
         return widget.accountApi.favorites();
       case CustomerRoutePaths.notifications:
-        return widget.accountApi.notifications(
-          locale: WidgetsBinding.instance.platformDispatcher.locale.languageCode,
-        );
+        return widget.accountApi.notifications(locale: _locale);
       case CustomerRoutePaths.addresses:
         return widget.accountApi.addresses();
       case CustomerRoutePaths.settings:
@@ -989,7 +1004,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         await widget.accountApi.updateProfile({
           'name': name.text.trim(),
           'email': email.text.trim(),
-          'locale': WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+          'locale': _locale,
         });
         _reload();
       } catch (_) {
