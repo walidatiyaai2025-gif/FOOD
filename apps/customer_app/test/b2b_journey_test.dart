@@ -61,10 +61,7 @@ void main() {
 
     expect(actionApi.lastStoreId, 7);
     expect(actionApi.lastProductId, 42);
-    expect(
-      find.text('/b2b/cart?store=7'),
-      findsOneWidget,
-    );
+    expect(find.text('سلة الجملة'), findsOneWidget);
     expect(api.lastPath, '/api/v1/cart?store=7');
   });
 
@@ -204,6 +201,7 @@ void main() {
       final api = _FakeB2bApi(item.payload);
       await tester.pumpWidget(
         FoodexCustomerApp(
+          key: ValueKey('b2b-route-${item.route}'),
           session: b2b,
           initialRoute: item.route,
           b2bApi: api,
