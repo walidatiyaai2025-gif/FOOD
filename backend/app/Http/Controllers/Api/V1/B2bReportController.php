@@ -42,6 +42,63 @@ class B2bReportController extends Controller
         return response()->json(['data' => $rows, 'currency' => 'KWD']);
     }
 
+    public function topProducts(Request $request): JsonResponse
+    {
+        $customer = $this->approvedCustomer($request);
+        $validated = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $query = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.customer_id', $customer->getKey())
+            ->where('orders.channel', 'b2b')
+            ->where('orders.status', '!=', 'cancelled');
+
+        if (isset($validated['from'])) {
+            $query->whereDate('orders.created_at', '>=', $validated['from']);
+        }
+        if (isset($validated['to'])) {
+            $query->whereDate('orders.created_at', '<=', $validated['to']);
+        }
+
+        $rows = $query
+            ->groupBy('order_items.product_id', 'order_items.sku_snapshot', 'order_items.name_snapshot')
+            ->select([
+                'order_items.product_id',
+                'order_items.sku_snapshot as sku',
+                'order_items.name_snapshot as name',
+                DB::raw('SUM(order_items.quantity) as quantity'),
+                DB::raw('SUM(order_items.line_total) as total'),
+            ])
+            ->orderByDesc(DB::raw('SUM(order_items.quantity)'))
+            ->orderByDesc(DB::raw('SUM(order_items.line_total)'))
+            ->orderBy('order_items.product_id')
+            ->limit((int) ($validated['limit'] ?? 10))
+            ->get()
+            ->values()
+            ->map(static fn (object $row, int $index): array => [
+                'rank' => $index + 1,
+                'product_id' => (int) $row->product_id,
+                'sku' => (string) $row->sku,
+                'name' => (string) $row->name,
+                'quantity' => (float) $row->quantity,
+                'total' => round((float) $row->total, 3),
+                'currency' => 'KWD',
+            ])
+            ->all();
+
+        return response()->json([
+            'data' => $rows,
+            'period' => [
+                'from' => $validated['from'] ?? null,
+                'to' => $validated['to'] ?? null,
+            ],
+        ]);
+    }
+
     private function approvedCustomer(Request $request): Customer
     {
         $user = $request->user();
