@@ -206,7 +206,7 @@ final class B2cDashboardService
                 'orders.created_at',
                 'customers.name as customer',
             ])
-            ->selectRaw('COUNT(order_items.id) as items_count')
+            ->selectRaw('COALESCE(SUM(order_items.quantity), 0) as items_count')
             ->groupBy(
                 'orders.id',
                 'orders.order_number',
