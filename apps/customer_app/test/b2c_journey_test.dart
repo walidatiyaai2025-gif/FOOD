@@ -209,6 +209,71 @@ void main() {
     expect(find.byKey(const ValueKey('customer-login-email')), findsOneWidget);
     expect(find.byKey(const ValueKey('customer-login-submit')), findsOneWidget);
   });
+
+  testWidgets('B2C premium home exposes functional search category and product grid', (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: '/home?store=7',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: _FakeAccountApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2c-home-search')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2c-home-category-3')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2c-home-product-42')), findsOneWidget);
+    expect(find.text('Fresh every day'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('b2c-home-category-3')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tomato Box'), findsWidgets);
+    expect(find.textContaining('category=3'), findsOneWidget);
+  });
+
+  testWidgets('B2C notifications persist per-user read action', (tester) async {
+    final api = _FakeAccountApi();
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: const CustomerSession.authenticated(
+          CustomerChannel.b2c,
+          accessToken: 'token',
+        ),
+        initialRoute: '/notifications',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2c-notifications-data')), findsOneWidget);
+    expect(api.notificationRead, isFalse);
+
+    await tester.tap(find.text('تحديث الطلب'));
+    await tester.pumpAndSettle();
+
+    expect(api.notificationRead, isTrue);
+  });
+
+  testWidgets('B2C orders and favorites use authenticated account data', (tester) async {
+    final api = _FakeAccountApi();
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: const CustomerSession.authenticated(
+          CustomerChannel.b2c,
+          accessToken: 'token',
+        ),
+        initialRoute: '/orders',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2c-orders-data')), findsOneWidget);
+    expect(find.text('FOODEX-101'), findsOneWidget);
+  });
 }
 
 class _FakeCatalogApi implements B2cCatalogApi {
@@ -279,6 +344,7 @@ class _FakeAccountApi implements B2cAccountApi {
   bool removed = false;
   int cartReads = 0;
   bool notificationRead = false;
+  int? removedFavoriteId;
 
   @override
   Future<Object?> cart({int? storeId}) async {
@@ -395,7 +461,9 @@ class _FakeAccountApi implements B2cAccountApi {
   Future<void> addFavorite(int productId) async {}
 
   @override
-  Future<void> removeFavorite(int productId) async {}
+  Future<void> removeFavorite(int productId) async {
+    removedFavoriteId = productId;
+  }
 
   @override
   Future<Object?> notifications({String locale = 'ar'}) async => {
