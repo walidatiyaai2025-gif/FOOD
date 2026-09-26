@@ -221,7 +221,7 @@ final class NotificationController extends Controller
             'body_en' => ['required', 'string', 'max:5000'],
             'type' => ['required', 'string', 'max:64'],
             'audience' => ['required', 'in:all,customer,driver,user'],
-            'app' => ['required', 'in:all,customer,driver'],
+            'app' => ['required', 'in:all,customer,driver,dashboard'],
             'target_channel' => ['required', 'in:all,b2c,b2b'],
             'channel' => ['required', 'in:in_app,push,both'],
             'user_id' => ['nullable', 'required_if:audience,user', 'integer', 'exists:users,id'],
