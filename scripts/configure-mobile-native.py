@@ -294,10 +294,10 @@ def _write_ios_splash(ios: Path) -> None:
         if image_id in (constraint.get('firstItem'), constraint.get('secondItem')):
             constraints.remove(constraint)
     edges = (
-        ('leading', 'leading', 'foodex-leading'),
-        ('trailing', 'trailing', 'foodex-trailing'),
-        ('top', 'top', 'foodex-top'),
-        ('bottom', 'bottom', 'foodex-bottom'),
+        ('leading', 'leading', 'Fdx-LD-001'),
+        ('trailing', 'trailing', 'Fdx-TR-002'),
+        ('top', 'top', 'Fdx-TP-003'),
+        ('bottom', 'bottom', 'Fdx-BT-004'),
     )
     for first, second, identifier in edges:
         ET.SubElement(
