@@ -163,8 +163,7 @@ Future<void> _writeBoundary(
   GlobalKey key,
   String relativePath,
 ) async {
-  await tester.runAsync(() async {
-    final boundary =
+  final boundary =
         key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     final image = await boundary.toImage(pixelRatio: 1);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -174,7 +173,6 @@ Future<void> _writeBoundary(
     if (file.lengthSync() <= 1000) {
       throw StateError('Screenshot is unexpectedly small: $relativePath');
     }
-  });
 }
 
 class _EvidenceAuthRepository implements DriverAuthRepository {
