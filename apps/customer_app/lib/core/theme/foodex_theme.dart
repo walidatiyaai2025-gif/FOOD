@@ -76,7 +76,7 @@ abstract final class FoodexBrand {
 }
 
 abstract final class FoodexTheme {
-  static ThemeData light() {
+  static ThemeData light({String? fontFamily}) {
     const scheme = ColorScheme.light(
       primary: FoodexBrand.green,
       onPrimary: Colors.white,
@@ -90,6 +90,7 @@ abstract final class FoodexTheme {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: fontFamily,
       colorScheme: scheme,
       scaffoldBackgroundColor: FoodexBrand.background,
       cardColor: FoodexBrand.surface,
