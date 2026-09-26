@@ -94,14 +94,14 @@ abstract final class FoodexTheme {
       colorScheme: scheme,
     );
     final textTheme = (fontFamily == null
-            ? GoogleFonts.tajawalTextTheme(base.textTheme)
+            ? GoogleFonts.alexandriaTextTheme(base.textTheme)
             : base.textTheme.apply(fontFamily: fontFamily))
         .apply(
       bodyColor: FoodexBrand.ink,
       displayColor: FoodexBrand.ink,
     );
     final primaryTextTheme = fontFamily == null
-        ? GoogleFonts.tajawalTextTheme(base.primaryTextTheme)
+        ? GoogleFonts.alexandriaTextTheme(base.primaryTextTheme)
         : base.primaryTextTheme.apply(fontFamily: fontFamily);
 
     return base.copyWith(
