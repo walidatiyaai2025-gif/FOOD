@@ -42,6 +42,7 @@ class FoodexCustomerApp extends StatefulWidget {
 class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   late Map<String, String> _translations;
   late CustomerSession _session;
+  final CustomerGuestSession _guestSession = CustomerGuestSession();
 
   @override
   void initState() {
@@ -105,13 +106,15 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     final b2bApi = widget.b2bApi ??
         (token == null ? null : HttpB2bApi(baseUrl: baseUrl, token: token));
     final b2cCatalogApi = widget.b2cCatalogApi ?? HttpB2cCatalogApi(baseUrl: baseUrl);
-    final guestSession = CustomerGuestSession();
-    final actionApi = widget.actionApi ??
-        HttpCustomerActionApi(baseUrl: baseUrl, token: token, guestSession: guestSession);
+    final actionApi = widget.actionApi ?? HttpCustomerActionApi(
+      baseUrl: baseUrl,
+      token: token,
+      guestSession: _guestSession,
+    );
     final b2cAccountApi = widget.b2cAccountApi ?? HttpB2cAccountApi(
       baseUrl: baseUrl,
       token: token,
-      guestSession: guestSession,
+      guestSession: _guestSession,
     );
     final router = CustomerAppRouter(
       _session,
