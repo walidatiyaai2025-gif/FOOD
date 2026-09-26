@@ -97,6 +97,31 @@ class B2cAdminWorkspaceTest extends TestCase
         $this->actingAs($user)->get('/admin/b2c/customers')->assertOk()->assertSee('Mine Customer')->assertSee('KWD 5.000')->assertDontSee('Other Customer');
     }
 
+    public function test_experience_modules_are_store_scoped_and_storefront_preview_is_compatible(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $type = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $mine = (int) DB::table('stores')->insertGetId(['store_type_id' => $type, 'code' => 'EXP-MINE', 'name' => 'Experience Mine', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $other = (int) DB::table('stores')->insertGetId(['store_type_id' => $type, 'code' => 'EXP-OTHER', 'name' => 'Experience Other', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $user = User::query()->create(['name' => 'Experience Admin', 'email' => 'experience-admin@example.test', 'password' => 'password', 'locale' => 'en', 'is_active' => true]);
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $user->roles()->attach($role);
+        DB::table('user_store_roles')->insert(['user_id' => $user->id, 'store_id' => $mine, 'role_id' => $role->id, 'created_at' => now(), 'updated_at' => now()]);
+
+        DB::table('promotions')->insert([
+            ['store_id' => $mine, 'name' => 'Mine Promo', 'type' => 'percentage', 'value' => 10, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['store_id' => $other, 'name' => 'Other Promo', 'type' => 'percentage', 'value' => 20, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+        DB::table('banners')->insert([
+            ['store_id' => $mine, 'title' => 'Mine Banner', 'image_path' => '/mine.jpg', 'sort_order' => 1, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['store_id' => $other, 'title' => 'Other Banner', 'image_path' => '/other.jpg', 'sort_order' => 1, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        $this->actingAs($user)->get('/admin/b2c/promotions')->assertOk()->assertSee('Mine Promo')->assertDontSee('Other Promo');
+        $this->actingAs($user)->get('/admin/b2c/content')->assertOk()->assertSee('Mine Banner')->assertDontSee('Other Banner');
+        $this->actingAs($user)->get('/admin/b2c/storefront-preview')->assertOk()->assertSee('Experience Mine')->assertDontSee('Experience Other');
+    }
+
     public function test_b2c_admin_without_assigned_store_is_forbidden_and_invalid_module_is_not_found(): void
     {
         $this->seed(CoreReferenceSeeder::class);

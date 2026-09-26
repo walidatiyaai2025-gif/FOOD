@@ -194,13 +194,13 @@
                     'sku'=>'SKU','name'=>'الاسم','category'=>'التصنيف','store'=>'المتجر','price'=>'السعر','status'=>'الحالة',
                     'warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','available'=>'المتاح',
                     'number'=>'رقم الطلب','customer'=>'العميل','amount'=>'الإجمالي','created'=>'تاريخ الإنشاء',
-                    'phone'=>'الهاتف','email'=>'البريد','orders'=>'الطلبات','spent'=>'إجمالي الإنفاق','last_order'=>'آخر طلب',
+                    'phone'=>'الهاتف','email'=>'البريد','orders'=>'الطلبات','spent'=>'إجمالي الإنفاق','last_order'=>'آخر طلب','type'=>'النوع','value'=>'القيمة','period'=>'الفترة','driver_type'=>'نوع السائق','order'=>'الطلب','assignment_status'=>'حالة التوصيل','availability'=>'التوفر','products'=>'المنتجات','banners'=>'البانرات','title'=>'العنوان','image'=>'الصورة','target'=>'الرابط','sort_order'=>'الترتيب',
                 ]
                 : [
                     'sku'=>'SKU','name'=>'Name','category'=>'Category','store'=>'Store','price'=>'Price','status'=>'Status',
                     'warehouse'=>'Warehouse','quantity'=>'Quantity','reserved'=>'Reserved','available'=>'Available',
                     'number'=>'Order','customer'=>'Customer','amount'=>'Amount','created'=>'Created',
-                    'phone'=>'Phone','email'=>'Email','orders'=>'Orders','spent'=>'Total spent','last_order'=>'Last order',
+                    'phone'=>'Phone','email'=>'Email','orders'=>'Orders','spent'=>'Total spent','last_order'=>'Last order','type'=>'Type','value'=>'Value','period'=>'Period','driver_type'=>'Driver type','order'=>'Order','assignment_status'=>'Delivery status','availability'=>'Availability','products'=>'Products','banners'=>'Banners','title'=>'Title','image'=>'Image','target'=>'Target','sort_order'=>'Sort order',
                 ];
         @endphp
         <section class="module-panel">
@@ -210,7 +210,7 @@
                     <p class="empty">{{ app()->getLocale()==='ar' ? 'بيانات مباشرة ضمن المتاجر المصرح بها لهذا المستخدم.' : 'Live server data restricted to this user\'s assigned stores.' }}</p>
                 </div>
                 <nav class="module-links" aria-label="B2C core modules">
-                    @foreach(['products','inventory','orders','customers'] as $core)
+                    @foreach(['products','inventory','orders','customers','promotions','drivers','storefront','content'] as $core)
                         <a class="{{ $module===$core?'active':'' }}" href="{{ route('admin.b2c.module',['module'=>$core]) }}">{{ __('admin.b2c_workspace.modules.'.$core) }}</a>
                     @endforeach
                 </nav>
@@ -224,7 +224,7 @@
                             <tr>
                             @foreach($moduleData['columns'] as $column)
                                 <td>
-                                    @if($column==='status' && is_bool($row[$column]))
+                                    @if(in_array($column,['status','availability'],true) && is_bool($row[$column]))
                                         <span class="state-dot {{ $row[$column]?'':'off' }}">{{ $row[$column] ? (app()->getLocale()==='ar'?'نشط':'Active') : (app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span>
                                     @elseif($column==='status')
                                         <span class="badge {{ $row[$column] }}">{{ $row[$column] }}</span>
