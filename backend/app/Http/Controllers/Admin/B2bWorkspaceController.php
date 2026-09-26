@@ -57,7 +57,7 @@ class B2bWorkspaceController extends Controller
         Request $request,
         int $order,
         OrderController $orders,
-        AuditLogger $audit
+        AuditLogger $audit,
     ): RedirectResponse {
         $isB2b = DB::table('orders')
             ->join('stores', 'stores.id', '=', 'orders.store_id')
