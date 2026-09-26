@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/api/b2c_catalog_api.dart';
@@ -35,6 +37,12 @@ class B2cJourneyScreen extends StatefulWidget {
 class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
   final _search = TextEditingController();
   late Future<Object?>? _remote;
+  Timer? _splashTimer;
+
+  int? get _categoryId => int.tryParse(Uri.parse(widget.location).queryParameters['category'] ?? '');
+  String? get _query => Uri.parse(widget.location).queryParameters['q'];
+  String get _sort => Uri.parse(widget.location).queryParameters['sort'] == 'price' ? 'price' : 'name';
+  String get _direction => Uri.parse(widget.location).queryParameters['direction'] == 'desc' ? 'desc' : 'asc';
 
   int? get _storeId => int.tryParse(
         Uri.parse(widget.location).queryParameters['store'] ??
@@ -55,7 +63,9 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
   @override
   void initState() {
     super.initState();
+    _search.text = _query ?? '';
     _remote = _load();
+    _scheduleSplash();
   }
 
   @override
@@ -65,12 +75,23 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         oldWidget.definition.pattern != widget.definition.pattern ||
         oldWidget.catalogApi != widget.catalogApi ||
         oldWidget.accountApi != widget.accountApi) {
+      _search.text = _query ?? '';
       _remote = _load();
+      _scheduleSplash();
     }
+  }
+
+  void _scheduleSplash() {
+    _splashTimer?.cancel();
+    if (widget.definition.pattern != CustomerRoutePaths.splash) return;
+    _splashTimer = Timer(const Duration(milliseconds: 1100), () {
+      if (mounted) Navigator.of(context).pushReplacementNamed(CustomerRoutePaths.entry);
+    });
   }
 
   @override
   void dispose() {
+    _splashTimer?.cancel();
     _search.dispose();
     super.dispose();
   }
@@ -84,10 +105,18 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         return storeId == null ? null : _loadHome(storeId);
       case CustomerRoutePaths.offers:
         return storeId == null ? null : widget.catalogApi.offers(storeId);
+      case CustomerRoutePaths.categories:
+        return storeId == null ? null : widget.catalogApi.categories(storeId);
       case CustomerRoutePaths.products:
         return storeId == null
             ? null
-            : widget.catalogApi.products(storeId, query: _search.text);
+            : widget.catalogApi.products(
+                storeId,
+                query: _query,
+                categoryId: _categoryId,
+                sort: _sort,
+                direction: _direction,
+              );
       case CustomerRoutePaths.productDetails:
         final productId = _productId;
         return storeId == null || productId == null
@@ -98,6 +127,16 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       case CustomerRoutePaths.orderTracking:
         final orderId = _orderId;
         return orderId == null ? null : widget.accountApi.order(orderId);
+      case CustomerRoutePaths.orders:
+        return widget.accountApi.orders();
+      case CustomerRoutePaths.favorites:
+        return widget.accountApi.favorites();
+      case CustomerRoutePaths.notifications:
+        return widget.accountApi.notifications(locale: Localizations.maybeLocaleOf(context)?.languageCode ?? 'ar');
+      case CustomerRoutePaths.addresses:
+        return widget.accountApi.addresses();
+      case CustomerRoutePaths.settings:
+        return widget.accountApi.profile();
       case CustomerRoutePaths.profile:
         return _loadProfile();
       default:
@@ -110,20 +149,28 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       widget.accountApi.profile(),
       widget.accountApi.addresses(),
       widget.accountApi.favorites(),
+      widget.accountApi.orders(),
     ]);
-    return _ProfileData(profile: results[0], addresses: results[1], favorites: results[2]);
+    return _ProfileData(
+      profile: results[0],
+      addresses: results[1],
+      favorites: results[2],
+      orders: results[3],
+    );
   }
 
   Future<_HomeData> _loadHome(int storeId) async {
     final results = await Future.wait<Object>([
       widget.catalogApi.categories(storeId),
       widget.catalogApi.offers(storeId),
-      widget.catalogApi.products(storeId),
+      widget.catalogApi.products(storeId, sort: 'name', direction: 'asc'),
+      widget.catalogApi.banners(storeId),
     ]);
     return _HomeData(
       categories: results[0] as List<B2cCategory>,
       offers: results[1] as List<B2cOffer>,
       products: results[2] as List<B2cProduct>,
+      banners: results[3] as List<B2cBanner>,
     );
   }
 
@@ -137,6 +184,9 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.definition.pattern == CustomerRoutePaths.splash) {
+      return _buildSplash();
+    }
     final content = _contentFor(context, widget.definition.pattern);
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('customer.app.title'))),
