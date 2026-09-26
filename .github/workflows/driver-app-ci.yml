@@ -37,7 +37,9 @@ jobs:
         run: flutter analyze
 
       - name: Test
-        run: flutter test
+        run: |
+          mapfile -t tests < <(find test -type f -name '*_test.dart' ! -name 'screenshot_evidence_test.dart' -print)
+          flutter test "${tests[@]}"
 
       - name: Android release-mode validation build
         run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex-validation.invalid

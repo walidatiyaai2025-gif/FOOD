@@ -1,0 +1,60 @@
+name: FOODEX Runtime Screenshot Evidence
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate committed runtime evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout evidence branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify committed screenshot pack exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          png_count="$(find ScreenShots -type f -name '*.png' | wc -l | tr -d ' ')"
+          test "$png_count" -ge 110
+          test -f ScreenShots/AUDIT.md
+          test -f ScreenShots/SCREENSHOT_MANIFEST.csv
+          echo "Committed runtime PNG count: $png_count"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install image validation dependency
+        run: python -m pip install --disable-pip-version-check pillow
+
+      - name: Re-run evidence audit against committed PNGs
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(sed -n 's/^- Source commit\/build: //p' ScreenShots/AUDIT.md | head -n 1)"
+          test -n "$source_commit"
+          GITHUB_SHA="$source_commit" python scripts/update_screenshot_manifest.py
+
+      - name: Verify audit is reproducible and clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- ScreenShots/AUDIT.md ScreenShots/SCREENSHOT_MANIFEST.csv
+          grep -Fq 'Runtime PNG files: **110**' ScreenShots/AUDIT.md
+          grep -Fq 'Approved 46-screen baseline covered: **46/46**' ScreenShots/AUDIT.md
+          grep -Fq 'Driver screenshots: **16**' ScreenShots/AUDIT.md
+          grep -Fq 'Locales present: **ar, en**' ScreenShots/AUDIT.md
+          grep -Fq 'Canonical palette verification failures: **0**' ScreenShots/AUDIT.md
+          grep -Fq 'Roles/surfaces without a green/orange brand anchor: **0**' ScreenShots/AUDIT.md
+          test "$(grep -c ',PASS,PASS,' ScreenShots/SCREENSHOT_MANIFEST.csv)" -ge 110
