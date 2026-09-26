@@ -181,6 +181,7 @@ final class NotificationController extends Controller
         return back()->with('status', __('notifications.deleted'));
     }
 
+    /** @return Builder<Notification> */
     private function dashboardNotifications(User $user): Builder
     {
         return Notification::query()
