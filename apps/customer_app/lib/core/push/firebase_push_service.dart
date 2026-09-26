@@ -49,8 +49,8 @@ class CustomerPushDeviceRegistry {
 
   Future<int?> register({required String accessToken, required String firebaseToken}) async {
     final response = await _client.post(
-      Uri.parse(baseUrl + '/api/v1/push/devices'),
-      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken},
+      Uri.parse('$baseUrl/api/v1/push/devices'),
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
       body: jsonEncode({
         'app': 'customer',
         'platform': Platform.isIOS ? 'ios' : 'android',
@@ -67,8 +67,8 @@ class CustomerPushDeviceRegistry {
 
   Future<void> revoke({required String accessToken, required int deviceId}) async {
     await _client.delete(
-      Uri.parse(baseUrl + '/api/v1/push/devices/' + deviceId.toString()),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer ' + accessToken},
+      Uri.parse('$baseUrl/api/v1/push/devices/$deviceId'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $accessToken'},
     );
   }
 }
@@ -120,7 +120,7 @@ class CustomerFirebasePushService {
     final orderId = int.tryParse((data['order_id'] ?? '').toString());
     if (orderId != null && orderId > 0) {
       final channel = (data['channel'] ?? '').toString().toLowerCase();
-      return channel == 'b2b' ? '/b2b/orders/' + orderId.toString() : '/orders/' + orderId.toString() + '/track';
+      return channel == 'b2b' ? '/b2b/orders/$orderId' : '/orders/$orderId/track';
     }
     final route = data['route']?.toString();
     const safeRoutes = <String>{
