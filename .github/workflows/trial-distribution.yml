@@ -12,7 +12,9 @@ on:
       - "apps/driver_app/**"
       - "scripts/configure-mobile-native.py"
       - "scripts/build-dashboard-update.sh"
+      - "scripts/write-trial-bundle-manifest.py"
       - "Release/README.md"
+      - "Release/INSTALL-FIRST.txt"
       - "Release/Updates/README.md"
   workflow_dispatch:
 
@@ -55,17 +57,14 @@ jobs:
           if [[ -z "$previous_version" ]]; then
             previous_version="$current_version"
           fi
-
           runtime_changed=false
           if git diff --name-only HEAD^ HEAD 2>/dev/null | grep -Eq '^(backend/|apps/customer_app/|apps/driver_app/)'; then
             runtime_changed=true
           fi
-
           if [[ "$runtime_changed" == "true" && "$current_version" == "$previous_version" ]]; then
             echo "::error::Deployable FOODEX code changed without a VERSION bump. Increase VERSION before publishing a new trial/update bundle."
             exit 1
           fi
-
           echo "CURRENT_VERSION=$current_version" >> "$GITHUB_ENV"
           echo "PREVIOUS_VERSION=$previous_version" >> "$GITHUB_ENV"
 
@@ -88,109 +87,72 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p Release/Updates
-          rm -f Release/FOODEX-Customer.apk
-          rm -f Release/FOODEX-Driver.apk
-          rm -f Release/FOODEX-Laravel-Setup.zip
-          rm -f Release/BUILD_INFO.json
+          rm -f Release/FOODEX-Customer.apk Release/FOODEX-Driver.apk Release/FOODEX-Laravel-Setup.zip Release/BUILD_INFO.json
 
       - name: Build Customer Android tester APK
         shell: bash
         run: |
           set -euo pipefail
-          pushd apps/customer_app
+          cd apps/customer_app
           flutter create --platforms=android --project-name foodex_customer_app .
           python3 ../../scripts/configure-mobile-native.py --app customer --app-dir . --platform android
           rm -f test/widget_test.dart
           flutter pub get
-
           defines=(--dart-define=FOODEX_API_BASE_URL="$FOODEX_API_BASE_URL")
           if [[ -n "$CUSTOMER_FIREBASE_API_KEY" && -n "$CUSTOMER_FIREBASE_APP_ID" && -n "$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID" && -n "$CUSTOMER_FIREBASE_PROJECT_ID" ]]; then
-            defines+=(
-              --dart-define=FOODEX_FIREBASE_API_KEY="$CUSTOMER_FIREBASE_API_KEY"
-              --dart-define=FOODEX_FIREBASE_APP_ID="$CUSTOMER_FIREBASE_APP_ID"
-              --dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID"
-              --dart-define=FOODEX_FIREBASE_PROJECT_ID="$CUSTOMER_FIREBASE_PROJECT_ID"
-            )
+            defines+=(--dart-define=FOODEX_FIREBASE_API_KEY="$CUSTOMER_FIREBASE_API_KEY")
+            defines+=(--dart-define=FOODEX_FIREBASE_APP_ID="$CUSTOMER_FIREBASE_APP_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$CUSTOMER_FIREBASE_PROJECT_ID")
           fi
-
           flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" "${defines[@]}"
-
           aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           apk=build/app/outputs/flutter-apk/app-release.apk
           "$aapt_bin" dump permissions "$apk" | grep -Fx "uses-permission: name='android.permission.INTERNET'"
           "$aapt_bin" dump badging "$apk" > build/trial-badging.txt
           grep -Fx "application-label:'FOODEX'" build/trial-badging.txt
           grep -F "package: name='com.fiftysolution.foodex.customer'" build/trial-badging.txt
-
-          cp "$apk" ../../Release/FOODEX-Customer.apk
-          popd
+          cp "$apk" "$GITHUB_WORKSPACE/Release/FOODEX-Customer.apk"
 
       - name: Build Driver Android tester APK
         shell: bash
         run: |
           set -euo pipefail
-          pushd apps/driver_app
+          cd apps/driver_app
           flutter create --platforms=android --project-name foodex_driver_app .
           python3 ../../scripts/configure-mobile-native.py --app driver --app-dir . --platform android
           rm -f test/widget_test.dart
           flutter pub get
-
           defines=(--dart-define=FOODEX_API_BASE_URL="$FOODEX_API_BASE_URL")
           if [[ -n "$DRIVER_FIREBASE_API_KEY" && -n "$DRIVER_FIREBASE_APP_ID" && -n "$DRIVER_FIREBASE_MESSAGING_SENDER_ID" && -n "$DRIVER_FIREBASE_PROJECT_ID" ]]; then
-            defines+=(
-              --dart-define=FOODEX_FIREBASE_API_KEY="$DRIVER_FIREBASE_API_KEY"
-              --dart-define=FOODEX_FIREBASE_APP_ID="$DRIVER_FIREBASE_APP_ID"
-              --dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$DRIVER_FIREBASE_MESSAGING_SENDER_ID"
-              --dart-define=FOODEX_FIREBASE_PROJECT_ID="$DRIVER_FIREBASE_PROJECT_ID"
-            )
+            defines+=(--dart-define=FOODEX_FIREBASE_API_KEY="$DRIVER_FIREBASE_API_KEY")
+            defines+=(--dart-define=FOODEX_FIREBASE_APP_ID="$DRIVER_FIREBASE_APP_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$DRIVER_FIREBASE_MESSAGING_SENDER_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$DRIVER_FIREBASE_PROJECT_ID")
           fi
-
           flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" "${defines[@]}"
-
           aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           apk=build/app/outputs/flutter-apk/app-release.apk
           "$aapt_bin" dump permissions "$apk" | grep -Fx "uses-permission: name='android.permission.INTERNET'"
           "$aapt_bin" dump badging "$apk" > build/trial-badging.txt
           grep -Fx "application-label:'FOODEX Driver'" build/trial-badging.txt
           grep -F "package: name='com.fiftysolution.foodex.driver'" build/trial-badging.txt
-
-          cp "$apk" ../../Release/FOODEX-Driver.apk
-          popd
+          cp "$apk" "$GITHUB_WORKSPACE/Release/FOODEX-Driver.apk"
 
       - name: Build Laravel first-install ZIP
         shell: bash
         run: |
           set -euo pipefail
-
-          composer install             --working-dir=backend             --no-dev             --prefer-dist             --optimize-autoloader             --no-interaction             --no-progress
-
+          composer install --working-dir=backend --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
           stage="$(mktemp -d)"
           mkdir -p "$stage/backend"
-
-          rsync -a backend/ "$stage/backend/"             --exclude='.env'             --exclude='tests/'             --exclude='docs/'             --exclude='.phpunit.cache/'             --exclude='storage/logs/*'             --exclude='storage/app/system/*'
-
+          rsync -a backend/ "$stage/backend/" --exclude='.env' --exclude='tests/' --exclude='docs/' --exclude='.phpunit.cache/' --exclude='storage/logs/*' --exclude='storage/app/system/*'
           rm -f "$stage/backend/bootstrap/cache/"*.php
           cp VERSION "$stage/VERSION"
-
-          cat > "$stage/INSTALL-FIRST.txt" <<'TXT'
-FOODEX first install
-====================
-
-1. Extract this ZIP so VERSION and backend/ are in the same deployment root.
-2. Point the web server document root to backend/public.
-3. PHP 8.2+ is required with pdo_pgsql, mbstring, openssl, tokenizer, json and zip.
-4. PostgreSQL is required. Redis is recommended for cache/queue.
-5. Make backend/storage and backend/bootstrap/cache writable by the web/PHP user.
-6. Open https://foodex.50sols.com/install and complete the wizard.
-7. Production DB name/user approved for first install: solscool_foodex.
-8. Never place DB passwords, signing keys or Firebase service-account keys in this ZIP.
-TXT
-
-          (
-            cd "$stage"
-            zip -qr "$GITHUB_WORKSPACE/Release/FOODEX-Laravel-Setup.zip" .
-          )
-
+          cp Release/INSTALL-FIRST.txt "$stage/INSTALL-FIRST.txt"
+          cd "$stage"
+          zip -qr "$GITHUB_WORKSPACE/Release/FOODEX-Laravel-Setup.zip" .
+          cd "$GITHUB_WORKSPACE"
           setup_bytes="$(stat -c%s Release/FOODEX-Laravel-Setup.zip)"
           if (( setup_bytes >= 99000000 )); then
             echo "::error::Laravel setup ZIP is too large for normal GitHub storage ($setup_bytes bytes)."
@@ -201,16 +163,12 @@ TXT
         shell: bash
         run: |
           set -euo pipefail
-          bash scripts/build-dashboard-update.sh             Release/Updates             "$PREVIOUS_VERSION"             "$CURRENT_VERSION"             HEAD^
+          bash scripts/build-dashboard-update.sh Release/Updates "$PREVIOUS_VERSION" "$CURRENT_VERSION" HEAD^
 
       - name: Write bundle manifest
         shell: bash
         run: |
           set -euo pipefail
-          customer_sha="$(sha256sum Release/FOODEX-Customer.apk | awk '{print $1}')"
-          driver_sha="$(sha256sum Release/FOODEX-Driver.apk | awk '{print $1}')"
-          setup_sha="$(sha256sum Release/FOODEX-Laravel-Setup.zip | awk '{print $1}')"
-
           customer_firebase=false
           driver_firebase=false
           if [[ -n "$CUSTOMER_FIREBASE_API_KEY" && -n "$CUSTOMER_FIREBASE_APP_ID" && -n "$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID" && -n "$CUSTOMER_FIREBASE_PROJECT_ID" ]]; then
@@ -219,45 +177,7 @@ TXT
           if [[ -n "$DRIVER_FIREBASE_API_KEY" && -n "$DRIVER_FIREBASE_APP_ID" && -n "$DRIVER_FIREBASE_MESSAGING_SENDER_ID" && -n "$DRIVER_FIREBASE_PROJECT_ID" ]]; then
             driver_firebase=true
           fi
-
-          export customer_sha driver_sha setup_sha customer_firebase driver_firebase
-
-          python3 - <<'PY'
-import json
-import os
-from pathlib import Path
-
-payload = {
-    "schema_version": 1,
-    "version": os.environ["CURRENT_VERSION"],
-    "source_commit": os.environ["GITHUB_SHA"],
-    "github_run_number": os.environ["GITHUB_RUN_NUMBER"],
-    "api_base_url": os.environ["FOODEX_API_BASE_URL"],
-    "android_signing": "flutter-template-debug-key-test-only",
-    "customer": {
-        "file": "FOODEX-Customer.apk",
-        "application_id": "com.fiftysolution.foodex.customer",
-        "sha256": os.environ["customer_sha"],
-        "firebase_configured": os.environ["customer_firebase"] == "true",
-    },
-    "driver": {
-        "file": "FOODEX-Driver.apk",
-        "application_id": "com.fiftysolution.foodex.driver",
-        "sha256": os.environ["driver_sha"],
-        "firebase_configured": os.environ["driver_firebase"] == "true",
-    },
-    "laravel_setup": {
-        "file": "FOODEX-Laravel-Setup.zip",
-        "sha256": os.environ["setup_sha"],
-        "installer_path": "/install",
-        "document_root": "backend/public",
-    },
-}
-Path("Release/BUILD_INFO.json").write_text(
-    json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-    encoding="utf-8",
-)
-PY
+          python3 scripts/write-trial-bundle-manifest.py --version "$CURRENT_VERSION" --source-commit "$GITHUB_SHA" --run-number "$GITHUB_RUN_NUMBER" --api-base-url "$FOODEX_API_BASE_URL" --customer Release/FOODEX-Customer.apk --driver Release/FOODEX-Driver.apk --setup Release/FOODEX-Laravel-Setup.zip --customer-firebase "$customer_firebase" --driver-firebase "$driver_firebase" --output Release/BUILD_INFO.json
 
       - name: Validate bundle files
         shell: bash
@@ -285,25 +205,18 @@ PY
         run: |
           set -euo pipefail
           generated_branch="release/221-generated-trial-bundle"
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
           git switch -C "$generated_branch"
-
-          git add -f             Release/FOODEX-Customer.apk             Release/FOODEX-Driver.apk             Release/FOODEX-Laravel-Setup.zip             Release/BUILD_INFO.json             Release/Updates/FOODEX-Update.json
-
+          git add -f Release/FOODEX-Customer.apk Release/FOODEX-Driver.apk Release/FOODEX-Laravel-Setup.zip Release/BUILD_INFO.json Release/Updates/FOODEX-Update.json
           if [[ -f Release/Updates/FOODEX-Update.zip ]]; then
             git add -f Release/Updates/FOODEX-Update.zip
           else
             git add -u -- Release/Updates/FOODEX-Update.zip 2>/dev/null || true
           fi
-
-          # README files already live on main. Only generated distribution files belong to this commit.
           if git diff --cached --quiet; then
             echo "Generated distribution matches the current branch; nothing to publish."
             exit 0
           fi
-
           git commit -m "release: refresh FOODEX trial distribution ${CURRENT_VERSION}"
           git push --force origin "HEAD:refs/heads/$generated_branch"

@@ -1,0 +1,17 @@
+FOODEX first install
+====================
+
+1. Extract FOODEX-Laravel-Setup.zip so VERSION and backend/ are in the same deployment root.
+2. Point the web server document root to backend/public.
+3. PHP 8.2+ is required with pdo_pgsql, mbstring, openssl, tokenizer, json and zip.
+4. PostgreSQL is required. Redis is recommended for cache and queue.
+5. Make backend/storage and backend/bootstrap/cache writable by the web/PHP user.
+6. Open https://foodex.50sols.com/install and complete the wizard.
+7. Approved first-install database name: solscool_foodex
+8. Approved first-install database username: solscool_foodex
+9. Enter the database password only on the server/installer. Never commit it.
+10. After Finish, /install is locked and normal administration continues from /admin.
+
+Android tester APKs use the production API origin https://foodex.50sols.com.
+They are test-signed until the production Android keystore is supplied, so they are for
+device testing/acceptance and not Google Play publication.
