@@ -22,7 +22,12 @@ class B2bWorkspaceController extends Controller
         $allowed = ['dashboard', 'stores', 'clients', 'products', 'orders', 'drivers', 'pricing', 'reports', 'settings'];
         abort_unless(in_array($module, $allowed, true), 404);
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
-        $storeIds = DB::table('stores')->join('store_types', 'store_types.id', '=', 'stores.store_type_id')->where('store_types.code', 'B2B')->pluck('stores.id')->map(fn ($id) => (int) $id)->all();
+
+        $storeIds = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('store_types.code', 'B2B')
+            ->pluck('stores.id')->map(fn ($id) => (int) $id)->all();
+
         $counts = [
             'stores' => count($storeIds),
             'clients' => DB::table('b2b_accounts')->count(),
@@ -34,7 +39,99 @@ class B2bWorkspaceController extends Controller
 
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2b_'.$module;
+        $moduleData = in_array($module, ['dashboard', 'stores', 'clients', 'products'], true)
+            ? $this->moduleData($module, $storeIds)
+            : null;
 
-        return view('admin.b2b-workspace', compact('user', 'module', 'counts', 'navGroups', 'navContext'));
+        return view('admin.b2b-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'moduleData'));
+    }
+
+    private function moduleData(string $module, array $storeIds): array
+    {
+        return match ($module) {
+            'dashboard' => [
+                'columns' => ['number', 'client', 'store', 'status', 'amount', 'created'],
+                'rows' => DB::table('orders')
+                    ->join('customers', 'customers.id', '=', 'orders.customer_id')
+                    ->join('stores', 'stores.id', '=', 'orders.store_id')
+                    ->whereIn('orders.store_id', $storeIds)
+                    ->where('orders.channel', 'b2b')
+                    ->orderByDesc('orders.created_at')
+                    ->limit(20)
+                    ->get([
+                        'orders.order_number as number', 'customers.name as client', 'stores.name as store',
+                        'orders.status', 'orders.currency', 'orders.grand_total', 'orders.created_at as created',
+                    ])->map(fn ($row) => [
+                        'number' => $row->number,
+                        'client' => $row->client,
+                        'store' => $row->store,
+                        'status' => $row->status,
+                        'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
+                        'created' => (string) $row->created,
+                    ])->all(),
+            ],
+            'stores' => [
+                'columns' => ['code', 'name', 'products', 'orders', 'status'],
+                'rows' => DB::table('stores')
+                    ->whereIn('stores.id', $storeIds)
+                    ->orderBy('stores.name')
+                    ->get(['stores.id', 'stores.code', 'stores.name', 'stores.is_active'])
+                    ->map(fn ($store) => [
+                        'code' => $store->code,
+                        'name' => $store->name,
+                        'products' => DB::table('store_products')->where('store_id', $store->id)->count(),
+                        'orders' => DB::table('orders')->where('store_id', $store->id)->where('channel', 'b2b')->count(),
+                        'status' => (bool) $store->is_active,
+                    ])->all(),
+            ],
+            'clients' => [
+                'columns' => ['company', 'name', 'email', 'phone', 'tax_number', 'status'],
+                'rows' => DB::table('b2b_accounts')
+                    ->join('customers', 'customers.id', '=', 'b2b_accounts.customer_id')
+                    ->orderBy('b2b_accounts.company_name')
+                    ->limit(100)
+                    ->get([
+                        'b2b_accounts.company_name as company', 'customers.name', 'customers.email', 'customers.phone',
+                        'b2b_accounts.tax_number', 'b2b_accounts.status',
+                    ])->map(fn ($row) => [
+                        'company' => $row->company,
+                        'name' => $row->name,
+                        'email' => $row->email ?: '-',
+                        'phone' => $row->phone ?: '-',
+                        'tax_number' => $row->tax_number ?: '-',
+                        'status' => $row->status,
+                    ])->all(),
+            ],
+            'products' => [
+                'columns' => ['sku', 'name', 'store', 'price', 'available', 'status'],
+                'rows' => DB::table('store_products')
+                    ->join('products', 'products.id', '=', 'store_products.product_id')
+                    ->join('stores', 'stores.id', '=', 'store_products.store_id')
+                    ->whereIn('store_products.store_id', $storeIds)
+                    ->orderBy('products.name')
+                    ->limit(100)
+                    ->get([
+                        'store_products.store_id', 'products.id as product_id', 'products.sku', 'products.name',
+                        'stores.name as store', 'store_products.price', 'store_products.is_active as status',
+                    ])->map(function ($row) {
+                        $stock = DB::table('inventories')
+                            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+                            ->where('warehouses.store_id', $row->store_id)
+                            ->where('inventories.product_id', $row->product_id)
+                            ->selectRaw('COALESCE(SUM(inventories.quantity - inventories.reserved_quantity), 0) as available')
+                            ->value('available');
+
+                        return [
+                            'sku' => $row->sku,
+                            'name' => $row->name,
+                            'store' => $row->store,
+                            'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' KWD',
+                            'available' => number_format((float) $stock, 3),
+                            'status' => (bool) $row->status,
+                        ];
+                    })->all(),
+            ],
+            default => ['columns' => [], 'rows' => []],
+        };
     }
 }
