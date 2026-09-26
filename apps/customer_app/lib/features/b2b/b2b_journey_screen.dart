@@ -129,7 +129,7 @@ class B2bJourneyScreen extends StatelessWidget {
             AddCartAction(
               api: actionApi,
               location: location,
-              cartRoute: CustomerRoutePaths.b2bCart,
+              cartRoute: _b2bCartRoute(),
             ),
           ],
         );
@@ -209,6 +209,21 @@ class B2bJourneyScreen extends StatelessWidget {
           [_empty(context.tr('customer.empty'))],
         );
     }
+  }
+
+  String _b2bCartRoute() {
+    final uri = Uri.parse(location);
+    final storeId =
+        uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+
+    if (storeId == null || storeId.isEmpty) {
+      return CustomerRoutePaths.b2bCart;
+    }
+
+    return Uri(
+      path: CustomerRoutePaths.b2bCart,
+      queryParameters: {'store': storeId},
+    ).toString();
   }
 
   String? _endpoint() {
