@@ -16,6 +16,7 @@ class B2cJourneyScreen extends StatefulWidget {
     required this.catalogApi,
     required this.accountApi,
     required this.onAuthenticated,
+    required this.onSessionExpired,
     super.key,
   });
 
@@ -25,6 +26,7 @@ class B2cJourneyScreen extends StatefulWidget {
   final B2cCatalogApi catalogApi;
   final B2cAccountApi accountApi;
   final CustomerAuthenticated onAuthenticated;
+  final VoidCallback onSessionExpired;
 
   @override
   State<B2cJourneyScreen> createState() => _B2cJourneyScreenState();
@@ -61,7 +63,8 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.location != widget.location ||
         oldWidget.definition.pattern != widget.definition.pattern ||
-        oldWidget.catalogApi != widget.catalogApi) {
+        oldWidget.catalogApi != widget.catalogApi ||
+        oldWidget.accountApi != widget.accountApi) {
       _remote = _load();
     }
   }
@@ -367,25 +370,65 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           );
         }
         if (snapshot.hasError) {
-          return Card(
-            key: const ValueKey('b2c-catalog-error'),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Text(context.tr('customer.error.action_failed')),
-                  const SizedBox(height: 8),
-                  OutlinedButton(onPressed: _reload, child: const Icon(Icons.refresh)),
-                ],
-              ),
-            ),
-          );
+          return _remoteError(snapshot.error);
         }
 
         final data = snapshot.data;
         if (data is List && data.isEmpty) return _empty(emptyLabel);
         return builder(data as Object);
       },
+    );
+  }
+
+  Widget _remoteError(Object? error) {
+    var messageKey = 'customer.error.action_failed';
+    var stateKey = 'b2c-catalog-error';
+    var sessionExpired = false;
+
+    if (error is B2cAccountException) {
+      if (error.code == 'network_unavailable') {
+        messageKey = 'customer.error.offline';
+        stateKey = 'b2c-offline';
+      } else if (error.code == 'session_expired' ||
+          error.code == 'authentication_required') {
+        messageKey = 'customer.error.session_expired';
+        stateKey = 'b2c-session-expired';
+        sessionExpired = true;
+      } else if (error.code == 'forbidden') {
+        messageKey = 'customer.error.forbidden';
+        stateKey = 'b2c-forbidden';
+      }
+    }
+
+    return Card(
+      key: ValueKey(stateKey),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Text(context.tr(messageKey)),
+            const SizedBox(height: 8),
+            if (sessionExpired)
+              FilledButton(
+                key: const ValueKey('b2c-sign-in-recovery'),
+                onPressed: () {
+                  widget.onSessionExpired();
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    CustomerRoutePaths.checkoutAuth,
+                    (route) => false,
+                  );
+                },
+                child: Text(context.tr('customer.action.login')),
+              )
+            else
+              OutlinedButton(
+                key: const ValueKey('b2c-retry'),
+                onPressed: _reload,
+                child: Text(context.tr('customer.action.retry')),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
