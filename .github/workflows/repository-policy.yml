@@ -15,4 +15,4 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           branch="${{ github.head_ref }}"
-          [[ "$branch" =~ ^(feat|fix|chore|docs|refactor|test|release)/[0-9]+-[a-z0-9-]+$ ]]
+          [[ "$branch" =~ ^(feat|fix|chore|docs|refactor|test|release|ci)/[0-9]+-[a-z0-9-]+$ ]]
