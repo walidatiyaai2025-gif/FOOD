@@ -500,7 +500,10 @@ class _RemoteState extends StatelessWidget {
               (value is List && value.isEmpty) ||
               (value is Map &&
                   value['data'] is List &&
-                  (value['data'] as List).isEmpty);
+                  (value['data'] as List).isEmpty &&
+                  value.entries.every(
+                    (entry) => entry.key == 'data' || entry.value == null,
+                  ));
 
           if (empty) {
             return showEmpty
@@ -535,12 +538,26 @@ class _AuthoritativeDataView extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = _rows(value);
     if (rows != null) {
+      final summary = value is Map
+          ? Map<Object?, Object?>.fromEntries(
+              (value as Map).entries.where((entry) => entry.key != 'data'),
+            )
+          : <Object?, Object?>{};
       return Column(
         key: const ValueKey('b2b-authoritative-collection'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: rows
-            .map((row) => _rowCard(context, row))
-            .toList(growable: false),
+        children: [
+          if (summary.isNotEmpty) _mapCard(context, summary),
+          ...rows.map((row) => _rowCard(context, row)),
+          if (rows.isEmpty)
+            Card(
+              key: const ValueKey('b2b-empty'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(context.tr('b2b.remote.empty')),
+              ),
+            ),
+        ],
       );
     }
 
