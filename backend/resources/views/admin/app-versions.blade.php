@@ -7,10 +7,10 @@
     @include('admin._brand-components')
 </head>
 <body>
-<main class="foodex-admin-page">
+<main class="foodex-admin-page" data-foodex-utility="app-versions">
     <h1>{{ __('app_versions.title') }}</h1>
-    @if (session('status')) <p role="status">{{ session('status') }}</p> @endif
-    @if ($errors->any()) <div role="alert"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif
+    @if (session('status')) <p class="foodex-state" role="status">{{ session('status') }}</p> @endif
+    @if ($errors->any()) <div class="foodex-state" role="alert"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif
     <form class="foodex-form" method="post" action="{{ route('admin.app-versions.store') }}">
         @csrf
         <label>{{ __('app_versions.app') }} <select name="app" required>
@@ -29,7 +29,7 @@
         <button class="foodex-primary" type="submit">{{ __('app_versions.save') }}</button>
     </form>
     <h2>{{ __('app_versions.configured') }}</h2>
-    @if ($policies->isEmpty()) <p>{{ __('app_versions.empty') }}</p>
+    @if ($policies->isEmpty()) <p class="foodex-empty-state">{{ __('app_versions.empty') }}</p>
     @else
         <div style="overflow-x:auto">
             <table class="foodex-table">
