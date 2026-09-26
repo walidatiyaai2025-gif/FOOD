@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../core/api/b2c_catalog_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
 
-class B2cJourneyScreen extends StatelessWidget {
+class B2cJourneyScreen extends StatefulWidget {
   const B2cJourneyScreen({
     required this.definition,
     required this.location,
     required this.actionApi,
+    required this.catalogApi,
     required this.onAuthenticated,
     super.key,
   });
@@ -18,23 +20,109 @@ class B2cJourneyScreen extends StatelessWidget {
   final CustomerRouteDefinition definition;
   final String location;
   final CustomerActionApi actionApi;
+  final B2cCatalogApi catalogApi;
   final CustomerAuthenticated onAuthenticated;
 
   @override
+  State<B2cJourneyScreen> createState() => _B2cJourneyScreenState();
+}
+
+class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
+  final _search = TextEditingController();
+  late Future<Object?>? _remote;
+
+  int? get _storeId => int.tryParse(
+        Uri.parse(widget.location).queryParameters['store'] ??
+            Uri.parse(widget.location).queryParameters['store_id'] ??
+            '',
+      );
+
+  int? get _productId {
+    final segments = Uri.parse(widget.location).pathSegments;
+    return segments.isEmpty ? null : int.tryParse(segments.last);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _remote = _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant B2cJourneyScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location ||
+        oldWidget.definition.pattern != widget.definition.pattern ||
+        oldWidget.catalogApi != widget.catalogApi) {
+      _remote = _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<Object?>? _load() {
+    final storeId = _storeId;
+    switch (widget.definition.pattern) {
+      case CustomerRoutePaths.stores:
+        return widget.catalogApi.stores();
+      case CustomerRoutePaths.home:
+        return storeId == null ? null : _loadHome(storeId);
+      case CustomerRoutePaths.offers:
+        return storeId == null ? null : widget.catalogApi.offers(storeId);
+      case CustomerRoutePaths.products:
+        return storeId == null
+            ? null
+            : widget.catalogApi.products(storeId, query: _search.text);
+      case CustomerRoutePaths.productDetails:
+        final productId = _productId;
+        return storeId == null || productId == null
+            ? null
+            : widget.catalogApi.product(productId, storeId: storeId);
+      default:
+        return null;
+    }
+  }
+
+  Future<_HomeData> _loadHome(int storeId) async {
+    final results = await Future.wait<Object>([
+      widget.catalogApi.categories(storeId),
+      widget.catalogApi.offers(storeId),
+      widget.catalogApi.products(storeId),
+    ]);
+    return _HomeData(
+      categories: results[0] as List<B2cCategory>,
+      offers: results[1] as List<B2cOffer>,
+      products: results[2] as List<B2cProduct>,
+    );
+  }
+
+  void _reload() => setState(() => _remote = _load());
+
+  String _withStore(String path) {
+    final storeId = _storeId;
+    if (storeId == null) return path;
+    return Uri(path: path, queryParameters: {'store': '$storeId'}).toString();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final content = _contentFor(context, definition.pattern);
+    final content = _contentFor(context, widget.definition.pattern);
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('customer.app.title'))),
       bottomNavigationBar:
-          definition.pattern == CustomerRoutePaths.home ||
-                  definition.pattern == CustomerRoutePaths.products ||
-                  definition.pattern == CustomerRoutePaths.cart ||
-                  definition.pattern == CustomerRoutePaths.profile
+          widget.definition.pattern == CustomerRoutePaths.home ||
+                  widget.definition.pattern == CustomerRoutePaths.products ||
+                  widget.definition.pattern == CustomerRoutePaths.cart ||
+                  widget.definition.pattern == CustomerRoutePaths.profile
               ? NavigationBar(
                   onDestinationSelected: (index) {
-                    const routes = [
-                      CustomerRoutePaths.home,
-                      CustomerRoutePaths.products,
+                    final routes = [
+                      _withStore(CustomerRoutePaths.home),
+                      _withStore(CustomerRoutePaths.products),
                       CustomerRoutePaths.cart,
                       CustomerRoutePaths.profile,
                     ];
@@ -74,7 +162,7 @@ class B2cJourneyScreen extends StatelessWidget {
             const SizedBox(height: 20),
             ...content.$3,
             Text(
-              location,
+              widget.location,
               key: const ValueKey('customer-route-location'),
               style: Theme.of(context).textTheme.labelSmall,
             ),
@@ -116,31 +204,53 @@ class B2cJourneyScreen extends StatelessWidget {
         return (
           context.tr('customer.store.title'),
           context.tr('customer.store.subtitle'),
-          [_empty(context.tr('customer.store.empty'))],
+          [_remoteBuilder(_buildStores, context.tr('customer.store.empty'))],
         );
       case CustomerRoutePaths.home:
         return (
           context.tr('customer.home.title'),
           context.tr('customer.home.subtitle'),
           [
-            _section(context.tr('customer.home.offers')),
-            _section(context.tr('customer.home.categories')),
-            _section(context.tr('customer.home.popular')),
+            if (_storeId == null)
+              _storeRequired()
+            else
+              _remoteBuilder(_buildHome, context.tr('customer.empty')),
           ],
         );
       case CustomerRoutePaths.offers:
         return (
           context.tr('customer.offers.title'),
           context.tr('customer.offers.subtitle'),
-          [_empty(context.tr('customer.offers.empty'))],
+          [
+            if (_storeId == null)
+              _storeRequired()
+            else
+              _remoteBuilder(_buildOffers, context.tr('customer.offers.empty')),
+          ],
         );
       case CustomerRoutePaths.products:
         return (
           context.tr('customer.products.title'),
           context.tr('customer.products.subtitle'),
           [
-            SearchBar(hintText: context.tr('customer.products.search')),
-            _empty(context.tr('customer.products.empty')),
+            if (_storeId == null)
+              _storeRequired()
+            else ...[
+              SearchBar(
+                key: const ValueKey('b2c-product-search'),
+                controller: _search,
+                hintText: context.tr('customer.products.search'),
+                onSubmitted: (_) => _reload(),
+                trailing: [
+                  IconButton(
+                    onPressed: _reload,
+                    icon: const Icon(Icons.search),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _remoteBuilder(_buildProducts, context.tr('customer.products.empty')),
+            ],
           ],
         );
       case CustomerRoutePaths.productDetails:
@@ -148,11 +258,10 @@ class B2cJourneyScreen extends StatelessWidget {
           context.tr('customer.product.title'),
           context.tr('customer.product.subtitle'),
           [
-            AddCartAction(
-              api: actionApi,
-              location: location,
-              cartRoute: CustomerRoutePaths.cart,
-            ),
+            if (_storeId == null)
+              _storeRequired()
+            else
+              _remoteBuilder(_buildProduct, context.tr('customer.empty')),
           ],
         );
       case CustomerRoutePaths.cart:
@@ -175,8 +284,8 @@ class B2cJourneyScreen extends StatelessWidget {
           [
             CustomerLoginAction(
               channel: CustomerChannel.b2c,
-              api: actionApi,
-              onAuthenticated: onAuthenticated,
+              api: widget.actionApi,
+              onAuthenticated: widget.onAuthenticated,
               successRoute: CustomerRoutePaths.checkoutAddressPayment,
             ),
           ],
@@ -187,7 +296,7 @@ class B2cJourneyScreen extends StatelessWidget {
           context.tr('customer.checkout.subtitle'),
           [
             CheckoutAction(
-              api: actionApi,
+              api: widget.actionApi,
               channel: CustomerChannel.b2c,
             ),
           ],
@@ -214,19 +323,182 @@ class B2cJourneyScreen extends StatelessWidget {
         );
       default:
         return (
-          definition.label,
+          widget.definition.label,
           'FOODEX Customer',
           [_empty(context.tr('customer.empty'))],
         );
     }
   }
 
-  Widget _button(
-    BuildContext context,
-    String label,
-    String route,
-  ) =>
-      Padding(
+  Widget _remoteBuilder(
+    Widget Function(Object data) builder,
+    String emptyLabel,
+  ) {
+    final future = _remote;
+    if (future == null) return _storeRequired();
+
+    return FutureBuilder<Object?>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(
+                key: ValueKey('b2c-catalog-loading'),
+              ),
+            ),
+          );
+        }
+        if (snapshot.hasError) {
+          return Card(
+            key: const ValueKey('b2c-catalog-error'),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Text(context.tr('customer.error.action_failed')),
+                  const SizedBox(height: 8),
+                  OutlinedButton(onPressed: _reload, child: const Icon(Icons.refresh)),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final data = snapshot.data;
+        if (data is List && data.isEmpty) return _empty(emptyLabel);
+        return builder(data as Object);
+      },
+    );
+  }
+
+  Widget _buildStores(Object data) {
+    final stores = data as List<B2cStore>;
+    return Column(
+      key: const ValueKey('b2c-store-results'),
+      children: stores
+          .map(
+            (store) => Card(
+              child: ListTile(
+                key: ValueKey('b2c-store-${store.id}'),
+                title: Text(store.name),
+                subtitle: Text(store.code),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).pushReplacementNamed(
+                  Uri(
+                    path: CustomerRoutePaths.home,
+                    queryParameters: {'store': '${store.id}'},
+                  ).toString(),
+                ),
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Widget _buildHome(Object data) {
+    final home = data as _HomeData;
+    return Column(
+      key: const ValueKey('b2c-home-data'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _section(
+          context.tr('customer.home.offers'),
+          onTap: () => Navigator.of(context).pushNamed(_withStore(CustomerRoutePaths.offers)),
+        ),
+        ...home.offers.take(3).map((offer) => _dataCard(offer.name, offer.type)),
+        _section(context.tr('customer.home.categories')),
+        ...home.categories.take(6).map((category) => _dataCard(category.name, '#${category.id}')),
+        _section(
+          context.tr('customer.home.popular'),
+          onTap: () => Navigator.of(context).pushNamed(_withStore(CustomerRoutePaths.products)),
+        ),
+        ...home.products.take(6).map(_productCard),
+      ],
+    );
+  }
+
+  Widget _buildOffers(Object data) => Column(
+        key: const ValueKey('b2c-offer-results'),
+        children: (data as List<B2cOffer>)
+            .map((offer) => _dataCard(
+                  offer.name,
+                  [offer.type, if (offer.value != null) offer.value!.toStringAsFixed(2)].join(' · '),
+                ))
+            .toList(growable: false),
+      );
+
+  Widget _buildProducts(Object data) => Column(
+        key: const ValueKey('b2c-product-results'),
+        children: (data as List<B2cProduct>).map(_productCard).toList(growable: false),
+      );
+
+  Widget _productCard(B2cProduct product) => Card(
+        child: ListTile(
+          key: ValueKey('b2c-product-${product.id}'),
+          title: Text(product.name),
+          subtitle: Text(
+            product.price == null
+                ? product.sku
+                : '${product.sku} · ${product.price!.toStringAsFixed(3)} ${product.currency}',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).pushNamed(
+            Uri(
+              path: '/products/${product.id}',
+              queryParameters: {'store': '${_storeId!}'},
+            ).toString(),
+          ),
+        ),
+      );
+
+  Widget _buildProduct(Object data) {
+    final product = data as B2cProduct;
+    return Column(
+      key: const ValueKey('b2c-product-detail'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _dataCard(
+          product.name,
+          [
+            product.sku,
+            if (product.price != null) '${product.price!.toStringAsFixed(3)} ${product.currency}',
+          ].join(' · '),
+        ),
+        if (product.description != null && product.description!.trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(product.description!),
+          ),
+        AddCartAction(
+          api: widget.actionApi,
+          location: widget.location,
+          cartRoute: CustomerRoutePaths.cart,
+        ),
+      ],
+    );
+  }
+
+  Widget _storeRequired() => Card(
+        key: const ValueKey('b2c-store-required'),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Text(context.tr('customer.validation.store_required')),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pushReplacementNamed(CustomerRoutePaths.stores),
+                child: Text(context.tr('customer.store.title')),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _button(BuildContext context, String label, String route) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: FilledButton(
           onPressed: () => Navigator.of(context).pushNamed(route),
@@ -234,17 +506,35 @@ class B2cJourneyScreen extends StatelessWidget {
         ),
       );
 
-  Widget _section(String label) => Card(
+  Widget _section(String label, {VoidCallback? onTap}) => Card(
         child: ListTile(
           title: Text(label),
           trailing: const Icon(Icons.chevron_right),
+          onTap: onTap,
         ),
       );
 
+  Widget _dataCard(String title, String subtitle) => Card(
+        child: ListTile(title: Text(title), subtitle: Text(subtitle)),
+      );
+
   Widget _empty(String label) => Card(
+        key: const ValueKey('b2c-catalog-empty'),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Center(child: Text(label)),
         ),
       );
+}
+
+class _HomeData {
+  const _HomeData({
+    required this.categories,
+    required this.offers,
+    required this.products,
+  });
+
+  final List<B2cCategory> categories;
+  final List<B2cOffer> offers;
+  final List<B2cProduct> products;
 }
