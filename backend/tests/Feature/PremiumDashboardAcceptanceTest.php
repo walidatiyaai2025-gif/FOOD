@@ -43,6 +43,7 @@ class PremiumDashboardAcceptanceTest extends TestCase
             $dashboard['distribution'],
         );
         $this->assertSame('/demo/products/olive-oil.svg', $dashboard['low_stock'][0]['image']);
+        $this->assertSame([3, 5, 2, 4, 1], collect($dashboard['recent_orders'])->pluck('items')->all());
         $this->assertSame(
             [5.0, 8.0, 10.0, 12.0],
             collect($dashboard['low_stock'])
@@ -63,6 +64,10 @@ class PremiumDashboardAcceptanceTest extends TestCase
             ->assertSee('.dashboard-layout{direction:ltr;display:grid;', false)
             ->assertSee('data-dashboard-geometry="physical-ltr"', false)
             ->assertSee('data-premium-sidebar="b2c"', false)
+            ->assertSee('لوحة التحكم')
+            ->assertSee('Dashboard')
+            ->assertSee('تطبيقات الجوال')
+            ->assertSee('Mobile Apps')
             ->assertSee('grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width)', false)
             ->assertSee('html[dir=ltr] .dashboard-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}', false)
             ->assertSee('.kpis{direction:ltr', false)
