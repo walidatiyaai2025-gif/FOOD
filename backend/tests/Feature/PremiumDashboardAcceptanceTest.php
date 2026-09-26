@@ -76,7 +76,10 @@ class PremiumDashboardAcceptanceTest extends TestCase
             ->assertDontSee('font-weight:750', false)
             ->assertDontSee('font-weight:850', false)
             ->assertDontSee('#7047c8', false)
-            ->assertSee('@media(max-width:1279px)', false)
+            ->assertSee('@media(max-width:1365px)', false)
+            ->assertSee('.kpi{min-width:0;', false)
+            ->assertSee('font-size:clamp(1.45rem,2vw,1.75rem)', false)
+            ->assertSee('white-space:normal', false)
             ->assertSee('@media(max-width:860px)', false)
             ->assertSee('@media(max-width:620px)', false)
             ->assertSee('FOODEX-DEMO-1245');
