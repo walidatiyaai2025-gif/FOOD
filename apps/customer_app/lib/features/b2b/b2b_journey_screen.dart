@@ -55,12 +55,17 @@ class B2bJourneyScreen extends StatelessWidget {
                   : _RemoteState(
                       api: api!,
                       endpoint: _endpoint()!,
+                      routePattern: definition.pattern,
                       showEmpty: false,
                     ),
             if (hasRemoteState && !keepLocalActions)
               definition.pattern == CustomerRoutePaths.b2bTopProducts
                   ? _TopProductsRemoteState(api: api!, endpoint: _endpoint()!)
-                  : _RemoteState(api: api!, endpoint: _endpoint()!),
+                  : _RemoteState(
+                      api: api!,
+                      endpoint: _endpoint()!,
+                      routePattern: definition.pattern,
+                    ),
             Text(
               location,
               key: const ValueKey('customer-route-location'),
@@ -451,11 +456,13 @@ class _RemoteState extends StatelessWidget {
   const _RemoteState({
     required this.api,
     required this.endpoint,
+    required this.routePattern,
     this.showEmpty = true,
   });
 
   final B2bApi api;
   final String endpoint;
+  final String routePattern;
   final bool showEmpty;
 
   @override
@@ -470,11 +477,20 @@ class _RemoteState extends StatelessWidget {
           }
 
           if (snapshot.hasError) {
+            final error = snapshot.error;
+            final forbidden =
+                error is B2bApiException && error.code == 'not_authorized';
             return Card(
-              key: const ValueKey('b2b-error'),
+              key: ValueKey(forbidden ? 'b2b-forbidden' : 'b2b-error'),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(context.tr('b2b.remote.error')),
+                child: Text(
+                  context.tr(
+                    forbidden
+                        ? 'customer.error.forbidden'
+                        : 'b2b.remote.error',
+                  ),
+                ),
               ),
             );
           }
@@ -498,13 +514,270 @@ class _RemoteState extends StatelessWidget {
                 : const SizedBox.shrink();
           }
 
-          return Card(
-            key: const ValueKey('b2b-loaded'),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(context.tr('b2b.remote.loaded')),
-            ),
+          return _AuthoritativeDataView(
+            value: value,
+            routePattern: routePattern,
           );
         },
       );
 }
+
+class _AuthoritativeDataView extends StatelessWidget {
+  const _AuthoritativeDataView({
+    required this.value,
+    required this.routePattern,
+  });
+
+  final Object? value;
+  final String routePattern;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = _rows(value);
+    if (rows != null) {
+      return Column(
+        key: const ValueKey('b2b-authoritative-collection'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: rows
+            .map((row) => _rowCard(context, row))
+            .toList(growable: false),
+      );
+    }
+
+    if (value is Map) {
+      return _mapCard(
+        context,
+        Map<Object?, Object?>.from(value as Map),
+        key: const ValueKey('b2b-authoritative-detail'),
+      );
+    }
+
+    return Card(
+      key: const ValueKey('b2b-authoritative-detail'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(value.toString()),
+      ),
+    );
+  }
+
+  List<Map<Object?, Object?>>? _rows(Object? source) {
+    if (source is List) {
+      return source
+          .whereType<Map>()
+          .map((row) => Map<Object?, Object?>.from(row))
+          .toList(growable: false);
+    }
+    if (source is Map && source['data'] is List) {
+      return (source['data'] as List)
+          .whereType<Map>()
+          .map((row) => Map<Object?, Object?>.from(row))
+          .toList(growable: false);
+    }
+    return null;
+  }
+
+  Widget _rowCard(BuildContext context, Map<Object?, Object?> row) {
+    final route = _routeForRow(row);
+    final title = _firstValue(
+      row,
+      const [
+        'name',
+        'product_name',
+        'order_number',
+        'invoice_number',
+        'company_name',
+        'sku',
+        'reference',
+        'id',
+      ],
+    );
+
+    return Card(
+      child: InkWell(
+        onTap: route == null
+            ? null
+            : () => Navigator.of(context).pushNamed(route),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (title != null && title.isNotEmpty)
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              if (title != null && title.isNotEmpty)
+                const SizedBox(height: 8),
+              ..._entries(context, row),
+              if (route != null)
+                const Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Icon(Icons.chevron_right),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _mapCard(
+    BuildContext context,
+    Map<Object?, Object?> map, {
+    Key? key,
+  }) =>
+      Card(
+        key: key,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: _entries(context, map),
+          ),
+        ),
+      );
+
+  List<Widget> _entries(
+    BuildContext context,
+    Map<Object?, Object?> map,
+  ) {
+    final widgets = <Widget>[];
+    for (final entry in map.entries) {
+      final key = entry.key.toString();
+      final value = entry.value;
+      if (value == null) continue;
+
+      if (value is Map) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 10, bottom: 4),
+            child: Text(
+              _label(key),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+        );
+        widgets.addAll(
+          _entries(context, Map<Object?, Object?>.from(value)),
+        );
+        continue;
+      }
+
+      if (value is List) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 10, bottom: 4),
+            child: Text(
+              _label(key),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+        );
+        if (value.isEmpty) {
+          widgets.add(Text(context.tr('b2b.remote.empty')));
+        } else {
+          for (final item in value) {
+            if (item is Map) {
+              widgets.add(
+                _mapCard(
+                  context,
+                  Map<Object?, Object?>.from(item),
+                ),
+              );
+            } else {
+              widgets.add(Text(item.toString()));
+            }
+          }
+        }
+        continue;
+      }
+
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text('${_label(key)}: ${_formatValue(value)}'),
+        ),
+      );
+    }
+    return widgets;
+  }
+
+  String _label(String key) {
+    const labels = <String, String>{
+      'id': 'ID',
+      'sku': 'SKU',
+      'name': 'Name',
+      'product_name': 'Product',
+      'order_number': 'Order',
+      'invoice_number': 'Invoice',
+      'status': 'Status',
+      'payment_status': 'Payment status',
+      'currency': 'Currency',
+      'total': 'Total',
+      'grand_total': 'Grand total',
+      'subtotal': 'Subtotal',
+      'balance': 'Balance',
+      'quantity': 'Quantity',
+      'unit_price': 'Unit price',
+      'account_price': 'Account price',
+      'minimum_quantity': 'Minimum quantity',
+      'minimum_order_quantity': 'Minimum order quantity',
+      'available_quantity': 'Available quantity',
+      'company_name': 'Company',
+      'email': 'Email',
+      'phone': 'Phone',
+      'tax_number': 'Tax number',
+      'created_at': 'Created',
+      'updated_at': 'Updated',
+      'period': 'Period',
+      'items': 'Items',
+      'data': 'Data',
+    };
+    return labels[key] ??
+        key
+            .split('_')
+            .map((part) => part.isEmpty
+                ? part
+                : '${part[0].toUpperCase()}${part.substring(1)}')
+            .join(' ');
+  }
+
+  String _formatValue(Object? value) {
+    if (value is bool) return value ? 'Yes' : 'No';
+    return value.toString();
+  }
+
+  String? _firstValue(
+    Map<Object?, Object?> row,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = row[key];
+      if (value != null && value.toString().isNotEmpty) {
+        return value.toString();
+      }
+    }
+    return null;
+  }
+
+  String? _routeForRow(Map<Object?, Object?> row) {
+    final id = row['id']?.toString();
+    if (id == null || id.isEmpty) return null;
+
+    switch (routePattern) {
+      case CustomerRoutePaths.b2bInvoices:
+        return '/b2b/invoices/$id';
+      case CustomerRoutePaths.b2bOrders:
+        return '/b2b/orders/$id';
+      case CustomerRoutePaths.b2bProducts:
+        final storeId = row['store_id']?.toString();
+        if (storeId == null || storeId.isEmpty) return null;
+        return '/b2b/products/$id?store_id=$storeId';
+      default:
+        return null;
+    }
+  }
+}
+
