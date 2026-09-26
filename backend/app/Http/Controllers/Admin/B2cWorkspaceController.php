@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\B2cDashboardService;
+use App\Services\ManagementReportService;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class B2cWorkspaceController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly B2cDashboardService $dashboard,
+        private readonly ManagementReportService $reports,
     ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View
@@ -45,14 +47,14 @@ class B2cWorkspaceController extends Controller
                 $request->filled('q') ? $request->string('q')->toString() : null,
             )
             : null;
-        $moduleData = in_array($module, ['products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content'], true)
-            ? $this->moduleData($module, $storeIds)
+        $moduleData = in_array($module, ['products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
+            ? $this->moduleData($module, $storeIds, $user)
             : null;
 
         return view('admin.b2c-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'dashboard', 'moduleData'));
     }
 
-    private function moduleData(string $module, array $storeIds): array
+    private function moduleData(string $module, array $storeIds, User $user): array
     {
         return match ($module) {
             'products' => [
@@ -239,8 +241,114 @@ class B2cWorkspaceController extends Controller
                         'status' => (bool) $row->status,
                     ])->all(),
             ],
+            'reports' => $this->reportModuleData($user, $storeIds),
+            'settings' => $this->settingsModuleData($user, $storeIds),
             default => ['columns' => [], 'rows' => []],
         };
+    }
+
+    private function reportModuleData(User $user, array $storeIds): array
+    {
+        $stores = DB::table('stores')->whereIn('id', $storeIds)->orderBy('name')->get(['id', 'name']);
+
+        return [
+            'columns' => ['store', 'orders', 'revenue', 'average', 'actions'],
+            'rows' => $stores->map(function ($store) use ($user): array {
+                $data = $this->reports->run($user, 'orders', [
+                    'store_id' => (int) $store->id,
+                    'channel' => 'b2c',
+                ]);
+
+                $actions = [[
+                    'label' => app()->getLocale() === 'ar' ? 'فتح مركز التقارير' : 'Open reports',
+                    'url' => route('admin.reports.index', [
+                        'report' => 'orders',
+                        'store_id' => (int) $store->id,
+                        'channel' => 'b2c',
+                    ]),
+                ]];
+
+                if ($user->hasPermission('reports.export', (int) $store->id)) {
+                    foreach (['xlsx', 'docx', 'pdf'] as $format) {
+                        $actions[] = [
+                            'label' => strtoupper($format),
+                            'url' => route('admin.reports.export', [
+                                'report' => 'orders',
+                                'format' => $format,
+                                'store_id' => (int) $store->id,
+                                'channel' => 'b2c',
+                            ]),
+                        ];
+                    }
+                }
+
+                return [
+                    'store' => $store->name,
+                    'orders' => (int) data_get($data, 'kpis.orders', 0),
+                    'revenue' => 'KWD '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
+                    'average' => 'KWD '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
+                    'actions' => $actions,
+                ];
+            })->all(),
+        ];
+    }
+
+    private function settingsModuleData(User $user, array $storeIds): array
+    {
+        $actions = [];
+
+        if ($user->hasPermission('security.view')) {
+            $actions[] = [
+                'label' => app()->getLocale() === 'ar' ? 'الصلاحيات والمستخدمون' : 'Security & users',
+                'url' => route('admin.security.index'),
+            ];
+        }
+        if ($user->hasPermission('translations.manage')) {
+            $actions[] = [
+                'label' => app()->getLocale() === 'ar' ? 'إدارة الترجمات' : 'Translations',
+                'url' => route('admin.translations.index'),
+            ];
+        }
+        if ($user->hasPermission('mobile_settings.manage')
+            || $user->hasPermission('push_settings.manage')
+            || $user->hasPermission('push_settings.test')) {
+            $actions[] = [
+                'label' => app()->getLocale() === 'ar' ? 'إعدادات الموبايل والإشعارات' : 'Mobile & push settings',
+                'url' => route('admin.mobile-settings.index'),
+            ];
+        }
+
+        return [
+            'columns' => ['store', 'setting', 'value'],
+            'rows' => DB::table('settings')
+                ->join('stores', 'stores.id', '=', 'settings.store_id')
+                ->whereIn('settings.store_id', $storeIds)
+                ->where('settings.is_secret', false)
+                ->orderBy('stores.name')
+                ->orderBy('settings.key')
+                ->limit(150)
+                ->get(['stores.name as store', 'settings.key as setting', 'settings.value'])
+                ->map(fn ($row) => [
+                    'store' => $row->store,
+                    'setting' => $row->setting,
+                    'value' => $this->displaySettingValue($row->value),
+                ])->all(),
+            'actions' => $actions,
+        ];
+    }
+
+    private function displaySettingValue(mixed $value): string
+    {
+        if ($value === null) {
+            return '-';
+        }
+
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
+        if (is_array($decoded)) {
+            return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '-';
+        }
+
+        return is_scalar($decoded) ? (string) $decoded : '-';
     }
 
     private function storeIds(User $user): array
