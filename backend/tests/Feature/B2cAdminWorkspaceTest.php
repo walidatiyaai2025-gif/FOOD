@@ -226,7 +226,7 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertSee('var(--foodex-sidebar-width)', false)
             ->assertSee('var(--foodex-control-height)', false)
             ->assertSee('.module-layout{direction:ltr;display:grid;', false)
-            ->assertSee('@media(max-width:1279px)', false)
+            ->assertSee('@media(max-width:1365px)', false)
             ->assertSee('max-height:320px;overflow:auto', false);
     }
 }
