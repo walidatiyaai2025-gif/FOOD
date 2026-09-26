@@ -7,7 +7,7 @@
     @include('admin._brand-components')
     <style>
         *{box-sizing:border-box}body{margin:0;font-family:var(--foodex-font-ui);background:var(--foodex-background);color:var(--foodex-ink)}
-        a{color:inherit;text-decoration:none}.dashboard-layout{display:grid;grid-template-columns:minmax(0,1fr) 225px;min-height:100vh}.dashboard-shell{min-width:0}.dashboard-sidebar{grid-column:2;background:var(--foodex-surface);border-inline-start:1px solid var(--foodex-border);min-height:100vh}
+        a{color:inherit;text-decoration:none}.dashboard-layout{display:grid;direction:ltr;grid-template-columns:minmax(0,1fr) 225px;min-height:100vh}.dashboard-shell{min-width:0}.dashboard-sidebar{grid-column:2;background:var(--foodex-surface);border-inline-start:1px solid var(--foodex-border);min-height:100vh}html[dir=rtl] .dashboard-shell,html[dir=rtl] .dashboard-sidebar{direction:rtl}
         html[dir=ltr] .dashboard-layout{grid-template-columns:225px minmax(0,1fr)}html[dir=ltr] .dashboard-sidebar{grid-column:1;grid-row:1}html[dir=ltr] .dashboard-shell{grid-column:2;grid-row:1}
         .topbar{height:76px;background:#fff;border-bottom:1px solid var(--foodex-border);display:grid;grid-template-columns:minmax(210px,1fr) minmax(320px,520px) minmax(230px,1fr);align-items:center;gap:18px;padding:0 24px;position:sticky;top:0;z-index:10}
         .profile{display:flex;align-items:center;gap:10px}.avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:900;border:1px solid #d5eddd}.profile small{display:block;color:var(--foodex-muted)}
