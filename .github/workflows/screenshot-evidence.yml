@@ -4,21 +4,9 @@ name: FOODEX Runtime Screenshot Evidence
 on:
   workflow_call:
   workflow_dispatch:
-  push:
-    branches:
-      - test/175-runtime-screenshot-evidence
-    paths:
-      - ".github/workflows/screenshot-evidence.yml"
-      - "apps/customer_app/**"
-      - "apps/driver_app/**"
-      - "backend/**"
-      - "scripts/capture_web_screenshots.mjs"
-      - "scripts/update_screenshot_manifest.py"
-      - "docs/design-reference/SCREEN_MANIFEST.json"
-      - "docs/architecture/FOODEX_BRAND_SYSTEM.md"
 
 concurrency:
-  group: foodex-screenshot-evidence-${{ github.head_ref || github.ref_name }}
+  group: foodex-screenshot-evidence-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 permissions:
