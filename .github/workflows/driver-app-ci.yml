@@ -42,6 +42,18 @@ jobs:
       - name: Android release-mode validation build
         run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex-validation.invalid
 
+      - name: Verify Android release network permission and native brand
+        shell: bash
+        run: |
+          set -euo pipefail
+          aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$aapt_bin"
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          "$aapt_bin" dump permissions "$apk" > build/release-permissions.txt
+          grep -Fx "uses-permission: name='android.permission.INTERNET'" build/release-permissions.txt
+          "$aapt_bin" dump badging "$apk" > build/release-badging.txt
+          grep -Fx "application-label:'FOODEX Driver'" build/release-badging.txt
+
       - name: Package Android validation evidence
         working-directory: .
         run: python3 scripts/package-mobile-artifact.py --app driver --platform android --input apps/driver_app/build/app/outputs/flutter-apk/app-release.apk --build-number "$GITHUB_RUN_NUMBER" --commit "$GITHUB_SHA" --output artifacts
