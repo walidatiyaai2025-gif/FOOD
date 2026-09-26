@@ -8,7 +8,7 @@ import '../auth/driver_session.dart';
 
 Uri _driverApiBase(String raw) {
   final parsed = Uri.parse(raw);
-  final path = parsed.path.endsWith('/') ? parsed.path : parsed.path + '/';
+  final path = parsed.path.endsWith('/') ? parsed.path : '${parsed.path}/';
   return parsed.replace(path: path);
 }
 
@@ -20,7 +20,7 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
   final Uri _base;
   final http.Client _client;
 
-  Uri _endpoint(String path) => _base.resolve('api/v1/' + path);
+  Uri _endpoint(String path) => _base.resolve('api/v1/$path');
 
   @override
   Future<DriverSession> login({
@@ -86,7 +86,7 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
         _endpoint('auth/logout'),
         headers: {
           'Accept': 'application/json',
-          'Authorization': 'Bearer ' + token,
+          'Authorization': 'Bearer $token',
         },
       );
       if (response.statusCode == 401 || response.statusCode == 204) return;
@@ -113,12 +113,12 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
   final String token;
   final http.Client _client;
 
-  Uri _endpoint(String path) => _base.resolve('api/v1/' + path);
+  Uri _endpoint(String path) => _base.resolve('api/v1/$path');
 
   Map<String, String> get _headers => {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token,
+        'Authorization': 'Bearer $token',
       };
 
   @override
@@ -152,7 +152,7 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
             id: (map['id'] as num).toInt(),
             orderId: orderId,
             channel: assignmentChannel,
-            reference: '#' + orderId.toString(),
+            reference: '#$orderId',
             status: (map['status'] ?? '').toString(),
             availableStatuses: statuses,
           );
@@ -169,7 +169,7 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
   ) async {
     await _request(
       () => _client.post(
-        _endpoint('driver/assignments/' + id.toString() + '/status'),
+        _endpoint('driver/assignments/$id/status'),
         headers: _headers,
         body: jsonEncode({'status': status}),
       ),

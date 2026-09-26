@@ -107,7 +107,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          key: Key('assignment-detail-' + assignment.id.toString()),
+          key: Key('assignment-detail-${assignment.id}'),
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -118,12 +118,10 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
-              Text(context.tr('driver.detail.order') + ': ' + assignment.reference),
+              Text("${context.tr('driver.detail.order')}: ${assignment.reference}"),
               const SizedBox(height: 8),
               Text(
-                context.tr('driver.detail.status') +
-                    ': ' +
-                    context.tr('driver.status.' + assignment.status),
+                "${context.tr('driver.detail.status')}: ${context.tr('driver.status.${assignment.status}')}",
               ),
               const SizedBox(height: 16),
               if (assignment.availableStatuses.isEmpty)
@@ -136,10 +134,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                       .map(
                         (status) => FilledButton(
                           key: Key(
-                            'assignment-status-' +
-                                assignment.id.toString() +
-                                '-' +
-                                status,
+                            'assignment-status-${assignment.id}-$status',
                           ),
                           onPressed: _transitioning.contains(assignment.id)
                               ? null
@@ -147,7 +142,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                                   Navigator.of(sheetContext).pop();
                                   _transition(assignment, status);
                                 },
-                          child: Text(context.tr('driver.status.' + status)),
+                          child: Text(context.tr('driver.status.$status')),
                         ),
                       )
                       .toList(growable: false),
@@ -215,7 +210,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                     children: assignments
                         .map(
                           (assignment) => ListTile(
-                            key: Key('assignment-' + assignment.id.toString()),
+                            key: Key('assignment-${assignment.id}'),
                             title: Text(assignment.reference),
                             subtitle: Align(
                               alignment: AlignmentDirectional.centerStart,
@@ -230,7 +225,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                                     vertical: 4,
                                   ),
                                   child: Text(
-                                    context.tr('driver.status.' + assignment.status),
+                                    context.tr('driver.status.${assignment.status}'),
                                     style: TextStyle(
                                       color: FoodexBrand.statusColor(assignment.status),
                                       fontWeight: FontWeight.w700,
