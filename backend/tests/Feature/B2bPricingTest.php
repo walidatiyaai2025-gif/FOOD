@@ -32,6 +32,17 @@ class B2bPricingTest extends TestCase
         Sanctum::actingAs($buyer);
 
         $this->getJson("/api/v1/b2b/products?store_id={$storeId}")->assertOk()->assertJsonPath('data.0.unit_price', 7.25)->assertJsonPath('data.0.minimum_quantity', 5);
+        $this->getJson("/api/v1/b2b/products/{$productId}?store_id={$storeId}")
+            ->assertOk()
+            ->assertJsonPath('id', $productId)
+            ->assertJsonPath('store_id', $storeId)
+            ->assertJsonPath('sku', 'B2B-P-1')
+            ->assertJsonPath('name', 'Wholesale Product')
+            ->assertJsonPath('account_price', 7.25)
+            ->assertJsonPath('minimum_order_quantity', 5)
+            ->assertJsonPath('price_tier', 'GOLD')
+            ->assertJsonPath('is_available', true)
+            ->assertJsonPath('currency', 'KWD');
         $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 1])->assertConflict();
         $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 5])->assertCreated()->assertJsonPath('items.0.unit_price_snapshot', 7.25)->assertJsonPath('subtotal', 36.25);
     }
@@ -53,6 +64,7 @@ class B2bPricingTest extends TestCase
         Sanctum::actingAs($buyer);
 
         $this->getJson("/api/v1/b2b/products?store_id={$storeId}")->assertForbidden();
+        $this->getJson("/api/v1/b2b/products/{$productId}?store_id={$storeId}")->assertForbidden();
     }
 
     private function catalog(): array
