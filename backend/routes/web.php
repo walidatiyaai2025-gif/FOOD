@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminLoginController;
 use App\Http\Controllers\Admin\AdminShellController;
 use App\Http\Controllers\Admin\AppVersionController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
@@ -35,6 +36,28 @@ Route::withoutMiddleware([
         ->whereNumber('step')
         ->name('install.step');
 });
+
+Route::prefix('admin')
+    ->name('admin.')
+    ->group(function (): void {
+        Route::get('/b2b/login', [AdminLoginController::class, 'show'])
+            ->defaults('channel', 'b2b')
+            ->name('b2b.login');
+        Route::post('/b2b/login', [AdminLoginController::class, 'store'])
+            ->defaults('channel', 'b2b')
+            ->middleware('throttle:login')
+            ->name('b2b.login.store');
+        Route::get('/b2c/login', [AdminLoginController::class, 'show'])
+            ->defaults('channel', 'b2c')
+            ->name('b2c.login');
+        Route::post('/b2c/login', [AdminLoginController::class, 'store'])
+            ->defaults('channel', 'b2c')
+            ->middleware('throttle:login')
+            ->name('b2c.login.store');
+        Route::post('/logout', [AdminLoginController::class, 'destroy'])
+            ->middleware('auth')
+            ->name('logout');
+    });
 
 Route::prefix('admin')
     ->name('admin.')

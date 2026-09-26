@@ -4,16 +4,17 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\CredentialAuthenticator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly CredentialAuthenticator $credentials) {}
+
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
@@ -21,13 +22,9 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $email = Str::lower($credentials['email']);
+        $user = $this->credentials->authenticate($credentials['email'], $credentials['password']);
 
-        $user = User::query()
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->first();
-
-        if (! $user || ! $user->is_active || ! Hash::check($credentials['password'], $user->password)) {
+        if (! $user) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are invalid.'],
             ]);
