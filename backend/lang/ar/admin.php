@@ -20,6 +20,18 @@ return [
     'nav_items' => [
         'notifications' => 'الإشعارات',
     ],
+    'premium_nav' => [
+        'dashboard' => 'لوحة التحكم',
+        'orders' => 'الطلبات',
+        'products' => 'المنتجات',
+        'customers' => 'العملاء',
+        'delivery' => 'التوصيل',
+        'notifications' => 'الإشعارات',
+        'mobile_apps' => 'تطبيقات الجوال',
+        'reports' => 'التقارير',
+        'settings' => 'الإعدادات',
+        'more' => 'المزيد',
+    ],
     'app_versions' => 'إصدارات التطبيقات',
     'system_update' => 'تحديث النظام',
     'translation_center' => 'مركز الترجمة',
