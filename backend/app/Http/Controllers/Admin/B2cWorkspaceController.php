@@ -289,9 +289,9 @@ class B2cWorkspaceController extends Controller
 
                 return [
                     'store' => $store->name,
-                    'orders' => (int) data_get($data, 'totals.orders', 0),
-                    'revenue' => 'KWD '.number_format((float) data_get($data, 'totals.recognized_revenue', 0), 3),
-                    'average' => 'KWD '.number_format((float) data_get($data, 'totals.average_order_value', 0), 3),
+                    'orders' => (int) data_get($data, 'kpis.orders', 0),
+                    'revenue' => 'KWD '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
+                    'average' => 'KWD '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
                     'actions' => $actions,
                 ];
             })->all(),
