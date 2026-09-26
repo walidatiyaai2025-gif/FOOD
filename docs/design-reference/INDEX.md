@@ -11,19 +11,19 @@ Reconciled on main baseline `c09910cfec643333e7ca721090fe0e54d659c2fb` by #123. 
 
 | # | Role | Platform | Screen | Source path | Size | Expected route | Module | Related API | Status |
 |---:|---|---|---|---|---|---|---|---|---|
-| 1 | B2B Customer | Flutter iOS/Android | شاشة_الدخول | 01_Mobile/B2B_Customer/01_شاشة_الدخول.png | 259x525 | /b2b/login | auth | POST /api/v1/auth/login | Functional verified; visual source unavailable |
-| 2 | B2B Customer | Flutter iOS/Android | الصفحة_الرئيسية_Dashboard | 01_Mobile/B2B_Customer/02_الصفحة_الرئيسية_Dashboard.png | 282x513 | /b2b/dashboard | b2b | GET /api/v1/b2b/dashboard | Functional verified; visual source unavailable |
-| 3 | B2B Customer | Flutter iOS/Android | تقارير_المشتريات_والرسوم_البيانية | 01_Mobile/B2B_Customer/03_تقارير_المشتريات_والرسوم_البيانية.png | 260x513 | /b2b/reports/purchases | reports | GET /api/v1/b2b/reports/purchases | Functional verified; visual source unavailable |
-| 4 | B2B Customer | Flutter iOS/Android | أكثر_المنتجات_طلبا | 01_Mobile/B2B_Customer/04_أكثر_المنتجات_طلبا.png | 259x513 | /b2b/products/top | catalog | GET /api/v1/b2b/products | Gap → #142 |
-| 5 | B2B Customer | Flutter iOS/Android | آخر_الفواتير | 01_Mobile/B2B_Customer/05_آخر_الفواتير.png | 265x465 | /b2b/invoices | b2b | GET /api/v1/b2b/invoices | Functional verified; visual source unavailable |
-| 6 | B2B Customer | Flutter iOS/Android | كشف_الحساب_والمعاملات | 01_Mobile/B2B_Customer/06_كشف_الحساب_والمعاملات.png | 271x513 | /b2b/account-statement | b2b | GET /api/v1/b2b/account-statement | Functional verified; visual source unavailable |
-| 7 | B2B Customer | Flutter iOS/Android | طلباتي | 01_Mobile/B2B_Customer/07_طلباتي.png | 226x422 | /b2b/orders | orders | GET /api/v1/b2b/orders | Functional verified; visual source unavailable |
-| 8 | B2B Customer | Flutter iOS/Android | تفاصيل_الطلب_وتتبع_الحالة | 01_Mobile/B2B_Customer/08_تفاصيل_الطلب_وتتبع_الحالة.png | 226x420 | /b2b/orders/:id | orders | GET /api/v1/b2b/orders/{order} | Functional verified; visual source unavailable |
-| 9 | B2B Customer | Flutter iOS/Android | تفاصيل_الفاتورة | 01_Mobile/B2B_Customer/09_تفاصيل_الفاتورة.png | 279x440 | /b2b/invoices/:id | b2b | GET /api/v1/b2b/invoices/{invoice} | Functional verified; visual source unavailable |
-| 10 | B2B Customer | Flutter iOS/Android | تصفح_المنتجات | 01_Mobile/B2B_Customer/10_تصفح_المنتجات.png | 227x420 | /b2b/products | catalog | GET /api/v1/b2b/products | Functional verified; visual source unavailable |
+| 1 | B2B Customer | Flutter iOS/Android | شاشة_الدخول | 01_Mobile/B2B_Customer/01_شاشة_الدخول.png | 259x525 | /b2b/login | auth | POST /api/v1/auth/login | Functional login verified; visual source unavailable |
+| 2 | B2B Customer | Flutter iOS/Android | الصفحة_الرئيسية_Dashboard | 01_Mobile/B2B_Customer/02_الصفحة_الرئيسية_Dashboard.png | 282x513 | /b2b/dashboard | b2b | GET /api/v1/b2b/dashboard | Partial data rendering → #151 |
+| 3 | B2B Customer | Flutter iOS/Android | تقارير_المشتريات_والرسوم_البيانية | 01_Mobile/B2B_Customer/03_تقارير_المشتريات_والرسوم_البيانية.png | 260x513 | /b2b/reports/purchases | reports | GET /api/v1/b2b/reports/purchases | Partial data rendering → #151 |
+| 4 | B2B Customer | Flutter iOS/Android | أكثر_المنتجات_طلبا | 01_Mobile/B2B_Customer/04_أكثر_المنتجات_طلبا.png | 259x513 | /b2b/products/top | catalog | GET /api/v1/b2b/products | Gap → #142 + #151 |
+| 5 | B2B Customer | Flutter iOS/Android | آخر_الفواتير | 01_Mobile/B2B_Customer/05_آخر_الفواتير.png | 265x465 | /b2b/invoices | b2b | GET /api/v1/b2b/invoices | Partial data rendering → #151 |
+| 6 | B2B Customer | Flutter iOS/Android | كشف_الحساب_والمعاملات | 01_Mobile/B2B_Customer/06_كشف_الحساب_والمعاملات.png | 271x513 | /b2b/account-statement | b2b | GET /api/v1/b2b/account-statement | Partial data rendering → #151 |
+| 7 | B2B Customer | Flutter iOS/Android | طلباتي | 01_Mobile/B2B_Customer/07_طلباتي.png | 226x422 | /b2b/orders | orders | GET /api/v1/b2b/orders | Partial data rendering → #151 |
+| 8 | B2B Customer | Flutter iOS/Android | تفاصيل_الطلب_وتتبع_الحالة | 01_Mobile/B2B_Customer/08_تفاصيل_الطلب_وتتبع_الحالة.png | 226x420 | /b2b/orders/:id | orders | GET /api/v1/b2b/orders/{order} | Partial data rendering → #151 |
+| 9 | B2B Customer | Flutter iOS/Android | تفاصيل_الفاتورة | 01_Mobile/B2B_Customer/09_تفاصيل_الفاتورة.png | 279x440 | /b2b/invoices/:id | b2b | GET /api/v1/b2b/invoices/{invoice} | Partial data rendering → #151 |
+| 10 | B2B Customer | Flutter iOS/Android | تصفح_المنتجات | 01_Mobile/B2B_Customer/10_تصفح_المنتجات.png | 227x420 | /b2b/products | catalog | GET /api/v1/b2b/products | Partial data rendering → #151 |
 | 11 | B2B Customer | Flutter iOS/Android | تفاصيل_المنتج_وإضافة_للسلة | 01_Mobile/B2B_Customer/11_تفاصيل_المنتج_وإضافة_للسلة.png | 226x420 | /b2b/products/:id | catalog | GET /api/v1/products/{product} | Gap → #143 |
-| 12 | B2B Customer | Flutter iOS/Android | سلة_المشتريات_وإتمام_الطلب | 01_Mobile/B2B_Customer/12_سلة_المشتريات_وإتمام_الطلب.png | 227x439 | /b2b/cart | cart | GET/POST /api/v1/cart | Functional verified; visual source unavailable |
-| 13 | B2B Customer | Flutter iOS/Android | حسابي_والإعدادات | 01_Mobile/B2B_Customer/13_حسابي_والإعدادات.png | 209x439 | /b2b/profile | customers | GET /api/v1/profile | Functional verified; visual source unavailable |
+| 12 | B2B Customer | Flutter iOS/Android | سلة_المشتريات_وإتمام_الطلب | 01_Mobile/B2B_Customer/12_سلة_المشتريات_وإتمام_الطلب.png | 227x439 | /b2b/cart | cart | GET/POST /api/v1/cart | Partial data rendering → #151 |
+| 13 | B2B Customer | Flutter iOS/Android | حسابي_والإعدادات | 01_Mobile/B2B_Customer/13_حسابي_والإعدادات.png | 209x439 | /b2b/profile | customers | GET /api/v1/profile | Partial data rendering → #151 |
 | 14 | B2C Customer | Flutter iOS/Android | الشاشة_الافتتاحية | 01_Mobile/B2C_Customer/01_الشاشة_الافتتاحية.png | 218x506 | /splash | home | none | Functional verified; visual source unavailable |
 | 15 | B2C Customer | Flutter iOS/Android | تصفح_كضيف_او_تسجيل_الدخول | 01_Mobile/B2C_Customer/02_تصفح_كضيف_او_تسجيل_الدخول.png | 235x487 | /entry | auth | POST /api/v1/auth/login (optional) | Functional verified; visual source unavailable |
 | 16 | B2C Customer | Flutter iOS/Android | اختيار_المتجر | 01_Mobile/B2C_Customer/03_اختيار_المتجر.png | 236x486 | /stores | stores | GET /api/v1/stores | Gap → #140 |
@@ -32,8 +32,8 @@ Reconciled on main baseline `c09910cfec643333e7ca721090fe0e54d659c2fb` by #123. 
 | 19 | B2C Customer | Flutter iOS/Android | قائمة_المنتجات_والفلاتر | 01_Mobile/B2C_Customer/06_قائمة_المنتجات_والفلاتر.png | 237x533 | /products | catalog | GET /api/v1/stores/{store}/products | Gap → #140 |
 | 20 | B2C Customer | Flutter iOS/Android | تفاصيل_المنتج | 01_Mobile/B2C_Customer/07_تفاصيل_المنتج.png | 244x432 | /products/:id | catalog | GET /api/v1/products/{product} | Gap → #140 |
 | 21 | B2C Customer | Flutter iOS/Android | سلة_التسوق | 01_Mobile/B2C_Customer/08_سلة_التسوق.png | 264x436 | /cart | cart | GET/POST /api/v1/cart | Gap → #141 |
-| 22 | B2C Customer | Flutter iOS/Android | تسجيل_الدخول_لإتمام_الطلب | 01_Mobile/B2C_Customer/09_تسجيل_الدخول_لإتمام_الطلب.png | 272x422 | /auth/checkout | auth | POST /api/v1/auth/login | Functional verified; visual source unavailable |
-| 23 | B2C Customer | Flutter iOS/Android | العنوان_والدفع | 01_Mobile/B2C_Customer/10_العنوان_والدفع.png | 244x435 | /checkout/address-payment | checkout | POST /api/v1/checkout | Functional verified; visual source unavailable |
+| 22 | B2C Customer | Flutter iOS/Android | تسجيل_الدخول_لإتمام_الطلب | 01_Mobile/B2C_Customer/09_تسجيل_الدخول_لإتمام_الطلب.png | 272x422 | /auth/checkout | auth | POST /api/v1/auth/login | Functional login verified; visual source unavailable |
+| 23 | B2C Customer | Flutter iOS/Android | العنوان_والدفع | 01_Mobile/B2C_Customer/10_العنوان_والدفع.png | 244x435 | /checkout/address-payment | checkout | POST /api/v1/checkout | Functional checkout mutation verified; visual source unavailable |
 | 24 | B2C Customer | Flutter iOS/Android | تتبع_الطلب | 01_Mobile/B2C_Customer/11_تتبع_الطلب.png | 224x430 | /orders/:id/track | orders | GET /api/v1/orders/{order} | Gap → #141 |
 | 25 | B2C Customer | Flutter iOS/Android | الملف_الشخصي_والمفضلة | 01_Mobile/B2C_Customer/12_الملف_الشخصي_والمفضلة.png | 218x428 | /profile | customers | GET /api/v1/profile | Gap → #141 |
 | 26 | B2B Super Admin | Laravel Web Admin | تسجيل_الدخول_B2B | 02_Web/B2B_SuperAdmin/01_تسجيل_الدخول_B2B.png | 1448x1086 | /admin/b2b/login | auth | POST /api/v1/auth/login | Gap → #139 |
