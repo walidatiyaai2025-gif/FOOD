@@ -63,6 +63,19 @@ class PremiumDashboardAcceptanceTest extends TestCase
             ->assertSee('.kpis{display:grid;direction:ltr;', false)
             ->assertSee('.middle{display:grid;direction:ltr;', false)
             ->assertSee('.bottom{display:grid;direction:ltr;', false)
+            ->assertSee('data-golden-dashboard="ph06"', false)
+            ->assertSee('data-dashboard-geometry="physical-ltr"', false)
+            ->assertSee('data-premium-sidebar="b2c"', false)
+            ->assertSee('grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width)', false)
+            ->assertSee('html[dir=ltr] .dashboard-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}', false)
+            ->assertSee('.kpis{direction:ltr', false)
+            ->assertSee('.middle{direction:ltr', false)
+            ->assertSee('.bottom{direction:ltr', false)
+            ->assertSee('--foodex-font-ar:"Tajawal",system-ui,sans-serif', false)
+            ->assertSee('--foodex-font-en:"Inter",system-ui,sans-serif', false)
+            ->assertDontSee('font-weight:750', false)
+            ->assertDontSee('font-weight:850', false)
+            ->assertDontSee('#7047c8', false)
             ->assertSee('@media(max-width:1180px)', false)
             ->assertSee('@media(max-width:860px)', false)
             ->assertSee('@media(max-width:620px)', false)
@@ -74,6 +87,8 @@ class PremiumDashboardAcceptanceTest extends TestCase
             ->get('/admin/b2c/dashboard')
             ->assertOk()
             ->assertSee('dir="ltr"', false)
+            ->assertSee('data-golden-dashboard="ph06"', false)
+            ->assertSee('data-premium-sidebar="b2c"', false)
             ->assertSee('FOODEX', false);
     }
 }
