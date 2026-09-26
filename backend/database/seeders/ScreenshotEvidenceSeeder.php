@@ -33,6 +33,19 @@ class ScreenshotEvidenceSeeder extends Seeder
         $superRoleId = (int) DB::table('roles')->where('code', 'SUPER_ADMIN')->value('id');
         DB::table('role_user')->insert(['role_id' => $superRoleId, 'user_id' => $superAdminId]);
 
+        $englishAdminId = (int) DB::table('users')->insertGetId([
+            'name' => 'FOODEX Screenshot Admin EN',
+            'email' => 'screenshots.en@foodex.test',
+            'email_verified_at' => $now,
+            'password' => Hash::make('Evidence123!'),
+            'locale' => 'en',
+            'is_active' => true,
+            'last_seen_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        DB::table('role_user')->insert(['role_id' => $superRoleId, 'user_id' => $englishAdminId]);
+
         $b2bType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         $storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $b2bType,
