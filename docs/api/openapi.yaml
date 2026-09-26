@@ -732,6 +732,38 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
+  /b2b/products/{product}:
+    get:
+      tags: [B2B]
+      summary: Get account-scoped B2B product detail
+      operationId: getB2bProduct
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: product
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: store_id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: B2B product detail with account price, MOQ and inventory availability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/B2bProductDetail"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /b2b/orders:
     get:
       tags: [B2B]
@@ -1659,6 +1691,25 @@ components:
               multipleOf: 0.001
             price_tier:
               type: [string, "null"]
+
+    B2bProductDetail:
+      allOf:
+        - $ref: "#/components/schemas/B2bProduct"
+        - type: object
+          required:
+            [store_id, minimum_order_quantity, price_tier, available_quantity, is_available, currency]
+          properties:
+            store_id:
+              type: integer
+            available_quantity:
+              type: [number, "null"]
+              minimum: 0
+              multipleOf: 0.001
+            is_available:
+              type: boolean
+            currency:
+              type: string
+              enum: [KWD]
 
     B2bTopProduct:
       type: object
