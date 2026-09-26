@@ -3,9 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\V1\B2bPricingController;
+use App\Http\Controllers\Api\V1\DriverAssignmentController;
+use App\Http\Controllers\Api\V1\OrderController;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -39,11 +44,44 @@ class B2bWorkspaceController extends Controller
 
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2b_'.$module;
-        $moduleData = in_array($module, ['dashboard', 'stores', 'clients', 'products'], true)
+        $moduleData = in_array($module, ['dashboard', 'stores', 'clients', 'products', 'orders', 'drivers', 'pricing'], true)
             ? $this->moduleData($module, $storeIds)
             : null;
 
         return view('admin.b2b-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'moduleData'));
+    }
+
+    public function transitionOrder(Request $request, int $order, OrderController $orders, AuditLogger $audit): RedirectResponse
+    {
+        $isB2b = DB::table('orders')
+            ->join('stores','stores.id','=','orders.store_id')
+            ->join('store_types','store_types.id','=','stores.store_type_id')
+            ->where('orders.id',$order)->where('orders.channel','b2b')->where('store_types.code','B2B')->exists();
+        abort_unless($isB2b, 404);
+        $orders->transition($request, $order, $audit);
+
+        return back()->with('status', app()->getLocale()==='ar' ? 'تم تحديث حالة الطلب.' : 'Order status updated.');
+    }
+
+    public function assignDriver(Request $request, DriverAssignmentController $deliveries, AuditLogger $audit): RedirectResponse
+    {
+        $driverId = $request->integer('driver_id');
+        $orderId = $request->integer('order_id');
+        abort_unless(DB::table('drivers')->where('id',$driverId)->where('driver_type','b2b')->exists(), 422);
+        abort_unless(DB::table('orders')->where('id',$orderId)->where('channel','b2b')->exists(), 422);
+        $deliveries->assign($request, $audit);
+
+        return back()->with('status', app()->getLocale()==='ar' ? 'تم تعيين السائق.' : 'Driver assigned.');
+    }
+
+    public function savePriceRule(Request $request, B2bPricingController $pricing): RedirectResponse
+    {
+        $storeId = $request->integer('store_id');
+        $isB2b = DB::table('stores')->join('store_types','store_types.id','=','stores.store_type_id')->where('stores.id',$storeId)->where('store_types.code','B2B')->exists();
+        abort_unless($isB2b, 422);
+        $pricing->upsert($request);
+
+        return back()->with('status', app()->getLocale()==='ar' ? 'تم حفظ قاعدة السعر.' : 'Price rule saved.');
     }
 
     private function moduleData(string $module, array $storeIds): array
@@ -101,6 +139,65 @@ class B2bWorkspaceController extends Controller
                         'tax_number' => $row->tax_number ?: '-',
                         'status' => $row->status,
                     ])->all(),
+            ],
+            'orders' => [
+                'columns' => ['number', 'client', 'store', 'status', 'amount', 'created', 'actions'],
+                'rows' => DB::table('orders')
+                    ->join('customers', 'customers.id', '=', 'orders.customer_id')
+                    ->join('stores', 'stores.id', '=', 'orders.store_id')
+                    ->whereIn('orders.store_id', $storeIds)
+                    ->where('orders.channel', 'b2b')
+                    ->orderByDesc('orders.created_at')
+                    ->limit(100)
+                    ->get(['orders.id','orders.order_number as number','customers.name as client','stores.name as store','orders.status','orders.currency','orders.grand_total','orders.created_at as created'])
+                    ->map(fn ($row) => [
+                        '_id' => (int) $row->id,
+                        'number' => $row->number,
+                        'client' => $row->client,
+                        'store' => $row->store,
+                        'status' => $row->status,
+                        'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
+                        'created' => (string) $row->created,
+                        'actions' => true,
+                    ])->all(),
+            ],
+            'drivers' => [
+                'columns' => ['name', 'email', 'availability', 'active', 'assignments'],
+                'rows' => DB::table('drivers')
+                    ->join('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('drivers.driver_type', 'b2b')
+                    ->orderBy('users.name')
+                    ->get(['drivers.id','users.name','users.email','drivers.is_available','drivers.is_active'])
+                    ->map(fn ($row) => [
+                        '_id' => (int) $row->id,
+                        'name' => $row->name,
+                        'email' => $row->email,
+                        'availability' => (bool) $row->is_available,
+                        'active' => (bool) $row->is_active,
+                        'assignments' => DB::table('driver_assignments')->where('driver_id',$row->id)->where('assignment_type','b2b')->count(),
+                    ])->all(),
+                'drivers' => DB::table('drivers')->join('users','users.id','=','drivers.user_id')->where('drivers.driver_type','b2b')->where('drivers.is_active',true)->orderBy('users.name')->get(['drivers.id','users.name'])->map(fn($r)=>['id'=>(int)$r->id,'name'=>$r->name])->all(),
+                'orders' => DB::table('orders')->whereIn('store_id',$storeIds)->where('channel','b2b')->whereNotIn('status',['delivered','cancelled'])->orderByDesc('id')->limit(100)->get(['id','order_number'])->map(fn($r)=>['id'=>(int)$r->id,'number'=>$r->order_number])->all(),
+            ],
+            'pricing' => [
+                'columns' => ['tier', 'sku', 'product', 'store', 'unit_price', 'minimum_quantity', 'status'],
+                'rows' => DB::table('b2b_price_rules')
+                    ->join('b2b_price_tiers','b2b_price_tiers.id','=','b2b_price_rules.price_tier_id')
+                    ->join('products','products.id','=','b2b_price_rules.product_id')
+                    ->join('stores','stores.id','=','b2b_price_rules.store_id')
+                    ->whereIn('b2b_price_rules.store_id',$storeIds)
+                    ->orderBy('stores.name')->orderBy('products.name')
+                    ->limit(100)
+                    ->get(['b2b_price_tiers.name as tier','products.sku','products.name as product','stores.name as store','b2b_price_rules.unit_price','b2b_price_rules.minimum_quantity','b2b_price_rules.is_active as status'])
+                    ->map(fn($row)=>[
+                        'tier'=>$row->tier,'sku'=>$row->sku,'product'=>$row->product,'store'=>$row->store,
+                        'unit_price'=>number_format((float)$row->unit_price,3).' KWD',
+                        'minimum_quantity'=>number_format((float)$row->minimum_quantity,3),
+                        'status'=>(bool)$row->status,
+                    ])->all(),
+                'tiers' => DB::table('b2b_price_tiers')->orderBy('priority')->get(['id','name'])->map(fn($r)=>['id'=>(int)$r->id,'name'=>$r->name])->all(),
+                'stores' => DB::table('stores')->whereIn('id',$storeIds)->orderBy('name')->get(['id','name'])->map(fn($r)=>['id'=>(int)$r->id,'name'=>$r->name])->all(),
+                'products' => DB::table('store_products')->join('products','products.id','=','store_products.product_id')->whereIn('store_products.store_id',$storeIds)->select('products.id','products.name','products.sku')->distinct()->orderBy('products.name')->get()->map(fn($r)=>['id'=>(int)$r->id,'name'=>$r->name,'sku'=>$r->sku])->all(),
             ],
             'products' => [
                 'columns' => ['sku', 'name', 'store', 'price', 'available', 'status'],
