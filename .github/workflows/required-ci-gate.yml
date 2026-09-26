@@ -39,11 +39,11 @@ jobs:
             backend=true
           fi
 
-          if grep -Eq '^(apps/customer_app/|packages/design_tokens/|\.github/workflows/customer-app-ci\.yml$)' changed-files.txt; then
+          if grep -Eq '^(apps/customer_app/|packages/design_tokens/|scripts/package-mobile-artifact\.py$|scripts/tests/test_mobile_artifact\.py$|\.github/workflows/customer-app-ci\.yml$)' changed-files.txt; then
             customer=true
           fi
 
-          if grep -Eq '^(apps/driver_app/|packages/design_tokens/|\.github/workflows/driver-app-ci\.yml$)' changed-files.txt; then
+          if grep -Eq '^(apps/driver_app/|packages/design_tokens/|scripts/package-mobile-artifact\.py$|scripts/tests/test_mobile_artifact\.py$|\.github/workflows/driver-app-ci\.yml$)' changed-files.txt; then
             driver=true
           fi
 
@@ -67,6 +67,9 @@ jobs:
 
       - name: Validate repository foundation
         run: ./scripts/validate-repo.sh
+
+      - name: Validate mobile artifact packaging
+        run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_artifact.py'
 
       - name: Require issue-style PR branch
         shell: bash
