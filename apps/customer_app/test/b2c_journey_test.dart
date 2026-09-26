@@ -21,10 +21,11 @@ void main() {
   });
 
   testWidgets('B2C store selection propagates store context to home', (tester) async {
+    final api = _FakeCatalogApi();
     await tester.pumpWidget(
       FoodexCustomerApp(
         initialRoute: '/stores',
-        b2cCatalogApi: _FakeCatalogApi(),
+        b2cCatalogApi: api,
       ),
     );
     await tester.pumpAndSettle();
@@ -33,7 +34,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('b2c-store-7')));
     await tester.pumpAndSettle();
 
-    expect(find.text('/home?store=7'), findsOneWidget);
+    expect(api.lastStoreId, 7);
     expect(find.text('Vegetables'), findsOneWidget);
     expect(find.text('Weekend Offer'), findsOneWidget);
     expect(find.text('Tomato Box'), findsOneWidget);
@@ -84,25 +85,34 @@ void main() {
 }
 
 class _FakeCatalogApi implements B2cCatalogApi {
+  int? lastStoreId;
+
+  void _remember(int storeId) => lastStoreId = storeId;
+
   @override
   Future<List<B2cStore>> stores() async =>
       const [B2cStore(id: 7, name: 'Salmiya Store', code: 'SLM')];
 
   @override
-  Future<List<B2cCategory>> categories(int storeId) async =>
-      const [B2cCategory(id: 3, name: 'Vegetables')];
+  Future<List<B2cCategory>> categories(int storeId) async {
+    _remember(storeId);
+    return const [B2cCategory(id: 3, name: 'Vegetables')];
+  }
 
   @override
-  Future<List<B2cOffer>> offers(int storeId) async =>
-      const [B2cOffer(id: 9, name: 'Weekend Offer', type: 'percentage', value: 10)];
+  Future<List<B2cOffer>> offers(int storeId) async {
+    _remember(storeId);
+    return const [B2cOffer(id: 9, name: 'Weekend Offer', type: 'percentage', value: 10)];
+  }
 
   @override
   Future<List<B2cProduct>> products(
     int storeId, {
     String? query,
     int? categoryId,
-  }) async =>
-      const [
+  }) async {
+    _remember(storeId);
+    return const [
         B2cProduct(
           id: 42,
           name: 'Tomato Box',
@@ -110,14 +120,17 @@ class _FakeCatalogApi implements B2cCatalogApi {
           price: 3.25,
         ),
       ];
+  }
 
   @override
-  Future<B2cProduct> product(int productId, {required int storeId}) async =>
-      const B2cProduct(
+  Future<B2cProduct> product(int productId, {required int storeId}) async {
+    _remember(storeId);
+    return const B2cProduct(
         id: 42,
         name: 'Tomato Box',
         sku: 'TOM-42',
         price: 3.25,
         description: 'Fresh product',
       );
+  }
 }
