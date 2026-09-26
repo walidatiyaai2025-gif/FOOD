@@ -23,10 +23,34 @@ void main() {
     expect(find.text('كشف الحساب'), findsOneWidget);
   });
 
-  testWidgets('B2B product details expose authoritative pricing constraints', (tester) async {
-    await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/products/42', b2bApi: _StaticB2bApi()));
+  testWidgets('B2B product details render authoritative account pricing and inventory', (tester) async {
+    final api = _FakeB2bApi({
+      'id': 42,
+      'sku': 'B2B-P-1',
+      'name': 'Wholesale Product',
+      'store_id': 7,
+      'account_price': 7.25,
+      'minimum_order_quantity': 5,
+      'price_tier': 'GOLD',
+      'available_quantity': 24,
+      'is_available': true,
+      'currency': 'KWD',
+    });
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/products/42?store_id=7',
+        b2bApi: api,
+      ),
+    );
     await tester.pumpAndSettle();
-    expect(find.textContaining('الحد الأدنى'), findsWidgets);
+
+    expect(api.lastPath, '/api/v1/b2b/products/42?store_id=7');
+    expect(find.byKey(const ValueKey('b2b-product-detail-data')), findsOneWidget);
+    expect(find.text('Wholesale Product'), findsOneWidget);
+    expect(find.textContaining('7.25 KWD'), findsOneWidget);
+    expect(find.textContaining('5'), findsWidgets);
+    expect(find.textContaining('24'), findsWidgets);
     expect(find.text('إضافة إلى السلة'), findsOneWidget);
   });
 
