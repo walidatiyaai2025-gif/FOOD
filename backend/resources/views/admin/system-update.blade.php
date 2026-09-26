@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>System Update · FOODEX</title>
     <style>
-        :root { font-family: Inter, system-ui, sans-serif; color: #17202a; background: #f5f7fa; }
+        :root { color: #17202a; background: #f5f7fa; }
         * { box-sizing: border-box; }
         body { margin: 0; padding: 32px; }
         main { max-width: 980px; margin: 0 auto; }

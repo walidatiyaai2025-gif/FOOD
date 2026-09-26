@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ __('admin.translations.title') }} · FOODEX</title>
     <style>
-        :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #17202a; background: #f5f7fa; }
+        :root { color: #17202a; background: #f5f7fa; }
         * { box-sizing: border-box; }
         body { margin: 0; padding: 28px; background: #f5f7fa; }
         .wrap { max-width: 1500px; margin: 0 auto; }

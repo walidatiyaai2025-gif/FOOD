@@ -1,3 +1,6 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style id="foodex-brand-tokens">
 :root{
     --foodex-green:#158A3A;
@@ -15,9 +18,10 @@
     --foodex-background:#F7F9FC;
     --foodex-border:#E6EAF0;
 
-    --foodex-font-ar:"Tajawal",system-ui,sans-serif;
-    --foodex-font-en:"Inter",system-ui,sans-serif;
-    --foodex-font-ui:var(--foodex-font-en);
+    --foodex-font-family:"Tajawal",sans-serif;
+    --foodex-font-ar:var(--foodex-font-family);
+    --foodex-font-en:var(--foodex-font-family);
+    --foodex-font-ui:var(--foodex-font-family);
     --foodex-font-weight-regular:400;
     --foodex-font-weight-medium:500;
     --foodex-font-weight-bold:700;
@@ -61,5 +65,4 @@
     --foodex-breakpoint-compact:1024px;
     --foodex-breakpoint-tablet:768px;
 }
-html[lang^="ar"]{--foodex-font-ui:var(--foodex-font-ar)}
 </style>

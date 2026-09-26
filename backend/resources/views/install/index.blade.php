@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
+    @include('admin._brand')
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>FOODEX Installer</title>
     <style>
-        :root { font-family: Tahoma, Arial, sans-serif; color: #18212f; background: #f5f7fa; }
+        :root { color: #18212f; background: #f5f7fa; }
         * { box-sizing: border-box; }
-        body { margin: 0; }
+        body { margin: 0; font-family: var(--foodex-font-ui); }
         .layout { min-height: 100vh; display: grid; grid-template-columns: minmax(260px, 320px) 1fr; }
         aside { background: #111827; color: #fff; padding: 28px 22px; }
         aside h1 { margin: 0 0 8px; font-size: 24px; }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ __('notifications.title') }} · FOODEX</title>
     <style>
-        :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#17202a;background:#f5f7fa}
+        :root{color:#17202a;background:#f5f7fa}
         *{box-sizing:border-box}body{margin:0;padding:28px}.wrap{max-width:1500px;margin:auto}
         .top,.row,.actions{display:flex;gap:12px;align-items:center}.top{justify-content:space-between;margin-bottom:18px}
         .panel,.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:16px}.panel{margin-bottom:16px}
