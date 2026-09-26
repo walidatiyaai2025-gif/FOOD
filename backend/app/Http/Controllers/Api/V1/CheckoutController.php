@@ -16,6 +16,7 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\DashboardOperationalNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
-    public function __invoke(Request $request, AuditLogger $auditLogger): JsonResponse
+    public function __invoke(Request $request, AuditLogger $auditLogger, DashboardOperationalNotifier $dashboardNotifier): JsonResponse
     {
         $validated = $request->validate([
             'store_id' => ['required', 'integer', 'min:1'],
@@ -302,6 +303,10 @@ class CheckoutController extends Controller
         }, 3);
 
         [$order, $created] = $result;
+
+        if ($created) {
+            $dashboardNotifier->orderCreated($order->fresh());
+        }
 
         return response()->json(
             $this->orderPayload($order->fresh()),
