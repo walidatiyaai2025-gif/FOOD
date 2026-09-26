@@ -117,6 +117,7 @@ class AdminShellTest extends TestCase
             ->assertSee('--foodex-font-weight-bold:700', false)
             ->assertSee('--foodex-control-height:44px', false)
             ->assertSee('--foodex-sidebar-width:232px', false)
+            ->assertSee('.shell{min-height:100vh;display:grid;direction:ltr;', false)
             ->assertDontSee('#1f2937', false)
             ->assertDontSee('color:#dbeafe', false);
     }
