@@ -29,8 +29,8 @@
     @include('admin._brand-components')
 </head>
 <body>
-<main>
-    <div class="header">
+<main class="foodex-admin-page" data-foodex-utility="system-update">
+    <div class="header foodex-page-header">
         <div>
             <a href="{{ route('admin.index') }}">← FOODEX Dashboard</a>
             <h1>System Update</h1>
@@ -39,11 +39,11 @@
     </div>
 
     @if (session('status'))
-        <div class="notice">{{ session('status') }}</div>
+        <div class="notice foodex-state" role="status">{{ session('status') }}</div>
     @endif
 
     @if ($errors->any())
-        <div class="error">
+        <div class="error foodex-state" role="alert">
             <strong>Update was not applied.</strong>
             <ul>
                 @foreach ($errors->all() as $error)
