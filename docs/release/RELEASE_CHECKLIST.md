@@ -42,7 +42,7 @@ Evidence convention:
 
 - [x] Repository Policy, backend validation, Customer Flutter validation, Driver Flutter validation and required-ci-gate are green on release-evidence PR #172.
 - [x] PC-18 cross-surface E2E acceptance is merged and green.
-- [ ] VERSION and release notes identify the exact release being promoted.
+- [x] VERSION and release notes identify the exact release being promoted. Evidence: #178 synchronizes root/mobile version metadata to FOODEX 1.0.0 and adds canonical release notes/changelog validation.
 - [ ] Deployment owner records the production/staging backup identifier, health-check result and rollback decision point.
 - [ ] Production HTTPS API endpoint, Customer/Driver application and bundle IDs, Android signing and Apple signing inputs are supplied securely and final install/device acceptance passes.
 
