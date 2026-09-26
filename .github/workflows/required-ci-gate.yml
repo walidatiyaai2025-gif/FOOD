@@ -96,6 +96,13 @@ jobs:
     if: ${{ needs.changes.outputs.driver == 'true' }}
     uses: ./.github/workflows/driver-app-ci.yml
 
+  screenshot-evidence:
+    name: Runtime screenshot evidence
+    if: ${{ github.head_ref == 'test/175-runtime-screenshot-evidence' }}
+    permissions:
+      contents: write
+    uses: ./.github/workflows/screenshot-evidence.yml
+
   required-ci-gate:
     name: required-ci-gate
     if: ${{ always() }}
@@ -105,6 +112,7 @@ jobs:
       - backend-validation
       - customer-validation
       - driver-validation
+      - screenshot-evidence
     runs-on: ubuntu-latest
     steps:
       - name: Enforce applicable validation results
@@ -118,6 +126,7 @@ jobs:
           CUSTOMER_RESULT: ${{ needs.customer-validation.result }}
           DRIVER_CHANGED: ${{ needs.changes.outputs.driver }}
           DRIVER_RESULT: ${{ needs.driver-validation.result }}
+          SCREENSHOT_RESULT: ${{ needs.screenshot-evidence.result }}
         run: |
           set -euo pipefail
 
@@ -149,5 +158,12 @@ jobs:
           require_applicable_success "$BACKEND_CHANGED" "Backend validation" "$BACKEND_RESULT"
           require_applicable_success "$CUSTOMER_CHANGED" "Customer validation" "$CUSTOMER_RESULT"
           require_applicable_success "$DRIVER_CHANGED" "Driver validation" "$DRIVER_RESULT"
+
+          if [[ "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" ]]; then
+            require_success "Runtime screenshot evidence" "$SCREENSHOT_RESULT"
+          elif [[ "$SCREENSHOT_RESULT" != "skipped" && "$SCREENSHOT_RESULT" != "success" ]]; then
+            echo "::error::Runtime screenshot evidence had unexpected result: $SCREENSHOT_RESULT"
+            exit 1
+          fi
 
           echo "All required validations for changed areas passed."
