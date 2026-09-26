@@ -6,7 +6,7 @@
     <title>{{ __('admin.b2c_workspace.title') }} · FOODEX</title>
     @include('admin._brand-components')
     <style>
-        body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
+        body{margin:0;overflow-x:hidden;background:var(--foodex-background);color:var(--foodex-ink)}
         a{color:inherit;text-decoration:none}
 
         /* Golden Dashboard geometry is intentionally physical: sidebar right in RTL, left in LTR. */
@@ -119,9 +119,12 @@
         .store-links a{min-width:32px;min-height:32px;display:grid;place-items:center;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-sm);font-size:.75rem}
 
         /* PH-06.6: non-dashboard B2C routes inherit the same Premium system as the Golden dashboard. */
-        .module-layout{display:grid;grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr);min-height:100vh;background:var(--foodex-background)}
-        .module-layout aside{background:var(--foodex-surface);border-inline-end:1px solid var(--foodex-border);padding:var(--foodex-space-5);position:sticky;inset-block-start:0;height:100vh}
-        .module-layout main{width:100%;max-width:none!important;padding:var(--foodex-space-8)}
+        .module-layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width);min-height:100vh;background:var(--foodex-background)}
+        .module-layout aside{grid-column:2;grid-row:1;direction:rtl;background:var(--foodex-surface);border-inline-start:1px solid var(--foodex-border);padding:var(--foodex-space-5);position:sticky;inset-block-start:0;height:100vh}
+        .module-layout main{grid-column:1;grid-row:1;direction:rtl;min-width:0;width:100%;max-width:none!important;padding:var(--foodex-space-8)}
+        html[dir=ltr] .module-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
+        html[dir=ltr] .module-layout aside{grid-column:1;direction:ltr;border-inline-start:0;border-inline-end:1px solid var(--foodex-border)}
+        html[dir=ltr] .module-layout main{grid-column:2;direction:ltr}
         .module-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-5)}
         .module-card{position:relative;overflow:hidden;min-height:116px;padding:var(--foodex-space-5)!important}
         .module-card:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--foodex-green)}
@@ -141,7 +144,7 @@
         .module-actions a{background:var(--foodex-green)!important;color:#fff!important;border-color:var(--foodex-green)!important}
         .module-empty-state{display:grid;place-items:center;min-height:160px;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;padding:var(--foodex-space-6);color:var(--foodex-muted)}
 
-        @media(max-width:1180px){
+        @media(max-width:1279px){
             .topbar{grid-template-columns:minmax(180px,.8fr) minmax(140px,.4fr) minmax(300px,1.4fr);padding-inline:var(--foodex-space-4)}
             html[dir=ltr] .topbar{grid-template-columns:minmax(300px,1.4fr) minmax(140px,.4fr) minmax(180px,.8fr)}
             .content{padding-inline:var(--foodex-space-4)}
@@ -153,14 +156,14 @@
         }
         @media(max-width:860px){
             .dashboard-layout,html[dir=ltr] .dashboard-layout{grid-template-columns:1fr}
-            .dashboard-sidebar{display:none}
-            .dashboard-shell,html[dir=ltr] .dashboard-shell{grid-column:1!important}
+            .dashboard-sidebar,html[dir=ltr] .dashboard-sidebar{display:block;grid-column:1;grid-row:1;position:relative;min-height:auto;height:auto;max-height:320px;overflow:auto;border-inline:0;border-bottom:1px solid var(--foodex-border)}
+            .dashboard-shell,html[dir=ltr] .dashboard-shell{grid-column:1!important;grid-row:2}
             .topbar,html[dir=ltr] .topbar{grid-template-columns:1fr auto;grid-template-areas:"profile actions" "search search";height:auto;min-height:68px;padding:10px var(--foodex-space-4)}
             .global-search{grid-column:auto;grid-row:auto}
             .profile,.top-actions{grid-row:auto}
             .bottom{grid-template-columns:1fr}
             .bottom .panel:nth-child(2){grid-column:auto;grid-row:auto}
-            .module-layout{grid-template-columns:1fr}.module-layout aside{display:none}
+            .module-layout,html[dir=ltr] .module-layout{grid-template-columns:1fr}.module-layout aside,html[dir=ltr] .module-layout aside{display:block;grid-column:1;grid-row:1;position:relative;height:auto;max-height:320px;overflow:auto;border-inline:0;border-bottom:1px solid var(--foodex-border)}.module-layout main,html[dir=ltr] .module-layout main{grid-column:1;grid-row:2;padding:var(--foodex-space-6)}
         }
         @media(max-width:620px){
             .content{padding:var(--foodex-space-4)}
