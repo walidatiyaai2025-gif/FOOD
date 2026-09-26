@@ -176,6 +176,23 @@ Future<void> _loadEvidenceFont() async {
   final loader = FontLoader(_evidenceFontFamily)
     ..addFont(Future<ByteData>.value(ByteData.sublistView(bytes)));
   await loader.load();
+
+  final flutterRoot = Platform.environment['FLUTTER_ROOT'];
+  if (flutterRoot == null || flutterRoot.isEmpty) {
+    throw StateError('FLUTTER_ROOT is required for readable Material Icons evidence.');
+  }
+
+  final materialIcons = File(
+    '$flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+  );
+  if (!materialIcons.existsSync()) {
+    throw StateError('Material Icons font not found at ${materialIcons.path}.');
+  }
+
+  final iconBytes = await materialIcons.readAsBytes();
+  final iconLoader = FontLoader('MaterialIcons')
+    ..addFont(Future<ByteData>.value(ByteData.sublistView(iconBytes)));
+  await iconLoader.load();
 }
 
 Future<void> _setup(WidgetTester tester) async {
