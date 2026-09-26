@@ -23,7 +23,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Detect committed runtime evidence
-        id: committed-evidence
+        id: committed_evidence
         shell: bash
         run: |
           set -euo pipefail
@@ -130,7 +130,7 @@ jobs:
           retention-days: 30
 
       - name: Commit generated runtime evidence
-        if: ${{ github.event_name == 'pull_request' && steps.committed-evidence.outputs.present != 'true' }}
+        if: ${{ github.event_name == 'pull_request' && steps.committed_evidence.outputs.present != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
