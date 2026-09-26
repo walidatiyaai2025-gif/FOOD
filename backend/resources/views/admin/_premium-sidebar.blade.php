@@ -93,8 +93,8 @@
             <a class="premium-nav-item {{ ($navContext ?? '') === $item['key'] ? 'active' : '' }}" href="{{ route($item['route'], $item['params']) }}" @if(($navContext ?? '') === $item['key']) aria-current="page" @endif>
                 @include('admin._premium-icon',['name'=>$item['icon']])
                 <span class="premium-nav-copy">
-                    <strong>{{ __($item['label']) }}</strong>
-                    <small lang="{{ $secondaryLocale }}">{{ __($item['label'], [], $secondaryLocale) }}</small>
+                    <strong>{{ __($item['premium_label']) }}</strong>
+                    <small lang="{{ $secondaryLocale }}">{{ __($item['premium_label'], [], $secondaryLocale) }}</small>
                 </span>
                 <span class="premium-nav-chevron" aria-hidden="true">‹</span>
             </a>
@@ -104,7 +104,7 @@
             <details class="premium-more">
                 <summary class="premium-nav-item">
                     @include('admin._premium-icon',['name'=>'more'])
-                    <span class="premium-nav-copy"><strong>{{ app()->getLocale()==='ar' ? 'المزيد' : 'More' }}</strong><small lang="{{ $secondaryLocale }}">{{ app()->getLocale()==='ar' ? 'More' : 'المزيد' }}</small></span>
+                    <span class="premium-nav-copy"><strong>{{ __('admin.premium_nav.more') }}</strong><small lang="{{ $secondaryLocale }}">{{ __('admin.premium_nav.more', [], $secondaryLocale) }}</small></span>
                     <span class="premium-nav-chevron" aria-hidden="true">⌄</span>
                 </summary>
                 <div class="premium-more-list">
