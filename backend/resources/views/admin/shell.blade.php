@@ -58,6 +58,7 @@
             </div>
 
             <div class="user-card">
+                @include('admin._live-notifications')
                 <strong>{{ $user->name }}</strong>
                 <span>{{ $user->email }}</span>
                 <div class="roles">
