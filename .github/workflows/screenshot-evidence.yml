@@ -20,6 +20,10 @@ on:
       - "docs/design-reference/SCREEN_MANIFEST.json"
       - "docs/architecture/FOODEX_BRAND_SYSTEM.md"
 
+concurrency:
+  group: foodex-screenshot-evidence-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
