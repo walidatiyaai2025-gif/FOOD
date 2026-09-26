@@ -27,14 +27,14 @@ void main() {
     await tester.pumpWidget(
       FoodexCustomerApp(
         translationFetcher: (locale) async => {
-          'customer.splash.title': 'فودكس المخصص',
+          'customer.splash.subtitle': 'وصف فودكس المخصص',
         },
       ),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('فودكس المخصص'), findsOneWidget);
-    expect(find.text('كل احتياجاتك في مكان واحد'), findsOneWidget);
+    expect(find.text('FOODEX'), findsOneWidget);
+    expect(find.text('وصف فودكس المخصص'), findsOneWidget);
   });
 }
