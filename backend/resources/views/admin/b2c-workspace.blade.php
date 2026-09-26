@@ -17,17 +17,18 @@
         html[dir=ltr] .dashboard-sidebar{grid-column:1;direction:ltr;border-left:0;border-right:1px solid var(--foodex-border)}
         html[dir=ltr] .dashboard-shell{grid-column:2;direction:ltr}
 
-        .topbar{direction:ltr;min-height:var(--foodex-header-height);background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border);display:grid;grid-template-columns:minmax(210px,1fr) minmax(340px,540px) minmax(210px,1fr);align-items:center;gap:var(--foodex-space-4);padding:0 var(--foodex-space-6);position:sticky;top:0;z-index:10}
+        .topbar{direction:ltr;min-height:var(--foodex-header-height);background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border);display:grid;grid-template-columns:minmax(210px,1fr) minmax(150px,.45fr) minmax(340px,540px);grid-template-areas:"profile actions search";align-items:center;gap:var(--foodex-space-4);padding:0 var(--foodex-space-6);position:sticky;top:0;z-index:10}
+        html[dir=ltr] .topbar{grid-template-columns:minmax(340px,540px) minmax(150px,.45fr) minmax(210px,1fr);grid-template-areas:"search actions profile"}
         html[dir=rtl] .topbar>*{direction:rtl}
-        .profile{display:flex;align-items:center;gap:var(--foodex-space-3);justify-self:start}
+        .profile{grid-area:profile;display:flex;align-items:center;gap:var(--foodex-space-3);justify-self:start}
         .avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:var(--foodex-font-weight-bold);border:1px solid var(--foodex-border)}
         .profile strong{font-weight:var(--foodex-font-weight-bold);font-size:var(--foodex-text-sm)}
         .profile small{display:block;color:var(--foodex-muted);font-size:var(--foodex-text-xs);margin-top:1px}
-        .top-actions{display:flex;align-items:center;justify-content:flex-end;gap:var(--foodex-space-4);color:var(--foodex-muted);justify-self:end}
+        .top-actions{grid-area:actions;display:flex;align-items:center;justify-content:flex-end;gap:var(--foodex-space-4);color:var(--foodex-muted);justify-self:end}
         .language,.bell{min-height:var(--foodex-touch-target);display:inline-flex;align-items:center;gap:7px}
         .bell{position:relative;font-size:19px}
         .bell b{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--foodex-orange);inset:7px -1px auto auto}
-        .global-search{position:relative;width:100%}
+        .global-search{grid-area:search;position:relative;width:100%}
         .global-search input{width:100%;min-height:var(--foodex-control-height);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);padding-inline:44px 14px;background:var(--foodex-surface);outline:none;box-shadow:var(--foodex-shadow-sm)}
         .global-search input:focus{border-color:var(--foodex-green);box-shadow:0 0 0 3px rgba(21,138,58,.10)}
         .search-icon{position:absolute;inset-inline-end:14px;top:11px;color:var(--foodex-muted);width:20px;height:20px}
@@ -89,7 +90,7 @@
         .stock,.recent{border-bottom:1px solid var(--foodex-border);padding:8px 0}
         .stock:last-child,.recent:last-child{border-bottom:0}
         .stock{display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:9px}
-        .product-thumb{width:34px;height:34px;border-radius:var(--foodex-radius-sm);background:var(--foodex-orange-soft);color:var(--foodex-orange);display:grid;place-items:center}
+        .product-thumb{width:34px;height:34px;border-radius:var(--foodex-radius-sm);background:var(--foodex-orange-soft);color:var(--foodex-orange);display:grid;place-items:center;overflow:hidden}.product-thumb img{width:100%;height:100%;object-fit:cover;display:block}
         .stock strong{display:block;font-size:.75rem}.stock small{color:var(--foodex-muted);font-size:.68rem}
         .stock-count{color:var(--foodex-red);background:rgba(239,83,80,.10);border-radius:var(--foodex-radius-sm);padding:4px 6px;font-size:.67rem;font-weight:var(--foodex-font-weight-bold);white-space:nowrap}
         .recent{display:grid;grid-template-columns:84px minmax(88px,1fr) 44px 88px 92px 74px;gap:6px;align-items:center;font-size:.7rem}
@@ -135,7 +136,8 @@
         .module-links{display:flex;flex-wrap:wrap;gap:8px}.module-links a{border:1px solid var(--foodex-border);background:var(--foodex-surface);border-radius:var(--foodex-radius-control);padding:8px 11px;font-size:12px;font-weight:var(--foodex-font-weight-bold)}.module-links a.active{background:var(--foodex-green-soft);border-color:var(--foodex-border);color:var(--foodex-green-dark)}
 
         @media(max-width:1180px){
-            .topbar{grid-template-columns:minmax(180px,.8fr) minmax(300px,1.4fr) minmax(170px,.8fr);padding-inline:var(--foodex-space-4)}
+            .topbar{grid-template-columns:minmax(180px,.8fr) minmax(140px,.4fr) minmax(300px,1.4fr);padding-inline:var(--foodex-space-4)}
+            html[dir=ltr] .topbar{grid-template-columns:minmax(300px,1.4fr) minmax(140px,.4fr) minmax(180px,.8fr)}
             .content{padding-inline:var(--foodex-space-4)}
             .kpis{grid-template-columns:1fr 1fr}
             .middle{grid-template-columns:1fr}
@@ -147,9 +149,9 @@
             .dashboard-layout,html[dir=ltr] .dashboard-layout{grid-template-columns:1fr}
             .dashboard-sidebar{display:none}
             .dashboard-shell,html[dir=ltr] .dashboard-shell{grid-column:1!important}
-            .topbar{grid-template-columns:1fr auto;height:auto;min-height:68px;padding:10px var(--foodex-space-4)}
-            .global-search{grid-column:1/-1;grid-row:2}
-            .profile{grid-row:1}.top-actions{grid-row:1}
+            .topbar,html[dir=ltr] .topbar{grid-template-columns:1fr auto;grid-template-areas:"profile actions" "search search";height:auto;min-height:68px;padding:10px var(--foodex-space-4)}
+            .global-search{grid-column:auto;grid-row:auto}
+            .profile,.top-actions{grid-row:auto}
             .bottom{grid-template-columns:1fr}
             .bottom .panel:nth-child(2){grid-column:auto;grid-row:auto}
             .module-layout{grid-template-columns:1fr}.module-layout aside{display:none}
@@ -189,8 +191,8 @@
                 @endif
             </form>
             <div class="top-actions">
-                <span class="language">◎ {{ app()->getLocale()==='ar' ? 'العربية' : 'English' }}</span>
-                <span class="bell">♧ @if($dashboard['notifications_unread']>0)<b></b>@endif</span>
+                <span class="language">@include('admin._premium-icon',['name'=>'globe']) {{ app()->getLocale()==='ar' ? 'العربية' : 'English' }}</span>
+                <span class="bell">@include('admin._premium-icon',['name'=>'bell']) @if($dashboard['notifications_unread']>0)<b></b>@endif</span>
             </div>
         </header>
 
