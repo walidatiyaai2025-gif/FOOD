@@ -99,6 +99,7 @@ void main() {
       await tester.pump();
         await tester.pump(const Duration(milliseconds: 150));
       await _writeBoundary(
+        tester,
         key,
         '01_Mobile/Driver_B2C/04_driver_delivery_detail__actions__$localeCode.png',
       );
@@ -154,20 +155,26 @@ Future<void> _captureApp(
   await tester.pumpWidget(RepaintBoundary(key: key, child: app));
   await tester.pump();
         await tester.pump(const Duration(milliseconds: 150));
-  await _writeBoundary(key, relativePath);
+  await _writeBoundary(tester, key, relativePath);
 }
 
-Future<void> _writeBoundary(GlobalKey key, String relativePath) async {
-  final boundary =
-      key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-  final image = await boundary.toImage(pixelRatio: 1);
-  final data = await image.toByteData(format: ui.ImageByteFormat.png);
-  final file = File('../../ScreenShots/$relativePath');
-  file.parent.createSync(recursive: true);
-  file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
-  if (file.lengthSync() <= 1000) {
-    throw StateError('Screenshot is unexpectedly small: $relativePath');
-  }
+Future<void> _writeBoundary(
+  WidgetTester tester,
+  GlobalKey key,
+  String relativePath,
+) async {
+  await tester.runAsync(() async {
+    final boundary =
+        key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+    final image = await boundary.toImage(pixelRatio: 1);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    final file = File('../../ScreenShots/$relativePath');
+    file.parent.createSync(recursive: true);
+    file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
+    if (file.lengthSync() <= 1000) {
+      throw StateError('Screenshot is unexpectedly small: $relativePath');
+    }
+  });
 }
 
 class _EvidenceAuthRepository implements DriverAuthRepository {
