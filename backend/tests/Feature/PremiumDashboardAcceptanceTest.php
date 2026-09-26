@@ -42,6 +42,7 @@ class PremiumDashboardAcceptanceTest extends TestCase
             ],
             $dashboard['distribution'],
         );
+        $this->assertSame('/demo/products/olive-oil.svg', $dashboard['low_stock'][0]['image']);
         $this->assertSame(
             [5.0, 8.0, 10.0, 12.0],
             collect($dashboard['low_stock'])
@@ -57,6 +58,11 @@ class PremiumDashboardAcceptanceTest extends TestCase
             ->assertSee('dir="rtl"', false)
             ->assertSee('--foodex-green:#158A3A', false)
             ->assertSee('--foodex-orange:#EE731C', false)
+            ->assertSee('.dashboard-layout{display:grid;direction:ltr;', false)
+            ->assertSee('grid-template-areas:"profile actions search"', false)
+            ->assertSee('.kpis{display:grid;direction:ltr;', false)
+            ->assertSee('.middle{display:grid;direction:ltr;', false)
+            ->assertSee('.bottom{display:grid;direction:ltr;', false)
             ->assertSee('@media(max-width:1180px)', false)
             ->assertSee('@media(max-width:860px)', false)
             ->assertSee('@media(max-width:620px)', false)
