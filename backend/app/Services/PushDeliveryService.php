@@ -38,9 +38,7 @@ final class PushDeliveryService
         try {
             $credentials = $this->credentials($provider);
 
-            $response = $provider->platform === 'android'
-                ? $this->firebase($provider, $device, $payload, $credentials)
-                : $this->apns($provider, $device, $payload, $credentials);
+            $response = $this->firebase($provider, $device, $payload, $credentials);
 
             $body = $response->json();
             $successful = $response->successful();
@@ -151,9 +149,7 @@ final class PushDeliveryService
             ]);
         }
 
-        $required = $provider->platform === 'android'
-            ? ['project_id', 'access_token']
-            : ['bundle_id', 'bearer_token'];
+        $required = ['project_id', 'access_token'];
 
         foreach ($required as $key) {
             if (
@@ -199,39 +195,15 @@ final class PushDeliveryService
                                 'icon' => $provider->default_icon,
                             ]),
                         ],
-                    ],
-                ],
-            );
-    }
-
-    private function apns(
-        PushProviderSetting $provider,
-        PushDeviceToken $device,
-        array $payload,
-        array $credentials,
-    ): Response {
-        $host = $provider->environment === 'production'
-            ? 'https://api.push.apple.com'
-            : 'https://api.sandbox.push.apple.com';
-
-        return Http::acceptJson()
-            ->withToken((string) $credentials['bearer_token'])
-            ->withHeaders([
-                'apns-topic' => (string) $credentials['bundle_id'],
-            ])
-            ->timeout(10)
-            ->post(
-                $host.'/3/device/'.rawurlencode($device->plainToken()),
-                [
-                    'aps' => [
-                        'alert' => [
-                            'title' => $payload['title'] ?? '',
-                            'body' => $payload['body'] ?? '',
+                        'apns' => [
+                            'payload' => [
+                                'aps' => array_filter([
+                                    'sound' => $provider->default_sound ?? 'default',
+                                    'category' => $provider->default_category,
+                                ]),
+                            ],
                         ],
-                        'sound' => $provider->default_sound ?? 'default',
-                        'category' => $provider->default_category,
                     ],
-                    'data' => $payload['data'] ?? [],
                 ],
             );
     }
