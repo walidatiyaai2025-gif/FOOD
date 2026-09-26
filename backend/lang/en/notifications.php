@@ -31,6 +31,7 @@ return [
     'audience_options' => [
         'all' => 'Everyone',
         'customer' => 'Customers',
+        'dashboard' => 'Management Dashboard',
         'driver' => 'Drivers',
         'user' => 'Specific user',
     ],
