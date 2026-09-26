@@ -98,6 +98,38 @@ class GuestBrowsingTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        DB::table('product_images')->insert([
+            'product_id' => $this->productId,
+            'path' => '/demo/products/guest-product.svg',
+            'sort_order' => 0,
+            'is_primary' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('banners')->insert([
+            [
+                'store_id' => $this->storeId,
+                'title' => 'Guest Store Banner',
+                'image_path' => '/demo/banners/guest-one.svg',
+                'target_url' => '/offers',
+                'sort_order' => 1,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'store_id' => $this->otherStoreId,
+                'title' => 'Other Store Banner',
+                'image_path' => '/demo/banners/guest-two.svg',
+                'target_url' => '/offers',
+                'sort_order' => 1,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
     }
 
     public function test_guest_can_browse_b2c_store_catalog_and_offers_without_login(): void
@@ -109,21 +141,36 @@ class GuestBrowsingTest extends TestCase
 
         $this->getJson("/api/v1/stores/{$this->storeId}/categories")
             ->assertOk()
-            ->assertJsonPath('data.0.slug', 'fresh');
+            ->assertJsonPath('data.0.slug', 'fresh')
+            ->assertJsonPath('data.0.image_url', url('/demo/products/guest-product.svg'));
 
         $this->getJson("/api/v1/stores/{$this->storeId}/products")
             ->assertOk()
             ->assertJsonPath('data.0.id', $this->productId)
-            ->assertJsonPath('data.0.price', 1.25);
+            ->assertJsonPath('data.0.price', 1.25)
+            ->assertJsonPath('data.0.image_url', url('/demo/products/guest-product.svg'));
 
         $this->getJson("/api/v1/products/{$this->productId}?store={$this->storeId}")
             ->assertOk()
             ->assertJsonPath('id', $this->productId)
-            ->assertJsonPath('price', 1.25);
+            ->assertJsonPath('price', 1.25)
+            ->assertJsonPath('image_url', url('/demo/products/guest-product.svg'))
+            ->assertJsonPath('images.0', url('/demo/products/guest-product.svg'));
 
         $this->getJson("/api/v1/stores/{$this->storeId}/offers")
             ->assertOk()
             ->assertJsonPath('data.0.name', 'Guest Offer');
+
+        $this->getJson("/api/v1/stores/{$this->storeId}/banners")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'Guest Store Banner')
+            ->assertJsonPath('data.0.image_url', url('/demo/banners/guest-one.svg'));
+
+        $this->getJson("/api/v1/stores/{$this->otherStoreId}/banners")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'Other Store Banner');
     }
 
     public function test_catalog_filters_paginates_and_requires_store_scoped_product_detail(): void
