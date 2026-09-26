@@ -2,6 +2,7 @@ name: FOODEX Runtime Screenshot Evidence
 # Dedicated runtime evidence workflow for issue #175
 
 on:
+  workflow_call:
   workflow_dispatch:
   push:
     branches:
