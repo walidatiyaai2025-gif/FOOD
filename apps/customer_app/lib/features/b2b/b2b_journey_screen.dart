@@ -47,11 +47,16 @@ class B2bJourneyScreen extends StatelessWidget {
             const SizedBox(height: 20),
             if (!hasRemoteState || keepLocalActions) ...content.$3,
             if (hasRemoteState && keepLocalActions)
-              _RemoteState(
-                api: api!,
-                endpoint: _endpoint()!,
-                showEmpty: false,
-              ),
+              definition.pattern == CustomerRoutePaths.b2bProductDetails
+                  ? _B2bProductDetailRemoteState(
+                      api: api!,
+                      endpoint: _endpoint()!,
+                    )
+                  : _RemoteState(
+                      api: api!,
+                      endpoint: _endpoint()!,
+                      showEmpty: false,
+                    ),
             if (hasRemoteState && !keepLocalActions)
               definition.pattern == CustomerRoutePaths.b2bTopProducts
                   ? _TopProductsRemoteState(api: api!, endpoint: _endpoint()!)
@@ -121,11 +126,10 @@ class B2bJourneyScreen extends StatelessWidget {
           context.tr('b2b.product.title'),
           context.tr('b2b.product.subtitle'),
           [
-            _section(context.tr('b2b.minimum_order')),
             AddCartAction(
               api: actionApi,
               location: location,
-              cartRoute: CustomerRoutePaths.b2bCart,
+              cartRoute: _b2bCartRoute(),
             ),
           ],
         );
@@ -207,6 +211,21 @@ class B2bJourneyScreen extends StatelessWidget {
     }
   }
 
+  String _b2bCartRoute() {
+    final uri = Uri.parse(location);
+    final storeId =
+        uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+
+    if (storeId == null || storeId.isEmpty) {
+      return CustomerRoutePaths.b2bCart;
+    }
+
+    return Uri(
+      path: CustomerRoutePaths.b2bCart,
+      queryParameters: {'store': storeId},
+    ).toString();
+  }
+
   String? _endpoint() {
     final uri = Uri.parse(location);
     final segments = uri.pathSegments;
@@ -220,7 +239,10 @@ class B2bJourneyScreen extends StatelessWidget {
       case CustomerRoutePaths.b2bProducts:
         return '/api/v1/b2b/products${uri.hasQuery ? '?${uri.query}' : ''}';
       case CustomerRoutePaths.b2bProductDetails:
-        return null;
+        final storeId =
+            uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+        if (storeId == null || storeId.isEmpty) return null;
+        return '/api/v1/b2b/products/${segments.last}?store_id=$storeId';
       case CustomerRoutePaths.b2bInvoices:
         return '/api/v1/b2b/invoices';
       case CustomerRoutePaths.b2bInvoiceDetails:
@@ -266,6 +288,100 @@ class B2bJourneyScreen extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: Center(child: Text(label)),
         ),
+      );
+}
+
+
+class _B2bProductDetailRemoteState extends StatelessWidget {
+  const _B2bProductDetailRemoteState({
+    required this.api,
+    required this.endpoint,
+  });
+
+  final B2bApi api;
+  final String endpoint;
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Object?>(
+        future: api.get(endpoint),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              key: ValueKey('b2b-loading'),
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            final error = snapshot.error;
+            final forbidden = error is B2bApiException &&
+                error.code == 'not_authorized';
+            return Card(
+              key: ValueKey(forbidden ? 'b2b-forbidden' : 'b2b-error'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  context.tr(
+                    forbidden
+                        ? 'b2b.remote.forbidden'
+                        : 'b2b.remote.error',
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final value = snapshot.data;
+          if (value is! Map) {
+            return Card(
+              key: const ValueKey('b2b-empty'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(context.tr('b2b.remote.empty')),
+              ),
+            );
+          }
+
+          final name = value['name']?.toString() ?? '';
+          final sku = value['sku']?.toString() ?? '';
+          final price = value['account_price']?.toString() ?? '-';
+          final minimum =
+              value['minimum_order_quantity']?.toString() ?? '-';
+          final available = value['available_quantity']?.toString();
+          final currency = value['currency']?.toString() ?? 'KWD';
+          final tier = value['price_tier']?.toString() ?? '-';
+
+          return Card(
+            key: const ValueKey('b2b-product-detail-data'),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    name,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(sku),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${context.tr('b2b.product.account_price')}: $price $currency',
+                  ),
+                  Text(
+                    '${context.tr('b2b.minimum_order')}: $minimum',
+                  ),
+                  Text(
+                    '${context.tr('b2b.product.inventory')}: ${available ?? context.tr('b2b.product.inventory_unbounded')}',
+                  ),
+                  Text(
+                    '${context.tr('b2b.product.price_tier')}: $tier',
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       );
 }
 

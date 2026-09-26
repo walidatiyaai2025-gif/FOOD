@@ -45,6 +45,94 @@ class B2bPricingController extends Controller
         return response()->json(['data' => $rule], $rule->wasRecentlyCreated ? 201 : 200);
     }
 
+    public function product(Request $request, int $product): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401, 'Unauthenticated.');
+
+        $customer = Customer::query()
+            ->where('user_id', $user->getKey())
+            ->where('type', 'b2b')
+            ->first();
+        abort_unless($customer instanceof Customer, 403, 'B2B customer profile is required.');
+
+        $account = B2bAccount::query()
+            ->where('customer_id', $customer->getKey())
+            ->where('status', 'active')
+            ->first();
+        abort_unless(
+            $account instanceof B2bAccount && $account->price_tier_id !== null,
+            403,
+            'Approved B2B pricing account is required.',
+        );
+
+        $validated = $request->validate([
+            'store_id' => ['required', 'integer', 'min:1'],
+        ]);
+        $storeId = (int) $validated['store_id'];
+
+        $row = DB::table('b2b_price_rules')
+            ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
+            ->join('store_products', function ($join): void {
+                $join->on('store_products.product_id', '=', 'products.id')
+                    ->on('store_products.store_id', '=', 'b2b_price_rules.store_id');
+            })
+            ->join('stores', 'stores.id', '=', 'b2b_price_rules.store_id')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->join('b2b_price_tiers', 'b2b_price_tiers.id', '=', 'b2b_price_rules.price_tier_id')
+            ->where('b2b_price_rules.price_tier_id', $account->price_tier_id)
+            ->where('b2b_price_rules.store_id', $storeId)
+            ->where('b2b_price_rules.product_id', $product)
+            ->where('b2b_price_rules.is_active', true)
+            ->where('products.is_active', true)
+            ->where('store_products.is_active', true)
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2B')
+            ->first([
+                'products.id',
+                'products.sku',
+                'products.name',
+                'products.category_id',
+                'products.brand_id',
+                'b2b_price_rules.unit_price',
+                'b2b_price_rules.minimum_quantity',
+                'b2b_price_tiers.code as price_tier',
+            ]);
+
+        abort_if($row === null, 404, 'B2B product is not available for this account and store.');
+
+        $inventoryRows = DB::table('inventories')
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->where('warehouses.store_id', $storeId)
+            ->where('warehouses.is_active', true)
+            ->where('inventories.product_id', $product)
+            ->get(['inventories.quantity', 'inventories.reserved_quantity']);
+
+        $availableQuantity = $inventoryRows->isEmpty()
+            ? null
+            : (float) $inventoryRows->sum(
+                static fn (object $inventory): float => max(
+                    0.0,
+                    (float) $inventory->quantity - (float) $inventory->reserved_quantity,
+                ),
+            );
+
+        return response()->json([
+            'id' => (int) $row->id,
+            'sku' => (string) $row->sku,
+            'name' => (string) $row->name,
+            'category_id' => $row->category_id === null ? null : (int) $row->category_id,
+            'brand_id' => $row->brand_id === null ? null : (int) $row->brand_id,
+            'store_id' => $storeId,
+            'account_price' => (float) $row->unit_price,
+            'minimum_order_quantity' => (float) $row->minimum_quantity,
+            'price_tier' => (string) $row->price_tier,
+            'available_quantity' => $availableQuantity,
+            'is_available' => $availableQuantity === null || $availableQuantity > 0,
+            'currency' => 'KWD',
+        ]);
+    }
+
     public function products(Request $request): JsonResponse
     {
         $user = $request->user();
