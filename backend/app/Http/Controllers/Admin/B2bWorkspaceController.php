@@ -18,7 +18,10 @@ use Illuminate\Support\Facades\DB;
 
 class B2bWorkspaceController extends Controller
 {
-    public function __construct(\n        private readonly AdminNavigation $navigation,\n        private readonly ManagementReportService $reports,\n    ) {}
+    public function __construct(
+        private readonly AdminNavigation $navigation,
+        private readonly ManagementReportService $reports,
+    ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View
     {
@@ -364,7 +367,9 @@ class B2bWorkspaceController extends Controller
                     ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name, 'sku' => $row->sku])
                     ->all(),
             ],
-            'reports' => $this->reportModuleData($user, $storeIds),\n            'settings' => $this->settingsModuleData($user, $storeIds),\n            'products' => [
+            'reports' => $this->reportModuleData($user, $storeIds),
+            'settings' => $this->settingsModuleData($user, $storeIds),
+            'products' => [
                 'columns' => ['sku', 'name', 'store', 'price', 'available', 'status'],
                 'rows' => DB::table('store_products')
                     ->join('products', 'products.id', '=', 'store_products.product_id')
