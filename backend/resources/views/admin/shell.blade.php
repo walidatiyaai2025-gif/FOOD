@@ -7,9 +7,10 @@
     @include('admin._brand-components')
     <style id="foodex-admin-shell">
         body{margin:0;min-height:100vh}
-        .shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width)}
+        .shell{min-height:100vh;display:grid;direction:ltr;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width)}
         .shell-sidebar{grid-column:2;grid-row:1;min-height:100vh;padding:var(--foodex-space-5)}
         .main{grid-column:1;grid-row:1;min-width:0;padding:var(--foodex-space-8)}
+        html[dir=rtl] .shell-sidebar,html[dir=rtl] .main{direction:rtl}
         html[dir=ltr] .shell{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
         html[dir=ltr] .shell-sidebar{grid-column:1}
         html[dir=ltr] .main{grid-column:2}
