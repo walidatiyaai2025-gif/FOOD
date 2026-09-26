@@ -86,11 +86,23 @@ jobs:
       - name: Prepare iOS scaffolding
         run: flutter create --platforms=ios --project-name foodex_driver_app .
 
+      - name: Apply approved iOS native display name
+        run: /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName FOODEX Driver" ios/Runner/Info.plist
+
       - name: Resolve dependencies
         run: flutter pub get
 
       - name: iOS release-mode validation without codesign
         run: flutter build ios --release --no-codesign --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex-validation.invalid
+
+      - name: Verify iOS native brand
+        shell: bash
+        run: |
+          set -euo pipefail
+          plist=build/ios/iphoneos/Runner.app/Info.plist
+          test -f "$plist"
+          actual="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$plist")"
+          test "$actual" = "FOODEX Driver"
 
       - name: Archive unsigned iOS app
         run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app build/ios/iphoneos/Runner.app.zip
