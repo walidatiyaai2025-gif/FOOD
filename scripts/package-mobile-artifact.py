@@ -47,8 +47,17 @@ def package(root, app, platform, source, output, commit, build_number):
         "build_mode": "release",
         "purpose": "ci-validation-only",
         "production_ready": False,
-        "api_base_url": "https://foodex-validation.invalid",
-        "native_identity": "generated-template-not-production",
+        "api_base_url": "https://foodex.50sols.com",
+        "native_identity": {
+            "android": {
+                "customer": "com.fiftysolution.foodex.customer",
+                "driver": "com.fiftysolution.foodex.driver",
+            },
+            "ios": {
+                "customer": "com.fiftysolution.foodex.customer",
+                "driver": "com.fiftysolution.foodex.driver",
+            },
+        }[platform][app],
         "signing": "flutter-template-debug-key" if platform == "android" else "none",
         "artifact": filename,
         "bytes": destination.stat().st_size,
@@ -58,9 +67,9 @@ def package(root, app, platform, source, output, commit, build_number):
     (output / "SHA256SUMS").write_text(f"{digest}  {filename}\n")
     (output / "README.txt").write_text(
         "FOODEX release-mode CI validation only.\n"
-        "The API endpoint is intentionally non-resolving; business use requires a configured build.\n"
-        "Android uses the generated template debug key; iOS is an unsigned .app archive, not an installable IPA.\n"
-        "Native identity/icons and production signing are not certified by this artifact.\n"
+        "The API endpoint and native application identity are the approved FOODEX production values.\n"
+        "Android still uses the generated template debug key; iOS is an unsigned .app archive, not an installable IPA.\n"
+        "Production signing/provisioning and Firebase credentials are external release inputs.\n"
         "Do not distribute as a production release or submit to stores. See manifest.json and SHA256SUMS.\n"
     )
     return manifest
