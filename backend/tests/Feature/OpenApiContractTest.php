@@ -40,7 +40,8 @@ class OpenApiContractTest extends TestCase
             '/b2b/orders',
             '/b2b/invoices',
             '/b2b/account-statement',
-            '/drivers/assignments',
+            '/driver/assignments',
+            '/driver/assignments/{assignment}/status',
             '/notifications',
             '/app-version',
             '/admin/security/permissions',
@@ -112,7 +113,8 @@ class OpenApiContractTest extends TestCase
             ['/orders', '/orders/{order}'],
             ['/b2b/dashboard', '/b2b/products'],
             ['/b2b/products', '/b2b/orders'],
-            ['/drivers/assignments', '/notifications'],
+            ['/driver/assignments', '/driver/assignments/{assignment}/status'],
+            ['/driver/assignments/{assignment}/status', '/notifications'],
             ['/notifications', '/notifications/{notification}/read'],
         ];
 
