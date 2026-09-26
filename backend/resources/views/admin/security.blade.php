@@ -37,6 +37,24 @@ $byStore=$managedUser->storeRoleAssignments->groupBy('store_id');
 <div class="pager">{{ $users->links() }}</div>
 </section>
 
+@can('demo_data.manage')
+<section class="panel" data-demo-data-admin>
+<div class="head"><div><h2>{{ __('admin.security.demo_data.title') }}</h2><div class="muted">{{ __('admin.security.demo_data.description') }}</div></div><span class="badge system">{{ __('admin.security.demo_data.non_production') }}</span></div>
+<div class="role-grid">
+@foreach($demoSummary as $key=>$count)
+<div class="card"><strong>{{ __('admin.security.demo_data.counts.'.$key) }}</strong><div style="font-size:1.55rem;font-weight:700;margin-top:6px" class="foodex-number">{{ $count }}</div></div>
+@endforeach
+</div>
+<div class="note" style="margin-top:14px">{{ __('admin.security.demo_data.seed_command') }} <code>php artisan db:seed --class=Database\\Seeders\\ProductDemoSeeder</code></div>
+<form method="post" action="{{ route('admin.security.demo-data.clear') }}" class="card" onsubmit="return confirm('{{ __('admin.security.demo_data.confirm') }}')">@csrf @method('delete')
+<label style="display:block;font-weight:700;margin-bottom:7px">{{ __('admin.security.demo_data.confirmation_label') }}</label>
+<input class="grow" type="text" name="confirmation" required autocomplete="off" placeholder="DELETE DEMO DATA">
+<p class="muted">{{ __('admin.security.demo_data.safety') }}</p>
+<button class="btn danger">{{ __('admin.security.demo_data.clear') }}</button>
+</form>
+</section>
+@endcan
+
 <section class="panel"><div class="head"><div><h2>{{ __('admin.security.roles_title') }}</h2><div class="muted">{{ __('admin.security.roles_description') }}</div></div><span class="badge">{{ $roles->count() }} {{ __('admin.security.roles') }}</span></div>
 @can('roles.manage')
 <details class="card"><summary>{{ __('admin.security.create_role') }}</summary><form method="post" action="{{ route('admin.security.roles.store') }}">@csrf
