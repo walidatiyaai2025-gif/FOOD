@@ -57,6 +57,32 @@ async function login(page, channel, locale, email) {
   }
 }
 
+async function assertNoPageOverflow(page, label) {
+  const metrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  if (metrics.scrollWidth > metrics.viewport + 2) {
+    throw new Error(`Unexpected horizontal page overflow for ${label}: ${metrics.scrollWidth}px > ${metrics.viewport}px`);
+  }
+}
+
+async function captureResponsiveRoute(page, locale, channel, name, route) {
+  const viewports = [
+    ['desktop-1280', 1280, 900],
+    ['compact-1024', 1024, 900],
+    ['tablet-768', 768, 900],
+    ['mobile-390', 390, 844],
+  ];
+  for (const [state, width, height] of viewports) {
+    await page.setViewportSize({ width, height });
+    await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
+    if (page.url().includes('/login')) throw new Error(`Unexpected auth redirect for responsive ${route}`);
+    await assertNoPageOverflow(page, `${channel}/${route}/${locale}/${state}`);
+    await snap(page, `02_Web/Responsive/${channel}/${name}__${state}__${locale}.png`);
+  }
+}
+
 async function captureLocale(browser, locale) {
   const context = await browser.newContext({
     locale: locale === 'ar' ? 'ar-KW' : 'en-US',
@@ -80,6 +106,9 @@ async function captureLocale(browser, locale) {
     await snap(page, `02_Web/B2C_Admin/${name}__populated__${locale}.png`);
   }
 
+  await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
+  await captureResponsiveRoute(page, locale, 'B2C_Admin', 'products', '/admin/b2c/products');
+
   // Capture B2B with an independent authenticated session.
   await context.clearCookies();
   await login(page, 'b2b', locale, email);
@@ -90,14 +119,8 @@ async function captureLocale(browser, locale) {
     await snap(page, `02_Web/B2B_SuperAdmin/${name}__populated__${locale}.png`);
   }
 
-  // Return to an independently authenticated B2C session for responsive evidence.
-  await context.clearCookies();
-  await login(page, 'b2c', locale, email);
-
-  // Additional real responsive evidence for the primary dashboard.
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${baseUrl}/admin/b2c/dashboard`, { waitUntil: 'networkidle' });
-  await snap(page, `02_Web/B2C_Admin/02_لوحة_التحكم_الرئيسية_B2C__mobile-responsive__${locale}.png`);
+  await captureResponsiveRoute(page, locale, 'B2B_SuperAdmin', 'dashboard', '/admin/b2b/dashboard');
+  await captureResponsiveRoute(page, locale, 'B2B_SuperAdmin', 'orders', '/admin/b2b/orders');
 
   await context.close();
 }
