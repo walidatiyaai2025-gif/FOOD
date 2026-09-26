@@ -225,6 +225,5 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertSee('module-empty-state', false)
             ->assertSee('var(--foodex-sidebar-width)', false)
             ->assertSee('var(--foodex-control-height)', false);
-    }
-
+       }
 }
