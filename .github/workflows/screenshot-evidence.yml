@@ -5,6 +5,8 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "ScreenShots/**"
   push:
     branches:
       - test/175-runtime-screenshot-evidence
