@@ -23,6 +23,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.locale = const Locale('ar'),
     this.translationOverrides = const {},
     this.translationFetcher,
+    this.theme,
   });
 
   final CustomerSession session;
@@ -34,6 +35,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final Locale locale;
   final Map<String, String> translationOverrides;
   final TranslationFetcher? translationFetcher;
+  final ThemeData? theme;
 
   @override
   State<FoodexCustomerApp> createState() => _FoodexCustomerAppState();
@@ -135,7 +137,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FOODEX Customer',
-      theme: FoodexTheme.light(),
+      theme: widget.theme ?? FoodexTheme.light(),
       locale: widget.locale,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
