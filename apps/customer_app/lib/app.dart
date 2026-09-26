@@ -6,6 +6,7 @@ import 'core/api/b2c_catalog_api.dart';
 import 'core/api/b2c_account_api.dart';
 import 'core/api/customer_action_api.dart';
 import 'core/auth/customer_session.dart';
+import 'core/config/foodex_environment.dart';
 import 'core/localization/app_translations.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
@@ -71,7 +72,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     try {
       final fetcher = widget.translationFetcher;
       final baseUrl =
-          const String.fromEnvironment('FOODEX_API_BASE_URL', defaultValue: '');
+          FoodexEnvironment.apiBaseUrl;
       if (fetcher == null && baseUrl.isEmpty) {
         return;
       }
@@ -106,10 +107,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
 
   @override
   Widget build(BuildContext context) {
-    final baseUrl = const String.fromEnvironment(
-      'FOODEX_API_BASE_URL',
-      defaultValue: 'http://localhost:8000',
-    );
+    final baseUrl = FoodexEnvironment.apiBaseUrl;
     final token = _session.accessToken;
     final b2bApi = widget.b2bApi ??
         (token == null ? null : HttpB2bApi(baseUrl: baseUrl, token: token));
