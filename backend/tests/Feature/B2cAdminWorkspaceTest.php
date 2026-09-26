@@ -122,6 +122,54 @@ class B2cAdminWorkspaceTest extends TestCase
         $this->actingAs($user)->get('/admin/b2c/storefront-preview')->assertOk()->assertSee('Experience Mine')->assertDontSee('Experience Other');
     }
 
+    public function test_reports_and_settings_compose_existing_services_with_store_scope(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $type = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $store = (int) DB::table('stores')->insertGetId(['store_type_id' => $type, 'code' => 'RPT-STORE', 'name' => 'Reports Store', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $user = User::query()->create(['name' => 'Reports Admin', 'email' => 'reports-admin@example.test', 'password' => 'password', 'locale' => 'en', 'is_active' => true]);
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $user->roles()->attach($role);
+        DB::table('user_store_roles')->insert(['user_id' => $user->id, 'store_id' => $store, 'role_id' => $role->id, 'created_at' => now(), 'updated_at' => now()]);
+
+        $customer = (int) DB::table('customers')->insertGetId(['type' => 'b2c', 'name' => 'Report Customer', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('orders')->insert([
+            'store_id' => $store,
+            'customer_id' => $customer,
+            'order_number' => 'RPT-ORDER',
+            'channel' => 'b2c',
+            'status' => 'delivered',
+            'currency' => 'KWD',
+            'subtotal' => 12,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 12,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('settings')->insert([
+            ['store_id' => $store, 'key' => 'storefront.theme', 'value' => json_encode('premium'), 'is_secret' => false, 'created_at' => now(), 'updated_at' => now()],
+            ['store_id' => $store, 'key' => 'payments.secret', 'value' => json_encode('never-show'), 'is_secret' => true, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        $this->actingAs($user)
+            ->get('/admin/b2c/reports')
+            ->assertOk()
+            ->assertSee('Reports Store')
+            ->assertSee('KWD 12.000')
+            ->assertSee('Open reports')
+            ->assertSee('XLSX')
+            ->assertSee('PDF');
+
+        $this->actingAs($user)
+            ->get('/admin/b2c/settings')
+            ->assertOk()
+            ->assertSee('storefront.theme')
+            ->assertSee('premium')
+            ->assertDontSee('payments.secret')
+            ->assertDontSee('never-show');
+    }
+
     public function test_b2c_admin_without_assigned_store_is_forbidden_and_invalid_module_is_not_found(): void
     {
         $this->seed(CoreReferenceSeeder::class);
