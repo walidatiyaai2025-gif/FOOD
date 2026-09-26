@@ -107,6 +107,60 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($admin)->post("/admin/b2b/orders/{$order}/status", ['status' => 'confirmed'])->assertNotFound();
     }
 
+    public function test_b2b_reports_and_settings_are_scoped_and_permission_aware(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $type = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $store = (int) DB::table('stores')->insertGetId(['store_type_id' => $type, 'code' => 'B2B-RPT', 'name' => 'Wholesale Reports', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $customer = (int) DB::table('customers')->insertGetId(['type' => 'b2b', 'name' => 'Wholesale Report Buyer', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('orders')->insert([
+            'store_id' => $store,
+            'customer_id' => $customer,
+            'order_number' => 'B2B-RPT-1',
+            'channel' => 'b2b',
+            'status' => 'delivered',
+            'currency' => 'KWD',
+            'subtotal' => 18,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 18,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('settings')->insert([
+            ['store_id' => $store, 'key' => 'wholesale.minimum_order', 'value' => json_encode(25), 'is_secret' => false, 'created_at' => now(), 'updated_at' => now()],
+            ['store_id' => $store, 'key' => 'wholesale.private_token', 'value' => json_encode('never-show'), 'is_secret' => true, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        $admin = $this->user('B2B_ADMIN', 'en');
+        $this->actingAs($admin)
+            ->get('/admin/b2b/reports')
+            ->assertOk()
+            ->assertSee('Wholesale Reports')
+            ->assertSee('KWD 18.000')
+            ->assertSee('Open reports')
+            ->assertSee('XLSX')
+            ->assertSee('DOCX')
+            ->assertSee('PDF');
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/settings')
+            ->assertOk()
+            ->assertSee('wholesale.minimum_order')
+            ->assertSee('25')
+            ->assertDontSee('wholesale.private_token')
+            ->assertDontSee('never-show')
+            ->assertDontSee('Security & users');
+
+        $super = $this->user('SUPER_ADMIN', 'en');
+        $this->actingAs($super)
+            ->get('/admin/b2b/settings')
+            ->assertOk()
+            ->assertSee('Security & users')
+            ->assertSee('Translations')
+            ->assertSee('Mobile & push settings');
+    }
+
     public function test_non_b2b_management_role_is_forbidden_and_invalid_module_is_not_found(): void
     {
         $this->seed(CoreReferenceSeeder::class);
