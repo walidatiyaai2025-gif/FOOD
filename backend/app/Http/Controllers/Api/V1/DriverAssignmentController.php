@@ -19,6 +19,10 @@ class DriverAssignmentController extends Controller
     {
         [$driver, $channel] = $this->driverContext($request);
         $rows = DriverAssignment::query()->where('driver_id', $driver->getKey())->where('assignment_type', $channel)->latest('id')->get();
+        $allowed = $this->allowedTransitions();
+        $rows->each(static function (DriverAssignment $assignment) use ($allowed): void {
+            $assignment->setAttribute('available_statuses', $allowed[$assignment->status] ?? []);
+        });
 
         return response()->json(['data' => $rows]);
     }
@@ -46,7 +50,7 @@ class DriverAssignmentController extends Controller
         [$driver, $channel] = $this->driverContext($request);
         $data = $request->validate(['status' => ['required', Rule::in(['accepted', 'picked_up', 'out_for_delivery', 'delivered', 'failed'])]]);
         $model = DriverAssignment::query()->whereKey($assignment)->where('driver_id', $driver->getKey())->where('assignment_type', $channel)->firstOrFail();
-        $allowed = ['assigned' => ['accepted'], 'accepted' => ['picked_up'], 'picked_up' => ['out_for_delivery'], 'out_for_delivery' => ['delivered', 'failed'], 'failed' => ['out_for_delivery']];
+        $allowed = $this->allowedTransitions();
         abort_unless(in_array($data['status'], $allowed[$model->status] ?? [], true), 409, 'Invalid delivery transition.');
         $before = ['status' => $model->status];
         DB::transaction(function () use ($model, $data): void {
@@ -58,7 +62,22 @@ class DriverAssignmentController extends Controller
         });
         $auditLogger->record('delivery.assignment.status_changed', $request->user(), $model, $before, ['status' => $model->status], $request);
 
-        return response()->json(['data' => $model->fresh()]);
+        $fresh = $model->fresh();
+        $fresh->setAttribute('available_statuses', $allowed[$fresh->status] ?? []);
+
+        return response()->json(['data' => $fresh]);
+    }
+
+    /** @return array<string, list<string>> */
+    private function allowedTransitions(): array
+    {
+        return [
+            'assigned' => ['accepted'],
+            'accepted' => ['picked_up'],
+            'picked_up' => ['out_for_delivery'],
+            'out_for_delivery' => ['delivered', 'failed'],
+            'failed' => ['out_for_delivery'],
+        ];
     }
 
     private function driverContext(Request $request): array

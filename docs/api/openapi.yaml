@@ -810,7 +810,7 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
-  /drivers/assignments:
+  /driver/assignments:
     get:
       tags: [Drivers]
       summary: List assignments for the authenticated driver role
@@ -831,6 +831,47 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         "403":
           $ref: "#/components/responses/Forbidden"
+
+  /driver/assignments/{assignment}/status:
+    post:
+      tags: [Drivers]
+      summary: Transition one authenticated driver's assignment using a server-advertised status
+      operationId: transitionDriverAssignment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: assignment
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DriverAssignmentStatusWrite"
+      responses:
+        "200":
+          description: Assignment status updated with the next server-authorized statuses
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/DriverAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Invalid delivery transition
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /notifications:
     get:
@@ -1656,7 +1697,7 @@ components:
 
     DriverAssignment:
       type: object
-      required: [id, order_id, assignment_type, status]
+      required: [id, order_id, assignment_type, status, available_statuses]
       properties:
         id:
           type: integer
@@ -1673,6 +1714,21 @@ components:
         completed_at:
           type: [string, "null"]
           format: date-time
+        available_statuses:
+          type: array
+          description: Backend-authorized next states for this assignment and authenticated driver.
+          items:
+            type: string
+            enum: [accepted, picked_up, out_for_delivery, delivered, failed]
+
+    DriverAssignmentStatusWrite:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [accepted, picked_up, out_for_delivery, delivered, failed]
 
     Notification:
       type: object
