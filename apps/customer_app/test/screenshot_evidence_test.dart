@@ -82,13 +82,17 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 150));
 
-        final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-        final image = await boundary.toImage(pixelRatio: 1);
-        final data = await image.toByteData(format: ui.ImageByteFormat.png);
-        final file = File('../../ScreenShots/$path');
-        file.parent.createSync(recursive: true);
-        file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
-        expect(file.lengthSync(), greaterThan(1000));
+        await tester.runAsync(() async {
+          final boundary =
+              boundaryKey.currentContext!.findRenderObject()!
+                  as RenderRepaintBoundary;
+          final image = await boundary.toImage(pixelRatio: 1);
+          final data = await image.toByteData(format: ui.ImageByteFormat.png);
+          final file = File('../../ScreenShots/$path');
+          file.parent.createSync(recursive: true);
+          file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
+          expect(file.lengthSync(), greaterThan(1000));
+        });
       });
     }
   }
