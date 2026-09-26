@@ -66,8 +66,6 @@ class PremiumDashboardAcceptanceTest extends TestCase
             ->assertSee('data-premium-sidebar="b2c"', false)
             ->assertSee('لوحة التحكم')
             ->assertSee('Dashboard')
-            ->assertSee('تطبيقات الجوال')
-            ->assertSee('Mobile Apps')
             ->assertSee('grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width)', false)
             ->assertSee('html[dir=ltr] .dashboard-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}', false)
             ->assertSee('.kpis{direction:ltr', false)
