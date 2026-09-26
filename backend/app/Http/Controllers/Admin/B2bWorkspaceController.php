@@ -176,8 +176,8 @@ class B2bWorkspaceController extends Controller
                         'active' => (bool) $row->is_active,
                         'assignments' => DB::table('driver_assignments')->where('driver_id',$row->id)->where('assignment_type','b2b')->count(),
                     ])->all(),
-                'drivers' => DB::table('drivers')->join('users','users.id','=','drivers.user_id')->where('drivers.driver_type','b2b')->where('drivers.is_active',true)->orderBy('users.name')->get(['drivers.id','users.name'])->map(fn($r)=>['id'=>(int)$r->id,'name'=>$r->name])->all(),
-                'orders' => DB::table('orders')->whereIn('store_id',$storeIds)->where('channel','b2b')->whereNotIn('status',['delivered','cancelled'])->orderByDesc('id')->limit(100)->get(['id','order_number'])->map(fn($r)=>['id'=>(int)$r->id,'number'=>$r->order_number])->all(),
+                'drivers' => DB::table('drivers')->join('users','users.id','=','drivers.user_id')->where('drivers.driver_type','b2b')->where('drivers.is_active',true)->orderBy('users.name')->get(['drivers.id','users.name'])->map(fn ($r)=>['id'=>(int)$r->id,'name'=>$r->name])->all(),
+                'orders' => DB::table('orders')->whereIn('store_id',$storeIds)->where('channel','b2b')->whereNotIn('status',['delivered','cancelled'])->orderByDesc('id')->limit(100)->get(['id','order_number'])->map(fn ($r)=>['id'=>(int)$r->id,'number'=>$r->order_number])->all(),
             ],
             'pricing' => [
                 'columns' => ['tier', 'sku', 'product', 'store', 'unit_price', 'minimum_quantity', 'status'],
@@ -189,15 +189,15 @@ class B2bWorkspaceController extends Controller
                     ->orderBy('stores.name')->orderBy('products.name')
                     ->limit(100)
                     ->get(['b2b_price_tiers.name as tier','products.sku','products.name as product','stores.name as store','b2b_price_rules.unit_price','b2b_price_rules.minimum_quantity','b2b_price_rules.is_active as status'])
-                    ->map(fn($row)=>[
+                    ->map(fn ($row)=>[
                         'tier'=>$row->tier,'sku'=>$row->sku,'product'=>$row->product,'store'=>$row->store,
                         'unit_price'=>number_format((float)$row->unit_price,3).' KWD',
                         'minimum_quantity'=>number_format((float)$row->minimum_quantity,3),
                         'status'=>(bool)$row->status,
                     ])->all(),
-                'tiers' => DB::table('b2b_price_tiers')->orderBy('priority')->get(['id','name'])->map(fn($r)=>['id'=>(int)$r->id,'name'=>$r->name])->all(),
-                'stores' => DB::table('stores')->whereIn('id',$storeIds)->orderBy('name')->get(['id','name'])->map(fn($r)=>['id'=>(int)$r->id,'name'=>$r->name])->all(),
-                'products' => DB::table('store_products')->join('products','products.id','=','store_products.product_id')->whereIn('store_products.store_id',$storeIds)->select('products.id','products.name','products.sku')->distinct()->orderBy('products.name')->get()->map(fn($r)=>['id'=>(int)$r->id,'name'=>$r->name,'sku'=>$r->sku])->all(),
+                'tiers' => DB::table('b2b_price_tiers')->orderBy('priority')->get(['id','name'])->map(fn ($r)=>['id'=>(int)$r->id,'name'=>$r->name])->all(),
+                'stores' => DB::table('stores')->whereIn('id',$storeIds)->orderBy('name')->get(['id','name'])->map(fn ($r)=>['id'=>(int)$r->id,'name'=>$r->name])->all(),
+                'products' => DB::table('store_products')->join('products','products.id','=','store_products.product_id')->whereIn('store_products.store_id',$storeIds)->select('products.id','products.name','products.sku')->distinct()->orderBy('products.name')->get()->map(fn ($r)=>['id'=>(int)$r->id,'name'=>$r->name,'sku'=>$r->sku])->all(),
             ],
             'products' => [
                 'columns' => ['sku', 'name', 'store', 'price', 'available', 'status'],
