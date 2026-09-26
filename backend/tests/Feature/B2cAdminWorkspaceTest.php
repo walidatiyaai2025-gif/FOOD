@@ -183,4 +183,47 @@ class B2cAdminWorkspaceTest extends TestCase
         DB::table('user_store_roles')->insert(['user_id' => $user->id, 'store_id' => $scoped, 'role_id' => $role->id, 'created_at' => now(), 'updated_at' => now()]);
         $this->actingAs($user)->get('/admin/b2c/not-real')->assertNotFound();
     }
+
+    public function test_b2c_modules_inherit_golden_premium_visual_primitives(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $type = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $store = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $type,
+            'code' => 'PREMIUM-B2C',
+            'name' => 'Premium B2C',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $user = User::query()->create([
+            'name' => 'Premium Admin',
+            'email' => 'premium-b2c@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $user->roles()->attach($role);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $user->id,
+            'store_id' => $store,
+            'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/admin/b2c/products')
+            ->assertOk()
+            ->assertSee('data-b2c-premium="v1"', false)
+            ->assertSee('class="foodex-admin-page"', false)
+            ->assertSee('foodex-page-header', false)
+            ->assertSee('module-card foodex-card', false)
+            ->assertSee('module-panel foodex-card', false)
+            ->assertSee('.module-table{min-width:760px}', false)
+            ->assertSee('module-empty-state', false)
+            ->assertSee('var(--foodex-sidebar-width)', false)
+            ->assertSee('var(--foodex-control-height)', false);
+    }
 }
