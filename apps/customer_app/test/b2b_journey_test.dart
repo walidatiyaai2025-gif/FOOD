@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
+import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 
 void main() {
@@ -36,11 +37,13 @@ void main() {
       'is_available': true,
       'currency': 'KWD',
     });
+    final actionApi = _FakeCustomerActionApi();
     await tester.pumpWidget(
       FoodexCustomerApp(
         session: b2b,
         initialRoute: '/b2b/products/42?store_id=7',
         b2bApi: api,
+        actionApi: actionApi,
       ),
     );
     await tester.pumpAndSettle();
@@ -52,6 +55,17 @@ void main() {
     expect(find.textContaining('5'), findsWidgets);
     expect(find.textContaining('24'), findsWidgets);
     expect(find.text('إضافة إلى السلة'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
+    await tester.pumpAndSettle();
+
+    expect(actionApi.lastStoreId, 7);
+    expect(actionApi.lastProductId, 42);
+    expect(
+      find.text('/b2b/cart?store=7'),
+      findsOneWidget,
+    );
+    expect(api.lastPath, '/api/v1/cart?store=7');
   });
 
   testWidgets('B2B cart exposes authoritative checkout action', (tester) async {
@@ -132,4 +146,36 @@ class _StaticB2bApi implements B2bApi {
   const _StaticB2bApi();
   @override
   Future<Object?> get(String path) async => null;
+}
+
+
+class _FakeCustomerActionApi implements CustomerActionApi {
+  int? lastStoreId;
+  int? lastProductId;
+
+  @override
+  Future<CustomerLoginResult> login({
+    required String email,
+    required String password,
+  }) async =>
+      const CustomerLoginResult(token: 'test-token');
+
+  @override
+  Future<Object?> addCartItem({
+    required int storeId,
+    required int productId,
+    required double quantity,
+  }) async {
+    lastStoreId = storeId;
+    lastProductId = productId;
+    return {'store_id': storeId, 'product_id': productId, 'quantity': quantity};
+  }
+
+  @override
+  Future<Object?> checkout({
+    required int addressId,
+    String? paymentMethod,
+    required String idempotencyKey,
+  }) async =>
+      {'id': 1};
 }
