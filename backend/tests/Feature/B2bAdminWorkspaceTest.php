@@ -235,6 +235,9 @@ class B2bAdminWorkspaceTest extends TestCase
             ->assertSee('foodex-table', false)
             ->assertSee('var(--foodex-sidebar-width)', false)
             ->assertSee('var(--foodex-radius-card)', false)
+            ->assertSee('.layout{direction:ltr;display:grid;', false)
+            ->assertSee('@media(max-width:1023px)', false)
+            ->assertSee('max-height:320px;overflow:auto', false)
             ->assertDontSee('font-weight:850', false);
     }
 
