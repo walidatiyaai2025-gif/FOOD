@@ -126,6 +126,7 @@ jobs:
           retention-days: 30
 
       - name: Commit generated runtime evidence
+        if: ${{ github.event_name == 'push' }}
         shell: bash
         run: |
           set -euo pipefail
