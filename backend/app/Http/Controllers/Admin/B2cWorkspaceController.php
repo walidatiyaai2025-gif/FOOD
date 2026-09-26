@@ -47,10 +47,6 @@ class B2cWorkspaceController extends Controller
                 $request->filled('q') ? $request->string('q')->toString() : null,
             )
             : null;
-        if ($module === 'reports') {
-            abort_unless($user->hasPermission('reports.view'), 403);
-        }
-
         $moduleData = in_array($module, ['products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
             ? $this->moduleData($module, $storeIds, $user)
             : null;
@@ -253,12 +249,11 @@ class B2cWorkspaceController extends Controller
 
     private function reportModuleData(User $user, array $storeIds): array
     {
-        $canExport = $user->hasPermission('reports.export');
         $stores = DB::table('stores')->whereIn('id', $storeIds)->orderBy('name')->get(['id', 'name']);
 
         return [
             'columns' => ['store', 'orders', 'revenue', 'average', 'actions'],
-            'rows' => $stores->map(function ($store) use ($user, $canExport): array {
+            'rows' => $stores->map(function ($store) use ($user): array {
                 $data = $this->reports->run($user, 'orders', [
                     'store_id' => (int) $store->id,
                     'channel' => 'b2c',
@@ -273,7 +268,7 @@ class B2cWorkspaceController extends Controller
                     ]),
                 ]];
 
-                if ($canExport) {
+                if ($user->hasPermission('reports.export', (int) $store->id)) {
                     foreach (['xlsx', 'docx', 'pdf'] as $format) {
                         $actions[] = [
                             'label' => strtoupper($format),
