@@ -122,7 +122,7 @@ final class MobileSettingsController extends Controller
                 'environment' => $data['environment'],
             ],
             [
-                'provider' => $data['platform'] === 'android' ? 'firebase' : 'apns',
+                'provider' => 'firebase',
                 'enabled' => $request->boolean('enabled'),
                 'credentials_encrypted' => $credentials,
                 'default_sound' => $data['default_sound'] ?? null,
