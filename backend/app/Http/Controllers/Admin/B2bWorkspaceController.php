@@ -50,7 +50,7 @@ class B2bWorkspaceController extends Controller
 
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2b_'.$module;
-        $moduleData = in_array($module, ['dashboard', 'stores', 'clients', 'products', 'orders', 'drivers', 'pricing'], true)
+        $moduleData = in_array($module, ['dashboard', 'stores', 'clients', 'products', 'orders', 'drivers', 'pricing', 'reports', 'settings'], true)
             ? $this->moduleData($module, $storeIds, $user)
             : null;
 
