@@ -45,7 +45,6 @@ class B2bPricingController extends Controller
         return response()->json(['data' => $rule], $rule->wasRecentlyCreated ? 201 : 200);
     }
 
-
     public function product(Request $request, int $product): JsonResponse
     {
         $user = $request->user();
