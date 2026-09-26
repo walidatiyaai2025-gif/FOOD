@@ -396,7 +396,12 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       } else {
         await widget.accountApi.updateCartItem(itemId, quantity);
       }
-      _reload();
+
+      final refreshed = await widget.accountApi.cart(storeId: _storeId);
+      if (!mounted) return;
+      setState(() {
+        _remote = Future<Object?>.value(refreshed);
+      });
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
