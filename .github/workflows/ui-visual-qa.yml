@@ -93,10 +93,16 @@ jobs:
         run: |
           set -euo pipefail
           count="$(find ScreenShots/02_Web -type f -name '*.png' | wc -l | tr -d ' ')"
-          test "$count" -ge 44
+          responsive_count="$(find ScreenShots/02_Web/Responsive -type f -name '*.png' | wc -l | tr -d ' ')"
+          test "$count" -ge 76
+          test "$responsive_count" -eq 32
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__compact-1024__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2B_SuperAdmin/orders__tablet-768__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2B_SuperAdmin/orders__mobile-390__en.png"
           test -s "ScreenShots/02_Web/B2C_Admin/02_لوحة_التحكم_الرئيسية_B2C__populated__ar.png"
           test -s "ScreenShots/02_Web/B2C_Admin/02_لوحة_التحكم_الرئيسية_B2C__populated__en.png"
-          echo "Captured Web runtime PNGs: $count"
+          echo "Captured Web runtime PNGs: $count (responsive matrix: $responsive_count)"
 
       - name: Upload visual-QA evidence
         uses: actions/upload-artifact@v4
