@@ -3,26 +3,26 @@
     $allChildren = collect($navGroups ?? [])->flatMap(fn (array $group) => $group['children'] ?? [])->keyBy('key');
     $mainDefinitions = $channel === 'b2c'
         ? [
-            ['key'=>'b2c_dashboard','icon'=>'home'],
-            ['key'=>'b2c_orders','icon'=>'orders'],
-            ['key'=>'b2c_products','icon'=>'products'],
-            ['key'=>'b2c_customers','icon'=>'customers'],
-            ['key'=>'b2c_drivers','icon'=>'delivery'],
-            ['key'=>'notifications','icon'=>'bell'],
-            ['key'=>'mobile_settings','icon'=>'mobile'],
-            ['key'=>'b2c_reports','icon'=>'reports'],
-            ['key'=>'b2c_settings','icon'=>'settings'],
+            ['key'=>'b2c_dashboard','icon'=>'home','label'=>'admin.premium_nav.dashboard'],
+            ['key'=>'b2c_orders','icon'=>'orders','label'=>'admin.premium_nav.orders'],
+            ['key'=>'b2c_products','icon'=>'products','label'=>'admin.premium_nav.products'],
+            ['key'=>'b2c_customers','icon'=>'customers','label'=>'admin.premium_nav.customers'],
+            ['key'=>'b2c_drivers','icon'=>'delivery','label'=>'admin.premium_nav.delivery'],
+            ['key'=>'notifications','icon'=>'bell','label'=>'admin.premium_nav.notifications'],
+            ['key'=>'mobile_settings','icon'=>'mobile','label'=>'admin.premium_nav.mobile_apps'],
+            ['key'=>'b2c_reports','icon'=>'reports','label'=>'admin.premium_nav.reports'],
+            ['key'=>'b2c_settings','icon'=>'settings','label'=>'admin.premium_nav.settings'],
         ]
         : [
-            ['key'=>'b2b_dashboard','icon'=>'home'],
-            ['key'=>'b2b_orders','icon'=>'orders'],
-            ['key'=>'b2b_products','icon'=>'products'],
-            ['key'=>'b2b_clients','icon'=>'customers'],
-            ['key'=>'b2b_drivers','icon'=>'delivery'],
-            ['key'=>'notifications','icon'=>'bell'],
-            ['key'=>'mobile_settings','icon'=>'mobile'],
-            ['key'=>'b2b_reports','icon'=>'reports'],
-            ['key'=>'b2b_settings','icon'=>'settings'],
+            ['key'=>'b2b_dashboard','icon'=>'home','label'=>'admin.premium_nav.dashboard'],
+            ['key'=>'b2b_orders','icon'=>'orders','label'=>'admin.premium_nav.orders'],
+            ['key'=>'b2b_products','icon'=>'products','label'=>'admin.premium_nav.products'],
+            ['key'=>'b2b_clients','icon'=>'customers','label'=>'admin.premium_nav.customers'],
+            ['key'=>'b2b_drivers','icon'=>'delivery','label'=>'admin.premium_nav.delivery'],
+            ['key'=>'notifications','icon'=>'bell','label'=>'admin.premium_nav.notifications'],
+            ['key'=>'mobile_settings','icon'=>'mobile','label'=>'admin.premium_nav.mobile_apps'],
+            ['key'=>'b2b_reports','icon'=>'reports','label'=>'admin.premium_nav.reports'],
+            ['key'=>'b2b_settings','icon'=>'settings','label'=>'admin.premium_nav.settings'],
         ];
     $moreDefinitions = $channel === 'b2c'
         ? [
@@ -50,6 +50,9 @@
             $child = $allChildren->get($definition['key']);
             if ($child) {
                 $child['icon'] = $definition['icon'];
+                if (isset($definition['label'])) {
+                    $child['label'] = $definition['label'];
+                }
                 $items[] = $child;
             }
         }
@@ -61,7 +64,7 @@
     $secondaryLocale = app()->getLocale() === 'ar' ? 'en' : 'ar';
 @endphp
 <style id="foodex-premium-sidebar">
-    .premium-sidebar-inner{padding:var(--foodex-space-5) var(--foodex-space-4);min-height:100%;background:var(--foodex-surface)}
+    .premium-sidebar-inner{padding:var(--foodex-space-5) var(--foodex-space-4) var(--foodex-space-2);background:var(--foodex-surface)}
     .premium-brand{display:flex;align-items:center;justify-content:center;gap:9px;min-height:52px;margin-bottom:var(--foodex-space-3);font-family:var(--foodex-font-en);font-size:1.42rem;font-weight:var(--foodex-font-weight-bold);letter-spacing:.025em;color:var(--foodex-green-dark)}
     .premium-brand .brand-mark{position:relative;width:24px;height:24px;display:inline-block}
     .premium-brand .brand-mark::before,.premium-brand .brand-mark::after{content:"";position:absolute;border-radius:100% 0 100% 0;transform:rotate(-30deg)}
