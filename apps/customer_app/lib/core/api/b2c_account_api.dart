@@ -9,9 +9,18 @@ abstract interface class B2cAccountApi {
   Future<Object?> updateCartItem(int itemId, double quantity);
   Future<void> removeCartItem(int itemId);
   Future<Object?> order(int orderId);
+  Future<Object?> orders();
   Future<Object?> profile();
+  Future<Object?> updateProfile(Map<String, dynamic> values);
   Future<Object?> addresses();
+  Future<Object?> createAddress(Map<String, dynamic> values);
+  Future<Object?> updateAddress(int addressId, Map<String, dynamic> values);
+  Future<void> removeAddress(int addressId);
   Future<Object?> favorites();
+  Future<void> addFavorite(int productId);
+  Future<void> removeFavorite(int productId);
+  Future<Object?> notifications({String locale = 'ar'});
+  Future<void> markNotificationRead(int notificationId);
 }
 
 class HttpB2cAccountApi implements B2cAccountApi {
@@ -77,9 +86,21 @@ class HttpB2cAccountApi implements B2cAccountApi {
   }
 
   @override
+  Future<Object?> orders() async {
+    _requireToken();
+    return _get('/api/v1/orders');
+  }
+
+  @override
   Future<Object?> profile() async {
     _requireToken();
     return _get('/api/v1/profile');
+  }
+
+  @override
+  Future<Object?> updateProfile(Map<String, dynamic> values) async {
+    _requireToken();
+    return _write('PATCH', '/api/v1/profile', values);
   }
 
   @override
@@ -89,15 +110,112 @@ class HttpB2cAccountApi implements B2cAccountApi {
   }
 
   @override
+  Future<Object?> createAddress(Map<String, dynamic> values) async {
+    _requireToken();
+    return _write('POST', '/api/v1/profile/addresses', values);
+  }
+
+  @override
+  Future<Object?> updateAddress(
+    int addressId,
+    Map<String, dynamic> values,
+  ) async {
+    _requireToken();
+    return _write('PATCH', '/api/v1/profile/addresses/$addressId', values);
+  }
+
+  @override
+  Future<void> removeAddress(int addressId) async {
+    _requireToken();
+    final response = await _send(
+      () => _client.delete(
+        Uri.parse('$baseUrl/api/v1/profile/addresses/$addressId'),
+        headers: _headers,
+      ),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
+  }
+
+  @override
   Future<Object?> favorites() async {
     _requireToken();
     return _get('/api/v1/profile/favorites');
+  }
+
+  @override
+  Future<void> addFavorite(int productId) async {
+    _requireToken();
+    final response = await _send(
+      () => _client.post(
+        Uri.parse('$baseUrl/api/v1/profile/favorites/$productId'),
+        headers: _headers,
+      ),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
+  }
+
+  @override
+  Future<void> removeFavorite(int productId) async {
+    _requireToken();
+    final response = await _send(
+      () => _client.delete(
+        Uri.parse('$baseUrl/api/v1/profile/favorites/$productId'),
+        headers: _headers,
+      ),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
+  }
+
+  @override
+  Future<Object?> notifications({String locale = 'ar'}) async {
+    _requireToken();
+    final uri = Uri.parse('$baseUrl/api/v1/notifications').replace(
+      queryParameters: {'locale': locale},
+    );
+    final response = await _send(() => _client.get(uri, headers: _headers));
+    return _decode(response);
+  }
+
+  @override
+  Future<void> markNotificationRead(int notificationId) async {
+    _requireToken();
+    final response = await _send(
+      () => _client.post(
+        Uri.parse('$baseUrl/api/v1/notifications/$notificationId/read'),
+        headers: _headers,
+      ),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
   }
 
   Future<Object?> _get(String path) async {
     final response = await _send(
       () => _client.get(Uri.parse('$baseUrl$path'), headers: _headers),
     );
+    return _decode(response);
+  }
+
+  Future<Object?> _write(
+    String method,
+    String path,
+    Map<String, dynamic> values,
+  ) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final body = jsonEncode(values);
+    final response = await _send(() {
+      if (method == 'POST') {
+        return _client.post(uri, headers: _headers, body: body);
+      }
+      return _client.patch(uri, headers: _headers, body: body);
+    });
     return _decode(response);
   }
 
