@@ -22,7 +22,7 @@
         .recent{display:grid;grid-template-columns:72px 1fr 68px 96px 96px 74px;gap:8px;align-items:center;font-size:12px}.recent.header{color:var(--foodex-muted);font-weight:700;background:#fafbfc;border-radius:8px;padding:8px}.badge{display:inline-flex;justify-content:center;border-radius:999px;padding:4px 7px;font-size:10px;font-weight:750}.badge.delivered,.badge.completed{background:var(--foodex-green-soft);color:var(--foodex-green)}.badge.out_for_delivery,.badge.in_transit,.badge.assigned,.badge.picked_up{background:#edf4ff;color:var(--foodex-blue)}.badge.cancelled,.badge.refunded{background:#fff0f0;color:var(--foodex-red)}.badge.pending,.badge.processing,.badge.confirmed,.badge.paid,.badge.accepted{background:var(--foodex-orange-soft);color:var(--foodex-orange)}
         .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.quick{min-height:94px;border-radius:12px;padding:13px 9px;display:grid;place-content:center;text-align:center;font-size:12px;font-weight:750}.quick:nth-child(4n+1){background:var(--foodex-orange-soft);color:#b54c06}.quick:nth-child(4n+2){background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.quick:nth-child(4n+3){background:#edf4ff;color:#2465c7}.quick:nth-child(4n){background:#f3edff;color:#7047c8}.quick i{font-style:normal;font-size:25px;margin-bottom:5px}
         .apps-card{margin:15px 12px;background:linear-gradient(145deg,#fff8ef,#fff0dc);border:1px solid #ffe3bf;border-radius:14px;padding:13px;text-align:center}.phone{width:58px;height:96px;border-radius:12px;background:#172033;margin:5px auto 9px;padding:6px;transform:rotate(-7deg);box-shadow:0 8px 20px rgba(16,24,40,.18)}.phone-screen{height:100%;border-radius:8px;background:linear-gradient(var(--foodex-green),#fff);display:grid;place-items:center;color:#fff;font-size:10px}.store-links{display:flex;justify-content:center;gap:8px;margin-top:10px}.store-links a{background:#fff;border:1px solid var(--foodex-border);border-radius:8px;padding:5px 7px;font-size:11px}
-        .module-layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.module-layout aside{background:#fff;border-inline-end:1px solid var(--foodex-border);padding:24px}.module-layout main{padding:28px}.module-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}.module-card,.module-panel{background:white;border:1px solid var(--foodex-border);border-radius:16px;padding:18px}.module-panel{margin-top:18px}.empty{color:var(--foodex-muted)}
+        .module-layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.module-layout aside{background:#fff;border-inline-end:1px solid var(--foodex-border);padding:24px}.module-layout main{padding:28px}.module-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}.module-card,.module-panel{background:white;border:1px solid var(--foodex-border);border-radius:16px;padding:18px}.module-panel{margin-top:18px}.empty{color:var(--foodex-muted)}.module-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.module-table-wrap{overflow:auto;border:1px solid var(--foodex-border);border-radius:12px}.module-table{width:100%;border-collapse:collapse;min-width:760px}.module-table th,.module-table td{padding:12px 14px;border-bottom:1px solid #eef1f4;text-align:start;font-size:13px}.module-table th{background:#f8faf9;color:#667085;font-size:12px}.module-table tr:last-child td{border-bottom:0}.state-dot{display:inline-flex;align-items:center;gap:6px}.state-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--foodex-green)}.state-dot.off:before{background:#98a2b3}.module-links{display:flex;flex-wrap:wrap;gap:8px}.module-links a{border:1px solid var(--foodex-border);background:#fff;border-radius:9px;padding:8px 11px;font-size:12px;font-weight:700}.module-links a.active{background:var(--foodex-green-soft);border-color:#cae8d4;color:var(--foodex-green-dark)}
         @media(max-width:1180px){.kpis{grid-template-columns:1fr 1fr}.middle{grid-template-columns:1fr}.bottom{grid-template-columns:1fr 1fr}.bottom .panel:nth-child(2){grid-column:1/-1;grid-row:1}.recent{grid-template-columns:70px 1fr 64px 90px 90px 70px}}
         @media(max-width:860px){.dashboard-layout{grid-template-columns:1fr}.dashboard-sidebar{display:none}.dashboard-shell{grid-column:1!important}.topbar{grid-template-columns:1fr auto;height:auto;min-height:68px;padding:12px 16px}.global-search{grid-column:1/-1;grid-row:2}.profile{grid-row:1}.top-actions{grid-row:1}.bottom{grid-template-columns:1fr}.bottom .panel:nth-child(2){grid-column:auto;grid-row:auto}.module-layout{grid-template-columns:1fr}.module-layout aside{display:none}}
         @media(max-width:620px){.content{padding:16px}.kpis{grid-template-columns:1fr}.headline{align-items:flex-start;flex-direction:column}.donut-wrap{flex-direction:column}.recent.header{display:none}.recent{grid-template-columns:1fr auto;gap:4px}.recent>*:nth-child(3),.recent>*:nth-child(4){display:none}.quick-grid{grid-template-columns:1fr 1fr}}
@@ -187,7 +187,64 @@
         <p>{{ __('admin.b2c_workspace.assigned_scope') }}: {{ implode(', ', $storeIds) }}</p>
         <h1>{{ __('admin.b2c_workspace.modules.'.$module) }}</h1>
         <div class="module-cards">@foreach($counts as $key=>$value)<div class="module-card"><strong>{{ __('admin.b2c_workspace.modules.'.$key) }}</strong><p>{{ $value }}</p></div>@endforeach</div>
+        @if($moduleData)
+        @php
+            $labels = app()->getLocale()==='ar'
+                ? [
+                    'sku'=>'SKU','name'=>'الاسم','category'=>'التصنيف','store'=>'المتجر','price'=>'السعر','status'=>'الحالة',
+                    'warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','available'=>'المتاح',
+                    'number'=>'رقم الطلب','customer'=>'العميل','amount'=>'الإجمالي','created'=>'تاريخ الإنشاء',
+                    'phone'=>'الهاتف','email'=>'البريد','orders'=>'الطلبات','spent'=>'إجمالي الإنفاق','last_order'=>'آخر طلب',
+                ]
+                : [
+                    'sku'=>'SKU','name'=>'Name','category'=>'Category','store'=>'Store','price'=>'Price','status'=>'Status',
+                    'warehouse'=>'Warehouse','quantity'=>'Quantity','reserved'=>'Reserved','available'=>'Available',
+                    'number'=>'Order','customer'=>'Customer','amount'=>'Amount','created'=>'Created',
+                    'phone'=>'Phone','email'=>'Email','orders'=>'Orders','spent'=>'Total spent','last_order'=>'Last order',
+                ];
+        @endphp
+        <section class="module-panel">
+            <div class="module-toolbar">
+                <div>
+                    <strong>{{ __('admin.b2c_workspace.authoritative') }}</strong>
+                    <p class="empty">{{ app()->getLocale()==='ar' ? 'بيانات مباشرة ضمن المتاجر المصرح بها لهذا المستخدم.' : 'Live server data restricted to this user\'s assigned stores.' }}</p>
+                </div>
+                <nav class="module-links" aria-label="B2C core modules">
+                    @foreach(['products','inventory','orders','customers'] as $core)
+                        <a class="{{ $module===$core?'active':'' }}" href="{{ route('admin.b2c.module',['module'=>$core]) }}">{{ __('admin.b2c_workspace.modules.'.$core) }}</a>
+                    @endforeach
+                </nav>
+            </div>
+            @if(count($moduleData['rows']))
+                <div class="module-table-wrap">
+                    <table class="module-table">
+                        <thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column] ?? $column }}</th>@endforeach</tr></thead>
+                        <tbody>
+                        @foreach($moduleData['rows'] as $row)
+                            <tr>
+                            @foreach($moduleData['columns'] as $column)
+                                <td>
+                                    @if($column==='status' && is_bool($row[$column]))
+                                        <span class="state-dot {{ $row[$column]?'':'off' }}">{{ $row[$column] ? (app()->getLocale()==='ar'?'نشط':'Active') : (app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span>
+                                    @elseif($column==='status')
+                                        <span class="badge {{ $row[$column] }}">{{ $row[$column] }}</span>
+                                    @else
+                                        {{ $row[$column] }}
+                                    @endif
+                                </td>
+                            @endforeach
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <p class="empty">{{ app()->getLocale()==='ar' ? 'لا توجد بيانات في هذا القسم للمتاجر المصرح بها.' : 'No records are available in this section for the assigned stores.' }}</p>
+            @endif
+        </section>
+        @else
         <section class="module-panel"><strong>{{ __('admin.b2c_workspace.authoritative') }}</strong><p class="empty">{{ __('admin.b2c_workspace.empty_hint') }}</p></section>
+        @endif
     </main>
 </div>
 @endif
