@@ -21,6 +21,7 @@ final class TranslationCatalog
             'notifications' => 'admin',
             'reports' => 'admin',
             'mobile_settings' => 'admin',
+            'app_versions' => 'admin',
         ] as $group => $surface) {
             $arabic = Arr::dot(require lang_path("ar/{$group}.php"));
             $english = Arr::dot(require lang_path("en/{$group}.php"));

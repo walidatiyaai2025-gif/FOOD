@@ -1,0 +1,31 @@
+<?php
+
+return [
+    'title' => 'App Version Policy',
+    'app' => 'Application',
+    'customer' => 'Customer',
+    'driver' => 'Driver',
+    'platform' => 'Platform',
+    'android' => 'Android',
+    'ios' => 'iOS',
+    'latest_version' => 'Latest version',
+    'minimum_supported_version' => 'Minimum supported version',
+    'force_update' => 'Force update below latest',
+    'store_url' => 'Official store URL',
+    'release_notes' => 'Release notes',
+    'save' => 'Save policy',
+    'configured' => 'Configured policies',
+    'empty' => 'No app version policies configured.',
+    'yes' => 'Yes',
+    'no' => 'No',
+    'saved' => 'App version policy saved.',
+    'invalid_policy' => 'Use valid version numbers; the minimum supported version must not exceed the latest version.',
+    'validation' => [
+        'required' => 'The :attribute field is required.',
+        'in' => 'Select a valid value for :attribute.',
+        'string' => 'The :attribute field must be text.',
+        'max' => 'The :attribute field must not exceed :max characters.',
+        'boolean' => 'Select a valid value for :attribute.',
+        'url' => 'Enter a valid URL for :attribute.',
+    ],
+];
