@@ -80,7 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           branch="${{ github.head_ref }}"
-          [[ "$branch" =~ ^(feat|fix|chore|docs|refactor|test|release)/[0-9]+-[a-z0-9-]+$ ]]
+          [[ "$branch" =~ ^(feat|fix|chore|docs|refactor|test|release|ci)/[0-9]+-[a-z0-9-]+$ ]]
 
   backend-validation:
     name: Backend validation
@@ -102,7 +102,7 @@ jobs:
 
   screenshot-evidence:
     name: Runtime screenshot evidence
-    if: ${{ github.head_ref == 'test/175-runtime-screenshot-evidence' }}
+    if: ${{ github.head_ref == 'test/175-runtime-screenshot-evidence' || github.head_ref == 'ci/184-screenshot-evidence-guards' }}
     permissions:
       contents: write
     uses: ./.github/workflows/screenshot-evidence.yml
@@ -163,7 +163,7 @@ jobs:
           require_applicable_success "$CUSTOMER_CHANGED" "Customer validation" "$CUSTOMER_RESULT"
           require_applicable_success "$DRIVER_CHANGED" "Driver validation" "$DRIVER_RESULT"
 
-          if [[ "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" ]]; then
+          if [[ "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" || "${{ github.head_ref }}" == "ci/184-screenshot-evidence-guards" ]]; then
             require_success "Runtime screenshot evidence" "$SCREENSHOT_RESULT"
           elif [[ "$SCREENSHOT_RESULT" != "skipped" && "$SCREENSHOT_RESULT" != "success" ]]; then
             echo "::error::Runtime screenshot evidence had unexpected result: $SCREENSHOT_RESULT"

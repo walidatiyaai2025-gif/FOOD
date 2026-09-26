@@ -38,6 +38,9 @@ jobs:
       - name: Install image validation dependency
         run: python -m pip install --disable-pip-version-check pillow
 
+      - name: Prove screenshot evidence guard failures
+        run: python scripts/update_screenshot_manifest.py --self-test
+
       - name: Re-run evidence audit against committed PNGs
         shell: bash
         run: |
@@ -55,6 +58,8 @@ jobs:
           grep -Fq 'Approved 46-screen baseline covered: **46/46**' ScreenShots/AUDIT.md
           grep -Fq 'Driver screenshots: **16**' ScreenShots/AUDIT.md
           grep -Fq 'Locales present: **ar, en**' ScreenShots/AUDIT.md
+          grep -Fq 'Evidence metadata/geometry/PNG failures: **0**' ScreenShots/AUDIT.md
+          grep -Fq 'Unapproved duplicate SHA groups: **0**' ScreenShots/AUDIT.md
           grep -Fq 'Canonical palette verification failures: **0**' ScreenShots/AUDIT.md
           grep -Fq 'Roles/surfaces without a green/orange brand anchor: **0**' ScreenShots/AUDIT.md
           test "$(grep -c ',PASS,PASS,' ScreenShots/SCREENSHOT_MANIFEST.csv)" -ge 110
