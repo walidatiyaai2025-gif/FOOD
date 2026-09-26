@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\ManagementReportService;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 
 class B2bWorkspaceController extends Controller
 {
-    public function __construct(private readonly AdminNavigation $navigation) {}
+    public function __construct(\n        private readonly AdminNavigation $navigation,\n        private readonly ManagementReportService $reports,\n    ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View
     {
@@ -47,7 +48,7 @@ class B2bWorkspaceController extends Controller
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2b_'.$module;
         $moduleData = in_array($module, ['dashboard', 'stores', 'clients', 'products', 'orders', 'drivers', 'pricing'], true)
-            ? $this->moduleData($module, $storeIds)
+            ? $this->moduleData($module, $storeIds, $user)
             : null;
 
         return view('admin.b2b-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'moduleData'));
@@ -100,7 +101,88 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم حفظ قاعدة السعر.' : 'Price rule saved.');
     }
 
-    private function moduleData(string $module, array $storeIds): array
+    private function reportModuleData(User $user, array $storeIds): array
+    {
+        $stores = DB::table('stores')->whereIn('id', $storeIds)->orderBy('name')->get(['id', 'name']);
+
+        return [
+            'columns' => ['store', 'orders', 'revenue', 'average', 'actions'],
+            'rows' => $stores->map(function ($store) use ($user): array {
+                $storeId = (int) $store->id;
+                $data = $this->reports->run($user, 'orders', ['store_id' => $storeId, 'channel' => 'b2b']);
+
+                $actions = [[
+                    'label' => app()->getLocale() === 'ar' ? 'فتح مركز التقارير' : 'Open reports',
+                    'url' => route('admin.reports.index', ['report' => 'orders', 'store_id' => $storeId, 'channel' => 'b2b']),
+                ]];
+
+                if ($user->hasPermission('reports.export', $storeId)) {
+                    foreach (['xlsx', 'docx', 'pdf'] as $format) {
+                        $actions[] = [
+                            'label' => strtoupper($format),
+                            'url' => route('admin.reports.export', ['report' => 'orders', 'format' => $format, 'store_id' => $storeId, 'channel' => 'b2b']),
+                        ];
+                    }
+                }
+
+                return [
+                    'store' => $store->name,
+                    'orders' => (int) data_get($data, 'kpis.orders', 0),
+                    'revenue' => 'KWD '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
+                    'average' => 'KWD '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
+                    'actions' => $actions,
+                ];
+            })->all(),
+        ];
+    }
+
+    private function settingsModuleData(User $user, array $storeIds): array
+    {
+        $actions = [];
+        if ($user->hasPermission('security.view')) {
+            $actions[] = ['label' => app()->getLocale() === 'ar' ? 'الصلاحيات والمستخدمون' : 'Security & users', 'url' => route('admin.security.index')];
+        }
+        if ($user->hasPermission('translations.manage')) {
+            $actions[] = ['label' => app()->getLocale() === 'ar' ? 'إدارة الترجمات' : 'Translations', 'url' => route('admin.translations.index')];
+        }
+        if ($user->hasPermission('mobile_settings.manage') || $user->hasPermission('push_settings.manage') || $user->hasPermission('push_settings.test')) {
+            $actions[] = ['label' => app()->getLocale() === 'ar' ? 'إعدادات الموبايل والإشعارات' : 'Mobile & push settings', 'url' => route('admin.mobile-settings.index')];
+        }
+
+        return [
+            'columns' => ['store', 'setting', 'value'],
+            'rows' => DB::table('settings')
+                ->join('stores', 'stores.id', '=', 'settings.store_id')
+                ->whereIn('settings.store_id', $storeIds)
+                ->where('settings.is_secret', false)
+                ->orderBy('stores.name')
+                ->orderBy('settings.key')
+                ->limit(150)
+                ->get(['stores.name as store', 'settings.key as setting', 'settings.value'])
+                ->map(fn ($row) => [
+                    'store' => $row->store,
+                    'setting' => $row->setting,
+                    'value' => $this->displaySettingValue($row->value),
+                ])->all(),
+            'actions' => $actions,
+        ];
+    }
+
+    private function displaySettingValue(mixed $value): string
+    {
+        if ($value === null) {
+            return '-';
+        }
+
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
+        if (is_array($decoded)) {
+            return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '-';
+        }
+
+        return is_scalar($decoded) ? (string) $decoded : '-';
+    }
+
+    private function moduleData(string $module, array $storeIds, User $user): array
     {
         return match ($module) {
             'dashboard' => [
@@ -282,7 +364,7 @@ class B2bWorkspaceController extends Controller
                     ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name, 'sku' => $row->sku])
                     ->all(),
             ],
-            'products' => [
+            'reports' => $this->reportModuleData($user, $storeIds),\n            'settings' => $this->settingsModuleData($user, $storeIds),\n            'products' => [
                 'columns' => ['sku', 'name', 'store', 'price', 'available', 'status'],
                 'rows' => DB::table('store_products')
                     ->join('products', 'products.id', '=', 'store_products.product_id')
