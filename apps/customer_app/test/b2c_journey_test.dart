@@ -40,7 +40,7 @@ void main() {
     expect(api.lastStoreId, 7);
     expect(find.text('Vegetables'), findsOneWidget);
     expect(find.text('Weekend Offer'), findsOneWidget);
-    expect(find.text('Tomato Box'), findsOneWidget);
+    expect(find.text('Tomato Box'), findsWidgets);
   });
 
   testWidgets('B2C products render remote data and preserve store in detail navigation', (tester) async {
@@ -209,6 +209,71 @@ void main() {
     expect(find.byKey(const ValueKey('customer-login-email')), findsOneWidget);
     expect(find.byKey(const ValueKey('customer-login-submit')), findsOneWidget);
   });
+
+  testWidgets('B2C premium home exposes functional search category and product grid', (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: '/home?store=7',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: _FakeAccountApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2c-home-search')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2c-home-category-3')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2c-home-product-42')), findsOneWidget);
+    expect(find.text('Fresh every day'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('b2c-home-category-3')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tomato Box'), findsWidgets);
+    expect(find.textContaining('category=3'), findsOneWidget);
+  });
+
+  testWidgets('B2C notifications persist per-user read action', (tester) async {
+    final api = _FakeAccountApi();
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: const CustomerSession.authenticated(
+          CustomerChannel.b2c,
+          accessToken: 'token',
+        ),
+        initialRoute: '/notifications',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2c-notifications-data')), findsOneWidget);
+    expect(api.notificationRead, isFalse);
+
+    await tester.tap(find.text('تحديث الطلب'));
+    await tester.pumpAndSettle();
+
+    expect(api.notificationRead, isTrue);
+  });
+
+  testWidgets('B2C orders and favorites use authenticated account data', (tester) async {
+    final api = _FakeAccountApi();
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: const CustomerSession.authenticated(
+          CustomerChannel.b2c,
+          accessToken: 'token',
+        ),
+        initialRoute: '/orders',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2c-orders-data')), findsOneWidget);
+    expect(find.text('FOODEX-101'), findsOneWidget);
+  });
 }
 
 class _FakeCatalogApi implements B2cCatalogApi {
@@ -229,7 +294,17 @@ class _FakeCatalogApi implements B2cCatalogApi {
   @override
   Future<List<B2cOffer>> offers(int storeId) async {
     _remember(storeId);
-    return const [B2cOffer(id: 9, name: 'Weekend Offer', type: 'percentage', value: 10)];
+    return const [
+      B2cOffer(id: 9, name: 'Weekend Offer', type: 'percentage', value: 10),
+    ];
+  }
+
+  @override
+  Future<List<B2cBanner>> banners(int storeId) async {
+    _remember(storeId);
+    return const [
+      B2cBanner(id: 11, title: 'Fresh every day', targetUrl: '/offers'),
+    ];
   }
 
   @override
@@ -237,6 +312,8 @@ class _FakeCatalogApi implements B2cCatalogApi {
     int storeId, {
     String? query,
     int? categoryId,
+    String? sort,
+    String? direction,
   }) async {
     _remember(storeId);
     return const [
@@ -266,6 +343,8 @@ class _FakeAccountApi implements B2cAccountApi {
   double quantity = 2;
   bool removed = false;
   int cartReads = 0;
+  bool notificationRead = false;
+  int? removedFavoriteId;
 
   @override
   Future<Object?> cart({int? storeId}) async {
@@ -309,11 +388,25 @@ class _FakeAccountApi implements B2cAccountApi {
   @override
   Future<Object?> order(int orderId) async => {
         'id': orderId,
+        'order_number': 'FOODEX-$orderId',
         'status': 'out_for_delivery',
         'total': '18.500',
         'currency': 'KWD',
         'items': [
           {'product_name': 'Tomato Box', 'quantity': 2, 'line_total': '6.500'},
+        ],
+      };
+
+  @override
+  Future<Object?> orders() async => {
+        'data': [
+          {
+            'id': 101,
+            'order_number': 'FOODEX-101',
+            'status': 'out_for_delivery',
+            'grand_total': 18.5,
+            'currency': 'KWD',
+          },
         ],
       };
 
@@ -324,20 +417,71 @@ class _FakeAccountApi implements B2cAccountApi {
       };
 
   @override
+  Future<Object?> updateProfile(Map<String, dynamic> values) async => values;
+
+  @override
   Future<Object?> addresses() async => {
         'data': [
-          {'label': 'Home', 'area': 'Bayan'},
+          {
+            'id': 8,
+            'label': 'Home',
+            'line1': 'Block 1',
+            'city': 'Kuwait City',
+            'area': 'Bayan',
+            'country_code': 'KW',
+            'is_default': true,
+          },
         ],
       };
 
   @override
+  Future<Object?> createAddress(Map<String, dynamic> values) async => {
+        'id': 9,
+        ...values,
+      };
+
+  @override
+  Future<Object?> updateAddress(
+    int addressId,
+    Map<String, dynamic> values,
+  ) async =>
+      {'id': addressId, ...values};
+
+  @override
+  Future<void> removeAddress(int addressId) async {}
+
+  @override
   Future<Object?> favorites() async => {
         'data': [
-          {'id': 42, 'name': 'Tomato Box'},
+          {'id': 42, 'name': 'Tomato Box', 'sku': 'TOM-42'},
         ],
       };
-}
 
+  @override
+  Future<void> addFavorite(int productId) async {}
+
+  @override
+  Future<void> removeFavorite(int productId) async {
+    removedFavoriteId = productId;
+  }
+
+  @override
+  Future<Object?> notifications({String locale = 'ar'}) async => {
+        'data': [
+          {
+            'id': 4,
+            'title': locale == 'en' ? 'Order update' : 'تحديث الطلب',
+            'body': locale == 'en' ? 'On the way' : 'في الطريق',
+            'read_at': notificationRead ? '2026-09-26T12:00:00Z' : null,
+          },
+        ],
+      };
+
+  @override
+  Future<void> markNotificationRead(int notificationId) async {
+    notificationRead = true;
+  }
+}
 
 class _ErrorAccountApi implements B2cAccountApi {
   const _ErrorAccountApi(this.error);
@@ -359,11 +503,42 @@ class _ErrorAccountApi implements B2cAccountApi {
   Future<Object?> order(int orderId) async => _fail();
 
   @override
+  Future<Object?> orders() async => _fail();
+
+  @override
   Future<Object?> profile() async => _fail();
+
+  @override
+  Future<Object?> updateProfile(Map<String, dynamic> values) async => _fail();
 
   @override
   Future<Object?> addresses() async => _fail();
 
   @override
+  Future<Object?> createAddress(Map<String, dynamic> values) async => _fail();
+
+  @override
+  Future<Object?> updateAddress(
+    int addressId,
+    Map<String, dynamic> values,
+  ) async =>
+      _fail();
+
+  @override
+  Future<void> removeAddress(int addressId) async => _fail();
+
+  @override
   Future<Object?> favorites() async => _fail();
+
+  @override
+  Future<void> addFavorite(int productId) async => _fail();
+
+  @override
+  Future<void> removeFavorite(int productId) async => _fail();
+
+  @override
+  Future<Object?> notifications({String locale = 'ar'}) async => _fail();
+
+  @override
+  Future<void> markNotificationRead(int notificationId) async => _fail();
 }

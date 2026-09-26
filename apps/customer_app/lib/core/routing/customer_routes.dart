@@ -8,6 +8,12 @@ abstract final class CustomerRoutePaths {
   static const offers = '/offers';
   static const products = '/products';
   static const productDetails = '/products/:id';
+  static const categories = '/categories';
+  static const favorites = '/favorites';
+  static const orders = '/orders';
+  static const notifications = '/notifications';
+  static const addresses = '/profile/addresses';
+  static const settings = '/profile/settings';
   static const cart = '/cart';
   static const checkoutAuth = '/auth/checkout';
   static const checkoutAddressPayment = '/checkout/address-payment';
@@ -106,6 +112,41 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     pattern: CustomerRoutePaths.productDetails,
     label: 'B2C product details',
     channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.categories,
+    label: 'B2C categories',
+    channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.favorites,
+    label: 'B2C favorites',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.orders,
+    label: 'B2C orders',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.notifications,
+    label: 'B2C notifications',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.addresses,
+    label: 'B2C addresses',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.settings,
+    label: 'B2C settings',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.cart,

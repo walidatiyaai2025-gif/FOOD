@@ -33,12 +33,13 @@ class GuestCatalogController extends Controller
 
         return response()->json([
             'data' => collect($categories->items())
-                ->map(static fn (Category $category): array => [
+                ->map(fn (Category $category): array => [
                     'id' => (int) $category->id,
                     'parent_id' => $category->parent_id === null ? null : (int) $category->parent_id,
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'is_active' => (bool) $category->is_active,
+                    'image_url' => $this->categoryImageUrl((int) $category->id, $store),
                 ])
                 ->values()
                 ->all(),
@@ -145,12 +146,15 @@ class GuestCatalogController extends Controller
             ->orderByDesc('is_primary')
             ->orderBy('sort_order')
             ->pluck('path')
+            ->map(fn ($path) => $this->assetUrl($path))
+            ->filter()
+            ->values()
             ->all();
 
         return response()->json([
             ...$this->productSummary($item, $price),
             'description' => $item->description,
-            'images' => array_values($images),
+            'images' => $images,
         ]);
     }
 
@@ -195,6 +199,37 @@ class GuestCatalogController extends Controller
         ]);
     }
 
+    public function banners(Request $request, int $store): JsonResponse
+    {
+        $this->activeB2cStore($store);
+        $perPage = min(max($request->integer('per_page', 10), 1), 50);
+
+        $banners = DB::table('banners')
+            ->where('store_id', $store)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->paginate($perPage);
+
+        return response()->json([
+            'data' => collect($banners->items())
+                ->map(fn ($banner): array => [
+                    'id' => (int) $banner->id,
+                    'title' => (string) $banner->title,
+                    'image_url' => $this->assetUrl($banner->image_path),
+                    'target_url' => $banner->target_url,
+                    'sort_order' => (int) $banner->sort_order,
+                ])
+                ->values()
+                ->all(),
+            'meta' => [
+                'current_page' => $banners->currentPage(),
+                'per_page' => $banners->perPage(),
+                'total' => $banners->total(),
+            ],
+        ]);
+    }
+
     private function activeB2cStore(int $storeId): Store
     {
         return Store::query()
@@ -208,6 +243,12 @@ class GuestCatalogController extends Controller
 
     private function productSummary(Product $product, mixed $price): array
     {
+        $primaryImage = DB::table('product_images')
+            ->where('product_id', $product->id)
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->value('path');
+
         return [
             'id' => (int) $product->id,
             'sku' => $product->sku,
@@ -217,6 +258,37 @@ class GuestCatalogController extends Controller
             'is_active' => (bool) $product->is_active,
             'price' => $price === null ? null : (float) $price,
             'currency' => 'KWD',
+            'image_url' => $this->assetUrl($primaryImage),
         ];
+    }
+
+    private function categoryImageUrl(int $categoryId, int $storeId): ?string
+    {
+        $path = DB::table('product_images')
+            ->join('products', 'products.id', '=', 'product_images.product_id')
+            ->join('store_products', 'store_products.product_id', '=', 'products.id')
+            ->where('products.category_id', $categoryId)
+            ->where('products.is_active', true)
+            ->where('store_products.store_id', $storeId)
+            ->where('store_products.is_active', true)
+            ->orderByDesc('product_images.is_primary')
+            ->orderBy('product_images.sort_order')
+            ->value('product_images.path');
+
+        return $this->assetUrl($path);
+    }
+
+    private function assetUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $value = trim($path);
+        if (str_starts_with($value, 'https://') || str_starts_with($value, 'http://')) {
+            return $value;
+        }
+
+        return url('/'.ltrim($value, '/'));
     }
 }

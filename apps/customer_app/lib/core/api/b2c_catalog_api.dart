@@ -16,13 +16,15 @@ class B2cStore {
 }
 
 class B2cCategory {
-  const B2cCategory({required this.id, required this.name});
+  const B2cCategory({required this.id, required this.name, this.imageUrl});
   final int id;
   final String name;
+  final String? imageUrl;
 
   factory B2cCategory.fromJson(Map<String, dynamic> json) => B2cCategory(
         id: (json['id'] as num).toInt(),
         name: json['name'] as String? ?? '',
+        imageUrl: json['image_url'] as String?,
       );
 }
 
@@ -34,13 +36,20 @@ class B2cProduct {
     this.price,
     this.currency = 'KWD',
     this.description,
+    this.categoryId,
+    this.imageUrl,
+    this.images = const [],
   });
+
   final int id;
   final String name;
   final String sku;
   final double? price;
   final String currency;
   final String? description;
+  final int? categoryId;
+  final String? imageUrl;
+  final List<String> images;
 
   factory B2cProduct.fromJson(Map<String, dynamic> json) => B2cProduct(
         id: (json['id'] as num).toInt(),
@@ -49,11 +58,23 @@ class B2cProduct {
         price: (json['price'] as num?)?.toDouble(),
         currency: json['currency'] as String? ?? 'KWD',
         description: json['description'] as String?,
+        categoryId: (json['category_id'] as num?)?.toInt(),
+        imageUrl: json['image_url'] as String?,
+        images: (json['images'] as List?)
+                ?.whereType<String>()
+                .toList(growable: false) ??
+            const [],
       );
 }
 
 class B2cOffer {
-  const B2cOffer({required this.id, required this.name, required this.type, this.value});
+  const B2cOffer({
+    required this.id,
+    required this.name,
+    required this.type,
+    this.value,
+  });
+
   final int id;
   final String name;
   final String type;
@@ -67,11 +88,39 @@ class B2cOffer {
       );
 }
 
+class B2cBanner {
+  const B2cBanner({
+    required this.id,
+    required this.title,
+    this.imageUrl,
+    this.targetUrl,
+  });
+
+  final int id;
+  final String title;
+  final String? imageUrl;
+  final String? targetUrl;
+
+  factory B2cBanner.fromJson(Map<String, dynamic> json) => B2cBanner(
+        id: (json['id'] as num).toInt(),
+        title: json['title'] as String? ?? '',
+        imageUrl: json['image_url'] as String?,
+        targetUrl: json['target_url'] as String?,
+      );
+}
+
 abstract interface class B2cCatalogApi {
   Future<List<B2cStore>> stores();
   Future<List<B2cCategory>> categories(int storeId);
-  Future<List<B2cProduct>> products(int storeId, {String? query, int? categoryId});
+  Future<List<B2cProduct>> products(
+    int storeId, {
+    String? query,
+    int? categoryId,
+    String? sort,
+    String? direction,
+  });
   Future<List<B2cOffer>> offers(int storeId);
+  Future<List<B2cBanner>> banners(int storeId);
   Future<B2cProduct> product(int productId, {required int storeId});
 }
 
@@ -95,10 +144,15 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
     int storeId, {
     String? query,
     int? categoryId,
+    String? sort,
+    String? direction,
   }) async {
     final params = <String, String>{
       if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
       if (categoryId != null) 'category': '$categoryId',
+      if (sort != null && sort.trim().isNotEmpty) 'sort': sort.trim(),
+      if (direction != null && direction.trim().isNotEmpty)
+        'direction': direction.trim(),
     };
     return _collection(
       '/api/v1/stores/$storeId/products',
@@ -112,8 +166,15 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
       _collection('/api/v1/stores/$storeId/offers', B2cOffer.fromJson);
 
   @override
+  Future<List<B2cBanner>> banners(int storeId) async =>
+      _collection('/api/v1/stores/$storeId/banners', B2cBanner.fromJson);
+
+  @override
   Future<B2cProduct> product(int productId, {required int storeId}) async {
-    final body = await _get('/api/v1/products/$productId', query: {'store': '$storeId'});
+    final body = await _get(
+      '/api/v1/products/$productId',
+      query: {'store': '$storeId'},
+    );
     if (body is! Map<String, dynamic>) {
       throw const B2cCatalogException('invalid_product_response');
     }
@@ -141,7 +202,8 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
   }) async {
     final base = Uri.parse('$baseUrl$path');
     final uri = query.isEmpty ? base : base.replace(queryParameters: query);
-    final response = await _client.get(uri, headers: const {'Accept': 'application/json'});
+    final response =
+        await _client.get(uri, headers: const {'Accept': 'application/json'});
 
     Object? body;
     if (response.body.isNotEmpty) {
