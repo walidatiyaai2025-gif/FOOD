@@ -11,8 +11,8 @@ void main() {
     expect(theme.colorScheme.secondary, FoodexBrand.orange);
     expect(theme.scaffoldBackgroundColor, FoodexBrand.background);
     expect(theme.navigationBarTheme.indicatorColor, FoodexBrand.greenSoft);
-    expect(theme.textTheme.bodyMedium?.fontFamily, startsWith('Tajawal'));
-    expect(theme.textTheme.titleLarge?.fontFamily, startsWith('Tajawal'));
+    expect(theme.textTheme.bodyMedium?.fontFamily, startsWith('Alexandria'));
+    expect(theme.textTheme.titleLarge?.fontFamily, startsWith('Alexandria'));
     expect(FoodexBrand.statusColor('delivered'), FoodexBrand.green);
     expect(FoodexBrand.statusColor('out_for_delivery'), FoodexBrand.blue);
     expect(FoodexBrand.statusColor('processing'), FoodexBrand.orange);
