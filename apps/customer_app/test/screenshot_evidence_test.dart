@@ -86,9 +86,9 @@ void main() {
         final image = await boundary.toImage(pixelRatio: 1);
         final data = await image.toByteData(format: ui.ImageByteFormat.png);
         final file = File('../../ScreenShots/$path');
-        await file.parent.create(recursive: true);
-        await file.writeAsBytes(data!.buffer.asUint8List(), flush: true);
-        expect(await file.length(), greaterThan(1000));
+        file.parent.createSync(recursive: true);
+        file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
+        expect(file.lengthSync(), greaterThan(1000));
       });
     }
   }
