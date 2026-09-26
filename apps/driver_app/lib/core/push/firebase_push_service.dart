@@ -48,8 +48,8 @@ class DriverPushDeviceRegistry {
 
   Future<int?> register({required String accessToken, required String firebaseToken}) async {
     final response = await _client.post(
-      Uri.parse(baseUrl + '/api/v1/push/devices'),
-      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken},
+      Uri.parse('$baseUrl/api/v1/push/devices'),
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
       body: jsonEncode({
         'app': 'driver',
         'platform': Platform.isIOS ? 'ios' : 'android',
@@ -66,8 +66,8 @@ class DriverPushDeviceRegistry {
 
   Future<void> revoke({required String accessToken, required int deviceId}) async {
     await _client.delete(
-      Uri.parse(baseUrl + '/api/v1/push/devices/' + deviceId.toString()),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer ' + accessToken},
+      Uri.parse('$baseUrl/api/v1/push/devices/$deviceId'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $accessToken'},
     );
   }
 }
