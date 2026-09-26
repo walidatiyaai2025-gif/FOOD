@@ -80,11 +80,19 @@ async function captureLocale(browser, locale) {
     await snap(page, `02_Web/B2C_Admin/${name}__populated__${locale}.png`);
   }
 
+  // Capture B2B with an independent authenticated session.
+  await context.clearCookies();
+  await login(page, 'b2b', locale, email);
+
   for (const [name, route] of b2b) {
     await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
     if (page.url().includes('/login')) throw new Error(`Unexpected auth redirect for ${route}`);
     await snap(page, `02_Web/B2B_SuperAdmin/${name}__populated__${locale}.png`);
   }
+
+  // Return to an independently authenticated B2C session for responsive evidence.
+  await context.clearCookies();
+  await login(page, 'b2c', locale, email);
 
   // Additional real responsive evidence for the primary dashboard.
   await page.setViewportSize({ width: 390, height: 844 });
