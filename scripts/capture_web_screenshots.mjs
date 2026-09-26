@@ -58,12 +58,28 @@ async function login(page, channel, locale, email) {
 }
 
 async function assertNoPageOverflow(page, label) {
-  const metrics = await page.evaluate(() => ({
-    viewport: window.innerWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
+  const metrics = await page.evaluate(() => {
+    const kpiViolations = [...document.querySelectorAll('.kpi')].flatMap((card, index) => {
+      const value = card.querySelector('.kpi-value');
+      if (!value) return [];
+      const cardRect = card.getBoundingClientRect();
+      const valueRect = value.getBoundingClientRect();
+      const tolerance = 1;
+      return valueRect.left < cardRect.left - tolerance || valueRect.right > cardRect.right + tolerance
+        ? [{ index, cardLeft: cardRect.left, cardRight: cardRect.right, valueLeft: valueRect.left, valueRight: valueRect.right }]
+        : [];
+    });
+    return {
+      viewport: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      kpiViolations,
+    };
+  });
   if (metrics.scrollWidth > metrics.viewport + 2) {
     throw new Error(`Unexpected horizontal page overflow for ${label}: ${metrics.scrollWidth}px > ${metrics.viewport}px`);
+  }
+  if (metrics.kpiViolations.length) {
+    throw new Error(`KPI content escaped its card for ${label}: ${JSON.stringify(metrics.kpiViolations)}`);
   }
 }
 
