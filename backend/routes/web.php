@@ -77,6 +77,7 @@ Route::prefix('admin')
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
         Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
+        Route::delete('/security/demo-data', [SecurityController::class, 'clearDemoData'])->name('security.demo-data.clear');
         Route::patch('/security/users/{user}/status', [SecurityController::class, 'updateUserStatus'])->name('security.users.status');
         Route::put('/security/users/{user}/roles', [SecurityController::class, 'updateUserRoles'])->name('security.users.roles');
         Route::post('/security/roles', [SecurityController::class, 'storeRole'])->name('security.roles.store');

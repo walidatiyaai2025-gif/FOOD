@@ -10,6 +10,7 @@ return [
         'users.status.manage' => 'Activate and deactivate user accounts',
         'translations.manage' => 'Manage Arabic and English UI translations',
         'system.update' => 'Install validated FOODEX system updates',
+        'demo_data.manage' => 'Create and remove isolated non-production FOODEX demo data',
         'settings.view' => 'View operational platform settings',
         'settings.manage' => 'Manage operational platform settings',
         'mobile_settings.manage' => 'Manage Customer and Driver app release settings',
