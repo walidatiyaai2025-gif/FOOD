@@ -161,6 +161,25 @@ class B2bAdminWorkspaceTest extends TestCase
             ->assertSee('Mobile & push settings');
     }
 
+    public function test_pricing_approvals_reference_route_maps_to_existing_pricing_module(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $admin = $this->user('B2B_ADMIN', 'en');
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/pricing-approvals')
+            ->assertOk()
+            ->assertSee('Pricing & Approvals');
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/pricing')
+            ->assertOk()
+            ->assertSee('Pricing & Approvals');
+
+        $finance = $this->user('FINANCE', 'en');
+        $this->actingAs($finance)->get('/admin/b2b/pricing-approvals')->assertForbidden();
+    }
+
     public function test_non_b2b_management_role_is_forbidden_and_invalid_module_is_not_found(): void
     {
         $this->seed(CoreReferenceSeeder::class);
