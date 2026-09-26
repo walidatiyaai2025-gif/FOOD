@@ -15,6 +15,7 @@ class CustomerAppRouter {
     this.session, {
     required this.actionApi,
     required this.onAuthenticated,
+    required this.onSessionExpired,
     this.b2bApi,
     required this.b2cCatalogApi,
     required this.b2cAccountApi,
@@ -26,6 +27,7 @@ class CustomerAppRouter {
   final B2cAccountApi b2cAccountApi;
   final CustomerActionApi actionApi;
   final CustomerAuthenticated onAuthenticated;
+  final VoidCallback onSessionExpired;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final requestedLocation = settings.name ?? CustomerRoutePaths.splash;
@@ -110,6 +112,7 @@ class CustomerAppRouter {
               catalogApi: b2cCatalogApi,
               accountApi: b2cAccountApi,
               onAuthenticated: onAuthenticated,
+              onSessionExpired: onSessionExpired,
             ),
     );
   }
