@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\NotificationRead;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\NotificationAudience;
 use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 final class NotificationController extends Controller
 {
@@ -32,6 +36,91 @@ final class NotificationController extends Controller
             ->withQueryString();
 
         return view('admin.notifications', compact('notifications', 'search', 'status'));
+    }
+
+    public function live(Request $request, NotificationAudience $audience): JsonResponse
+    {
+        $user = $this->dashboardUser($request);
+        $locale = in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar';
+        $afterId = max(0, (int) $request->query('after_id', 0));
+
+        $visible = $audience->apply(Notification::query(), $user);
+        $unreadCount = (clone $visible)
+            ->whereNotIn('notifications.id', NotificationRead::query()
+                ->where('user_id', $user->id)
+                ->select('notification_id'))
+            ->count();
+
+        $notifications = (clone $visible)
+            ->when($afterId > 0, fn ($query) => $query->where('notifications.id', '>', $afterId))
+            ->latest('notifications.id')
+            ->limit(20)
+            ->get();
+
+        $readIds = NotificationRead::query()
+            ->where('user_id', $user->id)
+            ->whereIn('notification_id', $notifications->pluck('id'))
+            ->pluck('notification_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        return response()->json([
+            'data' => $notifications->map(fn (Notification $notification) => [
+                'id' => $notification->id,
+                'type' => $notification->type,
+                'title' => $locale === 'en' ? $notification->title_en : $notification->title_ar,
+                'body' => $locale === 'en' ? $notification->body_en : $notification->body_ar,
+                'data' => $notification->data,
+                'read' => in_array($notification->id, $readIds, true),
+                'published_at' => optional($notification->published_at)->toAtomString(),
+            ])->values(),
+            'meta' => [
+                'unread_count' => $unreadCount,
+                'latest_id' => (int) ($notifications->max('id') ?? $afterId),
+            ],
+        ]);
+    }
+
+    public function markRead(
+        Request $request,
+        Notification $notification,
+        NotificationAudience $audience,
+    ): Response {
+        $user = $this->dashboardUser($request);
+        abort_unless($audience->apply(Notification::query(), $user)->whereKey($notification->id)->exists(), 404);
+
+        NotificationRead::query()->updateOrCreate(
+            ['notification_id' => $notification->id, 'user_id' => $user->id],
+            ['read_at' => now()],
+        );
+
+        return response()->noContent();
+    }
+
+    public function markAllRead(Request $request, NotificationAudience $audience): Response
+    {
+        $user = $this->dashboardUser($request);
+        $now = now();
+        $rows = $audience->apply(Notification::query(), $user)
+            ->pluck('notifications.id')
+            ->map(fn ($notificationId) => [
+                'notification_id' => (int) $notificationId,
+                'user_id' => $user->id,
+                'read_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])
+            ->all();
+
+        if ($rows !== []) {
+            NotificationRead::query()->upsert(
+                $rows,
+                ['notification_id', 'user_id'],
+                ['read_at', 'updated_at'],
+            );
+        }
+
+        return response()->noContent();
     }
 
     public function store(Request $request, AuditLogger $audit): RedirectResponse
@@ -91,6 +180,14 @@ final class NotificationController extends Controller
         $notification->delete();
 
         return back()->with('status', __('notifications.deleted'));
+    }
+
+    private function dashboardUser(Request $request): User
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+
+        return $actor;
     }
 
     private function authorizeManage(Request $request): User
