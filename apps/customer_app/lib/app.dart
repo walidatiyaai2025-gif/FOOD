@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -8,6 +10,7 @@ import 'core/api/customer_action_api.dart';
 import 'core/auth/customer_session.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/localization/app_translations.dart';
+import 'core/push/firebase_push_service.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
 import 'core/theme/foodex_theme.dart';
@@ -25,6 +28,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.translationOverrides = const {},
     this.translationFetcher,
     this.theme,
+    this.pushService,
   });
 
   final CustomerSession session;
@@ -37,6 +41,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final Map<String, String> translationOverrides;
   final TranslationFetcher? translationFetcher;
   final ThemeData? theme;
+  final CustomerFirebasePushService? pushService;
 
   @override
   State<FoodexCustomerApp> createState() => _FoodexCustomerAppState();
@@ -46,6 +51,10 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   late Map<String, String> _translations;
   late CustomerSession _session;
   final CustomerGuestSession _guestSession = CustomerGuestSession();
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  StreamSubscription<String>? _pushRouteSubscription;
+  StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
 
   @override
   void initState() {
@@ -53,6 +62,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _translations = Map<String, String>.from(widget.translationOverrides);
     _session = widget.session;
     _loadRemoteTranslations();
+    _configurePush();
   }
 
   @override
@@ -65,6 +75,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     }
     if (oldWidget.session != widget.session) {
       _session = widget.session;
+      _bindPushSession();
+    }
+    if (oldWidget.pushService != widget.pushService) {
+      unawaited(_pushRouteSubscription?.cancel());
+      unawaited(_pushAlertSubscription?.cancel());
+      _configurePush();
     }
   }
 
@@ -93,16 +109,55 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     }
   }
 
+  void _configurePush() {
+    final service = widget.pushService;
+    if (service == null) return;
+    _pushRouteSubscription = service.routes.listen(_navigateFromPush);
+    _pushAlertSubscription = service.alerts.listen(_showPushAlert);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final route = service.takePendingRoute();
+      if (route != null) _navigateFromPush(route);
+    });
+    _bindPushSession();
+  }
+
+  void _bindPushSession() {
+    final service = widget.pushService;
+    final token = _session.accessToken;
+    if (service != null && token != null && token.isNotEmpty) {
+      unawaited(service.bindSession(token));
+    }
+  }
+
+  void _navigateFromPush(String route) {
+    _navigatorKey.currentState?.pushNamed(route);
+  }
+
+  void _showPushAlert(FoodexPushAlert alert) {
+    final message = alert.body.isEmpty ? alert.title : alert.title + '\n' + alert.body;
+    _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(message)));
+  }
+
   void _onAuthenticated(CustomerChannel channel, String token) {
     setState(() {
       _session = CustomerSession.authenticated(channel, accessToken: token);
     });
+    _bindPushSession();
   }
 
   void _onSessionExpired() {
+    final service = widget.pushService;
+    if (service != null) unawaited(service.revokeSession());
     setState(() {
       _session = const CustomerSession.guest();
     });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_pushRouteSubscription?.cancel());
+    unawaited(_pushAlertSubscription?.cancel());
+    super.dispose();
   }
 
   @override
@@ -133,6 +188,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     );
 
     return MaterialApp(
+      navigatorKey: _navigatorKey,
+      scaffoldMessengerKey: _messengerKey,
       debugShowCheckedModeBanner: false,
       title: 'FOODEX Customer',
       theme: widget.theme ?? FoodexTheme.light(),
