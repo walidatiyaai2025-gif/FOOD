@@ -1224,7 +1224,24 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           context.tr('customer.home.all_products'),
           onTap: () => Navigator.of(context).pushNamed(_withStore(CustomerRoutePaths.products)),
         ),
-        ...home.products.take(6).map(_productCard),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final tileWidth = (constraints.maxWidth - 12) / 2;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: home.products
+                  .take(6)
+                  .map(
+                    (product) => SizedBox(
+                      width: tileWidth,
+                      child: _homeProductTile(product),
+                    ),
+                  )
+                  .toList(growable: false),
+            );
+          },
+        ),
       ],
     );
   }
@@ -1313,6 +1330,69 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       ],
     );
   }
+
+  Widget _homeProductTile(B2cProduct product) => Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: ValueKey('b2c-home-product-${product.id}'),
+          onTap: () => Navigator.of(context).pushNamed(
+            Uri(
+              path: '/products/${product.id}',
+              queryParameters: {'store': '${_storeId!}'},
+            ).toString(),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AspectRatio(
+                  aspectRatio: 1.35,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF2F4F7),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: product.imageUrl == null
+                        ? const Icon(
+                            Icons.shopping_basket_outlined,
+                            color: Color(0xFF087347),
+                            size: 38,
+                          )
+                        : Image.network(
+                            product.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.shopping_basket_outlined,
+                              color: Color(0xFF087347),
+                              size: 38,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  product.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  product.price == null
+                      ? product.sku
+                      : '${product.price!.toStringAsFixed(3)} ${product.currency}',
+                  style: const TextStyle(
+                    color: Color(0xFF087347),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 
   Widget _productCard(B2cProduct product) => Card(
         child: ListTile(
