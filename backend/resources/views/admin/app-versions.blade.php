@@ -1,28 +1,53 @@
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>App Versions · FOODEX</title>    @include('admin._brand-components')
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{{ __('app_versions.title') }} · FOODEX</title>
+    @include('admin._brand-components')
 </head>
 <body>
 <main class="foodex-admin-page">
-    <h1>App Version Policy</h1>
+    <h1>{{ __('app_versions.title') }}</h1>
     @if (session('status')) <p role="status">{{ session('status') }}</p> @endif
     @if ($errors->any()) <div role="alert"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif
     <form class="foodex-form" method="post" action="{{ route('admin.app-versions.store') }}">
         @csrf
-        <label>App <select name="app" required><option value="customer">Customer</option><option value="driver">Driver</option></select></label>
-        <label>Platform <select name="platform" required><option value="android">Android</option><option value="ios">iOS</option></select></label>
-        <label>Latest version <input name="latest_version" required></label>
-        <label>Minimum supported version <input name="minimum_supported_version" required></label>
-        <label><input type="checkbox" name="force_update" value="1"> Force update below latest</label>
-        <label>Official store URL <input name="store_url" type="url" required></label>
-        <label>Release notes <textarea name="release_notes"></textarea></label>
-        <button class="foodex-primary" type="submit">Save policy</button>
+        <label>{{ __('app_versions.app') }} <select name="app" required>
+            <option value="customer" @selected(old('app', 'customer') === 'customer')>{{ __('app_versions.customer') }}</option>
+            <option value="driver" @selected(old('app') === 'driver')>{{ __('app_versions.driver') }}</option>
+        </select></label>
+        <label>{{ __('app_versions.platform') }} <select name="platform" required>
+            <option value="android" @selected(old('platform', 'android') === 'android')>{{ __('app_versions.android') }}</option>
+            <option value="ios" @selected(old('platform') === 'ios')>{{ __('app_versions.ios') }}</option>
+        </select></label>
+        <label>{{ __('app_versions.latest_version') }} <input name="latest_version" dir="ltr" value="{{ old('latest_version') }}" required></label>
+        <label>{{ __('app_versions.minimum_supported_version') }} <input name="minimum_supported_version" dir="ltr" value="{{ old('minimum_supported_version') }}" required></label>
+        <label><input type="checkbox" name="force_update" value="1" @checked(old('force_update'))> {{ __('app_versions.force_update') }}</label>
+        <label>{{ __('app_versions.store_url') }} <input name="store_url" type="url" dir="ltr" value="{{ old('store_url') }}" required></label>
+        <label>{{ __('app_versions.release_notes') }} <textarea name="release_notes">{{ old('release_notes') }}</textarea></label>
+        <button class="foodex-primary" type="submit">{{ __('app_versions.save') }}</button>
     </form>
-    <h2>Configured policies</h2>
-    @if ($policies->isEmpty()) <p>No app version policies configured.</p>
+    <h2>{{ __('app_versions.configured') }}</h2>
+    @if ($policies->isEmpty()) <p>{{ __('app_versions.empty') }}</p>
     @else
-        <table class="foodex-table"><thead><tr><th>App</th><th>Platform</th><th>Latest</th><th>Minimum</th><th>Force</th><th>Store</th></tr></thead>
-        <tbody>@foreach ($policies as $policy)<tr><td>{{ $policy->app }}</td><td>{{ $policy->platform }}</td><td>{{ $policy->latest_version }}</td><td>{{ $policy->minimum_supported_version }}</td><td>{{ $policy->force_update ? 'Yes' : 'No' }}</td><td><a href="{{ $policy->store_url }}" rel="noopener">Official store</a></td></tr>@endforeach</tbody></table>
+        <div style="overflow-x:auto">
+            <table class="foodex-table">
+                <thead><tr>
+                    @foreach (['app', 'platform', 'latest_version', 'minimum_supported_version', 'force_update', 'store_url'] as $heading)
+                        <th scope="col">{{ __('app_versions.'.$heading) }}</th>
+                    @endforeach
+                </tr></thead>
+                <tbody>@foreach ($policies as $policy)<tr>
+                    <td>{{ __('app_versions.'.$policy->app) }}</td>
+                    <td>{{ __('app_versions.'.$policy->platform) }}</td>
+                    <td><bdi dir="ltr">{{ $policy->latest_version }}</bdi></td>
+                    <td><bdi dir="ltr">{{ $policy->minimum_supported_version }}</bdi></td>
+                    <td>{{ __('app_versions.'.($policy->force_update ? 'yes' : 'no')) }}</td>
+                    <td><a href="{{ $policy->store_url }}" rel="noopener">{{ __('app_versions.store_url') }}</a></td>
+                </tr>@endforeach</tbody>
+            </table>
+        </div>
     @endif
 </main>
 </body></html>

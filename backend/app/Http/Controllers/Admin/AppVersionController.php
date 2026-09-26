@@ -37,12 +37,27 @@ final class AppVersionController extends Controller
             'force_update' => ['nullable', 'boolean'],
             'store_url' => ['required', 'url', 'max:2048'],
             'release_notes' => ['nullable', 'string', 'max:5000'],
+        ], [
+            'required' => __('app_versions.validation.required'),
+            'in' => __('app_versions.validation.in'),
+            'string' => __('app_versions.validation.string'),
+            'max' => __('app_versions.validation.max'),
+            'boolean' => __('app_versions.validation.boolean'),
+            'url' => __('app_versions.validation.url'),
+        ], [
+            'app' => __('app_versions.app'),
+            'platform' => __('app_versions.platform'),
+            'latest_version' => __('app_versions.latest_version'),
+            'minimum_supported_version' => __('app_versions.minimum_supported_version'),
+            'force_update' => __('app_versions.force_update'),
+            'store_url' => __('app_versions.store_url'),
+            'release_notes' => __('app_versions.release_notes'),
         ]);
 
         try {
             $evaluator->assertPolicyOrder($validated['minimum_supported_version'], $validated['latest_version']);
-        } catch (InvalidArgumentException $exception) {
-            throw ValidationException::withMessages(['minimum_supported_version' => $exception->getMessage()]);
+        } catch (InvalidArgumentException) {
+            throw ValidationException::withMessages(['minimum_supported_version' => __('app_versions.invalid_policy')]);
         }
 
         $before = AppVersion::query()
@@ -66,6 +81,6 @@ final class AppVersionController extends Controller
 
         $audit->record('app_version_policy.updated', $actor, $policy, $before?->toArray(), $policy->toArray(), $request);
 
-        return redirect()->route('admin.app-versions.index')->with('status', 'App version policy saved.');
+        return redirect()->route('admin.app-versions.index')->with('status', __('app_versions.saved'));
     }
 }
