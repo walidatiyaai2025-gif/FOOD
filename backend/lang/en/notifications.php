@@ -31,13 +31,13 @@ return [
     'audience_options' => [
         'all' => 'Everyone',
         'customer' => 'Customers',
-        'dashboard' => 'Management Dashboard',
         'driver' => 'Drivers',
         'user' => 'Specific user',
     ],
     'app_options' => [
         'all' => 'All apps',
         'customer' => 'Customer App',
+        'dashboard' => 'Management Dashboard',
         'driver' => 'Driver App',
     ],
     'channel_options' => [
