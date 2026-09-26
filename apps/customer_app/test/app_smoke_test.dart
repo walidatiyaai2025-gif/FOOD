@@ -6,8 +6,7 @@ void main() {
   testWidgets('customer shell is Arabic-first and RTL', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp());
 
-    expect(find.text('FOODEX'), findsOneWidget);
-    expect(find.text('كل احتياجاتك في مكان واحد'), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-splash-logo')), findsOneWidget);
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('ar'));
