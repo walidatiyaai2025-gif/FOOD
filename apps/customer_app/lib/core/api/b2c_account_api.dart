@@ -39,17 +39,19 @@ class HttpB2cAccountApi implements B2cAccountApi {
     final uri = Uri.parse('$baseUrl/api/v1/cart').replace(
       queryParameters: storeId == null ? null : {'store': '$storeId'},
     );
-    final response = await _client.get(uri, headers: _headers);
+    final response = await _send(() => _client.get(uri, headers: _headers));
     _captureGuestToken(response);
     return _decode(response);
   }
 
   @override
   Future<Object?> updateCartItem(int itemId, double quantity) async {
-    final response = await _client.patch(
-      Uri.parse('$baseUrl/api/v1/cart/items/$itemId'),
-      headers: _headers,
-      body: jsonEncode({'quantity': quantity}),
+    final response = await _send(
+      () => _client.patch(
+        Uri.parse('$baseUrl/api/v1/cart/items/$itemId'),
+        headers: _headers,
+        body: jsonEncode({'quantity': quantity}),
+      ),
     );
     _captureGuestToken(response);
     return _decode(response);
@@ -57,9 +59,11 @@ class HttpB2cAccountApi implements B2cAccountApi {
 
   @override
   Future<void> removeCartItem(int itemId) async {
-    final response = await _client.delete(
-      Uri.parse('$baseUrl/api/v1/cart/items/$itemId'),
-      headers: _headers,
+    final response = await _send(
+      () => _client.delete(
+        Uri.parse('$baseUrl/api/v1/cart/items/$itemId'),
+        headers: _headers,
+      ),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       _decode(response);
@@ -91,8 +95,20 @@ class HttpB2cAccountApi implements B2cAccountApi {
   }
 
   Future<Object?> _get(String path) async {
-    final response = await _client.get(Uri.parse('$baseUrl$path'), headers: _headers);
+    final response = await _send(
+      () => _client.get(Uri.parse('$baseUrl$path'), headers: _headers),
+    );
     return _decode(response);
+  }
+
+  Future<http.Response> _send(
+    Future<http.Response> Function() operation,
+  ) async {
+    try {
+      return await operation();
+    } on http.ClientException {
+      throw const B2cAccountException('network_unavailable');
+    }
   }
 
   void _captureGuestToken(http.Response response) {
@@ -116,6 +132,12 @@ class HttpB2cAccountApi implements B2cAccountApi {
       } catch (_) {
         body = null;
       }
+    }
+    if (response.statusCode == 401) {
+      throw const B2cAccountException('session_expired');
+    }
+    if (response.statusCode == 403) {
+      throw const B2cAccountException('forbidden');
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw B2cAccountException('http_${response.statusCode}');
