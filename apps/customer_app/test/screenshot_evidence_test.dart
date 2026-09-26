@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
@@ -10,6 +11,7 @@ import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
+import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 
 const _b2b = CustomerSession.authenticated(
   CustomerChannel.b2b,
@@ -22,6 +24,7 @@ const _b2c = CustomerSession.authenticated(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(_loadEvidenceFont);
 
   final cases = <_CaptureCase>[
     const _CaptureCase('01_Mobile/B2B_Customer/01_شاشة_الدخول__default__ar.png', '/b2b/login'),
@@ -68,6 +71,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: FoodexCustomerApp(
+              theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
               key: ValueKey('${item.route}-$localeCode'),
               session: item.session ?? const CustomerSession.guest(),
               initialRoute: item.route,
@@ -96,6 +100,55 @@ void main() {
       });
     }
   }
+}
+
+
+const _evidenceFontFamily = 'FoodexEvidence';
+
+Future<void> _loadEvidenceFont() async {
+  const candidates = <String>[
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf',
+    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+    'C:/Windows/Fonts/arial.ttf',
+  ];
+
+  File? fontFile;
+  for (final path in candidates) {
+    final candidate = File(path);
+    if (candidate.existsSync()) {
+      fontFile = candidate;
+      break;
+    }
+  }
+
+  if (fontFile == null) {
+    throw StateError(
+      'No Arabic-capable evidence font found. Install DejaVu Sans, Noto Sans Arabic, or Arial before screenshot capture.',
+    );
+  }
+
+  final bytes = await fontFile.readAsBytes();
+  final loader = FontLoader(_evidenceFontFamily)
+    ..addFont(Future<ByteData>.value(ByteData.sublistView(bytes)));
+  await loader.load();
+
+  final flutterRoot = Platform.environment['FLUTTER_ROOT'];
+  if (flutterRoot == null || flutterRoot.isEmpty) {
+    throw StateError('FLUTTER_ROOT is required for readable Material Icons evidence.');
+  }
+
+  final materialIcons = File(
+    '$flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+  );
+  if (!materialIcons.existsSync()) {
+    throw StateError('Material Icons font not found at ${materialIcons.path}.');
+  }
+
+  final iconBytes = await materialIcons.readAsBytes();
+  final iconLoader = FontLoader('MaterialIcons')
+    ..addFont(Future<ByteData>.value(ByteData.sublistView(iconBytes)));
+  await iconLoader.load();
 }
 
 class _CaptureCase {
