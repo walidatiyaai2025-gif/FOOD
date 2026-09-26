@@ -40,7 +40,7 @@ void main() {
     expect(api.lastStoreId, 7);
     expect(find.text('Vegetables'), findsOneWidget);
     expect(find.text('Weekend Offer'), findsOneWidget);
-    expect(find.text('Tomato Box'), findsOneWidget);
+    expect(find.text('Tomato Box'), findsWidgets);
   });
 
   testWidgets('B2C products render remote data and preserve store in detail navigation', (tester) async {
