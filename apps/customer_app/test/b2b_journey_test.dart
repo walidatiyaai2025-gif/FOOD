@@ -45,6 +45,36 @@ void main() {
     expect(find.text('دخول عميل الأعمال'), findsOneWidget);
   });
 
+  testWidgets('B2B top products use ranked endpoint and render authoritative data', (tester) async {
+    final api = _FakeB2bApi({
+      'data': [
+        {
+          'rank': 1,
+          'product_id': 42,
+          'sku': 'TOP-1',
+          'name': 'Top Product',
+          'quantity': 12,
+          'total': 144.5,
+          'currency': 'KWD',
+        },
+      ],
+      'period': {'from': '2026-09-01', 'to': '2026-09-30'},
+    });
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/products/top?from=2026-09-01&to=2026-09-30',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/products/top?from=2026-09-01&to=2026-09-30');
+    expect(find.byKey(const ValueKey('b2b-top-products-data')), findsOneWidget);
+    expect(find.textContaining('Top Product'), findsOneWidget);
+    expect(find.textContaining('144.5 KWD'), findsOneWidget);
+  });
+
   testWidgets('B2B remote journey renders loading and empty states', (tester) async {
     final api = _FakeB2bApi(const {'data': []});
     await tester.pumpWidget(FoodexCustomerApp(session: b2b, initialRoute: '/b2b/invoices', b2bApi: api));

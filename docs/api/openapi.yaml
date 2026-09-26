@@ -679,6 +679,37 @@ paths:
         "422":
           description: Invalid date range
 
+  /b2b/products/top:
+    get:
+      tags: [B2B]
+      summary: Get ranked products for the approved B2B account
+      operationId: getB2bTopProducts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+      responses:
+        "200":
+          description: Deterministically ranked B2B products for the selected period
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/B2bTopProductCollection"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          description: Invalid date range or limit
+
   /b2b/products:
     get:
       tags: [B2B]
@@ -1628,6 +1659,50 @@ components:
               multipleOf: 0.001
             price_tier:
               type: [string, "null"]
+
+    B2bTopProduct:
+      type: object
+      required: [rank, product_id, sku, name, quantity, total, currency]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        product_id:
+          type: integer
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: number
+          minimum: 0
+          multipleOf: 0.001
+        total:
+          type: number
+          minimum: 0
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [KWD]
+
+    B2bTopProductCollection:
+      type: object
+      required: [data, period]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/B2bTopProduct"
+        period:
+          type: object
+          required: [from, to]
+          properties:
+            from:
+              type: [string, "null"]
+              format: date
+            to:
+              type: [string, "null"]
+              format: date
 
     B2bDashboard:
       type: object
