@@ -39,8 +39,20 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Android debug build
-        run: flutter build apk --debug
+      - name: Android release-mode validation build
+        run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex-validation.invalid
+
+      - name: Package Android validation evidence
+        working-directory: .
+        run: python3 scripts/package-mobile-artifact.py --app customer --platform android --input apps/customer_app/build/app/outputs/flutter-apk/app-release.apk --build-number "$GITHUB_RUN_NUMBER" --commit "$GITHUB_SHA" --output artifacts
+
+      - name: Upload Android validation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-customer-android-release-validation
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
 
   ios-validate:
     name: Customer iOS no-codesign validation
@@ -65,5 +77,20 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
-      - name: iOS debug build without codesign
-        run: flutter build ios --debug --no-codesign
+      - name: iOS release-mode validation without codesign
+        run: flutter build ios --release --no-codesign --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex-validation.invalid
+
+      - name: Archive unsigned iOS app
+        run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app build/ios/iphoneos/Runner.app.zip
+
+      - name: Package iOS validation evidence
+        working-directory: .
+        run: python3 scripts/package-mobile-artifact.py --app customer --platform ios --input apps/customer_app/build/ios/iphoneos/Runner.app.zip --build-number "$GITHUB_RUN_NUMBER" --commit "$GITHUB_SHA" --output artifacts
+
+      - name: Upload unsigned iOS validation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-customer-ios-release-validation
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
