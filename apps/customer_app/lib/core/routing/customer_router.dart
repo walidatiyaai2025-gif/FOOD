@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api/b2b_api.dart';
 import '../api/b2c_catalog_api.dart';
+import '../api/b2c_account_api.dart';
 import '../api/customer_action_api.dart';
 import '../auth/customer_session.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
@@ -16,11 +17,13 @@ class CustomerAppRouter {
     required this.onAuthenticated,
     this.b2bApi,
     required this.b2cCatalogApi,
+    required this.b2cAccountApi,
   });
 
   final CustomerSession session;
   final B2bApi? b2bApi;
   final B2cCatalogApi b2cCatalogApi;
+  final B2cAccountApi b2cAccountApi;
   final CustomerActionApi actionApi;
   final CustomerAuthenticated onAuthenticated;
 
@@ -105,6 +108,7 @@ class CustomerAppRouter {
               location: requestedLocation,
               actionApi: actionApi,
               catalogApi: b2cCatalogApi,
+              accountApi: b2cAccountApi,
               onAuthenticated: onAuthenticated,
             ),
     );
