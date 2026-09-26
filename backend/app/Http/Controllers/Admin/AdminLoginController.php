@@ -4,20 +4,24 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditLogger;
+use App\Services\CredentialAuthenticator;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AdminLoginController extends Controller
 {
-    public function __construct(private readonly AdminNavigation $navigation) {}
+    public function __construct(
+        private readonly AdminNavigation $navigation,
+        private readonly CredentialAuthenticator $credentials,
+        private readonly AuditLogger $audit,
+    ) {}
 
     public function show(Request $request): View|RedirectResponse
     {
@@ -55,15 +59,12 @@ class AdminLoginController extends Controller
             'locale' => ['nullable', 'in:ar,en'],
         ]);
 
-        $user = User::query()
-            ->whereRaw('LOWER(email) = ?', [Str::lower($credentials['email'])])
-            ->first();
+        $user = $this->credentials->authenticate($credentials['email'], $credentials['password']);
 
-        if (! $user || ! $user->is_active || ! Hash::check($credentials['password'], $user->password)) {
+        if (! $user) {
             Log::notice('Management login denied', [
                 'channel' => $channel,
-                'user_id' => $user?->getKey(),
-                'reason' => ! $user ? 'invalid_credentials' : (! $user->is_active ? 'inactive' : 'invalid_credentials'),
+                'reason' => 'invalid_or_inactive_credentials',
             ]);
 
             throw ValidationException::withMessages([
@@ -91,6 +92,15 @@ class AdminLoginController extends Controller
         $userLocale = in_array($user->locale, ['ar', 'en'], true) ? $user->locale : $locale;
         $request->session()->put('admin_login_locale', $userLocale);
 
+        $this->audit->record(
+            'management.login.succeeded',
+            $user,
+            $user,
+            null,
+            ['requested_channel' => $channel, 'granted_channel' => $target],
+            $request,
+        );
+
         Log::info('Management login succeeded', [
             'channel_requested' => $channel,
             'channel_granted' => $target,
@@ -102,13 +112,17 @@ class AdminLoginController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
-        $userId = $request->user()?->getKey();
+        $user = $request->user();
+
+        if ($user instanceof User) {
+            $this->audit->record('management.logout', $user, $user, null, null, $request);
+        }
 
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        Log::info('Management logout', ['user_id' => $userId]);
+        Log::info('Management logout', ['user_id' => $user?->getKey()]);
 
         return redirect()->route('admin.b2c.login');
     }
