@@ -7,11 +7,13 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\DemoDataManager;
 use App\Services\RbacManager;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -19,7 +21,7 @@ use Illuminate\Validation\ValidationException;
 
 final class SecurityController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, DemoDataManager $demoData): View
     {
         Gate::authorize('security.view');
         $this->useActorLocale($request);
@@ -61,7 +63,38 @@ final class SecurityController extends Controller
             'permissionGroups' => $permissions->groupBy(static fn (Permission $permission): string => Str::before($permission->code, '.')),
             'search' => $search,
             'statusFilter' => $status,
+            'demoSummary' => $demoData->summary(),
         ]);
+    }
+
+    public function clearDemoData(Request $request, DemoDataManager $demoData): RedirectResponse
+    {
+        Gate::authorize('demo_data.manage');
+        abort_if(App::environment('production'), 403);
+
+        $request->validate([
+            'confirmation' => ['required', 'in:DELETE DEMO DATA'],
+        ]);
+
+        $actor = $this->actor($request);
+        $before = $demoData->summary();
+
+        DB::table('audit_logs')->insert([
+            'user_id' => $actor->id,
+            'event' => 'demo_data.cleared',
+            'auditable_type' => 'demo_data',
+            'auditable_id' => null,
+            'before' => json_encode($before, JSON_THROW_ON_ERROR),
+            'after' => json_encode(array_fill_keys(array_keys($before), 0), JSON_THROW_ON_ERROR),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $demoData->clear();
+
+        return back()->with('status', __('admin.security.demo_data.cleared'));
     }
 
     public function updateUserStatus(Request $request, User $user, RbacManager $rbac): RedirectResponse
