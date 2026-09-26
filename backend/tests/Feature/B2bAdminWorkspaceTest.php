@@ -180,6 +180,25 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($finance)->get('/admin/b2b/pricing-approvals')->assertForbidden();
     }
 
+    public function test_settings_permissions_reference_route_maps_to_existing_settings_module(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $admin = $this->user('B2B_ADMIN', 'en');
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/settings-permissions')
+            ->assertOk()
+            ->assertSee('Settings & Permissions');
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/settings')
+            ->assertOk()
+            ->assertSee('Settings & Permissions');
+
+        $finance = $this->user('FINANCE', 'en');
+        $this->actingAs($finance)->get('/admin/b2b/settings-permissions')->assertForbidden();
+    }
+
     public function test_non_b2b_management_role_is_forbidden_and_invalid_module_is_not_found(): void
     {
         $this->seed(CoreReferenceSeeder::class);
