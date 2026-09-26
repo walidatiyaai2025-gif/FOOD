@@ -98,13 +98,13 @@ class CustomerAppRouter {
               location: requestedLocation,
               api: b2bApi,
               actionApi: actionApi,
-              catalogApi: b2cCatalogApi,
               onAuthenticated: onAuthenticated,
             )
           : B2cJourneyScreen(
               definition: definition,
               location: requestedLocation,
               actionApi: actionApi,
+              catalogApi: b2cCatalogApi,
               onAuthenticated: onAuthenticated,
             ),
     );
