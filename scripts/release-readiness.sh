@@ -9,6 +9,8 @@ test -f backend/docs/APP_VERSION_POLICY.md
 test -f docs/architecture/SECURITY_BASELINE.md
 test -f docs/release/RELEASE_CHECKLIST.md
 test -f docs/release/RELEASE_NOTES.md
+test -f docs/release/PRODUCTION_CONFIGURATION.md
+test -f backend/.env.production.example
 
 test -f backend/app/Http/Controllers/Api/V1/HealthController.php
 grep -q "Route::get('/health'" backend/routes/api.php
@@ -29,6 +31,14 @@ test "$driver_version" = "$release_version+1"
 grep -Fq "# FOODEX $release_version Release Notes" docs/release/RELEASE_NOTES.md
 grep -Fq "## $release_version - Release Candidate" CHANGELOG.md
 grep -Fq "VERSION and release notes identify the exact release being promoted. Evidence: #178" docs/release/RELEASE_CHECKLIST.md
+
+production_origin="https://foodex.50sols.com"
+grep -Fq "APP_URL=$production_origin" backend/.env.production.example
+grep -Fq "DB_DATABASE=solscool_foodex" backend/.env.production.example
+grep -Fq "DB_USERNAME=solscool_foodex" backend/.env.production.example
+grep -Fq "defaultValue: '$production_origin'" apps/customer_app/lib/core/config/foodex_environment.dart
+grep -Fq "defaultValue: '$production_origin'" apps/driver_app/lib/core/config/foodex_environment.dart
+! grep -R -Fq "foodex-validation.invalid" .github/workflows/customer-app-ci.yml .github/workflows/driver-app-ci.yml
 
 echo "Release identity $release_version is synchronized across repository and mobile artifacts."
 echo 'Release readiness evidence is structurally complete.'

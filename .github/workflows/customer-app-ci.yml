@@ -42,7 +42,7 @@ jobs:
           flutter test "${tests[@]}"
 
       - name: Android release-mode validation build
-        run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex-validation.invalid
+        run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com
 
       - name: Verify Android release network permission and native brand
         shell: bash
@@ -95,7 +95,7 @@ jobs:
         run: flutter pub get
 
       - name: iOS release-mode validation without codesign
-        run: flutter build ios --release --no-codesign --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex-validation.invalid
+        run: flutter build ios --release --no-codesign --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com
 
       - name: Verify iOS native brand
         shell: bash

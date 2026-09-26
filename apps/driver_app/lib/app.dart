@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/api/http_driver_api.dart';
 import 'core/auth/driver_session.dart';
+import 'core/config/foodex_environment.dart';
 import 'core/localization/driver_translations.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/auth/driver_login.dart';
@@ -47,7 +48,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
 
   String get _baseUrl =>
       widget.apiBaseUrl ??
-      const String.fromEnvironment('FOODEX_API_BASE_URL', defaultValue: '');
+      FoodexEnvironment.apiBaseUrl;
 
   @override
   void initState() {
