@@ -25,7 +25,9 @@ jobs:
           cache: true
 
       - name: Prepare Android/iOS scaffolding
-        run: flutter create --platforms=android,ios --project-name foodex_customer_app .
+        run: |
+          flutter create --platforms=android,ios --project-name foodex_customer_app .
+          python3 ../../scripts/configure-mobile-native.py --app customer --app-dir . --platform all
 
       - name: Remove generated default widget test
         run: rm -f test/widget_test.dart
@@ -55,6 +57,7 @@ jobs:
           grep -Fx "uses-permission: name='android.permission.INTERNET'" build/release-permissions.txt
           "$aapt_bin" dump badging "$apk" > build/release-badging.txt
           grep -Fx "application-label:'FOODEX'" build/release-badging.txt
+          grep -F "package: name='com.fiftysolution.foodex.customer'" build/release-badging.txt
 
       - name: Package Android validation evidence
         working-directory: .
@@ -86,7 +89,9 @@ jobs:
           cache: true
 
       - name: Prepare iOS scaffolding
-        run: flutter create --platforms=ios --project-name foodex_customer_app .
+        run: |
+          flutter create --platforms=ios --project-name foodex_customer_app .
+          python3 ../../scripts/configure-mobile-native.py --app customer --app-dir . --platform ios
 
       - name: Apply approved iOS native display name
         run: /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName FOODEX" ios/Runner/Info.plist
@@ -105,6 +110,8 @@ jobs:
           test -f "$plist"
           actual="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$plist")"
           test "$actual" = "FOODEX"
+          bundle="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")"
+          test "$bundle" = "com.fiftysolution.foodex.customer"
 
       - name: Archive unsigned iOS app
         run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app build/ios/iphoneos/Runner.app.zip
