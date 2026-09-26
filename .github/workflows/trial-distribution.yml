@@ -173,18 +173,18 @@ jobs:
           cp VERSION "$stage/VERSION"
 
           cat > "$stage/INSTALL-FIRST.txt" <<'TXT'
-          FOODEX first install
-          ====================
+FOODEX first install
+====================
 
-          1. Extract this ZIP so VERSION and backend/ are in the same deployment root.
-          2. Point the web server document root to backend/public.
-          3. PHP 8.2+ is required with pdo_pgsql, mbstring, openssl, tokenizer, json and zip.
-          4. PostgreSQL is required. Redis is recommended for cache/queue.
-          5. Make backend/storage and backend/bootstrap/cache writable by the web/PHP user.
-          6. Open https://foodex.50sols.com/install and complete the wizard.
-          7. Production DB name/user approved for first install: solscool_foodex.
-          8. Never place DB passwords, signing keys or Firebase service-account keys in this ZIP.
-          TXT
+1. Extract this ZIP so VERSION and backend/ are in the same deployment root.
+2. Point the web server document root to backend/public.
+3. PHP 8.2+ is required with pdo_pgsql, mbstring, openssl, tokenizer, json and zip.
+4. PostgreSQL is required. Redis is recommended for cache/queue.
+5. Make backend/storage and backend/bootstrap/cache writable by the web/PHP user.
+6. Open https://foodex.50sols.com/install and complete the wizard.
+7. Production DB name/user approved for first install: solscool_foodex.
+8. Never place DB passwords, signing keys or Firebase service-account keys in this ZIP.
+TXT
 
           (
             cd "$stage"
@@ -220,48 +220,44 @@ jobs:
             driver_firebase=true
           fi
 
-          python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
+          export customer_sha driver_sha setup_sha customer_firebase driver_firebase
 
-          payload = {
-              "schema_version": 1,
-              "version": os.environ["CURRENT_VERSION"],
-              "source_commit": os.environ["GITHUB_SHA"],
-              "github_run_number": os.environ["GITHUB_RUN_NUMBER"],
-              "api_base_url": os.environ["FOODEX_API_BASE_URL"],
-              "android_signing": "flutter-template-debug-key-test-only",
-              "customer": {
-                  "file": "FOODEX-Customer.apk",
-                  "application_id": "com.fiftysolution.foodex.customer",
-                  "sha256": os.environ["customer_sha"],
-                  "firebase_configured": os.environ["customer_firebase"] == "true",
-              },
-              "driver": {
-                  "file": "FOODEX-Driver.apk",
-                  "application_id": "com.fiftysolution.foodex.driver",
-                  "sha256": os.environ["driver_sha"],
-                  "firebase_configured": os.environ["driver_firebase"] == "true",
-              },
-              "laravel_setup": {
-                  "file": "FOODEX-Laravel-Setup.zip",
-                  "sha256": os.environ["setup_sha"],
-                  "installer_path": "/install",
-                  "document_root": "backend/public",
-              },
-          }
-          Path("Release/BUILD_INFO.json").write_text(
-              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          PY
-        env:
-          customer_sha: ${{ env.customer_sha }}
-          driver_sha: ${{ env.driver_sha }}
-          setup_sha: ${{ env.setup_sha }}
-          customer_firebase: ${{ env.customer_firebase }}
-          driver_firebase: ${{ env.driver_firebase }}
+          python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+payload = {
+    "schema_version": 1,
+    "version": os.environ["CURRENT_VERSION"],
+    "source_commit": os.environ["GITHUB_SHA"],
+    "github_run_number": os.environ["GITHUB_RUN_NUMBER"],
+    "api_base_url": os.environ["FOODEX_API_BASE_URL"],
+    "android_signing": "flutter-template-debug-key-test-only",
+    "customer": {
+        "file": "FOODEX-Customer.apk",
+        "application_id": "com.fiftysolution.foodex.customer",
+        "sha256": os.environ["customer_sha"],
+        "firebase_configured": os.environ["customer_firebase"] == "true",
+    },
+    "driver": {
+        "file": "FOODEX-Driver.apk",
+        "application_id": "com.fiftysolution.foodex.driver",
+        "sha256": os.environ["driver_sha"],
+        "firebase_configured": os.environ["driver_firebase"] == "true",
+    },
+    "laravel_setup": {
+        "file": "FOODEX-Laravel-Setup.zip",
+        "sha256": os.environ["setup_sha"],
+        "installer_path": "/install",
+        "document_root": "backend/public",
+    },
+}
+Path("Release/BUILD_INFO.json").write_text(
+    json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+    encoding="utf-8",
+)
+PY
 
       - name: Validate bundle files
         shell: bash
@@ -272,6 +268,7 @@ jobs:
           test -s Release/FOODEX-Laravel-Setup.zip
           test -s Release/BUILD_INFO.json
           test -s Release/Updates/README.md
+          test -s Release/Updates/FOODEX-Update.json
           unzip -l Release/FOODEX-Laravel-Setup.zip | grep -F 'backend/artisan'
           unzip -l Release/FOODEX-Laravel-Setup.zip | grep -F 'VERSION'
 
@@ -293,7 +290,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git switch -C "$generated_branch"
-          git add -f             Release/FOODEX-Customer.apk             Release/FOODEX-Driver.apk             Release/FOODEX-Laravel-Setup.zip             Release/BUILD_INFO.json             Release/Updates/FOODEX-Update.zip             Release/Updates/FOODEX-Update.json 2>/dev/null || true
+
+          git add -f             Release/FOODEX-Customer.apk             Release/FOODEX-Driver.apk             Release/FOODEX-Laravel-Setup.zip             Release/BUILD_INFO.json             Release/Updates/FOODEX-Update.json
+
+          if [[ -f Release/Updates/FOODEX-Update.zip ]]; then
+            git add -f Release/Updates/FOODEX-Update.zip
+          else
+            git add -u -- Release/Updates/FOODEX-Update.zip 2>/dev/null || true
+          fi
 
           # README files already live on main. Only generated distribution files belong to this commit.
           if git diff --cached --quiet; then
