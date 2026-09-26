@@ -258,7 +258,11 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
 
   @override
   Future<List<B2cStore>> stores() async => const [
-        B2cStore(id: 7, name: 'FOODEX Premium Demo Store', code: 'FOODEX-DEMO-B2C'),
+        B2cStore(
+          id: 7,
+          name: 'FOODEX Premium Demo Store',
+          code: 'FOODEX-DEMO-B2C',
+        ),
       ];
 
   @override
@@ -269,18 +273,53 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
 
   @override
   Future<List<B2cOffer>> offers(int storeId) async => const [
-        B2cOffer(id: 9, name: 'عرض نهاية الأسبوع', type: 'percentage', value: 10),
+        B2cOffer(
+          id: 9,
+          name: 'عرض نهاية الأسبوع',
+          type: 'percentage',
+          value: 10,
+        ),
         B2cOffer(id: 10, name: 'عرض FOODEX', type: 'fixed', value: 2),
       ];
 
   @override
-  Future<List<B2cProduct>> products(int storeId, {String? query, int? categoryId}) async => const [
-        B2cProduct(id: 42, name: 'صندوق طماطم طازج', sku: 'TOM-42', price: 3.25),
-        B2cProduct(id: 43, name: 'زيت زيتون عضوي', sku: 'OLV-43', price: 18.5),
+  Future<List<B2cBanner>> banners(int storeId) async => const [
+        B2cBanner(
+          id: 11,
+          title: 'عرض فودكس اليوم',
+          targetUrl: '/offers',
+        ),
       ];
 
   @override
-  Future<B2cProduct> product(int productId, {required int storeId}) async => const B2cProduct(
+  Future<List<B2cProduct>> products(
+    int storeId, {
+    String? query,
+    int? categoryId,
+    String? sort,
+    String? direction,
+  }) async =>
+      const [
+        B2cProduct(
+          id: 42,
+          name: 'صندوق طماطم طازج',
+          sku: 'TOM-42',
+          price: 3.25,
+        ),
+        B2cProduct(
+          id: 43,
+          name: 'زيت زيتون عضوي',
+          sku: 'OLV-43',
+          price: 18.5,
+        ),
+      ];
+
+  @override
+  Future<B2cProduct> product(
+    int productId, {
+    required int storeId,
+  }) async =>
+      const B2cProduct(
         id: 42,
         name: 'صندوق طماطم طازج',
         sku: 'TOM-42',
@@ -310,7 +349,8 @@ class _EvidenceAccountApi implements B2cAccountApi {
       };
 
   @override
-  Future<Object?> updateCartItem(int itemId, double quantity) async => {'id': itemId, 'quantity': quantity};
+  Future<Object?> updateCartItem(int itemId, double quantity) async =>
+      {'id': itemId, 'quantity': quantity};
 
   @override
   Future<void> removeCartItem(int itemId) async {}
@@ -326,6 +366,19 @@ class _EvidenceAccountApi implements B2cAccountApi {
       };
 
   @override
+  Future<Object?> orders() async => {
+        'data': [
+          {
+            'id': 101,
+            'order_number': 'FOODEX-101',
+            'status': 'out_for_delivery',
+            'grand_total': 18.5,
+            'currency': 'KWD',
+          },
+        ],
+      };
+
+  @override
   Future<Object?> profile() async => {
         'name': 'عميل FOODEX التجريبي',
         'email': 'customer@foodex.test',
@@ -333,11 +386,36 @@ class _EvidenceAccountApi implements B2cAccountApi {
       };
 
   @override
+  Future<Object?> updateProfile(Map<String, dynamic> values) async => values;
+
+  @override
   Future<Object?> addresses() async => {
         'data': [
-          {'label': 'المنزل', 'area': 'بيان', 'block': '1', 'street': 'شارع تجريبي'}
+          {
+            'id': 8,
+            'label': 'المنزل',
+            'line1': 'قطعة 1 شارع تجريبي',
+            'area': 'بيان',
+            'city': 'Kuwait City',
+            'country_code': 'KW',
+            'is_default': true,
+          }
         ],
       };
+
+  @override
+  Future<Object?> createAddress(Map<String, dynamic> values) async =>
+      {'id': 9, ...values};
+
+  @override
+  Future<Object?> updateAddress(
+    int addressId,
+    Map<String, dynamic> values,
+  ) async =>
+      {'id': addressId, ...values};
+
+  @override
+  Future<void> removeAddress(int addressId) async {}
 
   @override
   Future<Object?> favorites() async => {
@@ -345,6 +423,27 @@ class _EvidenceAccountApi implements B2cAccountApi {
           {'id': 42, 'name': 'صندوق طماطم طازج', 'sku': 'TOM-42'}
         ],
       };
+
+  @override
+  Future<void> addFavorite(int productId) async {}
+
+  @override
+  Future<void> removeFavorite(int productId) async {}
+
+  @override
+  Future<Object?> notifications({String locale = 'ar'}) async => {
+        'data': [
+          {
+            'id': 4,
+            'title': locale == 'en' ? 'Order update' : 'تحديث الطلب',
+            'body': locale == 'en' ? 'On the way' : 'في الطريق',
+            'read_at': null,
+          },
+        ],
+      };
+
+  @override
+  Future<void> markNotificationRead(int notificationId) async {}
 }
 
 class _EvidenceActionApi implements CustomerActionApi {
