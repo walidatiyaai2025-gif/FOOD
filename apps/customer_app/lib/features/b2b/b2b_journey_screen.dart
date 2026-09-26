@@ -34,9 +34,11 @@ class B2bJourneyScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('b2b.app.title'))),
       body: SafeArea(
-        child: ListView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
-          children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Text(
               content.$1,
               key: const ValueKey('customer-route-label'),
@@ -71,7 +73,8 @@ class B2bJourneyScreen extends StatelessWidget {
               key: const ValueKey('customer-route-location'),
               style: Theme.of(context).textTheme.labelSmall,
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
