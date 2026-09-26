@@ -148,7 +148,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   }
 
   void _showPushAlert(DriverPushAlert alert) {
-    final message = alert.body.isEmpty ? alert.title : alert.title + '\n' + alert.body;
+    final message = alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
     _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(message)));
   }
 
