@@ -96,6 +96,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     });
   }
 
+  void _onSessionExpired() {
+    setState(() {
+      _session = const CustomerSession.guest();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final baseUrl = const String.fromEnvironment(
@@ -123,6 +129,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       b2cAccountApi: b2cAccountApi,
       actionApi: actionApi,
       onAuthenticated: _onAuthenticated,
+      onSessionExpired: _onSessionExpired,
     );
 
     return MaterialApp(
