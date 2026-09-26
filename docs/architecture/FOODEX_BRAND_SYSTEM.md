@@ -25,6 +25,15 @@ The palette and visual direction are sampled from the user-approved FOODEX dashb
 | Background | `#F7F9FC` | page canvas |
 | Border | `#E6EAF0` | card/control borders |
 
+## Canonical typography
+
+FOODEX uses **Tajawal** as the single UI typeface across Arabic, English and numeric presentation.
+- Laravel/Admin loads Tajawal from Google Fonts at weights 400, 500 and 700 through `_brand.blade.php`.
+- `--foodex-font-ar`, `--foodex-font-en` and `--foodex-font-ui` remain compatibility aliases, but all resolve to the same `--foodex-font-family`.
+- Customer Flutter and Driver Flutter use `google_fonts` and `GoogleFonts.tajawalTextTheme` as the default Material typography.
+- Legacy Inter, Tahoma, Arial, system UI stacks and per-page UI font overrides are prohibited.
+- Monospace remains allowed only for technical identifiers, translation keys, code and machine-readable values.
+
 ## Implementation contract
 
 Laravel/Admin consumes `backend/resources/views/admin/_brand.blade.php`.
