@@ -219,10 +219,10 @@ class MobilePushSettingsTest extends TestCase
             'body_en' => 'Message',
         ])->assertRedirect();
 
-        Http::assertSent(fn ($request) =>
-            str_contains($request->url(), 'fcm.googleapis.com/v1/projects/foodex-prod/messages:send')
-            && data_get($request->data(), 'message.token') === 'ios-fcm-token-123'
-            && data_get($request->data(), 'message.apns.payload.aps.category') === 'orders'
+        Http::assertSent(
+            fn ($request) => str_contains($request->url(), 'fcm.googleapis.com/v1/projects/foodex-prod/messages:send')
+                && data_get($request->data(), 'message.token') === 'ios-fcm-token-123'
+                && data_get($request->data(), 'message.apns.payload.aps.category') === 'orders'
         );
 
         $this->assertDatabaseHas('push_delivery_logs', [
