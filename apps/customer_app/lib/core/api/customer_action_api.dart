@@ -2,6 +2,11 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+class CustomerGuestSession {
+  CustomerGuestSession({this.token});
+  String? token;
+}
+
 class CustomerLoginResult {
   const CustomerLoginResult({required this.token});
 
@@ -28,17 +33,21 @@ class HttpCustomerActionApi implements CustomerActionApi {
   HttpCustomerActionApi({
     required this.baseUrl,
     this.token,
+    CustomerGuestSession? guestSession,
     http.Client? client,
-  }) : _client = client ?? http.Client();
+  })  : guestSession = guestSession ?? CustomerGuestSession(),
+        _client = client ?? http.Client();
 
   final String baseUrl;
   final String? token;
+  final CustomerGuestSession guestSession;
   final http.Client _client;
 
   Map<String, String> get _headers => {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
+        if (guestSession.token != null) 'X-Guest-Token': guestSession.token!,
       };
 
   @override
@@ -66,7 +75,6 @@ class HttpCustomerActionApi implements CustomerActionApi {
     required int productId,
     required double quantity,
   }) async {
-    _requireToken();
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/cart/items'),
       headers: _headers,
@@ -77,7 +85,12 @@ class HttpCustomerActionApi implements CustomerActionApi {
       }),
     );
 
-    return _decode(response);
+    final value = _decode(response);
+    final guestToken = response.headers['x-guest-token'];
+    if (guestToken != null && guestToken.trim().isNotEmpty) {
+      guestSession.token = guestToken.trim();
+    }
+    return value;
   }
 
   @override

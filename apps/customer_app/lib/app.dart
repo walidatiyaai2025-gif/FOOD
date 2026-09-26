@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/api/b2b_api.dart';
 import 'core/api/b2c_catalog_api.dart';
+import 'core/api/b2c_account_api.dart';
 import 'core/api/customer_action_api.dart';
 import 'core/auth/customer_session.dart';
 import 'core/localization/app_translations.dart';
@@ -17,6 +18,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.initialRoute = CustomerRoutePaths.splash,
     this.b2bApi,
     this.b2cCatalogApi,
+    this.b2cAccountApi,
     this.actionApi,
     this.locale = const Locale('ar'),
     this.translationOverrides = const {},
@@ -27,6 +29,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final String initialRoute;
   final B2bApi? b2bApi;
   final B2cCatalogApi? b2cCatalogApi;
+  final B2cAccountApi? b2cAccountApi;
   final CustomerActionApi? actionApi;
   final Locale locale;
   final Map<String, String> translationOverrides;
@@ -39,6 +42,7 @@ class FoodexCustomerApp extends StatefulWidget {
 class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   late Map<String, String> _translations;
   late CustomerSession _session;
+  final CustomerGuestSession _guestSession = CustomerGuestSession();
 
   @override
   void initState() {
@@ -92,6 +96,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     });
   }
 
+  void _onSessionExpired() {
+    setState(() {
+      _session = const CustomerSession.guest();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final baseUrl = const String.fromEnvironment(
@@ -102,14 +112,24 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     final b2bApi = widget.b2bApi ??
         (token == null ? null : HttpB2bApi(baseUrl: baseUrl, token: token));
     final b2cCatalogApi = widget.b2cCatalogApi ?? HttpB2cCatalogApi(baseUrl: baseUrl);
-    final actionApi = widget.actionApi ??
-        HttpCustomerActionApi(baseUrl: baseUrl, token: token);
+    final actionApi = widget.actionApi ?? HttpCustomerActionApi(
+      baseUrl: baseUrl,
+      token: token,
+      guestSession: _guestSession,
+    );
+    final b2cAccountApi = widget.b2cAccountApi ?? HttpB2cAccountApi(
+      baseUrl: baseUrl,
+      token: token,
+      guestSession: _guestSession,
+    );
     final router = CustomerAppRouter(
       _session,
       b2bApi: b2bApi,
       b2cCatalogApi: b2cCatalogApi,
+      b2cAccountApi: b2cAccountApi,
       actionApi: actionApi,
       onAuthenticated: _onAuthenticated,
+      onSessionExpired: _onSessionExpired,
     );
 
     return MaterialApp(
