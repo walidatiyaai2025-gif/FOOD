@@ -46,6 +46,9 @@
     @case('search')
         <circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/>
         @break
+    @case('globe')
+        <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>
+        @break
     @case('revenue')
         <rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8 10h8M8 14h5"/>
         @break
