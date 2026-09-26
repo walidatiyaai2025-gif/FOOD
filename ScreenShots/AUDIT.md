@@ -1,6 +1,6 @@
 # FOODEX Screenshot Evidence Audit
 
-- Source commit/build: 936eab1c805e4e9d521bc8677caf0ca1689df253
+- Source commit/build: fccb53acd9a8ec032359ae60c86779028b73df22
 - Runtime PNG files: **110**
 - Approved 46-screen baseline covered: **46/46**
 - Mobile screenshots: **66**
