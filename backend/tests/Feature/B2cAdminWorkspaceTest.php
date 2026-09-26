@@ -221,7 +221,8 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertSee('foodex-page-header', false)
             ->assertSee('module-card foodex-card', false)
             ->assertSee('module-panel foodex-card', false)
-            ->assertSee('module-table foodex-table', false)
+            ->assertSee('.module-table{min-width:760px}', false)
+            ->assertSee('module-empty-state', false)
             ->assertSee('var(--foodex-sidebar-width)', false)
             ->assertSee('var(--foodex-control-height)', false);
     }
