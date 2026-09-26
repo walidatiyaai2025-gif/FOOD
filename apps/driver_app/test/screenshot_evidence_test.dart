@@ -163,9 +163,9 @@ Future<void> _writeBoundary(GlobalKey key, String relativePath) async {
   final image = await boundary.toImage(pixelRatio: 1);
   final data = await image.toByteData(format: ui.ImageByteFormat.png);
   final file = File('../../ScreenShots/$relativePath');
-  await file.parent.create(recursive: true);
-  await file.writeAsBytes(data!.buffer.asUint8List(), flush: true);
-  if (await file.length() <= 1000) {
+  file.parent.createSync(recursive: true);
+  file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
+  if (file.lengthSync() <= 1000) {
     throw StateError('Screenshot is unexpectedly small: $relativePath');
   }
 }
