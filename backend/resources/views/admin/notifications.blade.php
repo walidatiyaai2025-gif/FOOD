@@ -21,8 +21,8 @@
     </style>
     @include('admin._brand-components')
 </head>
-<body><div class="wrap">
-    <div class="top">
+<body><div class="wrap foodex-admin-page" data-foodex-utility="notifications">
+    <div class="top foodex-page-header">
         <div><h1>{{ __('notifications.title') }}</h1><p>{{ __('notifications.description') }}</p></div>
         <div class="actions">
             @if(auth()->user()?->hasPermission('translations.manage'))
@@ -31,7 +31,7 @@
             <a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a>
         </div>
     </div>
-    @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
+    @if(session('status'))<div class="flash foodex-state" role="status">{{ session('status') }}</div>@endif
 
     <section class="panel">
         <h2>{{ __('notifications.create') }}</h2>

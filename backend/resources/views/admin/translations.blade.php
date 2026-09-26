@@ -36,8 +36,8 @@
     @include('admin._brand-components')
 </head>
 <body>
-<div class="wrap">
-    <div class="top">
+<div class="wrap foodex-admin-page" data-foodex-utility="translations">
+    <div class="top foodex-page-header">
         <div>
             <h1>{{ __('admin.translations.title') }}</h1>
             <p class="muted">{{ __('admin.translations.description') }}</p>
@@ -51,7 +51,7 @@
     </div>
 
     @if (session('status'))
-        <div class="flash">{{ session('status') }}</div>
+        <div class="flash foodex-state" role="status">{{ session('status') }}</div>
     @endif
 
     <form class="filters" method="get" action="{{ route('admin.translations.index') }}">

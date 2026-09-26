@@ -8,10 +8,10 @@
 </style>
     @include('admin._brand-components')
 </head>
-<body><main class="page">
-<header class="top"><div><div class="muted">FOODEX · {{ __('admin.security.eyebrow') }}</div><h1>{{ __('admin.security.title') }}</h1><p class="muted">{{ __('admin.security.description') }}</p></div><a class="back" href="{{ route('admin.index') }}">{{ __('admin.security.back') }}</a></header>
-@if(session('status'))<div class="notice">{{ session('status') }}</div>@endif
-@if($errors->any())<div class="errors"><strong>{{ __('admin.security.validation_failed') }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+<body><main class="page foodex-admin-page" data-foodex-utility="security">
+<header class="top foodex-page-header"><div><div class="muted">FOODEX · {{ __('admin.security.eyebrow') }}</div><h1>{{ __('admin.security.title') }}</h1><p class="muted">{{ __('admin.security.description') }}</p></div><a class="back" href="{{ route('admin.index') }}">{{ __('admin.security.back') }}</a></header>
+@if(session('status'))<div class="notice foodex-state" role="status">{{ session('status') }}</div>@endif
+@if($errors->any())<div class="errors foodex-state" role="alert"><strong>{{ __('admin.security.validation_failed') }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
 <section class="panel">
 <div class="head"><div><h2>{{ __('admin.security.users_title') }}</h2><div class="muted">{{ __('admin.security.users_description') }}</div></div><span class="badge">{{ $users->total() }} {{ __('admin.security.users') }}</span></div>
@@ -33,7 +33,7 @@ $byStore=$managedUser->storeRoleAssignments->groupBy('store_id');
 <button class="btn primary">{{ __('admin.security.save_assignments') }}</button></form></details>
 @endcan
 </article>
-@empty<div class="note">{{ __('admin.security.no_users') }}</div>@endforelse
+@empty<div class="note foodex-empty-state">{{ __('admin.security.no_users') }}</div>@endforelse
 <div class="pager">{{ $users->links() }}</div>
 </section>
 
