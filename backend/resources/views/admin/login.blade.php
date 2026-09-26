@@ -7,7 +7,7 @@
     @include('admin._brand-components')
     <style>
         *{box-sizing:border-box}
-        body{margin:0;min-height:100vh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(135deg,#f8fbf9 0%,#fff7ef 100%);color:var(--foodex-ink,#172033)}
+        body{margin:0;min-height:100vh;font-family:var(--foodex-font-ui);background:linear-gradient(135deg,#f8fbf9 0%,#fff7ef 100%);color:var(--foodex-ink,#172033)}
         .page{min-height:100vh;display:grid;grid-template-columns:minmax(320px,.9fr) minmax(460px,1.1fr)}
         .brand-pane{padding:clamp(32px,6vw,84px);background:linear-gradient(145deg,var(--foodex-green,#158A3A),#0d642a);color:#fff;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
         .brand-pane:after{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:rgba(255,255,255,.07);inset:auto -180px -150px auto}

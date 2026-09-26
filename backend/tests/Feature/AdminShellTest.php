@@ -109,7 +109,16 @@ class AdminShellTest extends TestCase
             ->assertOk()
             ->assertSee('data-foodex-brand="v1"', false)
             ->assertSee('--foodex-green:#158A3A', false)
-            ->assertSee('--foodex-orange:#EE731C', false);
+            ->assertSee('--foodex-orange:#EE731C', false)
+            ->assertSee('--foodex-font-ar:"Tajawal",system-ui,sans-serif', false)
+            ->assertSee('--foodex-font-en:"Inter",system-ui,sans-serif', false)
+            ->assertSee('--foodex-font-weight-regular:400', false)
+            ->assertSee('--foodex-font-weight-medium:500', false)
+            ->assertSee('--foodex-font-weight-bold:700', false)
+            ->assertSee('--foodex-control-height:44px', false)
+            ->assertSee('--foodex-sidebar-width:232px', false)
+            ->assertDontSee('#1f2937', false)
+            ->assertDontSee('color:#dbeafe', false);
     }
 
     public function test_workspace_uses_shared_sidebar_active_state_and_preserves_deep_link(): void

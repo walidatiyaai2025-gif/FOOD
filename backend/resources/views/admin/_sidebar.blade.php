@@ -1,21 +1,21 @@
 @include('admin._brand')
 <style>
-    .sidebar{background:var(--foodex-surface);color:var(--foodex-ink);padding:20px;overflow:auto;border-inline-start:1px solid var(--foodex-border)}
-    .brand-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px}
-    .brand-link{display:inline-flex;align-items:center;gap:8px;color:var(--foodex-green-dark);text-decoration:none;font-weight:900;letter-spacing:.04em;font-size:1.08rem}
+    .sidebar{background:var(--foodex-surface);color:var(--foodex-ink);padding:var(--foodex-space-5);overflow:auto;border-inline-end:1px solid var(--foodex-border)}
+    .brand-row{display:flex;align-items:center;justify-content:space-between;gap:var(--foodex-space-3);margin-bottom:var(--foodex-space-5)}
+    .brand-link{display:inline-flex;align-items:center;gap:8px;color:var(--foodex-green-dark);text-decoration:none;font-weight:var(--foodex-font-weight-bold);letter-spacing:.025em;font-size:1.08rem}
     .brand-mark{position:relative;width:22px;height:22px;display:inline-block}
     .brand-mark::before,.brand-mark::after{content:"";position:absolute;border-radius:100% 0 100% 0;transform:rotate(-30deg)}
     .brand-mark::before{width:14px;height:19px;inset:0 auto auto 5px;background:var(--foodex-green)}
     .brand-mark::after{width:10px;height:13px;inset:9px auto auto 0;background:var(--foodex-orange)}
-    .sidebar-toggle{display:none;border:1px solid var(--foodex-border);background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-radius:9px;padding:7px 10px;cursor:pointer}
-    .nav-search{width:100%;border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:10px;padding:10px 12px;margin-bottom:12px;outline:none}
+    .sidebar-toggle{display:none;border:1px solid var(--foodex-border);background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-radius:var(--foodex-radius-control);min-width:var(--foodex-touch-target);min-height:var(--foodex-touch-target);padding:7px 10px;cursor:pointer}
+    .nav-search{width:100%;border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:var(--foodex-radius-control);min-height:var(--foodex-control-height);padding:10px 12px;margin-bottom:var(--foodex-space-3);outline:none}
     .nav-search:focus{border-color:var(--foodex-green);box-shadow:0 0 0 3px rgba(21,138,58,.12)}
-    .nav-home,.nav-child{display:flex;gap:8px;align-items:center;color:#344054;text-decoration:none;border-radius:10px;padding:9px 11px}
+    .nav-home,.nav-child{display:flex;gap:8px;align-items:center;color:var(--foodex-ink);text-decoration:none;border-radius:var(--foodex-radius-control);min-height:var(--foodex-touch-target);padding:9px 11px}
     .nav-home{margin-bottom:8px}
     .nav-home:hover,.nav-child:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-    .nav-home.active,.nav-child.active{background:var(--foodex-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.18)}
+    .nav-home.active,.nav-child.active{background:var(--foodex-green);color:#fff;box-shadow:0 8px 20px rgba(21,138,58,.16)}
     .nav-group{border-top:1px solid var(--foodex-border);padding-top:6px;margin-top:6px}
-    .nav-group summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:10px 8px;border-radius:10px;font-weight:700;color:var(--foodex-ink)}
+    .nav-group summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:10px 8px;border-radius:10px;font-weight:var(--foodex-font-weight-bold);color:var(--foodex-ink)}
     .nav-group summary::-webkit-details-marker{display:none}
     .nav-group summary:hover{background:var(--foodex-orange-soft)}
     .nav-group-title{display:flex;align-items:center;gap:9px}.nav-children{display:grid;gap:2px;padding:0 8px 7px}
