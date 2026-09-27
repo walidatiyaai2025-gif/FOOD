@@ -6,6 +6,7 @@ return [
     'navigation' => 'Navigation',
     'overview' => 'Overview',
     'logout' => 'Sign out',
+    'profile' => 'My Profile',
     'sidebar_search' => 'Search navigation',
     'sidebar_toggle' => 'Toggle navigation',
     'nav_groups' => [
