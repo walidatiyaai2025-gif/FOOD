@@ -44,6 +44,15 @@ class DashboardDemoSeeder extends Seeder
                 'is_active' => true,
                 ...$timestamps,
             ]);
+            $catalogId = (int) DB::table('catalogs')->insertGetId([
+                'store_id' => $storeId,
+                'channel' => 'b2c',
+                'code' => 'default',
+                'name' => 'FOODEX Premium Demo Catalog',
+                'is_active' => true,
+                'is_migration_quarantine' => false,
+                ...$timestamps,
+            ]);
             $warehouseId = (int) DB::table('warehouses')->insertGetId([
                 'store_id' => $storeId,
                 'code' => 'FOODEX-DEMO-WH',
@@ -57,6 +66,7 @@ class DashboardDemoSeeder extends Seeder
             $this->seedPresenceUsers($adminId, $driverIds, $now);
 
             $categoryId = (int) DB::table('categories')->insertGetId([
+                'catalog_id' => $catalogId,
                 'name' => 'FOODEX Demo Grocery',
                 'slug' => 'foodex-demo-grocery',
                 'is_active' => true,
@@ -83,6 +93,7 @@ class DashboardDemoSeeder extends Seeder
             $productIds = [];
             foreach ($products as $index => $product) {
                 $productId = (int) DB::table('products')->insertGetId([
+                    'catalog_id' => $catalogId,
                     'category_id' => $categoryId,
                     'unit_id' => $unitId,
                     'sku' => $product['sku'],
