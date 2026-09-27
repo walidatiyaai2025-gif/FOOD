@@ -30,8 +30,8 @@
 1. فك `FOODEX-Laravel-Setup.zip` على السيرفر.
 2. يجب أن يكون `VERSION` و`backend/` في نفس Deployment Root.
 3. اجعل Document Root للدومين يشير إلى `backend/public`.
-4. المطلوب PHP 8.2+ مع `pdo_pgsql`, `mbstring`, `openssl`, `tokenizer`, `json`, `zip`.
-5. استخدم PostgreSQL. القيم المعتمدة لأول تركيب:
+4. المطلوب PHP 8.2+ مع `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `json`, `zip`.
+5. استخدم MySQL/MariaDB (المنفذ الافتراضي `3306`). القيم المعتمدة لأول تركيب:
    - Database: `solscool_foodex`
    - Username: `solscool_foodex`
    - Password: يتم إدخاله على السيرفر ولا يُحفظ في Git.
