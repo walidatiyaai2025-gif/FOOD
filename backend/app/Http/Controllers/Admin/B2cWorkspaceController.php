@@ -35,8 +35,11 @@ class B2cWorkspaceController extends Controller
         abort_unless($user instanceof User, 401);
         $allowed = ['dashboard', 'products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'];
         abort_unless(in_array($module, $allowed, true), 404);
-        $storeIds = $this->storeIds($user);
-        abort_if($storeIds === [] && ! $user->hasRole('SUPER_ADMIN'), 403, 'No assigned B2C store.');
+        $workspace = $this->workspaceContext($request, $user);
+        $storeId = $workspace['selected_store_id'];
+        $storeIds = [$storeId];
+        $availableStores = $workspace['stores'];
+        $supportAccess = $workspace['support_access'];
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
 
         $counts = [
@@ -57,10 +60,22 @@ class B2cWorkspaceController extends Controller
             )
             : null;
         $moduleData = in_array($module, ['products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
-            ? $this->moduleData($module, $storeIds, $user)
+            ? $this->moduleData($module, $storeIds, $user, $storeId, $supportAccess)
             : null;
 
-        return view('admin.b2c-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'dashboard', 'moduleData'));
+        return view('admin.b2c-workspace', compact(
+            'user',
+            'module',
+            'storeIds',
+            'storeId',
+            'availableStores',
+            'supportAccess',
+            'counts',
+            'navGroups',
+            'navContext',
+            'dashboard',
+            'moduleData',
+        ));
     }
 
     public function transitionOrder(
@@ -72,7 +87,9 @@ class B2cWorkspaceController extends Controller
     ): RedirectResponse {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        $storeIds = $this->storeIds($user);
+        $storeId = $this->workspaceStoreId($request, $user);
+        $storeIds = [$storeId];
+        $request->merge(['store' => $storeId, 'store_id' => $storeId]);
         $isOwnedB2c = DB::table('orders')
             ->join('stores', 'stores.id', '=', 'orders.store_id')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
@@ -95,10 +112,19 @@ class B2cWorkspaceController extends Controller
     ): RedirectResponse {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        $storeIds = $this->storeIds($user);
+        $storeId = $this->workspaceStoreId($request, $user);
+        $storeIds = [$storeId];
+        $request->merge(['store' => $storeId, 'store_id' => $storeId]);
         $driverId = $request->integer('driver_id');
         $orderId = $request->integer('order_id');
-        abort_unless(DB::table('drivers')->where('id', $driverId)->where('driver_type', 'b2c')->exists(), 422);
+        abort_unless(
+            DB::table('drivers')
+                ->where('id', $driverId)
+                ->where('store_id', $storeId)
+                ->where('driver_type', 'b2c')
+                ->exists(),
+            404,
+        );
         abort_unless(
             DB::table('orders')->where('id', $orderId)->whereIn('store_id', $storeIds)->where('channel', 'b2c')->exists(),
             404,
@@ -116,7 +142,9 @@ class B2cWorkspaceController extends Controller
     ): RedirectResponse {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        $storeIds = $this->storeIds($user);
+        $storeId = $this->workspaceStoreId($request, $user);
+        $storeIds = [$storeId];
+        $request->merge(['store' => $storeId, 'store_id' => $storeId]);
         $isOwnedB2c = DB::table('inventories')
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
             ->join('stores', 'stores.id', '=', 'warehouses.store_id')
@@ -132,14 +160,28 @@ class B2cWorkspaceController extends Controller
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تعديل المخزون.' : 'Inventory adjusted.');
     }
 
-    private function moduleData(string $module, array $storeIds, User $user): array
-    {
+    private function moduleData(
+        string $module,
+        array $storeIds,
+        User $user,
+        int $selectedStoreId,
+        bool $supportAccess,
+    ): array {
+        if ($selectedStoreId <= 0) {
+            return $this->controlPlanePreviewData($module);
+        }
+
+        $scopeParams = ['store_id' => $selectedStoreId];
+        if ($supportAccess) {
+            $scopeParams['support_access'] = 1;
+        }
+
         return match ($module) {
             'products' => [
                 'actions' => [
-                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / Edit Products', 'url' => route('admin.catalog.index', ['tab' => 'products'])],
-                    ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage Categories', 'url' => route('admin.catalog.index', ['tab' => 'categories'])],
-                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المتاجر' : 'Manage Stores', 'url' => route('admin.catalog.index', ['tab' => 'stores'])],
+                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / Edit Products', 'url' => route('admin.catalog.index', array_merge(['tab' => 'products'], $scopeParams))],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage Categories', 'url' => route('admin.catalog.index', array_merge(['tab' => 'categories'], $scopeParams))],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المتاجر' : 'Manage Stores', 'url' => route('admin.catalog.index', array_merge(['tab' => 'stores'], $scopeParams))],
                 ],
                 'columns' => ['sku', 'name', 'category', 'store', 'price', 'status'],
                 'rows' => DB::table('store_products')
@@ -166,7 +208,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'inventory' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن والأرصدة' : 'Manage Warehouses & Stock', 'url' => route('admin.business.index', ['tab' => 'inventory'])]],
+                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن والأرصدة' : 'Manage Warehouses & Stock', 'url' => route('admin.business.index', array_merge(['tab' => 'inventory'], $scopeParams))]],
                 'inventory_options' => DB::table('inventories')
                     ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
                     ->join('products', 'products.id', '=', 'inventories.product_id')
@@ -229,7 +271,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'customers' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.business.index', ['tab' => 'customers'])]],
+                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.business.index', array_merge(['tab' => 'customers'], $scopeParams))]],
                 'columns' => ['name', 'phone', 'email', 'orders', 'spent', 'last_order'],
                 'rows' => DB::table('b2c_customers')
                     ->leftJoin('orders', function ($join): void {
@@ -265,7 +307,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'promotions' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العروض' : 'Add / Edit Promotions', 'url' => route('admin.business.index', ['tab' => 'promotions'])]],
+                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العروض' : 'Add / Edit Promotions', 'url' => route('admin.business.index', array_merge(['tab' => 'promotions'], $scopeParams))]],
                 'columns' => ['name', 'store', 'type', 'value', 'period', 'status'],
                 'rows' => DB::table('promotions')
                     ->join('stores', 'stores.id', '=', 'promotions.store_id')
@@ -290,7 +332,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'drivers' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / إدارة السائقين' : 'Add / Manage Drivers', 'url' => route('admin.business.index', ['tab' => 'drivers'])]],
+                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / إدارة السائقين' : 'Add / Manage Drivers', 'url' => route('admin.business.index', array_merge(['tab' => 'drivers'], $scopeParams))]],
                 'drivers' => DB::table('drivers')
                     ->join('users', 'users.id', '=', 'drivers.user_id')
                     ->where('drivers.driver_type', 'b2c')
@@ -348,7 +390,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'content' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل البنرات' : 'Add / Edit Banners', 'url' => route('admin.business.index', ['tab' => 'content'])]],
+                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل البنرات' : 'Add / Edit Banners', 'url' => route('admin.business.index', array_merge(['tab' => 'content'], $scopeParams))]],
                 'columns' => ['title', 'store', 'image', 'target', 'sort_order', 'status'],
                 'rows' => DB::table('banners')
                     ->join('stores', 'stores.id', '=', 'banners.store_id')
@@ -468,6 +510,28 @@ class B2cWorkspaceController extends Controller
         ];
     }
 
+    private function controlPlanePreviewData(string $module): array
+    {
+        $actions = match ($module) {
+            'products' => [
+                ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / Edit Products', 'url' => route('admin.retail-stores.index')],
+                ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage Categories', 'url' => route('admin.retail-stores.index')],
+            ],
+            'inventory' => [['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن والأرصدة' : 'Manage Warehouses & Stock', 'url' => route('admin.retail-stores.index')]],
+            'customers' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.retail-stores.index')]],
+            'promotions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العروض' : 'Add / Edit Promotions', 'url' => route('admin.retail-stores.index')]],
+            'content' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل البنرات' : 'Add / Edit Banners', 'url' => route('admin.retail-stores.index')]],
+            'drivers' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / إدارة السائقين' : 'Add / Manage Drivers', 'url' => route('admin.retail-stores.index')]],
+            default => [],
+        };
+
+        return [
+            'actions' => $actions,
+            'columns' => [],
+            'rows' => [],
+        ];
+    }
+
     private function displaySettingValue(mixed $value): string
     {
         if ($value === null) {
@@ -482,8 +546,62 @@ class B2cWorkspaceController extends Controller
         return is_scalar($decoded) ? (string) $decoded : '-';
     }
 
-    private function storeIds(User $user): array
+    /**
+     * @return array{selected_store_id:int,stores:list<object>,support_access:bool}
+     */
+    private function workspaceContext(Request $request, User $user): array
     {
-        return $this->tenantContext->retailStoreIds($user);
+        $requestedStoreId = $request->integer('store_id') ?: $request->integer('store');
+
+        if ($user->hasRole('SUPER_ADMIN')) {
+            if ($requestedStoreId <= 0) {
+                return [
+                    'selected_store_id' => 0,
+                    'stores' => [],
+                    'support_access' => false,
+                ];
+            }
+
+            abort_unless($request->boolean('support_access'), 403);
+            $this->tenantContext->retail($user, $requestedStoreId, true, $request);
+
+            return [
+                'selected_store_id' => $requestedStoreId,
+                'stores' => DB::table('stores')
+                    ->where('id', $requestedStoreId)
+                    ->get(['id', 'name', 'code'])
+                    ->all(),
+                'support_access' => true,
+            ];
+        }
+
+        $storeIds = $this->tenantContext->retailStoreIds($user);
+        abort_if($storeIds === [], 403, 'No assigned B2C store.');
+
+        if ($requestedStoreId > 0) {
+            if (! in_array($requestedStoreId, $storeIds, true)) {
+                abort(404);
+            }
+            $selectedStoreId = $requestedStoreId;
+        } else {
+            $selectedStoreId = $storeIds[0];
+        }
+
+        $this->tenantContext->retail($user, $selectedStoreId, false, $request);
+
+        return [
+            'selected_store_id' => $selectedStoreId,
+            'stores' => DB::table('stores')
+                ->whereIn('id', $storeIds)
+                ->orderBy('name')
+                ->get(['id', 'name', 'code'])
+                ->all(),
+            'support_access' => false,
+        ];
+    }
+
+    private function workspaceStoreId(Request $request, User $user): int
+    {
+        return $this->workspaceContext($request, $user)['selected_store_id'];
     }
 }
