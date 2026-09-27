@@ -51,6 +51,46 @@ final class CustomerDomainResolver
     }
 
     /** @return array{0: B2bCustomer|B2cCustomer, 1: string} */
+    public function profile(User $user, Request $request): array
+    {
+        $requestedStoreId = $this->requestedStoreId($request);
+        if ($requestedStoreId !== null) {
+            return [$this->b2c($user, $requestedStoreId), 'b2c'];
+        }
+
+        $b2b = $this->b2b->forUser($user);
+        $b2cStoreIds = $this->b2c->storeIdsForUser($user);
+        $requestedDomain = strtolower(trim((string) (
+            $request->input('customer_domain')
+            ?? $request->query('channel')
+            ?? $request->header('X-FOODEX-Customer-Domain', '')
+        )));
+
+        if ($requestedDomain === 'b2b') {
+            abort_unless($b2b instanceof B2bCustomer, 404);
+
+            return [$b2b, 'b2b'];
+        }
+
+        if ($requestedDomain === 'b2c') {
+            abort_if(count($b2cStoreIds) !== 1, 409, 'Select a retail store.');
+
+            return [$this->b2c($user, $b2cStoreIds[0]), 'b2c'];
+        }
+
+        if ($b2b instanceof B2bCustomer && $b2cStoreIds === []) {
+            return [$b2b, 'b2b'];
+        }
+
+        if (! $b2b instanceof B2bCustomer && count($b2cStoreIds) === 1) {
+            return [$this->b2c($user, $b2cStoreIds[0]), 'b2c'];
+        }
+
+        abort_if($b2b instanceof B2bCustomer || $b2cStoreIds !== [], 409, 'Select a customer domain.');
+        abort(403, 'Customer profile is required.');
+    }
+
+    /** @return array{0: B2bCustomer|B2cCustomer, 1: string} */
     public function forStore(User $user, int $storeId): array
     {
         $channel = strtolower((string) DB::table('stores')
