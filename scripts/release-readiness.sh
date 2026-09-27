@@ -14,7 +14,7 @@ test -f backend/.env.production.example
 
 test -f backend/app/Http/Controllers/Api/V1/HealthController.php
 grep -q "Route::get('/health'" backend/routes/api.php
-grep -Eq '^  /(?:v1/)?app-version:' docs/api/openapi.yaml || grep -Eq '^  /app-version:' docs/api/openapi.yaml
+grep -Eq '^  /(v1/)?app-version:' docs/api/openapi.yaml
 grep -q 'Clean install' docs/release/RELEASE_CHECKLIST.md
 grep -q 'Rollback' docs/release/RELEASE_CHECKLIST.md
 grep -q 'Android' docs/release/RELEASE_CHECKLIST.md
