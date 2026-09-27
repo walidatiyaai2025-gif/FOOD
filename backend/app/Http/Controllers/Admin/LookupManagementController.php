@@ -28,8 +28,8 @@ final class LookupManagementController extends Controller
 
     public function index(Request $request): View
     {
-        Gate::authorize('lookups.view');
         $actor = $this->actor($request);
+        $this->authorizeView($actor);
 
         $type = in_array((string) $request->query('type'), ['brands', 'units'], true)
             ? (string) $request->query('type')
@@ -107,9 +107,9 @@ final class LookupManagementController extends Controller
     public function store(Request $request, string $type): RedirectResponse
     {
         $this->assertType($type);
-        Gate::authorize('lookups.manage');
         $actor = $this->actor($request);
         $payload = $this->payload($request, $type, true);
+        $this->authorizeScopedPermission($actor, 'lookups.manage', $payload['scope'], $payload['store_id']);
 
         $scopeKey = $this->scope->authorizeMutation(
             $actor,
@@ -140,9 +140,14 @@ final class LookupManagementController extends Controller
     public function update(Request $request, string $type, int $lookup): RedirectResponse
     {
         $this->assertType($type);
-        Gate::authorize('lookups.manage');
         $actor = $this->actor($request);
         $model = $this->find($type, $lookup);
+        $this->authorizeScopedPermission(
+            $actor,
+            'lookups.manage',
+            (string) $model->scope,
+            $model->store_id === null ? null : (int) $model->store_id,
+        );
 
         $this->scope->authorizeMutation(
             $actor,
@@ -153,6 +158,7 @@ final class LookupManagementController extends Controller
         );
 
         $payload = $this->payload($request, $type, false);
+        $this->authorizeScopedPermission($actor, 'lookups.manage', $payload['scope'], $payload['store_id']);
         $payload['scope_key'] = $this->scope->authorizeMutation(
             $actor,
             $payload['scope'],
@@ -329,6 +335,37 @@ final class LookupManagementController extends Controller
                 )],
             ]);
         }
+    }
+
+    private function authorizeView(User $actor): void
+    {
+        if (Gate::forUser($actor)->allows('lookups.view')) {
+            return;
+        }
+
+        foreach ($this->scope->visibleRetailStores($actor) as $store) {
+            if (Gate::forUser($actor)->allows('lookups.view', (int) $store->id)) {
+                return;
+            }
+        }
+
+        abort(403);
+    }
+
+    private function authorizeScopedPermission(
+        User $actor,
+        string $permission,
+        string $scope,
+        ?int $storeId,
+    ): void {
+        if ($scope === LookupScopeService::STORE) {
+            abort_if($storeId === null, 422);
+            Gate::forUser($actor)->authorize($permission, $storeId);
+
+            return;
+        }
+
+        Gate::forUser($actor)->authorize($permission);
     }
 
     private function find(string $type, int $id): Brand|Unit
