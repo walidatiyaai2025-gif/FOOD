@@ -40,9 +40,9 @@ final class LookupManagementController extends Controller
         $table = $type;
         $stores = $this->scope->visibleRetailStores($actor);
         $isSuperAdmin = $actor->hasRole('SUPER_ADMIN');
-        $isB2bAdmin = ! $isSuperAdmin && $actor->hasRole('B2B_ADMIN');
+        $isB2bAdmin = $isSuperAdmin === false && $actor->hasRole('B2B_ADMIN');
         $retailStoreIds = $stores->pluck('id')->map(static fn ($id): int => (int) $id)->all();
-        $isRetailScoped = ! $isSuperAdmin && ! $isB2bAdmin && $retailStoreIds !== [];
+        $isRetailScoped = $isSuperAdmin === false && $isB2bAdmin === false && $retailStoreIds !== [];
         $currentStoreId = null;
 
         if ($isRetailScoped) {
@@ -471,7 +471,7 @@ final class LookupManagementController extends Controller
     {
         if ($actor->hasRole('SUPER_ADMIN')) {
             $scope = (string) ($data['scope'] ?? '');
-            if (! in_array($scope, [LookupScopeService::GLOBAL, LookupScopeService::B2B, LookupScopeService::STORE], true)) {
+            if (in_array($scope, [LookupScopeService::GLOBAL, LookupScopeService::B2B, LookupScopeService::STORE], true) === false) {
                 throw ValidationException::withMessages([
                     'scope' => [$this->msg('اختر نطاقًا صالحًا.', 'Select a valid scope.')],
                 ]);
@@ -494,7 +494,7 @@ final class LookupManagementController extends Controller
             if (isset($data['scope']) && $data['scope'] !== LookupScopeService::B2B) {
                 abort(403);
             }
-            if (! empty($data['store_id'])) {
+            if (empty($data['store_id']) === false) {
                 abort(403);
             }
 
