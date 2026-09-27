@@ -5,7 +5,7 @@ FOODEX is one commerce platform in one monorepo:
 - Laravel 12 backend/API plus one role-based Management Web Dashboard.
 - One Flutter Customer App for iOS + Android: B2C Guest, B2C Customer, approved B2B Customer.
 - One Flutter Driver App for iOS + Android: B2C_DRIVER and B2B_DRIVER with strict separation.
-- PostgreSQL for production data and Redis for cache/queues.
+- MySQL/MariaDB for production data and Redis for cache/queues.
 - REST API v1 under /api/v1 with OpenAPI as the contract source.
 
 Product implementation and the PH-05 FOODEX brand rollout are present. Usable-product acceptance and release evidence are tracked in Wave I of the product plan; merged features alone do not certify production readiness.
