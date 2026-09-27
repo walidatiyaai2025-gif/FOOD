@@ -42,6 +42,9 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                 if ($database === ':memory:' || ! is_file($database) || ! is_readable($database)) {
                     throw new RuntimeException('SQLite database cannot be backed up safely.');
                 }
+            } elseif ($driver === 'mysql') {
+                $this->runProcess([(string) config('foodex.mysql_dump_binary', 'mysqldump'), '--version']);
+                $this->runProcess([(string) config('foodex.mysql_client_binary', 'mysql'), '--version']);
             } elseif ($driver === 'pgsql') {
                 $this->runProcess([(string) config('foodex.pg_dump_binary', 'pg_dump'), '--version']);
                 $this->runProcess([(string) config('foodex.pg_restore_binary', 'pg_restore'), '--version']);
@@ -108,6 +111,33 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             }
 
             $this->writeDatabaseMetadata($backupDirectory, 'sqlite', $snapshot);
+
+            return $backupDirectory;
+        }
+
+        if ($driver === 'mysql') {
+            $connection = $this->databaseConnectionConfig();
+            $snapshot = $backupDirectory.'/database.sql';
+            $this->runProcess([
+                (string) config('foodex.mysql_dump_binary', 'mysqldump'),
+                '--single-transaction',
+                '--quick',
+                '--skip-lock-tables',
+                '--no-tablespaces',
+                '--default-character-set=utf8mb4',
+                '--host='.(string) ($connection['host'] ?? '127.0.0.1'),
+                '--port='.(string) ($connection['port'] ?? '3306'),
+                '--user='.(string) ($connection['username'] ?? ''),
+                (string) ($connection['database'] ?? ''),
+            ], [
+                'MYSQL_PWD' => (string) ($connection['password'] ?? ''),
+            ], null, $snapshot);
+
+            if (! is_file($snapshot) || filesize($snapshot) === 0) {
+                throw new RuntimeException('MySQL/MariaDB database backup did not produce a valid snapshot.');
+            }
+
+            $this->writeDatabaseMetadata($backupDirectory, 'mysql', $snapshot);
 
             return $backupDirectory;
         }
@@ -294,6 +324,23 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             return;
         }
 
+        if ($metadata['driver'] === 'mysql') {
+            $connection = $this->databaseConnectionConfig();
+            DB::purge();
+            $this->runProcess([
+                (string) config('foodex.mysql_client_binary', 'mysql'),
+                '--default-character-set=utf8mb4',
+                '--host='.(string) ($connection['host'] ?? '127.0.0.1'),
+                '--port='.(string) ($connection['port'] ?? '3306'),
+                '--user='.(string) ($connection['username'] ?? ''),
+                (string) ($connection['database'] ?? ''),
+            ], [
+                'MYSQL_PWD' => (string) ($connection['password'] ?? ''),
+            ], $snapshot);
+
+            return;
+        }
+
         if ($metadata['driver'] === 'pgsql') {
             $connection = $this->databaseConnectionConfig();
             DB::purge();
@@ -449,8 +496,12 @@ final class LaravelUpdateRuntime implements UpdateRuntime
      * @param  array<int, string>  $command
      * @param  array<string, string>  $extraEnvironment
      */
-    private function runProcess(array $command, array $extraEnvironment = []): void
-    {
+    private function runProcess(
+        array $command,
+        array $extraEnvironment = [],
+        ?string $stdinPath = null,
+        ?string $stdoutPath = null,
+    ): void {
         $environment = getenv();
 
         foreach ($extraEnvironment as $key => $value) {
@@ -458,8 +509,8 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         }
 
         $descriptors = [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
+            0 => $stdinPath === null ? ['pipe', 'r'] : ['file', $stdinPath, 'r'],
+            1 => $stdoutPath === null ? ['pipe', 'w'] : ['file', $stdoutPath, 'w'],
             2 => ['pipe', 'w'],
         ];
 
@@ -470,11 +521,17 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         }
 
         /** @var array<int, resource> $pipes */
-        fclose($pipes[0]);
-        stream_get_contents($pipes[1]);
-        stream_get_contents($pipes[2]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
+        if (isset($pipes[0])) {
+            fclose($pipes[0]);
+        }
+        if (isset($pipes[1])) {
+            stream_get_contents($pipes[1]);
+            fclose($pipes[1]);
+        }
+        if (isset($pipes[2])) {
+            stream_get_contents($pipes[2]);
+            fclose($pipes[2]);
+        }
 
         if (proc_close($process) !== 0) {
             throw new RuntimeException('Required database backup tool failed.');
