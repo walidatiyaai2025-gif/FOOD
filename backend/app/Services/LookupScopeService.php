@@ -159,7 +159,7 @@ final class LookupScopeService
         );
     }
 
-    private function canAccessWholesale(User $user): bool
+    public function canAccessWholesale(User $user): bool
     {
         $roles = array_values((array) config('admin.channels.b2b.global_roles', []));
 
