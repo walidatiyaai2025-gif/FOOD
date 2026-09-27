@@ -36,6 +36,11 @@ void main() {
       'available_quantity': 24,
       'is_available': true,
       'currency': 'KWD',
+      'image_url': 'https://example.invalid/b2b-primary.jpg',
+      'images': [
+        'https://example.invalid/b2b-primary.jpg',
+        'https://example.invalid/b2b-second.jpg',
+      ],
     });
     final actionApi = _FakeCustomerActionApi();
     await tester.pumpWidget(
@@ -50,6 +55,8 @@ void main() {
 
     expect(api.lastPath, '/api/v1/b2b/products/42?store_id=7');
     expect(find.byKey(const ValueKey('b2b-product-detail-data')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-product-gallery')), findsOneWidget);
+    expect(find.byType(PageView), findsOneWidget);
     expect(find.text('Wholesale Product'), findsOneWidget);
     expect(find.textContaining('7.25 KWD'), findsOneWidget);
     expect(find.textContaining('5'), findsWidgets);
