@@ -238,7 +238,7 @@ class _DriverHomeMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        minHeight: 122,
+        constraints: const BoxConstraints(minHeight: 122),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: tone,
