@@ -192,10 +192,10 @@
 <div class="dashboard-layout" data-golden-dashboard="ph06" data-dashboard-geometry="physical-ltr">
     <section class="dashboard-shell">
         <header class="topbar">
-            <div class="profile">
+            <a class="profile" href="{{ route('admin.profile.index') }}" style="text-decoration:none;color:inherit">
                 <div class="avatar">{{ mb_substr($user->name, 0, 1) }}</div>
                 <div><strong>{{ $user->name }}</strong><small>{{ __('admin.b2c_dashboard.system_manager') }}</small></div>
-            </div>
+            </a>
             <form class="global-search" method="get" action="{{ route('admin.b2c.dashboard') }}">
                 <input type="hidden" name="date" value="{{ $dashboard['selected_date'] }}">
                 <input type="hidden" name="store_id" value="{{ $storeId }}">
@@ -217,7 +217,7 @@
                 @endif
             </form>
             <div class="top-actions">
-                <span class="language">@include('admin._premium-icon',['name'=>'globe']) {{ app()->getLocale()==='ar' ? 'العربية' : 'English' }}</span>
+                <form method="post" action="{{ route('admin.profile.locale') }}" style="margin:0">@csrf @method('PATCH')<input type="hidden" name="locale" value="{{ app()->getLocale()==='ar'?'en':'ar' }}"><button class="language" type="submit" style="border:0;background:transparent;color:inherit;cursor:pointer">@include('admin._premium-icon',['name'=>'globe']) {{ app()->getLocale()==='ar' ? 'English' : 'العربية' }}</button></form>
                 @include('admin._live-notifications')
             </div>
         </header>
@@ -468,6 +468,19 @@
                     <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعيين السائق':'Assign driver' }}</button>
                 </form>
             @endif
+            @if($module==='content' && $storeId > 0 && ($user->hasPermission('promotions.manage',$storeId) || $user->hasPermission('promotions.manage')))
+                <form method="post" action="{{ route('admin.business.banners.store') }}" enctype="multipart/form-data" class="module-inline-form">
+                    @csrf
+                    <input type="hidden" name="store_id" value="{{ $storeId }}">
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <input name="title" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'عنوان البانر':'Banner title' }}">
+                    <input type="file" name="banner_image" accept="image/jpeg,image/png,image/webp" required aria-label="{{ app()->getLocale()==='ar'?'صورة البانر':'Banner image' }}">
+                    <input name="target_url" maxlength="2048" placeholder="{{ app()->getLocale()==='ar'?'رابط العرض أو المنتج - اختياري':'Offer or product URL - optional' }}">
+                    <input type="number" name="sort_order" min="0" value="0" required placeholder="{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}">
+                    <label style="display:flex;align-items:center;gap:7px"><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
+                    <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'رفع وإضافة البانر':'Upload & add banner' }}</button>
+                </form>
+            @endif
             @if($module==='orders' && $storeId > 0 && (collect($storeIds)->contains(fn($candidateStoreId) => $user->hasPermission('orders.manage',(int)$candidateStoreId)) || $user->hasPermission('orders.manage')))
                 @include('admin._dashboard-order-create',['channel'=>'b2c'])
             @endif
@@ -482,6 +495,23 @@
                                 <td>
                                     @if($column==='actions' && $module==='orders' && ($user->hasPermission('orders.manage',$row['_store_id']) || $user->hasPermission('orders.manage')))
                                         @include('admin._dashboard-order-actions',['channel'=>'b2c','row'=>$row])
+                                    @elseif($column==='image' && $module==='content')
+                                        <img src="{{ asset($row['image']) }}" alt="{{ $row['title'] }}" style="width:112px;height:58px;object-fit:cover;border-radius:10px;border:1px solid var(--foodex-border)">
+                                    @elseif($column==='actions' && $module==='content')
+                                        <div style="display:grid;gap:7px;min-width:310px">
+                                            <form method="post" action="{{ route('admin.business.banners.update',$row['_id']) }}" enctype="multipart/form-data" class="module-inline-form" style="margin:0;padding:10px">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="store_id" value="{{ $row['_store_id'] }}">
+                                                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                                                <input name="title" value="{{ $row['title'] }}" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'عنوان البانر':'Banner title' }}">
+                                                <input type="file" name="banner_image" accept="image/jpeg,image/png,image/webp" aria-label="{{ app()->getLocale()==='ar'?'استبدال صورة البانر':'Replace banner image' }}">
+                                                <input name="target_url" value="{{ $row['target'] }}" maxlength="2048" placeholder="{{ app()->getLocale()==='ar'?'الرابط المستهدف':'Target URL' }}">
+                                                <input type="number" name="sort_order" min="0" value="{{ $row['sort_order'] }}" required>
+                                                <label style="display:flex;align-items:center;gap:7px"><input type="checkbox" name="is_active" value="1" @checked($row['status'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
+                                                <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
+                                            </form>
+                                            <form method="post" action="{{ route('admin.business.banners.destroy',$row['_id']) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'حذف البانر وصورته؟':'Delete this banner and its image?' }}')">@csrf @method('DELETE')<button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
+                                        </div>
                                     @elseif($column==='actions' && is_array($row[$column] ?? null))
                                         <div class="module-links">
                                             @foreach($row[$column] as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach
