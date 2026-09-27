@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.4 - RTL Admin & Master Data CRUD
+- Fix the Arabic admin shell so the sidebar is physically on the right and page content remains RTL.
+- Add server-authoritative management centers with create, edit and delete controls for categories, brands, units, products, stores, warehouses, customers, B2B clients, B2B price tiers, promotions and banners.
+- Add management entry buttons from B2C and B2B operational modules instead of leaving read-only tables without actions.
+- Seed production-safe default units and B2B price tiers so a fresh installation can create products and wholesale accounts immediately.
+- Guard destructive deletes when operational records still reference products, stores, warehouses, customers, units or price tiers.
+
 ## 1.0.3 - First-install Admin Access
 - Redirect unauthenticated management requests to the admin login instead of a raw 401 page.
 - Allow the installer-created `SUPER_ADMIN` to open B2C management surfaces before any stores exist.
