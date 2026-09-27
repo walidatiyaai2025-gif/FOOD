@@ -26,8 +26,8 @@ class InventoryAdministrationTest extends TestCase
 
         $this->getJson('/api/v1/admin/inventory')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $ownInventory);
         $this->postJson("/api/v1/admin/inventory/{$ownInventory}/adjust", ['quantity_delta' => -3, 'reason' => 'count correction'])->assertOk()->assertJsonPath('data.quantity', 7);
-        $this->assertDatabaseHas('stock_movements', ['inventory_id' => $ownInventory, 'type' => 'adjustment']);
-        $this->assertDatabaseHas('audit_logs', ['event' => 'inventory.adjusted']);
+        $this->assertDatabaseHas('stock_movements', ['inventory_id' => $ownInventory, 'store_id' => $storeId, 'type' => 'adjustment']);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'inventory.adjusted', 'store_id' => $storeId]);
         $this->postJson("/api/v1/admin/inventory/{$ownInventory}/adjust", ['quantity_delta' => -7, 'reason' => 'invalid'])->assertUnprocessable();
         $this->postJson("/api/v1/admin/inventory/{$otherInventory}/adjust", ['quantity_delta' => 1, 'reason' => 'cross store'])->assertNotFound();
     }
@@ -49,9 +49,16 @@ class InventoryAdministrationTest extends TestCase
         $store1 = (int) DB::table('stores')->insertGetId(['store_type_id' => $type, 'code' => 'INV-1', 'name' => 'Inventory 1', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $store2 = (int) DB::table('stores')->insertGetId(['store_type_id' => $type, 'code' => 'INV-2', 'name' => 'Inventory 2', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $unit = (int) DB::table('units')->insertGetId(['code' => 'EA-INV', 'name' => 'Each', 'decimal_places' => 0, 'created_at' => now(), 'updated_at' => now()]);
-        $product = (int) DB::table('products')->insertGetId(['unit_id' => $unit, 'sku' => 'INV-P', 'name' => 'Inventory Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $ids = [];
         foreach ([$store1, $store2] as $store) {
+            $catalog = (int) DB::table('catalogs')->insertGetId([
+                'store_id' => $store, 'channel' => 'b2c', 'code' => 'default', 'name' => 'Inventory Catalog',
+                'is_active' => true, 'is_migration_quarantine' => false, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $product = (int) DB::table('products')->insertGetId([
+                'catalog_id' => $catalog, 'unit_id' => $unit, 'sku' => 'INV-P-'.$store,
+                'name' => 'Inventory Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+            ]);
             $warehouse = (int) DB::table('warehouses')->insertGetId(['store_id' => $store, 'code' => 'WH-'.$store, 'name' => 'Warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
             $ids[] = (int) DB::table('inventories')->insertGetId(['warehouse_id' => $warehouse, 'product_id' => $product, 'quantity' => 10, 'reserved_quantity' => 2, 'created_at' => now(), 'updated_at' => now()]);
         }
