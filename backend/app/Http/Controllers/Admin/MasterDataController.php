@@ -702,7 +702,7 @@ final class MasterDataController extends Controller
             DB::table('products')->where('id', $id)->update($values);
         }
 
-        if (!empty($data['store_id'])) {
+        if (! empty($data['store_id'])) {
             DB::table('store_products')->updateOrInsert(
                 ['store_id' => (int) $data['store_id'], 'product_id' => $id],
                 [
@@ -952,12 +952,15 @@ final class MasterDataController extends Controller
         switch ($resource) {
             case 'categories':
                 DB::table('categories')->where('id', $id)->delete();
+
                 return;
             case 'brands':
                 DB::table('brands')->where('id', $id)->delete();
+
                 return;
             case 'units':
                 $this->deleteIfUnused('units', $id, [['products', 'unit_id']]);
+
                 return;
             case 'products':
                 $this->deleteIfUnused('products', $id, [
@@ -966,36 +969,44 @@ final class MasterDataController extends Controller
                     ['inventories', 'product_id'],
                     ['b2b_price_rules', 'product_id'],
                 ]);
+
                 return;
             case 'stores':
                 $this->deleteIfUnused('stores', $id, [
                     ['orders', 'store_id'],
                     ['carts', 'store_id'],
                 ]);
+
                 return;
             case 'warehouses':
                 $this->deleteIfUnused('warehouses', $id, [['inventories', 'warehouse_id']]);
+
                 return;
             case 'customers':
                 $this->deleteIfUnused('customers', $id, [
                     ['orders', 'customer_id'],
                     ['invoices', 'customer_id'],
                 ]);
+
                 return;
             case 'b2b-clients':
                 DB::table('b2b_accounts')->where('id', $id)->delete();
+
                 return;
             case 'price-tiers':
                 $this->deleteIfUnused('b2b_price_tiers', $id, [
                     ['b2b_accounts', 'price_tier_id'],
                     ['b2b_price_rules', 'price_tier_id'],
                 ]);
+
                 return;
             case 'promotions':
                 DB::table('promotions')->where('id', $id)->delete();
+
                 return;
             case 'banners':
                 DB::table('banners')->where('id', $id)->delete();
+
                 return;
         }
     }
