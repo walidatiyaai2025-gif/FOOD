@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\OperationalTenantScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,12 @@ class DriverAssignmentController extends Controller
     public function index(Request $request): JsonResponse
     {
         [$driver, $channel] = $this->driverContext($request);
-        $rows = DriverAssignment::query()->where('driver_id', $driver->getKey())->where('assignment_type', $channel)->latest('id')->get();
+        $rows = DriverAssignment::query()
+            ->where('driver_id', $driver->getKey())
+            ->where('assignment_type', $channel)
+            ->when($driver->store_id !== null, fn ($query) => $query->where('store_id', (int) $driver->store_id))
+            ->latest('id')
+            ->get();
         $allowed = $this->allowedTransitions();
         $rows->each(static function (DriverAssignment $assignment) use ($allowed): void {
             $assignment->setAttribute('available_statuses', $allowed[$assignment->status] ?? []);
@@ -39,8 +45,22 @@ class DriverAssignmentController extends Controller
         $ability = "drivers.{$channel}.manage";
         $user = $request->user();
         abort_unless($user instanceof User && $user->hasPermission($ability, (int) $order->store_id), 403);
+        app(OperationalTenantScope::class)->assertStore($user, (int) $order->store_id, $ability, $channel);
 
-        $assignment = DriverAssignment::query()->create(['driver_id' => $driver->getKey(), 'order_id' => $order->getKey(), 'assignment_type' => $channel, 'status' => 'assigned', 'assigned_at' => now()]);
+        if ($driver->store_id === null) {
+            $driver->update(['store_id' => (int) $order->store_id]);
+        } else {
+            abort_unless((int) $driver->store_id === (int) $order->store_id, 409, 'Driver and order must belong to the same store.');
+        }
+
+        $assignment = DriverAssignment::query()->create([
+            'driver_id' => $driver->getKey(),
+            'order_id' => $order->getKey(),
+            'store_id' => (int) $order->store_id,
+            'assignment_type' => $channel,
+            'status' => 'assigned',
+            'assigned_at' => now(),
+        ]);
         $auditLogger->record('delivery.assignment.created', $user, $assignment, null, $assignment->toArray(), $request);
         $dashboardNotifier->deliveryChanged($order, 'assigned');
 
@@ -51,7 +71,12 @@ class DriverAssignmentController extends Controller
     {
         [$driver, $channel] = $this->driverContext($request);
         $data = $request->validate(['status' => ['required', Rule::in(['accepted', 'picked_up', 'out_for_delivery', 'delivered', 'failed'])]]);
-        $model = DriverAssignment::query()->whereKey($assignment)->where('driver_id', $driver->getKey())->where('assignment_type', $channel)->firstOrFail();
+        $model = DriverAssignment::query()
+            ->whereKey($assignment)
+            ->where('driver_id', $driver->getKey())
+            ->where('assignment_type', $channel)
+            ->when($driver->store_id !== null, fn ($query) => $query->where('store_id', (int) $driver->store_id))
+            ->firstOrFail();
         $allowed = $this->allowedTransitions();
         abort_unless(in_array($data['status'], $allowed[$model->status] ?? [], true), 409, 'Invalid delivery transition.');
         $before = ['status' => $model->status];
@@ -67,7 +92,7 @@ class DriverAssignmentController extends Controller
         $fresh = $model->fresh();
         $fresh->setAttribute('available_statuses', $allowed[$fresh->status] ?? []);
         $order = Order::query()->find($fresh->order_id);
-        if ($order instanceof Order) {
+        if ($order instanceof Order && (int) $order->store_id === (int) $fresh->store_id) {
             $dashboardNotifier->deliveryChanged($order, (string) $fresh->status);
         }
 
