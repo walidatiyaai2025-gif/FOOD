@@ -38,6 +38,7 @@ class AdminNavigation
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
+                $this->routeItem($user, 'business_management', 'admin.business_management', 'admin.business.index', 'inventory.view'),
                 $this->module($user, $channels, 'b2c', 'orders', 'admin.b2c_workspace.modules.orders', 'orders.view'),
                 $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
                 $this->module($user, $channels, 'b2b', 'orders', 'admin.b2b_workspace.modules.orders', 'orders.view'),
