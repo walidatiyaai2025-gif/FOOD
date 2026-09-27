@@ -450,7 +450,7 @@
                     <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعيين السائق':'Assign driver' }}</button>
                 </form>
             @endif
-            @if($module==='orders' && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('orders.manage',(int)$storeId)) || $user->hasPermission('orders.manage')))
+            @if($module==='orders' && $storeId > 0 && (collect($storeIds)->contains(fn($candidateStoreId) => $user->hasPermission('orders.manage',(int)$candidateStoreId)) || $user->hasPermission('orders.manage')))
                 @include('admin._dashboard-order-create',['channel'=>'b2c'])
             @endif
             @if(count($moduleData['rows']))
