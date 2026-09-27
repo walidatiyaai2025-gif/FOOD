@@ -594,8 +594,8 @@ class B2bWorkspaceController extends Controller
                 return [
                     'store' => $store->name,
                     'orders' => (int) data_get($data, 'kpis.orders', 0),
-                    'revenue' => 'KWD '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
-                    'average' => 'KWD '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
+                    'revenue' => 'EGP '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
+                    'average' => 'EGP '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
                     'actions' => $actions,
                 ];
             })->all(),
@@ -817,7 +817,7 @@ class B2bWorkspaceController extends Controller
                     'sku' => $row->sku,
                     'name' => $row->name,
                     'store' => $row->store,
-                    'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' KWD',
+                    'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' EGP',
                     'available' => number_format((float) $stock, 3),
                     'status' => (bool) $row->is_active,
                     'actions' => true,
@@ -1025,7 +1025,7 @@ class B2bWorkspaceController extends Controller
                         'sku' => $row->sku,
                         'product' => $row->product,
                         'store' => $row->store,
-                        'unit_price' => number_format((float) $row->unit_price, 3).' KWD',
+                        'unit_price' => number_format((float) $row->unit_price, 3).' EGP',
                         'minimum_quantity' => number_format((float) $row->minimum_quantity, 3),
                         'status' => (bool) $row->status,
                     ])->all(),
