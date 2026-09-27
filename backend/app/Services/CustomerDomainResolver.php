@@ -39,10 +39,7 @@ final class CustomerDomainResolver
                     ],
                 );
 
-                DB::table('b2b_accounts')
-                    ->where('customer_id', $legacy->getKey())
-                    ->whereNull('b2b_customer_id')
-                    ->update(['b2b_customer_id' => $customer->getKey(), 'updated_at' => now()]);
+                $this->reconcileLegacyB2bReferences($legacy->getKey(), $customer->getKey());
             }
         }
 
@@ -191,6 +188,37 @@ final class CustomerDomainResolver
         );
 
         return (int) $customer->legacy_customer_id;
+    }
+
+    private function reconcileLegacyB2bReferences(int $legacyCustomerId, int $b2bCustomerId): void
+    {
+        DB::table('b2b_accounts')
+            ->where('customer_id', $legacyCustomerId)
+            ->whereNull('b2b_customer_id')
+            ->update(['b2b_customer_id' => $b2bCustomerId, 'updated_at' => now()]);
+
+        DB::table('orders')
+            ->where('customer_id', $legacyCustomerId)
+            ->where('channel', 'b2b')
+            ->whereNull('b2b_customer_id')
+            ->update(['b2b_customer_id' => $b2bCustomerId, 'updated_at' => now()]);
+
+        DB::table('carts')
+            ->where('customer_id', $legacyCustomerId)
+            ->where('channel', 'b2b')
+            ->whereNull('b2b_customer_id')
+            ->update(['b2b_customer_id' => $b2bCustomerId, 'updated_at' => now()]);
+
+        DB::table('invoices')
+            ->where('customer_id', $legacyCustomerId)
+            ->whereNull('b2b_customer_id')
+            ->update(['b2b_customer_id' => $b2bCustomerId, 'updated_at' => now()]);
+
+        DB::table('addresses')
+            ->where('customer_id', $legacyCustomerId)
+            ->whereNull('b2b_customer_id')
+            ->whereNull('b2c_customer_id')
+            ->update(['b2b_customer_id' => $b2bCustomerId, 'updated_at' => now()]);
     }
 
     private function requestedStoreId(Request $request): ?int
