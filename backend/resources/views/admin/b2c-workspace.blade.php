@@ -243,7 +243,7 @@
                 <form class="date-control" method="get" action="{{ route('admin.b2c.dashboard') }}">
                     <input type="hidden" name="store_id" value="{{ $storeId }}">
                     @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
-                    <span>⌄</span><input type="date" name="date" value="{{ $dashboard['selected_date'] }}" aria-label="{{ app()->getLocale()==='ar'?'تاريخ التقرير':'Report date' }}" onchange="this.form.submit()">
+                    <span>⌄</span><input type="date" name="date" value="{{ $dashboard['selected_date'] }}" placeholder="YYYY-MM-DD" aria-label="{{ app()->getLocale()==='ar'?'تاريخ التقرير':'Report date' }}" onchange="this.form.submit()">
                 </form>
             </div>
 
