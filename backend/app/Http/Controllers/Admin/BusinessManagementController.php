@@ -486,29 +486,6 @@ final class BusinessManagementController extends Controller
         );
     }
 
-    /** @param list<int> $storeIds
-     * @return list<int>
-     */
-    private function filterRequestedStoreIds(User $actor, Request $request, array $storeIds): array
-    {
-        $requested = $request->integer('store_id');
-        if ($requested <= 0) {
-            return $storeIds;
-        }
-
-        abort_unless(in_array($requested, $storeIds, true), 404);
-
-        if ($actor->hasRole('SUPER_ADMIN')) {
-            $channel = app(OperationalTenantScope::class)->storeChannel($requested);
-            if ($channel === 'b2c') {
-                abort_unless($request->boolean('support_access'), 403);
-                app(TenantContextResolver::class)->retail($actor, $requested, true, $request);
-            }
-        }
-
-        return [$requested];
-    }
-
     private function actor(Request $request): User
     {
         $actor = $request->user();
