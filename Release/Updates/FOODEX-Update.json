@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.7",
-  "minimum_current_version": "1.0.6",
-  "sha256": "4f61f762a88a9d1a0228c9a2efbc2dbb5e15a31371a6a8f8e19f173e0ff30afe",
+  "target_version": "1.0.9",
+  "minimum_current_version": "1.0.8",
+  "sha256": "f413a7e316f51a02e10c7f111b1a59ff3af361b6f627d9569ab11afb6c2aa697",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "REL-1.0.7: refresh generated trial bundle from current main (#284)",
+  "release_notes": "MT-REPLENISH: Retail stores as Wholesale customers with automatic receiving (#289)",
   "dashboard_fields": {
-    "target_version": "1.0.7",
-    "minimum_current_version": "1.0.6",
-    "sha256": "4f61f762a88a9d1a0228c9a2efbc2dbb5e15a31371a6a8f8e19f173e0ff30afe",
+    "target_version": "1.0.9",
+    "minimum_current_version": "1.0.8",
+    "sha256": "f413a7e316f51a02e10c7f111b1a59ff3af361b6f627d9569ab11afb6c2aa697",
     "contains_migrations": true,
-    "release_notes": "REL-1.0.7: refresh generated trial bundle from current main (#284)"
+    "release_notes": "MT-REPLENISH: Retail stores as Wholesale customers with automatic receiving (#289)"
   }
 }
