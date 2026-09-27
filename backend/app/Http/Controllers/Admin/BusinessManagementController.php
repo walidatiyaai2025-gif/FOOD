@@ -30,11 +30,12 @@ final class BusinessManagementController extends Controller
             : 'inventory';
 
         $allowed = match ($tab) {
-            'inventory' => $actor->hasPermission('inventory.view') || $actor->hasPermission('inventory.manage'),
-            'customers' => $actor->hasPermission('customers.view') || $actor->hasPermission('customers.manage'),
-            'promotions', 'content' => $actor->hasPermission('promotions.view') || $actor->hasPermission('promotions.manage'),
-            'drivers' => $actor->hasPermission('drivers.b2c.view') || $actor->hasPermission('drivers.b2b.view')
-                || $actor->hasPermission('drivers.b2c.manage') || $actor->hasPermission('drivers.b2b.manage'),
+            'inventory' => $this->hasPermissionAnywhere($actor, ['inventory.view', 'inventory.manage']),
+            'customers' => $this->hasPermissionAnywhere($actor, ['customers.view', 'customers.manage']),
+            'promotions', 'content' => $this->hasPermissionAnywhere($actor, ['promotions.view', 'promotions.manage']),
+            'drivers' => $this->hasPermissionAnywhere($actor, [
+                'drivers.b2c.view', 'drivers.b2b.view', 'drivers.b2c.manage', 'drivers.b2b.manage',
+            ]),
         };
         abort_unless($allowed, 403);
 
@@ -645,6 +646,24 @@ final class BusinessManagementController extends Controller
             $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
             $request,
         );
+    }
+
+    /** @param list<string> $permissions */
+    private function hasPermissionAnywhere(User $actor, array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($actor->hasPermission($permission)
+                || $actor->storeRoleAssignments()
+                    ->whereHas('role', fn ($query) => $query
+                        ->where('roles.is_active', true)
+                        ->whereHas('permissions', fn ($permissionsQuery) => $permissionsQuery
+                            ->where('permissions.code', $permission)))
+                    ->exists()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @param list<string> $permissions
