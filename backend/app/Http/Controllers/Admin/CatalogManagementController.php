@@ -140,9 +140,7 @@ final class CatalogManagementController extends Controller
                     'stores.store_type_id',
                     'store_types.code as type_code',
                 ]),
-            'storeTypes' => $canManageStores
-                ? DB::table('store_types')->orderBy('code')->get()
-                : collect(),
+            'storeTypes' => collect(),
             'productImages' => DB::table('product_images')
                 ->join('products', 'products.id', '=', 'product_images.product_id')
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
