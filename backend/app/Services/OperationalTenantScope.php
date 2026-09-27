@@ -109,7 +109,7 @@ final class OperationalTenantScope
     }
 
     /** @param list<string> $channels
-     *  @return list<int>
+     * @return list<int>
      */
     private function storeIdsForChannels(array $channels): array
     {
