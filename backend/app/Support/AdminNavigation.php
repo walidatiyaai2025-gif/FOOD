@@ -81,6 +81,7 @@ class AdminNavigation
                 $this->module($user, $channels, 'b2c', 'settings', 'admin.b2c_workspace.modules.settings', null),
                 $this->module($user, $channels, 'b2b', 'settings', 'admin.b2b_workspace.modules.settings', 'settings.view'),
                 $this->routeItem($user, 'security', 'admin.security_center', 'admin.security.index', 'security.view'),
+                $this->routeItem($user, 'demo_data', 'admin.security.demo_data.title', 'admin.security.demo-data.index', 'demo_data.manage'),
                 $this->routeItem($user, 'translations', 'admin.translation_center', 'admin.translations.index', 'translations.manage'),
                 $this->routeItemAny($user, 'mobile_settings', 'mobile_settings.title', 'admin.mobile-settings.index', ['mobile_settings.manage', 'push_settings.manage', 'push_settings.test']),
                 $this->routeItem($user, 'app_versions', 'admin.app_versions', 'admin.app-versions.index', 'platform.manage'),
