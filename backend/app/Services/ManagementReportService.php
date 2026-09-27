@@ -166,7 +166,7 @@ final class ManagementReportService
                 'order_number' => (string) $row->order_number,
                 'date' => $this->localDateTime($row->created_at),
                 'store' => (string) $row->store,
-                'channel' => strtoupper((string) $row->channel),
+                'channel' => $this->channelLabel((string) $row->channel),
                 'status' => (string) $row->status,
                 'customer' => (string) $row->customer,
                 'total' => round((float) $row->grand_total, 3),
@@ -408,7 +408,7 @@ final class ManagementReportService
 
                 return [
                     'customer' => (string) $row->name,
-                    'type' => strtoupper((string) $row->type),
+                    'type' => $this->channelLabel((string) $row->type),
                     'company' => $row->company_name === null ? '—' : (string) $row->company_name,
                     'orders' => (int) $row->order_count,
                     'value' => round((float) $row->order_value, 3),
@@ -493,7 +493,7 @@ final class ManagementReportService
             ->take($limit)
             ->map(fn (object $row): array => [
                 'store' => (string) $row->store,
-                'channel' => strtoupper((string) $row->channel),
+                'channel' => $this->channelLabel((string) $row->channel),
                 'orders' => (int) $row->orders,
                 'revenue' => round((float) $row->revenue, 3),
                 'delivered' => (int) $row->delivered,
@@ -756,6 +756,13 @@ final class ManagementReportService
         $filters['channel'] = $forcedChannel;
 
         return $filters;
+    }
+
+    private function channelLabel(string $channel): string
+    {
+        return strtolower($channel) === 'b2c'
+            ? (app()->getLocale() === 'ar' ? 'التجزئة' : 'Retail')
+            : 'B2B';
     }
 
     private function positiveInt(mixed $value): ?int
