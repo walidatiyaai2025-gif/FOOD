@@ -39,7 +39,7 @@ final class SystemInspectorRecorder
                         'file' => $frame['file'] ?? null,
                         'line' => $frame['line'] ?? null,
                         'class' => $frame['class'] ?? null,
-                        'function' => $frame['function'] ?? null,
+                        'function' => $frame['function'],
                     ])
                     ->values()
                     ->all(),
