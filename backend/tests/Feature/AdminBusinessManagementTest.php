@@ -60,8 +60,7 @@ class AdminBusinessManagementTest extends TestCase
         ]);
 
         $this->actingAs($user)->get('/admin/business?tab=inventory')
-            ->assertOk()
-            ->assertSee('إدارة العمليات والبيانات');
+            ->assertRedirect(route('admin.index'));
 
         $this->actingAs($user)->post('/admin/business/warehouses', [
             'store_id' => $storeId,
@@ -141,7 +140,10 @@ class AdminBusinessManagementTest extends TestCase
             '/admin/b2c/content' => 'إضافة / تعديل البنرات',
             '/admin/b2c/drivers' => 'إضافة / إدارة السائقين',
         ] as $uri => $label) {
-            $this->actingAs($user)->get($uri)->assertOk()->assertSee($label);
+            $this->actingAs($user)
+                ->get($uri.'?store_id='.$storeId.'&support_access=1')
+                ->assertOk()
+                ->assertSee($label);
         }
     }
 
