@@ -74,3 +74,19 @@
         .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{padding:var(--foodex-space-4)}
     }
 </style>
+
+<script id="foodex-placeholder-audit">
+document.addEventListener('DOMContentLoaded', () => {
+    const isArabic = document.documentElement.lang.toLowerCase().startsWith('ar');
+    const eligible = 'input:not([type]),input[type="text"],input[type="email"],input[type="password"],input[type="number"],input[type="url"],input[type="search"],input[type="tel"],textarea';
+    document.querySelectorAll(eligible).forEach((field) => {
+        if (field.hasAttribute('placeholder')) return;
+        const label = field.closest('label');
+        let labelText = label ? label.cloneNode(true) : null;
+        if (labelText) labelText.querySelectorAll('input,textarea,select,button').forEach((node) => node.remove());
+        const raw = (field.getAttribute('aria-label') || labelText?.textContent || field.name || '').trim().replace(/\s+/g, ' ');
+        const fallback = isArabic ? 'أدخل القيمة المطلوبة' : 'Enter the required value';
+        field.setAttribute('placeholder', raw ? (isArabic ? 'أدخل ' + raw : 'Enter ' + raw) : fallback);
+    });
+});
+</script>
