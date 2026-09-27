@@ -72,6 +72,16 @@ Route::prefix('admin')
         Route::post('/b2b/orders/{order}/status', [B2bWorkspaceController::class, 'transitionOrder'])->name('b2b.orders.status');
         Route::post('/b2b/drivers/assign', [B2bWorkspaceController::class, 'assignDriver'])->name('b2b.drivers.assign');
         Route::post('/b2b/pricing', [B2bWorkspaceController::class, 'savePriceRule'])->name('b2b.pricing.save');
+        Route::post('/b2b/clients', [B2bWorkspaceController::class, 'storeClient'])->name('b2b.clients.store');
+        Route::patch('/b2b/clients/{account}/status', [B2bWorkspaceController::class, 'updateClientStatus'])->name('b2b.clients.status');
+        Route::post('/b2b/categories', [B2bWorkspaceController::class, 'storeCategory'])->name('b2b.categories.store');
+        Route::post('/b2b/products', [B2bWorkspaceController::class, 'storeProduct'])->name('b2b.products.store');
+        Route::patch('/b2b/products/{product}', [B2bWorkspaceController::class, 'updateProduct'])->name('b2b.products.update');
+        Route::post('/b2b/warehouses', [B2bWorkspaceController::class, 'storeWarehouse'])->name('b2b.warehouses.store');
+        Route::post('/b2b/inventory', [B2bWorkspaceController::class, 'ensureInventory'])->name('b2b.inventory.ensure');
+        Route::patch('/b2b/inventory/{inventory}/adjust', [B2bWorkspaceController::class, 'adjustInventory'])->whereNumber('inventory')->name('b2b.inventory.adjust');
+        Route::post('/b2b/drivers', [B2bWorkspaceController::class, 'storeDriver'])->name('b2b.drivers.store');
+        Route::put('/b2b/settings', [B2bWorkspaceController::class, 'saveSetting'])->name('b2b.settings.save');
         Route::get('/b2b/pricing-approvals', [B2bWorkspaceController::class, 'show'])->defaults('module', 'pricing')->name('b2b.pricing-approvals');
         Route::get('/b2b/settings-permissions', [B2bWorkspaceController::class, 'show'])->defaults('module', 'settings')->name('b2b.settings-permissions');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');

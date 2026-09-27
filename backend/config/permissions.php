@@ -69,6 +69,7 @@ return [
             'inventory.view', 'inventory.adjust', 'inventory.manage',
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
             'finance.view', 'finance.manage', 'reports.view', 'reports.export',
+            'settings.view', 'settings.manage',
             'drivers.b2b.view', 'drivers.b2b.manage',
         ],
         'B2C_STORE_ADMIN' => [

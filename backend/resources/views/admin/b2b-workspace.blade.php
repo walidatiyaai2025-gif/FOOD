@@ -29,8 +29,8 @@
     @if($moduleData)
     @php
       $labels=app()->getLocale()==='ar'
-      ? ['number'=>'رقم الطلب','client'=>'العميل','store'=>'الفرع','status'=>'الحالة','amount'=>'الإجمالي','created'=>'الإنشاء','code'=>'الكود','name'=>'الاسم','products'=>'المنتجات','orders'=>'الطلبات','company'=>'الشركة','email'=>'البريد','phone'=>'الهاتف','tax_number'=>'الرقم الضريبي','sku'=>'SKU','price'=>'السعر','available'=>'المتاح','actions'=>'إجراءات','availability'=>'التوفر','active'=>'نشط','assignments'=>'التعيينات','tier'=>'شريحة السعر','product'=>'المنتج','unit_price'=>'سعر الوحدة','minimum_quantity'=>'الحد الأدنى','revenue'=>'الإيراد','average'=>'متوسط الطلب','setting'=>'الإعداد','value'=>'القيمة']
-      : ['number'=>'Order','client'=>'Client','store'=>'Store','status'=>'Status','amount'=>'Amount','created'=>'Created','code'=>'Code','name'=>'Name','products'=>'Products','orders'=>'Orders','company'=>'Company','email'=>'Email','phone'=>'Phone','tax_number'=>'Tax number','sku'=>'SKU','price'=>'Price','available'=>'Available','actions'=>'Actions','availability'=>'Availability','active'=>'Active','assignments'=>'Assignments','tier'=>'Price tier','product'=>'Product','unit_price'=>'Unit price','minimum_quantity'=>'Minimum quantity','revenue'=>'Revenue','average'=>'Average order','setting'=>'Setting','value'=>'Value'];
+      ? ['number'=>'رقم الطلب','client'=>'العميل','store'=>'الفرع','status'=>'الحالة','amount'=>'الإجمالي','created'=>'الإنشاء','code'=>'الكود','name'=>'الاسم','products'=>'المنتجات','orders'=>'الطلبات','company'=>'الشركة','email'=>'البريد','phone'=>'الهاتف','tax_number'=>'الرقم الضريبي','sku'=>'SKU','price'=>'السعر','available'=>'المتاح','actions'=>'إجراءات','availability'=>'التوفر','active'=>'نشط','assignments'=>'التعيينات','tier'=>'شريحة السعر','product'=>'المنتج','unit_price'=>'سعر الوحدة','minimum_quantity'=>'الحد الأدنى','revenue'=>'الإيراد','average'=>'متوسط الطلب','setting'=>'الإعداد','value'=>'القيمة','warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','invoice'=>'الفاتورة','paid'=>'المدفوع','balance'=>'الرصيد','due'=>'الاستحقاق']
+      : ['number'=>'Order','client'=>'Client','store'=>'Store','status'=>'Status','amount'=>'Amount','created'=>'Created','code'=>'Code','name'=>'Name','products'=>'Products','orders'=>'Orders','company'=>'Company','email'=>'Email','phone'=>'Phone','tax_number'=>'Tax number','sku'=>'SKU','price'=>'Price','available'=>'Available','actions'=>'Actions','availability'=>'Availability','active'=>'Active','assignments'=>'Assignments','tier'=>'Price tier','product'=>'Product','unit_price'=>'Unit price','minimum_quantity'=>'Minimum quantity','revenue'=>'Revenue','average'=>'Average order','setting'=>'Setting','value'=>'Value','warehouse'=>'Warehouse','quantity'=>'Quantity','reserved'=>'Reserved','invoice'=>'Invoice','paid'=>'Paid','balance'=>'Balance','due'=>'Due'];
     @endphp
     @if(session('status'))<div class="panel" style="border-color:#b7dfc4;background:var(--foodex-green-soft);color:var(--foodex-green-dark)">{{ session('status') }}</div>@endif
     @if($errors->any())<div class="panel" style="border-color:#ffd0a6;background:var(--foodex-orange-soft)"><strong>{{ app()->getLocale()==='ar'?'تعذر تنفيذ العملية':'Action could not be completed' }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
@@ -38,7 +38,7 @@
       <div class="toolbar">
         <div><strong>{{ __('admin.b2b_workspace.authoritative') }}</strong><div class="muted">{{ app()->getLocale()==='ar' ? 'النطاق محصور في متاجر وقناة B2B.' : 'Scope is restricted to B2B stores and channel data.' }}</div></div>
         <nav class="links workspace-tabs" aria-label="B2B core modules">
-          @foreach(['dashboard','stores','clients','products','orders','drivers','pricing','reports','settings'] as $core)
+          @foreach(['dashboard','stores','clients','products','inventory','orders','drivers','pricing','finance','reports','settings'] as $core)
           <a class="{{ $module===$core?'active':'' }}" href="{{ $core==='dashboard'?route('admin.b2b.dashboard'):route('admin.b2b.module',['module'=>$core]) }}">{{ __('admin.b2b_workspace.modules.'.$core) }}</a>
           @endforeach
         </nav>
@@ -47,6 +47,86 @@
       <div class="links workspace-inline-form">
         @foreach($moduleData['actions'] as $action)<a class="foodex-primary" href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach
       </div>
+      @endif
+
+      @if($module==='clients' && $user->hasPermission('b2b.accounts.manage'))
+      <form method="post" action="{{ route('admin.b2b.clients.store') }}" class="links workspace-inline-form">
+        @csrf
+        <input name="company_name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم الشركة':'Company name' }}">
+        <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم مسؤول الحساب':'Account contact' }}">
+        <input name="email" type="email" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'البريد الإلكتروني':'Email' }}">
+        <input name="phone" maxlength="50" placeholder="{{ app()->getLocale()==='ar'?'الهاتف':'Phone' }}">
+        <input name="tax_number" maxlength="100" placeholder="{{ app()->getLocale()==='ar'?'الرقم الضريبي':'Tax number' }}">
+        <input name="password" type="password" required minlength="8" placeholder="{{ app()->getLocale()==='ar'?'كلمة المرور المؤقتة':'Temporary password' }}">
+        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إنشاء عميل جملة':'Create wholesale client' }}</button>
+      </form>
+      @endif
+
+      @if($module==='products' && $user->hasPermission('catalog.manage'))
+      <form method="post" action="{{ route('admin.b2b.categories.store') }}" class="links workspace-inline-form">
+        @csrf
+        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'فرع الجملة':'Wholesale store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
+        <select name="parent_id"><option value="">{{ app()->getLocale()==='ar'?'بدون تصنيف أب':'No parent category' }}</option>@foreach($moduleData['categories'] as $category)<option value="{{ $category['id'] }}">{{ $category['name'] }}</option>@endforeach</select>
+        <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم التصنيف':'Category name' }}">
+        <input name="slug" required maxlength="255" placeholder="category-slug">
+        <input type="hidden" name="is_active" value="1">
+        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة تصنيف':'Add category' }}</button>
+      </form>
+      @endif
+
+      @if($module==='products' && $user->hasPermission('catalog.create'))
+      <form method="post" action="{{ route('admin.b2b.products.store') }}" class="links workspace-inline-form">
+        @csrf
+        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'فرع الجملة':'Wholesale store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
+        <input name="sku" required maxlength="120" placeholder="SKU">
+        <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}">
+        <select name="category_id"><option value="">{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}</option>@foreach($moduleData['categories'] as $category)<option value="{{ $category['id'] }}">{{ $category['name'] }}</option>@endforeach</select>
+        <select name="brand_id"><option value="">{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}</option>@foreach($moduleData['brands'] as $brand)<option value="{{ $brand['id'] }}">{{ $brand['name'] }}</option>@endforeach</select>
+        <select name="unit_id" required><option value="">{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}</option>@foreach($moduleData['units'] as $unit)<option value="{{ $unit['id'] }}">{{ $unit['code'] }} · {{ $unit['name'] }}</option>@endforeach</select>
+        <input name="price" type="number" min="0" step="0.001" placeholder="{{ app()->getLocale()==='ar'?'السعر':'Price' }}">
+        <input name="description" maxlength="1000" placeholder="{{ app()->getLocale()==='ar'?'الوصف':'Description' }}">
+        <input type="hidden" name="is_active" value="1">
+        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة منتج جملة':'Add wholesale product' }}</button>
+      </form>
+      @endif
+
+      @if($module==='inventory' && $user->hasPermission('inventory.manage'))
+      <form method="post" action="{{ route('admin.b2b.warehouses.store') }}" class="links workspace-inline-form">
+        @csrf
+        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'فرع الجملة':'Wholesale store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
+        <input name="code" required maxlength="80" placeholder="{{ app()->getLocale()==='ar'?'كود المخزن':'Warehouse code' }}">
+        <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم المخزن':'Warehouse name' }}">
+        <input type="hidden" name="is_active" value="1">
+        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة مخزن':'Add warehouse' }}</button>
+      </form>
+      <form method="post" action="{{ route('admin.b2b.inventory.ensure') }}" class="links workspace-inline-form">
+        @csrf
+        <select name="warehouse_id" required><option value="">{{ app()->getLocale()==='ar'?'المخزن':'Warehouse' }}</option>@foreach($moduleData['warehouses'] as $warehouse)<option value="{{ $warehouse['id'] }}">{{ $warehouse['name'] }}</option>@endforeach</select>
+        <select name="product_id" required><option value="">{{ app()->getLocale()==='ar'?'المنتج':'Product' }}</option>@foreach($moduleData['products'] as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach</select>
+        <input name="quantity" type="number" min="0" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'الكمية':'Quantity' }}">
+        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إنشاء/تحديث الرصيد':'Create/update balance' }}</button>
+      </form>
+      @endif
+
+      @if($module==='drivers' && $user->hasPermission('drivers.b2b.manage'))
+      <form method="post" action="{{ route('admin.b2b.drivers.store') }}" class="links workspace-inline-form">
+        @csrf
+        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'فرع الجملة':'Wholesale store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
+        <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم السائق':'Driver name' }}">
+        <input name="email" type="email" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'البريد':'Email' }}">
+        <input name="password" type="password" required minlength="8" placeholder="{{ app()->getLocale()==='ar'?'كلمة المرور':'Password' }}">
+        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إنشاء سائق جملة':'Create wholesale driver' }}</button>
+      </form>
+      @endif
+
+      @if($module==='settings' && $user->hasPermission('settings.manage'))
+      <form method="post" action="{{ route('admin.b2b.settings.save') }}" class="links workspace-inline-form">
+        @csrf @method('put')
+        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'فرع الجملة':'Wholesale store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
+        <input name="key" required maxlength="255" placeholder="wholesale.setting.key">
+        <input name="value" maxlength="5000" placeholder="{{ app()->getLocale()==='ar'?'القيمة':'Value' }}">
+        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ الإعداد':'Save setting' }}</button>
+      </form>
       @endif
       @if($module==='drivers' && $user->hasPermission('drivers.b2b.manage'))
       <form method="post" action="{{ route('admin.b2b.drivers.assign') }}" class="links workspace-inline-form">
@@ -75,6 +155,33 @@
         @elseif($column==='status')<span class="badge {{ $row[$column] }}">{{ $row[$column] }}</span>
         @elseif($column==='actions' && $module==='reports')
           <div class="links">@foreach($row['actions'] as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach</div>
+        @elseif($column==='actions' && $module==='clients' && $user->hasPermission('b2b.accounts.manage'))
+          <form method="post" action="{{ route('admin.b2b.clients.status',['account'=>$row['_id']]) }}" class="links">
+            @csrf @method('patch')
+            <select name="status" required>@foreach(['pending','active','suspended','denied'] as $state)<option value="{{ $state }}" @selected($row['status']===$state)>{{ $state }}</option>@endforeach</select>
+            <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
+          </form>
+        @elseif($column==='actions' && $module==='products' && $user->hasPermission('catalog.edit'))
+          <details><summary>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</summary>
+          <form method="post" action="{{ route('admin.b2b.products.update',['product'=>$row['_id']]) }}" class="links workspace-inline-form">
+            @csrf @method('patch')
+            <input name="sku" value="{{ $row['sku'] }}" required maxlength="120">
+            <input name="name" value="{{ $row['name'] }}" required maxlength="255">
+            <select name="category_id"><option value="">{{ app()->getLocale()==='ar'?'بدون تصنيف':'No category' }}</option>@foreach($moduleData['categories'] as $category)<option value="{{ $category['id'] }}" @selected($row['_category_id']===$category['id'])>{{ $category['name'] }}</option>@endforeach</select>
+            <select name="brand_id"><option value="">{{ app()->getLocale()==='ar'?'بدون علامة':'No brand' }}</option>@foreach($moduleData['brands'] as $brand)<option value="{{ $brand['id'] }}" @selected($row['_brand_id']===$brand['id'])>{{ $brand['name'] }}</option>@endforeach</select>
+            <select name="unit_id" required>@foreach($moduleData['units'] as $unit)<option value="{{ $unit['id'] }}" @selected($row['_unit_id']===$unit['id'])>{{ $unit['code'] }} · {{ $unit['name'] }}</option>@endforeach</select>
+            <input name="price" type="number" min="0" step="0.001" value="{{ $row['price']==='-'?'':str_replace([' KWD',','],'',$row['price']) }}">
+            <input name="description" maxlength="1000" value="{{ $row['_description'] }}">
+            <label><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($row['status'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
+            <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
+          </form></details>
+        @elseif($column==='actions' && $module==='inventory' && $user->hasPermission('inventory.adjust'))
+          <form method="post" action="{{ route('admin.b2b.inventory.adjust',['inventory'=>$row['_id']]) }}" class="links">
+            @csrf @method('patch')
+            <input name="quantity_delta" type="number" step="0.001" required placeholder="+/-">
+            <input name="reason" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'السبب':'Reason' }}">
+            <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعديل':'Adjust' }}</button>
+          </form>
         @elseif($column==='actions' && $module==='orders' && $user->hasPermission('orders.manage'))
           <form method="post" action="{{ route('admin.b2b.orders.status',['order'=>$row['_id']]) }}" class="links">
             @csrf

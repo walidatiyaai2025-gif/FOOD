@@ -26,7 +26,7 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($user)->get('/admin/b2b/products')
             ->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee('المنتجات والمخزون')
+            ->assertSee('كتالوج الجملة')
             ->assertSee('FOODEX · B2B');
     }
 
@@ -41,9 +41,9 @@ class B2bAdminWorkspaceTest extends TestCase
         $product = (int) DB::table('products')->insertGetId(['catalog_id' => $catalog, 'unit_id' => $unit, 'sku' => 'B2B-SKU', 'name' => 'B2B Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('store_products')->insert(['store_id' => $store, 'product_id' => $product, 'price' => 12.500, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('inventories')->insert(['warehouse_id' => $warehouse, 'product_id' => $product, 'quantity' => 20, 'reserved_quantity' => 3, 'created_at' => now(), 'updated_at' => now()]);
-        $customer = (int) DB::table('customers')->insertGetId(['type' => 'b2b', 'name' => 'Buyer One', 'email' => 'buyer-one@example.test', 'phone' => '50000000', 'created_at' => now(), 'updated_at' => now()]);
-        DB::table('b2b_accounts')->insert(['customer_id' => $customer, 'company_name' => 'Buyer Co', 'tax_number' => 'TAX-1', 'status' => 'active', 'created_at' => now(), 'updated_at' => now()]);
-        DB::table('orders')->insert(['store_id' => $store, 'customer_id' => $customer, 'order_number' => 'B2B-ORDER-1', 'channel' => 'b2b', 'status' => 'processing', 'currency' => 'KWD', 'subtotal' => 12.5, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 12.5, 'created_at' => now(), 'updated_at' => now()]);
+        [$customer, $b2bCustomer] = $this->b2bCustomer('Buyer One', 'buyer-one@example.test', '50000000');
+        DB::table('b2b_accounts')->insert(['customer_id' => $customer, 'b2b_customer_id' => $b2bCustomer, 'company_name' => 'Buyer Co', 'tax_number' => 'TAX-1', 'status' => 'active', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('orders')->insert(['store_id' => $store, 'customer_id' => $customer, 'b2b_customer_id' => $b2bCustomer, 'order_number' => 'B2B-ORDER-1', 'channel' => 'b2b', 'status' => 'processing', 'currency' => 'KWD', 'subtotal' => 12.5, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 12.5, 'created_at' => now(), 'updated_at' => now()]);
         $admin = $this->user('B2B_ADMIN', 'en');
 
         $this->actingAs($admin)->get('/admin/b2b/dashboard')->assertOk()->assertSee('B2B-ORDER-1')->assertSee('Buyer One');
@@ -62,8 +62,8 @@ class B2bAdminWorkspaceTest extends TestCase
         $product = (int) DB::table('products')->insertGetId(['catalog_id' => $catalog, 'unit_id' => $unit, 'sku' => 'OPS-SKU', 'name' => 'Operations Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('store_products')->insert(['store_id' => $store, 'product_id' => $product, 'price' => 10, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $tier = (int) DB::table('b2b_price_tiers')->insertGetId(['code' => 'OPS-GOLD', 'name' => 'Operations Gold', 'priority' => 10, 'created_at' => now(), 'updated_at' => now()]);
-        $customer = (int) DB::table('customers')->insertGetId(['type' => 'b2b', 'name' => 'Operations Buyer', 'email' => 'ops-buyer@example.test', 'created_at' => now(), 'updated_at' => now()]);
-        $order = (int) DB::table('orders')->insertGetId(['store_id' => $store, 'customer_id' => $customer, 'order_number' => 'OPS-B2B-1', 'channel' => 'b2b', 'status' => 'pending', 'currency' => 'KWD', 'subtotal' => 10, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 10, 'created_at' => now(), 'updated_at' => now()]);
+        [$customer, $b2bCustomer] = $this->b2bCustomer('Operations Buyer', 'ops-buyer@example.test');
+        $order = (int) DB::table('orders')->insertGetId(['store_id' => $store, 'customer_id' => $customer, 'b2b_customer_id' => $b2bCustomer, 'order_number' => 'OPS-B2B-1', 'channel' => 'b2b', 'status' => 'pending', 'currency' => 'KWD', 'subtotal' => 10, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 10, 'created_at' => now(), 'updated_at' => now()]);
 
         $driverUser = $this->user('B2B_DRIVER', 'en');
         $driver = Driver::query()->create(['user_id' => $driverUser->id, 'store_id' => $store, 'driver_type' => 'b2b', 'is_available' => true, 'is_active' => true]);
@@ -114,10 +114,11 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
         $type = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         $store = (int) DB::table('stores')->insertGetId(['store_type_id' => $type, 'code' => 'B2B-RPT', 'name' => 'Wholesale Reports', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
-        $customer = (int) DB::table('customers')->insertGetId(['type' => 'b2b', 'name' => 'Wholesale Report Buyer', 'created_at' => now(), 'updated_at' => now()]);
+        [$customer, $b2bCustomer] = $this->b2bCustomer('Wholesale Report Buyer', null);
         DB::table('orders')->insert([
             'store_id' => $store,
             'customer_id' => $customer,
+            'b2b_customer_id' => $b2bCustomer,
             'order_number' => 'B2B-RPT-1',
             'channel' => 'b2b',
             'status' => 'delivered',
@@ -190,12 +191,12 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/b2b/settings-permissions')
             ->assertOk()
-            ->assertSee('Settings & Permissions');
+            ->assertSee('Wholesale Settings');
 
         $this->actingAs($admin)
             ->get('/admin/b2b/settings')
             ->assertOk()
-            ->assertSee('Settings & Permissions');
+            ->assertSee('Wholesale Settings');
 
         $finance = $this->user('FINANCE', 'en');
         $this->actingAs($finance)->get('/admin/b2b/settings-permissions')->assertForbidden();
@@ -216,7 +217,7 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
         $admin = $this->user('SUPER_ADMIN', 'en');
         $response = $this->actingAs($admin)->get('/admin/b2b/dashboard')->assertOk()->assertSee('dir="ltr"', false);
-        foreach (['Stores', 'B2B Clients', 'Products & Inventory', 'Orders', 'Drivers & Delivery', 'Pricing & Approvals', 'Reports', 'Settings & Permissions'] as $label) {
+        foreach (['Wholesale Stores', 'B2B Clients', 'Wholesale Catalog', 'Warehouses & Inventory', 'Orders', 'Drivers & Delivery', 'Pricing & Approvals', 'Finance & Invoices', 'Reports', 'Wholesale Settings'] as $label) {
             $response->assertSee($label);
         }
     }
@@ -241,6 +242,29 @@ class B2bAdminWorkspaceTest extends TestCase
             ->assertSee('@media(max-width:1023px)', false)
             ->assertSee('max-height:320px;overflow:auto', false)
             ->assertDontSee('font-weight:850', false);
+    }
+
+    /** @return array{0:int,1:int} */
+    private function b2bCustomer(string $name, ?string $email, ?string $phone = null): array
+    {
+        $legacy = (int) DB::table('customers')->insertGetId([
+            'type' => 'b2b',
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $b2b = (int) DB::table('b2b_customers')->insertGetId([
+            'legacy_customer_id' => $legacy,
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return [$legacy, $b2b];
     }
 
     private function user(string $role, string $locale): User
