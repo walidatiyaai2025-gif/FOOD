@@ -11,7 +11,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 final class OrderInventoryReservationService
 {
     /**
-     * @param list<array{product_id:int,quantity:float}> $items
+     * @param  list<array{product_id: int, quantity: float}>  $items
      */
     public function reserve(Order $order, User $user, array $items, string $reason = 'dashboard_order'): void
     {
@@ -152,7 +152,7 @@ final class OrderInventoryReservationService
         }
     }
 
-    /** @return array<int,float> inventory_id => active reserved quantity */
+    /** @return array<int, float> inventory_id => active reserved quantity */
     private function activeReservations(Order $order): array
     {
         $balances = [];
