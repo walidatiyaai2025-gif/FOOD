@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.10 - Login-first Home Entry
+- Redirect the public FOODEX root URL directly to the canonical Retail management login.
+- Keep the installer endpoint and authenticated management workspaces unchanged.
+- Add regression coverage that keeps the root login-first even when a browser already has an authenticated management session.
+
 ## 1.0.9 - Retail Replenishment from Wholesale
 - Represent every Retail store as a managed active Wholesale customer account, including safe backfill for existing stores and automatic linking for new stores and demo fixtures.
 - Keep linked Wholesale account identity/status synchronized with the Retail store and prevent manual account-state drift.
