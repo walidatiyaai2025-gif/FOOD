@@ -108,7 +108,7 @@ class TenantOperationalIsolationTest extends TestCase
         ]);
 
         $this->actingAs($this->storeAdmin)
-            ->get('/admin/business?tab=inventory')
+            ->get('/admin/b2c/inventory')
             ->assertOk()
             ->assertSee('TEN-A-P')
             ->assertDontSee('TEN-B-P');
@@ -122,7 +122,7 @@ class TenantOperationalIsolationTest extends TestCase
             ->assertSessionHasErrors('product_id');
 
         $this->actingAs($this->storeAdmin)
-            ->get('/admin/business?tab=promotions')
+            ->get('/admin/b2c/promotions')
             ->assertOk()
             ->assertSee('Mine Promo')
             ->assertDontSee('Other Promo');
