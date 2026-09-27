@@ -8,6 +8,7 @@ use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class RetailStoreProvisioningTest extends TestCase
@@ -80,7 +81,7 @@ class RetailStoreProvisioningTest extends TestCase
         try {
             $resolver->retail($manager, $storeB);
             $this->fail('Foreign store context must be denied.');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+        } catch (HttpException $e) {
             $this->assertSame(403, $e->getStatusCode());
         }
 
@@ -89,7 +90,7 @@ class RetailStoreProvisioningTest extends TestCase
         try {
             $resolver->retail($manager, $storeA);
             $this->fail('Deactivated store must not resolve.');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+        } catch (HttpException $e) {
             $this->assertSame(404, $e->getStatusCode());
         }
     }
