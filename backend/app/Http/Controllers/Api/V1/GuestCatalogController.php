@@ -47,7 +47,7 @@ class GuestCatalogController extends Controller
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'is_active' => (bool) $category->is_active,
-                    'image_url' => $this->categoryImageUrl((int) $category->id, $store),
+                    'image_url' => $this->assetUrl($category->image_path),
                 ])
                 ->values()
                 ->all(),
@@ -274,27 +274,6 @@ class GuestCatalogController extends Controller
             'currency' => 'KWD',
             'image_url' => $this->assetUrl($primaryImage),
         ];
-    }
-
-    private function categoryImageUrl(int $categoryId, int $storeId): ?string
-    {
-        $path = DB::table('product_images')
-            ->join('products', 'products.id', '=', 'product_images.product_id')
-            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-            ->join('store_products', 'store_products.product_id', '=', 'products.id')
-            ->where('catalogs.store_id', $storeId)
-            ->where('catalogs.channel', 'b2c')
-            ->where('catalogs.is_active', true)
-            ->where('catalogs.is_migration_quarantine', false)
-            ->where('products.category_id', $categoryId)
-            ->where('products.is_active', true)
-            ->where('store_products.store_id', $storeId)
-            ->where('store_products.is_active', true)
-            ->orderByDesc('product_images.is_primary')
-            ->orderBy('product_images.sort_order')
-            ->value('product_images.path');
-
-        return $this->assetUrl($path);
     }
 
     private function assetUrl(mixed $path): ?string
