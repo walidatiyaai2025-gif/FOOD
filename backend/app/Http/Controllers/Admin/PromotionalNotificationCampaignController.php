@@ -49,7 +49,8 @@ final class PromotionalNotificationCampaignController extends Controller
             'status' => $status,
             'canB2b' => $actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN'),
             'canAllChannels' => $actor->hasRole('SUPER_ADMIN'),
-            'b2cStores' => $this->allowedB2cStores($actor),
+            'b2bStores' => $this->allowedStores($actor, 'b2b'),
+            'b2cStores' => $this->allowedStores($actor, 'b2c'),
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
             'navContext' => 'notification_campaigns',
@@ -239,16 +240,25 @@ final class PromotionalNotificationCampaignController extends Controller
         return app(OperationalTenantScope::class)->allowedStoreIds($actor, 'notifications.manage', 'b2c');
     }
 
-    private function allowedB2cStores(User $actor): array
+    /** @return list<array{id: int, name: string, channel: string}> */
+    private function allowedStores(User $actor, string $channel): array
     {
-        $ids = $this->allowedB2cStoreIds($actor);
+        $ids = app(OperationalTenantScope::class)->allowedStoreIds(
+            $actor,
+            'notifications.manage',
+            $channel,
+        );
 
         return DB::table('stores')
             ->whereIn('id', $ids)
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name'])
-            ->map(fn ($store): array => ['id' => (int) $store->id, 'name' => (string) $store->name])
+            ->map(fn ($store): array => [
+                'id' => (int) $store->id,
+                'name' => (string) $store->name,
+                'channel' => $channel,
+            ])
             ->all();
     }
 
