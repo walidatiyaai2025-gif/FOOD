@@ -89,10 +89,9 @@ class AdminBusinessManagementTest extends TestCase
 
         $this->assertDatabaseHas('inventories', ['id' => $inventoryId, 'quantity' => 15]);
 
-        $this->actingAs($user)->post('/admin/business/customers', [
+        $this->actingAs($user)->post('/admin/business/customers?store_id='.$storeId.'&support_access=1', [
             'type' => 'b2c',
             'store_id' => $storeId,
-            'support_access' => true,
             'name' => 'Customer One',
             'phone' => '5550001',
             'email' => 'customer@example.test',
