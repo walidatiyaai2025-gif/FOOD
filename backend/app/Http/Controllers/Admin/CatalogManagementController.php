@@ -251,7 +251,7 @@ final class CatalogManagementController extends Controller
         $catalog = $this->catalogs->defaultCatalogForStore((int) $data['store_id']);
         $this->assertStoreAccess($request, (int) $data['store_id'], (string) $catalog->channel);
         $this->catalogs->assertParentInCatalog(isset($data['parent_id']) ? (int) $data['parent_id'] : null, (int) $catalog->id);
-        $slug = $data['slug'] ?: Str::slug($data['name']).'-'.Str::lower(Str::random(5));
+        $slug = ($data['slug'] ?? null) ?: Str::slug($data['name']).'-'.Str::lower(Str::random(5));
         $this->assertSlugAvailable((int) $catalog->id, $slug);
 
         DB::table('categories')->insert([
