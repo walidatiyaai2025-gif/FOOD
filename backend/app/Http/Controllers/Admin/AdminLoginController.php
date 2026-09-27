@@ -21,7 +21,8 @@ class AdminLoginController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly CredentialAuthenticator $credentials,
         private readonly AuditLogger $audit,
-    ) {}
+    ) {
+    }
 
     public function show(Request $request): View|RedirectResponse
     {
@@ -40,11 +41,7 @@ class AdminLoginController extends Controller
             $target = $this->targetChannel($user, $channel);
 
             if ($target !== null) {
-                if ($user->hasRole('SUPER_ADMIN')) {
-            return redirect()->route('admin.index');
-        }
-
-        return redirect()->route("admin.{$target}.dashboard");
+                return redirect()->route("admin.{$target}.dashboard");
             }
         }
 
@@ -114,6 +111,10 @@ class AdminLoginController extends Controller
             'channel_granted' => $target,
             'user_id' => $user->getKey(),
         ]);
+
+        if ($user->hasRole('SUPER_ADMIN')) {
+            return redirect()->route('admin.index');
+        }
 
         return redirect()->route("admin.{$target}.dashboard");
     }
