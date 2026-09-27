@@ -8,6 +8,7 @@ use App\Models\B2cCustomer;
 use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\B2cCustomerService;
+use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
@@ -46,20 +47,45 @@ final class BusinessManagementController extends Controller
             ->orderBy('stores.name')
             ->get(['stores.id', 'stores.name', 'stores.code']);
 
+        $inventoryStoreIds = $this->storeIdsForAny($actor, ['inventory.view', 'inventory.manage']);
+        $promotionStoreIds = $this->storeIdsForAny($actor, ['promotions.view', 'promotions.manage']);
+        $driverStoreIds = array_values(array_unique([
+            ...$this->storeIdsForAny($actor, ['drivers.b2c.view', 'drivers.b2c.manage'], 'b2c'),
+            ...$this->storeIdsForAny($actor, ['drivers.b2b.view', 'drivers.b2b.manage'], 'b2b'),
+        ]));
+        $visibleStoreIds = match ($tab) {
+            'inventory' => $inventoryStoreIds,
+            'promotions', 'content' => $promotionStoreIds,
+            'drivers' => $driverStoreIds,
+            'customers' => $retailCustomerStoreIds,
+        };
+
         return view('admin.business-management', [
             'user' => $actor,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
             'navContext' => 'business_management',
             'tab' => $tab,
-            'stores' => DB::table('stores')->orderBy('name')->get(['id', 'name', 'code']),
-            'products' => DB::table('products')->orderBy('name')->get(['id', 'name', 'sku']),
-            'warehouses' => DB::table('warehouses')->leftJoin('stores', 'stores.id', '=', 'warehouses.store_id')->orderBy('warehouses.name')->get([
-                'warehouses.id', 'warehouses.store_id', 'warehouses.code', 'warehouses.name', 'warehouses.is_active', 'stores.name as store',
-            ]),
+            'stores' => DB::table('stores')
+                ->whereIn('id', $visibleStoreIds)
+                ->orderBy('name')
+                ->get(['id', 'name', 'code']),
+            'products' => DB::table('products')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->whereIn('catalogs.store_id', $inventoryStoreIds)
+                ->orderBy('products.name')
+                ->get(['products.id', 'products.name', 'products.sku']),
+            'warehouses' => DB::table('warehouses')
+                ->join('stores', 'stores.id', '=', 'warehouses.store_id')
+                ->whereIn('warehouses.store_id', $inventoryStoreIds)
+                ->orderBy('warehouses.name')
+                ->get([
+                    'warehouses.id', 'warehouses.store_id', 'warehouses.code', 'warehouses.name', 'warehouses.is_active', 'stores.name as store',
+                ]),
             'inventories' => DB::table('inventories')
                 ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
                 ->join('products', 'products.id', '=', 'inventories.product_id')
-                ->leftJoin('stores', 'stores.id', '=', 'warehouses.store_id')
+                ->join('stores', 'stores.id', '=', 'warehouses.store_id')
+                ->whereIn('warehouses.store_id', $inventoryStoreIds)
                 ->orderBy('products.name')
                 ->get([
                     'inventories.id', 'inventories.quantity', 'inventories.reserved_quantity',
@@ -68,32 +94,49 @@ final class BusinessManagementController extends Controller
             'customers' => $customerRows,
             'customerStores' => $customerStores,
             'supportStoreId' => $request->integer('support_store_id') ?: null,
-            'promotions' => DB::table('promotions')->leftJoin('stores', 'stores.id', '=', 'promotions.store_id')->orderByDesc('promotions.id')->get([
-                'promotions.id', 'promotions.store_id', 'promotions.name', 'promotions.type', 'promotions.value',
-                'promotions.starts_at', 'promotions.ends_at', 'promotions.is_active', 'stores.name as store',
-            ]),
-            'banners' => DB::table('banners')->leftJoin('stores', 'stores.id', '=', 'banners.store_id')->orderBy('banners.sort_order')->orderByDesc('banners.id')->get([
-                'banners.id', 'banners.store_id', 'banners.title', 'banners.image_path', 'banners.target_url',
-                'banners.sort_order', 'banners.is_active', 'stores.name as store',
-            ]),
-            'drivers' => DB::table('drivers')->join('users', 'users.id', '=', 'drivers.user_id')->orderBy('users.name')->get([
-                'drivers.id', 'drivers.user_id', 'drivers.driver_type', 'drivers.is_available', 'drivers.is_active',
-                'users.name', 'users.email',
-            ]),
+            'promotions' => DB::table('promotions')
+                ->join('stores', 'stores.id', '=', 'promotions.store_id')
+                ->whereIn('promotions.store_id', $promotionStoreIds)
+                ->orderByDesc('promotions.id')
+                ->get([
+                    'promotions.id', 'promotions.store_id', 'promotions.name', 'promotions.type', 'promotions.value',
+                    'promotions.starts_at', 'promotions.ends_at', 'promotions.is_active', 'stores.name as store',
+                ]),
+            'banners' => DB::table('banners')
+                ->join('stores', 'stores.id', '=', 'banners.store_id')
+                ->whereIn('banners.store_id', $promotionStoreIds)
+                ->orderBy('banners.sort_order')
+                ->orderByDesc('banners.id')
+                ->get([
+                    'banners.id', 'banners.store_id', 'banners.title', 'banners.image_path', 'banners.target_url',
+                    'banners.sort_order', 'banners.is_active', 'stores.name as store',
+                ]),
+            'drivers' => DB::table('drivers')
+                ->join('users', 'users.id', '=', 'drivers.user_id')
+                ->leftJoin('stores', 'stores.id', '=', 'drivers.store_id')
+                ->whereIn('drivers.store_id', $driverStoreIds)
+                ->orderBy('users.name')
+                ->get([
+                    'drivers.id', 'drivers.user_id', 'drivers.store_id', 'drivers.driver_type', 'drivers.is_available', 'drivers.is_active',
+                    'users.name', 'users.email', 'stores.name as store',
+                ]),
         ]);
     }
 
     public function storeWarehouse(Request $request): RedirectResponse
     {
-        Gate::authorize('inventory.manage');
+        $actor = $this->actor($request);
         $data = $request->validate([
-            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'code' => ['required', 'string', 'max:80', 'unique:warehouses,code'],
             'name' => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+        $storeId = (int) $data['store_id'];
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'inventory.manage');
+
         DB::table('warehouses')->insert([
-            'store_id' => $data['store_id'] ?? null,
+            'store_id' => $storeId,
             'code' => $data['code'],
             'name' => $data['name'],
             'is_active' => $request->boolean('is_active', true),
@@ -106,15 +149,27 @@ final class BusinessManagementController extends Controller
 
     public function updateWarehouse(Request $request, int $warehouse): RedirectResponse
     {
-        Gate::authorize('inventory.manage');
+        $actor = $this->actor($request);
+        $current = DB::table('warehouses')->where('id', $warehouse)->first();
+        abort_unless($current !== null && $current->store_id !== null, 404);
+        app(OperationalTenantScope::class)->assertStore($actor, (int) $current->store_id, 'inventory.manage');
+
         $data = $request->validate([
-            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'code' => ['required', 'string', 'max:80', Rule::unique('warehouses', 'code')->ignore($warehouse)],
             'name' => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+        $storeId = (int) $data['store_id'];
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'inventory.manage');
+
+        $productIds = DB::table('inventories')->where('warehouse_id', $warehouse)->pluck('product_id');
+        foreach ($productIds as $productId) {
+            app(OperationalTenantScope::class)->assertProductOwnedByStore((int) $productId, $storeId);
+        }
+
         DB::table('warehouses')->where('id', $warehouse)->update([
-            'store_id' => $data['store_id'] ?? null,
+            'store_id' => $storeId,
             'code' => $data['code'],
             'name' => $data['name'],
             'is_active' => $request->boolean('is_active'),
@@ -126,12 +181,19 @@ final class BusinessManagementController extends Controller
 
     public function ensureInventory(Request $request): RedirectResponse
     {
-        Gate::authorize('inventory.manage');
+        $actor = $this->actor($request);
         $data = $request->validate([
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'quantity' => ['required', 'numeric', 'min:0'],
         ]);
+
+        $warehouse = DB::table('warehouses')->where('id', $data['warehouse_id'])->first();
+        abort_unless($warehouse !== null && $warehouse->store_id !== null, 404);
+        $storeId = (int) $warehouse->store_id;
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'inventory.manage');
+        app(OperationalTenantScope::class)->assertProductOwnedByStore((int) $data['product_id'], $storeId);
+
         DB::table('inventories')->updateOrInsert(
             ['warehouse_id' => $data['warehouse_id'], 'product_id' => $data['product_id']],
             ['quantity' => $data['quantity'], 'reserved_quantity' => 0, 'created_at' => now(), 'updated_at' => now()],
@@ -142,13 +204,23 @@ final class BusinessManagementController extends Controller
 
     public function adjustInventory(Request $request, int $inventory): RedirectResponse
     {
-        Gate::authorize('inventory.adjust');
+        $actor = $this->actor($request);
         $data = $request->validate([
             'quantity_delta' => ['required', 'numeric', 'not_in:0'],
             'reason' => ['required', 'string', 'max:255'],
         ]);
 
-        DB::transaction(function () use ($data, $inventory, $request): void {
+        $scope = app(OperationalTenantScope::class);
+        $row = DB::table('inventories')
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->where('inventories.id', $inventory)
+            ->first(['inventories.*', 'warehouses.store_id']);
+        abort_unless($row !== null && $row->store_id !== null, 404);
+        $storeId = (int) $row->store_id;
+        $scope->assertStore($actor, $storeId, 'inventory.adjust');
+        $scope->assertProductOwnedByStore((int) $row->product_id, $storeId);
+
+        DB::transaction(function () use ($data, $inventory, $actor, $storeId): void {
             $row = DB::table('inventories')->lockForUpdate()->where('id', $inventory)->first();
             abort_unless($row !== null, 404);
             $next = (float) $row->quantity + (float) $data['quantity_delta'];
@@ -162,7 +234,8 @@ final class BusinessManagementController extends Controller
             DB::table('inventories')->where('id', $inventory)->update(['quantity' => $next, 'updated_at' => now()]);
             DB::table('stock_movements')->insert([
                 'inventory_id' => $inventory,
-                'user_id' => $request->user()?->id,
+                'store_id' => $storeId,
+                'user_id' => $actor->id,
                 'type' => 'adjustment',
                 'quantity' => $data['quantity_delta'],
                 'reference_type' => 'admin_inventory_adjustment',
@@ -280,8 +353,9 @@ final class BusinessManagementController extends Controller
 
     public function storePromotion(Request $request): RedirectResponse
     {
-        Gate::authorize('promotions.manage');
+        $actor = $this->actor($request);
         $data = $this->promotionData($request);
+        app(OperationalTenantScope::class)->assertStore($actor, (int) $data['store_id'], 'promotions.manage');
         DB::table('promotions')->insert([...$data, 'created_at' => now(), 'updated_at' => now()]);
 
         return back()->with('status', $this->msg('تمت إضافة العرض.', 'Promotion added.'));
@@ -289,15 +363,24 @@ final class BusinessManagementController extends Controller
 
     public function updatePromotion(Request $request, int $promotion): RedirectResponse
     {
-        Gate::authorize('promotions.manage');
-        DB::table('promotions')->where('id', $promotion)->update([...$this->promotionData($request), 'updated_at' => now()]);
+        $actor = $this->actor($request);
+        $current = DB::table('promotions')->where('id', $promotion)->first();
+        abort_unless($current !== null && $current->store_id !== null, 404);
+        app(OperationalTenantScope::class)->assertStore($actor, (int) $current->store_id, 'promotions.manage');
+
+        $data = $this->promotionData($request);
+        app(OperationalTenantScope::class)->assertStore($actor, (int) $data['store_id'], 'promotions.manage');
+        DB::table('promotions')->where('id', $promotion)->update([...$data, 'updated_at' => now()]);
 
         return back()->with('status', $this->msg('تم تعديل العرض.', 'Promotion updated.'));
     }
 
     public function destroyPromotion(Request $request, int $promotion): RedirectResponse
     {
-        Gate::authorize('promotions.manage');
+        $actor = $this->actor($request);
+        $current = DB::table('promotions')->where('id', $promotion)->first();
+        abort_unless($current !== null && $current->store_id !== null, 404);
+        app(OperationalTenantScope::class)->assertStore($actor, (int) $current->store_id, 'promotions.manage');
         DB::table('promotions')->where('id', $promotion)->delete();
 
         return back()->with('status', $this->msg('تم حذف العرض.', 'Promotion deleted.'));
@@ -305,8 +388,9 @@ final class BusinessManagementController extends Controller
 
     public function storeBanner(Request $request): RedirectResponse
     {
-        Gate::authorize('promotions.manage');
+        $actor = $this->actor($request);
         $data = $this->bannerData($request);
+        app(OperationalTenantScope::class)->assertStore($actor, (int) $data['store_id'], 'promotions.manage');
         DB::table('banners')->insert([...$data, 'created_at' => now(), 'updated_at' => now()]);
 
         return back()->with('status', $this->msg('تمت إضافة البانر.', 'Banner added.'));
@@ -314,15 +398,24 @@ final class BusinessManagementController extends Controller
 
     public function updateBanner(Request $request, int $banner): RedirectResponse
     {
-        Gate::authorize('promotions.manage');
-        DB::table('banners')->where('id', $banner)->update([...$this->bannerData($request), 'updated_at' => now()]);
+        $actor = $this->actor($request);
+        $current = DB::table('banners')->where('id', $banner)->first();
+        abort_unless($current !== null && $current->store_id !== null, 404);
+        app(OperationalTenantScope::class)->assertStore($actor, (int) $current->store_id, 'promotions.manage');
+
+        $data = $this->bannerData($request);
+        app(OperationalTenantScope::class)->assertStore($actor, (int) $data['store_id'], 'promotions.manage');
+        DB::table('banners')->where('id', $banner)->update([...$data, 'updated_at' => now()]);
 
         return back()->with('status', $this->msg('تم تعديل البانر.', 'Banner updated.'));
     }
 
     public function destroyBanner(Request $request, int $banner): RedirectResponse
     {
-        Gate::authorize('promotions.manage');
+        $actor = $this->actor($request);
+        $current = DB::table('banners')->where('id', $banner)->first();
+        abort_unless($current !== null && $current->store_id !== null, 404);
+        app(OperationalTenantScope::class)->assertStore($actor, (int) $current->store_id, 'promotions.manage');
         DB::table('banners')->where('id', $banner)->delete();
 
         return back()->with('status', $this->msg('تم حذف البانر.', 'Banner deleted.'));
@@ -330,7 +423,9 @@ final class BusinessManagementController extends Controller
 
     public function storeDriver(Request $request): RedirectResponse
     {
+        $actor = $this->actor($request);
         $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'max:255'],
@@ -338,10 +433,11 @@ final class BusinessManagementController extends Controller
             'is_available' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+        $storeId = (int) $data['store_id'];
+        $ability = $data['driver_type'] === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage';
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, $ability, $data['driver_type']);
 
-        Gate::authorize($data['driver_type'] === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage');
-
-        DB::transaction(function () use ($data, $request): void {
+        DB::transaction(function () use ($data, $request, $storeId): void {
             $userId = DB::table('users')->insertGetId([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -356,6 +452,7 @@ final class BusinessManagementController extends Controller
             DB::table('role_user')->insert(['role_id' => $roleId, 'user_id' => $userId]);
             DB::table('drivers')->insert([
                 'user_id' => $userId,
+                'store_id' => $storeId,
                 'driver_type' => $data['driver_type'],
                 'is_available' => $request->boolean('is_available'),
                 'is_active' => $request->boolean('is_active', true),
@@ -369,14 +466,42 @@ final class BusinessManagementController extends Controller
 
     public function updateDriver(Request $request, int $driver): RedirectResponse
     {
+        $actor = $this->actor($request);
+        $current = DB::table('drivers')->where('id', $driver)->first();
+        abort_unless($current !== null, 404);
+        if ($current->store_id === null) {
+            abort_unless($actor->hasRole('SUPER_ADMIN'), 404);
+        } else {
+            $oldAbility = $current->driver_type === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage';
+            app(OperationalTenantScope::class)->assertStore($actor, (int) $current->store_id, $oldAbility, (string) $current->driver_type);
+        }
+
         $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'driver_type' => ['required', 'in:b2c,b2b'],
             'is_available' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-        Gate::authorize($data['driver_type'] === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage');
+        $storeId = (int) $data['store_id'];
+        $ability = $data['driver_type'] === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage';
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, $ability, $data['driver_type']);
+
+        $hasAssignments = DB::table('driver_assignments')->where('driver_id', $driver)->exists();
+        if ($hasAssignments && (
+            $current->store_id === null
+            || (int) $current->store_id !== $storeId
+            || (string) $current->driver_type !== (string) $data['driver_type']
+        )) {
+            throw ValidationException::withMessages([
+                'store_id' => [$this->msg(
+                    'لا يمكن نقل سائق لديه سجل توصيل إلى متجر أو قناة أخرى.',
+                    'A driver with delivery history cannot be moved to another store or channel.',
+                )],
+            ]);
+        }
 
         DB::table('drivers')->where('id', $driver)->update([
+            'store_id' => $storeId,
             'driver_type' => $data['driver_type'],
             'is_available' => $request->boolean('is_available'),
             'is_active' => $request->boolean('is_active'),
@@ -388,9 +513,16 @@ final class BusinessManagementController extends Controller
 
     public function destroyDriver(Request $request, int $driver): RedirectResponse
     {
+        $actor = $this->actor($request);
         $row = DB::table('drivers')->where('id', $driver)->first();
         abort_unless($row !== null, 404);
-        Gate::authorize($row->driver_type === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage');
+
+        if ($row->store_id === null) {
+            abort_unless($actor->hasRole('SUPER_ADMIN'), 404);
+        } else {
+            $ability = $row->driver_type === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage';
+            app(OperationalTenantScope::class)->assertStore($actor, (int) $row->store_id, $ability, (string) $row->driver_type);
+        }
 
         if (DB::table('driver_assignments')->where('driver_id', $driver)->exists()) {
             DB::table('drivers')->where('id', $driver)->update(['is_active' => false, 'is_available' => false, 'updated_at' => now()]);
@@ -407,7 +539,7 @@ final class BusinessManagementController extends Controller
     private function promotionData(Request $request): array
     {
         $data = $request->validate([
-            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string', 'max:80'],
             'value' => ['nullable', 'numeric', 'min:0'],
@@ -422,7 +554,7 @@ final class BusinessManagementController extends Controller
     private function bannerData(Request $request): array
     {
         $data = $request->validate([
-            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'title' => ['required', 'string', 'max:255'],
             'image_path' => ['required', 'string', 'max:2048'],
             'target_url' => ['nullable', 'string', 'max:2048'],
@@ -513,6 +645,24 @@ final class BusinessManagementController extends Controller
             $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
             $request,
         );
+    }
+
+    /** @param list<string> $permissions
+     *  @return list<int>
+     */
+    private function storeIdsForAny(User $actor, array $permissions, ?string $channel = null): array
+    {
+        $scope = app(OperationalTenantScope::class);
+        $ids = [];
+
+        foreach ($permissions as $permission) {
+            $ids = [...$ids, ...$scope->allowedStoreIds($actor, $permission, $channel)];
+        }
+
+        $ids = array_values(array_unique($ids));
+        sort($ids);
+
+        return $ids;
     }
 
     private function actor(Request $request): User
