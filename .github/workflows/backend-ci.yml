@@ -66,22 +66,19 @@ jobs:
         run: npx --yes @redocly/cli@latest lint docs/api/openapi.yaml
 
   production-services:
-    name: MySQL/MariaDB Redis deployment acceptance
+    name: MySQL Redis deployment acceptance
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
-      mariadb:
-        image: mariadb:11.4
+      mysql:
+        image: mysql:8.0
         env:
-          MARIADB_DATABASE: foodex_acceptance
-          MARIADB_USER: foodex
-          MARIADB_PASSWORD: ci-only-password
-          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "1"
+          MYSQL_DATABASE: foodex_acceptance
+          MYSQL_USER: foodex
+          MYSQL_PASSWORD: ci-only-password
+          MYSQL_ROOT_PASSWORD: ci-root-password
         ports:
           - 3306:3306
-        options: >-
-          --health-cmd "healthcheck.sh --connect --innodb_initialized"
-          --health-interval 5s --health-timeout 5s --health-retries 12
       redis:
         image: redis:7
         ports:
@@ -114,8 +111,17 @@ jobs:
           php-version: '8.3'
           extensions: mbstring, intl, pdo_mysql, redis, zip
           coverage: none
-      - name: Install MySQL/MariaDB backup tools
+      - name: Install MySQL client tools
         run: sudo apt-get update && sudo apt-get install -y default-mysql-client
+      - name: Wait for MySQL
+        run: |
+          for attempt in {1..30}; do
+            if mysqladmin ping --host=127.0.0.1 --port=3306 --user=foodex --password=ci-only-password --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
       - name: Install backend dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Prepare disposable configuration
