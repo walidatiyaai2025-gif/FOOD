@@ -146,6 +146,9 @@
         .module-inline-form select,.module-inline-form input{min-width:150px;flex:1 1 160px}
         .module-inline-form button{flex:0 0 auto}
         .module-empty-state{display:grid;place-items:center;min-height:160px;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;padding:var(--foodex-space-6);color:var(--foodex-muted)}
+        .flash{margin-bottom:var(--foodex-space-4);padding:10px 12px;border-radius:var(--foodex-radius-control);border:1px solid var(--foodex-border);font-weight:var(--foodex-font-weight-medium)}
+        .flash.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+        .flash.err{background:#fff1f0;color:var(--foodex-red)}
 
         @media(min-width:1280px) and (max-width:1439px){
             .kpi-value{font-size:clamp(1.3rem,1.75vw,1.5rem)}
@@ -220,6 +223,8 @@
         </header>
 
         <main class="content">
+            @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
+            @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
             <div class="headline">
                 <div>
                     <h1>{{ __('admin.b2c_dashboard.hello', ['name'=>$user->name]) }} 👋</h1>
@@ -388,6 +393,8 @@
                 @endif
             </div>
         </div>
+        @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
+        @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
         <div class="module-cards">@foreach($counts as $key=>$value)<div class="module-card foodex-card"><strong>{{ __('admin.b2c_workspace.modules.'.$key) }}</strong><p>{{ $value }}</p></div>@endforeach</div>
         @if($moduleData)
         @php
@@ -423,6 +430,17 @@
                         <a href="{{ $action['url'] }}">{{ $action['label'] }}</a>
                     @endforeach
                 </div>
+            @endif
+
+            @if($module==='settings' && (collect($storeIds)->contains(fn($candidateStoreId) => $user->hasPermission('settings.manage',(int)$candidateStoreId)) || $user->hasPermission('settings.manage')))
+                <form method="post" action="{{ route('admin.b2c.settings.save') }}" class="module-inline-form">
+                    @csrf @method('PUT')
+                    <input type="hidden" name="store_id" value="{{ $storeId }}">
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <input name="key" required maxlength="255" placeholder="storefront.setting.key">
+                    <input name="value" maxlength="5000" placeholder="{{ app()->getLocale()==='ar'?'القيمة':'Value' }}">
+                    <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ إعداد المتجر':'Save store setting' }}</button>
+                </form>
             @endif
 
             @if($module==='inventory' && !empty($moduleData['inventory_options']) && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('inventory.manage',(int)$storeId)) || $user->hasPermission('inventory.manage')))
