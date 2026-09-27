@@ -296,7 +296,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'inventory' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن والأرصدة' : 'Manage Warehouses & Stock', 'url' => route('admin.business.index', array_merge(['tab' => 'inventory'], $scopeParams))]],
+                'actions' => [],
                 'inventory_options' => DB::table('inventories')
                     ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
                     ->join('products', 'products.id', '=', 'inventories.product_id')
@@ -329,7 +329,7 @@ class B2cWorkspaceController extends Controller
             ],
             'orders' => $this->orderModuleData($storeIds),
             'customers' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.business.index', array_merge(['tab' => 'customers'], $scopeParams))]],
+                'actions' => [],
                 'columns' => ['name', 'phone', 'email', 'orders', 'spent', 'last_order'],
                 'rows' => DB::table('b2c_customers')
                     ->leftJoin('orders', function ($join): void {
@@ -365,7 +365,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'promotions' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العروض' : 'Add / Edit Promotions', 'url' => route('admin.business.index', array_merge(['tab' => 'promotions'], $scopeParams))]],
+                'actions' => [],
                 'columns' => ['name', 'store', 'type', 'value', 'period', 'status'],
                 'rows' => DB::table('promotions')
                     ->join('stores', 'stores.id', '=', 'promotions.store_id')
