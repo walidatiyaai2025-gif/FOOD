@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\Cart;
 use App\Models\CartItem;
-use App\Models\Customer;
+use App\Models\B2bCustomer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
@@ -16,6 +16,7 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,13 +46,12 @@ class CheckoutController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $customer = Customer::query()->where('user_id', $user->getKey())->first();
-        abort_unless($customer instanceof Customer, 403, 'Customer profile is required.');
-
-        $channel = strtolower((string) $customer->type);
-        abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403, 'Unsupported customer channel.');
-
         $storeId = (int) $validated['store_id'];
+        $resolver = app(CustomerDomainResolver::class);
+        [$customer, $channel] = $resolver->forStore($user, $storeId);
+        $legacyCustomerId = $resolver->legacyId($customer);
+        $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
+
         $addressId = (int) $validated['address_id'];
         $paymentMethod = (string) ($validated['payment_method'] ?? config('checkout.default_payment_method'));
         $note = isset($validated['note']) ? (string) $validated['note'] : null;
@@ -73,21 +73,14 @@ class CheckoutController extends Controller
 
         $address = Address::query()
             ->whereKey($addressId)
-            ->where('customer_id', $customer->getKey())
+            ->where($customerColumn, $customer->getKey())
             ->firstOrFail();
-
-        $storeExists = DB::table('stores')
-            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-            ->where('stores.id', $storeId)
-            ->where('stores.is_active', true)
-            ->where('store_types.code', strtoupper($channel))
-            ->exists();
-
-        abort_unless($storeExists, 404);
 
         /** @var array{0: Order, 1: bool} $result */
         $result = DB::transaction(function () use (
             $customer,
+            $legacyCustomerId,
+            $customerColumn,
             $user,
             $address,
             $storeId,
@@ -100,7 +93,7 @@ class CheckoutController extends Controller
             $request,
         ): array {
             $existing = Order::query()
-                ->where('customer_id', $customer->getKey())
+                ->where($customerColumn, $customer->getKey())
                 ->where('checkout_idempotency_key', $idempotencyKey)
                 ->lockForUpdate()
                 ->first();
@@ -117,7 +110,7 @@ class CheckoutController extends Controller
 
             $cart = Cart::query()
                 ->where('store_id', $storeId)
-                ->where('customer_id', $customer->getKey())
+                ->where($customerColumn, $customer->getKey())
                 ->where('channel', $channel)
                 ->lockForUpdate()
                 ->first();
@@ -158,6 +151,7 @@ class CheckoutController extends Controller
                 $quantity = (float) $cartItem->quantity;
                 $unitPrice = (float) $storeProduct->price;
                 if ($channel === 'b2b') {
+                    abort_unless($customer instanceof B2bCustomer, 500);
                     $pricing = app(B2bPriceResolver::class)->resolve($customer, $storeId, (int) $cartItem->product_id);
                     abort_if($quantity < $pricing['minimum_quantity'], 409, 'Quantity is below the B2B minimum purchase quantity.');
                     $unitPrice = $pricing['price'];
@@ -222,7 +216,8 @@ class CheckoutController extends Controller
 
             $order = Order::query()->create([
                 'store_id' => $storeId,
-                'customer_id' => $customer->getKey(),
+                'customer_id' => $legacyCustomerId,
+                $customerColumn => $customer->getKey(),
                 'address_id' => $address->getKey(),
                 'order_number' => 'FDX-'.now()->format('Ymd').'-'.Str::upper(Str::random(10)),
                 'channel' => $channel,
