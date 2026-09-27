@@ -243,7 +243,7 @@
                 <form class="date-control" method="get" action="{{ route('admin.b2c.dashboard') }}">
                     <input type="hidden" name="store_id" value="{{ $storeId }}">
                     @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
-                    <span>⌄</span><input type="date" name="date" value="{{ $dashboard['selected_date'] }}" onchange="this.form.submit()">
+                    <span>⌄</span><input type="date" name="date" value="{{ $dashboard['selected_date'] }}" aria-label="{{ app()->getLocale()==='ar'?'تاريخ التقرير':'Report date' }}" onchange="this.form.submit()">
                 </form>
             </div>
 
@@ -259,7 +259,7 @@
                 @foreach($kpis as $item)
                     @php $metric=$dashboard['kpis'][$item['key']]; $delta=$metric['delta']; @endphp
                     <article class="kpi">
-                        <div class="kpi-head"><span class="kpi-icon {{ $item['class'] }}">@include('admin._premium-icon',['name'=>$item['icon']])</span><span class="kpi-label">{{ __('admin.b2c_dashboard.kpis.'.$item['label']) }}<small lang="en">{{ __('admin.b2c_dashboard.kpis.'.$item['label'].'_en') }}</small></span></div>
+                        <div class="kpi-head"><span class="kpi-icon {{ $item['class'] }}">@include('admin._premium-icon',['name'=>$item['icon']])</span><span class="kpi-label">{{ __('admin.b2c_dashboard.kpis.'.$item['label']) }}@if(app()->getLocale()==='en')<small lang="en">{{ __('admin.b2c_dashboard.kpis.'.$item['label'].'_en') }}</small>@endif</span></div>
                         <div class="kpi-value foodex-number">
                             @if($item['key']==='revenue') {{ $dashboard['currency'] }} {{ number_format($metric['value'],3) }}
                             @else {{ number_format($metric['value'], $item['key']==='products_sold' ? 0 : 0) }} @endif
@@ -277,7 +277,7 @@
 
             <section class="middle">
                 <article class="panel">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.orders_revenue') }}</h2><small lang="en">Orders & Revenue</small></div><div class="legend"><span><i class="dot" style="background:var(--foodex-orange)"></i>{{ __('admin.b2c_dashboard.orders') }}</span><span><i class="dot" style="background:var(--foodex-green)"></i>{{ __('admin.b2c_dashboard.revenue') }}</span></div></div>
+                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.orders_revenue') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Orders & Revenue</small>@endif</div><div class="legend"><span><i class="dot" style="background:var(--foodex-orange)"></i>{{ __('admin.b2c_dashboard.orders') }}</span><span><i class="dot" style="background:var(--foodex-green)"></i>{{ __('admin.b2c_dashboard.revenue') }}</span></div></div>
                     @php
                         $maxOrders=max(1,max(array_column($dashboard['series'],'orders')));
                         $maxRevenue=max(1,max(array_column($dashboard['series'],'revenue')));
@@ -301,7 +301,7 @@
                     $gradient="conic-gradient(var(--foodex-blue) 0 {$p1}%, var(--foodex-orange) {$p1}% ".($p1+$p2)."%, var(--foodex-green) ".($p1+$p2)."% ".($p1+$p2+$p3)."%, var(--foodex-red) ".($p1+$p2+$p3)."% 100%)";
                 @endphp
                 <article class="panel">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.distribution') }}</h2><small lang="en">Orders Distribution</small></div></div>
+                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.distribution') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Orders Distribution</small>@endif</div></div>
                     <div class="donut-wrap">
                         <div class="donut" style="background:{{ $gradient }}"><div class="donut-center">{{ $total }}<small>{{ __('admin.b2c_dashboard.total_orders') }}</small></div></div>
                         <div class="status-list">
@@ -315,7 +315,7 @@
 
             <section class="bottom">
                 <article class="panel">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.low_stock') }}</h2><small lang="en">Low Stock Products</small></div><a class="section-link" href="{{ route('admin.b2c.module',array_merge(['module'=>'inventory','store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
+                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.low_stock') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Low Stock Products</small>@endif</div><a class="section-link" href="{{ route('admin.b2c.module',array_merge(['module'=>'inventory','store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
                     <div class="stock-list">
                         @forelse($dashboard['low_stock'] as $product)
                             <div class="stock"><span class="product-thumb">@if($product['image'])<img src="{{ asset(ltrim($product['image'],'/')) }}" alt="">@else ▧ @endif</span><span><strong>{{ $product['name'] }}</strong><small>{{ $product['sku'] }}</small></span><span class="stock-count">{{ number_format($product['available'],0) }} {{ __('admin.b2c_dashboard.remaining') }}</span></div>
@@ -324,7 +324,7 @@
                 </article>
 
                 <article class="panel">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.recent_orders') }}</h2><small lang="en">Recent Orders</small></div><a class="section-link" href="{{ route('admin.b2c.module',array_merge(['module'=>'orders','store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
+                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.recent_orders') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Recent Orders</small>@endif</div><a class="section-link" href="{{ route('admin.b2c.module',array_merge(['module'=>'orders','store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
                     <div class="recent-list">
                         <div class="recent header"><span>#</span><span>{{ __('admin.b2c_dashboard.customer') }}</span><span>{{ __('admin.b2c_dashboard.items') }}</span><span>{{ __('admin.b2c_dashboard.amount') }}</span><span>{{ __('admin.b2c_dashboard.status_label') }}</span><span>{{ __('admin.b2c_dashboard.time') }}</span></div>
                         @forelse($dashboard['recent_orders'] as $order)
@@ -334,7 +334,7 @@
                 </article>
 
                 <article class="panel">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.quick_actions') }}</h2><small lang="en">Quick Actions</small></div></div>
+                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.quick_actions') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Quick Actions</small>@endif</div></div>
                     <div class="quick-grid">
                         @foreach($dashboard['quick_actions'] as $action)
                             @php $icons=['add_product'=>'products','manage_orders'=>'orders','send_notification'=>'bell','view_reports'=>'reports']; @endphp
