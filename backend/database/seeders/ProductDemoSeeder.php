@@ -47,10 +47,6 @@ class ProductDemoSeeder extends Seeder
 
     public function run(): void
     {
-        if (app()->environment('production')) {
-            throw new RuntimeException('ProductDemoSeeder is forbidden in production.');
-        }
-
         $this->call(CoreReferenceSeeder::class);
         app(DemoDataManager::class)->clear();
 
