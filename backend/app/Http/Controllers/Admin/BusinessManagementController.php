@@ -667,7 +667,7 @@ final class BusinessManagementController extends Controller
     }
 
     /** @param list<string> $permissions
-     *  @return list<int>
+     * @return list<int>
      */
     private function storeIdsForAny(User $actor, array $permissions, ?string $channel = null): array
     {
