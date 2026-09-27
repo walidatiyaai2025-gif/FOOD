@@ -19,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->scoped(StoreContext::class, static fn (): StoreContext => new StoreContext());
+        $this->app->scoped(StoreContext::class, static fn (): StoreContext => new StoreContext);
         $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
         $this->app->extend(
             'translation.loader',
