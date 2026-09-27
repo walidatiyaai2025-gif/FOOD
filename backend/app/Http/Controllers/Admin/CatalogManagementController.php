@@ -49,7 +49,9 @@ final class CatalogManagementController extends Controller
         } else {
             $storeIds = $this->visibleStoreIds($actor, $request);
             $storeIds = $this->catalogReadableStoreIds($actor, $storeIds);
-            abort_if($storeIds === [], 403);
+            if ($storeIds === [] && ! $actor->hasRole('SUPER_ADMIN') && ! $actor->hasRole('B2B_ADMIN')) {
+                abort(403);
+            }
         }
 
         $scopeParams = [];
