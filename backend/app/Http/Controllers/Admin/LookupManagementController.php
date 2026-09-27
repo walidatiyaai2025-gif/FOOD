@@ -186,9 +186,14 @@ final class LookupManagementController extends Controller
     public function toggle(Request $request, string $type, int $lookup): RedirectResponse
     {
         $this->assertType($type);
-        Gate::authorize('lookups.manage');
         $actor = $this->actor($request);
         $model = $this->find($type, $lookup);
+        $this->authorizeScopedPermission(
+            $actor,
+            'lookups.manage',
+            (string) $model->scope,
+            $model->store_id === null ? null : (int) $model->store_id,
+        );
 
         $this->scope->authorizeMutation(
             $actor,
@@ -217,9 +222,14 @@ final class LookupManagementController extends Controller
     public function destroy(Request $request, string $type, int $lookup): RedirectResponse
     {
         $this->assertType($type);
-        Gate::authorize('lookups.manage');
         $actor = $this->actor($request);
         $model = $this->find($type, $lookup);
+        $this->authorizeScopedPermission(
+            $actor,
+            'lookups.manage',
+            (string) $model->scope,
+            $model->store_id === null ? null : (int) $model->store_id,
+        );
 
         $this->scope->authorizeMutation(
             $actor,
