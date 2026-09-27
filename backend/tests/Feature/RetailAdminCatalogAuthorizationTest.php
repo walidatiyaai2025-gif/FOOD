@@ -37,7 +37,7 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
             ->assertOk()
             ->assertSee('Catalog Management')
             ->assertDontSee('Manage Stores')
-            ->assertDontSee('>Stores<', false);
+            ->assertDontSee('tab=stores', false);
 
         $this->actingAs($manager)->post(route('admin.catalog.products.store'), [
             'store_id' => $storeA,
