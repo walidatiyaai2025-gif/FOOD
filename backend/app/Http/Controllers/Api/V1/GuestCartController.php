@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Pricing\B2bPriceResolver;
 use App\Http\Controllers\Controller;
+use App\Models\B2bCustomer;
+use App\Models\B2cCustomer;
 use App\Models\Cart;
 use App\Models\CartItem;
-use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\CustomerDomainResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,21 +29,25 @@ class GuestCartController extends Controller
         $storeId = $request->integer('store');
 
         if ($user instanceof User) {
-            [$customer, $channel] = $this->customerContext($user);
+            $resolvedStoreId = $storeId > 0
+                ? $storeId
+                : ($token === null ? null : (int) $this->guestCartForToken($token)->store_id);
+
+            if ($resolvedStoreId === null) {
+                throw ValidationException::withMessages([
+                    'store' => ['A store is required when initializing an authenticated cart.'],
+                ]);
+            }
+
+            [$customer, $channel] = $this->customerContext($user, $resolvedStoreId);
 
             $cart = $token === null
                 ? null
                 : $this->mergeGuestCart($token, $customer, $channel, $storeId > 0 ? $storeId : null);
 
             if ($cart === null) {
-                if ($storeId <= 0) {
-                    throw ValidationException::withMessages([
-                        'store' => ['A store is required when initializing an authenticated cart.'],
-                    ]);
-                }
-
-                $this->activeStoreForChannel($storeId, $channel);
-                $cart = $this->customerCart($customer, $storeId, $channel);
+                $this->activeStoreForChannel($resolvedStoreId, $channel);
+                $cart = $this->customerCart($customer, $resolvedStoreId, $channel);
             }
 
             return response()->json($this->cartPayload($cart->fresh()));
@@ -90,7 +96,7 @@ class GuestCartController extends Controller
         $token = $this->guestToken($request, false);
 
         if ($user instanceof User) {
-            [$customer, $channel] = $this->customerContext($user);
+            [$customer, $channel] = $this->customerContext($user, $storeId);
             $this->activeStoreForChannel($storeId, $channel);
 
             $cart = $token === null
@@ -196,19 +202,10 @@ class GuestCartController extends Controller
         return null;
     }
 
-    /** @return array{0: Customer, 1: string} */
-    private function customerContext(User $user): array
+    /** @return array{0: B2bCustomer|B2cCustomer, 1: string} */
+    private function customerContext(User $user, int $storeId): array
     {
-        $customer = Customer::query()
-            ->where('user_id', $user->getKey())
-            ->first();
-
-        abort_unless($customer instanceof Customer, 403, 'Customer profile is required.');
-
-        $channel = strtolower((string) $customer->type);
-        abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403, 'Unsupported customer channel.');
-
-        return [$customer, $channel];
+        return app(CustomerDomainResolver::class)->forStore($user, $storeId);
     }
 
     private function guestToken(Request $request, bool $required): ?string
@@ -243,21 +240,27 @@ class GuestCartController extends Controller
             ->firstOrFail();
     }
 
-    private function customerCart(Customer $customer, int $storeId, string $channel): Cart
+    private function customerCart(B2bCustomer|B2cCustomer $customer, int $storeId, string $channel): Cart
     {
+        $resolver = app(CustomerDomainResolver::class);
+        $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
+
         return Cart::query()->firstOrCreate(
             [
                 'store_id' => $storeId,
-                'customer_id' => $customer->getKey(),
+                $customerColumn => $customer->getKey(),
                 'channel' => $channel,
             ],
-            ['guest_token' => null],
+            [
+                'customer_id' => $resolver->legacyId($customer),
+                'guest_token' => null,
+            ],
         );
     }
 
     private function mergeGuestCart(
         string $token,
-        Customer $customer,
+        B2bCustomer|B2cCustomer $customer,
         string $channel,
         ?int $requestedStoreId = null,
     ): Cart {
@@ -309,17 +312,22 @@ class GuestCartController extends Controller
         $user = $this->apiUser($request);
 
         if ($user instanceof User) {
-            [$customer, $channel] = $this->customerContext($user);
+            $cart = Cart::query()
+                ->select('carts.*')
+                ->join('cart_items', 'cart_items.cart_id', '=', 'carts.id')
+                ->where('cart_items.id', $itemId)
+                ->firstOrFail();
+
+            [$customer, $channel] = $this->customerContext($user, (int) $cart->store_id);
+            $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
 
             $item = CartItem::query()
                 ->select('cart_items.*')
                 ->join('carts', 'carts.id', '=', 'cart_items.cart_id')
                 ->where('cart_items.id', $itemId)
-                ->where('carts.customer_id', $customer->getKey())
+                ->where("carts.{$customerColumn}", $customer->getKey())
                 ->where('carts.channel', $channel)
                 ->firstOrFail();
-
-            $cart = Cart::query()->findOrFail($item->cart_id);
 
             return [$cart, $item];
         }
@@ -439,9 +447,9 @@ class GuestCartController extends Controller
             $isAvailable = $state['is_available'] && $quantityAvailable;
             $unitPrice = $isAvailable ? $state['price'] : null;
 
-            if ($isAvailable && (string) $cart->channel === 'b2b' && $cart->customer_id !== null) {
-                $customer = Customer::query()->find($cart->customer_id);
-                if ($customer instanceof Customer) {
+            if ($isAvailable && (string) $cart->channel === 'b2b' && $cart->b2b_customer_id !== null) {
+                $customer = B2bCustomer::query()->find($cart->b2b_customer_id);
+                if ($customer instanceof B2bCustomer) {
                     $pricing = app(B2bPriceResolver::class)->resolve($customer, (int) $cart->store_id, (int) $row->product_id);
                     $isAvailable = $quantity >= $pricing['minimum_quantity'];
                     $unitPrice = $isAvailable ? $pricing['price'] : null;
@@ -489,6 +497,8 @@ class GuestCartController extends Controller
             'id' => (int) $cart->id,
             'store_id' => (int) $cart->store_id,
             'customer_id' => $cart->customer_id === null ? null : (int) $cart->customer_id,
+            'b2b_customer_id' => $cart->b2b_customer_id === null ? null : (int) $cart->b2b_customer_id,
+            'b2c_customer_id' => $cart->b2c_customer_id === null ? null : (int) $cart->b2c_customer_id,
             'channel' => (string) $cart->channel,
             'guest_token' => $cart->guest_token,
             'currency' => 'KWD',

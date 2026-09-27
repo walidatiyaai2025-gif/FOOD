@@ -41,12 +41,12 @@ class AdminCatalogManagementTest extends TestCase
             ->assertSee('إضافة تصنيف');
 
         $this->actingAs($user)->post('/admin/catalog/units', [
-            'code' => 'PC',
+            'code' => 'CRUD-PC',
             'name' => 'قطعة',
             'decimal_places' => 0,
         ])->assertSessionHasNoErrors();
 
-        $unitId = (int) DB::table('units')->where('code', 'PC')->value('id');
+        $unitId = (int) DB::table('units')->where('code', 'CRUD-PC')->value('id');
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
 
         $this->actingAs($user)->post('/admin/catalog/stores', [

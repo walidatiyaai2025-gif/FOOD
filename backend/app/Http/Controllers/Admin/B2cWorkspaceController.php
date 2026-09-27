@@ -2,13 +2,20 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Api\V1\DriverAssignmentController;
+use App\Http\Controllers\Api\V1\InventoryController;
+use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
+use App\Models\Inventory;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\B2cDashboardService;
+use App\Services\DashboardOperationalNotifier;
 use App\Services\ManagementReportService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +42,7 @@ class B2cWorkspaceController extends Controller
         $counts = [
             'products' => DB::table('store_products')->whereIn('store_id', $storeIds)->count(),
             'orders' => DB::table('orders')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
-            'customers' => DB::table('orders')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->distinct()->count('customer_id'),
+            'customers' => DB::table('b2c_customers')->whereIn('store_id', $storeIds)->count(),
             'inventory' => DB::table('inventories')->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')->whereIn('warehouses.store_id', $storeIds)->count(),
         ];
 
@@ -54,6 +61,75 @@ class B2cWorkspaceController extends Controller
             : null;
 
         return view('admin.b2c-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'dashboard', 'moduleData'));
+    }
+
+    public function transitionOrder(
+        Request $request,
+        int $order,
+        OrderController $orders,
+        AuditLogger $audit,
+        DashboardOperationalNotifier $dashboardNotifier,
+    ): RedirectResponse {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeIds = $this->storeIds($user);
+        $isOwnedB2c = DB::table('orders')
+            ->join('stores', 'stores.id', '=', 'orders.store_id')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('orders.id', $order)
+            ->whereIn('orders.store_id', $storeIds)
+            ->where('orders.channel', 'b2c')
+            ->where('store_types.code', 'B2C')
+            ->exists();
+        abort_unless($isOwnedB2c, 404);
+        $orders->transition($request, $order, $audit, $dashboardNotifier);
+
+        return back()->with('status', app()->getLocale() === 'ar' ? 'تم تحديث حالة الطلب.' : 'Order status updated.');
+    }
+
+    public function assignDriver(
+        Request $request,
+        DriverAssignmentController $deliveries,
+        AuditLogger $audit,
+        DashboardOperationalNotifier $dashboardNotifier,
+    ): RedirectResponse {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeIds = $this->storeIds($user);
+        $driverId = $request->integer('driver_id');
+        $orderId = $request->integer('order_id');
+        abort_unless(DB::table('drivers')->where('id', $driverId)->where('driver_type', 'b2c')->exists(), 422);
+        abort_unless(
+            DB::table('orders')->where('id', $orderId)->whereIn('store_id', $storeIds)->where('channel', 'b2c')->exists(),
+            404,
+        );
+        $deliveries->assign($request, $audit, $dashboardNotifier);
+
+        return back()->with('status', app()->getLocale() === 'ar' ? 'تم تعيين السائق.' : 'Driver assigned.');
+    }
+
+    public function adjustInventory(
+        Request $request,
+        int $inventory,
+        InventoryController $inventoryApi,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeIds = $this->storeIds($user);
+        $isOwnedB2c = DB::table('inventories')
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->join('stores', 'stores.id', '=', 'warehouses.store_id')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('inventories.id', $inventory)
+            ->whereIn('warehouses.store_id', $storeIds)
+            ->where('store_types.code', 'B2C')
+            ->exists();
+        abort_unless($isOwnedB2c, 404);
+        $model = Inventory::query()->findOrFail($inventory);
+        $inventoryApi->adjust($request, $model, $audit);
+
+        return back()->with('status', app()->getLocale() === 'ar' ? 'تم تعديل المخزون.' : 'Inventory adjusted.');
     }
 
     private function moduleData(string $module, array $storeIds, User $user): array
@@ -91,6 +167,14 @@ class B2cWorkspaceController extends Controller
             ],
             'inventory' => [
                 'actions' => [['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن والأرصدة' : 'Manage Warehouses & Stock', 'url' => route('admin.business.index', ['tab' => 'inventory'])]],
+                'inventory_options' => DB::table('inventories')
+                    ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+                    ->join('products', 'products.id', '=', 'inventories.product_id')
+                    ->whereIn('warehouses.store_id', $storeIds)
+                    ->orderBy('products.name')
+                    ->get(['inventories.id', 'products.sku', 'products.name', 'warehouses.name as warehouse'])
+                    ->map(fn ($row) => ['id' => (int) $row->id, 'label' => $row->sku.' · '.$row->name.' · '.$row->warehouse])
+                    ->all(),
                 'columns' => ['sku', 'name', 'warehouse', 'quantity', 'reserved', 'available'],
                 'rows' => DB::table('inventories')
                     ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
@@ -114,47 +198,62 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'orders' => [
-                'columns' => ['number', 'customer', 'store', 'status', 'amount', 'created'],
+                'columns' => ['number', 'customer', 'store', 'status', 'amount', 'created', 'actions'],
                 'rows' => DB::table('orders')
-                    ->join('customers', 'customers.id', '=', 'orders.customer_id')
+                    ->join('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
                     ->join('stores', 'stores.id', '=', 'orders.store_id')
                     ->whereIn('orders.store_id', $storeIds)
                     ->where('orders.channel', 'b2c')
                     ->orderByDesc('orders.created_at')
                     ->limit(100)
                     ->get([
+                        'orders.id',
+                        'orders.store_id',
                         'orders.order_number as number',
-                        'customers.name as customer',
+                        'b2c_customers.name as customer',
                         'stores.name as store',
                         'orders.status',
                         'orders.currency',
                         'orders.grand_total',
                         'orders.created_at as created',
                     ])->map(fn ($row) => [
+                        '_id' => (int) $row->id,
+                        '_store_id' => (int) $row->store_id,
                         'number' => $row->number,
                         'customer' => $row->customer,
                         'store' => $row->store,
                         'status' => $row->status,
                         'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
                         'created' => (string) $row->created,
+                        'actions' => true,
                     ])->all(),
             ],
             'customers' => [
                 'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.business.index', ['tab' => 'customers'])]],
                 'columns' => ['name', 'phone', 'email', 'orders', 'spent', 'last_order'],
-                'rows' => DB::table('customers')
-                    ->join('orders', 'orders.customer_id', '=', 'customers.id')
-                    ->whereIn('orders.store_id', $storeIds)
-                    ->where('orders.channel', 'b2c')
-                    ->groupBy('customers.id', 'customers.name', 'customers.phone', 'customers.email')
+                'rows' => DB::table('b2c_customers')
+                    ->leftJoin('orders', function ($join): void {
+                        $join->on('orders.b2c_customer_id', '=', 'b2c_customers.id')
+                            ->on('orders.store_id', '=', 'b2c_customers.store_id')
+                            ->where('orders.channel', '=', 'b2c');
+                    })
+                    ->whereIn('b2c_customers.store_id', $storeIds)
+                    ->groupBy(
+                        'b2c_customers.id',
+                        'b2c_customers.store_id',
+                        'b2c_customers.name',
+                        'b2c_customers.phone',
+                        'b2c_customers.email',
+                    )
                     ->orderByDesc(DB::raw('MAX(orders.created_at)'))
+                    ->orderBy('b2c_customers.name')
                     ->limit(100)
                     ->get([
-                        'customers.name',
-                        'customers.phone',
-                        'customers.email',
+                        'b2c_customers.name',
+                        'b2c_customers.phone',
+                        'b2c_customers.email',
                         DB::raw('COUNT(orders.id) as orders_count'),
-                        DB::raw('SUM(orders.grand_total) as total_spent'),
+                        DB::raw('COALESCE(SUM(orders.grand_total), 0) as total_spent'),
                         DB::raw('MAX(orders.created_at) as last_order'),
                     ])->map(fn ($row) => [
                         'name' => $row->name,
@@ -162,7 +261,7 @@ class B2cWorkspaceController extends Controller
                         'email' => $row->email ?: '-',
                         'orders' => (int) $row->orders_count,
                         'spent' => 'KWD '.number_format((float) $row->total_spent, 3),
-                        'last_order' => (string) $row->last_order,
+                        'last_order' => $row->last_order === null ? '-' : (string) $row->last_order,
                     ])->all(),
             ],
             'promotions' => [
@@ -192,6 +291,23 @@ class B2cWorkspaceController extends Controller
             ],
             'drivers' => [
                 'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / إدارة السائقين' : 'Add / Manage Drivers', 'url' => route('admin.business.index', ['tab' => 'drivers'])]],
+                'drivers' => DB::table('drivers')
+                    ->join('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('drivers.driver_type', 'b2c')
+                    ->where('drivers.is_active', true)
+                    ->orderBy('users.name')
+                    ->get(['drivers.id', 'users.name'])
+                    ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
+                    ->all(),
+                'orders' => DB::table('orders')
+                    ->whereIn('store_id', $storeIds)
+                    ->where('channel', 'b2c')
+                    ->whereNotIn('status', ['delivered', 'cancelled'])
+                    ->orderByDesc('id')
+                    ->limit(100)
+                    ->get(['id', 'order_number'])
+                    ->map(fn ($row) => ['id' => (int) $row->id, 'number' => $row->order_number])
+                    ->all(),
                 'columns' => ['name', 'driver_type', 'order', 'assignment_status', 'availability'],
                 'rows' => DB::table('driver_assignments')
                     ->join('orders', 'orders.id', '=', 'driver_assignments.order_id')

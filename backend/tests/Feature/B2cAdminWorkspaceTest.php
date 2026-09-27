@@ -58,12 +58,13 @@ class B2cAdminWorkspaceTest extends TestCase
         $user->roles()->attach($role);
         DB::table('user_store_roles')->insert(['user_id' => $user->id, 'store_id' => $store, 'role_id' => $role->id, 'created_at' => now(), 'updated_at' => now()]);
 
-        $unit = (int) DB::table('units')->insertGetId(['code' => 'PC', 'name' => 'Piece', 'decimal_places' => 0, 'created_at' => now(), 'updated_at' => now()]);
+        $unit = (int) DB::table('units')->where('code', 'PC')->value('id');
         $product = (int) DB::table('products')->insertGetId(['unit_id' => $unit, 'sku' => 'PREM-1', 'name' => 'زيت زيتون عضوي', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('store_products')->insert(['store_id' => $store, 'product_id' => $product, 'price' => 10, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('inventories')->insert(['warehouse_id' => $warehouse, 'product_id' => $product, 'quantity' => 5, 'reserved_quantity' => 0, 'created_at' => now(), 'updated_at' => now()]);
         $customer = (int) DB::table('customers')->insertGetId(['type' => 'b2c', 'name' => 'سارة محمد', 'created_at' => now(), 'updated_at' => now()]);
-        $order = (int) DB::table('orders')->insertGetId(['store_id' => $store, 'customer_id' => $customer, 'order_number' => '#1245', 'channel' => 'b2c', 'status' => 'delivered', 'currency' => 'KWD', 'subtotal' => 20, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 20, 'created_at' => now(), 'updated_at' => now()]);
+        $domainCustomer = (int) DB::table('b2c_customers')->insertGetId(['legacy_customer_id' => $customer, 'store_id' => $store, 'name' => 'سارة محمد', 'created_at' => now(), 'updated_at' => now()]);
+        $order = (int) DB::table('orders')->insertGetId(['store_id' => $store, 'customer_id' => $customer, 'b2c_customer_id' => $domainCustomer, 'order_number' => '#1245', 'channel' => 'b2c', 'status' => 'delivered', 'currency' => 'KWD', 'subtotal' => 20, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 20, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('order_items')->insert(['order_id' => $order, 'product_id' => $product, 'sku_snapshot' => 'PREM-1', 'name_snapshot' => 'زيت زيتون عضوي', 'quantity' => 2, 'unit_price' => 10, 'line_total' => 20, 'created_at' => now(), 'updated_at' => now()]);
 
         $this->actingAs($user)
@@ -106,9 +107,11 @@ class B2cAdminWorkspaceTest extends TestCase
         ]);
         $mineCustomer = (int) DB::table('customers')->insertGetId(['type' => 'b2c', 'name' => 'Mine Customer', 'email' => 'mine@example.test', 'created_at' => now(), 'updated_at' => now()]);
         $otherCustomer = (int) DB::table('customers')->insertGetId(['type' => 'b2c', 'name' => 'Other Customer', 'email' => 'other@example.test', 'created_at' => now(), 'updated_at' => now()]);
+        $mineDomainCustomer = (int) DB::table('b2c_customers')->insertGetId(['legacy_customer_id' => $mineCustomer, 'store_id' => $mine, 'name' => 'Mine Customer', 'email' => 'mine@example.test', 'created_at' => now(), 'updated_at' => now()]);
+        $otherDomainCustomer = (int) DB::table('b2c_customers')->insertGetId(['legacy_customer_id' => $otherCustomer, 'store_id' => $other, 'name' => 'Other Customer', 'email' => 'other@example.test', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('orders')->insert([
-            ['store_id' => $mine, 'customer_id' => $mineCustomer, 'order_number' => 'MINE-ORDER', 'channel' => 'b2c', 'status' => 'processing', 'currency' => 'KWD', 'subtotal' => 5, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 5, 'created_at' => now(), 'updated_at' => now()],
-            ['store_id' => $other, 'customer_id' => $otherCustomer, 'order_number' => 'OTHER-ORDER', 'channel' => 'b2c', 'status' => 'processing', 'currency' => 'KWD', 'subtotal' => 9, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 9, 'created_at' => now(), 'updated_at' => now()],
+            ['store_id' => $mine, 'customer_id' => $mineCustomer, 'b2c_customer_id' => $mineDomainCustomer, 'order_number' => 'MINE-ORDER', 'channel' => 'b2c', 'status' => 'processing', 'currency' => 'KWD', 'subtotal' => 5, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 5, 'created_at' => now(), 'updated_at' => now()],
+            ['store_id' => $other, 'customer_id' => $otherCustomer, 'b2c_customer_id' => $otherDomainCustomer, 'order_number' => 'OTHER-ORDER', 'channel' => 'b2c', 'status' => 'processing', 'currency' => 'KWD', 'subtotal' => 9, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 9, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         $this->actingAs($user)->get('/admin/b2c/products')->assertOk()->assertSee('Mine Product')->assertDontSee('Other Product');
@@ -153,9 +156,11 @@ class B2cAdminWorkspaceTest extends TestCase
         DB::table('user_store_roles')->insert(['user_id' => $user->id, 'store_id' => $store, 'role_id' => $role->id, 'created_at' => now(), 'updated_at' => now()]);
 
         $customer = (int) DB::table('customers')->insertGetId(['type' => 'b2c', 'name' => 'Report Customer', 'created_at' => now(), 'updated_at' => now()]);
+        $domainCustomer = (int) DB::table('b2c_customers')->insertGetId(['legacy_customer_id' => $customer, 'store_id' => $store, 'name' => 'Report Customer', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('orders')->insert([
             'store_id' => $store,
             'customer_id' => $customer,
+            'b2c_customer_id' => $domainCustomer,
             'order_number' => 'RPT-ORDER',
             'channel' => 'b2c',
             'status' => 'delivered',

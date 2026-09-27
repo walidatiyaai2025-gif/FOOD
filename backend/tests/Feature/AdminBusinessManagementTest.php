@@ -81,11 +81,16 @@ class AdminBusinessManagementTest extends TestCase
 
         $this->actingAs($user)->post('/admin/business/customers', [
             'type' => 'b2c',
+            'store_id' => $storeId,
+            'support_access' => true,
             'name' => 'Customer One',
             'phone' => '5550001',
             'email' => 'customer@example.test',
         ])->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('customers', ['name' => 'Customer One']);
+        $this->assertDatabaseHas('b2c_customers', [
+            'store_id' => $storeId,
+            'name' => 'Customer One',
+        ]);
 
         $this->actingAs($user)->post('/admin/business/promotions', [
             'store_id' => $storeId,

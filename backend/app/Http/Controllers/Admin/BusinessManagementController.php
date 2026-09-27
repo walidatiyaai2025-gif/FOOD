@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\B2bCustomer;
+use App\Models\B2cCustomer;
 use App\Models\User;
+use App\Services\B2bCustomerService;
+use App\Services\B2cCustomerService;
 use App\Support\AdminNavigation;
+use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +37,15 @@ final class BusinessManagementController extends Controller
         };
         abort_unless($allowed, 403);
 
+        $retailCustomerStoreIds = $this->retailCustomerStoreIds($actor, $request);
+        $customerRows = $this->customerRows($actor, $retailCustomerStoreIds);
+        $customerStores = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('store_types.code', 'B2C')
+            ->whereIn('stores.id', $retailCustomerStoreIds)
+            ->orderBy('stores.name')
+            ->get(['stores.id', 'stores.name', 'stores.code']);
+
         return view('admin.business-management', [
             'user' => $actor,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
@@ -51,7 +65,9 @@ final class BusinessManagementController extends Controller
                     'inventories.id', 'inventories.quantity', 'inventories.reserved_quantity',
                     'warehouses.name as warehouse', 'products.name as product', 'products.sku', 'stores.name as store',
                 ]),
-            'customers' => DB::table('customers')->orderByDesc('id')->limit(250)->get(),
+            'customers' => $customerRows,
+            'customerStores' => $customerStores,
+            'supportStoreId' => $request->integer('support_store_id') ?: null,
             'promotions' => DB::table('promotions')->leftJoin('stores', 'stores.id', '=', 'promotions.store_id')->orderByDesc('promotions.id')->get([
                 'promotions.id', 'promotions.store_id', 'promotions.name', 'promotions.type', 'promotions.value',
                 'promotions.starts_at', 'promotions.ends_at', 'promotions.is_active', 'stores.name as store',
@@ -163,13 +179,31 @@ final class BusinessManagementController extends Controller
     public function storeCustomer(Request $request): RedirectResponse
     {
         Gate::authorize('customers.create');
+        $actor = $this->actor($request);
         $data = $request->validate([
             'type' => ['required', 'in:b2b,b2c'],
+            'store_id' => ['nullable', 'required_if:type,b2c', 'integer', 'exists:stores,id'],
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'email', 'max:255'],
         ]);
-        DB::table('customers')->insert([...$data, 'created_at' => now(), 'updated_at' => now()]);
+
+        if ($data['type'] === 'b2b') {
+            app(TenantContextResolver::class)->wholesale($actor);
+            app(B2bCustomerService::class)->create([
+                'name' => $data['name'],
+                'phone' => $data['phone'] ?? null,
+                'email' => $data['email'] ?? null,
+            ]);
+        } else {
+            $storeId = (int) $data['store_id'];
+            $this->assertRetailCustomerStore($actor, $storeId, $request);
+            app(B2cCustomerService::class)->create($storeId, [
+                'name' => $data['name'],
+                'phone' => $data['phone'] ?? null,
+                'email' => $data['email'] ?? null,
+            ]);
+        }
 
         return back()->with('status', $this->msg('تمت إضافة العميل.', 'Customer added.'));
     }
@@ -177,13 +211,31 @@ final class BusinessManagementController extends Controller
     public function updateCustomer(Request $request, int $customer): RedirectResponse
     {
         Gate::authorize('customers.edit');
+        $actor = $this->actor($request);
         $data = $request->validate([
             'type' => ['required', 'in:b2b,b2c'],
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'email', 'max:255'],
         ]);
-        DB::table('customers')->where('id', $customer)->update([...$data, 'updated_at' => now()]);
+
+        if ($data['type'] === 'b2b') {
+            app(TenantContextResolver::class)->wholesale($actor);
+            $model = B2bCustomer::query()->findOrFail($customer);
+            $model->update([
+                'name' => $data['name'],
+                'phone' => $data['phone'] ?? null,
+                'email' => $data['email'] ?? null,
+            ]);
+        } else {
+            $model = B2cCustomer::query()->findOrFail($customer);
+            $this->assertRetailCustomerStore($actor, (int) $model->store_id, $request);
+            app(B2cCustomerService::class)->update($model, [
+                'name' => $data['name'],
+                'phone' => $data['phone'] ?? null,
+                'email' => $data['email'] ?? null,
+            ]);
+        }
 
         return back()->with('status', $this->msg('تم تعديل العميل.', 'Customer updated.'));
     }
@@ -191,15 +243,37 @@ final class BusinessManagementController extends Controller
     public function destroyCustomer(Request $request, int $customer): RedirectResponse
     {
         Gate::authorize('customers.delete');
+        $actor = $this->actor($request);
+        $type = $request->validate(['type' => ['required', 'in:b2b,b2c']])['type'];
 
-        if (DB::table('orders')->where('customer_id', $customer)->exists()
-            || DB::table('invoices')->where('customer_id', $customer)->exists()) {
-            return back()->withErrors([
-                'customer' => $this->msg('لا يمكن حذف عميل مرتبط بطلبات أو فواتير.', 'A customer linked to orders or invoices cannot be deleted.'),
-            ]);
+        if ($type === 'b2b') {
+            app(TenantContextResolver::class)->wholesale($actor);
+            $model = B2bCustomer::query()->findOrFail($customer);
+
+            if (DB::table('orders')->where('b2b_customer_id', $model->getKey())->exists()
+                || DB::table('invoices')->where('b2b_customer_id', $model->getKey())->exists()
+                || DB::table('b2b_accounts')->where('b2b_customer_id', $model->getKey())->exists()) {
+                return back()->withErrors([
+                    'customer' => $this->msg('لا يمكن حذف عميل جملة مرتبط بسجل تشغيلي.', 'A B2B customer with operational history cannot be deleted.'),
+                ]);
+            }
+
+            $model->delete();
+        } else {
+            $model = B2cCustomer::query()->findOrFail($customer);
+            $this->assertRetailCustomerStore($actor, (int) $model->store_id, $request);
+
+            if (DB::table('orders')->where('b2c_customer_id', $model->getKey())->exists()
+                || DB::table('invoices')->where('b2c_customer_id', $model->getKey())->exists()
+                || DB::table('addresses')->where('b2c_customer_id', $model->getKey())->exists()
+                || DB::table('customer_favorites')->where('b2c_customer_id', $model->getKey())->exists()) {
+                return back()->withErrors([
+                    'customer' => $this->msg('لا يمكن حذف عميل متجر مرتبط بسجل تشغيلي.', 'A B2C customer with operational history cannot be deleted.'),
+                ]);
+            }
+
+            $model->delete();
         }
-
-        DB::table('customers')->where('id', $customer)->delete();
 
         return back()->with('status', $this->msg('تم حذف العميل.', 'Customer deleted.'));
     }
@@ -357,6 +431,88 @@ final class BusinessManagementController extends Controller
         ]);
 
         return [...$data, 'is_active' => $request->boolean('is_active')];
+    }
+
+    /** @param list<int> $retailStoreIds */
+    private function customerRows(User $actor, array $retailStoreIds)
+    {
+        $rows = collect();
+
+        if ($actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN')) {
+            $rows = $rows->merge(
+                DB::table('b2b_customers')
+                    ->orderByDesc('id')
+                    ->limit(250)
+                    ->get()
+                    ->map(static fn (object $row): object => (object) [
+                        'id' => (int) $row->id,
+                        'type' => 'b2b',
+                        'store_id' => null,
+                        'store' => null,
+                        'name' => $row->name,
+                        'phone' => $row->phone,
+                        'email' => $row->email,
+                    ]),
+            );
+        }
+
+        if ($retailStoreIds !== []) {
+            $rows = $rows->merge(
+                DB::table('b2c_customers')
+                    ->join('stores', 'stores.id', '=', 'b2c_customers.store_id')
+                    ->whereIn('b2c_customers.store_id', $retailStoreIds)
+                    ->orderByDesc('b2c_customers.id')
+                    ->limit(250)
+                    ->get([
+                        'b2c_customers.id',
+                        'b2c_customers.store_id',
+                        'b2c_customers.name',
+                        'b2c_customers.phone',
+                        'b2c_customers.email',
+                        'stores.name as store',
+                    ])
+                    ->map(static fn (object $row): object => (object) [
+                        'id' => (int) $row->id,
+                        'type' => 'b2c',
+                        'store_id' => (int) $row->store_id,
+                        'store' => $row->store,
+                        'name' => $row->name,
+                        'phone' => $row->phone,
+                        'email' => $row->email,
+                    ]),
+            );
+        }
+
+        return $rows->take(250)->values();
+    }
+
+    /** @return list<int> */
+    private function retailCustomerStoreIds(User $actor, Request $request): array
+    {
+        $tenant = app(TenantContextResolver::class);
+
+        if (! $actor->hasRole('SUPER_ADMIN')) {
+            return $tenant->retailStoreIds($actor);
+        }
+
+        $storeId = $request->integer('support_store_id');
+        if ($storeId <= 0) {
+            return [];
+        }
+
+        $tenant->retail($actor, $storeId, true, $request);
+
+        return [$storeId];
+    }
+
+    private function assertRetailCustomerStore(User $actor, int $storeId, Request $request): void
+    {
+        app(TenantContextResolver::class)->retail(
+            $actor,
+            $storeId,
+            $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
+            $request,
+        );
     }
 
     private function actor(Request $request): User

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Address;
+use App\Models\B2cCustomer;
 use App\Models\Customer;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
@@ -18,6 +19,10 @@ class CustomerProfileDomainTest extends TestCase
     private User $user;
 
     private Customer $customer;
+
+    private B2cCustomer $domainCustomer;
+
+    private int $storeId;
 
     private int $productId;
 
@@ -43,6 +48,35 @@ class CustomerProfileDomainTest extends TestCase
             'email' => $this->user->email,
         ]);
 
+        $storeTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $this->storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $storeTypeId,
+            'code' => 'PROFILE-B2C',
+            'name' => 'Profile Retail',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $catalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $this->storeId,
+            'channel' => 'b2c',
+            'code' => 'default',
+            'name' => 'Profile Retail Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->domainCustomer = B2cCustomer::query()->create([
+            'legacy_customer_id' => $this->customer->id,
+            'store_id' => $this->storeId,
+            'user_id' => $this->user->id,
+            'name' => 'Profile Customer',
+            'phone' => '50000000',
+            'email' => $this->user->email,
+        ]);
+
         $unitId = (int) DB::table('units')->insertGetId([
             'code' => 'EA-PROFILE',
             'name' => 'Each',
@@ -52,9 +86,18 @@ class CustomerProfileDomainTest extends TestCase
         ]);
 
         $this->productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalogId,
             'unit_id' => $unitId,
             'sku' => 'PROFILE-001',
             'name' => 'Favorite Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->insert([
+            'store_id' => $this->storeId,
+            'product_id' => $this->productId,
+            'price' => 1.000,
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -70,7 +113,7 @@ class CustomerProfileDomainTest extends TestCase
             ->assertJsonPath('id', $this->user->id)
             ->assertJsonPath('email', 'profile@example.test')
             ->assertJsonPath('locale', 'ar')
-            ->assertJsonPath('customer.id', $this->customer->id)
+            ->assertJsonPath('customer.id', $this->domainCustomer->id)
             ->assertJsonPath('customer.phone', '50000000')
             ->assertJsonCount(0, 'addresses')
             ->assertJsonCount(0, 'favorites');
@@ -94,16 +137,17 @@ class CustomerProfileDomainTest extends TestCase
             'email' => 'updated@example.test',
             'locale' => 'en',
         ]);
-        $this->assertDatabaseHas('customers', [
-            'id' => $this->customer->id,
+        $this->assertDatabaseHas('b2c_customers', [
+            'id' => $this->domainCustomer->id,
+            'store_id' => $this->storeId,
             'name' => 'Updated Customer',
             'email' => 'updated@example.test',
             'phone' => '51111111',
         ]);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'customer.profile_updated',
-            'auditable_type' => 'App\\Models\\Customer',
-            'auditable_id' => $this->customer->id,
+            'auditable_type' => 'App\\Models\\B2cCustomer',
+            'auditable_id' => $this->domainCustomer->id,
         ]);
     }
 
@@ -179,8 +223,16 @@ class CustomerProfileDomainTest extends TestCase
             'name' => 'Other Customer',
             'email' => $otherUser->email,
         ]);
+        $otherDomainCustomer = B2cCustomer::query()->create([
+            'legacy_customer_id' => $otherCustomer->id,
+            'store_id' => $this->storeId,
+            'user_id' => $otherUser->id,
+            'name' => 'Other Customer',
+            'email' => $otherUser->email,
+        ]);
         $foreign = Address::query()->create([
             'customer_id' => $otherCustomer->id,
+            'b2c_customer_id' => $otherDomainCustomer->id,
             'line1' => 'Other street',
             'city' => 'Kuwait City',
             'country_code' => 'KW',
@@ -235,7 +287,7 @@ class CustomerProfileDomainTest extends TestCase
             ->assertNoContent();
 
         $this->assertDatabaseMissing('customer_favorites', [
-            'customer_id' => $this->customer->id,
+            'b2c_customer_id' => $this->domainCustomer->id,
             'product_id' => $this->productId,
         ]);
     }
