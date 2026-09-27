@@ -20,6 +20,12 @@ class AdminWebLoginTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
+    public function test_guest_opening_admin_is_redirected_to_management_login(): void
+    {
+        $this->get('/admin')
+            ->assertRedirect(route('admin.b2c.login'));
+    }
+
     public function test_guest_can_open_bilingual_b2b_and_b2c_management_login_entries(): void
     {
         $this->get('/admin/b2b/login?locale=ar')

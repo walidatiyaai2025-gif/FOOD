@@ -160,7 +160,8 @@ class InstallerWorkflowTest extends TestCase
         ]);
         $state->markStepComplete(14, $admin);
 
-        $this->post('/install/step/15', ['installer_token' => $state->token()])->assertRedirect('/admin');
+        $this->post('/install/step/15', ['installer_token' => $state->token()])
+            ->assertRedirect(route('admin.b2c.login'));
 
         $version = trim((string) file_get_contents(base_path('../VERSION')));
         $this->assertTrue($state->isInstalled());

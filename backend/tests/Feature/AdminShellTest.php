@@ -20,9 +20,9 @@ class AdminShellTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
-    public function test_guest_cannot_open_management_dashboard(): void
+    public function test_guest_is_redirected_to_management_login(): void
     {
-        $this->get('/admin')->assertUnauthorized();
+        $this->get('/admin')->assertRedirect(route('admin.b2c.login'));
     }
 
     public function test_b2b_admin_sees_only_wholesale_channel(): void

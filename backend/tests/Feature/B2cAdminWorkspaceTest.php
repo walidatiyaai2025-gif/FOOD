@@ -13,6 +13,26 @@ class B2cAdminWorkspaceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_super_admin_can_open_empty_b2c_dashboard_on_fresh_install(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $user = User::query()->create([
+            'name' => 'Fresh Install Owner',
+            'email' => 'fresh-owner@example.test',
+            'password' => 'password',
+            'locale' => 'ar',
+            'is_active' => true,
+        ]);
+        $user->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->assertDatabaseCount('stores', 0);
+
+        $this->actingAs($user)
+            ->get('/admin/b2c/dashboard')
+            ->assertOk()
+            ->assertSee('FOODEX', false);
+    }
+
     public function test_b2c_admin_sees_only_assigned_store_and_rtl_workspace(): void
     {
         $this->seed(CoreReferenceSeeder::class);

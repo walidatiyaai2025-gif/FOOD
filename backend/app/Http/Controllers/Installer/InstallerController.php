@@ -197,7 +197,7 @@ class InstallerController extends Controller
 
                     $workflow->finish($admin);
 
-                    return redirect('/admin');
+                    return redirect()->route('admin.b2c.login');
             }
 
             $state->markStepComplete($step, $admin);
