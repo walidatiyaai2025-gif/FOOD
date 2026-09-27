@@ -91,6 +91,10 @@ class B2cWorkspaceController extends Controller
         $moduleData = in_array($module, ['products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
             ? $this->moduleData($module, $storeIds, $user, $storeId, $supportAccess)
             : null;
+        $visibleModules = array_values(array_filter(
+            array_keys(self::MODULE_PERMISSIONS),
+            fn (string $candidate): bool => $this->canOpenModule($user, $candidate, $storeId),
+        ));
 
         return view('admin.b2c-workspace', compact(
             'user',
@@ -104,6 +108,7 @@ class B2cWorkspaceController extends Controller
             'navContext',
             'dashboard',
             'moduleData',
+            'visibleModules',
         ));
     }
 
