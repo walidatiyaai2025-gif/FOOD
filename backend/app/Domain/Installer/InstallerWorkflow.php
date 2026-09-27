@@ -124,6 +124,15 @@ final class InstallerWorkflow
                 throw new RuntimeException('Storage directories could not be prepared.');
             }
         }
+
+        $publicLink = public_path('storage');
+        if (! is_link($publicLink) && ! is_dir($publicLink)) {
+            Artisan::call('storage:link');
+        }
+
+        if (! is_link($publicLink) && ! is_dir($publicLink)) {
+            throw new RuntimeException('The public/storage link could not be created. Image uploads would not be publicly accessible.');
+        }
     }
 
     /**
