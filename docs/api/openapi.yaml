@@ -914,6 +914,38 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
+  /driver/assignments/{assignment}:
+    get:
+      tags: [Drivers]
+      summary: Get one assigned order with driver-safe customer, address, item and payment detail
+      operationId: getDriverAssignment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: assignment
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Assignment and authoritative order detail owned by the authenticated driver
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/DriverAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /driver/assignments/{assignment}/status:
     post:
       tags: [Drivers]
@@ -1865,7 +1897,7 @@ components:
 
     DriverAssignment:
       type: object
-      required: [id, order_id, assignment_type, status, available_statuses]
+      required: [id, order_id, store_id, assignment_type, status, available_statuses, order]
       properties:
         id:
           type: integer
@@ -1882,12 +1914,55 @@ components:
         completed_at:
           type: [string, "null"]
           format: date-time
+        store_id:
+          type: integer
         available_statuses:
           type: array
-          description: Backend-authorized next states for this assignment and authenticated driver.
+          description: Backend-authorized next states after validating both assignment state and authoritative order state.
           items:
             type: string
             enum: [accepted, picked_up, out_for_delivery, delivered, failed]
+        order:
+          type: object
+          required: [number, status, currency, grand_total, store, customer, items]
+          properties:
+            number:
+              type: string
+            status:
+              type: string
+              enum: [pending, confirmed, preparing, ready, out_for_delivery, delivered, failed, cancelled]
+            currency:
+              type: string
+              enum: [KWD]
+            subtotal:
+              type: number
+            discount_total:
+              type: number
+            delivery_total:
+              type: number
+            grand_total:
+              type: number
+            payment_method:
+              type: string
+            customer_note:
+              type: [string, "null"]
+            store:
+              type: object
+              additionalProperties: true
+            customer:
+              type: object
+              additionalProperties: true
+            address:
+              type: [object, "null"]
+              additionalProperties: true
+            payment:
+              type: [object, "null"]
+              additionalProperties: true
+            items:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
 
     DriverAssignmentStatusWrite:
       type: object
@@ -1897,6 +1972,9 @@ components:
         status:
           type: string
           enum: [accepted, picked_up, out_for_delivery, delivered, failed]
+        note:
+          type: [string, "null"]
+          maxLength: 1000
 
     Notification:
       type: object
