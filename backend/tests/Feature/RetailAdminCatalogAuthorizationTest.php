@@ -149,7 +149,7 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
         $this->actingAs($owner)
             ->get(route('admin.catalog.index', ['tab' => 'stores']))
             ->assertOk()
-            ->assertSee('Store Management');
+            ->assertSee('Catalog & Store Management');
     }
 
     private function storeManager(string $email, int $storeId): User
