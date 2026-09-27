@@ -46,7 +46,7 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Enforce release versioning
         shell: bash
@@ -65,8 +65,13 @@ jobs:
             echo "::error::Deployable FOODEX code changed without a VERSION bump. Increase VERSION before publishing a new trial/update bundle."
             exit 1
           fi
+          update_base_ref="$(git log --format=%H -- VERSION | sed -n '2p')"
+          if [[ -z "$update_base_ref" ]]; then
+            update_base_ref="HEAD^"
+          fi
           echo "CURRENT_VERSION=$current_version" >> "$GITHUB_ENV"
           echo "PREVIOUS_VERSION=$previous_version" >> "$GITHUB_ENV"
+          echo "UPDATE_BASE_REF=$update_base_ref" >> "$GITHUB_ENV"
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -163,7 +168,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash scripts/build-dashboard-update.sh Release/Updates "$PREVIOUS_VERSION" "$CURRENT_VERSION" HEAD^
+          bash scripts/build-dashboard-update.sh Release/Updates "$PREVIOUS_VERSION" "$CURRENT_VERSION" "$UPDATE_BASE_REF"
 
       - name: Write bundle manifest
         shell: bash
