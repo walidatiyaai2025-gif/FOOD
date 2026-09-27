@@ -406,7 +406,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'drivers' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / إدارة السائقين' : 'Add / Manage Drivers', 'url' => route('admin.business.index', array_merge(['tab' => 'drivers'], $scopeParams))]],
+                'actions' => [],
                 'drivers' => DB::table('drivers')
                     ->join('users', 'users.id', '=', 'drivers.user_id')
                     ->where('drivers.driver_type', 'b2c')
