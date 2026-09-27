@@ -75,10 +75,20 @@ final class SecurityController extends Controller
         ]);
     }
 
+    public function demoData(Request $request, DemoDataManager $demoData): View
+    {
+        Gate::authorize('demo_data.manage');
+        $this->useActorLocale($request);
+
+        return view('admin.demo-data', [
+            'demoSummary' => $demoData->summary(),
+            'environment' => App::environment(),
+        ]);
+    }
+
     public function seedDemoData(Request $request, DemoDataManager $demoData): RedirectResponse
     {
         Gate::authorize('demo_data.manage');
-        abort_if(App::environment('production'), 403);
 
         $actor = $this->actor($request);
         $before = $demoData->summary();
@@ -109,7 +119,6 @@ final class SecurityController extends Controller
     public function clearDemoData(Request $request, DemoDataManager $demoData): RedirectResponse
     {
         Gate::authorize('demo_data.manage');
-        abort_if(App::environment('production'), 403);
 
         $request->validate([
             'confirmation' => ['required', 'in:DELETE DEMO DATA'],
