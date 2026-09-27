@@ -426,7 +426,7 @@ class B2cWorkspaceController extends Controller
                         'driver_assignments.status as assignment_status',
                     ])->map(fn ($row) => [
                         'name' => $row->name,
-                        'driver_type' => $row->driver_type,
+                        'driver_type' => app()->getLocale() === 'ar' ? 'التجزئة' : 'Retail',
                         'order' => $row->order_number,
                         'assignment_status' => $row->assignment_status,
                         'availability' => (bool) $row->is_available,
