@@ -33,14 +33,17 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <div class="catalog-layout">
 <aside class="sidebar">@include('admin._sidebar',['navContext'=>'b2c_products'])</aside>
 <main>
-<div class="header"><div><h1>{{ app()->getLocale()==='ar'?'إدارة الكتالوج والمتاجر':'Catalog & Store Management' }}</h1><div class="muted">{{ app()->getLocale()==='ar'?'إضافة وتعديل وحذف المنتجات والتصنيفات والعلامات والوحدات وربط المنتجات بالمتاجر.':'Create, edit and remove products, categories, brands and units, and assign products to stores.' }}</div></div><a class="btn" href="{{ route('admin.index') }}">{{ app()->getLocale()==='ar'?'لوحة الإدارة':'Dashboard' }}</a></div>
+<div class="header"><div><h1>{{ app()->getLocale()==='ar'?($canManageStores?'إدارة الكتالوج والمتاجر':'إدارة الكتالوج'):($canManageStores?'Catalog & Store Management':'Catalog Management') }}</h1><div class="muted">{{ app()->getLocale()==='ar'?($canManageStores?'إدارة المنتجات والتصنيفات والمتاجر من نطاق المنصة.':'إدارة منتجات وتصنيفات المتجر المصرح فقط.') : ($canManageStores?'Manage catalog and store configuration from the platform control plane.':'Manage products and categories only for the authorized store.') }}</div></div><a class="btn" href="{{ route('admin.index') }}">{{ app()->getLocale()==='ar'?'لوحة الإدارة':'Dashboard' }}</a></div>
 @if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 <nav class="tabs">
-@foreach(['products'=>'المنتجات','categories'=>'التصنيفات','stores'=>'المتاجر'] as $key=>$ar)
-<a class="{{ $tab===$key?'active':'' }}" href="{{ route('admin.catalog.index',['tab'=>$key]) }}">{{ app()->getLocale()==='ar'?$ar:ucfirst($key) }}</a>
+@foreach(['products'=>'المنتجات','categories'=>'التصنيفات'] as $key=>$ar)
+<a class="{{ $tab===$key?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>$key], $scopeParams)) }}">{{ app()->getLocale()==='ar'?$ar:ucfirst($key) }}</a>
 @endforeach
-<a href="{{ route('admin.lookups.index') }}">{{ app()->getLocale()==='ar'?'العلامات والوحدات':'Brands & Units' }}</a>
+@if($canManageStores)
+<a class="{{ $tab==='stores'?'active':'' }}" href="{{ route('admin.catalog.index',['tab'=>'stores']) }}">{{ app()->getLocale()==='ar'?'المتاجر':'Stores' }}</a>
+@endif
+<a href="{{ route('admin.lookups.index', $scopeParams) }}">{{ app()->getLocale()==='ar'?'العلامات والوحدات':'Brands & Units' }}</a>
 </nav>
 
 @if($tab==='products')
@@ -98,7 +101,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 @elseif($tab==='units')
 <div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة وحدة قياس':'Add unit' }}</h2><form class="form" method="post" action="{{ route('admin.catalog.units.store') }}">@csrf<label>{{ app()->getLocale()==='ar'?'الكود':'Code' }}<input name="code" required></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" required></label><label>{{ app()->getLocale()==='ar'?'المنازل العشرية':'Decimal places' }}<input type="number" min="0" max="6" name="decimal_places" value="0" required></label><button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة':'Add' }}</button></form></section><section class="card"><table class="table"><thead><tr><th>{{ app()->getLocale()==='ar'?'الكود':'Code' }}</th><th>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}</th><th>{{ app()->getLocale()==='ar'?'الدقة':'Precision' }}</th></tr></thead><tbody>@foreach($units as $u)<tr><td>{{ $u->code }}</td><td>{{ $u->name }}</td><td>{{ $u->decimal_places }}</td></tr>@endforeach</tbody></table></section></div>
 
-@elseif($tab==='stores')
+@elseif($tab==='stores' && $canManageStores)
 <div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة متجر':'Add store' }}</h2><form class="form" method="post" action="{{ route('admin.catalog.stores.store') }}">@csrf<label>{{ app()->getLocale()==='ar'?'النوع':'Type' }}<select name="store_type_id">@foreach($storeTypes as $t)<option value="{{ $t->id }}">{{ $t->code }} — {{ $t->name }}</option>@endforeach</select></label><label>{{ app()->getLocale()==='ar'?'الكود':'Code' }}<input name="code" required></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" required></label><label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة المتجر':'Add store' }}</button></form></section><section class="card table-wrap"><table class="table"><thead><tr><th>{{ app()->getLocale()==='ar'?'النوع':'Type' }}</th><th>{{ app()->getLocale()==='ar'?'الكود':'Code' }}</th><th>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}</th><th>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</th></tr></thead><tbody>@foreach($stores as $s)<tr><td>{{ $s->type_code }}</td><td>{{ $s->code }}</td><td>{{ $s->name }}</td><td><form class="inline-form" method="post" action="{{ route('admin.catalog.stores.update',$s->id) }}">@csrf @method('PATCH')<select name="store_type_id">@foreach($storeTypes as $t)<option value="{{ $t->id }}" @selected($s->store_type_id==$t->id)>{{ $t->code }}</option>@endforeach</select><input name="code" value="{{ $s->code }}"><input name="name" value="{{ $s->name }}"><label class="check"><input type="checkbox" name="is_active" value="1" @checked($s->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></form></td></tr>@endforeach</tbody></table></section></div>
 @endif
 </main></div></body></html>
