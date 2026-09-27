@@ -85,15 +85,16 @@ return [
         ],
         // Global operational roles are wholesale-only. Retail counterparts are store-only.
         'OPERATIONS' => [
-            'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
+            'stores.view', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
             'drivers.b2b.view', 'drivers.b2b.manage', 'reports.view',
         ],
         'INVENTORY' => [
-            'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage', 'lookups.view',
+            'stores.view', 'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage', 'lookups.view',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
         ],
-        'FINANCE' => ['finance.view', 'finance.manage', 'reports.view', 'reports.export'],
+        'FINANCE' => ['stores.view', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
         'CUSTOMER_SUPPORT' => [
+            'stores.view', 'b2b.accounts.view', 'b2b.accounts.manage',
             'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
         ],
         'RETAIL_OPERATIONS' => [
