@@ -25,6 +25,7 @@ class PromotionalNotificationCampaignTest extends TestCase
     public function test_b2b_admin_can_schedule_b2b_campaign_but_cannot_target_b2c(): void
     {
         $admin = $this->globalRoleUser('B2B_ADMIN', 'b2b-campaigns@example.test');
+        $wholesaleStore = $this->store('B2B', 'CAMPAIGN-WHOLESALE');
 
         $this->actingAs($admin)
             ->get('/admin/notification-campaigns')
@@ -33,6 +34,7 @@ class PromotionalNotificationCampaignTest extends TestCase
 
         $this->actingAs($admin)->post('/admin/notification-campaigns', $this->payload([
             'target_channel' => 'b2b',
+            'store_id' => $wholesaleStore,
             'schedule_kind' => 'recurring',
             'interval_value' => 2,
             'interval_unit' => 'hour',
@@ -41,6 +43,7 @@ class PromotionalNotificationCampaignTest extends TestCase
 
         $this->assertDatabaseHas('notification_campaigns', [
             'target_channel' => 'b2b',
+            'store_id' => $wholesaleStore,
             'schedule_kind' => 'recurring',
             'interval_value' => 2,
             'interval_unit' => 'hour',
@@ -182,6 +185,12 @@ class PromotionalNotificationCampaignTest extends TestCase
         $this->assertSame('completed', $campaign->status);
         $this->assertSame(1, (int) $campaign->run_count);
         $this->assertDatabaseCount('notification_campaign_runs', 1);
+
+        $admin = $this->globalRoleUser('SUPER_ADMIN', 'campaign-super@example.test');
+        $this->actingAs($admin)
+            ->post("/admin/notification-campaigns/{$campaign->id}/send-now")
+            ->assertStatus(409);
+        $this->assertDatabaseCount('notifications', 1);
 
         CarbonImmutable::setTestNow();
     }
