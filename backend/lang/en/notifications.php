@@ -83,7 +83,7 @@ return [
     ],
     'channel_options' => [
         'all' => 'All channels',
-        'b2c' => 'B2C Retail',
+        'b2c' => 'Retail',
         'b2b' => 'B2B Wholesale',
     ],
     'delivery_options' => [
