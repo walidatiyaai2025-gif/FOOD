@@ -185,7 +185,7 @@ final class CatalogManagementController extends Controller
         $this->authorizeCatalogAction($request, 'catalog.create', (int) $data['store_id'], (string) $catalog->channel);
         $this->catalogs->assertSameCatalog(isset($data['category_id']) ? (int) $data['category_id'] : null, (int) $catalog->id);
         $this->lookups->assertAssignableToStore('units', (int) $data['unit_id'], (int) $data['store_id']);
-        if (! empty($data['brand_id'])) {
+        if (!empty($data['brand_id'])) {
             $this->lookups->assertAssignableToStore('brands', (int) $data['brand_id'], (int) $data['store_id']);
         }
         $this->assertSkuAvailable((int) $catalog->id, (string) $data['sku']);
@@ -253,7 +253,7 @@ final class CatalogManagementController extends Controller
 
         $this->catalogs->assertSameCatalog(isset($data['category_id']) ? (int) $data['category_id'] : null, (int) $owner->catalog_id);
         $this->lookups->assertAssignableToStore('units', (int) $data['unit_id'], (int) $owner->store_id);
-        if (! empty($data['brand_id'])) {
+        if (!empty($data['brand_id'])) {
             $this->lookups->assertAssignableToStore('brands', (int) $data['brand_id'], (int) $owner->store_id);
         }
         $this->assertSkuAvailable((int) $owner->catalog_id, (string) $data['sku'], $product);
