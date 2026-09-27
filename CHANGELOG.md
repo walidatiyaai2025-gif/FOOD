@@ -4,6 +4,7 @@
 - Redirect the public FOODEX root URL directly to the canonical Retail management login.
 - Keep the installer endpoint and authenticated management workspaces unchanged.
 - Add regression coverage that keeps the root login-first even when a browser already has an authenticated management session.
+- Allow dashboard update bundles with no database migrations and report `contains_migrations=false` accurately for routing/UI-only patch releases.
 
 ## 1.0.9 - Retail Replenishment from Wholesale
 - Represent every Retail store as a managed active Wholesale customer account, including safe backfill for existing stores and automatic linking for new stores and demo fixtures.
