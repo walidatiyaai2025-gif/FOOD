@@ -267,7 +267,7 @@ final class AdminOrderManagementService
         }, 3);
     }
 
-    /** @return array<string,mixed> */
+    /** @return array<string, mixed> */
     private function validated(Request $request): array
     {
         return $request->validate([
@@ -283,7 +283,7 @@ final class AdminOrderManagementService
         ]);
     }
 
-    /** @return array{0:int,1:int} domain customer id, legacy customer id */
+    /** @return array{0: int, 1: int} domain customer id, legacy customer id */
     private function customerIds(string $channel, int $storeId, int $customerId): array
     {
         if ($channel === 'b2b') {
@@ -323,8 +323,8 @@ final class AdminOrderManagementService
     }
 
     /**
-     * @param list<array{product_id:int|string,quantity:int|float|string}> $items
-     * @return list<array{product_id:int,sku_snapshot:string,name_snapshot:string,quantity:float,unit_price:float,line_total:float}>
+     * @param  list<array{product_id: int|string, quantity: int|float|string}>  $items
+     * @return list<array{product_id: int, sku_snapshot: string, name_snapshot: string, quantity: float, unit_price: float, line_total: float}>
      */
     private function lineSnapshots(string $channel, int $storeId, int $customerId, array $items): array
     {
@@ -379,8 +379,8 @@ final class AdminOrderManagementService
     }
 
     /**
-     * @param list<array{line_total:float}> $lines
-     * @return array{subtotal:float,discount_total:float,delivery_total:float,grand_total:float}
+     * @param  list<array{line_total: float}>  $lines
+     * @return array{subtotal: float, discount_total: float, delivery_total: float, grand_total: float}
      */
     private function totals(array $lines, float $discountTotal, float $deliveryTotal): array
     {
