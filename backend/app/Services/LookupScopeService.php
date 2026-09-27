@@ -112,6 +112,42 @@ final class LookupScopeService
         return $scopes;
     }
 
+    public function assertAssignableToStore(string $type, int $lookupId, int $storeId): void
+    {
+        abort_unless(in_array($type, ['brands', 'units'], true), 404);
+
+        $row = DB::table($type)
+            ->where('id', $lookupId)
+            ->where('is_active', true)
+            ->first(['scope', 'store_id']);
+        abort_if($row === null, 404);
+
+        if ((string) $row->scope === self::GLOBAL) {
+            return;
+        }
+
+        $channel = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('stores.is_active', true)
+            ->value('store_types.code');
+        abort_if($channel === null, 404);
+
+        if ((string) $row->scope === self::B2B) {
+            abort_unless($channel === 'B2B', 422, 'Wholesale lookup cannot be assigned to a retail product.');
+
+            return;
+        }
+
+        abort_unless(
+            (string) $row->scope === self::STORE
+                && $channel === 'B2C'
+                && (int) $row->store_id === $storeId,
+            422,
+            'Store-scoped lookup belongs to a different retail store.',
+        );
+    }
+
     /** @return Collection<int, object> */
     public function visibleRetailStores(User $user): Collection
     {
