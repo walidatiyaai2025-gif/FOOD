@@ -88,6 +88,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'inventory' => [
+                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن والأرصدة' : 'Manage Warehouses & Stock', 'url' => route('admin.business.index', ['tab' => 'inventory'])]],
                 'columns' => ['sku', 'name', 'warehouse', 'quantity', 'reserved', 'available'],
                 'rows' => DB::table('inventories')
                     ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
@@ -137,6 +138,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'customers' => [
+                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.business.index', ['tab' => 'customers'])]],
                 'columns' => ['name', 'phone', 'email', 'orders', 'spent', 'last_order'],
                 'rows' => DB::table('customers')
                     ->join('orders', 'orders.customer_id', '=', 'customers.id')
@@ -162,6 +164,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'promotions' => [
+                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العروض' : 'Add / Edit Promotions', 'url' => route('admin.business.index', ['tab' => 'promotions'])]],
                 'columns' => ['name', 'store', 'type', 'value', 'period', 'status'],
                 'rows' => DB::table('promotions')
                     ->join('stores', 'stores.id', '=', 'promotions.store_id')
@@ -186,6 +189,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'drivers' => [
+                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / إدارة السائقين' : 'Add / Manage Drivers', 'url' => route('admin.business.index', ['tab' => 'drivers'])]],
                 'columns' => ['name', 'driver_type', 'order', 'assignment_status', 'availability'],
                 'rows' => DB::table('driver_assignments')
                     ->join('orders', 'orders.id', '=', 'driver_assignments.order_id')
@@ -223,6 +227,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'content' => [
+                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل البنرات' : 'Add / Edit Banners', 'url' => route('admin.business.index', ['tab' => 'content'])]],
                 'columns' => ['title', 'store', 'image', 'target', 'sort_order', 'status'],
                 'rows' => DB::table('banners')
                     ->join('stores', 'stores.id', '=', 'banners.store_id')
