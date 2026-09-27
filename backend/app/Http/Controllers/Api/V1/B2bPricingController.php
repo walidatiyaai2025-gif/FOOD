@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
 use App\Models\B2bPriceRule;
-use App\Models\Customer;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CustomerDomainResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -63,14 +63,10 @@ class B2bPricingController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401, 'Unauthenticated.');
 
-        $customer = Customer::query()
-            ->where('user_id', $user->getKey())
-            ->where('type', 'b2b')
-            ->first();
-        abort_unless($customer instanceof Customer, 403, 'B2B customer profile is required.');
+        $customer = app(CustomerDomainResolver::class)->b2b($user);
 
         $account = B2bAccount::query()
-            ->where('customer_id', $customer->getKey())
+            ->where('b2b_customer_id', $customer->getKey())
             ->where('status', 'active')
             ->first();
         abort_unless(
@@ -155,9 +151,8 @@ class B2bPricingController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401, 'Unauthenticated.');
-        $customer = Customer::query()->where('user_id', $user->getKey())->where('type', 'b2b')->first();
-        abort_unless($customer instanceof Customer, 403, 'B2B customer profile is required.');
-        $account = B2bAccount::query()->where('customer_id', $customer->getKey())->where('status', 'active')->first();
+        $customer = app(CustomerDomainResolver::class)->b2b($user);
+        $account = B2bAccount::query()->where('b2b_customer_id', $customer->getKey())->where('status', 'active')->first();
         abort_unless($account instanceof B2bAccount && $account->price_tier_id !== null, 403, 'Approved B2B pricing account is required.');
         $storeId = $request->integer('store_id');
         if ($storeId <= 0) {
