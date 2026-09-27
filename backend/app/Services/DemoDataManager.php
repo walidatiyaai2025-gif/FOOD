@@ -96,12 +96,12 @@ final class DemoDataManager
                 DB::table('notifications')->whereIn('user_id', $userIds)->delete();
                 DB::table('users')->whereIn('id', $userIds)->delete();
             }
-            if ($storeIds !== []) {
-                DB::table('stores')->whereIn('id', $storeIds)->delete();
-            }
-
             DB::table('notifications')->where('type', 'demo_seed')->delete();
             DB::table('categories')->where('slug', 'like', self::CATEGORY_PREFIX.'%')->delete();
+            if ($storeIds !== []) {
+                DB::table('catalogs')->whereIn('store_id', $storeIds)->delete();
+                DB::table('stores')->whereIn('id', $storeIds)->delete();
+            }
             DB::table('units')->where('code', self::UNIT_CODE)->delete();
         });
 

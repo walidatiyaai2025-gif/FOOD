@@ -21,8 +21,16 @@ class GuestCatalogController extends Controller
 
         $categories = Category::query()
             ->select('categories.*')
-            ->join('products', 'products.category_id', '=', 'categories.id')
+            ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
+            ->join('products', function ($join): void {
+                $join->on('products.category_id', '=', 'categories.id')
+                    ->on('products.catalog_id', '=', 'categories.catalog_id');
+            })
             ->join('store_products', 'store_products.product_id', '=', 'products.id')
+            ->where('catalogs.store_id', $store)
+            ->where('catalogs.channel', 'b2c')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
             ->where('store_products.store_id', $store)
             ->where('store_products.is_active', true)
             ->where('products.is_active', true)
@@ -68,7 +76,12 @@ class GuestCatalogController extends Controller
 
         $query = Product::query()
             ->select('products.*', 'store_products.price as store_price')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', 'store_products.product_id', '=', 'products.id')
+            ->where('catalogs.store_id', $store)
+            ->where('catalogs.channel', 'b2c')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
             ->where('store_products.store_id', $store)
             ->where('store_products.is_active', true)
             ->where('products.is_active', true);
@@ -128,8 +141,9 @@ class GuestCatalogController extends Controller
         $this->activeB2cStore($storeId);
 
         $item = Product::query()
+            ->forStore($storeId)
             ->whereKey($product)
-            ->where('is_active', true)
+            ->where('products.is_active', true)
             ->firstOrFail();
 
         $storeProduct = DB::table('store_products')
@@ -266,7 +280,12 @@ class GuestCatalogController extends Controller
     {
         $path = DB::table('product_images')
             ->join('products', 'products.id', '=', 'product_images.product_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', 'store_products.product_id', '=', 'products.id')
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2c')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
             ->where('products.category_id', $categoryId)
             ->where('products.is_active', true)
             ->where('store_products.store_id', $storeId)
