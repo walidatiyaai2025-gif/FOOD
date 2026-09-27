@@ -609,7 +609,7 @@ final class ManagementReportService
         return [
             'report' => $report,
             'timezone' => self::TIMEZONE,
-            'currency' => 'KWD',
+            'currency' => 'EGP',
             'generated_at' => CarbonImmutable::now(self::TIMEZONE)->toIso8601String(),
             'filters' => $filters,
             'kpis' => $kpis,

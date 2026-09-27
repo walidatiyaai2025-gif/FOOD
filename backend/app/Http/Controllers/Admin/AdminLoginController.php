@@ -33,6 +33,10 @@ class AdminLoginController extends Controller
         $user = $request->user();
 
         if ($user instanceof User && $user->is_active) {
+            if ($user->hasRole('SUPER_ADMIN')) {
+                return redirect()->route('admin.index');
+            }
+
             $target = $this->targetChannel($user, $channel);
 
             if ($target !== null) {
@@ -61,7 +65,7 @@ class AdminLoginController extends Controller
 
         $user = $this->credentials->authenticate($credentials['email'], $credentials['password']);
 
-        if (! $user) {
+        if ($user === null) {
             Log::notice('Management login denied', [
                 'channel' => $channel,
                 'reason' => 'invalid_or_inactive_credentials',
@@ -107,6 +111,10 @@ class AdminLoginController extends Controller
             'user_id' => $user->getKey(),
         ]);
 
+        if ($user->hasRole('SUPER_ADMIN')) {
+            return redirect()->route('admin.index');
+        }
+
         return redirect()->route("admin.{$target}.dashboard");
     }
 
@@ -148,7 +156,7 @@ class AdminLoginController extends Controller
 
     private function targetChannel(User $user, string $preferred): ?string
     {
-        if (! $user->is_active) {
+        if ($user->is_active === false) {
             return null;
         }
 

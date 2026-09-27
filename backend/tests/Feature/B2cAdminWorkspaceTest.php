@@ -13,7 +13,7 @@ class B2cAdminWorkspaceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_super_admin_can_open_empty_b2c_dashboard_on_fresh_install(): void
+    public function test_super_admin_uses_platform_control_plane_on_fresh_install(): void
     {
         $this->seed(CoreReferenceSeeder::class);
         $user = User::query()->create([
@@ -29,8 +29,7 @@ class B2cAdminWorkspaceTest extends TestCase
 
         $this->actingAs($user)
             ->get('/admin/b2c/dashboard')
-            ->assertOk()
-            ->assertSee('FOODEX', false);
+            ->assertRedirect(route('admin.retail-stores.index'));
     }
 
     public function test_b2c_admin_sees_only_assigned_store_and_rtl_workspace(): void
@@ -64,7 +63,7 @@ class B2cAdminWorkspaceTest extends TestCase
         DB::table('inventories')->insert(['warehouse_id' => $warehouse, 'product_id' => $product, 'quantity' => 5, 'reserved_quantity' => 0, 'created_at' => now(), 'updated_at' => now()]);
         $customer = (int) DB::table('customers')->insertGetId(['type' => 'b2c', 'name' => 'سارة محمد', 'created_at' => now(), 'updated_at' => now()]);
         $domainCustomer = (int) DB::table('b2c_customers')->insertGetId(['legacy_customer_id' => $customer, 'store_id' => $store, 'name' => 'سارة محمد', 'created_at' => now(), 'updated_at' => now()]);
-        $order = (int) DB::table('orders')->insertGetId(['store_id' => $store, 'customer_id' => $customer, 'b2c_customer_id' => $domainCustomer, 'order_number' => '#1245', 'channel' => 'b2c', 'status' => 'delivered', 'currency' => 'KWD', 'subtotal' => 20, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 20, 'created_at' => now(), 'updated_at' => now()]);
+        $order = (int) DB::table('orders')->insertGetId(['store_id' => $store, 'customer_id' => $customer, 'b2c_customer_id' => $domainCustomer, 'order_number' => '#1245', 'channel' => 'b2c', 'status' => 'delivered', 'currency' => 'EGP', 'subtotal' => 20, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 20, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('order_items')->insert(['order_id' => $order, 'product_id' => $product, 'sku_snapshot' => 'PREM-1', 'name_snapshot' => 'زيت زيتون عضوي', 'quantity' => 2, 'unit_price' => 10, 'line_total' => 20, 'created_at' => now(), 'updated_at' => now()]);
 
         $this->actingAs($user)
@@ -73,7 +72,7 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertSee('dir="rtl"', false)
             ->assertSee('مرحباً أحمد السعيد')
             ->assertSee('إجمالي الطلبات')
-            ->assertSee('KWD 20.000')
+            ->assertSee('EGP 20.000')
             ->assertSee('زيت زيتون عضوي')
             ->assertSee('#1245')
             ->assertSee('--foodex-green:#158A3A', false);
@@ -110,14 +109,14 @@ class B2cAdminWorkspaceTest extends TestCase
         $mineDomainCustomer = (int) DB::table('b2c_customers')->insertGetId(['legacy_customer_id' => $mineCustomer, 'store_id' => $mine, 'name' => 'Mine Customer', 'email' => 'mine@example.test', 'created_at' => now(), 'updated_at' => now()]);
         $otherDomainCustomer = (int) DB::table('b2c_customers')->insertGetId(['legacy_customer_id' => $otherCustomer, 'store_id' => $other, 'name' => 'Other Customer', 'email' => 'other@example.test', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('orders')->insert([
-            ['store_id' => $mine, 'customer_id' => $mineCustomer, 'b2c_customer_id' => $mineDomainCustomer, 'order_number' => 'MINE-ORDER', 'channel' => 'b2c', 'status' => 'processing', 'currency' => 'KWD', 'subtotal' => 5, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 5, 'created_at' => now(), 'updated_at' => now()],
-            ['store_id' => $other, 'customer_id' => $otherCustomer, 'b2c_customer_id' => $otherDomainCustomer, 'order_number' => 'OTHER-ORDER', 'channel' => 'b2c', 'status' => 'processing', 'currency' => 'KWD', 'subtotal' => 9, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 9, 'created_at' => now(), 'updated_at' => now()],
+            ['store_id' => $mine, 'customer_id' => $mineCustomer, 'b2c_customer_id' => $mineDomainCustomer, 'order_number' => 'MINE-ORDER', 'channel' => 'b2c', 'status' => 'processing', 'currency' => 'EGP', 'subtotal' => 5, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 5, 'created_at' => now(), 'updated_at' => now()],
+            ['store_id' => $other, 'customer_id' => $otherCustomer, 'b2c_customer_id' => $otherDomainCustomer, 'order_number' => 'OTHER-ORDER', 'channel' => 'b2c', 'status' => 'processing', 'currency' => 'EGP', 'subtotal' => 9, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 9, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         $this->actingAs($user)->get('/admin/b2c/products')->assertOk()->assertSee('Mine Product')->assertDontSee('Other Product');
         $this->actingAs($user)->get('/admin/b2c/inventory')->assertOk()->assertSee('Mine Warehouse')->assertSee('6.000')->assertDontSee('Other Warehouse');
         $this->actingAs($user)->get('/admin/b2c/orders')->assertOk()->assertSee('MINE-ORDER')->assertSee('Mine Customer')->assertDontSee('OTHER-ORDER');
-        $this->actingAs($user)->get('/admin/b2c/customers')->assertOk()->assertSee('Mine Customer')->assertSee('KWD 5.000')->assertDontSee('Other Customer');
+        $this->actingAs($user)->get('/admin/b2c/customers')->assertOk()->assertSee('Mine Customer')->assertSee('EGP 5.000')->assertDontSee('Other Customer');
     }
 
     public function test_experience_modules_are_store_scoped_and_storefront_preview_is_compatible(): void
@@ -164,7 +163,7 @@ class B2cAdminWorkspaceTest extends TestCase
             'order_number' => 'RPT-ORDER',
             'channel' => 'b2c',
             'status' => 'delivered',
-            'currency' => 'KWD',
+            'currency' => 'EGP',
             'subtotal' => 12,
             'discount_total' => 0,
             'delivery_total' => 0,
@@ -181,7 +180,7 @@ class B2cAdminWorkspaceTest extends TestCase
             ->get('/admin/b2c/reports')
             ->assertOk()
             ->assertSee('Reports Store')
-            ->assertSee('KWD 12.000')
+            ->assertSee('EGP 12.000')
             ->assertSee('Open reports')
             ->assertSee('XLSX')
             ->assertSee('PDF');

@@ -5,6 +5,7 @@ return [
     'management_system' => 'Unified management system',
     'navigation' => 'Navigation',
     'overview' => 'Overview',
+    'logout' => 'Sign out',
     'sidebar_search' => 'Search navigation',
     'sidebar_toggle' => 'Toggle navigation',
     'nav_groups' => [

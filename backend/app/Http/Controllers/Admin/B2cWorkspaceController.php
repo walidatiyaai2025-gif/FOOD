@@ -47,11 +47,22 @@ class B2cWorkspaceController extends Controller
         private readonly TenantContextResolver $tenantContext,
     ) {}
 
-    public function show(Request $request, string $module = 'dashboard'): View
+    public function show(Request $request, string $module = 'dashboard'): View|RedirectResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
         abort_unless(array_key_exists($module, self::MODULE_PERMISSIONS), 404);
+
+        if ($user->hasRole('SUPER_ADMIN')
+            && $request->integer('store_id') <= 0
+            && $request->integer('store') <= 0) {
+            return redirect()->route('admin.retail-stores.index')
+                ->with('status', $this->msg(
+                    'اختر متجر تجزئة ثم استخدم «إدارة / فحص المتجر» للدخول إلى سياقه بشكل صريح.',
+                    'Choose a Retail store and use Manage / Inspect Store to enter its explicit support context.',
+                ));
+        }
+
         $workspace = $this->workspaceContext($request, $user);
         $storeId = $workspace['selected_store_id'];
         $this->authorizeModule($user, $module, $storeId);
@@ -80,6 +91,10 @@ class B2cWorkspaceController extends Controller
         $moduleData = in_array($module, ['products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
             ? $this->moduleData($module, $storeIds, $user, $storeId, $supportAccess)
             : null;
+        $visibleModules = array_values(array_filter(
+            array_keys(self::MODULE_PERMISSIONS),
+            fn (string $candidate): bool => $this->canOpenModule($user, $candidate, $storeId),
+        ));
 
         return view('admin.b2c-workspace', compact(
             'user',
@@ -93,6 +108,7 @@ class B2cWorkspaceController extends Controller
             'navContext',
             'dashboard',
             'moduleData',
+            'visibleModules',
         ));
     }
 
@@ -290,13 +306,13 @@ class B2cWorkspaceController extends Controller
                         'name' => $row->name,
                         'category' => $row->category,
                         'store' => $row->store,
-                        'cost' => $row->cost_price === null ? '-' : number_format((float) $row->cost_price, 3).' KWD',
-                        'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' KWD',
+                        'cost' => $row->cost_price === null ? '-' : number_format((float) $row->cost_price, 3).' EGP',
+                        'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' EGP',
                         'status' => (bool) $row->status,
                     ])->all(),
             ],
             'inventory' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن والأرصدة' : 'Manage Warehouses & Stock', 'url' => route('admin.business.index', array_merge(['tab' => 'inventory'], $scopeParams))]],
+                'actions' => [],
                 'inventory_options' => DB::table('inventories')
                     ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
                     ->join('products', 'products.id', '=', 'inventories.product_id')
@@ -329,7 +345,7 @@ class B2cWorkspaceController extends Controller
             ],
             'orders' => $this->orderModuleData($storeIds),
             'customers' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.business.index', array_merge(['tab' => 'customers'], $scopeParams))]],
+                'actions' => [],
                 'columns' => ['name', 'phone', 'email', 'orders', 'spent', 'last_order'],
                 'rows' => DB::table('b2c_customers')
                     ->leftJoin('orders', function ($join): void {
@@ -360,12 +376,12 @@ class B2cWorkspaceController extends Controller
                         'phone' => $row->phone ?: '-',
                         'email' => $row->email ?: '-',
                         'orders' => (int) $row->orders_count,
-                        'spent' => 'KWD '.number_format((float) $row->total_spent, 3),
+                        'spent' => 'EGP '.number_format((float) $row->total_spent, 3),
                         'last_order' => $row->last_order === null ? '-' : (string) $row->last_order,
                     ])->all(),
             ],
             'promotions' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العروض' : 'Add / Edit Promotions', 'url' => route('admin.business.index', array_merge(['tab' => 'promotions'], $scopeParams))]],
+                'actions' => [],
                 'columns' => ['name', 'store', 'type', 'value', 'period', 'status'],
                 'rows' => DB::table('promotions')
                     ->join('stores', 'stores.id', '=', 'promotions.store_id')
@@ -390,7 +406,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'drivers' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / إدارة السائقين' : 'Add / Manage Drivers', 'url' => route('admin.business.index', array_merge(['tab' => 'drivers'], $scopeParams))]],
+                'actions' => [],
                 'drivers' => DB::table('drivers')
                     ->join('users', 'users.id', '=', 'drivers.user_id')
                     ->where('drivers.driver_type', 'b2c')
@@ -676,8 +692,8 @@ class B2cWorkspaceController extends Controller
                 return [
                     'store' => $store->name,
                     'orders' => (int) data_get($data, 'kpis.orders', 0),
-                    'revenue' => 'KWD '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
-                    'average' => 'KWD '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
+                    'revenue' => 'EGP '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
+                    'average' => 'EGP '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
                     'actions' => $actions,
                 ];
             })->all(),
@@ -754,6 +770,20 @@ class B2cWorkspaceController extends Controller
             'columns' => [],
             'rows' => [],
         ];
+    }
+
+    private function canOpenModule(User $user, string $module, int $storeId): bool
+    {
+        $permission = self::MODULE_PERMISSIONS[$module] ?? null;
+        if ($permission === null) {
+            return true;
+        }
+
+        if ($storeId > 0 && $user->hasPermission($permission, $storeId)) {
+            return true;
+        }
+
+        return ! $user->hasRole('SUPER_ADMIN') && $user->hasPermission($permission);
     }
 
     private function authorizeModule(User $user, string $module, int $storeId): void
@@ -837,5 +867,10 @@ class B2cWorkspaceController extends Controller
     private function workspaceStoreId(Request $request, User $user): int
     {
         return $this->workspaceContext($request, $user)['selected_store_id'];
+    }
+
+    private function msg(string $ar, string $en): string
+    {
+        return app()->getLocale() === 'ar' ? $ar : $en;
     }
 }

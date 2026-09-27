@@ -7,7 +7,7 @@ return [
     'driver' => 'السائق',
     'platform' => 'المنصة',
     'android' => 'أندرويد',
-    'ios' => 'iOS',
+    'ios' => 'آي أو إس',
     'latest_version' => 'أحدث إصدار',
     'minimum_supported_version' => 'أقل إصدار مدعوم',
     'force_update' => 'فرض التحديث للإصدارات الأقدم',

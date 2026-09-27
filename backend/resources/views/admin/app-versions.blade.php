@@ -21,11 +21,11 @@
             <option value="android" @selected(old('platform', 'android') === 'android')>{{ __('app_versions.android') }}</option>
             <option value="ios" @selected(old('platform') === 'ios')>{{ __('app_versions.ios') }}</option>
         </select></label>
-        <label>{{ __('app_versions.latest_version') }} <input name="latest_version" dir="ltr" value="{{ old('latest_version') }}" required></label>
-        <label>{{ __('app_versions.minimum_supported_version') }} <input name="minimum_supported_version" dir="ltr" value="{{ old('minimum_supported_version') }}" required></label>
+        <label>{{ __('app_versions.latest_version') }} <input name="latest_version" dir="ltr" value="{{ old('latest_version') }}" placeholder="1.0.12" required></label>
+        <label>{{ __('app_versions.minimum_supported_version') }} <input name="minimum_supported_version" dir="ltr" value="{{ old('minimum_supported_version') }}" placeholder="1.0.6" required></label>
         <label><input type="checkbox" name="force_update" value="1" @checked(old('force_update'))> {{ __('app_versions.force_update') }}</label>
-        <label>{{ __('app_versions.store_url') }} <input name="store_url" type="url" dir="ltr" value="{{ old('store_url') }}" required></label>
-        <label>{{ __('app_versions.release_notes') }} <textarea name="release_notes">{{ old('release_notes') }}</textarea></label>
+        <label>{{ __('app_versions.store_url') }} <input name="store_url" type="url" dir="ltr" value="{{ old('store_url') }}" placeholder="https://example.com/app" required></label>
+        <label>{{ __('app_versions.release_notes') }} <textarea name="release_notes" placeholder="{{ app()->getLocale()==='ar'?'اكتب ملخص التحديث والتغييرات المهمة':'Summarize the release changes' }}">{{ old('release_notes') }}</textarea></label>
         <button class="foodex-primary" type="submit">{{ __('app_versions.save') }}</button>
     </form>
     <h2>{{ __('app_versions.configured') }}</h2>

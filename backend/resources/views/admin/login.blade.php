@@ -58,11 +58,11 @@
                 <input type="hidden" name="locale" value="{{ $locale }}">
                 <div class="field">
                     <label for="email">{{ __('admin_login.email') }}</label>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" autocomplete="username" required autofocus>
+                    <input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="{{ app()->getLocale()==='ar'?'example@company.com':'example@company.com' }}" autocomplete="username" required autofocus>
                 </div>
                 <div class="field">
                     <label for="password">{{ __('admin_login.password') }}</label>
-                    <input id="password" name="password" type="password" autocomplete="current-password" required>
+                    <input id="password" name="password" type="password" placeholder="{{ app()->getLocale()==='ar'?'أدخل كلمة المرور':'Enter your password' }}" autocomplete="current-password" required>
                 </div>
                 <button type="submit">{{ __('admin_login.sign_in_action') }}</button>
             </form>

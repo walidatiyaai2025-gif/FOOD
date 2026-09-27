@@ -42,7 +42,7 @@ class AdminWebLoginTest extends TestCase
         $this->get('/admin/b2b/login?locale=ar')
             ->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee('إدارة الجملة B2B')
+            ->assertSee('إدارة الجملة')
             ->assertSee('name="_token"', false)
             ->assertDontSee('إنشاء حساب');
 

@@ -9,9 +9,7 @@ use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\B2cCustomerService;
 use App\Services\OperationalTenantScope;
-use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,117 +20,15 @@ use Illuminate\Validation\ValidationException;
 
 final class BusinessManagementController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
-        $actor = $this->actor($request);
-        $tab = in_array((string) $request->query('tab'), ['inventory', 'customers', 'promotions', 'content', 'drivers'], true)
-            ? (string) $request->query('tab')
-            : 'inventory';
-
-        $allowed = match ($tab) {
-            'inventory' => $this->hasPermissionAnywhere($actor, ['inventory.view', 'inventory.manage']),
-            'customers' => $this->hasPermissionAnywhere($actor, ['customers.view', 'customers.manage']),
-            'promotions', 'content' => $this->hasPermissionAnywhere($actor, ['promotions.view', 'promotions.manage']),
-            'drivers' => $this->hasPermissionAnywhere($actor, [
-                'drivers.b2c.view', 'drivers.b2b.view', 'drivers.b2c.manage', 'drivers.b2b.manage',
-            ]),
-        };
-        abort_unless($allowed, 403);
-
-        $retailCustomerStoreIds = $this->retailCustomerStoreIds($actor, $request);
-        $customerRows = $this->customerRows($actor, $retailCustomerStoreIds);
-        $customerStores = DB::table('stores')
-            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-            ->where('store_types.code', 'B2C')
-            ->whereIn('stores.id', $retailCustomerStoreIds)
-            ->orderBy('stores.name')
-            ->get(['stores.id', 'stores.name', 'stores.code']);
-
-        $inventoryStoreIds = $this->filterRequestedStoreIds(
-            $actor,
-            $request,
-            $this->storeIdsForAny($actor, ['inventory.view', 'inventory.manage']),
-        );
-        $promotionStoreIds = $this->filterRequestedStoreIds(
-            $actor,
-            $request,
-            $this->storeIdsForAny($actor, ['promotions.view', 'promotions.manage']),
-        );
-        $driverStoreIds = $this->filterRequestedStoreIds($actor, $request, array_values(array_unique([
-            ...$this->storeIdsForAny($actor, ['drivers.b2c.view', 'drivers.b2c.manage'], 'b2c'),
-            ...$this->storeIdsForAny($actor, ['drivers.b2b.view', 'drivers.b2b.manage'], 'b2b'),
-        ])));
-        $visibleStoreIds = match ($tab) {
-            'inventory' => $inventoryStoreIds,
-            'promotions', 'content' => $promotionStoreIds,
-            'drivers' => $driverStoreIds,
-            'customers' => $retailCustomerStoreIds,
-        };
-
-        return view('admin.business-management', [
-            'user' => $actor,
-            'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
-            'navContext' => 'business_management',
-            'tab' => $tab,
-            'stores' => DB::table('stores')
-                ->whereIn('id', $visibleStoreIds)
-                ->orderBy('name')
-                ->get(['id', 'name', 'code']),
-            'products' => DB::table('products')
-                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-                ->whereIn('catalogs.store_id', $inventoryStoreIds)
-                ->orderBy('products.name')
-                ->get(['products.id', 'products.name', 'products.sku']),
-            'warehouses' => DB::table('warehouses')
-                ->join('stores', 'stores.id', '=', 'warehouses.store_id')
-                ->whereIn('warehouses.store_id', $inventoryStoreIds)
-                ->orderBy('warehouses.name')
-                ->get([
-                    'warehouses.id', 'warehouses.store_id', 'warehouses.code', 'warehouses.name', 'warehouses.is_active', 'stores.name as store',
-                ]),
-            'inventories' => DB::table('inventories')
-                ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-                ->join('products', 'products.id', '=', 'inventories.product_id')
-                ->join('stores', 'stores.id', '=', 'warehouses.store_id')
-                ->whereIn('warehouses.store_id', $inventoryStoreIds)
-                ->orderBy('products.name')
-                ->get([
-                    'inventories.id', 'inventories.quantity', 'inventories.reserved_quantity',
-                    'warehouses.name as warehouse', 'products.name as product', 'products.sku', 'stores.name as store',
-                ]),
-            'customers' => $customerRows,
-            'customerStores' => $customerStores,
-            'supportStoreId' => ($request->integer('support_store_id') ?: $request->integer('store_id')) ?: null,
-            'selectedStoreId' => $request->integer('store_id') ?: null,
-            'canB2cDrivers' => $this->hasPermissionAnywhere($actor, ['drivers.b2c.view', 'drivers.b2c.manage']),
-            'canB2bDrivers' => $this->hasPermissionAnywhere($actor, ['drivers.b2b.view', 'drivers.b2b.manage']),
-            'promotions' => DB::table('promotions')
-                ->join('stores', 'stores.id', '=', 'promotions.store_id')
-                ->whereIn('promotions.store_id', $promotionStoreIds)
-                ->orderByDesc('promotions.id')
-                ->get([
-                    'promotions.id', 'promotions.store_id', 'promotions.name', 'promotions.type', 'promotions.value',
-                    'promotions.starts_at', 'promotions.ends_at', 'promotions.is_active', 'stores.name as store',
-                ]),
-            'banners' => DB::table('banners')
-                ->join('stores', 'stores.id', '=', 'banners.store_id')
-                ->whereIn('banners.store_id', $promotionStoreIds)
-                ->orderBy('banners.sort_order')
-                ->orderByDesc('banners.id')
-                ->get([
-                    'banners.id', 'banners.store_id', 'banners.title', 'banners.image_path', 'banners.target_url',
-                    'banners.sort_order', 'banners.is_active', 'stores.name as store',
-                ]),
-            'drivers' => DB::table('drivers')
-                ->join('users', 'users.id', '=', 'drivers.user_id')
-                ->leftJoin('stores', 'stores.id', '=', 'drivers.store_id')
-                ->whereIn('drivers.store_id', $driverStoreIds)
-                ->orderBy('users.name')
-                ->get([
-                    'drivers.id', 'drivers.user_id', 'drivers.store_id', 'drivers.driver_type', 'drivers.is_available', 'drivers.is_active',
-                    'users.name', 'users.email', 'stores.name as store',
-                ]),
-        ]);
+        // Legacy mixed-domain page is retired. Operational administration now lives
+        // in the authoritative wholesale or exact Retail store workspace.
+        return redirect()->route('admin.index')
+            ->with('status', $this->msg(
+                'تم نقل إدارة العمليات إلى مساحات الجملة والتجزئة المنفصلة لمنع خلط بيانات المتاجر.',
+                'Operations management now lives in the separated Wholesale and Retail workspaces.',
+            ));
     }
 
     public function storeWarehouse(Request $request): RedirectResponse
@@ -580,79 +476,6 @@ final class BusinessManagementController extends Controller
         return [...$data, 'is_active' => $request->boolean('is_active')];
     }
 
-    /** @param list<int> $retailStoreIds */
-    private function customerRows(User $actor, array $retailStoreIds)
-    {
-        $rows = collect();
-
-        if ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('b2b.accounts.view')) {
-            $rows = $rows->merge(
-                DB::table('b2b_customers')
-                    ->orderByDesc('id')
-                    ->limit(250)
-                    ->get()
-                    ->map(static fn (object $row): object => (object) [
-                        'id' => (int) $row->id,
-                        'type' => 'b2b',
-                        'store_id' => null,
-                        'store' => null,
-                        'name' => $row->name,
-                        'phone' => $row->phone,
-                        'email' => $row->email,
-                    ]),
-            );
-        }
-
-        if ($retailStoreIds !== []) {
-            $rows = $rows->merge(
-                DB::table('b2c_customers')
-                    ->join('stores', 'stores.id', '=', 'b2c_customers.store_id')
-                    ->whereIn('b2c_customers.store_id', $retailStoreIds)
-                    ->orderByDesc('b2c_customers.id')
-                    ->limit(250)
-                    ->get([
-                        'b2c_customers.id',
-                        'b2c_customers.store_id',
-                        'b2c_customers.name',
-                        'b2c_customers.phone',
-                        'b2c_customers.email',
-                        'stores.name as store',
-                    ])
-                    ->map(static fn (object $row): object => (object) [
-                        'id' => (int) $row->id,
-                        'type' => 'b2c',
-                        'store_id' => (int) $row->store_id,
-                        'store' => $row->store,
-                        'name' => $row->name,
-                        'phone' => $row->phone,
-                        'email' => $row->email,
-                    ]),
-            );
-        }
-
-        return $rows->take(250)->values();
-    }
-
-    /** @return list<int> */
-    private function retailCustomerStoreIds(User $actor, Request $request): array
-    {
-        $tenant = app(TenantContextResolver::class);
-        $requestedStoreId = $request->integer('support_store_id') ?: $request->integer('store_id');
-
-        if (! $actor->hasRole('SUPER_ADMIN')) {
-            return $this->filterRequestedStoreIds($actor, $request, $tenant->retailStoreIds($actor));
-        }
-
-        if ($requestedStoreId <= 0) {
-            return [];
-        }
-
-        abort_unless($request->boolean('support_access'), 403);
-        $tenant->retail($actor, $requestedStoreId, true, $request);
-
-        return [$requestedStoreId];
-    }
-
     private function assertRetailCustomerStore(User $actor, int $storeId, Request $request): void
     {
         app(TenantContextResolver::class)->retail(
@@ -661,65 +484,6 @@ final class BusinessManagementController extends Controller
             $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
             $request,
         );
-    }
-
-    /** @param list<string> $permissions */
-    private function hasPermissionAnywhere(User $actor, array $permissions): bool
-    {
-        foreach ($permissions as $permission) {
-            if ($actor->hasPermission($permission)
-                || $actor->storeRoleAssignments()
-                    ->whereHas('role', fn ($query) => $query
-                        ->where('roles.is_active', true)
-                        ->whereHas('permissions', fn ($permissionsQuery) => $permissionsQuery
-                            ->where('permissions.code', $permission)))
-                    ->exists()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /** @param list<string> $permissions
-     * @return list<int>
-     */
-    private function storeIdsForAny(User $actor, array $permissions, ?string $channel = null): array
-    {
-        $scope = app(OperationalTenantScope::class);
-        $ids = [];
-
-        foreach ($permissions as $permission) {
-            $ids = [...$ids, ...$scope->allowedStoreIds($actor, $permission, $channel)];
-        }
-
-        $ids = array_values(array_unique($ids));
-        sort($ids);
-
-        return $ids;
-    }
-
-    /** @param list<int> $storeIds
-     * @return list<int>
-     */
-    private function filterRequestedStoreIds(User $actor, Request $request, array $storeIds): array
-    {
-        $requested = $request->integer('store_id');
-        if ($requested <= 0) {
-            return $storeIds;
-        }
-
-        abort_unless(in_array($requested, $storeIds, true), 404);
-
-        if ($actor->hasRole('SUPER_ADMIN')) {
-            $channel = app(OperationalTenantScope::class)->storeChannel($requested);
-            if ($channel === 'b2c') {
-                abort_unless($request->boolean('support_access'), 403);
-                app(TenantContextResolver::class)->retail($actor, $requested, true, $request);
-            }
-        }
-
-        return [$requested];
     }
 
     private function actor(Request $request): User

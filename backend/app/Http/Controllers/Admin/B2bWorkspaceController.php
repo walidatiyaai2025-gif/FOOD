@@ -97,8 +97,12 @@ class B2bWorkspaceController extends Controller
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2b_'.$module;
         $moduleData = $this->moduleData($module, $storeIds, $user);
+        $visibleModules = array_values(array_filter(
+            array_keys(self::MODULE_PERMISSIONS),
+            fn (string $candidate): bool => $this->canOpenModule($user, $candidate),
+        ));
 
-        return view('admin.b2b-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'moduleData'));
+        return view('admin.b2b-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'moduleData', 'visibleModules'));
     }
 
     public function transitionOrder(
@@ -590,8 +594,8 @@ class B2bWorkspaceController extends Controller
                 return [
                     'store' => $store->name,
                     'orders' => (int) data_get($data, 'kpis.orders', 0),
-                    'revenue' => 'KWD '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
-                    'average' => 'KWD '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
+                    'revenue' => 'EGP '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
+                    'average' => 'EGP '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
                     'actions' => $actions,
                 ];
             })->all(),
@@ -813,7 +817,7 @@ class B2bWorkspaceController extends Controller
                     'sku' => $row->sku,
                     'name' => $row->name,
                     'store' => $row->store,
-                    'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' KWD',
+                    'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' EGP',
                     'available' => number_format((float) $stock, 3),
                     'status' => (bool) $row->is_active,
                     'actions' => true,
@@ -1021,7 +1025,7 @@ class B2bWorkspaceController extends Controller
                         'sku' => $row->sku,
                         'product' => $row->product,
                         'store' => $row->store,
-                        'unit_price' => number_format((float) $row->unit_price, 3).' KWD',
+                        'unit_price' => number_format((float) $row->unit_price, 3).' EGP',
                         'minimum_quantity' => number_format((float) $row->minimum_quantity, 3),
                         'status' => (bool) $row->status,
                     ])->all(),
@@ -1246,6 +1250,13 @@ class B2bWorkspaceController extends Controller
         $this->tenantContext->wholesale($user);
 
         return $user;
+    }
+
+    private function canOpenModule(User $user, string $module): bool
+    {
+        $permission = self::MODULE_PERMISSIONS[$module] ?? null;
+
+        return $permission === null || $user->hasPermission($permission);
     }
 
     private function authorizeModule(User $user, string $module): void

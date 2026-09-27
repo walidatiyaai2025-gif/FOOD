@@ -32,7 +32,7 @@ class AdminShellTest extends TestCase
         $this->actingAs($user)
             ->get('/admin')
             ->assertOk()
-            ->assertSee('إدارة الجملة B2B')
+            ->assertSee('إدارة الجملة')
             ->assertDontSee('إدارة التجزئة');
 
         $this->actingAs($user)
@@ -70,17 +70,21 @@ class AdminShellTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_super_admin_uses_one_shell_for_both_channels(): void
+    public function test_super_admin_stays_on_platform_control_plane_until_explicit_retail_inspection(): void
     {
         $user = $this->userWithGlobalRole('SUPER_ADMIN');
 
         $this->actingAs($user)
             ->get('/admin')
             ->assertOk()
-            ->assertSee('إدارة الجملة B2B')
-            ->assertSee('إدارة التجزئة')
-            ->assertSee('href="'.route('admin.b2b.dashboard').'"', false)
-            ->assertSee('href="'.route('admin.b2c.dashboard').'"', false);
+            ->assertSee('إدارة الجملة')
+            ->assertDontSee('href="'.route('admin.b2c.dashboard').'"', false)
+            ->assertSee('href="'.route('admin.retail-stores.index').'"', false)
+            ->assertSee(route('admin.logout'), false);
+
+        $this->actingAs($user)
+            ->get('/admin/b2c/dashboard')
+            ->assertRedirect(route('admin.retail-stores.index'));
     }
 
     public function test_fresh_install_super_admin_can_open_all_management_get_surfaces(): void
@@ -91,17 +95,6 @@ class AdminShellTest extends TestCase
 
         foreach ([
             '/admin',
-            '/admin/b2c/dashboard',
-            '/admin/b2c/products',
-            '/admin/b2c/inventory',
-            '/admin/b2c/orders',
-            '/admin/b2c/customers',
-            '/admin/b2c/promotions',
-            '/admin/b2c/drivers',
-            '/admin/b2c/storefront',
-            '/admin/b2c/content',
-            '/admin/b2c/reports',
-            '/admin/b2c/settings',
             '/admin/b2b/dashboard',
             '/admin/b2b/stores',
             '/admin/b2b/clients',
@@ -118,6 +111,7 @@ class AdminShellTest extends TestCase
             '/admin/settings/system-update',
             '/admin/settings/translations',
             '/admin/notifications',
+            '/admin/security/demo-data',
         ] as $uri) {
             $this->actingAs($user)
                 ->get($uri)

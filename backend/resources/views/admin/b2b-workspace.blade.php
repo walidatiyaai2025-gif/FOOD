@@ -16,7 +16,7 @@
         <div>
             <a class="muted" href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a>
             <h1>{{ __('admin.b2b_workspace.modules.'.$module) }}</h1>
-            <div class="muted">{{ app()->getLocale()==='ar' ? 'FOODEX · إدارة الجملة ببيانات مباشرة من النظام' : 'FOODEX · B2B management with live server data' }}</div>
+            <div class="muted">{{ app()->getLocale()==='ar' ? 'FOODEX · إدارة الجملة ببيانات مباشرة من النظام' : 'FOODEX · Wholesale management with live server data' }}</div>
         </div>
         @include('admin._live-notifications')
     </div>
@@ -29,16 +29,16 @@
     @if($moduleData)
     @php
       $labels=app()->getLocale()==='ar'
-      ? ['number'=>'رقم الطلب','client'=>'العميل','store'=>'الفرع','status'=>'الحالة','amount'=>'الإجمالي','created'=>'الإنشاء','code'=>'الكود','name'=>'الاسم','products'=>'المنتجات','orders'=>'الطلبات','company'=>'الشركة','email'=>'البريد','phone'=>'الهاتف','tax_number'=>'الرقم الضريبي','sku'=>'SKU','price'=>'السعر','available'=>'المتاح','actions'=>'إجراءات','availability'=>'التوفر','active'=>'نشط','assignments'=>'التعيينات','tier'=>'شريحة السعر','product'=>'المنتج','unit_price'=>'سعر الوحدة','minimum_quantity'=>'الحد الأدنى','revenue'=>'الإيراد','average'=>'متوسط الطلب','setting'=>'الإعداد','value'=>'القيمة','warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','invoice'=>'الفاتورة','paid'=>'المدفوع','balance'=>'الرصيد','due'=>'الاستحقاق']
+      ? ['number'=>'رقم الطلب','client'=>'العميل','store'=>'الفرع','status'=>'الحالة','amount'=>'الإجمالي','created'=>'الإنشاء','code'=>'الكود','name'=>'الاسم','products'=>'المنتجات','orders'=>'الطلبات','company'=>'الشركة','email'=>'البريد','phone'=>'الهاتف','tax_number'=>'الرقم الضريبي','sku'=>'رمز المنتج','price'=>'السعر','available'=>'المتاح','actions'=>'إجراءات','availability'=>'التوفر','active'=>'نشط','assignments'=>'التعيينات','tier'=>'شريحة السعر','product'=>'المنتج','unit_price'=>'سعر الوحدة','minimum_quantity'=>'الحد الأدنى','revenue'=>'الإيراد','average'=>'متوسط الطلب','setting'=>'الإعداد','value'=>'القيمة','warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','invoice'=>'الفاتورة','paid'=>'المدفوع','balance'=>'الرصيد','due'=>'الاستحقاق']
       : ['number'=>'Order','client'=>'Client','store'=>'Store','status'=>'Status','amount'=>'Amount','created'=>'Created','code'=>'Code','name'=>'Name','products'=>'Products','orders'=>'Orders','company'=>'Company','email'=>'Email','phone'=>'Phone','tax_number'=>'Tax number','sku'=>'SKU','price'=>'Price','available'=>'Available','actions'=>'Actions','availability'=>'Availability','active'=>'Active','assignments'=>'Assignments','tier'=>'Price tier','product'=>'Product','unit_price'=>'Unit price','minimum_quantity'=>'Minimum quantity','revenue'=>'Revenue','average'=>'Average order','setting'=>'Setting','value'=>'Value','warehouse'=>'Warehouse','quantity'=>'Quantity','reserved'=>'Reserved','invoice'=>'Invoice','paid'=>'Paid','balance'=>'Balance','due'=>'Due'];
     @endphp
     @if(session('status'))<div class="panel" style="border-color:#b7dfc4;background:var(--foodex-green-soft);color:var(--foodex-green-dark)">{{ session('status') }}</div>@endif
     @if($errors->any())<div class="panel" style="border-color:#ffd0a6;background:var(--foodex-orange-soft)"><strong>{{ app()->getLocale()==='ar'?'تعذر تنفيذ العملية':'Action could not be completed' }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     <section class="panel workspace-panel">
       <div class="toolbar">
-        <div><strong>{{ __('admin.b2b_workspace.authoritative') }}</strong><div class="muted">{{ app()->getLocale()==='ar' ? 'النطاق محصور في متاجر وقناة B2B.' : 'Scope is restricted to B2B stores and channel data.' }}</div></div>
-        <nav class="links workspace-tabs" aria-label="B2B core modules">
-          @foreach(['dashboard','stores','clients','products','inventory','orders','drivers','pricing','finance','reports','settings'] as $core)
+        <div><strong>{{ __('admin.b2b_workspace.authoritative') }}</strong><div class="muted">{{ app()->getLocale()==='ar' ? 'النطاق محصور في متاجر وعمليات الجملة.' : 'Scope is restricted to Wholesale stores and channel data.' }}</div></div>
+        <nav class="links workspace-tabs" aria-label="Wholesale core modules">
+          @foreach($visibleModules as $core)
           <a class="{{ $module===$core?'active':'' }}" href="{{ $core==='dashboard'?route('admin.b2b.dashboard'):route('admin.b2b.module',['module'=>$core]) }}">{{ __('admin.b2b_workspace.modules.'.$core) }}</a>
           @endforeach
         </nav>
@@ -168,13 +168,13 @@
           <details><summary>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</summary>
           <form method="post" action="{{ route('admin.b2b.products.update',['product'=>$row['_id']]) }}" class="links workspace-inline-form">
             @csrf @method('patch')
-            <input name="sku" value="{{ $row['sku'] }}" required maxlength="120">
-            <input name="name" value="{{ $row['name'] }}" required maxlength="255">
+            <input name="sku" value="{{ $row['sku'] }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: PROD-001':'e.g. PROD-001' }}" required maxlength="120">
+            <input name="name" value="{{ $row['name'] }}" placeholder="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}" required maxlength="255">
             <select name="category_id"><option value="">{{ app()->getLocale()==='ar'?'بدون تصنيف':'No category' }}</option>@foreach($moduleData['categories'] as $category)<option value="{{ $category['id'] }}" @selected($row['_category_id']===$category['id'])>{{ $category['name'] }}</option>@endforeach</select>
             <select name="brand_id"><option value="">{{ app()->getLocale()==='ar'?'بدون علامة':'No brand' }}</option>@foreach($moduleData['brands'] as $brand)<option value="{{ $brand['id'] }}" @selected($row['_brand_id']===$brand['id'])>{{ $brand['name'] }}</option>@endforeach</select>
             <select name="unit_id" required>@foreach($moduleData['units'] as $unit)<option value="{{ $unit['id'] }}" @selected($row['_unit_id']===$unit['id'])>{{ $unit['code'] }} · {{ $unit['name'] }}</option>@endforeach</select>
-            <input name="price" type="number" min="0" step="0.001" value="{{ $row['price']==='-'?'':str_replace([' KWD',','],'',$row['price']) }}">
-            <input name="description" maxlength="1000" value="{{ $row['_description'] }}">
+            <input name="price" type="number" min="0" step="0.001" value="{{ $row['price']==='-'?'':str_replace([' EGP',','],'',$row['price']) }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: 1.250':'e.g. 1.250' }}">
+            <input name="description" maxlength="1000" value="{{ $row['_description'] }}" placeholder="{{ app()->getLocale()==='ar'?'وصف مختصر للمنتج':'Short product description' }}">
             <label><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($row['status'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
             <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
           </form></details>

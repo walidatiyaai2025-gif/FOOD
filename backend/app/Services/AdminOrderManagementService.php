@@ -59,7 +59,7 @@ final class AdminOrderManagementService
                 'order_number' => 'FDX-'.strtoupper($channel).'-'.now()->format('Ymd').'-'.Str::upper(Str::random(8)),
                 'channel' => $channel,
                 'status' => 'pending',
-                'currency' => 'KWD',
+                'currency' => 'EGP',
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount_total'],
                 'delivery_total' => $totals['delivery_total'],
@@ -92,7 +92,7 @@ final class AdminOrderManagementService
                 'provider_reference' => null,
                 'status' => 'pending',
                 'amount' => $totals['grand_total'],
-                'currency' => 'KWD',
+                'currency' => 'EGP',
                 'metadata' => ['method' => $paymentMethod, 'source' => 'dashboard'],
             ]);
 
@@ -229,7 +229,7 @@ final class AdminOrderManagementService
                 $payment->update([
                     'provider' => $paymentMethod,
                     'amount' => $totals['grand_total'],
-                    'currency' => 'KWD',
+                    'currency' => 'EGP',
                     'metadata' => ['method' => $paymentMethod, 'source' => 'dashboard'],
                 ]);
             } else {
@@ -240,7 +240,7 @@ final class AdminOrderManagementService
                     'provider_reference' => null,
                     'status' => 'pending',
                     'amount' => $totals['grand_total'],
-                    'currency' => 'KWD',
+                    'currency' => 'EGP',
                     'metadata' => ['method' => $paymentMethod, 'source' => 'dashboard'],
                 ]);
             }

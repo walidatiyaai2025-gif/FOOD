@@ -34,27 +34,28 @@ final class CatalogManagementController extends Controller
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         $actor = $this->actor($request);
-        $tab = in_array((string) $request->query('tab'), ['products', 'categories', 'stores'], true)
+
+        if ((string) $request->query('tab') === 'stores') {
+            if ($actor->hasRole('SUPER_ADMIN')) {
+                return redirect()->route('admin.retail-stores.index');
+            }
+            abort(403);
+        }
+
+        $tab = in_array((string) $request->query('tab'), ['products', 'categories'], true)
             ? (string) $request->query('tab')
             : 'products';
-        $canManageStores = $actor->hasRole('SUPER_ADMIN');
 
-        if ($tab === 'stores') {
-            abort_unless($canManageStores, 403);
-            $storeIds = DB::table('stores')
-                ->where('stores.code', '!=', 'SYSTEM-LEGACY-QUARANTINE')
-                ->pluck('stores.id')
-                ->map(static fn ($id): int => (int) $id)
-                ->all();
-        } else {
-            $storeIds = $this->visibleStoreIds($actor, $request);
-            $storeIds = $this->catalogReadableStoreIds($actor, $storeIds);
-            if ($storeIds === [] && $this->canAccessWholesale($actor) === false) {
-                abort(403);
-            }
+        // Store provisioning belongs to the dedicated control-plane screen.
+        // This catalog surface is operational only and never doubles as store management.
+        $canManageStores = false;
+        $storeIds = $this->visibleStoreIds($actor, $request);
+        $storeIds = $this->catalogReadableStoreIds($actor, $storeIds);
+        if ($storeIds === [] && $this->canAccessWholesale($actor) === false) {
+            abort(403);
         }
 
         $scopeParams = [];
@@ -68,7 +69,7 @@ final class CatalogManagementController extends Controller
         return view('admin.catalog-management', [
             'user' => $actor,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
-            'navContext' => 'catalog_management',
+            'navContext' => $request->boolean('support_access') ? 'b2c_products' : 'b2b_products',
             'tab' => $tab,
             'products' => DB::table('products')
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -139,9 +140,7 @@ final class CatalogManagementController extends Controller
                     'stores.store_type_id',
                     'store_types.code as type_code',
                 ]),
-            'storeTypes' => $canManageStores
-                ? DB::table('store_types')->orderBy('code')->get()
-                : collect(),
+            'storeTypes' => collect(),
             'productImages' => DB::table('product_images')
                 ->join('products', 'products.id', '=', 'product_images.product_id')
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')

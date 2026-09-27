@@ -127,8 +127,6 @@ Route::prefix('admin')
         Route::post('/catalog/brands', [CatalogManagementController::class, 'storeBrand'])->name('catalog.brands.store');
         Route::delete('/catalog/brands/{brand}', [CatalogManagementController::class, 'destroyBrand'])->name('catalog.brands.destroy');
         Route::post('/catalog/units', [CatalogManagementController::class, 'storeUnit'])->name('catalog.units.store');
-        Route::post('/catalog/stores', [CatalogManagementController::class, 'storeStore'])->name('catalog.stores.store');
-        Route::patch('/catalog/stores/{store}', [CatalogManagementController::class, 'updateStore'])->name('catalog.stores.update');
         Route::get('/retail-stores', [RetailStoreProvisioningController::class, 'index'])->name('retail-stores.index');
         Route::post('/retail-stores', [RetailStoreProvisioningController::class, 'store'])->name('retail-stores.store');
         Route::patch('/retail-stores/{store}', [RetailStoreProvisioningController::class, 'update'])->name('retail-stores.update');
