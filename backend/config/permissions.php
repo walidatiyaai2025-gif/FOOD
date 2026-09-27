@@ -70,7 +70,7 @@ return [
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
             'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage',
-            'drivers.b2b.view', 'drivers.b2b.manage',
+            'drivers.b2b.view', 'drivers.b2b.manage', 'notifications.view', 'notifications.manage',
         ],
         'B2C_STORE_ADMIN' => [
             'stores.view',
@@ -80,7 +80,7 @@ return [
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
             'customers.view', 'customers.create', 'customers.edit', 'customers.manage',
             'promotions.view', 'promotions.manage', 'reports.view', 'reports.export',
-            'drivers.b2c.view', 'drivers.b2c.manage',
+            'drivers.b2c.view', 'drivers.b2c.manage', 'notifications.view', 'notifications.manage',
         ],
         'OPERATIONS' => [
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
