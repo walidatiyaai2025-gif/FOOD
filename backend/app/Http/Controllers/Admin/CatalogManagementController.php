@@ -15,6 +15,7 @@ use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -190,7 +191,10 @@ final class CatalogManagementController extends Controller
             return $id;
         });
 
-        $files = array_values(array_filter($request->file('images', [])));
+        $files = collect($request->file('images', []))
+            ->filter(static fn ($file): bool => $file instanceof UploadedFile)
+            ->values()
+            ->all();
         if ($files !== []) {
             $this->images->addProductImages($id, $files);
         }
@@ -236,7 +240,10 @@ final class CatalogManagementController extends Controller
             'updated_at' => now(),
         ]);
 
-        $files = array_values(array_filter($request->file('images', [])));
+        $files = collect($request->file('images', []))
+            ->filter(static fn ($file): bool => $file instanceof UploadedFile)
+            ->values()
+            ->all();
         if ($files !== []) {
             $this->images->addProductImages($product, $files);
         }
@@ -363,8 +370,9 @@ final class CatalogManagementController extends Controller
             'updated_at' => now(),
         ]);
 
-        if ($request->hasFile('category_image')) {
-            $this->images->replaceCategoryImage($categoryId, $request->file('category_image'));
+        $categoryImage = $request->file('category_image');
+        if ($categoryImage instanceof UploadedFile) {
+            $this->images->replaceCategoryImage($categoryId, $categoryImage);
         }
 
         return back()->with('status', $this->msg('تمت إضافة التصنيف وصورته.', 'Category and image added.'));
@@ -400,8 +408,9 @@ final class CatalogManagementController extends Controller
         if ($request->boolean('remove_image')) {
             $this->images->removeCategoryImage($category);
         }
-        if ($request->hasFile('category_image')) {
-            $this->images->replaceCategoryImage($category, $request->file('category_image'));
+        $categoryImage = $request->file('category_image');
+        if ($categoryImage instanceof UploadedFile) {
+            $this->images->replaceCategoryImage($category, $categoryImage);
         }
 
         return back()->with('status', $this->msg('تم تعديل التصنيف وصورته.', 'Category and image updated.'));
