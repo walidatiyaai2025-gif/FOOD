@@ -46,6 +46,7 @@ class AdminNavigation
             ]),
             $this->group('catalog', 'admin.nav_groups.catalog', '▦', [
                 $this->routeItem($user, 'catalog_management', 'admin.catalog_management', 'admin.catalog.index', 'catalog.view'),
+                $this->routeItem($user, 'lookup_management', 'admin.lookup_management', 'admin.lookups.index', 'lookups.view'),
                 $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
                 $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
                 $this->module($user, $channels, 'b2b', 'products', 'admin.b2b_workspace.modules.products', 'catalog.view'),
