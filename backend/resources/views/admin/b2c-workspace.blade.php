@@ -383,7 +383,7 @@
                 </div>
             @endif
 
-            @if($module==='inventory' && !empty($moduleData['inventory_options']) && collect($storeIds)->contains(fn($storeId) => $user->hasPermission('inventory.manage',(int)$storeId)) || ($module==='inventory' && $user->hasPermission('inventory.manage')))
+            @if($module==='inventory' && !empty($moduleData['inventory_options']) && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('inventory.manage',(int)$storeId)) || $user->hasPermission('inventory.manage')))
                 <form method="post" action="{{ route('admin.b2c.inventory.adjust',['inventory'=>$moduleData['inventory_options'][0]['id']]) }}" class="module-inline-form" id="inventory-adjust-form" onsubmit="this.action=this.action.replace(/\/\d+\/adjust$/, '/'+this.inventory_id.value+'/adjust')">
                     @csrf
                     <select name="inventory_id" required>
