@@ -15,6 +15,7 @@ use App\Services\AuditLogger;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\OperationalTenantScope;
+use App\Services\OrderInventoryReservationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -127,9 +128,9 @@ class OrderController extends Controller
             );
 
             if ($targetStatus === 'cancelled') {
-                $this->releaseReservations($locked, $user);
+                app(OrderInventoryReservationService::class)->release($locked, $user);
             } elseif ($targetStatus === 'delivered') {
-                $this->consumeReservations($locked, $user);
+                app(OrderInventoryReservationService::class)->consume($locked, $user);
             }
 
             $locked->status = $targetStatus;
