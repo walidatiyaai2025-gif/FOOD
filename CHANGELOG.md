@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3 - First-install Admin Access
+- Redirect unauthenticated management requests to the admin login instead of a raw 401 page.
+- Allow the installer-created `SUPER_ADMIN` to open B2C management surfaces before any stores exist.
+- Add regression coverage that verifies the fresh-install Super Admin can open every management GET surface without permission errors.
+
 ## 1.0.2 - MySQL/MariaDB Production Installer
 - Switch production and first-run database configuration to MySQL/MariaDB for cPanel hosting.
 - Require `pdo_mysql`, default to port 3306, and retain PostgreSQL runtime compatibility for legacy installations.
