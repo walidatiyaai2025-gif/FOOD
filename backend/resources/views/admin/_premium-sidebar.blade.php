@@ -1,2 +1,4 @@
-{{-- Legacy premium sidebar removed. Keep one authoritative permission-driven navigation surface. --}}
-@include('admin._sidebar')
+{{-- Compatibility wrapper only; the authoritative navigation is _sidebar. --}}
+<div data-premium-sidebar="{{ $channel ?? 'b2c' }}">
+    @include('admin._sidebar')
+</div>
