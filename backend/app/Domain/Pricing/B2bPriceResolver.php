@@ -22,12 +22,19 @@ class B2bPriceResolver
         }
 
         $rule = DB::table('b2b_price_rules')
+            ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('stores', 'stores.id', '=', 'b2b_price_rules.store_id')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('b2b_price_rules.price_tier_id', $account->price_tier_id)
             ->where('b2b_price_rules.store_id', $storeId)
             ->where('b2b_price_rules.product_id', $productId)
             ->where('b2b_price_rules.is_active', true)
+            ->where('products.is_active', true)
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')
             ->first(['b2b_price_rules.unit_price', 'b2b_price_rules.minimum_quantity']);

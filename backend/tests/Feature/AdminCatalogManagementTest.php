@@ -40,14 +40,6 @@ class AdminCatalogManagementTest extends TestCase
             ->assertSee('إدارة الكتالوج والمتاجر')
             ->assertSee('إضافة تصنيف');
 
-        $this->actingAs($user)->post('/admin/catalog/categories', [
-            'name' => 'مشروبات',
-            'slug' => 'beverages',
-            'is_active' => 1,
-        ])->assertSessionHasNoErrors();
-
-        $categoryId = (int) DB::table('categories')->where('slug', 'beverages')->value('id');
-
         $this->actingAs($user)->post('/admin/catalog/units', [
             'code' => 'PC',
             'name' => 'قطعة',
@@ -66,6 +58,15 @@ class AdminCatalogManagementTest extends TestCase
 
         $storeId = (int) DB::table('stores')->where('code', 'MAIN')->value('id');
 
+        $this->actingAs($user)->post('/admin/catalog/categories', [
+            'store_id' => $storeId,
+            'name' => 'مشروبات',
+            'slug' => 'beverages',
+            'is_active' => 1,
+        ])->assertSessionHasNoErrors();
+
+        $categoryId = (int) DB::table('categories')->where('slug', 'beverages')->value('id');
+
         $this->actingAs($user)->post('/admin/catalog/products', [
             'sku' => 'SKU-001',
             'name' => 'مياه',
@@ -83,6 +84,9 @@ class AdminCatalogManagementTest extends TestCase
             'store_id' => $storeId,
             'product_id' => $productId,
         ]);
+        $catalogId = (int) DB::table('catalogs')->where('store_id', $storeId)->where('code', 'default')->value('id');
+        $this->assertDatabaseHas('products', ['id' => $productId, 'catalog_id' => $catalogId]);
+        $this->assertDatabaseHas('categories', ['id' => $categoryId, 'catalog_id' => $catalogId]);
 
         $this->actingAs($user)->patch('/admin/catalog/products/'.$productId, [
             'sku' => 'SKU-001',

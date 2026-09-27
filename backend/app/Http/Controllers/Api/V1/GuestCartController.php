@@ -359,7 +359,7 @@ class GuestCartController extends Controller
      */
     private function productState(int $storeId, int $productId, bool $mustBeAvailable): array
     {
-        $product = Product::query()->whereKey($productId)->first();
+        $product = Product::query()->forStore($storeId)->whereKey($productId)->first();
 
         $storeProduct = DB::table('store_products')
             ->where('store_id', $storeId)
