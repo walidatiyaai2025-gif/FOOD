@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.8 - Wholesale / Retail Isolation Hardening
+- Make global operational roles wholesale-only and introduce store-scoped Retail Operations, Inventory, Finance and Customer Support roles.
+- Enforce Retail-only `user_store_roles` and reject attempts to assign store-scoped roles to wholesale stores.
+- Make permission resolution channel-aware so a global wholesale permission can never authorize a Retail store and a Retail role can never authorize another store.
+- Preserve existing Retail assignments through a migration while cleaning invalid cross-channel role assignments.
+- Keep lookup visibility and mutations isolated to platform-global, wholesale, or the exact assigned Retail store.
+- Remove user-facing B2C wording in favor of `التجزئة` / `Retail` while retaining internal `b2c` route/API/database identifiers for compatibility.
+- Add regression coverage for wholesale-vs-Retail isolation, Retail-store-to-Retail-store isolation, RBAC assignment boundaries and visible terminology.
+
 ## 1.0.7 - Retail Admin Isolation and Catalog Reliability
 - Complete the B2C retail-admin surface audit so store managers enter their own retail dashboard and remain scoped to assigned stores.
 - Restrict platform store management to the platform owner while preserving tenant-scoped product, category, inventory, customer, promotion, content, driver and reporting workflows.
