@@ -48,6 +48,19 @@ class DriverAssignmentController extends Controller
         app(OperationalTenantScope::class)->assertStore($user, (int) $order->store_id, $ability, $channel);
 
         if ($driver->store_id === null) {
+            $historicalStores = DriverAssignment::query()
+                ->where('driver_id', $driver->getKey())
+                ->whereNotNull('store_id')
+                ->distinct()
+                ->pluck('store_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
+            abort_unless(
+                $historicalStores === [] || $historicalStores === [(int) $order->store_id],
+                409,
+                'Driver has ambiguous historical store ownership and must be reconciled before assignment.',
+            );
             $driver->update(['store_id' => (int) $order->store_id]);
         } else {
             abort_unless((int) $driver->store_id === (int) $order->store_id, 409, 'Driver and order must belong to the same store.');
@@ -120,6 +133,14 @@ class DriverAssignmentController extends Controller
         $channel = strtolower((string) $driver->driver_type);
         abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403);
         abort_unless($user->hasPermission("deliveries.{$channel}.execute"), 403);
+
+        if ($driver->store_id === null) {
+            abort_unless(
+                ! DriverAssignment::query()->where('driver_id', $driver->getKey())->exists(),
+                403,
+                'Driver store ownership must be reconciled before delivery execution.',
+            );
+        }
 
         return [$driver, $channel];
     }
