@@ -34,9 +34,17 @@ final class CatalogManagementController extends Controller
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         $actor = $this->actor($request);
+
+        if ((string) $request->query('tab') === 'stores') {
+            if ($actor->hasRole('SUPER_ADMIN')) {
+                return redirect()->route('admin.retail-stores.index');
+            }
+            abort(403);
+        }
+
         $tab = in_array((string) $request->query('tab'), ['products', 'categories'], true)
             ? (string) $request->query('tab')
             : 'products';
