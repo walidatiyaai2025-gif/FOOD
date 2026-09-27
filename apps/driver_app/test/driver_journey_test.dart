@@ -10,6 +10,7 @@ class FakeRepo implements DriverAssignmentRepository {
   final bool offline;
   int? transitionedId;
   String? transitionedStatus;
+  String? transitionedNote;
   DriverChannel? transitionedChannel;
 
   @override
@@ -19,10 +20,16 @@ class FakeRepo implements DriverAssignmentRepository {
   }
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status) async {
+  Future<void> transition(
+    int id,
+    DriverChannel channel,
+    String status, {
+    String? note,
+  }) async {
     transitionedId = id;
     transitionedChannel = channel;
     transitionedStatus = status;
+    transitionedNote = note;
   }
 }
 
