@@ -1,9 +1,9 @@
-name: FOODEX 1.0.6 Update Bundle
+name: FOODEX Update Bundle
 
 on:
   push:
     branches:
-      - release/272-1-0-6-update
+      - "release/**-update"
     paths-ignore:
       - "Release/Updates/**"
   pull_request:
@@ -30,14 +30,29 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Resolve release version boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_version="$(tr -d '[:space:]' < VERSION)"
+          update_base_ref="$(git log --format=%H -- VERSION | sed -n '2p')"
+          if [[ -z "$update_base_ref" ]]; then
+            echo "::error::Cannot resolve the previous VERSION boundary."
+            exit 1
+          fi
+          previous_version="$(git show "$update_base_ref":VERSION | tr -d '[:space:]')"
+          echo "CURRENT_VERSION=$current_version" >> "$GITHUB_ENV"
+          echo "PREVIOUS_VERSION=$previous_version" >> "$GITHUB_ENV"
+          echo "UPDATE_BASE_REF=$update_base_ref" >> "$GITHUB_ENV"
+
       - name: Build deterministic FOODEX update
         run: |
           python3 scripts/build-update-bundle.py \
-            --base 3dd8d81e4c2615aa2ec544130aa23f337e5ed21f \
-            --target-version 1.0.6 \
-            --minimum-current-version 1.0.5 \
+            --base "$UPDATE_BASE_REF" \
+            --target-version "$CURRENT_VERSION" \
+            --minimum-current-version "$PREVIOUS_VERSION" \
             --output-dir dist/update \
-            --release-notes "FOODEX 1.0.6 cumulative update: multi-tenant B2B/B2C isolation, full dashboard and driver order management, scheduled promotional campaigns, Android Firebase production configs, and product/category image management."
+            --release-notes "FOODEX $CURRENT_VERSION cumulative update"
 
       - name: Verify package metadata
         run: |
@@ -47,15 +62,16 @@ jobs:
           package = root / "FOODEX-Update.zip"
           manifest = json.loads((root / "FOODEX-Update.json").read_text())
           digest = hashlib.sha256(package.read_bytes()).hexdigest()
-          assert manifest["target_version"] == "1.0.6"
-          assert manifest["minimum_current_version"] == "1.0.5"
-          assert manifest["contains_migrations"] is True
+          import os
+          assert manifest["target_version"] == os.environ["CURRENT_VERSION"]
+          assert manifest["minimum_current_version"] == os.environ["PREVIOUS_VERSION"]
           assert manifest["requires_full_redeploy"] is False
           assert manifest["sha256"] == digest
           with zipfile.ZipFile(package) as archive:
               names = archive.namelist()
               assert "VERSION" in names
-              assert any(name.startswith("backend/database/migrations/") for name in names)
+              has_migrations = any(name.startswith("backend/database/migrations/") for name in names)
+              assert manifest["contains_migrations"] is has_migrations
               assert not any(name.startswith(("apps/", "Release/", "docs/", ".github/")) for name in names)
               assert not any("/tests/" in name or name.startswith("backend/tests/") for name in names)
           print("Update bundle verified:", digest)
@@ -78,13 +94,13 @@ jobs:
             echo "Generated update package is already published."
           else
             git commit -m "release: publish generated FOODEX 1.0.6 update bundle"
-            git push origin HEAD:release/1.0.6-update
+            git push origin "HEAD:release/${CURRENT_VERSION}-update"
           fi
 
       - name: Upload FOODEX 1.0.6 update artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FOODEX-Update-1.0.6
+          name: FOODEX-Update-${{ env.CURRENT_VERSION }}
           path: |
             dist/update/FOODEX-Update.zip
             dist/update/FOODEX-Update.json
