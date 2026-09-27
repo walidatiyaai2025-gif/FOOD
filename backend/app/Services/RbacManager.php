@@ -308,8 +308,7 @@ final class RbacManager
         $retailRole = $scope === 'store' || $roleCode === 'B2C_DRIVER' || str_starts_with($roleCode, 'RETAIL_');
 
         if ($retailRole) {
-            $forbidden = $codes->filter(static fn (string $code): bool =>
-                str_starts_with($code, 'b2b.')
+            $forbidden = $codes->filter(static fn (string $code): bool => str_starts_with($code, 'b2b.')
                 || str_starts_with($code, 'drivers.b2b.')
                 || str_starts_with($code, 'deliveries.b2b.')
                 || in_array($code, [
@@ -328,8 +327,7 @@ final class RbacManager
                 ], true)
             );
         } else {
-            $forbidden = $codes->filter(static fn (string $code): bool =>
-                str_starts_with($code, 'drivers.b2c.')
+            $forbidden = $codes->filter(static fn (string $code): bool => str_starts_with($code, 'drivers.b2c.')
                 || str_starts_with($code, 'deliveries.b2c.')
             );
         }
