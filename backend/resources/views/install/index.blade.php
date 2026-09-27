@@ -105,9 +105,10 @@
                 @if ($currentStep === 1)
                     <div class="notice">سيتم تنفيذ الإعداد بالتتابع، ولن يتم عرض كلمات المرور المخزنة أو الأسرار مرة أخرى.</div>
                 @elseif ($currentStep === 4)
+                    <div class="notice" dir="ltr">Production database: MySQL / MariaDB (default port 3306).</div>
                     <div class="fields" dir="ltr">
                         <label>Database host<input name="db_host" value="{{ $input['db_host'] ?? ($values['DB_HOST'] ?: '127.0.0.1') }}" required></label>
-                        <label>Port<input name="db_port" type="number" min="1" max="65535" value="{{ $input['db_port'] ?? ($values['DB_PORT'] ?: '5432') }}" required></label>
+                        <label>Port<input name="db_port" type="number" min="1" max="65535" value="{{ $input['db_port'] ?? ($values['DB_PORT'] ?: '3306') }}" required></label>
                         <label>Database<input name="db_database" value="{{ $input['db_database'] ?? ($values['DB_DATABASE'] ?: 'foodex') }}" required></label>
                         <label>Username<input name="db_username" value="{{ $input['db_username'] ?? ($values['DB_USERNAME'] ?: 'foodex') }}" required></label>
                         <label class="full">Password<input name="db_password" type="password" value=""><small>Stored passwords are never rendered back.</small></label>
