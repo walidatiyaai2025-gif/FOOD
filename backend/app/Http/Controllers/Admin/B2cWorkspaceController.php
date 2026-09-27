@@ -58,6 +58,11 @@ class B2cWorkspaceController extends Controller
     {
         return match ($module) {
             'products' => [
+                'actions' => [
+                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / Edit Products', 'url' => route('admin.catalog.index', ['tab' => 'products'])],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage Categories', 'url' => route('admin.catalog.index', ['tab' => 'categories'])],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المتاجر' : 'Manage Stores', 'url' => route('admin.catalog.index', ['tab' => 'stores'])],
+                ],
                 'columns' => ['sku', 'name', 'category', 'store', 'price', 'status'],
                 'rows' => DB::table('store_products')
                     ->join('products', 'products.id', '=', 'store_products.product_id')
