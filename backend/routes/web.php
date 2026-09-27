@@ -22,11 +22,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
-Route::get('/', fn () => response()->json([
-    'name' => 'FOODEX',
-    'phase' => 'bootstrap',
-    'version' => trim((string) @file_get_contents(base_path('../VERSION'))),
-]));
+Route::get('/', fn () => redirect()->route('admin.b2c.login'));
 
 Route::withoutMiddleware([
     EncryptCookies::class,
