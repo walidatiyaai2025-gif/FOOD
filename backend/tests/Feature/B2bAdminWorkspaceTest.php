@@ -35,9 +35,10 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
         $b2bType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         $store = (int) DB::table('stores')->insertGetId(['store_type_id' => $b2bType, 'code' => 'WHOLESALE-1', 'name' => 'Wholesale One', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $catalog = (int) DB::table('catalogs')->insertGetId(['store_id' => $store, 'channel' => 'b2b', 'code' => 'default', 'name' => 'Wholesale One Catalog', 'is_active' => true, 'is_migration_quarantine' => false, 'created_at' => now(), 'updated_at' => now()]);
         $warehouse = (int) DB::table('warehouses')->insertGetId(['store_id' => $store, 'code' => 'WHOLESALE-WH', 'name' => 'Wholesale Warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $unit = (int) DB::table('units')->insertGetId(['code' => 'B2B-PC', 'name' => 'Piece', 'decimal_places' => 0, 'created_at' => now(), 'updated_at' => now()]);
-        $product = (int) DB::table('products')->insertGetId(['unit_id' => $unit, 'sku' => 'B2B-SKU', 'name' => 'B2B Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $product = (int) DB::table('products')->insertGetId(['catalog_id' => $catalog, 'unit_id' => $unit, 'sku' => 'B2B-SKU', 'name' => 'B2B Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('store_products')->insert(['store_id' => $store, 'product_id' => $product, 'price' => 12.500, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('inventories')->insert(['warehouse_id' => $warehouse, 'product_id' => $product, 'quantity' => 20, 'reserved_quantity' => 3, 'created_at' => now(), 'updated_at' => now()]);
         $customer = (int) DB::table('customers')->insertGetId(['type' => 'b2b', 'name' => 'Buyer One', 'email' => 'buyer-one@example.test', 'phone' => '50000000', 'created_at' => now(), 'updated_at' => now()]);
@@ -56,8 +57,9 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
         $b2bType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         $store = (int) DB::table('stores')->insertGetId(['store_type_id' => $b2bType, 'code' => 'OPS-B2B', 'name' => 'Operations Wholesale', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $catalog = (int) DB::table('catalogs')->insertGetId(['store_id' => $store, 'channel' => 'b2b', 'code' => 'default', 'name' => 'Operations Wholesale Catalog', 'is_active' => true, 'is_migration_quarantine' => false, 'created_at' => now(), 'updated_at' => now()]);
         $unit = (int) DB::table('units')->insertGetId(['code' => 'OPS-PC', 'name' => 'Piece', 'decimal_places' => 0, 'created_at' => now(), 'updated_at' => now()]);
-        $product = (int) DB::table('products')->insertGetId(['unit_id' => $unit, 'sku' => 'OPS-SKU', 'name' => 'Operations Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $product = (int) DB::table('products')->insertGetId(['catalog_id' => $catalog, 'unit_id' => $unit, 'sku' => 'OPS-SKU', 'name' => 'Operations Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('store_products')->insert(['store_id' => $store, 'product_id' => $product, 'price' => 10, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $tier = (int) DB::table('b2b_price_tiers')->insertGetId(['code' => 'OPS-GOLD', 'name' => 'Operations Gold', 'priority' => 10, 'created_at' => now(), 'updated_at' => now()]);
         $customer = (int) DB::table('customers')->insertGetId(['type' => 'b2b', 'name' => 'Operations Buyer', 'email' => 'ops-buyer@example.test', 'created_at' => now(), 'updated_at' => now()]);
