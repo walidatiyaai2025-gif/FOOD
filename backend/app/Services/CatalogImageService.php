@@ -54,6 +54,29 @@ final class CatalogImageService
         });
     }
 
+    public function updateProductImage(int $productId, int $imageId, int $sortOrder, bool $primary): void
+    {
+        abort_unless(
+            DB::table('product_images')
+                ->where('id', $imageId)
+                ->where('product_id', $productId)
+                ->exists(),
+            404,
+        );
+
+        DB::table('product_images')
+            ->where('id', $imageId)
+            ->where('product_id', $productId)
+            ->update([
+                'sort_order' => $sortOrder,
+                'updated_at' => now(),
+            ]);
+
+        if ($primary) {
+            $this->setPrimary($productId, $imageId);
+        }
+    }
+
     public function deleteProductImage(int $productId, int $imageId): void
     {
         $image = DB::table('product_images')
