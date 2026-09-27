@@ -23,6 +23,16 @@ final class BusinessManagementController extends Controller
             ? (string) $request->query('tab')
             : 'inventory';
 
+        $allowed = match ($tab) {
+            'inventory' => $actor->hasPermission('inventory.view') || $actor->hasPermission('inventory.manage'),
+            'customers' => $actor->hasPermission('customers.view') || $actor->hasPermission('customers.manage'),
+            'promotions', 'content' => $actor->hasPermission('promotions.view') || $actor->hasPermission('promotions.manage'),
+            'drivers' => $actor->hasPermission('drivers.b2c.view') || $actor->hasPermission('drivers.b2b.view')
+                || $actor->hasPermission('drivers.b2c.manage') || $actor->hasPermission('drivers.b2b.manage'),
+            default => false,
+        };
+        abort_unless($allowed, 403);
+
         return view('admin.business-management', [
             'user' => $actor,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
@@ -247,7 +257,6 @@ final class BusinessManagementController extends Controller
 
     public function storeDriver(Request $request): RedirectResponse
     {
-        Gate::authorize('drivers.b2c.manage');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -256,6 +265,8 @@ final class BusinessManagementController extends Controller
             'is_available' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+
+        Gate::authorize($data['driver_type'] === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage');
 
         DB::transaction(function () use ($data, $request): void {
             $userId = DB::table('users')->insertGetId([
@@ -285,12 +296,13 @@ final class BusinessManagementController extends Controller
 
     public function updateDriver(Request $request, int $driver): RedirectResponse
     {
-        Gate::authorize('drivers.b2c.manage');
         $data = $request->validate([
             'driver_type' => ['required', 'in:b2c,b2b'],
             'is_available' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+        Gate::authorize($data['driver_type'] === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage');
+
         DB::table('drivers')->where('id', $driver)->update([
             'driver_type' => $data['driver_type'],
             'is_available' => $request->boolean('is_available'),
@@ -303,9 +315,9 @@ final class BusinessManagementController extends Controller
 
     public function destroyDriver(Request $request, int $driver): RedirectResponse
     {
-        Gate::authorize('drivers.b2c.manage');
         $row = DB::table('drivers')->where('id', $driver)->first();
         abort_unless($row !== null, 404);
+        Gate::authorize($row->driver_type === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage');
 
         if (DB::table('driver_assignments')->where('driver_id', $driver)->exists()) {
             DB::table('drivers')->where('id', $driver)->update(['is_active' => false, 'is_available' => false, 'updated_at' => now()]);
