@@ -99,7 +99,7 @@ final class SystemInspectorController extends Controller
             'diagnostics' => $this->diagnostics(),
             'events' => $events->map(static fn (SystemInspectorEvent $event): array => [
                 'id' => $event->id,
-                'occurred_at' => $event->occurred_at?->toIso8601String(),
+                'occurred_at' => $event->occurred_at->toIso8601String(),
                 'source' => $event->source,
                 'severity' => $event->severity,
                 'status_code' => $event->status_code,
