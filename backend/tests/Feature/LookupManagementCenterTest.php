@@ -6,8 +6,10 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class LookupManagementCenterTest extends TestCase
@@ -22,7 +24,7 @@ class LookupManagementCenterTest extends TestCase
 
     public function test_lookup_schema_is_scoped_and_legacy_compatible(): void
     {
-        $this->assertTrue(Schema::hasColumns('brands', ['scope', 'scope_key', 'store_id', 'name_ar', 'name_en', 'is_active']));
+        $this->assertTrue(Schema::hasColumns('brands', ['scope', 'scope_key', 'store_id', 'name_ar', 'name_en', 'image_path', 'is_active']));
         $this->assertTrue(Schema::hasColumns('units', ['scope', 'scope_key', 'store_id', 'name_ar', 'name_en', 'is_active']));
 
         $brandIndexes = array_column(Schema::getIndexes('brands'), 'name');
@@ -32,7 +34,7 @@ class LookupManagementCenterTest extends TestCase
         $this->assertContains('units_scope_code_unique', $unitIndexes);
     }
 
-    public function test_b2c_store_admin_sees_only_global_and_assigned_store_lookups(): void
+    public function test_b2c_store_admin_sees_only_selected_assigned_store_lookups(): void
     {
         $storeA = $this->store('B2C', 'LOOK-A');
         $storeB = $this->store('B2C', 'LOOK-B');
@@ -45,7 +47,7 @@ class LookupManagementCenterTest extends TestCase
 
         $this->actingAs($admin)->get('/admin/lookups?type=brands')
             ->assertOk()
-            ->assertSee('Global Visible')
+            ->assertDontSee('Global Visible')
             ->assertSee('Store A Visible')
             ->assertDontSee('B2B Hidden')
             ->assertDontSee('Store B Hidden');
@@ -74,21 +76,27 @@ class LookupManagementCenterTest extends TestCase
         $adminA = $this->storeAdmin($storeA, 'dup-a@example.test');
         $adminB = $this->storeAdmin($storeB, 'dup-b@example.test');
 
+        Storage::fake('public');
         $payloadA = [
             'scope' => 'store',
             'store_id' => $storeA,
             'name_ar' => 'علامة',
             'name_en' => 'Brand',
             'slug' => 'same-brand',
+            'brand_image' => UploadedFile::fake()->image('brand-a.png', 512, 512)->size(100),
             'is_active' => 1,
         ];
 
         $this->actingAs($adminA)->post('/admin/lookups/brands', $payloadA)->assertSessionHasNoErrors();
-        $this->actingAs($adminA)->post('/admin/lookups/brands', $payloadA)->assertSessionHasErrors('slug');
+        $this->actingAs($adminA)->post('/admin/lookups/brands', [
+            ...$payloadA,
+            'brand_image' => UploadedFile::fake()->image('brand-a-duplicate.png', 512, 512)->size(100),
+        ])->assertSessionHasErrors('slug');
 
         $this->actingAs($adminB)->post('/admin/lookups/brands', [
             ...$payloadA,
             'store_id' => $storeB,
+            'brand_image' => UploadedFile::fake()->image('brand-b.png', 512, 512)->size(100),
         ])->assertSessionHasNoErrors();
 
         $this->assertSame(2, DB::table('brands')->where('slug', 'same-brand')->count());
@@ -199,12 +207,14 @@ class LookupManagementCenterTest extends TestCase
     {
         $store = $this->store('B2C', 'SUPPORT-LOOKUP');
         $admin = $this->globalRole('SUPER_ADMIN', 'support-lookups@example.test');
+        Storage::fake('public');
         $payload = [
             'scope' => 'store',
             'store_id' => $store,
             'name_ar' => 'محلي',
             'name_en' => 'Local',
             'slug' => 'local-brand',
+            'brand_image' => UploadedFile::fake()->image('local-brand.png', 512, 512)->size(100),
             'is_active' => 1,
         ];
 
@@ -212,6 +222,7 @@ class LookupManagementCenterTest extends TestCase
 
         $this->actingAs($admin)->post('/admin/lookups/brands', [
             ...$payload,
+            'brand_image' => UploadedFile::fake()->image('local-brand-support.png', 512, 512)->size(100),
             'support_access' => 1,
         ])->assertSessionHasNoErrors();
 
@@ -266,19 +277,61 @@ class LookupManagementCenterTest extends TestCase
         $this->assertDatabaseMissing('products', ['sku' => 'LOOKUP-TAMPER-001']);
     }
 
+    public function test_brand_requires_valid_image_and_grid_renders_thumbnail(): void
+    {
+        Storage::fake('public');
+        $admin = $this->globalRole('B2B_ADMIN', 'brand-image@example.test');
+
+        $this->actingAs($admin)->post('/admin/lookups/brands', [
+            'scope' => 'b2b',
+            'name_ar' => 'علامة بدون صورة',
+            'name_en' => 'Missing Image',
+            'slug' => 'missing-image',
+            'is_active' => 1,
+        ])->assertSessionHasErrors('brand_image');
+
+        $this->actingAs($admin)->post('/admin/lookups/brands', [
+            'scope' => 'b2b',
+            'name_ar' => 'علامة صغيرة',
+            'name_en' => 'Too Small',
+            'slug' => 'too-small',
+            'brand_image' => UploadedFile::fake()->image('small.png', 128, 128)->size(50),
+            'is_active' => 1,
+        ])->assertSessionHasErrors('brand_image');
+
+        $this->actingAs($admin)->post('/admin/lookups/brands', [
+            'scope' => 'b2b',
+            'name_ar' => 'علامة بصورة',
+            'name_en' => 'Brand With Image',
+            'slug' => 'brand-with-image',
+            'brand_image' => UploadedFile::fake()->image('brand.png', 512, 512)->size(100),
+            'is_active' => 1,
+        ])->assertSessionHasNoErrors();
+
+        $brand = DB::table('brands')->where('slug', 'brand-with-image')->first();
+        $this->assertNotNull($brand);
+        $this->assertNotNull($brand->image_path);
+        Storage::disk('public')->assertExists(substr((string) $brand->image_path, strlen('storage/')));
+
+        $this->actingAs($admin)->get('/admin/lookups?type=brands')
+            ->assertOk()
+            ->assertSee('brand-thumb', false)
+            ->assertSee((string) $brand->image_path);
+    }
+
     public function test_lookup_center_renders_arabic_rtl_and_english_ltr(): void
     {
         $ar = $this->globalRole('SUPER_ADMIN', 'lookup-ar@example.test', 'ar');
         $this->actingAs($ar)->get('/admin/lookups')
             ->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee('مركز إدارة البيانات المرجعية');
+            ->assertSee('العلامات والوحدات');
 
         $en = $this->globalRole('SUPER_ADMIN', 'lookup-en@example.test', 'en');
         $this->actingAs($en)->get('/admin/lookups')
             ->assertOk()
             ->assertSee('dir="ltr"', false)
-            ->assertSee('Lookup Management Center');
+            ->assertSee('Brands & Units');
     }
 
     private function store(string $type, string $code): int
