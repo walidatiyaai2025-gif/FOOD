@@ -20,6 +20,17 @@ class AdminWebLoginTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
+    public function test_home_always_redirects_to_management_login(): void
+    {
+        $this->get('/')
+            ->assertRedirect(route('admin.b2c.login'));
+
+        $user = $this->userWithGlobalRole('SUPER_ADMIN');
+        $this->actingAs($user)
+            ->get('/')
+            ->assertRedirect(route('admin.b2c.login'));
+    }
+
     public function test_guest_opening_admin_is_redirected_to_management_login(): void
     {
         $this->get('/admin')

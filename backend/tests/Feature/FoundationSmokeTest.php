@@ -23,17 +23,10 @@ class FoundationSmokeTest extends TestCase
             ]);
     }
 
-    public function test_root_runtime_identity_matches_platform_baseline(): void
+    public function test_root_runtime_entry_redirects_to_management_login(): void
     {
-        $expectedVersion = trim((string) file_get_contents(base_path('../VERSION')));
-
         $this->get('/')
-            ->assertOk()
-            ->assertJson([
-                'name' => 'FOODEX',
-                'phase' => 'bootstrap',
-                'version' => $expectedVersion,
-            ]);
+            ->assertRedirect(route('admin.b2c.login'));
     }
 
     public function test_runtime_defaults_are_arabic_first_with_english_fallback(): void
