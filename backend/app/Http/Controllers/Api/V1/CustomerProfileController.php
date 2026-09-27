@@ -25,6 +25,14 @@ class CustomerProfileController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
+        $hasBusinessProfile = B2bCustomer::query()->where('user_id', $user->getKey())->exists()
+            || B2cCustomer::query()->where('user_id', $user->getKey())->exists()
+            || DB::table('customers')->where('user_id', $user->getKey())->exists();
+
+        if (! $hasBusinessProfile) {
+            return response()->json($this->identityPayload($user));
+        }
+
         [$customer, $channel] = app(CustomerDomainResolver::class)->profile($user, $request);
 
         return response()->json($this->profilePayload($user, $customer, $channel));
@@ -346,6 +354,36 @@ class CustomerProfileController extends Controller
         [$customer, $channel] = app(CustomerDomainResolver::class)->profile($user, $request);
 
         return [$user, $customer, $channel];
+    }
+
+    private function identityPayload(User $user): array
+    {
+        $roles = $user->roles()
+            ->orderBy('roles.code')
+            ->pluck('roles.code')
+            ->map(static fn ($code): string => (string) $code)
+            ->values()
+            ->all();
+
+        $storeIds = $user->storeRoleAssignments()
+            ->orderBy('store_id')
+            ->pluck('store_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        return [
+            'id' => (int) $user->getKey(),
+            'name' => (string) $user->name,
+            'email' => (string) $user->email,
+            'locale' => (string) $user->locale,
+            'roles' => $roles,
+            'store_ids' => $storeIds,
+            'customer' => null,
+            'addresses' => [],
+            'favorites' => [],
+        ];
     }
 
     private function profilePayload(User $user, B2bCustomer|B2cCustomer $customer, string $channel): array
