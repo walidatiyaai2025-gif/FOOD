@@ -167,6 +167,10 @@ class B2cWorkspaceController extends Controller
         int $selectedStoreId,
         bool $supportAccess,
     ): array {
+        if ($selectedStoreId <= 0) {
+            return $this->controlPlanePreviewData($module);
+        }
+
         $scopeParams = ['store_id' => $selectedStoreId];
         if ($supportAccess) {
             $scopeParams['support_access'] = 1;
@@ -506,6 +510,28 @@ class B2cWorkspaceController extends Controller
         ];
     }
 
+    private function controlPlanePreviewData(string $module): array
+    {
+        $actions = match ($module) {
+            'products' => [
+                ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / Edit Products', 'url' => route('admin.retail-stores.index')],
+                ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage Categories', 'url' => route('admin.retail-stores.index')],
+            ],
+            'inventory' => [['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن والأرصدة' : 'Manage Warehouses & Stock', 'url' => route('admin.retail-stores.index')]],
+            'customers' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.retail-stores.index')]],
+            'promotions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العروض' : 'Add / Edit Promotions', 'url' => route('admin.retail-stores.index')]],
+            'content' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل البنرات' : 'Add / Edit Banners', 'url' => route('admin.retail-stores.index')]],
+            'drivers' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / إدارة السائقين' : 'Add / Manage Drivers', 'url' => route('admin.retail-stores.index')]],
+            default => [],
+        };
+
+        return [
+            'actions' => $actions,
+            'columns' => [],
+            'rows' => [],
+        ];
+    }
+
     private function displaySettingValue(mixed $value): string
     {
         if ($value === null) {
@@ -528,8 +554,15 @@ class B2cWorkspaceController extends Controller
         $requestedStoreId = $request->integer('store_id') ?: $request->integer('store');
 
         if ($user->hasRole('SUPER_ADMIN')) {
-            abort_unless($requestedStoreId > 0 && $request->boolean('support_access'), 403);
+            if ($requestedStoreId <= 0) {
+                return [
+                    'selected_store_id' => 0,
+                    'stores' => [],
+                    'support_access' => false,
+                ];
+            }
 
+            abort_unless($request->boolean('support_access'), 403);
             $this->tenantContext->retail($user, $requestedStoreId, true, $request);
 
             return [
