@@ -191,7 +191,11 @@ final class B2cDashboardService
     private function recentOrders(array $storeIds): array
     {
         return DB::table('orders')
-            ->join('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
+            ->leftJoin('b2c_customers', function ($join): void {
+                $join->on('b2c_customers.id', '=', 'orders.b2c_customer_id')
+                    ->on('b2c_customers.store_id', '=', 'orders.store_id');
+            })
+            ->leftJoin('customers as legacy_customers', 'legacy_customers.id', '=', 'orders.customer_id')
             ->leftJoin('order_items', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2c')
@@ -202,8 +206,8 @@ final class B2cDashboardService
                 'orders.grand_total',
                 'orders.currency',
                 'orders.created_at',
-                'b2c_customers.name as customer',
             ])
+            ->selectRaw('COALESCE(b2c_customers.name, legacy_customers.name, ?) as customer', ['—'])
             ->selectRaw('COALESCE(SUM(order_items.quantity), 0) as items_count')
             ->groupBy(
                 'orders.id',
@@ -213,6 +217,7 @@ final class B2cDashboardService
                 'orders.currency',
                 'orders.created_at',
                 'b2c_customers.name',
+                'legacy_customers.name',
             )
             ->orderByDesc('orders.created_at')
             ->limit(5)
@@ -284,16 +289,24 @@ final class B2cDashboardService
         $needle = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $term).'%';
 
         $orders = DB::table('orders')
-            ->join('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
+            ->leftJoin('b2c_customers', function ($join): void {
+                $join->on('b2c_customers.id', '=', 'orders.b2c_customer_id')
+                    ->on('b2c_customers.store_id', '=', 'orders.store_id');
+            })
+            ->leftJoin('customers as legacy_customers', 'legacy_customers.id', '=', 'orders.customer_id')
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2c')
             ->where(function (Builder $query) use ($needle): void {
                 $query->where('orders.order_number', 'like', $needle)
-                    ->orWhere('b2c_customers.name', 'like', $needle);
+                    ->orWhere('b2c_customers.name', 'like', $needle)
+                    ->orWhere('legacy_customers.name', 'like', $needle);
             })
             ->latest('orders.created_at')
             ->limit(4)
-            ->get(['orders.order_number', 'b2c_customers.name'])
+            ->get([
+                'orders.order_number',
+                DB::raw("COALESCE(b2c_customers.name, legacy_customers.name, '-') as name"),
+            ])
             ->map(fn (object $row): array => [
                 'type' => 'order',
                 'title' => (string) $row->order_number,
