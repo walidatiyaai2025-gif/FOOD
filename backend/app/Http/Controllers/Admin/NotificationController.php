@@ -237,7 +237,7 @@ final class NotificationController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
-        abort_unless($actor->hasPermission('notifications.manage'), 403);
+        abort_unless($actor->hasRole('SUPER_ADMIN') && $actor->hasPermission('notifications.manage'), 403);
 
         return $actor;
     }
