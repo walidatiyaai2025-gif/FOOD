@@ -400,7 +400,7 @@
         @php
             $labels = app()->getLocale()==='ar'
                 ? [
-                    'sku'=>'SKU','name'=>'الاسم','category'=>'التصنيف','store'=>'المتجر','cost'=>'تكلفة الشراء','price'=>'سعر البيع','status'=>'الحالة',
+                    'sku'=>'رمز المنتج','name'=>'الاسم','category'=>'التصنيف','store'=>'المتجر','cost'=>'تكلفة الشراء','price'=>'سعر البيع','status'=>'الحالة',
                     'warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','available'=>'المتاح',
                     'number'=>'رقم الطلب','customer'=>'العميل','amount'=>'الإجمالي','created'=>'تاريخ الإنشاء',
                     'phone'=>'الهاتف','email'=>'البريد','orders'=>'الطلبات','spent'=>'إجمالي الإنفاق','last_order'=>'آخر طلب','type'=>'النوع','value'=>'القيمة','period'=>'الفترة','driver_type'=>'نوع السائق','order'=>'الطلب','assignment_status'=>'حالة التوصيل','availability'=>'التوفر','products'=>'المنتجات','banners'=>'البانرات','title'=>'العنوان','image'=>'الصورة','target'=>'الرابط','sort_order'=>'الترتيب','average'=>'متوسط الطلب','setting'=>'الإعداد','actions'=>'إجراءات',
