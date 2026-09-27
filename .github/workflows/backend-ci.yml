@@ -22,7 +22,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: mbstring, intl, pdo_sqlite
+          extensions: mbstring, intl, pdo_sqlite, pdo_mysql
           coverage: none
 
       - name: Validate Composer manifest
@@ -66,20 +66,21 @@ jobs:
         run: npx --yes @redocly/cli@latest lint docs/api/openapi.yaml
 
   production-services:
-    name: PostgreSQL Redis deployment acceptance
+    name: MySQL/MariaDB Redis deployment acceptance
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
-      postgres:
-        image: postgres:16
+      mariadb:
+        image: mariadb:11.4
         env:
-          POSTGRES_DB: foodex_acceptance
-          POSTGRES_USER: foodex
-          POSTGRES_PASSWORD: ci-only-password
+          MARIADB_DATABASE: foodex_acceptance
+          MARIADB_USER: foodex
+          MARIADB_PASSWORD: ci-only-password
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "1"
         ports:
-          - 5432:5432
+          - 3306:3306
         options: >-
-          --health-cmd "pg_isready -U foodex -d foodex_acceptance"
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
           --health-interval 5s --health-timeout 5s --health-retries 12
       redis:
         image: redis:7
@@ -90,9 +91,9 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
       APP_ENV: testing
-      DB_CONNECTION: pgsql
+      DB_CONNECTION: mysql
       DB_HOST: 127.0.0.1
-      DB_PORT: 5432
+      DB_PORT: 3306
       DB_DATABASE: foodex_acceptance
       DB_USERNAME: foodex
       DB_PASSWORD: ci-only-password
@@ -101,8 +102,8 @@ jobs:
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: 6379
       FOODEX_DISPOSABLE_SERVICES: 'true'
-      FOODEX_PG_DUMP_BINARY: /usr/lib/postgresql/16/bin/pg_dump
-      FOODEX_PG_RESTORE_BINARY: /usr/lib/postgresql/16/bin/pg_restore
+      FOODEX_MYSQL_DUMP_BINARY: /usr/bin/mysqldump
+      FOODEX_MYSQL_CLIENT_BINARY: /usr/bin/mysql
     defaults:
       run:
         working-directory: backend
@@ -111,10 +112,10 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, intl, pdo_pgsql, redis, zip
+          extensions: mbstring, intl, pdo_mysql, redis, zip
           coverage: none
-      - name: Install matching PostgreSQL backup tools
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      - name: Install MySQL/MariaDB backup tools
+        run: sudo apt-get update && sudo apt-get install -y default-mysql-client
       - name: Install backend dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Prepare disposable configuration
