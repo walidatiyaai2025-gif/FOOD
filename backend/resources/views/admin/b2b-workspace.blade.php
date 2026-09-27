@@ -43,7 +43,7 @@
           @endforeach
         </nav>
       </div>
-      @if($module==='settings' && !empty($moduleData['actions']))
+      @if(!empty($moduleData['actions']))
       <div class="links workspace-inline-form">
         @foreach($moduleData['actions'] as $action)<a class="foodex-primary" href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach
       </div>

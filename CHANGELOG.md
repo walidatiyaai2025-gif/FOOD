@@ -1,6 +1,9 @@
 # Changelog
 
 ## 1.0.5 - Operational Admin CRUD
+- Add tenant-scoped B2C order transition, driver assignment and inventory adjustment controls directly from operational workspaces.
+- Seed safe default product units and B2B price tiers for fresh installations and upgrades.
+- Preserve the newer catalog/business management centers while integrating the remaining RTL-admin CRUD work from PR #235.
 - Add a central Operations & Data Management center for warehouses, stock, customers, promotions, banners and drivers.
 - Add create/edit/delete/deactivate actions with server-side permission checks and dependency safety.
 - Wire B2C Inventory, Customers, Promotions, Content and Drivers screens to their management actions.

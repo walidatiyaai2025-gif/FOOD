@@ -220,6 +220,10 @@ class B2bWorkspaceController extends Controller
             ],
             'stores' => [
                 'columns' => ['code', 'name', 'products', 'orders', 'status'],
+                'actions' => $user->hasPermission('stores.view') ? [
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المتاجر' : 'Manage stores', 'url' => route('admin.catalog.index', ['tab' => 'stores'])],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن' : 'Manage warehouses', 'url' => route('admin.business.index', ['tab' => 'inventory'])],
+                ] : [],
                 'rows' => DB::table('stores')
                     ->whereIn('stores.id', $storeIds)
                     ->orderBy('stores.name')
@@ -234,6 +238,9 @@ class B2bWorkspaceController extends Controller
             ],
             'clients' => [
                 'columns' => ['company', 'name', 'email', 'phone', 'tax_number', 'status'],
+                'actions' => $user->hasPermission('b2b.accounts.view') ? [
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة بيانات العملاء' : 'Manage customer data', 'url' => route('admin.business.index', ['tab' => 'customers'])],
+                ] : [],
                 'rows' => DB::table('b2b_accounts')
                     ->join('customers', 'customers.id', '=', 'b2b_accounts.customer_id')
                     ->orderBy('b2b_accounts.company_name')
@@ -323,6 +330,9 @@ class B2bWorkspaceController extends Controller
             ],
             'pricing' => [
                 'columns' => ['tier', 'sku', 'product', 'store', 'unit_price', 'minimum_quantity', 'status'],
+                'actions' => $user->hasPermission('b2b.pricing.view') ? [
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المنتجات' : 'Manage products', 'url' => route('admin.catalog.index', ['tab' => 'products'])],
+                ] : [],
                 'rows' => DB::table('b2b_price_rules')
                     ->join('b2b_price_tiers', 'b2b_price_tiers.id', '=', 'b2b_price_rules.price_tier_id')
                     ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
@@ -374,6 +384,11 @@ class B2bWorkspaceController extends Controller
             'settings' => $this->settingsModuleData($user, $storeIds),
             'products' => [
                 'columns' => ['sku', 'name', 'store', 'price', 'available', 'status'],
+                'actions' => $user->hasPermission('catalog.view') ? [
+                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / edit products', 'url' => route('admin.catalog.index', ['tab' => 'products'])],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage categories', 'url' => route('admin.catalog.index', ['tab' => 'categories'])],
+                    ['label' => app()->getLocale() === 'ar' ? 'العلامات والوحدات' : 'Brands & units', 'url' => route('admin.catalog.index', ['tab' => 'brands'])],
+                ] : [],
                 'rows' => DB::table('store_products')
                     ->join('products', 'products.id', '=', 'store_products.product_id')
                     ->join('stores', 'stores.id', '=', 'store_products.store_id')

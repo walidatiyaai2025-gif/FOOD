@@ -142,6 +142,9 @@
         .module-links{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center;justify-content:flex-end}.module-links a{min-height:var(--foodex-control-height);display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--foodex-border);background:var(--foodex-surface);border-radius:var(--foodex-radius-control);padding:0 var(--foodex-space-3);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold)}.module-links a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.module-links a.active{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff;box-shadow:0 8px 20px rgba(21,138,58,.14)}
         .module-actions{justify-content:flex-start;margin-bottom:var(--foodex-space-4)}
         .module-actions a{background:var(--foodex-green)!important;color:#fff!important;border-color:var(--foodex-green)!important}
+        .module-inline-form{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center;margin-bottom:var(--foodex-space-4);padding:var(--foodex-space-3);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}
+        .module-inline-form select,.module-inline-form input{min-width:150px;flex:1 1 160px}
+        .module-inline-form button{flex:0 0 auto}
         .module-empty-state{display:grid;place-items:center;min-height:160px;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;padding:var(--foodex-space-6);color:var(--foodex-muted)}
 
         @media(min-width:1280px) and (max-width:1439px){
@@ -379,6 +382,28 @@
                     @endforeach
                 </div>
             @endif
+
+            @if($module==='inventory' && !empty($moduleData['inventory_options']) && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('inventory.manage',(int)$storeId)) || $user->hasPermission('inventory.manage')))
+                <form method="post" action="{{ route('admin.b2c.inventory.adjust',['inventory'=>$moduleData['inventory_options'][0]['id']]) }}" class="module-inline-form" id="inventory-adjust-form" onsubmit="this.action=this.action.replace(/\/\d+\/adjust$/, '/'+this.inventory_id.value+'/adjust')">
+                    @csrf
+                    <select name="inventory_id" required>
+                        <option value="">{{ app()->getLocale()==='ar'?'اختر الصنف والمخزن':'Select inventory item' }}</option>
+                        @foreach($moduleData['inventory_options'] as $inventory)<option value="{{ $inventory['id'] }}">{{ $inventory['label'] }}</option>@endforeach
+                    </select>
+                    <input name="quantity_delta" type="number" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'التغيير + أو -':'Adjustment + or -' }}">
+                    <input name="reason" maxlength="255" required placeholder="{{ app()->getLocale()==='ar'?'سبب التعديل':'Adjustment reason' }}">
+                    <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعديل المخزون':'Adjust stock' }}</button>
+                </form>
+            @endif
+
+            @if($module==='drivers' && !empty($moduleData['drivers']) && !empty($moduleData['orders']) && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('drivers.b2c.manage',(int)$storeId)) || $user->hasPermission('drivers.b2c.manage')))
+                <form method="post" action="{{ route('admin.b2c.drivers.assign') }}" class="module-inline-form">
+                    @csrf
+                    <select name="driver_id" required><option value="">{{ app()->getLocale()==='ar'?'اختر السائق':'Select driver' }}</option>@foreach($moduleData['drivers'] as $driver)<option value="{{ $driver['id'] }}">{{ $driver['name'] }}</option>@endforeach</select>
+                    <select name="order_id" required><option value="">{{ app()->getLocale()==='ar'?'اختر الطلب':'Select order' }}</option>@foreach($moduleData['orders'] as $order)<option value="{{ $order['id'] }}">{{ $order['number'] }}</option>@endforeach</select>
+                    <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعيين السائق':'Assign driver' }}</button>
+                </form>
+            @endif
             @if(count($moduleData['rows']))
                 <div class="module-table-wrap">
                     <table class="module-table foodex-table">
@@ -388,10 +413,21 @@
                             <tr>
                             @foreach($moduleData['columns'] as $column)
                                 <td>
-                                    @if($column==='actions')
+                                    @if($column==='actions' && $module==='orders' && ($user->hasPermission('orders.manage',$row['_store_id']) || $user->hasPermission('orders.manage')))
+                                        <form method="post" action="{{ route('admin.b2c.orders.status',['order'=>$row['_id']]) }}" class="module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
+                                            @csrf
+                                            <select name="status" required>
+                                                @foreach(['confirmed','preparing','ready','out_for_delivery','delivered','failed','cancelled'] as $state)<option value="{{ $state }}">{{ $state }}</option>@endforeach
+                                            </select>
+                                            <input name="note" maxlength="1000" placeholder="{{ app()->getLocale()==='ar'?'ملاحظة':'Note' }}">
+                                            <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تحديث':'Update' }}</button>
+                                        </form>
+                                    @elseif($column==='actions' && is_array($row[$column] ?? null))
                                         <div class="module-links">
                                             @foreach($row[$column] as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach
                                         </div>
+                                    @elseif($column==='actions')
+                                        <span class="empty">—</span>
                                     @elseif(in_array($column,['status','availability'],true) && is_bool($row[$column]))
                                         <span class="state-dot {{ $row[$column]?'':'off' }}">{{ $row[$column] ? (app()->getLocale()==='ar'?'نشط':'Active') : (app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span>
                                     @elseif($column==='status')
