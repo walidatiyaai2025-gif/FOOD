@@ -55,6 +55,9 @@
     @case('active-users')
         <circle cx="9" cy="9" r="3"/><path d="M4 20c.6-4 2.3-6 5-6s4.4 2 5 6"/><path d="M17 8v4M15 10h4"/>
         @break
+    @case('inspector')
+        <path d="M9 3h6l1 3 3 1v6l-3 1-1 3H9l-1-3-3-1V7l3-1 1-3Z"/><circle cx="12" cy="10" r="2"/><path d="M12 12v4M10 19h4"/>
+        @break
     @default
         <circle cx="12" cy="12" r="5"/>
 @endswitch

@@ -23,6 +23,7 @@ return [
     ],
     'app_versions' => 'إصدارات التطبيقات',
     'system_update' => 'تحديث النظام',
+    'system_inspector' => 'فاحص النظام والأخطاء',
     'translation_center' => 'مركز الترجمة',
     'security_center' => 'المستخدمون والصلاحيات',
     'catalog_management' => 'إدارة الكتالوج والتصنيفات',

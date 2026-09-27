@@ -33,6 +33,7 @@
             ['key'=>'security','icon'=>'settings'],
             ['key'=>'translations','icon'=>'content'],
             ['key'=>'app_versions','icon'=>'mobile'],
+            ['key'=>'system_inspector','icon'=>'inspector'],
             ['key'=>'system_update','icon'=>'settings'],
         ]
         : [
@@ -41,6 +42,7 @@
             ['key'=>'security','icon'=>'settings'],
             ['key'=>'translations','icon'=>'content'],
             ['key'=>'app_versions','icon'=>'mobile'],
+            ['key'=>'system_inspector','icon'=>'inspector'],
             ['key'=>'system_update','icon'=>'settings'],
         ];
 

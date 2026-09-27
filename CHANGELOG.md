@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.13 - Premium Administration and System Inspector
+- Apply a shared premium form layer across administration with explicit field labels, descriptive placeholders, consistent controls, image previews and responsive spacing without changing business rules.
+- Show clear Bootstrap-style success/error modals after admin mutations and validation failures while retaining server-authoritative validation.
+- Add semantic icons to administration tabs and convert retail-store provisioning into a two-step tabbed flow for store details and manager assignment.
+- Add the System Inspector to the administration sidebar to capture server, route, JavaScript and Fetch failures with correlation, user and store context.
+- Add downloadable JSON diagnostics with runtime/storage health so deployment problems can be shared for troubleshooting.
+- Harden catalog/category/brand image persistence by verifying bytes on the public disk, rolling back orphaned files on database failure and preserving safe image replacement/deletion.
+- Make the installer guarantee the public storage link required by uploaded media, with an Inspector repair action for existing deployments.
+- Preserve Wholesale/Retail tenant boundaries, permissions and the existing business model.
+
 ## 1.0.12 - Administration Navigation and Tenancy Audit
 - Keep SUPER_ADMIN on the platform control plane by default and require explicit audited Retail store inspection before entering a Retail tenant workspace.
 - Remove duplicate and legacy mixed-domain administration entry points that could conflict with the authoritative Wholesale/Retail business model.

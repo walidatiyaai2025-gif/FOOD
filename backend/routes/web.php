@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\MobileSettingsController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
 use App\Http\Controllers\Admin\SecurityController;
+use App\Http\Controllers\Admin\SystemInspectorController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Installer\InstallerController;
@@ -135,6 +136,10 @@ Route::prefix('admin')
         Route::post('/retail-stores/{store}/inspect', [RetailStoreProvisioningController::class, 'inspect'])->name('retail-stores.inspect');
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+        Route::get('/inspector', [SystemInspectorController::class, 'index'])->name('inspector.index');
+        Route::post('/inspector/client-events', [SystemInspectorController::class, 'clientEvent'])->name('inspector.client-events');
+        Route::get('/inspector/export', [SystemInspectorController::class, 'export'])->name('inspector.export');
+        Route::post('/inspector/storage-link', [SystemInspectorController::class, 'repairStorageLink'])->name('inspector.storage-link');
         Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
         Route::get('/security/demo-data', [SecurityController::class, 'demoData'])->name('security.demo-data.index');
         Route::post('/security/demo-data', [SecurityController::class, 'seedDemoData'])->name('security.demo-data.seed');

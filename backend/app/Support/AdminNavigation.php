@@ -81,6 +81,7 @@ class AdminNavigation
                 $this->routeItem($user, 'translations', 'admin.translation_center', 'admin.translations.index', 'translations.manage'),
                 $this->routeItemAny($user, 'mobile_settings', 'mobile_settings.title', 'admin.mobile-settings.index', ['mobile_settings.manage', 'push_settings.manage', 'push_settings.test']),
                 $this->routeItem($user, 'app_versions', 'admin.app_versions', 'admin.app-versions.index', 'platform.manage'),
+                $this->routeItem($user, 'system_inspector', 'admin.system_inspector', 'admin.inspector.index', 'platform.manage'),
                 $this->routeItem($user, 'system_update', 'admin.system_update', 'admin.system-update.index', 'system.update'),
             ]),
         ];

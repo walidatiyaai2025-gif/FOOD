@@ -23,6 +23,7 @@ return [
     ],
     'app_versions' => 'App Versions',
     'system_update' => 'System Update',
+    'system_inspector' => 'System Inspector',
     'translation_center' => 'Translation Center',
     'security_center' => 'Users & Permissions',
     'catalog_management' => 'Catalog & Categories Management',
