@@ -140,6 +140,12 @@ class DriverAssignmentController extends Controller
             'Order already has an active driver assignment.',
         );
 
+        DriverAssignment::query()
+            ->where('order_id', $order->getKey())
+            ->where('status', 'failed')
+            ->whereNull('completed_at')
+            ->update(['completed_at' => now(), 'updated_at' => now()]);
+
         $assignment = DriverAssignment::query()->create([
             'driver_id' => $driver->getKey(),
             'order_id' => $order->getKey(),
