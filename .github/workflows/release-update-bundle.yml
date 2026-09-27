@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - release/1.0.6-update
+    paths-ignore:
+      - "Release/Updates/**"
   pull_request:
     branches:
       - main
@@ -16,7 +18,7 @@ on:
       - .github/workflows/release-update-bundle.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-update:
@@ -58,6 +60,26 @@ jobs:
               assert not any("/tests/" in name or name.startswith("backend/tests/") for name in names)
           print("Update bundle verified:", digest)
           PY
+
+      - name: Publish generated package to release branch
+        if: github.event_name == 'push'
+        run: |
+          cp dist/update/FOODEX-Update.zip Release/Updates/FOODEX-Update.zip
+          cp dist/update/FOODEX-Update.json Release/Updates/FOODEX-Update.json
+          cp dist/update/FOODEX-Update.sha256.txt Release/Updates/FOODEX-Update.sha256.txt
+          cp dist/update/FOODEX-Update.files.txt Release/Updates/FOODEX-Update.files.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Release/Updates/FOODEX-Update.zip \
+                  Release/Updates/FOODEX-Update.json \
+                  Release/Updates/FOODEX-Update.sha256.txt \
+                  Release/Updates/FOODEX-Update.files.txt
+          if git diff --cached --quiet; then
+            echo "Generated update package is already published."
+          else
+            git commit -m "release: publish generated FOODEX 1.0.6 update bundle"
+            git push origin HEAD:release/1.0.6-update
+          fi
 
       - name: Upload FOODEX 1.0.6 update artifact
         uses: actions/upload-artifact@v4
