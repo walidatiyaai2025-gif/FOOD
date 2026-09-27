@@ -249,7 +249,7 @@ class _DriverHomeMetric extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: foreground),
-            const Spacer(),
+            const SizedBox(height: 18),
             Text(value, style: TextStyle(color: foreground, fontSize: 22, fontWeight: FontWeight.w900)),
             const SizedBox(height: 3),
             Text(label, maxLines: 2, overflow: TextOverflow.ellipsis),
