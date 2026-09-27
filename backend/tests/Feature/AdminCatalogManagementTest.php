@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CatalogOwnership;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -105,6 +106,152 @@ class AdminCatalogManagementTest extends TestCase
             ->assertOk()
             ->assertSee('إضافة / تعديل المنتجات')
             ->assertSee('إدارة التصنيفات');
+    }
+
+    public function test_editing_product_with_unchanged_legacy_scoped_lookup_does_not_422(): void
+    {
+        $user = $this->superAdmin('en');
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+
+        $storeA = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'LEGACY-A',
+            'name' => 'Legacy A',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $storeB = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'LEGACY-B',
+            'name' => 'Legacy B',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $catalogA = app(CatalogOwnership::class)->defaultCatalogForStore($storeA, 'b2c');
+
+        $legacyUnitId = (int) DB::table('units')->insertGetId([
+            'store_id' => $storeB,
+            'scope' => 'store',
+            'scope_key' => 'store:'.$storeB,
+            'code' => 'LEGACY-U',
+            'name' => 'Legacy unit',
+            'name_ar' => 'وحدة قديمة',
+            'name_en' => 'Legacy unit',
+            'decimal_places' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalogA->id,
+            'unit_id' => $legacyUnitId,
+            'sku' => 'LEGACY-P',
+            'name' => 'Legacy Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->insert([
+            'store_id' => $storeA,
+            'product_id' => $productId,
+            'price' => 1,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)->patch('/admin/catalog/products/'.$productId, [
+            'sku' => 'LEGACY-P',
+            'name' => 'Legacy Product Updated',
+            'unit_id' => $legacyUnitId,
+            'is_active' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'name' => 'Legacy Product Updated',
+            'unit_id' => $legacyUnitId,
+        ]);
+    }
+
+    public function test_product_edit_rejects_new_foreign_scope_as_form_validation_instead_of_generic_422(): void
+    {
+        $user = $this->superAdmin('en');
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+
+        $storeA = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'EDIT-A',
+            'name' => 'Edit A',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $storeB = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'EDIT-B',
+            'name' => 'Edit B',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $catalogA = app(CatalogOwnership::class)->defaultCatalogForStore($storeA, 'b2c');
+        $catalogB = app(CatalogOwnership::class)->defaultCatalogForStore($storeB, 'b2c');
+
+        $validUnitId = (int) DB::table('units')->where('scope', 'global')->where('is_active', true)->value('id');
+        $foreignUnitId = (int) DB::table('units')->insertGetId([
+            'store_id' => $storeB,
+            'scope' => 'store',
+            'scope_key' => 'store:'.$storeB,
+            'code' => 'FOREIGN-U',
+            'name' => 'Foreign unit',
+            'name_ar' => 'وحدة أجنبية',
+            'name_en' => 'Foreign unit',
+            'decimal_places' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignCategoryId = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $catalogB->id,
+            'name' => 'Foreign category',
+            'slug' => 'foreign-category',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalogA->id,
+            'unit_id' => $validUnitId,
+            'sku' => 'EDIT-P',
+            'name' => 'Edit Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->from('/admin/catalog?tab=products')
+            ->patch('/admin/catalog/products/'.$productId, [
+                'sku' => 'EDIT-P',
+                'name' => 'Edit Product',
+                'unit_id' => $foreignUnitId,
+                'category_id' => $foreignCategoryId,
+                'is_active' => 1,
+            ])
+            ->assertRedirect('/admin/catalog?tab=products')
+            ->assertSessionHasErrors(['category_id']);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'unit_id' => $validUnitId,
+            'category_id' => null,
+        ]);
     }
 
     public function test_catalog_management_requires_catalog_permission(): void
