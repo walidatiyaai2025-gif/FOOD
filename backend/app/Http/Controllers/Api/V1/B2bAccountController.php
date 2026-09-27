@@ -95,6 +95,20 @@ class B2bAccountController extends Controller
             'status' => ['required', Rule::in(['pending', 'active', 'denied', 'suspended'])],
         ]);
 
+        $retailStore = DB::table('retail_wholesale_accounts')
+            ->join('stores', 'stores.id', '=', 'retail_wholesale_accounts.retail_store_id')
+            ->where('retail_wholesale_accounts.b2b_customer_id', $account->b2b_customer_id)
+            ->first(['stores.id', 'stores.is_active']);
+
+        if ($retailStore !== null) {
+            $expectedStatus = (bool) $retailStore->is_active ? 'active' : 'suspended';
+            abort_unless(
+                $data['status'] === $expectedStatus,
+                422,
+                'Retail-linked Wholesale account status is controlled by the Retail store status.',
+            );
+        }
+
         $before = $account->status;
         $customer = $account->b2bCustomer()->with('user')->first();
         abort_unless($customer instanceof B2bCustomer, 409, 'B2B customer domain mapping is incomplete.');
