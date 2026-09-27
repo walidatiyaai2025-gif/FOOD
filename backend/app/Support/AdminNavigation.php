@@ -56,6 +56,7 @@ class AdminNavigation
                 $this->module($user, $channels, 'b2b', 'clients', 'admin.b2b_workspace.modules.clients', 'b2b.accounts.view'),
             ]),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
+                $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
                 $this->module($user, $channels, 'b2b', 'stores', 'admin.b2b_workspace.modules.stores', 'stores.view'),
                 $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
             ]),
