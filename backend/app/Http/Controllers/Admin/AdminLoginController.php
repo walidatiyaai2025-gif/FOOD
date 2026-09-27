@@ -21,8 +21,7 @@ class AdminLoginController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly CredentialAuthenticator $credentials,
         private readonly AuditLogger $audit,
-    ) {
-    }
+    ) {}
 
     public function show(Request $request): View|RedirectResponse
     {
