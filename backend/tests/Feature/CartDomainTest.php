@@ -21,6 +21,8 @@ class CartDomainTest extends TestCase
 
     private int $productId;
 
+    private int $b2bProductId;
+
     private int $b2cWarehouseId;
 
     private User $b2cUser;
@@ -41,14 +43,6 @@ class CartDomainTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $categoryId = (int) DB::table('categories')->insertGetId([
-            'name' => 'Cart',
-            'slug' => 'cart',
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
         $this->b2cStoreId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $storeTypes['B2C'],
             'code' => 'CART-B2C',
@@ -66,8 +60,26 @@ class CartDomainTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $b2cCatalog = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $this->b2cStoreId, 'channel' => 'b2c', 'code' => 'default', 'name' => 'Cart Retail Catalog',
+            'is_active' => true, 'is_migration_quarantine' => false, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $b2bCatalog = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $this->b2bStoreId, 'channel' => 'b2b', 'code' => 'default', 'name' => 'Cart Wholesale Catalog',
+            'is_active' => true, 'is_migration_quarantine' => false, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $b2cCategory = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $b2cCatalog, 'name' => 'Cart', 'slug' => 'cart', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $b2bCategory = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $b2bCatalog, 'name' => 'Cart', 'slug' => 'cart', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
         $this->productId = (int) DB::table('products')->insertGetId([
-            'category_id' => $categoryId,
+            'catalog_id' => $b2cCatalog,
+            'category_id' => $b2cCategory,
             'unit_id' => $unitId,
             'sku' => 'CART-001',
             'name' => 'Cart Product',
@@ -76,12 +88,23 @@ class CartDomainTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->b2bProductId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $b2bCatalog,
+            'category_id' => $b2bCategory,
+            'unit_id' => $unitId,
+            'sku' => 'CART-001',
+            'name' => 'Cart Product',
+            'description' => 'Cart domain B2B product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-        foreach ([$this->b2cStoreId, $this->b2bStoreId] as $storeId) {
+        foreach ([[$this->b2cStoreId, $this->productId, 1.250], [$this->b2bStoreId, $this->b2bProductId, 2.500]] as [$storeId, $productId, $price]) {
             DB::table('store_products')->insert([
                 'store_id' => $storeId,
-                'product_id' => $this->productId,
-                'price' => $storeId === $this->b2cStoreId ? 1.250 : 2.500,
+                'product_id' => $productId,
+                'price' => $price,
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -102,7 +125,7 @@ class CartDomainTest extends TestCase
 
             DB::table('inventories')->insert([
                 'warehouse_id' => $warehouseId,
-                'product_id' => $this->productId,
+                'product_id' => $productId,
                 'quantity' => 5,
                 'reserved_quantity' => 0,
                 'created_at' => now(),
@@ -221,7 +244,7 @@ class CartDomainTest extends TestCase
         ]);
         $tierId = (int) DB::table('b2b_price_tiers')->insertGetId(['code' => 'CART-TIER', 'name' => 'Cart Tier', 'priority' => 1, 'created_at' => now(), 'updated_at' => now()]);
         B2bAccount::query()->create(['customer_id' => $b2bCustomer->id, 'price_tier_id' => $tierId, 'company_name' => 'Cart Buyer', 'status' => 'active']);
-        DB::table('b2b_price_rules')->insert(['price_tier_id' => $tierId, 'store_id' => $this->b2bStoreId, 'product_id' => $this->productId, 'unit_price' => 2.500, 'minimum_quantity' => 1, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('b2b_price_rules')->insert(['price_tier_id' => $tierId, 'store_id' => $this->b2bStoreId, 'product_id' => $this->b2bProductId, 'unit_price' => 2.500, 'minimum_quantity' => 1, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
 
         Sanctum::actingAs($b2bUser);
 
@@ -238,7 +261,7 @@ class CartDomainTest extends TestCase
         $this->withHeader('X-Guest-Token', '')
             ->postJson('/api/v1/cart/items', [
                 'store_id' => $this->b2bStoreId,
-                'product_id' => $this->productId,
+                'product_id' => $this->b2bProductId,
                 'quantity' => 1,
             ])->assertCreated()
             ->assertJsonPath('channel', 'b2b');
