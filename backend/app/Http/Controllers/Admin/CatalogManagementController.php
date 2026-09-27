@@ -685,7 +685,8 @@ final class CatalogManagementController extends Controller
         string $permission,
         int $storeId,
         string $channel,
-    ): void {
+    ): void
+    {
         $actor = $this->actor($request);
         $this->assertStoreAccess($request, $storeId, $channel);
 
