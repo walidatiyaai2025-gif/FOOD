@@ -103,7 +103,7 @@ class AdminNavigation
 
         if ($globalRoles !== [] && $user->roles()
             ->where('roles.is_active', true)
-            ->whereIn('roles.scope', ['global', 'both'])
+            ->where('roles.scope', 'global')
             ->whereIn('roles.code', $globalRoles)
             ->exists()) {
             return true;
@@ -117,7 +117,7 @@ class AdminNavigation
 
         return $user->storeRoleAssignments()->whereHas('role', fn ($query) => $query
             ->where('roles.is_active', true)
-            ->whereIn('roles.scope', ['store', 'both'])
+            ->where('roles.scope', 'store')
             ->whereIn('roles.code', $storeRoles))->exists();
     }
 
@@ -187,7 +187,7 @@ class AdminNavigation
 
         return $user->storeRoleAssignments()->whereHas('role', fn ($query) => $query
             ->where('roles.is_active', true)
-            ->whereIn('roles.scope', ['store', 'both'])
+            ->where('roles.scope', 'store')
             ->whereIn('roles.code', $storeRoles)
             ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', $permission)))->exists();
     }
@@ -204,7 +204,7 @@ class AdminNavigation
                 ->whereHas('store', fn ($query) => $query->where('stores.is_active', true))
                 ->whereHas('role', fn ($query) => $query
                     ->where('roles.is_active', true)
-                    ->whereIn('roles.scope', ['store', 'both'])
+                    ->where('roles.scope', 'store')
                     ->whereHas('permissions', fn ($permissions) => $permissions
                         ->where('permissions.code', $permission)))
                 ->exists();
