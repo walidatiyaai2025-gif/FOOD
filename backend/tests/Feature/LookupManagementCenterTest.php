@@ -161,7 +161,19 @@ class LookupManagementCenterTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $storeId = $this->store('B2B', 'LOOKUP-SAFE-B2B');
+        $catalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'code' => 'default',
+            'name' => 'Safe Lookup Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         DB::table('products')->insert([
+            'catalog_id' => $catalogId,
             'category_id' => null,
             'brand_id' => null,
             'unit_id' => $unitId,
@@ -212,6 +224,46 @@ class LookupManagementCenterTest extends TestCase
         ]);
         $this->assertDatabaseHas('audit_logs', ['event' => 'tenant.support_access.entered', 'user_id' => $admin->id]);
         $this->assertDatabaseHas('audit_logs', ['event' => 'lookup.brand.created', 'auditable_id' => $brandId]);
+    }
+
+    public function test_foreign_store_unit_cannot_be_bound_to_product_by_id_tampering(): void
+    {
+        $storeA = $this->store('B2C', 'LOOKUP-PRODUCT-A');
+        $storeB = $this->store('B2C', 'LOOKUP-PRODUCT-B');
+        DB::table('catalogs')->insert([
+            'store_id' => $storeA,
+            'channel' => 'b2c',
+            'code' => 'default',
+            'name' => 'Store A Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $admin = $this->storeAdmin($storeA, 'lookup-product-a@example.test');
+        $foreignUnitId = (int) DB::table('units')->insertGetId([
+            'store_id' => $storeB,
+            'scope' => 'store',
+            'scope_key' => 'store:'.$storeB,
+            'code' => 'FOREIGN-PC',
+            'name' => 'Foreign Piece',
+            'name_ar' => 'قطعة أجنبية',
+            'name_en' => 'Foreign Piece',
+            'decimal_places' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->post('/admin/catalog/products', [
+            'store_id' => $storeA,
+            'sku' => 'LOOKUP-TAMPER-001',
+            'name' => 'Tampered Product',
+            'unit_id' => $foreignUnitId,
+            'is_active' => 1,
+        ])->assertStatus(422);
+
+        $this->assertDatabaseMissing('products', ['sku' => 'LOOKUP-TAMPER-001']);
     }
 
     public function test_lookup_center_renders_arabic_rtl_and_english_ltr(): void
