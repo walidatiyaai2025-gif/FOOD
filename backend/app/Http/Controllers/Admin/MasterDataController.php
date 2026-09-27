@@ -295,7 +295,7 @@ final class MasterDataController extends Controller
                         'products.is_active',
                         'categories.name as category',
                         'units.code as unit',
-                    ])->map(function ($row) use ($ar): array {
+                    ])->map(function ($row): array {
                         $prices = DB::table('store_products')->where('product_id', $row->id)->whereNotNull('price')->pluck('price');
                         $min = $prices->isEmpty() ? null : (float) $prices->min();
                         $max = $prices->isEmpty() ? null : (float) $prices->max();
