@@ -21,6 +21,7 @@ class DriverAssignmentLifecycleTest extends TestCase
     {
         $this->seed(CoreReferenceSeeder::class);
         [$storeId, $order] = $this->order('b2c');
+        $order->update(['status' => 'ready']);
         $admin = $this->roleUser('B2C_STORE_ADMIN', 'delivery-admin@example.test');
         $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
         DB::table('user_store_roles')->insert(['user_id' => $admin->id, 'store_id' => $storeId, 'role_id' => $roleId, 'created_at' => now(), 'updated_at' => now()]);
@@ -34,7 +35,14 @@ class DriverAssignmentLifecycleTest extends TestCase
         $id = $created->json('data.id');
         $this->getJson('/api/v1/driver/assignments')
             ->assertOk()
-            ->assertJsonPath('data.0.available_statuses.0', 'accepted');
+            ->assertJsonPath('data.0.available_statuses.0', 'accepted')
+            ->assertJsonPath('data.0.order.number', $order->order_number)
+            ->assertJsonPath('data.0.order.status', 'ready')
+            ->assertJsonPath('data.0.order.store.name', 'Delivery Store');
+
+        $this->getJson("/api/v1/driver/assignments/{$id}")
+            ->assertOk()
+            ->assertJsonPath('data.order.number', $order->order_number);
 
         $expectedNext = [
             'accepted' => 'picked_up',
@@ -43,7 +51,10 @@ class DriverAssignmentLifecycleTest extends TestCase
             'delivered' => null,
         ];
         foreach (['accepted', 'picked_up', 'out_for_delivery', 'delivered'] as $status) {
-            $response = $this->postJson("/api/v1/driver/assignments/{$id}/status", ['status' => $status])
+            $response = $this->postJson("/api/v1/driver/assignments/{$id}/status", [
+                'status' => $status,
+                'note' => 'Driver action '.$status,
+            ])
                 ->assertOk()
                 ->assertJsonPath('data.status', $status);
             if ($expectedNext[$status] === null) {
@@ -53,6 +64,58 @@ class DriverAssignmentLifecycleTest extends TestCase
             }
         }
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.status_changed']);
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'delivered']);
+        $this->assertDatabaseHas('delivery_proofs', [
+            'driver_assignment_id' => $id,
+            'proof_type' => 'status_note',
+            'note' => 'Driver action delivered',
+        ]);
+    }
+
+    public function test_driver_cannot_open_or_transition_another_drivers_assignment(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+        $order->update(['status' => 'ready']);
+
+        $admin = $this->roleUser('B2C_STORE_ADMIN', 'delivery-admin-2@example.test');
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+            'role_id' => $roleId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $driverOneUser = $this->roleUser('B2C_DRIVER', 'delivery-driver-one@example.test');
+        $driverOne = Driver::query()->create([
+            'user_id' => $driverOneUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+        $driverTwoUser = $this->roleUser('B2C_DRIVER', 'delivery-driver-two@example.test');
+        Driver::query()->create([
+            'user_id' => $driverTwoUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+        $assignmentId = $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driverOne->id,
+            'order_id' => $order->id,
+        ])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($driverTwoUser);
+        $this->getJson("/api/v1/driver/assignments/{$assignmentId}")->assertNotFound();
+        $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
+            'status' => 'accepted',
+        ])->assertNotFound();
     }
 
     public function test_cross_channel_assignment_and_execution_are_denied(): void
