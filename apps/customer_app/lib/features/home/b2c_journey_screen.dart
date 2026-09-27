@@ -8,6 +8,7 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../core/theme/foodex_theme.dart';
 import '../../shared/customer_action_widgets.dart';
 
 class B2cJourneyScreen extends StatefulWidget {
@@ -206,7 +207,17 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
     }
     final content = _contentFor(context, widget.definition.pattern);
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('customer.app.title'))),
+      appBar: AppBar(
+        title: Text(context.tr('customer.app.title')),
+        actions: [
+          if (_storeId != null)
+            IconButton(
+              tooltip: context.tr('customer.nav.cart'),
+              onPressed: () => Navigator.of(context).pushNamed(_withStore(CustomerRoutePaths.cart)),
+              icon: const Icon(Icons.shopping_bag_outlined),
+            ),
+        ],
+      ),
       bottomNavigationBar:
           widget.definition.pattern == CustomerRoutePaths.home ||
                   widget.definition.pattern == CustomerRoutePaths.categories ||
@@ -216,7 +227,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                   widget.definition.pattern == CustomerRoutePaths.cart ||
                   widget.definition.pattern == CustomerRoutePaths.profile
               ? NavigationBar(
-                  labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
                   onDestinationSelected: (index) {
                     final routes = [
                       _withStore(CustomerRoutePaths.home),
@@ -240,16 +251,22 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
               : null,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: [
             Text(
               content.$1,
               key: const ValueKey('customer-route-label'),
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -.3,
+                  ),
             ),
-            const SizedBox(height: 8),
-            Text(content.$2),
-            const SizedBox(height: 20),
+            const SizedBox(height: 5),
+            Text(
+              content.$2,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: FoodexBrand.muted),
+            ),
+            const SizedBox(height: 18),
             ...content.$3,
             Text(
               widget.location,
@@ -1052,8 +1069,15 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF005C3F),
-            borderRadius: BorderRadius.circular(26),
+            gradient: const LinearGradient(
+              begin: AlignmentDirectional.topStart,
+              end: AlignmentDirectional.bottomEnd,
+              colors: [FoodexBrand.greenDark, FoodexBrand.green],
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: const [
+              BoxShadow(color: Color(0x24165D2D), blurRadius: 24, offset: Offset(0, 12)),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1505,23 +1529,54 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         ),
       );
 
-  Widget _section(String label, {VoidCallback? onTap}) => Card(
-        child: ListTile(
-          title: Text(label),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: onTap,
+  Widget _section(String label, {VoidCallback? onTap}) => Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ),
+            if (onTap != null)
+              IconButton(
+                onPressed: onTap,
+                tooltip: label,
+                icon: const Icon(Icons.arrow_forward_rounded),
+              ),
+          ],
         ),
       );
 
   Widget _dataCard(String title, String subtitle) => Card(
-        child: ListTile(title: Text(title), subtitle: Text(subtitle)),
+        margin: const EdgeInsets.only(bottom: 10),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(subtitle),
+          ),
+        ),
       );
 
-  Widget _empty(String label) => Card(
+  Widget _empty(String label) => Container(
         key: const ValueKey('b2c-catalog-empty'),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(child: Text(label)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+        decoration: BoxDecoration(
+          color: FoodexBrand.surface,
+          border: Border.all(color: FoodexBrand.border),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.shopping_basket_outlined, size: 42, color: FoodexBrand.greenDark),
+            const SizedBox(height: 12),
+            Text(label, textAlign: TextAlign.center),
+          ],
         ),
       );
 }
