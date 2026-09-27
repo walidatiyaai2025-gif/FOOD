@@ -29,7 +29,6 @@ final class BusinessManagementController extends Controller
             'promotions', 'content' => $actor->hasPermission('promotions.view') || $actor->hasPermission('promotions.manage'),
             'drivers' => $actor->hasPermission('drivers.b2c.view') || $actor->hasPermission('drivers.b2b.view')
                 || $actor->hasPermission('drivers.b2c.manage') || $actor->hasPermission('drivers.b2b.manage'),
-            default => false,
         };
         abort_unless($allowed, 403);
 
