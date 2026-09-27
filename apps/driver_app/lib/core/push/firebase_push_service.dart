@@ -91,9 +91,13 @@ class DriverFirebasePushService {
 
   static Future<DriverFirebasePushService> bootstrap({DriverFirebaseConfig config = DriverFirebaseConfig.fromEnvironment, http.Client? client}) async {
     final registry = DriverPushDeviceRegistry(baseUrl: FoodexEnvironment.apiBaseUrl, client: client);
-    if (!config.isConfigured) return DriverFirebasePushService._(registry: registry, messaging: null);
+    if (!config.isConfigured && !Platform.isAndroid) return DriverFirebasePushService._(registry: registry, messaging: null);
     try {
-      await Firebase.initializeApp(options: config.toOptions());
+      if (config.isConfigured) {
+        await Firebase.initializeApp(options: config.toOptions());
+      } else {
+        await Firebase.initializeApp();
+      }
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission(alert: true, badge: true, sound: true);
       await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);

@@ -2,8 +2,9 @@
 """Apply the approved FOODEX native identity, branding, and push scaffolding.
 
 This script runs after flutter create in CI/release builds. It contains only
-public application identity and approved brand assets; signing material and
-Firebase credentials stay external.
+public application identity and approved brand assets. Public Android Firebase
+client configuration is versioned with each app; service-account keys, signing
+material, APNs credentials, and other private secrets stay external.
 """
 
 from __future__ import annotations
@@ -36,6 +37,7 @@ APP_ICON_FOREGROUND = BRAND_ROOT / 'app_icon_foreground_1024.png'
 SPLASH_IMAGE = BRAND_ROOT / 'splash_master.png'
 SPLASH_BACKGROUND = '#003223'
 SPLASH_ACCENT = '#92D853'
+GOOGLE_SERVICES_PLUGIN_VERSION = '4.4.4'
 
 
 def _require_brand_assets() -> None:
@@ -162,6 +164,90 @@ def _patch_android_launch_theme(path: Path, *, android_12: bool) -> None:
     tree.write(path, encoding='utf-8', xml_declaration=True)
 
 
+def _configure_android_firebase(app_dir: Path, bundle_id: str) -> None:
+    """Validate the checked-in public Firebase client config and wire Gradle."""
+    app = app_dir / 'android' / 'app'
+    config_path = app / 'google-services.json'
+    if not config_path.is_file():
+        raise RuntimeError(f'Missing Firebase Android client config: {config_path}')
+
+    config = json.loads(config_path.read_text())
+    packages = {
+        client.get('client_info', {}).get('android_client_info', {}).get('package_name')
+        for client in config.get('client', [])
+    }
+    if bundle_id not in packages:
+        raise RuntimeError(
+            f'Firebase Android client config does not contain package {bundle_id}'
+        )
+
+    settings_kts = app_dir / 'android' / 'settings.gradle.kts'
+    settings_groovy = app_dir / 'android' / 'settings.gradle'
+    if settings_kts.exists():
+        text = settings_kts.read_text()
+        plugin = (
+            f'id("com.google.gms.google-services") version '
+            f'"{GOOGLE_SERVICES_PLUGIN_VERSION}" apply false'
+        )
+        if 'com.google.gms.google-services' not in text:
+            text, count = re.subn(
+                r'(?m)^plugins\s*\{\s*$',
+                'plugins {\n    ' + plugin,
+                text,
+                count=1,
+            )
+            if count != 1:
+                raise RuntimeError('Generated Android settings.gradle.kts plugins block was not found')
+            settings_kts.write_text(text)
+    elif settings_groovy.exists():
+        text = settings_groovy.read_text()
+        plugin = (
+            f'id "com.google.gms.google-services" version '
+            f'"{GOOGLE_SERVICES_PLUGIN_VERSION}" apply false'
+        )
+        if 'com.google.gms.google-services' not in text:
+            text, count = re.subn(
+                r'(?m)^plugins\s*\{\s*$',
+                'plugins {\n    ' + plugin,
+                text,
+                count=1,
+            )
+            if count != 1:
+                raise RuntimeError('Generated Android settings.gradle plugins block was not found')
+            settings_groovy.write_text(text)
+    else:
+        raise RuntimeError('Generated Android settings.gradle(.kts) was not found')
+
+    app_kts = app / 'build.gradle.kts'
+    app_groovy = app / 'build.gradle'
+    if app_kts.exists():
+        text = app_kts.read_text()
+        if 'com.google.gms.google-services' not in text:
+            text, count = re.subn(
+                r'(?m)^plugins\s*\{\s*$',
+                'plugins {\n    id("com.google.gms.google-services")',
+                text,
+                count=1,
+            )
+            if count != 1:
+                raise RuntimeError('Generated Android app build.gradle.kts plugins block was not found')
+            app_kts.write_text(text)
+    elif app_groovy.exists():
+        text = app_groovy.read_text()
+        if 'com.google.gms.google-services' not in text:
+            text, count = re.subn(
+                r'(?m)^plugins\s*\{\s*$',
+                'plugins {\n    id "com.google.gms.google-services"',
+                text,
+                count=1,
+            )
+            if count != 1:
+                raise RuntimeError('Generated Android app build.gradle plugins block was not found')
+            app_groovy.write_text(text)
+    else:
+        raise RuntimeError('Generated Android app build.gradle(.kts) was not found')
+
+
 def patch_android(app_dir: Path, bundle_id: str) -> None:
     app = app_dir / 'android' / 'app'
     build_files = [app / 'build.gradle.kts', app / 'build.gradle']
@@ -208,6 +294,7 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
             )
         path.write_text(text)
 
+    _configure_android_firebase(app_dir, bundle_id)
     _write_android_brand_resources(app)
 
 

@@ -92,9 +92,13 @@ class CustomerFirebasePushService {
 
   static Future<CustomerFirebasePushService> bootstrap({FoodexFirebaseConfig config = FoodexFirebaseConfig.fromEnvironment, http.Client? client}) async {
     final registry = CustomerPushDeviceRegistry(baseUrl: FoodexEnvironment.apiBaseUrl, client: client);
-    if (!config.isConfigured) return CustomerFirebasePushService._(registry: registry, messaging: null);
+    if (!config.isConfigured && !Platform.isAndroid) return CustomerFirebasePushService._(registry: registry, messaging: null);
     try {
-      await Firebase.initializeApp(options: config.toOptions());
+      if (config.isConfigured) {
+        await Firebase.initializeApp(options: config.toOptions());
+      } else {
+        await Firebase.initializeApp();
+      }
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission(alert: true, badge: true, sound: true);
       await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
