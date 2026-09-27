@@ -228,5 +228,4 @@ class B2bPricingController extends Controller
 
         return url('/'.ltrim($value, '/'));
     }
-
 }
