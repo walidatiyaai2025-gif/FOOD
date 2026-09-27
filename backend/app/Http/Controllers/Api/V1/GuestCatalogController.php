@@ -47,7 +47,7 @@ class GuestCatalogController extends Controller
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'is_active' => (bool) $category->is_active,
-                    'image_url' => $this->assetUrl($category->image_path),
+                    'image_url' => $this->assetUrl($category->getAttribute('image_path')),
                 ])
                 ->values()
                 ->all(),
