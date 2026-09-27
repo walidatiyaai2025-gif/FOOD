@@ -29,7 +29,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class B2bWorkspaceController extends Controller
@@ -388,8 +387,9 @@ class B2bWorkspaceController extends Controller
                 ],
             );
         });
+        $product->refresh();
         $this->audit->record('b2b.product.updated', $actor, $product, [...$before, 'store_id' => $storeId], [
-            ...$product->fresh()->toArray(),
+            ...$product->toArray(),
             'store_id' => $storeId,
             'price' => $data['price'] ?? null,
         ], $request);
