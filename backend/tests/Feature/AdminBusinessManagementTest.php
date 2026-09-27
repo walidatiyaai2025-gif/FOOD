@@ -6,7 +6,9 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminBusinessManagementTest extends TestCase
@@ -18,6 +20,7 @@ class AdminBusinessManagementTest extends TestCase
         parent::setUp();
 
         $this->seed(CoreReferenceSeeder::class);
+        Storage::fake('public');
     }
 
     public function test_super_admin_can_manage_operational_data_from_web_ui(): void
@@ -113,7 +116,7 @@ class AdminBusinessManagementTest extends TestCase
         $this->actingAs($user)->post('/admin/business/banners', [
             'store_id' => $storeId,
             'title' => 'Launch Banner',
-            'image_path' => '/storage/banners/launch.jpg',
+            'banner_image' => UploadedFile::fake()->image('launch.jpg', 1200, 420),
             'sort_order' => 1,
             'is_active' => 1,
         ])->assertSessionHasNoErrors();
