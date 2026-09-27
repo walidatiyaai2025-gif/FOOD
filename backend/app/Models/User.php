@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
 /**
@@ -40,24 +41,36 @@ class User extends Authenticatable
 
     public function hasRole(string $roleCode, ?int $storeId = null): bool
     {
-        if ($this->roles()
-            ->where('roles.code', $roleCode)
-            ->where('roles.is_active', true)
-            ->whereIn('roles.scope', ['global', 'both'])
-            ->exists()) {
-            return true;
+        if ($storeId === null) {
+            return $this->roles()
+                ->where('roles.code', $roleCode)
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'global')
+                ->exists();
         }
 
-        if ($storeId === null) {
+        $channel = $this->storeChannel($storeId);
+        if ($channel === null) {
             return false;
         }
 
-        return $this->storeRoleAssignments()
-            ->where('store_id', $storeId)
-            ->whereHas('role', fn ($query) => $query
-                ->where('code', $roleCode)
-                ->where('is_active', true)
-                ->whereIn('scope', ['store', 'both']))
+        if ($channel === 'b2c') {
+            return $this->storeRoleAssignments()
+                ->where('store_id', $storeId)
+                ->whereHas('role', fn ($query) => $query
+                    ->where('code', $roleCode)
+                    ->where('is_active', true)
+                    ->where('scope', 'store'))
+                ->exists();
+        }
+
+        $allowedGlobalRoles = array_values((array) config("admin.channels.{$channel}.global_roles", []));
+
+        return $this->roles()
+            ->where('roles.code', $roleCode)
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', $allowedGlobalRoles)
             ->exists();
     }
 
@@ -67,34 +80,36 @@ class User extends Authenticatable
             return true;
         }
 
-        if ($storeId !== null && $this->storeRoleAssignments()->exists()) {
-            return $this->storeRoleAssignments()
-                ->where('store_id', $storeId)
-                ->whereHas('role', fn ($query) => $query
-                    ->where('is_active', true)
-                    ->whereIn('scope', ['store', 'both'])
-                    ->whereHas('permissions', fn ($permissions) => $permissions->where('code', $permissionCode)))
+        if ($storeId === null) {
+            return $this->roles()
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'global')
+                ->whereHas('permissions', fn ($query) => $query->where('code', $permissionCode))
                 ->exists();
         }
 
-        if ($this->roles()
-            ->where('roles.is_active', true)
-            ->whereIn('roles.scope', ['global', 'both'])
-            ->whereHas('permissions', fn ($query) => $query->where('code', $permissionCode))
+        $channel = $this->storeChannel($storeId);
+        if ($channel === null) {
+            return false;
+        }
+
+        if ($channel === 'b2c' && $this->storeRoleAssignments()
+            ->where('store_id', $storeId)
+            ->whereHas('role', fn ($query) => $query
+                ->where('is_active', true)
+                ->where('scope', 'store')
+                ->whereHas('permissions', fn ($permissions) => $permissions->where('code', $permissionCode)))
             ->exists()) {
             return true;
         }
 
-        if ($storeId === null) {
-            return false;
-        }
+        $allowedGlobalRoles = array_values((array) config("admin.channels.{$channel}.global_roles", []));
 
-        return $this->storeRoleAssignments()
-            ->where('store_id', $storeId)
-            ->whereHas('role', fn ($query) => $query
-                ->where('is_active', true)
-                ->whereIn('scope', ['store', 'both'])
-                ->whereHas('permissions', fn ($permissions) => $permissions->where('code', $permissionCode)))
+        return $this->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', $allowedGlobalRoles)
+            ->whereHas('permissions', fn ($query) => $query->where('code', $permissionCode))
             ->exists();
     }
 
@@ -105,21 +120,32 @@ class User extends Authenticatable
             return array_keys((array) config('permissions.abilities', []));
         }
 
-        $codes = $this->roles()
+        $global = $this->roles()
             ->where('roles.is_active', true)
-            ->whereIn('roles.scope', ['global', 'both'])
+            ->where('roles.scope', 'global');
+
+        if ($storeId !== null) {
+            $channel = $this->storeChannel($storeId);
+            if ($channel === null) {
+                return [];
+            }
+
+            $global->whereIn('roles.code', array_values((array) config("admin.channels.{$channel}.global_roles", [])));
+        }
+
+        $codes = $global
             ->with('permissions:id,code')
             ->get()
             ->flatMap(fn (Role $role) => $role->permissions->pluck('code'));
 
-        if ($storeId !== null) {
+        if ($storeId !== null && $this->storeChannel($storeId) === 'b2c') {
             $codes = $codes->merge(
                 $this->storeRoleAssignments()
                     ->where('store_id', $storeId)
                     ->with('role.permissions:id,code')
                     ->get()
                     ->filter(fn (UserStoreRole $assignment): bool => (bool) $assignment->role->is_active
-                        && in_array($assignment->role->scope, ['store', 'both'], true))
+                        && $assignment->role->scope === 'store')
                     ->flatMap(fn (UserStoreRole $assignment) => $assignment->role->permissions->pluck('code')),
             );
         }
@@ -130,6 +156,17 @@ class User extends Authenticatable
             ->sort()
             ->values()
             ->all();
+    }
+
+    private function storeChannel(int $storeId): ?string
+    {
+        $channel = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('stores.is_active', true)
+            ->value('store_types.code');
+
+        return is_string($channel) ? strtolower($channel) : null;
     }
 
     protected function casts(): array
