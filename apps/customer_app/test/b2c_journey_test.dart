@@ -19,6 +19,7 @@ void main() {
     expect(Directionality.of(tester.element(find.text('تفاصيل المنتج'))), TextDirection.rtl);
     expect(find.text('Tomato Box'), findsOneWidget);
     expect(find.textContaining('3.250 KWD'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2c-product-gallery')), findsOneWidget);
     expect(find.text('إضافة إلى السلة'), findsOneWidget);
   });
 
@@ -41,6 +42,26 @@ void main() {
     expect(find.text('Vegetables'), findsOneWidget);
     expect(find.text('Weekend Offer'), findsOneWidget);
     expect(find.text('Tomato Box'), findsWidgets);
+  });
+
+  testWidgets('B2C category and product images render in catalog surfaces', (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: '/home?store=7',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: _FakeAccountApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2c-home-category-image-3')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2c-home-product-42')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('b2c-home-product-42')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2c-product-gallery')), findsOneWidget);
+    expect(find.byType(PageView), findsOneWidget);
   });
 
   testWidgets('B2C products render remote data and preserve store in detail navigation', (tester) async {
@@ -288,7 +309,13 @@ class _FakeCatalogApi implements B2cCatalogApi {
   @override
   Future<List<B2cCategory>> categories(int storeId) async {
     _remember(storeId);
-    return const [B2cCategory(id: 3, name: 'Vegetables')];
+    return const [
+      B2cCategory(
+        id: 3,
+        name: 'Vegetables',
+        imageUrl: 'https://example.invalid/category.jpg',
+      ),
+    ];
   }
 
   @override
@@ -322,6 +349,7 @@ class _FakeCatalogApi implements B2cCatalogApi {
         name: 'Tomato Box',
         sku: 'TOM-42',
         price: 3.25,
+        imageUrl: 'https://example.invalid/product.jpg',
       ),
     ];
   }
@@ -335,6 +363,11 @@ class _FakeCatalogApi implements B2cCatalogApi {
       sku: 'TOM-42',
       price: 3.25,
       description: 'Fresh product',
+      imageUrl: 'https://example.invalid/product.jpg',
+      images: [
+        'https://example.invalid/product.jpg',
+        'https://example.invalid/product-2.jpg',
+      ],
     );
   }
 }
