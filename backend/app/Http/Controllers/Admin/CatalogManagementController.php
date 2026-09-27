@@ -33,13 +33,34 @@ final class CatalogManagementController extends Controller
 
     public function index(Request $request): View
     {
-        Gate::authorize('catalog.view');
-
         $actor = $this->actor($request);
         $tab = in_array((string) $request->query('tab'), ['products', 'categories', 'stores'], true)
             ? (string) $request->query('tab')
             : 'products';
-        $storeIds = $this->visibleStoreIds($actor, $request);
+        $canManageStores = $actor->hasRole('SUPER_ADMIN');
+
+        if ($tab === 'stores') {
+            abort_unless($canManageStores, 403);
+            $storeIds = DB::table('stores')
+                ->where('stores.code', '!=', 'SYSTEM-LEGACY-QUARANTINE')
+                ->pluck('stores.id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+        } else {
+            $storeIds = $this->visibleStoreIds($actor, $request);
+            $storeIds = $this->catalogReadableStoreIds($actor, $storeIds);
+            if ($storeIds === [] && $actor->hasRole('SUPER_ADMIN') === false && $actor->hasRole('B2B_ADMIN') === false) {
+                abort(403);
+            }
+        }
+
+        $scopeParams = [];
+        if ($request->integer('store_id') > 0) {
+            $scopeParams['store_id'] = $request->integer('store_id');
+        }
+        if ($request->boolean('support_access')) {
+            $scopeParams['support_access'] = 1;
+        }
 
         return view('admin.catalog-management', [
             'user' => $actor,
@@ -115,7 +136,9 @@ final class CatalogManagementController extends Controller
                     'stores.store_type_id',
                     'store_types.code as type_code',
                 ]),
-            'storeTypes' => DB::table('store_types')->orderBy('code')->get(),
+            'storeTypes' => $canManageStores
+                ? DB::table('store_types')->orderBy('code')->get()
+                : collect(),
             'productImages' => DB::table('product_images')
                 ->join('products', 'products.id', '=', 'product_images.product_id')
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -133,15 +156,17 @@ final class CatalogManagementController extends Controller
                     'product_images.is_primary',
                 ])
                 ->groupBy('product_id'),
-            'assignments' => DB::table('store_products')->get()
+            'assignments' => DB::table('store_products')
+                ->whereIn('store_id', $storeIds)
+                ->get()
                 ->keyBy(fn ($row) => $row->store_id.':'.$row->product_id),
+            'canManageStores' => $canManageStores,
+            'scopeParams' => $scopeParams,
         ]);
     }
 
     public function storeProduct(Request $request): RedirectResponse
     {
-        Gate::authorize('catalog.create');
-
         $data = $request->validate([
             'sku' => ['required', 'string', 'max:100'],
             'name' => ['required', 'string', 'max:255'],
@@ -157,7 +182,7 @@ final class CatalogManagementController extends Controller
         ]);
 
         $catalog = $this->catalogs->defaultCatalogForStore((int) $data['store_id']);
-        $this->assertStoreAccess($request, (int) $data['store_id'], (string) $catalog->channel);
+        $this->authorizeCatalogAction($request, 'catalog.create', (int) $data['store_id'], (string) $catalog->channel);
         $this->catalogs->assertSameCatalog(isset($data['category_id']) ? (int) $data['category_id'] : null, (int) $catalog->id);
         $this->lookups->assertAssignableToStore('units', (int) $data['unit_id'], (int) $data['store_id']);
         if (! empty($data['brand_id'])) {
@@ -211,10 +236,8 @@ final class CatalogManagementController extends Controller
 
     public function updateProduct(Request $request, int $product): RedirectResponse
     {
-        Gate::authorize('catalog.edit');
-
         $owner = $this->productOwner($product);
-        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+        $this->authorizeCatalogAction($request, 'catalog.edit', (int) $owner->store_id, (string) $owner->channel);
 
         $data = $request->validate([
             'sku' => ['required', 'string', 'max:100'],
@@ -257,10 +280,8 @@ final class CatalogManagementController extends Controller
 
     public function updateProductImage(Request $request, int $product, int $image): RedirectResponse
     {
-        Gate::authorize('catalog.edit');
-
         $owner = $this->productOwner($product);
-        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+        $this->authorizeCatalogAction($request, 'catalog.edit', (int) $owner->store_id, (string) $owner->channel);
 
         $data = $request->validate([
             'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
@@ -279,10 +300,8 @@ final class CatalogManagementController extends Controller
 
     public function destroyProductImage(Request $request, int $product, int $image): RedirectResponse
     {
-        Gate::authorize('catalog.edit');
-
         $owner = $this->productOwner($product);
-        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+        $this->authorizeCatalogAction($request, 'catalog.edit', (int) $owner->store_id, (string) $owner->channel);
         $this->images->deleteProductImage($product, $image);
 
         return back()->with('status', $this->msg('تم حذف صورة المنتج.', 'Product image removed.'));
@@ -290,10 +309,8 @@ final class CatalogManagementController extends Controller
 
     public function destroyProduct(Request $request, int $product): RedirectResponse
     {
-        Gate::authorize('catalog.delete');
-
         $owner = $this->productOwner($product);
-        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+        $this->authorizeCatalogAction($request, 'catalog.delete', (int) $owner->store_id, (string) $owner->channel);
         $used = DB::table('order_items')->where('product_id', $product)->exists();
 
         if ($used) {
@@ -317,8 +334,6 @@ final class CatalogManagementController extends Controller
 
     public function assignProduct(Request $request, int $product): RedirectResponse
     {
-        Gate::authorize('catalog.manage');
-
         $data = $request->validate([
             'store_id' => ['required', 'integer', 'exists:stores,id'],
             'price' => ['nullable', 'numeric', 'min:0'],
@@ -326,7 +341,7 @@ final class CatalogManagementController extends Controller
         ]);
 
         $owner = $this->productOwner($product);
-        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+        $this->authorizeCatalogAction($request, 'catalog.manage', (int) $owner->store_id, (string) $owner->channel);
         if ((int) $data['store_id'] !== (int) $owner->store_id) {
             throw ValidationException::withMessages([
                 'store_id' => ['A product can only be assigned inside its owning catalog store.'],
@@ -348,8 +363,6 @@ final class CatalogManagementController extends Controller
 
     public function storeCategory(Request $request): RedirectResponse
     {
-        Gate::authorize('catalog.manage');
-
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255'],
@@ -360,7 +373,7 @@ final class CatalogManagementController extends Controller
         ]);
 
         $catalog = $this->catalogs->defaultCatalogForStore((int) $data['store_id']);
-        $this->assertStoreAccess($request, (int) $data['store_id'], (string) $catalog->channel);
+        $this->authorizeCatalogAction($request, 'catalog.manage', (int) $data['store_id'], (string) $catalog->channel);
         $this->catalogs->assertParentInCatalog(isset($data['parent_id']) ? (int) $data['parent_id'] : null, (int) $catalog->id);
         $slug = ($data['slug'] ?? null) ?: Str::slug($data['name']).'-'.Str::lower(Str::random(5));
         $this->assertSlugAvailable((int) $catalog->id, $slug);
@@ -385,10 +398,8 @@ final class CatalogManagementController extends Controller
 
     public function updateCategory(Request $request, int $category): RedirectResponse
     {
-        Gate::authorize('catalog.manage');
-
         $owner = $this->categoryOwner($category);
-        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+        $this->authorizeCatalogAction($request, 'catalog.manage', (int) $owner->store_id, (string) $owner->channel);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -423,10 +434,8 @@ final class CatalogManagementController extends Controller
 
     public function destroyCategory(Request $request, int $category): RedirectResponse
     {
-        Gate::authorize('catalog.manage');
-
         $owner = $this->categoryOwner($category);
-        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+        $this->authorizeCatalogAction($request, 'catalog.manage', (int) $owner->store_id, (string) $owner->channel);
 
         if (DB::table('products')->where('category_id', $category)->exists()
             || DB::table('categories')->where('parent_id', $category)->exists()) {
@@ -538,6 +547,8 @@ final class CatalogManagementController extends Controller
 
     public function storeStore(Request $request): RedirectResponse
     {
+        $actor = $this->actor($request);
+        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
         Gate::authorize('stores.manage');
 
         $data = $request->validate([
@@ -561,6 +572,8 @@ final class CatalogManagementController extends Controller
 
     public function updateStore(Request $request, int $store): RedirectResponse
     {
+        $actor = $this->actor($request);
+        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
         Gate::authorize('stores.manage');
 
         $data = $request->validate([
@@ -700,6 +713,12 @@ final class CatalogManagementController extends Controller
         }
 
         if ($actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN')) {
+            if ($requested > 0) {
+                $this->tenantContext->wholesale($actor, $requested);
+
+                return [$requested];
+            }
+
             return DB::table('stores')
                 ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
                 ->where('store_types.code', 'B2B')
@@ -709,7 +728,48 @@ final class CatalogManagementController extends Controller
                 ->all();
         }
 
+        if ($requested > 0) {
+            $this->tenantContext->retail($actor, $requested, false, $request);
+
+            return [$requested];
+        }
+
         return $this->tenantContext->retailStoreIds($actor);
+    }
+
+    /** @param list<int> $storeIds
+     * @return list<int>
+     */
+    private function catalogReadableStoreIds(User $actor, array $storeIds): array
+    {
+        if ($actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN')) {
+            Gate::authorize('catalog.view');
+
+            return $storeIds;
+        }
+
+        return array_values(array_filter(
+            $storeIds,
+            static fn (int $storeId): bool => $actor->hasPermission('catalog.view', $storeId),
+        ));
+    }
+
+    private function authorizeCatalogAction(
+        Request $request,
+        string $permission,
+        int $storeId,
+        string $channel,
+    ): void {
+        $actor = $this->actor($request);
+        $this->assertStoreAccess($request, $storeId, $channel);
+
+        if (strtolower($channel) === 'b2c' && $actor->hasRole('SUPER_ADMIN') === false) {
+            abort_unless($actor->hasPermission($permission, $storeId), 403);
+
+            return;
+        }
+
+        Gate::authorize($permission);
     }
 
     private function assertSkuAvailable(int $catalogId, string $sku, ?int $ignoreProduct = null): void
