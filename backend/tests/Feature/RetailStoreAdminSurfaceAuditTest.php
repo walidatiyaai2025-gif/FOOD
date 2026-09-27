@@ -119,7 +119,7 @@ class RetailStoreAdminSurfaceAuditTest extends TestCase
 
         $this->actingAs($this->admin)
             ->get('/admin/catalog?tab=products&store_id='.$this->foreignStore)
-            ->assertNotFound();
+            ->assertForbidden();
 
         $this->actingAs($this->admin)
             ->get('/admin/business?tab=inventory&store_id='.$this->foreignStore)
