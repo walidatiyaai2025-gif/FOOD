@@ -3,8 +3,8 @@ FOODEX first install
 
 1. Extract FOODEX-Laravel-Setup.zip so VERSION and backend/ are in the same deployment root.
 2. Point the web server document root to backend/public.
-3. PHP 8.2+ is required with pdo_pgsql, mbstring, openssl, tokenizer, json and zip.
-4. PostgreSQL is required. Redis is recommended for cache and queue.
+3. PHP 8.2+ is required with pdo_mysql, mbstring, openssl, tokenizer, json and zip.
+4. MySQL or MariaDB is required (default port 3306). Redis is recommended for cache and queue.
 5. Make backend/storage and backend/bootstrap/cache writable by the web/PHP user.
 6. Open https://foodex.50sols.com/install and complete the wizard.
 7. Approved first-install database name: solscool_foodex
