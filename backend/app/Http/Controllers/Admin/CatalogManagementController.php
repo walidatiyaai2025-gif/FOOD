@@ -49,7 +49,7 @@ final class CatalogManagementController extends Controller
         } else {
             $storeIds = $this->visibleStoreIds($actor, $request);
             $storeIds = $this->catalogReadableStoreIds($actor, $storeIds);
-            if ($storeIds === [] && $actor->hasRole('SUPER_ADMIN') === false && $actor->hasRole('B2B_ADMIN') === false) {
+            if ($storeIds === [] && $this->canAccessWholesale($actor) === false) {
                 abort(403);
             }
         }
@@ -712,7 +712,7 @@ final class CatalogManagementController extends Controller
             return [$requested];
         }
 
-        if ($actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN')) {
+        if ($this->canAccessWholesale($actor)) {
             if ($requested > 0) {
                 $this->tenantContext->wholesale($actor, $requested);
 
@@ -742,7 +742,7 @@ final class CatalogManagementController extends Controller
      */
     private function catalogReadableStoreIds(User $actor, array $storeIds): array
     {
-        if ($actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN')) {
+        if ($this->canAccessWholesale($actor)) {
             Gate::authorize('catalog.view');
 
             return $storeIds;
@@ -794,6 +794,17 @@ final class CatalogManagementController extends Controller
         if ($query->exists()) {
             throw ValidationException::withMessages(['slug' => ['The slug has already been used in this catalog.']]);
         }
+    }
+
+    private function canAccessWholesale(User $actor): bool
+    {
+        $roles = array_values((array) config('admin.channels.b2b.global_roles', []));
+
+        return $actor->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', $roles)
+            ->exists();
     }
 
     private function actor(Request $request): User
