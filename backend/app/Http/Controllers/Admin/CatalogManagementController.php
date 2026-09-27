@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
+use App\Models\Store;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CatalogImageService;
 use App\Services\CatalogOwnership;
 use App\Services\LookupScopeService;
+use App\Services\RetailWholesaleAccountService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
@@ -29,6 +31,7 @@ final class CatalogManagementController extends Controller
         private readonly TenantContextResolver $tenantContext,
         private readonly LookupScopeService $lookups,
         private readonly CatalogImageService $images,
+        private readonly RetailWholesaleAccountService $wholesaleAccounts,
     ) {}
 
     public function index(Request $request): View
@@ -558,14 +561,17 @@ final class CatalogManagementController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        DB::table('stores')->insert([
+        $store = Store::query()->create([
             'store_type_id' => $data['store_type_id'],
             'code' => $data['code'],
             'name' => $data['name'],
             'is_active' => $request->boolean('is_active', true),
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
+
+        $channel = DB::table('store_types')->where('id', $store->store_type_id)->value('code');
+        if ($channel === 'B2C') {
+            $this->wholesaleAccounts->ensureForStore($store);
+        }
 
         return back()->with('status', $this->msg('تمت إضافة المتجر.', 'Store added.'));
     }
@@ -583,13 +589,23 @@ final class CatalogManagementController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        DB::table('stores')->where('id', $store)->update([
-            'store_type_id' => $data['store_type_id'],
+        $model = Store::query()->findOrFail($store);
+        abort_unless(
+            (int) $model->store_type_id === (int) $data['store_type_id'],
+            422,
+            'Store channel cannot be changed after provisioning.',
+        );
+
+        $model->update([
             'code' => $data['code'],
             'name' => $data['name'],
             'is_active' => $request->boolean('is_active'),
-            'updated_at' => now(),
         ]);
+
+        $channel = DB::table('store_types')->where('id', $model->store_type_id)->value('code');
+        if ($channel === 'B2C') {
+            $this->wholesaleAccounts->syncForStore($model);
+        }
 
         return back()->with('status', $this->msg('تم تعديل المتجر.', 'Store updated.'));
     }
