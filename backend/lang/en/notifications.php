@@ -53,6 +53,7 @@ return [
     'user_id' => 'Specific user',
     'store' => 'Store',
     'all_stores' => 'All allowed stores',
+    'choose_store' => 'Select store',
     'save_draft' => 'Save draft',
     'save' => 'Save changes',
     'publish' => 'Publish',
