@@ -46,6 +46,7 @@ class AdminNavigation
             ]),
             $this->group('catalog', 'admin.nav_groups.catalog', '▦', [
                 $this->routeItem($user, 'catalog_management', 'admin.catalog_management', 'admin.catalog.index', 'catalog.view'),
+                $this->routeItemScoped($user, 'lookup_management', 'admin.lookup_management', 'admin.lookups.index', 'lookups.view'),
                 $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
                 $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
                 $this->module($user, $channels, 'b2b', 'products', 'admin.b2b_workspace.modules.products', 'catalog.view'),
@@ -183,6 +184,37 @@ class AdminNavigation
             ->whereIn('roles.scope', ['store', 'both'])
             ->whereIn('roles.code', $storeRoles)
             ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', $permission)))->exists();
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function routeItemScoped(User $user, string $key, string $label, string $route, string $permission): ?array
+    {
+        if (! Route::has($route)) {
+            return null;
+        }
+
+        if (! $user->hasPermission($permission)) {
+            $hasScopedPermission = $user->storeRoleAssignments()
+                ->whereHas('store', fn ($query) => $query->where('stores.is_active', true))
+                ->whereHas('role', fn ($query) => $query
+                    ->where('roles.is_active', true)
+                    ->whereIn('roles.scope', ['store', 'both'])
+                    ->whereHas('permissions', fn ($permissions) => $permissions
+                        ->where('permissions.code', $permission)))
+                ->exists();
+
+            if (! $hasScopedPermission) {
+                return null;
+            }
+        }
+
+        return [
+            'key' => $key,
+            'label' => $label,
+            'route' => $route,
+            'params' => [],
+            'permission' => null,
+        ];
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */

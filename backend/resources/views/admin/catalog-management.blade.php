@@ -36,9 +36,10 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 @if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 <nav class="tabs">
-@foreach(['products'=>'المنتجات','categories'=>'التصنيفات','brands'=>'العلامات التجارية','units'=>'وحدات القياس','stores'=>'المتاجر'] as $key=>$ar)
+@foreach(['products'=>'المنتجات','categories'=>'التصنيفات','stores'=>'المتاجر'] as $key=>$ar)
 <a class="{{ $tab===$key?'active':'' }}" href="{{ route('admin.catalog.index',['tab'=>$key]) }}">{{ app()->getLocale()==='ar'?$ar:ucfirst($key) }}</a>
 @endforeach
+<a href="{{ route('admin.lookups.index') }}">{{ app()->getLocale()==='ar'?'العلامات والوحدات':'Brands & Units' }}</a>
 </nav>
 
 @if($tab==='products')

@@ -27,6 +27,8 @@ return [
         'catalog.edit' => 'Edit products and catalog data',
         'catalog.delete' => 'Delete products and catalog data',
         'catalog.manage' => 'Manage products and catalog data',
+        'lookups.view' => 'View business lookup and master data',
+        'lookups.manage' => 'Manage business lookup and master data',
         'inventory.view' => 'View inventory',
         'inventory.adjust' => 'Adjust inventory quantities',
         'inventory.manage' => 'Manage inventory',
@@ -63,6 +65,7 @@ return [
             'stores.view',
             'b2b.accounts.view', 'b2b.accounts.manage', 'b2b.pricing.view', 'b2b.pricing.manage',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage',
+            'lookups.view', 'lookups.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
             'finance.view', 'finance.manage', 'reports.view', 'reports.export',
@@ -71,6 +74,7 @@ return [
         'B2C_STORE_ADMIN' => [
             'stores.view',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.delete', 'catalog.manage',
+            'lookups.view', 'lookups.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
             'customers.view', 'customers.create', 'customers.edit', 'customers.manage',
@@ -82,7 +86,7 @@ return [
             'drivers.b2b.view', 'drivers.b2b.manage', 'drivers.b2c.view', 'drivers.b2c.manage', 'reports.view',
         ],
         'INVENTORY' => [
-            'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage',
+            'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage', 'lookups.view',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
         ],
         'FINANCE' => ['finance.view', 'finance.manage', 'reports.view', 'reports.export'],

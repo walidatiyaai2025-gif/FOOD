@@ -25,6 +25,7 @@ return [
     'translation_center' => 'مركز الترجمة',
     'security_center' => 'المستخدمون والصلاحيات',
     'catalog_management' => 'إدارة الكتالوج والتصنيفات',
+    'lookup_management' => 'مركز إدارة البيانات المرجعية',
     'business_management' => 'إدارة العمليات والبيانات',
     'retail_store_provisioning' => 'متاجر التجزئة / التهيئة',
     'shell_ready' => 'هيكل لوحة الإدارة جاهز',

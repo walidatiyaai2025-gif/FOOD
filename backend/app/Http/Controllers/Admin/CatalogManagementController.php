@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
+use App\Models\Unit;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\CatalogOwnership;
+use App\Services\LookupScopeService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
@@ -21,6 +25,7 @@ final class CatalogManagementController extends Controller
     public function __construct(
         private readonly CatalogOwnership $catalogs,
         private readonly TenantContextResolver $tenantContext,
+        private readonly LookupScopeService $lookups,
     ) {}
 
     public function index(Request $request): View
@@ -28,7 +33,7 @@ final class CatalogManagementController extends Controller
         Gate::authorize('catalog.view');
 
         $actor = $this->actor($request);
-        $tab = in_array((string) $request->query('tab'), ['products', 'categories', 'brands', 'units', 'stores'], true)
+        $tab = in_array((string) $request->query('tab'), ['products', 'categories', 'stores'], true)
             ? (string) $request->query('tab')
             : 'products';
         $storeIds = $this->visibleStoreIds($actor, $request);
@@ -82,8 +87,16 @@ final class CatalogManagementController extends Controller
                     'catalog_store.name as catalog_store_name',
                     'parent.name as parent_name',
                 ]),
-            'brands' => DB::table('brands')->orderBy('name')->get(),
-            'units' => DB::table('units')->orderBy('name')->get(),
+            'brands' => $this->lookups
+                ->visible(Brand::query(), $actor, 'brands')
+                ->where('brands.is_active', true)
+                ->orderBy('brands.name')
+                ->get(),
+            'units' => $this->lookups
+                ->visible(Unit::query(), $actor, 'units')
+                ->where('units.is_active', true)
+                ->orderBy('units.name')
+                ->get(),
             'stores' => DB::table('stores')
                 ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
                 ->whereIn('stores.id', $storeIds)
@@ -122,6 +135,10 @@ final class CatalogManagementController extends Controller
         $catalog = $this->catalogs->defaultCatalogForStore((int) $data['store_id']);
         $this->assertStoreAccess($request, (int) $data['store_id'], (string) $catalog->channel);
         $this->catalogs->assertSameCatalog(isset($data['category_id']) ? (int) $data['category_id'] : null, (int) $catalog->id);
+        $this->lookups->assertAssignableToStore('units', (int) $data['unit_id'], (int) $data['store_id']);
+        if (! empty($data['brand_id'])) {
+            $this->lookups->assertAssignableToStore('brands', (int) $data['brand_id'], (int) $data['store_id']);
+        }
         $this->assertSkuAvailable((int) $catalog->id, (string) $data['sku']);
 
         DB::transaction(function () use ($data, $request, $catalog): void {
@@ -169,6 +186,10 @@ final class CatalogManagementController extends Controller
         ]);
 
         $this->catalogs->assertSameCatalog(isset($data['category_id']) ? (int) $data['category_id'] : null, (int) $owner->catalog_id);
+        $this->lookups->assertAssignableToStore('units', (int) $data['unit_id'], (int) $owner->store_id);
+        if (! empty($data['brand_id'])) {
+            $this->lookups->assertAssignableToStore('brands', (int) $data['brand_id'], (int) $owner->store_id);
+        }
         $this->assertSkuAvailable((int) $owner->catalog_id, (string) $data['sku'], $product);
 
         DB::table('products')->where('id', $product)->update([
@@ -319,53 +340,94 @@ final class CatalogManagementController extends Controller
 
     public function storeBrand(Request $request): RedirectResponse
     {
-        Gate::authorize('catalog.manage');
+        Gate::authorize('lookups.manage');
+        $actor = $this->actor($request);
+        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:brands,slug'],
+            'slug' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('brands', 'slug')->where(fn ($query) => $query->where('scope_key', 'global')),
+            ],
         ]);
+        $slug = trim((string) ($data['slug'] ?? ''));
+        $slug = $slug !== '' ? Str::lower($slug) : Str::slug($data['name']).'-'.Str::lower(Str::random(5));
 
-        DB::table('brands')->insert([
+        $model = Brand::query()->create([
+            'store_id' => null,
+            'scope' => 'global',
+            'scope_key' => 'global',
             'name' => $data['name'],
-            'slug' => $data['slug'] ?: Str::slug($data['name']).'-'.Str::lower(Str::random(5)),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'name_ar' => $data['name'],
+            'name_en' => $data['name'],
+            'slug' => $slug,
+            'is_active' => true,
         ]);
+        app(AuditLogger::class)->record('lookup.brand.created', $actor, $model, null, $model->toArray(), $request);
 
-        return back()->with('status', $this->msg('تمت إضافة العلامة التجارية.', 'Brand added.'));
+        return redirect()->route('admin.lookups.index', ['type' => 'brands'])
+            ->with('status', $this->msg('تمت إضافة العلامة في مركز البيانات المرجعية.', 'Brand added in the Lookup Management Center.'));
     }
 
     public function destroyBrand(Request $request, int $brand): RedirectResponse
     {
-        Gate::authorize('catalog.manage');
+        Gate::authorize('lookups.manage');
+        $actor = $this->actor($request);
+        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
 
-        DB::table('products')->where('brand_id', $brand)->update([
-            'brand_id' => null,
-            'updated_at' => now(),
-        ]);
-        DB::table('brands')->where('id', $brand)->delete();
+        $model = Brand::query()->whereKey($brand)->where('scope', 'global')->firstOrFail();
+        if (DB::table('products')->where('brand_id', $brand)->exists()) {
+            return redirect()->route('admin.lookups.index', ['type' => 'brands'])->withErrors([
+                'lookup' => $this->msg(
+                    'لا يمكن حذف علامة مستخدمة بواسطة منتجات. عطّلها بدلاً من الحذف.',
+                    'A brand referenced by products cannot be deleted. Deactivate it instead.',
+                ),
+            ]);
+        }
 
-        return back()->with('status', $this->msg('تم حذف العلامة التجارية.', 'Brand deleted.'));
+        $before = $model->toArray();
+        app(AuditLogger::class)->record('lookup.brand.deleted', $actor, $model, $before, null, $request);
+        $model->delete();
+
+        return redirect()->route('admin.lookups.index', ['type' => 'brands'])
+            ->with('status', $this->msg('تم حذف العلامة.', 'Brand deleted.'));
     }
 
     public function storeUnit(Request $request): RedirectResponse
     {
-        Gate::authorize('catalog.manage');
+        Gate::authorize('lookups.manage');
+        $actor = $this->actor($request);
+        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
 
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:50', 'unique:units,code'],
+            'code' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('units', 'code')->where(fn ($query) => $query->where('scope_key', 'global')),
+            ],
             'name' => ['required', 'string', 'max:255'],
             'decimal_places' => ['required', 'integer', 'between:0,6'],
         ]);
 
-        DB::table('units')->insert([
-            ...$data,
-            'created_at' => now(),
-            'updated_at' => now(),
+        $model = Unit::query()->create([
+            'store_id' => null,
+            'scope' => 'global',
+            'scope_key' => 'global',
+            'code' => Str::upper(trim($data['code'])),
+            'name' => $data['name'],
+            'name_ar' => $data['name'],
+            'name_en' => $data['name'],
+            'decimal_places' => $data['decimal_places'],
+            'is_active' => true,
         ]);
+        app(AuditLogger::class)->record('lookup.unit.created', $actor, $model, null, $model->toArray(), $request);
 
-        return back()->with('status', $this->msg('تمت إضافة وحدة القياس.', 'Unit added.'));
+        return redirect()->route('admin.lookups.index', ['type' => 'units'])
+            ->with('status', $this->msg('تمت إضافة الوحدة في مركز البيانات المرجعية.', 'Unit added in the Lookup Management Center.'));
     }
 
     public function storeStore(Request $request): RedirectResponse
