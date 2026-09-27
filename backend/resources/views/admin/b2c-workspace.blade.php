@@ -202,7 +202,12 @@
                 @if(request('q') && count($dashboard['search']))
                 <div class="search-results">
                     @foreach($dashboard['search'] as $result)
-                    @php($scopedSearchUrl=$result['route'].(str_contains($result['route'],'?')?'&':'?').'store_id='.$storeId.($supportAccess?'&support_access=1':''))
+                    @php
+                        $scopedSearchUrl = $result['route']
+                            .(str_contains($result['route'], '?') ? '&' : '?')
+                            .'store_id='.$storeId
+                            .($supportAccess ? '&support_access=1' : '');
+                    @endphp
                     <a href="{{ $scopedSearchUrl }}"><span><strong>{{ $result['title'] }}</strong><small> · {{ $result['subtitle'] }}</small></span><small>{{ __('admin.b2c_dashboard.search_types.'.$result['type']) }}</small></a>
                     @endforeach
                 </div>
