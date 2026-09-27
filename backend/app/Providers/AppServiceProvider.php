@@ -4,7 +4,11 @@ namespace App\Providers;
 
 use App\Domain\Updater\LaravelUpdateRuntime;
 use App\Domain\Updater\UpdateRuntime;
+use App\Models\B2bCustomer;
+use App\Models\B2cCustomer;
 use App\Models\User;
+use App\Policies\B2bCustomerPolicy;
+use App\Policies\B2cCustomerPolicy;
 use App\Services\DatabaseTranslationLoader;
 use App\Support\StoreContext;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -29,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Gate::policy(B2bCustomer::class, B2bCustomerPolicy::class);
+        Gate::policy(B2cCustomer::class, B2cCustomerPolicy::class);
+
         RateLimiter::for('login', function (Request $request): array {
             $email = Str::lower((string) $request->input('email', ''));
 

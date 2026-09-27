@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
-use App\Models\Customer;
+use App\Models\B2bCustomer;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\B2bCustomerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,12 +22,23 @@ class B2bAccountController extends Controller
         Gate::authorize('b2b.accounts.manage');
 
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
-        $accounts = B2bAccount::query()->with('customer.user')->orderBy('id')->paginate($perPage);
+        $accounts = B2bAccount::query()
+            ->with('b2bCustomer.user')
+            ->whereNotNull('b2b_customer_id')
+            ->orderBy('id')
+            ->paginate($perPage);
 
-        return response()->json(['data' => collect($accounts->items())->map(fn (B2bAccount $a) => $this->resource($a))->all(), 'meta' => ['current_page' => $accounts->currentPage(), 'per_page' => $accounts->perPage(), 'total' => $accounts->total()]]);
+        return response()->json([
+            'data' => collect($accounts->items())->map(fn (B2bAccount $account) => $this->resource($account))->all(),
+            'meta' => [
+                'current_page' => $accounts->currentPage(),
+                'per_page' => $accounts->perPage(),
+                'total' => $accounts->total(),
+            ],
+        ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, B2bCustomerService $customers): JsonResponse
     {
         Gate::authorize('b2b.accounts.manage');
 
@@ -39,17 +51,39 @@ class B2bAccountController extends Controller
             'tax_number' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $account = DB::transaction(function () use ($data): B2bAccount {
-            $user = User::query()->create(['name' => $data['name'], 'email' => $data['email'], 'password' => Hash::make($data['password']), 'is_active' => false]);
+        $account = DB::transaction(function () use ($data, $customers): B2bAccount {
+            $user = User::query()->create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'is_active' => false,
+            ]);
 
-            $customer = Customer::query()->create(['user_id' => $user->id, 'type' => 'b2b', 'name' => $data['name'], 'phone' => $data['phone'] ?? null, 'email' => $data['email']]);
+            $customer = $customers->create([
+                'name' => $data['name'],
+                'phone' => $data['phone'] ?? null,
+                'email' => $data['email'],
+            ], $user);
 
-            return B2bAccount::query()->create(['customer_id' => $customer->id, 'company_name' => $data['company_name'], 'tax_number' => $data['tax_number'] ?? null, 'status' => 'pending']);
+            return B2bAccount::query()->create([
+                'customer_id' => $customer->legacy_customer_id,
+                'b2b_customer_id' => $customer->getKey(),
+                'company_name' => $data['company_name'],
+                'tax_number' => $data['tax_number'] ?? null,
+                'status' => 'pending',
+            ]);
         });
 
-        $account->load('customer.user');
+        $account->load('b2bCustomer.user');
 
-        app(AuditLogger::class)->record('b2b.account.created', $request->user(), $account, null, ['status' => 'pending', 'company_name' => $account->company_name], $request);
+        app(AuditLogger::class)->record(
+            'b2b.account.created',
+            $request->user(),
+            $account,
+            null,
+            ['status' => 'pending', 'company_name' => $account->company_name],
+            $request,
+        );
 
         return response()->json(['data' => $this->resource($account)], 201);
     }
@@ -57,25 +91,37 @@ class B2bAccountController extends Controller
     public function updateStatus(Request $request, B2bAccount $account): JsonResponse
     {
         Gate::authorize('b2b.accounts.manage');
-        $data = $request->validate(['status' => ['required', Rule::in(['pending', 'active', 'denied', 'suspended'])]]);
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['pending', 'active', 'denied', 'suspended'])],
+        ]);
 
         $before = $account->status;
+        $customer = $account->b2bCustomer()->with('user')->first();
+        abort_unless($customer instanceof B2bCustomer, 409, 'B2B customer domain mapping is incomplete.');
 
-        $account->update(['status' => $data['status']]);
-        $customer = Customer::query()->with('user')->find($account->customer_id);
-        $customer?->user?->update(['is_active' => $data['status'] === 'active']);
+        DB::transaction(function () use ($account, $customer, $data): void {
+            $account->update(['status' => $data['status']]);
+            $customer->user?->update(['is_active' => $data['status'] === 'active']);
+        });
 
-        app(AuditLogger::class)->record('b2b.account.status_changed', $request->user(), $account, ['status' => $before], ['status' => $account->status], $request);
+        app(AuditLogger::class)->record(
+            'b2b.account.status_changed',
+            $request->user(),
+            $account,
+            ['status' => $before],
+            ['status' => $account->status],
+            $request,
+        );
 
-        $account->load('customer.user');
+        $account->load('b2bCustomer.user');
 
         return response()->json(['data' => $this->resource($account)]);
     }
 
     private function resource(B2bAccount $account): array
     {
-        /** @var Customer $customer */
-        $customer = $account->customer;
+        $customer = $account->b2bCustomer;
+        abort_unless($customer instanceof B2bCustomer, 409, 'B2B customer domain mapping is incomplete.');
 
         return [
             'id' => (int) $account->id,

@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
+use App\Models\B2bCustomer;
+use App\Models\B2cCustomer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
@@ -11,6 +12,7 @@ use App\Models\Payment;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,8 +41,10 @@ class OrderController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
+        $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
+
         $paginator = Order::query()
-            ->where('customer_id', $customer->getKey())
+            ->where($customerColumn, $customer->getKey())
             ->where('channel', $channel)
             ->latest('id')
             ->paginate((int) ($validated['per_page'] ?? 20));
@@ -62,9 +66,11 @@ class OrderController extends Controller
     {
         [$customer, $channel] = $this->customerContext($request);
 
+        $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
+
         $model = Order::query()
             ->whereKey($order)
-            ->where('customer_id', $customer->getKey())
+            ->where($customerColumn, $customer->getKey())
             ->where('channel', $channel)
             ->firstOrFail();
 
@@ -154,26 +160,19 @@ class OrderController extends Controller
         return response()->json($this->orderPayload($fresh));
     }
 
-    /** @return array{0: Customer, 1: string} */
+    /** @return array{0: B2bCustomer|B2cCustomer, 1: string} */
     private function customerContext(Request $request): array
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $customer = Customer::query()->where('user_id', $user->getKey())->first();
-        abort_unless($customer instanceof Customer, 403, 'Customer profile is required.');
+        $resolver = app(CustomerDomainResolver::class);
 
-        $channel = strtolower((string) $customer->type);
-        abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403, 'Unsupported customer channel.');
+        if ($request->is('api/v1/b2b/*')) {
+            return [$resolver->b2b($user), 'b2b'];
+        }
 
-        $routeChannel = $request->is('api/v1/b2b/*') ? 'b2b' : 'b2c';
-        abort_unless(
-            $channel === $routeChannel,
-            403,
-            'Customer channel does not match this order endpoint.',
-        );
-
-        return [$customer, $channel];
+        return [$resolver->b2cFromRequest($user, $request), 'b2c'];
     }
 
     private function canManageOrder(User $user, Order $order): bool

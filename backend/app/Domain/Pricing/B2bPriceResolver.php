@@ -3,17 +3,17 @@
 namespace App\Domain\Pricing;
 
 use App\Models\B2bAccount;
-use App\Models\Customer;
+use App\Models\B2bCustomer;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class B2bPriceResolver
 {
     /** @return array{price: float, minimum_quantity: float} */
-    public function resolve(Customer $customer, int $storeId, int $productId): array
+    public function resolve(B2bCustomer $customer, int $storeId, int $productId): array
     {
         $account = B2bAccount::query()
-            ->where('customer_id', $customer->getKey())
+            ->where('b2b_customer_id', $customer->getKey())
             ->where('status', 'active')
             ->first();
 
