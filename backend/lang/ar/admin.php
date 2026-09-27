@@ -6,6 +6,7 @@ return [
     'navigation' => 'التنقل',
     'overview' => 'نظرة عامة',
     'logout' => 'تسجيل الخروج',
+    'profile' => 'الملف الشخصي',
     'sidebar_search' => 'بحث في القوائم',
     'sidebar_toggle' => 'فتح أو إغلاق القائمة',
     'nav_groups' => [
