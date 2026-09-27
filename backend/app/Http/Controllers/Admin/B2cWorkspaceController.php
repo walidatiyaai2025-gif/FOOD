@@ -269,7 +269,7 @@ class B2cWorkspaceController extends Controller
                     ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / Edit Products', 'url' => route('admin.catalog.index', array_merge(['tab' => 'products'], $scopeParams))],
                     ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage Categories', 'url' => route('admin.catalog.index', array_merge(['tab' => 'categories'], $scopeParams))],
                 ],
-                'columns' => ['sku', 'name', 'category', 'store', 'price', 'status'],
+                'columns' => ['sku', 'name', 'category', 'store', 'cost', 'price', 'status'],
                 'rows' => DB::table('store_products')
                     ->join('products', 'products.id', '=', 'store_products.product_id')
                     ->join('stores', 'stores.id', '=', 'store_products.store_id')
@@ -282,6 +282,7 @@ class B2cWorkspaceController extends Controller
                         'products.name',
                         DB::raw("COALESCE(categories.name, '-') as category"),
                         'stores.name as store',
+                        'store_products.cost_price',
                         'store_products.price',
                         'store_products.is_active as status',
                     ])->map(fn ($row) => [
@@ -289,6 +290,7 @@ class B2cWorkspaceController extends Controller
                         'name' => $row->name,
                         'category' => $row->category,
                         'store' => $row->store,
+                        'cost' => $row->cost_price === null ? '-' : number_format((float) $row->cost_price, 3).' KWD',
                         'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' KWD',
                         'status' => (bool) $row->status,
                     ])->all(),
