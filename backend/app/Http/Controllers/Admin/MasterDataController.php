@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class MasterDataController extends Controller
 {
@@ -181,7 +182,7 @@ final class MasterDataController extends Controller
         foreach (self::RESOURCES as $resource) {
             try {
                 $this->authorizeView($user, $resource);
-            } catch (\Symfony\Component\HttpKernel\Exception\HttpException) {
+            } catch (HttpException) {
                 continue;
             }
 
