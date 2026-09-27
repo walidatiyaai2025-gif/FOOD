@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
+use App\Models\Customer;
 use App\Models\User;
 use App\Repositories\B2bCustomerRepository;
 use App\Repositories\B2cCustomerRepository;
@@ -20,6 +21,31 @@ final class CustomerDomainResolver
     public function b2b(User $user): B2bCustomer
     {
         $customer = $this->b2b->forUser($user);
+
+        if (! $customer instanceof B2bCustomer) {
+            $legacy = Customer::query()
+                ->where('user_id', $user->getKey())
+                ->where('type', 'b2b')
+                ->first();
+
+            if ($legacy instanceof Customer) {
+                $customer = B2bCustomer::query()->firstOrCreate(
+                    ['legacy_customer_id' => $legacy->getKey()],
+                    [
+                        'user_id' => $user->getKey(),
+                        'name' => $legacy->name,
+                        'phone' => $legacy->phone,
+                        'email' => $legacy->email,
+                    ],
+                );
+
+                DB::table('b2b_accounts')
+                    ->where('customer_id', $legacy->getKey())
+                    ->whereNull('b2b_customer_id')
+                    ->update(['b2b_customer_id' => $customer->getKey(), 'updated_at' => now()]);
+            }
+        }
+
         abort_unless($customer instanceof B2bCustomer, 403, 'B2B customer profile is required.');
 
         return $customer;
@@ -30,6 +56,36 @@ final class CustomerDomainResolver
         $this->assertStoreChannel($storeId, 'B2C');
 
         $customer = $this->b2c->forUserAndStore($user, $storeId);
+
+        if (! $customer instanceof B2cCustomer) {
+            $legacy = Customer::query()
+                ->where('user_id', $user->getKey())
+                ->where('type', 'b2c')
+                ->first();
+
+            if ($legacy instanceof Customer) {
+                $customer = app(B2cCustomerService::class)->create($storeId, [
+                    'name' => (string) $legacy->name,
+                    'phone' => $legacy->phone,
+                    'email' => $legacy->email,
+                ], $user);
+
+                DB::table('orders')
+                    ->where('customer_id', $legacy->getKey())
+                    ->where('store_id', $storeId)
+                    ->where('channel', 'b2c')
+                    ->whereNull('b2c_customer_id')
+                    ->update(['b2c_customer_id' => $customer->getKey(), 'updated_at' => now()]);
+
+                DB::table('carts')
+                    ->where('customer_id', $legacy->getKey())
+                    ->where('store_id', $storeId)
+                    ->where('channel', 'b2c')
+                    ->whereNull('b2c_customer_id')
+                    ->update(['b2c_customer_id' => $customer->getKey(), 'updated_at' => now()]);
+            }
+        }
+
         abort_unless($customer instanceof B2cCustomer, 404);
 
         return $customer;
@@ -41,6 +97,26 @@ final class CustomerDomainResolver
 
         if ($storeId === null) {
             $ids = $this->b2c->storeIdsForUser($user);
+
+            if ($ids === []) {
+                $legacy = Customer::query()
+                    ->where('user_id', $user->getKey())
+                    ->where('type', 'b2c')
+                    ->first();
+
+                $candidateStores = DB::table('stores')
+                    ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                    ->where('stores.is_active', true)
+                    ->where('store_types.code', 'B2C')
+                    ->pluck('stores.id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->all();
+
+                if ($legacy instanceof Customer && count($candidateStores) === 1) {
+                    $ids = [$candidateStores[0]];
+                }
+            }
+
             abort_if($ids === [], 403, 'B2C customer profile is required.');
             abort_if(count($ids) !== 1, 409, 'Select a retail store.');
 
