@@ -465,7 +465,7 @@ final class LookupManagementController extends Controller
     }
 
     /** @param array<string,mixed> $data
-     *  @return array{0:string,1:?int}
+     * @return array{0:string,1:?int}
      */
     private function mutationScope(User $actor, array $data): array
     {
