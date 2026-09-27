@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.3",
-  "minimum_current_version": "1.0.2",
-  "sha256": "ec4e1eae5e2fb9eca872b7797bbe86861aae0b86728219ae44adc39f8216bb2d",
+  "target_version": "1.0.5",
+  "minimum_current_version": "1.0.4",
+  "sha256": "c7b782b9c567275a6c6472709d04827260dcad0668161d26ae471c6615cf99c3",
   "contains_migrations": false,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "fix: guarantee fresh-install Super Admin access (#233)",
+  "release_notes": "feat: add operational CRUD across admin modules (#237)",
   "dashboard_fields": {
-    "target_version": "1.0.3",
-    "minimum_current_version": "1.0.2",
-    "sha256": "ec4e1eae5e2fb9eca872b7797bbe86861aae0b86728219ae44adc39f8216bb2d",
+    "target_version": "1.0.5",
+    "minimum_current_version": "1.0.4",
+    "sha256": "c7b782b9c567275a6c6472709d04827260dcad0668161d26ae471c6615cf99c3",
     "contains_migrations": false,
-    "release_notes": "fix: guarantee fresh-install Super Admin access (#233)"
+    "release_notes": "feat: add operational CRUD across admin modules (#237)"
   }
 }
