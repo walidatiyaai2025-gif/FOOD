@@ -57,9 +57,15 @@ final class SecurityController extends Controller
         return view('admin.security', [
             'users' => $users,
             'roles' => $roles,
-            'globalRoles' => $roles->whereIn('scope', ['global', 'both'])->where('is_active', true)->values(),
-            'storeRoles' => $roles->whereIn('scope', ['store', 'both'])->where('is_active', true)->values(),
-            'stores' => Store::query()->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']),
+            'globalRoles' => $roles->where('scope', 'global')->where('is_active', true)->values(),
+            'storeRoles' => $roles->where('scope', 'store')->where('is_active', true)->values(),
+            'stores' => Store::query()
+                ->select('stores.*')
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->where('stores.is_active', true)
+                ->where('store_types.code', 'B2C')
+                ->orderBy('stores.name')
+                ->get(['stores.id', 'stores.code', 'stores.name']),
             'permissionGroups' => $permissions->groupBy(static fn (Permission $permission): string => Str::before($permission->code, '.')),
             'search' => $search,
             'statusFilter' => $status,
@@ -197,7 +203,7 @@ final class SecurityController extends Controller
         $rules = [
             'name' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'scope' => ['required', Rule::in(['global', 'store', 'both'])],
+            'scope' => ['required', Rule::in(['global', 'store'])],
             'is_active' => ['required', 'boolean'],
             'permission_ids' => ['nullable', 'array'],
             'permission_ids.*' => ['integer', 'distinct', 'exists:permissions,id'],

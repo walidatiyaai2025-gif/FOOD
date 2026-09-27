@@ -70,7 +70,7 @@ final class RbacManager
                 throw ValidationException::withMessages(['global_role_ids' => [__('admin.security.errors.role_inactive', ['role' => $role->code])]]);
             }
 
-            if ($role->scope === 'store') {
+            if ($role->scope !== 'global') {
                 throw ValidationException::withMessages(['global_role_ids' => [__('admin.security.errors.role_store_only', ['role' => $role->code])]]);
             }
 
@@ -89,15 +89,25 @@ final class RbacManager
                 throw ValidationException::withMessages(['store_roles' => [__('admin.security.errors.role_inactive', ['role' => $role->code])]]);
             }
 
-            if ($role->scope === 'global') {
+            if ($role->scope !== 'store') {
                 throw ValidationException::withMessages(['store_roles' => [__('admin.security.errors.role_global_only', ['role' => $role->code])]]);
             }
         }
 
         $storeIds = collect($storeRoles)->pluck('store_id')->unique()->values()->all();
 
-        if (DB::table('stores')->whereIn('id', $storeIds)->count() !== count($storeIds)) {
-            throw ValidationException::withMessages(['store_roles' => [__('admin.security.errors.store_missing')]]);
+        $retailStoreCount = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->whereIn('stores.id', $storeIds)
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C')
+            ->distinct()
+            ->count('stores.id');
+
+        if ($retailStoreCount !== count($storeIds)) {
+            throw ValidationException::withMessages([
+                'store_roles' => ['Store-scoped roles can only be assigned to active Retail stores.'],
+            ]);
         }
 
         foreach ($storeRoles as $assignment) {
@@ -144,6 +154,8 @@ final class RbacManager
     /** @param  array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}  $values */
     public function createRole(User $actor, string $code, array $values, Request $request): Role
     {
+        $this->assertSupportedScope($values['scope']);
+        $this->assertRolePermissionDomain($code, $values['scope'], $values['permission_ids']);
         $this->assertActorCanGrantPermissions($actor, $values['permission_ids']);
 
         $role = DB::transaction(function () use ($code, $values): Role {
@@ -187,6 +199,8 @@ final class RbacManager
             throw ValidationException::withMessages(['scope' => [__('admin.security.errors.scope_has_store_assignments')]]);
         }
 
+        $this->assertSupportedScope($values['scope']);
+        $this->assertRolePermissionDomain((string) $role->code, $values['scope'], $values['permission_ids']);
         $this->assertActorCanGrantPermissions($actor, $values['permission_ids']);
         $before = $this->roleSnapshot($role->load('permissions'));
 
@@ -271,6 +285,57 @@ final class RbacManager
 
         if ($missing->isNotEmpty()) {
             throw ValidationException::withMessages(['roles' => [__('admin.security.errors.cannot_grant_higher')]]);
+        }
+    }
+
+    private function assertSupportedScope(string $scope): void
+    {
+        if (! in_array($scope, ['global', 'store'], true)) {
+            throw ValidationException::withMessages([
+                'scope' => ['Roles must belong to exactly one domain: Wholesale/global or Retail/store.'],
+            ]);
+        }
+    }
+
+    /** @param list<int> $permissionIds */
+    private function assertRolePermissionDomain(string $roleCode, string $scope, array $permissionIds): void
+    {
+        if ($roleCode === 'SUPER_ADMIN') {
+            return;
+        }
+
+        $codes = Permission::query()->whereIn('id', $permissionIds)->pluck('code');
+        $retailRole = $scope === 'store' || $roleCode === 'B2C_DRIVER' || str_starts_with($roleCode, 'RETAIL_');
+
+        if ($retailRole) {
+            $forbidden = $codes->filter(static fn (string $code): bool => str_starts_with($code, 'b2b.')
+                || str_starts_with($code, 'drivers.b2b.')
+                || str_starts_with($code, 'deliveries.b2b.')
+                || in_array($code, [
+                    'platform.manage',
+                    'security.view',
+                    'roles.manage',
+                    'users.view',
+                    'users.roles.manage',
+                    'users.status.manage',
+                    'translations.manage',
+                    'system.update',
+                    'demo_data.manage',
+                    'mobile_settings.manage',
+                    'push_settings.manage',
+                    'push_settings.test',
+                ], true)
+            );
+        } else {
+            $forbidden = $codes->filter(static fn (string $code): bool => str_starts_with($code, 'drivers.b2c.')
+                || str_starts_with($code, 'deliveries.b2c.')
+            );
+        }
+
+        if ($forbidden->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'permission_ids' => ['Selected permissions cross the Wholesale/Retail authorization boundary.'],
+            ]);
         }
     }
 

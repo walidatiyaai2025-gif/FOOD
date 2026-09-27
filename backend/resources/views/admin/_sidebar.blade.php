@@ -26,7 +26,7 @@
 @php
     $brandSuffix = str_starts_with((string) ($navContext ?? ''), 'b2b_')
         ? ' · B2B'
-        : (str_starts_with((string) ($navContext ?? ''), 'b2c_') ? ' · B2C' : '');
+        : (str_starts_with((string) ($navContext ?? ''), 'b2c_') ? (app()->getLocale()==='ar' ? ' · التجزئة' : ' · Retail') : '');
 @endphp
 <div class="brand-row" data-foodex-brand="v1">
     <a class="brand-link" href="{{ route('admin.index') }}"><span class="brand-mark" aria-hidden="true"></span><span>FOODEX{{ $brandSuffix }}</span></a>

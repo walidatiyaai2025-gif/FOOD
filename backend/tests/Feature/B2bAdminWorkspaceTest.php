@@ -202,11 +202,11 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($finance)->get('/admin/b2b/settings-permissions')->assertForbidden();
     }
 
-    public function test_non_b2b_management_role_is_forbidden_and_invalid_module_is_not_found(): void
+    public function test_retail_only_role_is_forbidden_and_invalid_module_is_not_found(): void
     {
         $this->seed(CoreReferenceSeeder::class);
-        $finance = $this->user('FINANCE', 'en');
-        $this->actingAs($finance)->get('/admin/b2b/dashboard')->assertForbidden();
+        $retailDriver = $this->user('B2C_DRIVER', 'en');
+        $this->actingAs($retailDriver)->get('/admin/b2b/dashboard')->assertForbidden();
 
         $admin = $this->user('B2B_ADMIN', 'en');
         $this->actingAs($admin)->get('/admin/b2b/not-real')->assertNotFound();

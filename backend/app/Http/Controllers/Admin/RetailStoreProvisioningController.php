@@ -47,7 +47,7 @@ final class RetailStoreProvisioningController extends Controller
             'navContext' => 'retail_store_provisioning',
             'stores' => $stores,
             'search' => $search,
-            'storeRoles' => Role::query()->where('is_active', true)->whereIn('scope', ['store', 'both'])->orderBy('name')->get(),
+            'storeRoles' => Role::query()->where('is_active', true)->where('scope', 'store')->orderBy('name')->get(),
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'email']),
         ]);
     }
@@ -68,7 +68,7 @@ final class RetailStoreProvisioningController extends Controller
 
         $store = DB::transaction(function () use ($request, $data, $actor): Store {
             $storeTypeId = DB::table('store_types')->where('code', 'B2C')->value('id');
-            abort_if($storeTypeId === null, 500, 'B2C store type is not configured.');
+            abort_if($storeTypeId === null, 500, 'Retail store type is not configured.');
 
             $store = Store::query()->create([
                 'store_type_id' => $storeTypeId,
@@ -130,7 +130,7 @@ final class RetailStoreProvisioningController extends Controller
             'role_id' => ['required', 'integer', 'exists:roles,id'],
         ]);
 
-        $role = Role::query()->whereKey($data['role_id'])->where('is_active', true)->whereIn('scope', ['store', 'both'])->firstOrFail();
+        $role = Role::query()->whereKey($data['role_id'])->where('is_active', true)->where('scope', 'store')->firstOrFail();
         $managedUser = User::query()->whereKey($data['user_id'])->where('is_active', true)->firstOrFail();
 
         DB::table('user_store_roles')->updateOrInsert(

@@ -585,7 +585,7 @@ final class BusinessManagementController extends Controller
     {
         $rows = collect();
 
-        if ($actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN')) {
+        if ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('b2b.accounts.view')) {
             $rows = $rows->merge(
                 DB::table('b2b_customers')
                     ->orderByDesc('id')

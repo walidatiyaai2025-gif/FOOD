@@ -38,7 +38,7 @@ class AdminWebLoginTest extends TestCase
         $this->get('/admin/b2c/login?locale=en')
             ->assertOk()
             ->assertSee('dir="ltr"', false)
-            ->assertSee('B2C Retail Management')
+            ->assertSee('Retail Management')
             ->assertSee('There is no public registration');
     }
 

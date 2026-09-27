@@ -15,7 +15,14 @@ final class TenantContextResolver
 
     public function wholesale(User $user, ?int $storeId = null): ResolvedTenantContext
     {
-        abort_unless($user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN'), 403);
+        $allowedRoles = array_values((array) config('admin.channels.b2b.global_roles', []));
+        $canAccessWholesale = $user->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', $allowedRoles)
+            ->exists();
+
+        abort_unless($canAccessWholesale, 403);
 
         if ($storeId !== null) {
             $this->assertStoreChannel($storeId, 'B2B');
@@ -145,7 +152,7 @@ final class TenantContextResolver
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('user_store_roles.user_id', $user->getKey())
             ->where('roles.is_active', true)
-            ->whereIn('roles.scope', ['store', 'both'])
+            ->where('roles.scope', 'store')
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2C')
             ->select('stores.id')

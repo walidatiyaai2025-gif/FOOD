@@ -17,12 +17,16 @@ class CoreReferenceSeeder extends Seeder
     private const ROLES = [
         ['code' => 'SUPER_ADMIN', 'name' => 'Platform Owner / Super Admin', 'scope' => 'global'],
         ['code' => 'B2B_ADMIN', 'name' => 'B2B Admin', 'scope' => 'global'],
-        ['code' => 'B2C_STORE_ADMIN', 'name' => 'B2C Store Admin', 'scope' => 'store'],
-        ['code' => 'OPERATIONS', 'name' => 'Operations', 'scope' => 'both'],
-        ['code' => 'INVENTORY', 'name' => 'Inventory', 'scope' => 'both'],
-        ['code' => 'FINANCE', 'name' => 'Finance', 'scope' => 'both'],
-        ['code' => 'CUSTOMER_SUPPORT', 'name' => 'Customer Support', 'scope' => 'both'],
-        ['code' => 'B2C_DRIVER', 'name' => 'B2C Driver', 'scope' => 'global'],
+        ['code' => 'B2C_STORE_ADMIN', 'name' => 'Retail Store Admin', 'scope' => 'store'],
+        ['code' => 'OPERATIONS', 'name' => 'B2B Operations', 'scope' => 'global'],
+        ['code' => 'INVENTORY', 'name' => 'B2B Inventory', 'scope' => 'global'],
+        ['code' => 'FINANCE', 'name' => 'B2B Finance', 'scope' => 'global'],
+        ['code' => 'CUSTOMER_SUPPORT', 'name' => 'B2B Customer Support', 'scope' => 'global'],
+        ['code' => 'RETAIL_OPERATIONS', 'name' => 'Retail Operations', 'scope' => 'store'],
+        ['code' => 'RETAIL_INVENTORY', 'name' => 'Retail Inventory', 'scope' => 'store'],
+        ['code' => 'RETAIL_FINANCE', 'name' => 'Retail Finance', 'scope' => 'store'],
+        ['code' => 'RETAIL_CUSTOMER_SUPPORT', 'name' => 'Retail Customer Support', 'scope' => 'store'],
+        ['code' => 'B2C_DRIVER', 'name' => 'Retail Driver', 'scope' => 'global'],
         ['code' => 'B2B_DRIVER', 'name' => 'B2B Driver', 'scope' => 'global'],
     ];
 

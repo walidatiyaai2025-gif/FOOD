@@ -34,7 +34,7 @@ return [
     'channels' => [
         'b2b' => 'B2B Wholesale',
         'b2b_description' => 'Wholesale operations inside the single management dashboard.',
-        'b2c' => 'B2C Retail',
+        'b2c' => 'Retail',
         'b2c_description' => 'Authorized retail-store operations inside the single management dashboard.',
     ],
     'translations' => [
@@ -76,7 +76,7 @@ return [
         'server_authoritative' => 'FOODEX authorization is server-authoritative. Hidden UI controls never replace API permission and store-scope checks.',
         'demo_data' => [
             'title' => 'Demo Data',
-            'description' => 'A rich B2C dataset for reviewing stores, customers, products, orders, promotions and delivery with populated screens.',
+            'description' => 'A rich Retail dataset for reviewing stores, customers, products, orders, promotions and delivery with populated screens.',
             'non_production' => 'Non-production only',
             'seed_command' => 'To rebuild the dataset run:',
             'confirmation_label' => 'Type DELETE DEMO DATA to confirm',
@@ -150,6 +150,6 @@ return [
             'delivered'=>'Delivered','completed'=>'Completed','cancelled'=>'Cancelled','refunded'=>'Refunded',
         ],
     ],
-    'b2c_workspace' => ['title'=>'B2C Retail Management','assigned_scope'=>'Authorized store scope','authoritative'=>'Data and operations remain server-authoritative and permission scoped','empty_hint'=>'Available records appear here; empty states remain explicit when no records exist.','modules'=>['dashboard'=>'Dashboard','products'=>'Products','inventory'=>'Inventory','orders'=>'Orders','customers'=>'Customers','promotions'=>'Promotions','drivers'=>'Drivers & Delivery','storefront'=>'Storefront Preview','content'=>'Content & Banners','reports'=>'Reports','settings'=>'Settings']],
+    'b2c_workspace' => ['title'=>'Retail Management','assigned_scope'=>'Authorized store scope','authoritative'=>'Data and operations remain server-authoritative and permission scoped','empty_hint'=>'Available records appear here; empty states remain explicit when no records exist.','modules'=>['dashboard'=>'Dashboard','products'=>'Products','inventory'=>'Inventory','orders'=>'Orders','customers'=>'Customers','promotions'=>'Promotions','drivers'=>'Drivers & Delivery','storefront'=>'Storefront Preview','content'=>'Content & Banners','reports'=>'Reports','settings'=>'Settings']],
     'b2b_workspace' => ['title'=>'B2B Wholesale Management','authoritative'=>'Data and operations remain server-authoritative, permission scoped, and B2B-channel restricted','empty_hint'=>'Available records appear here; empty states remain explicit when no records exist.','modules'=>['dashboard'=>'Dashboard','stores'=>'Wholesale Stores','clients'=>'B2B Clients','products'=>'Wholesale Catalog','inventory'=>'Warehouses & Inventory','orders'=>'Orders','drivers'=>'Drivers & Delivery','pricing'=>'Pricing & Approvals','finance'=>'Finance & Invoices','reports'=>'Reports','settings'=>'Wholesale Settings']],
 ];

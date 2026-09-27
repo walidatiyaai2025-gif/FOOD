@@ -173,7 +173,7 @@ final class SecurityController extends Controller
         $rules = [
             'name' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'scope' => ['required', Rule::in(['global', 'store', 'both'])],
+            'scope' => ['required', Rule::in(['global', 'store'])],
             'is_active' => ['required', 'boolean'],
             'permission_ids' => ['present', 'array'],
             'permission_ids.*' => ['integer', 'distinct', 'exists:permissions,id'],

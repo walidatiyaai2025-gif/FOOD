@@ -32,8 +32,11 @@ final class LookupScopeService
             return $query;
         }
 
-        $retailStoreIds = $this->tenants->retailStoreIds($user);
-        $canSeeB2b = $user->hasRole('B2B_ADMIN');
+        $retailStoreIds = array_values(array_filter(
+            $this->tenants->retailStoreIds($user),
+            static fn (int $storeId): bool => $user->hasPermission('lookups.view', $storeId),
+        ));
+        $canSeeB2b = $this->canAccessWholesale($user) && $user->hasPermission('lookups.view');
 
         return $query->where(function (Builder $scope) use ($table, $retailStoreIds, $canSeeB2b): void {
             $scope->where($table.'.scope', self::GLOBAL);
@@ -67,12 +70,14 @@ final class LookupScopeService
 
         if ($scope === self::B2B) {
             $this->tenants->wholesale($user);
+            abort_unless($user->hasPermission('lookups.manage'), 403);
 
             return self::B2B;
         }
 
         abort_unless($scope === self::STORE && $storeId !== null, 422);
         $this->tenants->retail($user, $storeId, $supportAccess, $request);
+        abort_unless($user->hasPermission('lookups.manage', $storeId), 403);
 
         return self::STORE.':'.$storeId;
     }
@@ -88,14 +93,15 @@ final class LookupScopeService
         }
 
         if ($scope === self::B2B) {
-            return $user->hasRole('B2B_ADMIN');
+            return $this->canAccessWholesale($user) && $user->hasPermission('lookups.manage');
         }
 
         if ($scope !== self::STORE || $storeId === null) {
             return false;
         }
 
-        return in_array($storeId, $this->tenants->retailStoreIds($user), true);
+        return in_array($storeId, $this->tenants->retailStoreIds($user), true)
+            && $user->hasPermission('lookups.manage', $storeId);
     }
 
     /** @return list<string> */
@@ -106,10 +112,11 @@ final class LookupScopeService
         }
 
         $scopes = [];
-        if ($user->hasRole('B2B_ADMIN')) {
+        if ($this->canAccessWholesale($user) && $user->hasPermission('lookups.manage')) {
             $scopes[] = self::B2B;
         }
-        if ($this->tenants->retailStoreIds($user) !== []) {
+        if (collect($this->tenants->retailStoreIds($user))
+            ->contains(fn (int $storeId): bool => $user->hasPermission('lookups.manage', $storeId))) {
             $scopes[] = self::STORE;
         }
 
@@ -152,10 +159,24 @@ final class LookupScopeService
         );
     }
 
+    public function canAccessWholesale(User $user): bool
+    {
+        $roles = array_values((array) config('admin.channels.b2b.global_roles', []));
+
+        return $user->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', $roles)
+            ->exists();
+    }
+
     /** @return Collection<int, stdClass> */
     public function visibleRetailStores(User $user): Collection
     {
-        $storeIds = $this->tenants->retailStoreIds($user);
+        $storeIds = array_values(array_filter(
+            $this->tenants->retailStoreIds($user),
+            static fn (int $storeId): bool => $user->hasPermission('lookups.view', $storeId),
+        ));
 
         if ($storeIds === []) {
             return collect();

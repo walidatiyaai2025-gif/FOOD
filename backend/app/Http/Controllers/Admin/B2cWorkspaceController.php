@@ -426,7 +426,7 @@ class B2cWorkspaceController extends Controller
                         'driver_assignments.status as assignment_status',
                     ])->map(fn ($row) => [
                         'name' => $row->name,
-                        'driver_type' => $row->driver_type,
+                        'driver_type' => app()->getLocale() === 'ar' ? 'التجزئة' : 'Retail',
                         'order' => $row->order_number,
                         'assignment_status' => $row->assignment_status,
                         'availability' => (bool) $row->is_available,
@@ -808,7 +808,7 @@ class B2cWorkspaceController extends Controller
         }
 
         $storeIds = $this->tenantContext->retailStoreIds($user);
-        abort_if($storeIds === [], 403, 'No assigned B2C store.');
+        abort_if($storeIds === [], 403, 'No assigned Retail store.');
 
         if ($requestedStoreId > 0) {
             if (! in_array($requestedStoreId, $storeIds, true)) {
