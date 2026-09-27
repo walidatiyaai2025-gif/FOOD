@@ -1105,13 +1105,15 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                   width: 78,
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: const Color(0xFFEAF7EF),
-                        foregroundImage: category.imageUrl == null ? null : NetworkImage(category.imageUrl!),
-                        child: category.imageUrl == null
-                            ? const Icon(Icons.category_rounded, color: Color(0xFF087347))
-                            : null,
+                      SizedBox(
+                        key: ValueKey('b2c-home-category-image-${category.id}'),
+                        width: 60,
+                        height: 60,
+                        child: _catalogImage(
+                          category.imageUrl,
+                          fallback: Icons.category_rounded,
+                          borderRadius: 30,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(category.name, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
@@ -1214,10 +1216,15 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
               (category) => Card(
                 child: ListTile(
                   key: ValueKey('b2c-category-${category.id}'),
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFFEAF7EF),
-                    foregroundImage: category.imageUrl == null ? null : NetworkImage(category.imageUrl!),
-                    child: category.imageUrl == null ? const Icon(Icons.category_rounded) : null,
+                  leading: SizedBox(
+                    key: ValueKey('b2c-category-image-${category.id}'),
+                    width: 44,
+                    height: 44,
+                    child: _catalogImage(
+                      category.imageUrl,
+                      fallback: Icons.category_rounded,
+                      borderRadius: 22,
+                    ),
                   ),
                   title: Text(category.name),
                   trailing: const Icon(Icons.chevron_right),
