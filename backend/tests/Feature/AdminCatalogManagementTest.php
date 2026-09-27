@@ -32,13 +32,13 @@ class AdminCatalogManagementTest extends TestCase
             ->assertSee('.shell-sidebar{grid-column:2;grid-row:1;direction:rtl;', false);
     }
 
-    public function test_super_admin_can_manage_categories_stores_and_products_from_web_ui(): void
+    public function test_super_admin_can_manage_categories_and_products_from_web_ui(): void
     {
         $user = $this->superAdmin('ar');
 
         $this->actingAs($user)->get('/admin/catalog?tab=categories')
             ->assertOk()
-            ->assertSee('إدارة الكتالوج والمتاجر')
+            ->assertSee('إدارة الكتالوج والتصنيفات')
             ->assertSee('إضافة تصنيف');
 
         $this->actingAs($user)->post('/admin/catalog/units', [
@@ -50,14 +50,14 @@ class AdminCatalogManagementTest extends TestCase
         $unitId = (int) DB::table('units')->where('code', 'CRUD-PC')->value('id');
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
 
-        $this->actingAs($user)->post('/admin/catalog/stores', [
+        $storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $typeId,
             'code' => 'MAIN',
             'name' => 'المتجر الرئيسي',
-            'is_active' => 1,
-        ])->assertSessionHasNoErrors();
-
-        $storeId = (int) DB::table('stores')->where('code', 'MAIN')->value('id');
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->actingAs($user)->post('/admin/catalog/categories', [
             'store_id' => $storeId,
@@ -102,7 +102,8 @@ class AdminCatalogManagementTest extends TestCase
             'name' => 'مياه معدنية',
         ]);
 
-        $this->actingAs($user)->get('/admin/b2c/products')
+        $this->actingAs($user)
+            ->get('/admin/b2c/products?store_id='.$storeId.'&support_access=1')
             ->assertOk()
             ->assertSee('إضافة / تعديل المنتجات')
             ->assertSee('إدارة التصنيفات');
