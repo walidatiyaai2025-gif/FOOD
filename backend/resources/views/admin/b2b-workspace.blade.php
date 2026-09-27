@@ -148,6 +148,9 @@
         <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ قاعدة السعر':'Save price rule' }}</button>
       </form>
       @endif
+      @if($module==='orders' && $user->hasPermission('orders.manage'))
+      @include('admin._dashboard-order-create',['channel'=>'b2b'])
+      @endif
       @if(count($moduleData['rows']))
       <div class="table-wrap"><table class="data foodex-table"><thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column]??$column }}</th>@endforeach</tr></thead><tbody>
       @foreach($moduleData['rows'] as $row)<tr>@foreach($moduleData['columns'] as $column)<td>
@@ -183,14 +186,7 @@
             <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعديل':'Adjust' }}</button>
           </form>
         @elseif($column==='actions' && $module==='orders' && $user->hasPermission('orders.manage'))
-          <form method="post" action="{{ route('admin.b2b.orders.status',['order'=>$row['_id']]) }}" class="links">
-            @csrf
-            <select name="status" required>
-              @foreach(['confirmed','preparing','ready','out_for_delivery','delivered','failed','cancelled'] as $state)<option value="{{ $state }}">{{ $state }}</option>@endforeach
-            </select>
-            <input name="note" maxlength="1000" placeholder="{{ app()->getLocale()==='ar'?'ملاحظة':'Note' }}">
-            <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تحديث':'Update' }}</button>
-          </form>
+          @include('admin._dashboard-order-actions',['channel'=>'b2b','row'=>$row])
         @else{{ $row[$column] }}@endif
       </td>@endforeach</tr>@endforeach
       </tbody></table></div>
