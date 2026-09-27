@@ -15,6 +15,7 @@ use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderInventoryReservationService;
+use App\Services\RetailWholesaleReplenishmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -130,6 +131,7 @@ class OrderController extends Controller
                 app(OrderInventoryReservationService::class)->release($locked, $user);
             } elseif ($targetStatus === 'delivered') {
                 app(OrderInventoryReservationService::class)->consume($locked, $user);
+                app(RetailWholesaleReplenishmentService::class)->receive($locked, $user);
             }
 
             $locked->status = $targetStatus;
