@@ -163,8 +163,7 @@ def main() -> int:
     files = changed_runtime_files(args.base)
 
     migrations = [path for path in files if path.startswith("backend/database/migrations/")]
-    if not migrations:
-        raise RuntimeError("FOODEX 1.0.6 is expected to contain migrations, but none were selected.")
+    contains_migrations = bool(migrations)
 
     output_dir = repo_root / args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -184,7 +183,7 @@ def main() -> int:
         "target_version": args.target_version,
         "minimum_current_version": args.minimum_current_version,
         "sha256": package_hash,
-        "contains_migrations": True,
+        "contains_migrations": contains_migrations,
         "requires_full_redeploy": False,
         "reason": None,
         "release_notes": args.release_notes,
