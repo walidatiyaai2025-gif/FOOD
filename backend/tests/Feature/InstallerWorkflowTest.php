@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Installer\InstallerChecklist;
+use App\Domain\Installer\InstallerEnvironment;
 use App\Domain\Installer\InstallerWorkflow;
 use App\Domain\Installer\InstallState;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -77,6 +78,28 @@ class InstallerWorkflowTest extends TestCase
             ->assertSee('FOODEX')
             ->assertSee('Welcome')
             ->assertSee('Finish');
+    }
+
+    public function test_database_configuration_persists_mysql_production_defaults(): void
+    {
+        $workflow = app(InstallerWorkflow::class);
+        $workflow->saveDatabaseConfiguration([
+            'host' => 'localhost',
+            'port' => 3306,
+            'database' => 'solscool_foodex',
+            'username' => 'solscool_foodex',
+            'password' => 'test-only-password',
+        ]);
+
+        $values = app(InstallerEnvironment::class)->read([
+            'DB_CONNECTION', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME',
+        ]);
+
+        $this->assertSame('mysql', $values['DB_CONNECTION']);
+        $this->assertSame('localhost', $values['DB_HOST']);
+        $this->assertSame('3306', $values['DB_PORT']);
+        $this->assertSame('solscool_foodex', $values['DB_DATABASE']);
+        $this->assertSame('solscool_foodex', $values['DB_USERNAME']);
     }
 
     public function test_installer_post_requires_the_progress_token(): void
