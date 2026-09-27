@@ -228,11 +228,13 @@ final class CatalogManagementController extends Controller
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
-        $this->catalogs->assertSameCatalog(isset($data['category_id']) ? (int) $data['category_id'] : null, (int) $owner->catalog_id);
-        $this->lookups->assertAssignableToStore('units', (int) $data['unit_id'], (int) $owner->store_id);
-        if (! empty($data['brand_id'])) {
-            $this->lookups->assertAssignableToStore('brands', (int) $data['brand_id'], (int) $owner->store_id);
-        }
+        $categoryId = isset($data['category_id']) ? (int) $data['category_id'] : null;
+        $brandId = isset($data['brand_id']) ? (int) $data['brand_id'] : null;
+        $unitId = (int) $data['unit_id'];
+
+        $this->validateProductCategoryReference($categoryId, $owner);
+        $this->validateProductLookupReference('units', $unitId, $owner);
+        $this->validateProductLookupReference('brands', $brandId, $owner);
         $this->assertSkuAvailable((int) $owner->catalog_id, (string) $data['sku'], $product);
 
         DB::table('products')->where('id', $product)->update([
@@ -584,10 +586,82 @@ final class CatalogManagementController extends Controller
         $owner = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->where('products.id', $product)
-            ->first(['products.catalog_id', 'catalogs.store_id', 'catalogs.channel']);
+            ->first([
+                'products.catalog_id',
+                'products.category_id',
+                'products.brand_id',
+                'products.unit_id',
+                'catalogs.store_id',
+                'catalogs.channel',
+            ]);
         abort_if($owner === null, 404);
 
         return $owner;
+    }
+
+    private function validateProductCategoryReference(?int $categoryId, object $owner): void
+    {
+        $currentCategoryId = $owner->category_id === null ? null : (int) $owner->category_id;
+        if ($categoryId === $currentCategoryId || $categoryId === null) {
+            return;
+        }
+
+        $valid = DB::table('categories')
+            ->where('id', $categoryId)
+            ->where('catalog_id', (int) $owner->catalog_id)
+            ->exists();
+
+        if (! $valid) {
+            throw ValidationException::withMessages([
+                'category_id' => [$this->msg(
+                    'التصنيف المحدد لا يتبع نفس كتالوج المنتج.',
+                    'The selected category does not belong to this product catalog.',
+                )],
+            ]);
+        }
+    }
+
+    private function validateProductLookupReference(string $table, ?int $lookupId, object $owner): void
+    {
+        if ($lookupId === null) {
+            return;
+        }
+
+        $currentId = $table === 'units'
+            ? (int) $owner->unit_id
+            : ($owner->brand_id === null ? null : (int) $owner->brand_id);
+
+        // Preserve an existing legacy reference during unrelated edits. A new
+        // selection must satisfy the current tenant/channel ownership rules.
+        if ($lookupId === $currentId) {
+            return;
+        }
+
+        $row = DB::table($table)
+            ->where('id', $lookupId)
+            ->where('is_active', true)
+            ->first(['scope', 'store_id']);
+
+        $valid = false;
+        if ($row !== null) {
+            $scope = (string) $row->scope;
+            $channel = strtolower((string) $owner->channel);
+            $valid = $scope === LookupScopeService::GLOBAL
+                || ($scope === LookupScopeService::B2B && $channel === 'b2b')
+                || ($scope === LookupScopeService::STORE
+                    && $channel === 'b2c'
+                    && (int) $row->store_id === (int) $owner->store_id);
+        }
+
+        if (! $valid) {
+            $field = $table === 'units' ? 'unit_id' : 'brand_id';
+            throw ValidationException::withMessages([
+                $field => [$this->msg(
+                    'القيمة المحددة لا تتبع نطاق المتجر/القناة الخاصة بهذا المنتج.',
+                    'The selected value is outside this product store/channel scope.',
+                )],
+            ]);
+        }
     }
 
     private function categoryOwner(int $category): object
