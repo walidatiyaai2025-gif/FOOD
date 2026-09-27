@@ -7,11 +7,14 @@ use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory;
+use App\Models\Order;
 use App\Models\User;
+use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
 use App\Services\B2cDashboardService;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\ManagementReportService;
+use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
@@ -102,6 +105,39 @@ class B2cWorkspaceController extends Controller
         $orders->transition($request, $order, $audit, $dashboardNotifier);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تحديث حالة الطلب.' : 'Order status updated.');
+    }
+
+    public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $user);
+        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'orders.manage', 'b2c');
+
+        $order = $orders->create($request, $user, 'b2c', $storeId);
+
+        return back()->with('status', app()->getLocale() === 'ar'
+            ? 'تم إنشاء الطلب '.$order->order_number.'.'
+            : 'Order '.$order->order_number.' created.');
+    }
+
+    public function updateOrder(Request $request, int $order, AdminOrderManagementService $orders): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $user);
+        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'orders.manage', 'b2c');
+
+        $model = Order::query()
+            ->whereKey($order)
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->whereNotNull('b2c_customer_id')
+            ->firstOrFail();
+
+        $orders->update($request, $user, $model);
+
+        return back()->with('status', app()->getLocale() === 'ar' ? 'تم تحديث الطلب.' : 'Order updated.');
     }
 
     public function assignDriver(
@@ -239,37 +275,7 @@ class B2cWorkspaceController extends Controller
                         'available' => number_format((float) $row->quantity - (float) $row->reserved, 3),
                     ])->all(),
             ],
-            'orders' => [
-                'columns' => ['number', 'customer', 'store', 'status', 'amount', 'created', 'actions'],
-                'rows' => DB::table('orders')
-                    ->join('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
-                    ->join('stores', 'stores.id', '=', 'orders.store_id')
-                    ->whereIn('orders.store_id', $storeIds)
-                    ->where('orders.channel', 'b2c')
-                    ->orderByDesc('orders.created_at')
-                    ->limit(100)
-                    ->get([
-                        'orders.id',
-                        'orders.store_id',
-                        'orders.order_number as number',
-                        'b2c_customers.name as customer',
-                        'stores.name as store',
-                        'orders.status',
-                        'orders.currency',
-                        'orders.grand_total',
-                        'orders.created_at as created',
-                    ])->map(fn ($row) => [
-                        '_id' => (int) $row->id,
-                        '_store_id' => (int) $row->store_id,
-                        'number' => $row->number,
-                        'customer' => $row->customer,
-                        'store' => $row->store,
-                        'status' => $row->status,
-                        'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
-                        'created' => (string) $row->created,
-                        'actions' => true,
-                    ])->all(),
-            ],
+            'orders' => $this->orderModuleData($storeIds),
             'customers' => [
                 'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.business.index', array_merge(['tab' => 'customers'], $scopeParams))]],
                 'columns' => ['name', 'phone', 'email', 'orders', 'spent', 'last_order'],
@@ -418,6 +424,154 @@ class B2cWorkspaceController extends Controller
             'settings' => $this->settingsModuleData($user, $storeIds),
             default => ['columns' => [], 'rows' => []],
         };
+    }
+
+    private function orderModuleData(array $storeIds): array
+    {
+        $customers = DB::table('b2c_customers')
+            ->whereIn('store_id', $storeIds)
+            ->orderBy('name')
+            ->get(['id', 'store_id', 'name'])
+            ->map(fn ($row) => [
+                'id' => (int) $row->id,
+                'store_id' => (int) $row->store_id,
+                'name' => $row->name,
+            ])
+            ->all();
+
+        $rows = DB::table('orders')
+            ->join('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
+            ->join('stores', 'stores.id', '=', 'orders.store_id')
+            ->whereIn('orders.store_id', $storeIds)
+            ->where('orders.channel', 'b2c')
+            ->whereNotNull('orders.b2c_customer_id')
+            ->orderByDesc('orders.created_at')
+            ->limit(100)
+            ->get([
+                'orders.id',
+                'orders.store_id',
+                'orders.b2c_customer_id',
+                'orders.address_id',
+                'orders.order_number as number',
+                'b2c_customers.name as customer',
+                'stores.name as store',
+                'orders.status',
+                'orders.currency',
+                'orders.subtotal',
+                'orders.discount_total',
+                'orders.delivery_total',
+                'orders.grand_total',
+                'orders.payment_method',
+                'orders.customer_note',
+                'orders.created_at as created',
+            ])
+            ->map(function ($row): array {
+                $items = DB::table('order_items')
+                    ->where('order_id', $row->id)
+                    ->orderBy('id')
+                    ->get(['product_id', 'sku_snapshot', 'name_snapshot', 'quantity', 'unit_price', 'line_total'])
+                    ->map(fn ($item) => [
+                        'product_id' => (int) $item->product_id,
+                        'sku' => $item->sku_snapshot,
+                        'name' => $item->name_snapshot,
+                        'quantity' => (float) $item->quantity,
+                        'unit_price' => (float) $item->unit_price,
+                        'line_total' => (float) $item->line_total,
+                    ])->all();
+
+                $payment = DB::table('payments')
+                    ->where('order_id', $row->id)
+                    ->orderByDesc('id')
+                    ->first(['provider', 'status', 'amount', 'currency']);
+
+                $history = DB::table('order_status_history')
+                    ->where('order_id', $row->id)
+                    ->where('store_id', $row->store_id)
+                    ->orderByDesc('id')
+                    ->limit(20)
+                    ->get(['from_status', 'to_status', 'note', 'created_at'])
+                    ->map(fn ($entry) => [
+                        'from' => $entry->from_status,
+                        'to' => $entry->to_status,
+                        'note' => $entry->note,
+                        'created_at' => (string) $entry->created_at,
+                    ])->all();
+
+                $invoice = DB::table('invoices')
+                    ->where('order_id', $row->id)
+                    ->orderByDesc('id')
+                    ->first(['invoice_number', 'status', 'total', 'currency']);
+
+                return [
+                    '_id' => (int) $row->id,
+                    '_store_id' => (int) $row->store_id,
+                    '_customer_id' => (int) $row->b2c_customer_id,
+                    '_address_id' => $row->address_id === null ? null : (int) $row->address_id,
+                    '_subtotal' => (float) $row->subtotal,
+                    '_discount_total' => (float) $row->discount_total,
+                    '_delivery_total' => (float) $row->delivery_total,
+                    '_grand_total' => (float) $row->grand_total,
+                    '_payment_method' => $row->payment_method,
+                    '_customer_note' => $row->customer_note,
+                    '_items' => $items,
+                    '_payment' => $payment === null ? null : [
+                        'provider' => $payment->provider,
+                        'status' => $payment->status,
+                        'amount' => (float) $payment->amount,
+                        'currency' => $payment->currency,
+                    ],
+                    '_history' => $history,
+                    '_invoice' => $invoice === null ? null : [
+                        'number' => $invoice->invoice_number,
+                        'status' => $invoice->status,
+                        'total' => (float) $invoice->total,
+                        'currency' => $invoice->currency,
+                    ],
+                    'number' => $row->number,
+                    'customer' => $row->customer,
+                    'store' => $row->store,
+                    'status' => $row->status,
+                    'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
+                    'created' => (string) $row->created,
+                    'actions' => true,
+                ];
+            })->all();
+
+        return [
+            'columns' => ['number', 'customer', 'store', 'status', 'amount', 'created', 'actions'],
+            'rows' => $rows,
+            'customers' => $customers,
+            'products' => DB::table('store_products')
+                ->join('products', 'products.id', '=', 'store_products.product_id')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->whereIn('store_products.store_id', $storeIds)
+                ->whereColumn('catalogs.store_id', 'store_products.store_id')
+                ->where('catalogs.channel', 'b2c')
+                ->where('catalogs.is_migration_quarantine', false)
+                ->where('catalogs.is_active', true)
+                ->where('products.is_active', true)
+                ->where('store_products.is_active', true)
+                ->whereNotNull('store_products.price')
+                ->orderBy('products.name')
+                ->get(['products.id', 'store_products.store_id', 'products.sku', 'products.name', 'store_products.price'])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'store_id' => (int) $row->store_id,
+                    'sku' => $row->sku,
+                    'name' => $row->name,
+                    'price' => (float) $row->price,
+                ])->all(),
+            'addresses' => DB::table('addresses')
+                ->whereIn('b2c_customer_id', collect($customers)->pluck('id')->all())
+                ->orderBy('id')
+                ->get(['id', 'b2c_customer_id'])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'customer_id' => (int) $row->b2c_customer_id,
+                    'label' => 'Address #'.$row->id,
+                ])->all(),
+            'payment_methods' => array_values((array) config('checkout.payment_methods', ['cash_on_delivery'])),
+        ];
     }
 
     private function reportModuleData(User $user, array $storeIds): array
