@@ -145,7 +145,7 @@ final class TenantContextResolver
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('user_store_roles.user_id', $user->getKey())
             ->where('roles.is_active', true)
-            ->whereIn('roles.scope', ['store', 'both'])
+            ->where('roles.scope', 'store')
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2C')
             ->select('stores.id')
