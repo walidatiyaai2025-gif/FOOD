@@ -41,7 +41,7 @@
 <form method="post" action="{{ route('admin.security.demo-data.clear') }}" onsubmit="return confirm('{{ __('admin.security.demo_data.confirm') }}')">
 @csrf @method('delete')
 <label><strong>{{ __('admin.security.demo_data.confirmation_label') }}</strong></label>
-<input type="text" name="confirmation" required autocomplete="off" placeholder="DELETE DEMO DATA">
+<input type="text" name="confirmation" required autocomplete="off" placeholder="{{ app()->getLocale()==='ar'?'حذف بيانات العرض':'DELETE DEMO DATA' }}">
 <button class="btn danger" type="submit">{{ __('admin.security.demo_data.clear') }}</button>
 </form>
 </div>
