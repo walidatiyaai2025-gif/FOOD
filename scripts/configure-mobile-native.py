@@ -2,8 +2,9 @@
 """Apply the approved FOODEX native identity, branding, and push scaffolding.
 
 This script runs after flutter create in CI/release builds. It contains only
-public application identity and approved brand assets; signing material and
-Firebase credentials stay external.
+public application identity and approved brand assets. Public Android Firebase
+client configuration is versioned with each app; service-account keys, signing
+material, APNs credentials, and other private secrets stay external.
 """
 
 from __future__ import annotations
