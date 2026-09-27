@@ -60,7 +60,7 @@ final class CustomerDomainResolver
                 ->where('type', 'b2c')
                 ->first();
 
-            if ($legacy instanceof Customer) {
+            if ($legacy instanceof Customer && $this->legacyB2cCanMaterializeForStore($legacy->getKey(), $storeId)) {
                 $customer = app(B2cCustomerService::class)->create($storeId, [
                     'name' => (string) $legacy->name,
                     'phone' => $legacy->phone,
@@ -188,6 +188,32 @@ final class CustomerDomainResolver
         );
 
         return (int) $customer->legacy_customer_id;
+    }
+
+    private function legacyB2cCanMaterializeForStore(int $legacyCustomerId, int $storeId): bool
+    {
+        $hasStoreEvidence = DB::table('orders')
+            ->where('customer_id', $legacyCustomerId)
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->exists()
+            || DB::table('carts')
+                ->where('customer_id', $legacyCustomerId)
+                ->where('store_id', $storeId)
+                ->where('channel', 'b2c')
+                ->exists();
+
+        if ($hasStoreEvidence) {
+            return true;
+        }
+
+        $activeRetailStores = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C')
+            ->count();
+
+        return $activeRetailStores === 1;
     }
 
     private function reconcileLegacyB2bReferences(int $legacyCustomerId, int $b2bCustomerId): void
