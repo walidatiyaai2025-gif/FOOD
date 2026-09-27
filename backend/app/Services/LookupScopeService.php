@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\DB;
 final class LookupScopeService
 {
     public const GLOBAL = 'global';
+
     public const B2B = 'b2b';
+
     public const STORE = 'store';
 
     public function __construct(private readonly TenantContextResolver $tenants) {}
