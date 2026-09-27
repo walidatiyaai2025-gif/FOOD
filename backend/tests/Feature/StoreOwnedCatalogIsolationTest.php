@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Catalog;
 use App\Services\CatalogOwnership;
 use Database\Seeders\CoreReferenceSeeder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -101,11 +102,11 @@ class StoreOwnedCatalogIsolationTest extends TestCase
         $this->assertSame($productA, (int) $ownership->productForStore($productA, $storeA)->id);
         $this->assertSame($categoryA, (int) $ownership->categoryForStore($categoryA, $storeA)->id);
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class);
-        $ownership->productForStore($productA, $storeB);
-
-        // keep catalog B referenced so this fixture also proves separate tenant roots exist
+        // Keep catalog B referenced so this fixture also proves separate tenant roots exist.
         $this->assertDatabaseHas('catalogs', ['id' => $catalogB, 'store_id' => $storeB]);
+
+        $this->expectException(ModelNotFoundException::class);
+        $ownership->productForStore($productA, $storeB);
     }
 
     public function test_b2b_catalog_is_separate_from_retail_catalogs(): void
