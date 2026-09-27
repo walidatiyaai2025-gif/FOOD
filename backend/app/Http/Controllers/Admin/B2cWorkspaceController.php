@@ -570,6 +570,18 @@ class B2cWorkspaceController extends Controller
                     'customer_id' => (int) $row->b2c_customer_id,
                     'label' => 'Address #'.$row->id,
                 ])->all(),
+            'drivers' => DB::table('drivers')
+                ->join('users', 'users.id', '=', 'drivers.user_id')
+                ->where('drivers.driver_type', 'b2c')
+                ->whereIn('drivers.store_id', $storeIds)
+                ->where('drivers.is_active', true)
+                ->orderBy('users.name')
+                ->get(['drivers.id', 'drivers.store_id', 'users.name'])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'store_id' => (int) $row->store_id,
+                    'name' => $row->name,
+                ])->all(),
             'payment_methods' => array_values((array) config('checkout.payment_methods', ['cash_on_delivery'])),
         ];
     }
