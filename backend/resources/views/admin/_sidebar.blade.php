@@ -61,7 +61,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
 @media(max-width:1023px){aside.foodex-sidebar-collapsed,aside.foodex-sidebar-expanded{width:100%!important;min-width:0!important}.foodex-admin-layout:has(>.sidebar.foodex-sidebar-collapsed),html[dir=ltr] .foodex-admin-layout:has(>.sidebar.foodex-sidebar-collapsed),.layout:has(>.sidebar.foodex-sidebar-collapsed),html[dir=ltr] .layout:has(>.sidebar.foodex-sidebar-collapsed),.dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed),html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed){grid-template-columns:1fr}.foodex-sidebar-shell{min-height:auto}}
 </style>
 
-<div class="foodex-sidebar-shell">
+<div class="foodex-sidebar-shell" data-foodex-brand="v1">
     <div class="foodex-sidebar-head">
         <a class="foodex-sidebar-brand" href="{{ route('admin.index') }}"><span class="foodex-sidebar-brand-mark">FX</span><span>FOODEX</span></a>
         <button class="foodex-sidebar-toggle" type="button" aria-label="{{ __('admin.sidebar_toggle') }}" aria-expanded="false" data-foodex-sidebar-toggle>☰</button>
@@ -75,7 +75,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     <nav class="foodex-nav" aria-label="{{ __('admin.navigation') }}" data-foodex-nav>
         @foreach($navGroups as $group)
             @php($groupActive = collect($group['children'])->contains(fn($child)=>($navContext??'')===$child['key']))
-            <details class="foodex-nav-group" data-group="{{ $group['key'] }}" {{ $groupActive?'open':'' }}>
+            <details class="foodex-nav-group" data-group="{{ $group['key'] }}" data-nav-group="{{ $group['key'] }}" {{ $groupActive?'open':'' }}>
                 <summary>
                     <span aria-hidden="true">{{ $group['icon'] }}</span>
                     <span>{{ __($group['label']) }}</span>
