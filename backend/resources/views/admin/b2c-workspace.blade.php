@@ -195,12 +195,15 @@
             </div>
             <form class="global-search" method="get" action="{{ route('admin.b2c.dashboard') }}">
                 <input type="hidden" name="date" value="{{ $dashboard['selected_date'] }}">
+                <input type="hidden" name="store_id" value="{{ $storeId }}">
+                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <input name="q" value="{{ request('q') }}" placeholder="{{ __('admin.b2c_dashboard.search_placeholder') }}" autocomplete="off">
                 <span class="search-icon">@include('admin._premium-icon',['name'=>'search'])</span>
                 @if(request('q') && count($dashboard['search']))
                 <div class="search-results">
                     @foreach($dashboard['search'] as $result)
-                    <a href="{{ $result['route'] }}"><span><strong>{{ $result['title'] }}</strong><small> · {{ $result['subtitle'] }}</small></span><small>{{ __('admin.b2c_dashboard.search_types.'.$result['type']) }}</small></a>
+                    @php($scopedSearchUrl=$result['route'].(str_contains($result['route'],'?')?'&':'?').'store_id='.$storeId.($supportAccess?'&support_access=1':''))
+                    <a href="{{ $scopedSearchUrl }}"><span><strong>{{ $result['title'] }}</strong><small> · {{ $result['subtitle'] }}</small></span><small>{{ __('admin.b2c_dashboard.search_types.'.$result['type']) }}</small></a>
                     @endforeach
                 </div>
                 @endif
@@ -213,8 +216,25 @@
 
         <main class="content">
             <div class="headline">
-                <div><h1>{{ __('admin.b2c_dashboard.hello', ['name'=>$user->name]) }} 👋</h1><p>{{ __('admin.b2c_dashboard.subtitle') }}</p></div>
-                <form class="date-control" method="get" action="{{ route('admin.b2c.dashboard') }}"><span>⌄</span><input type="date" name="date" value="{{ $dashboard['selected_date'] }}" onchange="this.form.submit()"></form>
+                <div>
+                    <h1>{{ __('admin.b2c_dashboard.hello', ['name'=>$user->name]) }} 👋</h1>
+                    <p>{{ __('admin.b2c_dashboard.subtitle') }}</p>
+                    @if(count($availableStores) > 1)
+                    <form method="get" action="{{ route('admin.b2c.dashboard') }}" class="date-control" style="margin-top:10px">
+                        <select name="store_id" onchange="this.form.submit()">
+                            @foreach($availableStores as $availableStore)
+                                <option value="{{ $availableStore->id }}" @selected((int)$availableStore->id===$storeId)>{{ $availableStore->name }} — {{ $availableStore->code }}</option>
+                            @endforeach
+                        </select>
+                        @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    </form>
+                    @endif
+                </div>
+                <form class="date-control" method="get" action="{{ route('admin.b2c.dashboard') }}">
+                    <input type="hidden" name="store_id" value="{{ $storeId }}">
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <span>⌄</span><input type="date" name="date" value="{{ $dashboard['selected_date'] }}" onchange="this.form.submit()">
+                </form>
             </div>
 
             @php
