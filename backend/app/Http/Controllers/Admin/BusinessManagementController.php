@@ -535,7 +535,7 @@ final class BusinessManagementController extends Controller
         $tenant = app(TenantContextResolver::class);
         $requestedStoreId = $request->integer('support_store_id') ?: $request->integer('store_id');
 
-        if (!$actor->hasRole('SUPER_ADMIN')) {
+        if (! $actor->hasRole('SUPER_ADMIN')) {
             return $this->filterRequestedStoreIds($actor, $request, $tenant->retailStoreIds($actor));
         }
 
