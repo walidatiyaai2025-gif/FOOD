@@ -5,22 +5,33 @@ namespace App\Services;
 use App\Models\Catalog;
 use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 
 final class CatalogOwnership
 {
     public function defaultCatalogForStore(int $storeId, ?string $channel = null): Catalog
     {
-        $query = Catalog::query()
-            ->where('store_id', $storeId)
-            ->where('is_active', true)
-            ->where('is_migration_quarantine', false)
-            ->orderBy('id');
+        $store = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('stores.is_active', true)
+            ->first(['stores.name', 'store_types.code as channel']);
+        abort_if($store === null, 404);
 
+        $resolvedChannel = strtolower((string) $store->channel);
         if ($channel !== null) {
-            $query->where('channel', strtolower($channel));
+            abort_unless($resolvedChannel === strtolower($channel), 404);
         }
 
-        return $query->firstOrFail();
+        return Catalog::query()->firstOrCreate(
+            ['store_id' => $storeId, 'code' => 'default'],
+            [
+                'channel' => $resolvedChannel,
+                'name' => (string) $store->name.' Catalog',
+                'is_active' => true,
+                'is_migration_quarantine' => false,
+            ],
+        );
     }
 
     public function productForStore(int $productId, int $storeId): Product
