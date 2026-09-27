@@ -5,6 +5,9 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 final class CatalogImageService
 {
@@ -20,15 +23,21 @@ final class CatalogImageService
             ->max('sort_order') + 1;
 
         foreach ($files as $index => $file) {
-            $path = $file->store("catalog/products/{$productId}", 'public');
-            DB::table('product_images')->insert([
-                'product_id' => $productId,
-                'path' => 'storage/'.$path,
-                'sort_order' => $nextSort + $index,
-                'is_primary' => ! $hasPrimary && $index === 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $storedPath = $this->storePublicImage($file, "catalog/products/{$productId}");
+
+            try {
+                DB::table('product_images')->insert([
+                    'product_id' => $productId,
+                    'path' => $storedPath,
+                    'sort_order' => $nextSort + $index,
+                    'is_primary' => ! $hasPrimary && $index === 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (Throwable $exception) {
+                $this->deletePublicPath($storedPath);
+                throw $exception;
+            }
         }
     }
 
@@ -85,8 +94,8 @@ final class CatalogImageService
             ->first(['id', 'path', 'is_primary']);
         abort_if($image === null, 404);
 
-        $this->deletePublicPath($image->path);
         DB::table('product_images')->where('id', $imageId)->delete();
+        $this->deletePublicPath($image->path);
 
         if ((bool) $image->is_primary) {
             $replacement = DB::table('product_images')
@@ -106,13 +115,17 @@ final class CatalogImageService
     public function replaceCategoryImage(int $categoryId, UploadedFile $file): string
     {
         $oldPath = DB::table('categories')->where('id', $categoryId)->value('image_path');
-        $path = $file->store("catalog/categories/{$categoryId}", 'public');
-        $storedPath = 'storage/'.$path;
+        $storedPath = $this->storePublicImage($file, "catalog/categories/{$categoryId}");
 
-        DB::table('categories')->where('id', $categoryId)->update([
-            'image_path' => $storedPath,
-            'updated_at' => now(),
-        ]);
+        try {
+            DB::table('categories')->where('id', $categoryId)->update([
+                'image_path' => $storedPath,
+                'updated_at' => now(),
+            ]);
+        } catch (Throwable $exception) {
+            $this->deletePublicPath($storedPath);
+            throw $exception;
+        }
 
         $this->deletePublicPath($oldPath);
 
@@ -132,13 +145,17 @@ final class CatalogImageService
     public function replaceBrandImage(int $brandId, UploadedFile $file): string
     {
         $oldPath = DB::table('brands')->where('id', $brandId)->value('image_path');
-        $path = $file->store("catalog/brands/{$brandId}", 'public');
-        $storedPath = 'storage/'.$path;
+        $storedPath = $this->storePublicImage($file, "catalog/brands/{$brandId}");
 
-        DB::table('brands')->where('id', $brandId)->update([
-            'image_path' => $storedPath,
-            'updated_at' => now(),
-        ]);
+        try {
+            DB::table('brands')->where('id', $brandId)->update([
+                'image_path' => $storedPath,
+                'updated_at' => now(),
+            ]);
+        } catch (Throwable $exception) {
+            $this->deletePublicPath($storedPath);
+            throw $exception;
+        }
 
         $this->deletePublicPath($oldPath);
 
@@ -163,6 +180,29 @@ final class CatalogImageService
         }
     }
 
+    private function storePublicImage(UploadedFile $file, string $directory): string
+    {
+        $extension = strtolower($file->guessExtension() ?: $file->extension() ?: 'bin');
+        $filename = Str::uuid()->toString().'.'.$extension;
+        $path = Storage::disk('public')->putFileAs(
+            trim($directory, '/'),
+            $file,
+            $filename,
+            ['visibility' => 'public'],
+        );
+
+        if (! is_string($path) || $path === '' || ! Storage::disk('public')->exists($path)) {
+            throw ValidationException::withMessages([
+                'image' => [$this->msg(
+                    'تعذر حفظ الصورة في التخزين العام. راجع صلاحيات storage والرابط public/storage.',
+                    'The image could not be persisted to public storage. Check storage permissions and the public/storage link.',
+                )],
+            ]);
+        }
+
+        return 'storage/'.ltrim($path, '/');
+    }
+
     private function deletePublicPath(mixed $path): void
     {
         if (! is_string($path) || trim($path) === '') {
@@ -173,5 +213,10 @@ final class CatalogImageService
         if (str_starts_with($path, 'storage/')) {
             Storage::disk('public')->delete(substr($path, strlen('storage/')));
         }
+    }
+
+    private function msg(string $ar, string $en): string
+    {
+        return app()->getLocale() === 'ar' ? $ar : $en;
     }
 }
