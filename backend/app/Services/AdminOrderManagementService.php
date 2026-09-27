@@ -335,13 +335,15 @@ final class AdminOrderManagementService
             $quantity = round((float) $item['quantity'], 3);
 
             $product = Product::query()
-                ->with('catalog')
                 ->forStore($storeId)
                 ->whereKey($productId)
                 ->where('products.is_active', true)
                 ->firstOrFail();
 
-            abort_unless(strtolower((string) $product->catalog?->channel) === $channel, 404);
+            $catalogChannel = DB::table('catalogs')
+                ->where('id', (int) $product->catalog_id)
+                ->value('channel');
+            abort_unless(strtolower((string) $catalogChannel) === $channel, 404);
 
             $storeProduct = DB::table('store_products')
                 ->where('store_id', $storeId)
