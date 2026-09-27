@@ -14,6 +14,14 @@ class DriverAssignment {
     required this.status,
     this.orderId = 0,
     this.availableStatuses = const [],
+    this.customerName = '',
+    this.customerPhone = '',
+    this.paymentMethod = '',
+    this.currency = 'KWD',
+    this.grandTotal = 0,
+    this.customerNote = '',
+    this.addressId,
+    this.items = const [],
   });
 
   final int id;
@@ -22,11 +30,40 @@ class DriverAssignment {
   final String reference;
   final String status;
   final List<String> availableStatuses;
+  final String customerName;
+  final String customerPhone;
+  final String paymentMethod;
+  final String currency;
+  final double grandTotal;
+  final String customerNote;
+  final int? addressId;
+  final List<DriverOrderItem> items;
+}
+
+class DriverOrderItem {
+  const DriverOrderItem({
+    required this.sku,
+    required this.name,
+    required this.quantity,
+    required this.unitPrice,
+    required this.lineTotal,
+  });
+
+  final String sku;
+  final String name;
+  final double quantity;
+  final double unitPrice;
+  final double lineTotal;
 }
 
 abstract interface class DriverAssignmentRepository {
   Future<List<DriverAssignment>> list(DriverChannel channel);
-  Future<void> transition(int id, DriverChannel channel, String status);
+  Future<void> transition(
+    int id,
+    DriverChannel channel,
+    String status, {
+    String? note,
+  });
 }
 
 class DriverJourneyPage extends StatefulWidget {
@@ -88,7 +125,17 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
       _actionError = null;
     });
     try {
-      await widget.repository.transition(assignment.id, widget.channel, status);
+      String? note;
+      if (status == 'failed') {
+        note = await _failureReason();
+        if (note == null || note.trim().isEmpty) return;
+      }
+      await widget.repository.transition(
+        assignment.id,
+        widget.channel,
+        status,
+        note: note,
+      );
       await _load();
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
@@ -99,6 +146,35 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     } finally {
       if (mounted) setState(() => _transitioning.remove(assignment.id));
     }
+  }
+
+  Future<String?> _failureReason() async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr('driver.failure.title')),
+        content: TextField(
+          key: const Key('driver-failure-reason'),
+          controller: controller,
+          maxLength: 1000,
+          maxLines: 3,
+          decoration: InputDecoration(labelText: context.tr('driver.failure.reason')),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.tr('driver.dismiss')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+            child: Text(context.tr('driver.failure.submit')),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result;
   }
 
   Future<void> _showDetail(DriverAssignment assignment) async {
@@ -122,6 +198,25 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
               const SizedBox(height: 8),
               Text(
                 "${context.tr('driver.detail.status')}: ${context.tr('driver.status.${assignment.status}')}",
+              ),
+              const SizedBox(height: 8),
+              Text("${context.tr('driver.detail.customer')}: ${assignment.customerName}"),
+              if (assignment.customerPhone.isNotEmpty)
+                Text("${context.tr('driver.detail.phone')}: ${assignment.customerPhone}"),
+              if (assignment.addressId != null)
+                Text("${context.tr('driver.detail.address')}: #${assignment.addressId}"),
+              const SizedBox(height: 8),
+              Text("${context.tr('driver.detail.amount')}: ${assignment.grandTotal.toStringAsFixed(3)} ${assignment.currency}"),
+              Text("${context.tr('driver.detail.payment')}: ${assignment.paymentMethod}"),
+              if (assignment.customerNote.isNotEmpty)
+                Text("${context.tr('driver.detail.note')}: ${assignment.customerNote}"),
+              const SizedBox(height: 12),
+              Text(context.tr('driver.detail.items'), style: Theme.of(context).textTheme.titleMedium),
+              ...assignment.items.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text('${item.name} · ${item.quantity} × ${item.unitPrice.toStringAsFixed(3)} = ${item.lineTotal.toStringAsFixed(3)} ${assignment.currency}'),
+                ),
               ),
               const SizedBox(height: 16),
               if (assignment.availableStatuses.isEmpty)
