@@ -57,7 +57,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                     <div><label>{{ __('notifications.business_channel') }}</label><input value="{{ __('notifications.channel_options.b2c') }}" disabled></div>
                 @endif
 
-                <div><label>{{ __('notifications.store') }}</label><select name="store_id"><option value="">{{ __('notifications.all_stores') }}</option>@foreach($b2cStores as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select></div>
+                <div><label>{{ __('notifications.store') }}</label><select name="store_id" class="js-campaign-store"><option value="">{{ __('notifications.all_stores') }}</option>@foreach($b2bStores as $store)<option value="{{ $store['id'] }}" data-channel="b2b">{{ $store['name'] }}</option>@endforeach @foreach($b2cStores as $store)<option value="{{ $store['id'] }}" data-channel="b2c">{{ $store['name'] }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.delivery_channel') }}</label><select name="delivery_channel">@foreach(['both','push','in_app'] as $v)<option value="{{ $v }}">{{ __('notifications.delivery_options.'.$v) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1"></div>
 
@@ -128,7 +128,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                             <div><label>{{ __('notifications.business_channel') }}</label><input value="{{ __('notifications.channel_options.'.$campaign->target_channel) }}" disabled></div>
                         @endif
 
-                        <div><label>{{ __('notifications.store') }}</label><select name="store_id"><option value="">{{ __('notifications.all_stores') }}</option>@foreach($b2cStores as $store)<option value="{{ $store['id'] }}" @selected((int)$campaign->store_id===$store['id'])>{{ $store['name'] }}</option>@endforeach</select></div>
+                        <div><label>{{ __('notifications.store') }}</label><select name="store_id" class="js-campaign-store"><option value="">{{ __('notifications.all_stores') }}</option>@foreach($b2bStores as $store)<option value="{{ $store['id'] }}" data-channel="b2b" @selected((int)$campaign->store_id===$store['id'])>{{ $store['name'] }}</option>@endforeach @foreach($b2cStores as $store)<option value="{{ $store['id'] }}" data-channel="b2c" @selected((int)$campaign->store_id===$store['id'])>{{ $store['name'] }}</option>@endforeach</select></div>
                         <div><label>{{ __('notifications.delivery_channel') }}</label><select name="delivery_channel">@foreach(['both','push','in_app'] as $v)<option value="{{ $v }}" @selected($campaign->delivery_channel===$v)>{{ __('notifications.delivery_options.'.$v) }}</option>@endforeach</select></div>
                         <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" value="{{ $campaign->user_id }}"></div>
                         <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" value="{{ $campaign->title_ar }}" required dir="rtl"></div>
@@ -194,8 +194,22 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
 <script>
 document.querySelectorAll('.js-campaign-form').forEach((form)=>{
     const kind=form.querySelector('.js-schedule-kind');
-    const sync=()=>form.querySelectorAll('.js-recurring').forEach((el)=>{el.style.display=kind?.value==='recurring'?'block':'none';});
-    kind?.addEventListener('change',sync);sync();
+    const target=form.querySelector('select[name="target_channel"], input[name="target_channel"]');
+    const store=form.querySelector('.js-campaign-store');
+    const syncSchedule=()=>form.querySelectorAll('.js-recurring').forEach((el)=>{el.style.display=kind?.value==='recurring'?'block':'none';});
+    const syncStores=()=>{
+        const channel=target?.value || 'all';
+        store?.querySelectorAll('option[data-channel]').forEach((option)=>{
+            const visible=channel==='all' || option.dataset.channel===channel;
+            option.hidden=!visible;
+            option.disabled=!visible;
+            if(!visible && option.selected) store.value='';
+        });
+    };
+    kind?.addEventListener('change',syncSchedule);
+    if(target?.tagName==='SELECT') target.addEventListener('change',syncStores);
+    syncSchedule();
+    syncStores();
 });
 </script>
 </body>
