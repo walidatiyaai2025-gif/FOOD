@@ -19,15 +19,25 @@ class TenantOperationalIsolationTest extends TestCase
     use RefreshDatabase;
 
     private int $storeA;
+
     private int $storeB;
+
     private int $b2bStore;
+
     private int $productA;
+
     private int $productB;
+
     private int $b2bProduct;
+
     private int $warehouseA;
+
     private int $warehouseB;
+
     private int $b2bWarehouse;
+
     private int $inventoryA;
+
     private User $storeAdmin;
 
     protected function setUp(): void
