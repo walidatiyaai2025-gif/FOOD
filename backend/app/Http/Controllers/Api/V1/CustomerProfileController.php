@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Address;
-use App\Models\Customer;
+use App\Models\B2bCustomer;
+use App\Models\B2cCustomer;
 use App\Models\CustomerFavorite;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CustomerDomainResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,16 +25,14 @@ class CustomerProfileController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $customer = Customer::query()
-            ->where('user_id', $user->getKey())
-            ->first();
+        [$customer, $channel] = app(CustomerDomainResolver::class)->profile($user, $request);
 
-        return response()->json($this->profilePayload($user, $customer));
+        return response()->json($this->profilePayload($user, $customer, $channel));
     }
 
     public function update(Request $request, AuditLogger $auditLogger): JsonResponse
     {
-        [$user, $customer] = $this->context($request);
+        [$user, $customer, $channel] = $this->context($request);
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
@@ -97,16 +97,17 @@ class CustomerProfileController extends Controller
             $request,
         );
 
-        return response()->json($this->profilePayload($user, $customer));
+        return response()->json($this->profilePayload($user, $customer, $channel));
     }
 
     public function addresses(Request $request): JsonResponse
     {
-        [, $customer] = $this->context($request);
+        [, $customer, $channel] = $this->context($request);
+        $customerColumn = $this->customerColumn($channel);
 
         return response()->json([
             'data' => Address::query()
-                ->where('customer_id', $customer->getKey())
+                ->where($customerColumn, $customer->getKey())
                 ->orderByDesc('is_default')
                 ->orderBy('id')
                 ->get()
@@ -118,22 +119,25 @@ class CustomerProfileController extends Controller
 
     public function storeAddress(Request $request, AuditLogger $auditLogger): JsonResponse
     {
-        [$user, $customer] = $this->context($request);
+        [$user, $customer, $channel] = $this->context($request);
 
         $validated = $request->validate($this->addressRules(false));
+        $customerColumn = $this->customerColumn($channel);
+        $legacyCustomerId = app(CustomerDomainResolver::class)->legacyId($customer);
 
-        $address = DB::transaction(function () use ($customer, $validated): Address {
+        $address = DB::transaction(function () use ($customer, $customerColumn, $legacyCustomerId, $validated): Address {
             $shouldDefault = (bool) ($validated['is_default'] ?? false)
-                || ! Address::query()->where('customer_id', $customer->getKey())->exists();
+                || ! Address::query()->where($customerColumn, $customer->getKey())->exists();
 
             if ($shouldDefault) {
                 Address::query()
-                    ->where('customer_id', $customer->getKey())
+                    ->where($customerColumn, $customer->getKey())
                     ->update(['is_default' => false, 'updated_at' => now()]);
             }
 
             return Address::query()->create([
-                'customer_id' => $customer->getKey(),
+                'customer_id' => $legacyCustomerId,
+                $customerColumn => $customer->getKey(),
                 ...$this->normalizedAddressValues($validated),
                 'is_default' => $shouldDefault,
             ]);
@@ -156,20 +160,21 @@ class CustomerProfileController extends Controller
         int $address,
         AuditLogger $auditLogger,
     ): JsonResponse {
-        [$user, $customer] = $this->context($request);
+        [$user, $customer, $channel] = $this->context($request);
+        $customerColumn = $this->customerColumn($channel);
 
         $model = Address::query()
             ->whereKey($address)
-            ->where('customer_id', $customer->getKey())
+            ->where($customerColumn, $customer->getKey())
             ->firstOrFail();
 
         $validated = $request->validate($this->addressRules(true));
         $before = $this->addressPayload($model);
 
-        DB::transaction(function () use ($model, $customer, $validated): void {
+        DB::transaction(function () use ($model, $customer, $customerColumn, $validated): void {
             if (($validated['is_default'] ?? false) === true) {
                 Address::query()
-                    ->where('customer_id', $customer->getKey())
+                    ->where($customerColumn, $customer->getKey())
                     ->whereKeyNot($model->getKey())
                     ->update(['is_default' => false, 'updated_at' => now()]);
             }
@@ -187,11 +192,11 @@ class CustomerProfileController extends Controller
             $model->save();
 
             if (! Address::query()
-                ->where('customer_id', $customer->getKey())
+                ->where($customerColumn, $customer->getKey())
                 ->where('is_default', true)
                 ->exists()) {
                 $fallback = Address::query()
-                    ->where('customer_id', $customer->getKey())
+                    ->where($customerColumn, $customer->getKey())
                     ->orderBy('id')
                     ->first();
 
@@ -218,22 +223,23 @@ class CustomerProfileController extends Controller
         int $address,
         AuditLogger $auditLogger,
     ): Response {
-        [$user, $customer] = $this->context($request);
+        [$user, $customer, $channel] = $this->context($request);
+        $customerColumn = $this->customerColumn($channel);
 
         $model = Address::query()
             ->whereKey($address)
-            ->where('customer_id', $customer->getKey())
+            ->where($customerColumn, $customer->getKey())
             ->firstOrFail();
 
         $before = $this->addressPayload($model);
         $wasDefault = (bool) $model->is_default;
 
-        DB::transaction(function () use ($model, $customer, $wasDefault): void {
+        DB::transaction(function () use ($model, $customer, $customerColumn, $wasDefault): void {
             $model->delete();
 
             if ($wasDefault) {
                 $fallback = Address::query()
-                    ->where('customer_id', $customer->getKey())
+                    ->where($customerColumn, $customer->getKey())
                     ->orderBy('id')
                     ->first();
 
@@ -255,7 +261,8 @@ class CustomerProfileController extends Controller
 
     public function favorites(Request $request): JsonResponse
     {
-        [, $customer] = $this->context($request);
+        [, $customer, $channel] = $this->context($request);
+        abort_unless($channel === 'b2c' && $customer instanceof B2cCustomer, 403);
 
         return response()->json([
             'data' => $this->favoriteRows($customer),
@@ -267,16 +274,26 @@ class CustomerProfileController extends Controller
         int $product,
         AuditLogger $auditLogger,
     ): JsonResponse {
-        [$user, $customer] = $this->context($request);
+        [$user, $customer, $channel] = $this->context($request);
+        abort_unless($channel === 'b2c' && $customer instanceof B2cCustomer, 403);
 
         $productModel = Product::query()
             ->whereKey($product)
             ->where('is_active', true)
+            ->whereExists(function ($query) use ($customer): void {
+                $query->selectRaw('1')
+                    ->from('store_products')
+                    ->whereColumn('store_products.product_id', 'products.id')
+                    ->where('store_products.store_id', $customer->store_id)
+                    ->where('store_products.is_active', true);
+            })
             ->firstOrFail();
 
         $favorite = CustomerFavorite::query()->firstOrCreate([
-            'customer_id' => $customer->getKey(),
+            'b2c_customer_id' => $customer->getKey(),
             'product_id' => $productModel->getKey(),
+        ], [
+            'customer_id' => app(CustomerDomainResolver::class)->legacyId($customer),
         ]);
 
         $auditLogger->record(
@@ -298,10 +315,11 @@ class CustomerProfileController extends Controller
         int $product,
         AuditLogger $auditLogger,
     ): Response {
-        [$user, $customer] = $this->context($request);
+        [$user, $customer, $channel] = $this->context($request);
+        abort_unless($channel === 'b2c' && $customer instanceof B2cCustomer, 403);
 
         $favorite = CustomerFavorite::query()
-            ->where('customer_id', $customer->getKey())
+            ->where('b2c_customer_id', $customer->getKey())
             ->where('product_id', $product)
             ->firstOrFail();
 
@@ -319,22 +337,18 @@ class CustomerProfileController extends Controller
         return response()->noContent();
     }
 
-    /** @return array{0: User, 1: Customer} */
+    /** @return array{0: User, 1: B2bCustomer|B2cCustomer, 2: string} */
     private function context(Request $request): array
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $customer = Customer::query()
-            ->where('user_id', $user->getKey())
-            ->first();
+        [$customer, $channel] = app(CustomerDomainResolver::class)->profile($user, $request);
 
-        abort_unless($customer instanceof Customer, 403, 'Customer profile is required.');
-
-        return [$user, $customer];
+        return [$user, $customer, $channel];
     }
 
-    private function profilePayload(User $user, ?Customer $customer): array
+    private function profilePayload(User $user, B2bCustomer|B2cCustomer $customer, string $channel): array
     {
         $roles = $user->roles()
             ->orderBy('roles.code')
@@ -343,25 +357,19 @@ class CustomerProfileController extends Controller
             ->values()
             ->all();
 
-        $storeIds = $user->storeRoleAssignments()
-            ->select('store_id')
-            ->distinct()
-            ->orderBy('store_id')
-            ->pluck('store_id')
-            ->map(static fn ($id): int => (int) $id)
+        $storeIds = $customer instanceof B2cCustomer
+            ? [(int) $customer->store_id]
+            : [];
+
+        $customerColumn = $this->customerColumn($channel);
+        $addresses = Address::query()
+            ->where($customerColumn, $customer->getKey())
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Address $address): array => $this->addressPayload($address))
             ->values()
             ->all();
-
-        $addresses = $customer instanceof Customer
-            ? Address::query()
-                ->where('customer_id', $customer->getKey())
-                ->orderByDesc('is_default')
-                ->orderBy('id')
-                ->get()
-                ->map(fn (Address $address): array => $this->addressPayload($address))
-                ->values()
-                ->all()
-            : [];
 
         return [
             'id' => (int) $user->getKey(),
@@ -370,15 +378,16 @@ class CustomerProfileController extends Controller
             'locale' => (string) $user->locale,
             'roles' => $roles,
             'store_ids' => $storeIds,
-            'customer' => $customer instanceof Customer ? [
+            'customer' => [
                 'id' => (int) $customer->getKey(),
-                'type' => (string) $customer->type,
+                'type' => $channel,
+                'store_id' => $customer instanceof B2cCustomer ? (int) $customer->store_id : null,
                 'name' => (string) $customer->name,
                 'phone' => $customer->phone,
                 'email' => $customer->email,
-            ] : null,
+            ],
             'addresses' => $addresses,
-            'favorites' => $customer instanceof Customer
+            'favorites' => $customer instanceof B2cCustomer
                 ? $this->favoriteRows($customer)
                 : [],
         ];
@@ -435,18 +444,30 @@ class CustomerProfileController extends Controller
         ];
     }
 
-    private function favoriteRows(Customer $customer): array
+    private function favoriteRows(B2cCustomer $customer): array
     {
         return Product::query()
             ->select('products.*')
             ->join('customer_favorites', 'customer_favorites.product_id', '=', 'products.id')
-            ->where('customer_favorites.customer_id', $customer->getKey())
+            ->where('customer_favorites.b2c_customer_id', $customer->getKey())
+            ->whereExists(function ($query) use ($customer): void {
+                $query->selectRaw('1')
+                    ->from('store_products')
+                    ->whereColumn('store_products.product_id', 'products.id')
+                    ->where('store_products.store_id', $customer->store_id)
+                    ->where('store_products.is_active', true);
+            })
             ->where('products.is_active', true)
             ->orderBy('customer_favorites.id')
             ->get()
             ->map(fn (Product $product): array => $this->favoriteProductPayload($product))
             ->values()
             ->all();
+    }
+
+    private function customerColumn(string $channel): string
+    {
+        return $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
     }
 
     private function favoriteProductPayload(Product $product): array
