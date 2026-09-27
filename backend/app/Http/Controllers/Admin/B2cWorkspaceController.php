@@ -27,7 +27,7 @@ class B2cWorkspaceController extends Controller
         $allowed = ['dashboard', 'products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'];
         abort_unless(in_array($module, $allowed, true), 404);
         $storeIds = $this->storeIds($user);
-        abort_if($storeIds === [], 403, 'No assigned B2C store.');
+        abort_if($storeIds === [] && ! $user->hasRole('SUPER_ADMIN'), 403, 'No assigned B2C store.');
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
 
         $counts = [
