@@ -45,7 +45,11 @@ $byStore=$managedUser->storeRoleAssignments->groupBy('store_id');
 <div class="card"><strong>{{ __('admin.security.demo_data.counts.'.$key) }}</strong><div style="font-size:1.55rem;font-weight:700;margin-top:6px" class="foodex-number">{{ $count }}</div></div>
 @endforeach
 </div>
-<div class="note" style="margin-top:14px">{{ __('admin.security.demo_data.seed_command') }} <code>php artisan db:seed --class=Database\\Seeders\\ProductDemoSeeder</code></div>
+<form method="post" action="{{ route('admin.security.demo-data.seed') }}" class="card" onsubmit="return confirm('{{ __('admin.security.demo_data.seed_confirm') }}')">
+@csrf
+<p class="muted">{{ __('admin.security.demo_data.seed_description') }}</p>
+<button class="btn success">{{ __('admin.security.demo_data.seed') }}</button>
+</form>
 <form method="post" action="{{ route('admin.security.demo-data.clear') }}" class="card" onsubmit="return confirm('{{ __('admin.security.demo_data.confirm') }}')">@csrf @method('delete')
 <label style="display:block;font-weight:700;margin-bottom:7px">{{ __('admin.security.demo_data.confirmation_label') }}</label>
 <input class="grow" type="text" name="confirmation" required autocomplete="off" placeholder="DELETE DEMO DATA">
