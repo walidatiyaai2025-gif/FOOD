@@ -6,6 +6,22 @@ import '../../core/theme/foodex_theme.dart';
 
 enum DriverLoadState { loading, ready, empty, error, offline }
 
+enum DriverOrderFilter { active, completed, failed, all }
+
+class DriverOrderItem {
+  const DriverOrderItem({
+    required this.name,
+    required this.quantity,
+    required this.lineTotal,
+    this.sku = '',
+  });
+
+  final String name;
+  final String sku;
+  final double quantity;
+  final double lineTotal;
+}
+
 class DriverAssignment {
   const DriverAssignment({
     required this.id,
@@ -13,20 +29,50 @@ class DriverAssignment {
     required this.reference,
     required this.status,
     this.orderId = 0,
+    this.storeId = 0,
+    this.storeName = '',
+    this.orderStatus = '',
+    this.customerName = '',
+    this.customerPhone = '',
+    this.address = '',
+    this.currency = 'KWD',
+    this.grandTotal = 0,
+    this.paymentMethod = '',
+    this.paymentStatus = '',
+    this.customerNote = '',
+    this.items = const [],
     this.availableStatuses = const [],
   });
 
   final int id;
   final int orderId;
+  final int storeId;
   final DriverChannel channel;
   final String reference;
   final String status;
+  final String storeName;
+  final String orderStatus;
+  final String customerName;
+  final String customerPhone;
+  final String address;
+  final String currency;
+  final double grandTotal;
+  final String paymentMethod;
+  final String paymentStatus;
+  final String customerNote;
+  final List<DriverOrderItem> items;
   final List<String> availableStatuses;
 }
 
 abstract interface class DriverAssignmentRepository {
   Future<List<DriverAssignment>> list(DriverChannel channel);
-  Future<void> transition(int id, DriverChannel channel, String status);
+
+  Future<void> transition(
+    int id,
+    DriverChannel channel,
+    String status, {
+    String? note,
+  });
 }
 
 class DriverJourneyPage extends StatefulWidget {
@@ -48,13 +94,28 @@ class DriverJourneyPage extends StatefulWidget {
 class _DriverJourneyPageState extends State<DriverJourneyPage> {
   DriverLoadState state = DriverLoadState.loading;
   List<DriverAssignment> assignments = const [];
+  DriverOrderFilter _filter = DriverOrderFilter.active;
+  final TextEditingController _searchController = TextEditingController();
   final Set<int> _transitioning = <int>{};
   String? _actionError;
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_refresh);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController
+      ..removeListener(_refresh)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -81,14 +142,47 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     }
   }
 
-  Future<void> _transition(DriverAssignment assignment, String status) async {
+  List<DriverAssignment> get _visibleAssignments {
+    final query = _searchController.text.trim().toLowerCase();
+
+    return assignments.where((assignment) {
+      final matchesFilter = switch (_filter) {
+        DriverOrderFilter.active =>
+          !const ['delivered', 'failed'].contains(assignment.status),
+        DriverOrderFilter.completed => assignment.status == 'delivered',
+        DriverOrderFilter.failed => assignment.status == 'failed',
+        DriverOrderFilter.all => true,
+      };
+      if (!matchesFilter) return false;
+      if (query.isEmpty) return true;
+
+      return [
+        assignment.reference,
+        assignment.customerName,
+        assignment.customerPhone,
+        assignment.address,
+        assignment.storeName,
+      ].any((value) => value.toLowerCase().contains(query));
+    }).toList(growable: false);
+  }
+
+  Future<void> _transition(
+    DriverAssignment assignment,
+    String status, {
+    String? note,
+  }) async {
     if (_transitioning.contains(assignment.id)) return;
     setState(() {
       _transitioning.add(assignment.id);
       _actionError = null;
     });
     try {
-      await widget.repository.transition(assignment.id, widget.channel, status);
+      await widget.repository.transition(
+        assignment.id,
+        widget.channel,
+        status,
+        note: note,
+      );
       await _load();
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
@@ -101,53 +195,164 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     }
   }
 
+  Future<void> _performAction(
+    DriverAssignment assignment,
+    String status,
+  ) async {
+    if (status != 'failed') {
+      await _transition(assignment, status);
+      return;
+    }
+
+    final controller = TextEditingController();
+    final note = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr('driver.failure.title')),
+        content: TextField(
+          key: const Key('driver-failure-note'),
+          controller: controller,
+          maxLength: 1000,
+          maxLines: 3,
+          decoration: InputDecoration(
+            labelText: context.tr('driver.failure.reason'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.tr('driver.dismiss')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+            child: Text(context.tr('driver.failure.submit')),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (note == null) return;
+    await _transition(assignment, status, note: note.trim());
+  }
+
   Future<void> _showDetail(DriverAssignment assignment) async {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
-        child: Padding(
-          key: Key('assignment-detail-${assignment.id}'),
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                context.tr('driver.detail.title'),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              Text("${context.tr('driver.detail.order')}: ${assignment.reference}"),
-              const SizedBox(height: 8),
-              Text(
-                "${context.tr('driver.detail.status')}: ${context.tr('driver.status.${assignment.status}')}",
-              ),
-              const SizedBox(height: 16),
-              if (assignment.availableStatuses.isEmpty)
-                Text(context.tr('driver.action.none'))
-              else
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: assignment.availableStatuses
-                      .map(
-                        (status) => FilledButton(
-                          key: Key(
-                            'assignment-status-${assignment.id}-$status',
-                          ),
-                          onPressed: _transitioning.contains(assignment.id)
-                              ? null
-                              : () {
-                                  Navigator.of(sheetContext).pop();
-                                  _transition(assignment, status);
-                                },
-                          child: Text(context.tr('driver.status.$status')),
-                        ),
-                      )
-                      .toList(growable: false),
+        child: FractionallySizedBox(
+          heightFactor: .88,
+          child: SingleChildScrollView(
+            key: Key('assignment-detail-${assignment.id}'),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  context.tr('driver.detail.title'),
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-            ],
+                const SizedBox(height: 12),
+                _DetailLine(
+                  label: context.tr('driver.detail.order'),
+                  value: assignment.reference,
+                ),
+                _DetailLine(
+                  label: context.tr('driver.detail.order_status'),
+                  value: context.tr(
+                    'driver.order_status.${assignment.orderStatus}',
+                  ),
+                ),
+                _DetailLine(
+                  label: context.tr('driver.detail.store'),
+                  value: assignment.storeName,
+                ),
+                _DetailLine(
+                  label: context.tr('driver.detail.customer'),
+                  value: assignment.customerName,
+                ),
+                if (assignment.customerPhone.isNotEmpty)
+                  _DetailLine(
+                    label: context.tr('driver.detail.phone'),
+                    value: assignment.customerPhone,
+                  ),
+                if (assignment.address.isNotEmpty)
+                  _DetailLine(
+                    label: context.tr('driver.detail.address'),
+                    value: assignment.address,
+                  ),
+                if (assignment.customerNote.isNotEmpty)
+                  _DetailLine(
+                    label: context.tr('driver.detail.note'),
+                    value: assignment.customerNote,
+                  ),
+                const Divider(height: 28),
+                Text(
+                  context.tr('driver.detail.items'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                if (assignment.items.isEmpty)
+                  Text(context.tr('driver.detail.no_items'))
+                else
+                  ...assignment.items.map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.sku.isEmpty
+                                  ? item.name
+                                  : '${item.sku} · ${item.name}',
+                            ),
+                          ),
+                          Text(
+                            '${item.quantity.toStringAsFixed(3)} · ${item.lineTotal.toStringAsFixed(3)} ${assignment.currency}',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const Divider(height: 28),
+                _DetailLine(
+                  label: context.tr('driver.detail.total'),
+                  value:
+                      '${assignment.grandTotal.toStringAsFixed(3)} ${assignment.currency}',
+                ),
+                _DetailLine(
+                  label: context.tr('driver.detail.payment'),
+                  value: assignment.paymentMethod.isEmpty
+                      ? context.tr('driver.detail.unknown')
+                      : '${assignment.paymentMethod} · ${assignment.paymentStatus}',
+                ),
+                const SizedBox(height: 18),
+                if (assignment.availableStatuses.isEmpty)
+                  Text(context.tr('driver.action.none'))
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: assignment.availableStatuses
+                        .map(
+                          (status) => FilledButton(
+                            key: Key(
+                              'assignment-status-${assignment.id}-$status',
+                            ),
+                            onPressed: _transitioning.contains(assignment.id)
+                                ? null
+                                : () {
+                                    Navigator.of(sheetContext).pop();
+                                    _performAction(assignment, status);
+                                  },
+                            child: Text(context.tr('driver.status.$status')),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -156,6 +361,8 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
 
   @override
   Widget build(BuildContext context) {
+    final visible = _visibleAssignments;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -181,6 +388,50 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                 ),
               ],
             ),
+          if (state == DriverLoadState.ready)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Column(
+                children: [
+                  TextField(
+                    key: const Key('driver-order-search'),
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search),
+                      hintText: context.tr('driver.search'),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SegmentedButton<DriverOrderFilter>(
+                      segments: [
+                        ButtonSegment(
+                          value: DriverOrderFilter.active,
+                          label: Text(context.tr('driver.filter.active')),
+                        ),
+                        ButtonSegment(
+                          value: DriverOrderFilter.completed,
+                          label: Text(context.tr('driver.filter.completed')),
+                        ),
+                        ButtonSegment(
+                          value: DriverOrderFilter.failed,
+                          label: Text(context.tr('driver.filter.failed')),
+                        ),
+                        ButtonSegment(
+                          value: DriverOrderFilter.all,
+                          label: Text(context.tr('driver.filter.all')),
+                        ),
+                      ],
+                      selected: {_filter},
+                      onSelectionChanged: (value) {
+                        setState(() => _filter = value.first);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: switch (state) {
               DriverLoadState.loading => const Center(
@@ -204,49 +455,129 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                   onRetry: _load,
                   keyName: 'driver-offline',
                 ),
-              DriverLoadState.ready => RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    children: assignments
-                        .map(
-                          (assignment) => ListTile(
+              DriverLoadState.ready => visible.isEmpty
+                  ? Center(
+                      child: Text(
+                        context.tr('driver.filter.empty'),
+                        key: const Key('driver-filter-empty'),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        itemCount: visible.length,
+                        itemBuilder: (context, index) {
+                          final assignment = visible[index];
+                          return Card(
                             key: Key('assignment-${assignment.id}'),
-                            title: Text(assignment.reference),
-                            subtitle: Align(
-                              alignment: AlignmentDirectional.centerStart,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: FoodexBrand.statusSurface(assignment.status),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
+                            margin: const EdgeInsets.only(bottom: 10),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(14),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      assignment.reference,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
                                   ),
-                                  child: Text(
-                                    context.tr('driver.status.${assignment.status}'),
-                                    style: TextStyle(
-                                      color: FoodexBrand.statusColor(assignment.status),
+                                  Text(
+                                    '${assignment.grandTotal.toStringAsFixed(3)} ${assignment.currency}',
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
+                                ],
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    if (assignment.customerName.isNotEmpty)
+                                      Text(assignment.customerName),
+                                    if (assignment.address.isNotEmpty)
+                                      Text(
+                                        assignment.address,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment:
+                                          AlignmentDirectional.centerStart,
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          color: FoodexBrand.statusSurface(
+                                            assignment.status,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          child: Text(
+                                            context.tr(
+                                              'driver.status.${assignment.status}',
+                                            ),
+                                            style: TextStyle(
+                                              color: FoodexBrand.statusColor(
+                                                assignment.status,
+                                              ),
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => _showDetail(assignment),
                             ),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => _showDetail(assignment),
-                          ),
-                        )
-                        .toList(growable: false),
-                  ),
-                ),
+                          );
+                        },
+                      ),
+                    ),
             },
           ),
         ],
       ),
     );
   }
+}
+
+class _DetailLine extends StatelessWidget {
+  const _DetailLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 112,
+              child: Text(
+                label,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            Expanded(child: Text(value.isEmpty ? '—' : value)),
+          ],
+        ),
+      );
 }
 
 class _Retry extends StatelessWidget {
