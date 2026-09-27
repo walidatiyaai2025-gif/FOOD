@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CatalogImageService;
 use App\Services\CatalogOwnership;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -107,7 +108,7 @@ class CatalogImageManagementTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        app(\App\Services\CatalogImageService::class)->addProductImages($productId, [
+        app(CatalogImageService::class)->addProductImages($productId, [
             UploadedFile::fake()->image('first.jpg', 200, 200),
             UploadedFile::fake()->image('second.jpg', 200, 200),
         ]);
@@ -163,7 +164,7 @@ class CatalogImageManagementTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        app(\App\Services\CatalogImageService::class)->addProductImages($productId, [
+        app(CatalogImageService::class)->addProductImages($productId, [
             UploadedFile::fake()->image('foreign.jpg', 200, 200),
         ]);
         $imageId = (int) DB::table('product_images')->where('product_id', $productId)->value('id');
