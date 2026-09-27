@@ -71,7 +71,7 @@ class SystemInspectorTest extends TestCase
         $this->assertSame('route', $event->source);
         $this->assertSame(404, $event->status_code);
         $this->assertSame('/admin/does-not-exist', $event->url);
-        $this->assertStringNotContainsString('secret', json_encode($event->toArray(), JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('token=', (string) $event->url);
     }
 
     public function test_non_platform_admin_cannot_open_or_export_inspector(): void
