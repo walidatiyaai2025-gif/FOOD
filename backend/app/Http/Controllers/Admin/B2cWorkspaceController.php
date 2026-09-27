@@ -868,4 +868,9 @@ class B2cWorkspaceController extends Controller
     {
         return $this->workspaceContext($request, $user)['selected_store_id'];
     }
+
+    private function msg(string $ar, string $en): string
+    {
+        return app()->getLocale() === 'ar' ? $ar : $en;
+    }
 }
