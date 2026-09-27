@@ -243,7 +243,7 @@ class _DriverHomeMetric extends StatelessWidget {
         decoration: BoxDecoration(
           color: tone,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: foreground.withValues(alpha: .12)),
+          border: Border.all(color: foreground.withAlpha(31)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
