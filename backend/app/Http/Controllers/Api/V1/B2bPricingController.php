@@ -200,7 +200,7 @@ class B2bPricingController extends Controller
                 'b2b_price_rules.store_id',
                 'b2b_price_rules.unit_price',
                 'b2b_price_rules.minimum_quantity',
-                DB::raw("(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path"),
+                DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
             ])
             ->map(fn ($row): array => [
                 'id' => (int) $row->id,
@@ -214,6 +214,7 @@ class B2bPricingController extends Controller
 
         return response()->json(['data' => $rows, 'currency' => 'KWD']);
     }
+
     private function assetUrl(mixed $path): ?string
     {
         if (! is_string($path) || trim($path) === '') {
