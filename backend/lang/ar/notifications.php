@@ -88,8 +88,8 @@ return [
     ],
     'delivery_options' => [
         'in_app' => 'داخل التطبيق',
-        'push' => 'إشعار Push',
-        'both' => 'داخل التطبيق وPush',
+        'push' => 'إشعار فوري',
+        'both' => 'داخل التطبيق وإشعار فوري',
     ],
     'status_options' => [
         'draft' => 'مسودة',
