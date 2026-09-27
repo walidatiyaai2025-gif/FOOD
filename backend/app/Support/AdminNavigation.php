@@ -32,20 +32,24 @@ class AdminNavigation
     public function groupsFor(User $user): array
     {
         $channels = $this->for($user);
+        $wholesaleOnly = $user->hasRole('B2B_ADMIN')
+            && ! $user->hasRole('SUPER_ADMIN')
+            && array_key_exists('b2c', $channels) === false;
+
         $groups = [
             $this->group('overview', 'admin.nav_groups.overview', '⌂', [
                 $this->module($user, $channels, 'b2c', 'dashboard', 'admin.channels.b2c', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
-                $this->routeItem($user, 'business_management', 'admin.business_management', 'admin.business.index', 'inventory.view'),
+                $wholesaleOnly ? null : $this->routeItem($user, 'business_management', 'admin.business_management', 'admin.business.index', 'inventory.view'),
                 $this->module($user, $channels, 'b2c', 'orders', 'admin.b2c_workspace.modules.orders', 'orders.view'),
                 $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
                 $this->module($user, $channels, 'b2b', 'orders', 'admin.b2b_workspace.modules.orders', 'orders.view'),
                 $this->module($user, $channels, 'b2b', 'drivers', 'admin.b2b_workspace.modules.drivers', 'drivers.b2b.view'),
             ]),
             $this->group('catalog', 'admin.nav_groups.catalog', '▦', [
-                $this->routeItem($user, 'catalog_management', 'admin.catalog_management', 'admin.catalog.index', 'catalog.view'),
+                $wholesaleOnly ? null : $this->routeItem($user, 'catalog_management', 'admin.catalog_management', 'admin.catalog.index', 'catalog.view'),
                 $this->routeItemScoped($user, 'lookup_management', 'admin.lookup_management', 'admin.lookups.index', 'lookups.view'),
                 $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
                 $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
