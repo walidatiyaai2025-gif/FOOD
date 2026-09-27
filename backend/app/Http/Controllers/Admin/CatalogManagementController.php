@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\CatalogOwnership;
 use App\Support\AdminNavigation;
+use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,9 +14,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 final class CatalogManagementController extends Controller
 {
+    public function __construct(
+        private readonly CatalogOwnership $catalogs,
+        private readonly TenantContextResolver $tenantContext,
+    ) {}
+
     public function index(Request $request): View
     {
         Gate::authorize('catalog.view');
@@ -23,6 +31,7 @@ final class CatalogManagementController extends Controller
         $tab = in_array((string) $request->query('tab'), ['products', 'categories', 'brands', 'units', 'stores'], true)
             ? (string) $request->query('tab')
             : 'products';
+        $storeIds = $this->visibleStoreIds($actor, $request);
 
         return view('admin.catalog-management', [
             'user' => $actor,
@@ -30,9 +39,13 @@ final class CatalogManagementController extends Controller
             'navContext' => 'catalog_management',
             'tab' => $tab,
             'products' => DB::table('products')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
                 ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
                 ->leftJoin('brands', 'brands.id', '=', 'products.brand_id')
                 ->join('units', 'units.id', '=', 'products.unit_id')
+                ->whereIn('catalogs.store_id', $storeIds)
+                ->where('catalogs.is_migration_quarantine', false)
                 ->orderByDesc('products.id')
                 ->get([
                     'products.id',
@@ -43,12 +56,20 @@ final class CatalogManagementController extends Controller
                     'products.category_id',
                     'products.brand_id',
                     'products.unit_id',
+                    'products.catalog_id',
+                    'catalogs.store_id as catalog_store_id',
+                    'catalogs.channel as catalog_channel',
+                    'catalog_store.name as catalog_store_name',
                     'categories.name as category',
                     'brands.name as brand',
                     'units.name as unit',
                 ]),
             'categories' => DB::table('categories')
+                ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
+                ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
                 ->leftJoin('categories as parent', 'parent.id', '=', 'categories.parent_id')
+                ->whereIn('catalogs.store_id', $storeIds)
+                ->where('catalogs.is_migration_quarantine', false)
                 ->orderBy('categories.name')
                 ->get([
                     'categories.id',
@@ -56,12 +77,17 @@ final class CatalogManagementController extends Controller
                     'categories.slug',
                     'categories.parent_id',
                     'categories.is_active',
+                    'categories.catalog_id',
+                    'catalogs.store_id as catalog_store_id',
+                    'catalog_store.name as catalog_store_name',
                     'parent.name as parent_name',
                 ]),
             'brands' => DB::table('brands')->orderBy('name')->get(),
             'units' => DB::table('units')->orderBy('name')->get(),
             'stores' => DB::table('stores')
                 ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->whereIn('stores.id', $storeIds)
+                ->where('stores.code', '!=', 'SYSTEM-LEGACY-QUARANTINE')
                 ->orderBy('stores.name')
                 ->get([
                     'stores.id',
