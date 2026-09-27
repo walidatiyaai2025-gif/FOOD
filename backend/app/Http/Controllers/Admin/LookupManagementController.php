@@ -251,7 +251,7 @@ final class LookupManagementController extends Controller
         );
 
         $before = $model->toArray();
-        $model->is_active = ! (bool) $model->is_active;
+        $model->is_active = (bool) $model->is_active === false;
         $model->save();
 
         $this->audit->record(
