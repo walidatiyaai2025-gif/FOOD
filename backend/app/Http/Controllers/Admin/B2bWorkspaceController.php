@@ -1058,17 +1058,24 @@ class B2bWorkspaceController extends Controller
     {
         $customers = DB::table('b2b_customers')
             ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
+            ->leftJoin('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'b2b_customers.id')
+            ->leftJoin('stores as retail_customer_store', 'retail_customer_store.id', '=', 'retail_wholesale_accounts.retail_store_id')
             ->where('b2b_accounts.status', 'active')
+            ->orderByRaw('retail_customer_store.id IS NULL')
             ->orderBy('b2b_accounts.company_name')
             ->orderBy('b2b_customers.name')
             ->get([
                 'b2b_customers.id',
                 'b2b_customers.name',
                 'b2b_accounts.company_name',
+                'retail_wholesale_accounts.retail_store_id',
+                'retail_customer_store.name as retail_store_name',
             ])
             ->map(fn ($row) => [
                 'id' => (int) $row->id,
-                'name' => trim(($row->company_name ? $row->company_name.' · ' : '').$row->name),
+                'name' => $row->retail_store_id === null
+                    ? trim(($row->company_name ? $row->company_name.' · ' : '').$row->name)
+                    : (app()->getLocale() === 'ar' ? 'التجزئة · ' : 'Retail · ').$row->retail_store_name,
             ])
             ->all();
 
