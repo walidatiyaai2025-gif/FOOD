@@ -11,6 +11,7 @@ use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\ManagementReportService;
 use App\Support\AdminNavigation;
+use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,13 +23,14 @@ class B2bWorkspaceController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly ManagementReportService $reports,
+        private readonly TenantContextResolver $tenantContext,
     ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless($user->roles()->whereIn('roles.code', ['SUPER_ADMIN', 'B2B_ADMIN'])->exists(), 403);
+        $this->tenantContext->wholesale($user);
         $allowed = ['dashboard', 'stores', 'clients', 'products', 'orders', 'drivers', 'pricing', 'reports', 'settings'];
         abort_unless(in_array($module, $allowed, true), 404);
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
