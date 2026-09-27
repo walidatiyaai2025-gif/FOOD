@@ -19,6 +19,10 @@ class DriverTranslations extends InheritedWidget {
   static const Map<String, String> _ar = {
     'driver.app.title': 'فودكس للسائق',
     'driver.home.title': 'الرئيسية',
+    'driver.home.subtitle': 'ابدأ يومك وراجع التوصيلات المسندة لك',
+    'driver.home.channel': 'قناة العمل',
+    'driver.home.ready': 'جاهز للتوصيل',
+    'driver.home.open_deliveries': 'عرض التوصيلات الحالية',
     'driver.deliveries.title': 'التوصيلات',
     'driver.b2c.title': 'توصيلات التجزئة',
     'driver.b2b.title': 'توصيلات الجملة',
@@ -80,6 +84,10 @@ class DriverTranslations extends InheritedWidget {
   static const Map<String, String> _en = {
     'driver.app.title': 'FOODEX Driver',
     'driver.home.title': 'Driver Home',
+    'driver.home.subtitle': 'Start your shift and review your assigned deliveries',
+    'driver.home.channel': 'Work channel',
+    'driver.home.ready': 'Ready to deliver',
+    'driver.home.open_deliveries': 'Open current deliveries',
     'driver.deliveries.title': 'Deliveries',
     'driver.b2c.title': 'Retail deliveries',
     'driver.b2b.title': 'Wholesale deliveries',
