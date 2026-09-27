@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\B2cDashboardService;
 use App\Services\ManagementReportService;
 use App\Support\AdminNavigation;
+use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -18,6 +19,7 @@ class B2cWorkspaceController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly B2cDashboardService $dashboard,
         private readonly ManagementReportService $reports,
+        private readonly TenantContextResolver $tenantContext,
     ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View
@@ -363,10 +365,6 @@ class B2cWorkspaceController extends Controller
 
     private function storeIds(User $user): array
     {
-        if ($user->roles()->where('roles.code', 'SUPER_ADMIN')->exists()) {
-            return DB::table('stores')->join('store_types', 'store_types.id', '=', 'stores.store_type_id')->where('store_types.code', 'B2C')->pluck('stores.id')->map(fn ($id) => (int) $id)->all();
-        }
-
-        return $user->storeRoleAssignments()->whereHas('role', fn ($q) => $q->where('code', 'B2C_STORE_ADMIN'))->pluck('store_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
+        return $this->tenantContext->retailStoreIds($user);
     }
 }
