@@ -579,7 +579,9 @@ class B2cWorkspaceController extends Controller
         abort_if($storeIds === [], 403, 'No assigned B2C store.');
 
         if ($requestedStoreId > 0) {
-            abort_unless(in_array($requestedStoreId, $storeIds, true), 404);
+            if (! in_array($requestedStoreId, $storeIds, true)) {
+                abort(404);
+            }
             $selectedStoreId = $requestedStoreId;
         } else {
             $selectedStoreId = $storeIds[0];
