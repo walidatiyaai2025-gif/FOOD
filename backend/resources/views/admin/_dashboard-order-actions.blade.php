@@ -136,7 +136,7 @@
                                         </option>
                                     @endforeach
                                 </select>
-                                <input name="items[{{ $index }}][quantity]" type="number" min="0.001" step="0.001" value="{{ number_format($currentItem['quantity'],3,'.','') }}" required>
+                                <input name="items[{{ $index }}][quantity]" type="number" min="0.001" step="0.001" value="{{ number_format($currentItem['quantity'],3,'.','') }}" placeholder="1.000" required>
                                 <button type="button" class="js-remove-order-line">{{ app()->getLocale()==='ar'?'حذف':'Remove' }}</button>
                             </div>
                         @endforeach
