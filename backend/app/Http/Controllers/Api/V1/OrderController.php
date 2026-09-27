@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\OperationalTenantScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -136,6 +137,7 @@ class OrderController extends Controller
 
             OrderStatusHistory::query()->create([
                 'order_id' => $locked->getKey(),
+                'store_id' => (int) $locked->store_id,
                 'user_id' => $user->getKey(),
                 'from_status' => $currentStatus,
                 'to_status' => $targetStatus,
@@ -177,35 +179,15 @@ class OrderController extends Controller
 
     private function canManageOrder(User $user, Order $order): bool
     {
-        if (! $user->hasPermission('orders.manage', (int) $order->store_id)
-            && ! $user->hasPermission('orders.manage')) {
-            return false;
-        }
-
-        $channel = strtolower((string) $order->channel);
-        $config = (array) config("admin.channels.{$channel}", []);
-        $globalRoles = array_values((array) ($config['global_roles'] ?? []));
-        $storeRoles = array_values((array) ($config['store_roles'] ?? []));
-
-        $hasGlobalChannelRole = $user->roles()
-            ->whereIn('roles.code', $globalRoles)
-            ->exists();
-
-        if ($hasGlobalChannelRole && $user->hasPermission('orders.manage')) {
-            return true;
-        }
-
-        if ($storeRoles === []) {
-            return false;
-        }
-
-        $hasStoreChannelRole = $user->storeRoleAssignments()
-            ->where('store_id', (int) $order->store_id)
-            ->whereHas('role', fn ($query) => $query->whereIn('roles.code', $storeRoles))
-            ->exists();
-
-        return $hasStoreChannelRole
-            && $user->hasPermission('orders.manage', (int) $order->store_id);
+        return in_array(
+            (int) $order->store_id,
+            app(OperationalTenantScope::class)->allowedStoreIds(
+                $user,
+                'orders.manage',
+                (string) $order->channel,
+            ),
+            true,
+        );
     }
 
     private function releaseReservations(Order $order, User $user): void
@@ -213,15 +195,18 @@ class OrderController extends Controller
         $reservations = StockMovement::query()
             ->where('reference_type', 'order')
             ->where('reference_id', $order->getKey())
+            ->where('store_id', (int) $order->store_id)
             ->where('type', 'reserve')
             ->orderBy('id')
             ->get();
 
         foreach ($reservations as $reservation) {
             $inventory = DB::table('inventories')
-                ->where('id', $reservation->inventory_id)
+                ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+                ->where('inventories.id', $reservation->inventory_id)
+                ->where('warehouses.store_id', (int) $order->store_id)
                 ->lockForUpdate()
-                ->first();
+                ->first(['inventories.*']);
 
             if ($inventory === null) {
                 continue;
@@ -239,6 +224,7 @@ class OrderController extends Controller
 
             StockMovement::query()->create([
                 'inventory_id' => $reservation->inventory_id,
+                'store_id' => (int) $order->store_id,
                 'user_id' => $user->getKey(),
                 'type' => 'release',
                 'quantity' => $quantity,
@@ -260,9 +246,11 @@ class OrderController extends Controller
 
         foreach ($reservations as $reservation) {
             $inventory = DB::table('inventories')
-                ->where('id', $reservation->inventory_id)
+                ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+                ->where('inventories.id', $reservation->inventory_id)
+                ->where('warehouses.store_id', (int) $order->store_id)
                 ->lockForUpdate()
-                ->first();
+                ->first(['inventories.*']);
 
             abort_if($inventory === null, 409, 'Reserved inventory no longer exists.');
 
@@ -286,6 +274,7 @@ class OrderController extends Controller
 
             StockMovement::query()->create([
                 'inventory_id' => $reservation->inventory_id,
+                'store_id' => (int) $order->store_id,
                 'user_id' => $user->getKey(),
                 'type' => 'sale',
                 'quantity' => -$quantity,
@@ -316,6 +305,7 @@ class OrderController extends Controller
 
         $history = OrderStatusHistory::query()
             ->where('order_id', $order->getKey())
+            ->where('store_id', (int) $order->store_id)
             ->orderBy('id')
             ->get()
             ->map(static fn (OrderStatusHistory $entry): array => [
