@@ -47,11 +47,22 @@ class B2cWorkspaceController extends Controller
         private readonly TenantContextResolver $tenantContext,
     ) {}
 
-    public function show(Request $request, string $module = 'dashboard'): View
+    public function show(Request $request, string $module = 'dashboard'): View|RedirectResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
         abort_unless(array_key_exists($module, self::MODULE_PERMISSIONS), 404);
+
+        if ($user->hasRole('SUPER_ADMIN')
+            && $request->integer('store_id') <= 0
+            && $request->integer('store') <= 0) {
+            return redirect()->route('admin.retail-stores.index')
+                ->with('status', $this->msg(
+                    'اختر متجر تجزئة ثم استخدم «إدارة / فحص المتجر» للدخول إلى سياقه بشكل صريح.',
+                    'Choose a Retail store and use Manage / Inspect Store to enter its explicit support context.',
+                ));
+        }
+
         $workspace = $this->workspaceContext($request, $user);
         $storeId = $workspace['selected_store_id'];
         $this->authorizeModule($user, $module, $storeId);
@@ -754,6 +765,20 @@ class B2cWorkspaceController extends Controller
             'columns' => [],
             'rows' => [],
         ];
+    }
+
+    private function canOpenModule(User $user, string $module, int $storeId): bool
+    {
+        $permission = self::MODULE_PERMISSIONS[$module] ?? null;
+        if ($permission === null) {
+            return true;
+        }
+
+        if ($storeId > 0 && $user->hasPermission($permission, $storeId)) {
+            return true;
+        }
+
+        return ! $user->hasRole('SUPER_ADMIN') && $user->hasPermission($permission);
     }
 
     private function authorizeModule(User $user, string $module, int $storeId): void
