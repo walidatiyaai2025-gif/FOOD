@@ -43,7 +43,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
         <form method="post" action="{{ route('admin.notification-campaigns.store') }}" class="js-campaign-form">
             @csrf
             <div class="grid">
-                <div><label>{{ __('notifications.campaign_name') }}</label><input name="name" value="{{ old('name') }}" required></div>
+                <div><label>{{ __('notifications.campaign_name') }}</label><input name="name" value="{{ old('name') }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: عرض نهاية الأسبوع':'e.g. Weekend promotion' }}" required></div>
                 <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','user'] as $v)<option value="{{ $v }}">{{ __('notifications.audience_options.'.$v) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver'] as $v)<option value="{{ $v }}">{{ __('notifications.app_options.'.$v) }}</option>@endforeach</select></div>
 
@@ -59,21 +59,21 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
 
                 <div><label>{{ __('notifications.store') }}</label><select name="store_id" class="js-campaign-store" @if(!$canAllChannels && !$canB2b) required @endif>@if($canAllChannels || $canB2b)<option value="">{{ __('notifications.all_stores') }}</option>@else<option value="" disabled>{{ __('notifications.choose_store') }}</option>@endif @foreach($b2bStores as $store)<option value="{{ $store['id'] }}" data-channel="b2b">{{ $store['name'] }}</option>@endforeach @foreach($b2cStores as $store)<option value="{{ $store['id'] }}" data-channel="b2c">{{ $store['name'] }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.delivery_channel') }}</label><select name="delivery_channel">@foreach(['both','push','in_app'] as $v)<option value="{{ $v }}">{{ __('notifications.delivery_options.'.$v) }}</option>@endforeach</select></div>
-                <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1"></div>
+                <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" placeholder="{{ app()->getLocale()==='ar'?'رقم المستخدم - اختياري':'User ID - optional' }}"></div>
 
-                <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" required dir="rtl"></div>
-                <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" required dir="ltr"></div>
+                <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" required dir="rtl" placeholder="عنوان الحملة بالعربية"></div>
+                <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" required dir="ltr" placeholder="Campaign title in English"></div>
                 <div class="full preview">
-                    <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl"></textarea></div>
-                    <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr"></textarea></div>
+                    <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="نص الإشعار بالعربية"></textarea></div>
+                    <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="Notification body in English"></textarea></div>
                 </div>
 
                 <div><label>{{ __('notifications.schedule_kind') }}</label><select name="schedule_kind" class="js-schedule-kind"><option value="once">{{ __('notifications.once') }}</option><option value="recurring">{{ __('notifications.recurring') }}</option></select></div>
                 <div><label>{{ __('notifications.starts_at') }}</label><input name="starts_at" type="datetime-local" value="{{ now('Asia/Kuwait')->addMinutes(5)->format('Y-m-d\TH:i') }}" required></div>
                 <div><label>{{ __('notifications.ends_at') }}</label><input name="ends_at" type="datetime-local"></div>
-                <div class="js-recurring"><label>{{ __('notifications.interval_value') }}</label><input name="interval_value" type="number" min="1" value="1"></div>
+                <div class="js-recurring"><label>{{ __('notifications.interval_value') }}</label><input name="interval_value" type="number" min="1" value="1" placeholder="1"></div>
                 <div class="js-recurring"><label>{{ __('notifications.interval_unit') }}</label><select name="interval_unit">@foreach(['minute','hour','day','week','month'] as $v)<option value="{{ $v }}">{{ __('notifications.'.$v) }}</option>@endforeach</select></div>
-                <div class="js-recurring"><label>{{ __('notifications.max_runs') }}</label><input name="max_runs" type="number" min="1"></div>
+                <div class="js-recurring"><label>{{ __('notifications.max_runs') }}</label><input name="max_runs" type="number" min="1" placeholder="{{ app()->getLocale()==='ar'?'عدد مرات التشغيل - اختياري':'Maximum runs - optional' }}"></div>
                 <div class="full row">
                     <label style="display:flex;align-items:center;gap:8px;margin:0"><input style="width:auto;min-height:auto" type="checkbox" name="activate" value="1" checked> {{ __('notifications.activate_now') }}</label>
                     <button class="primary" type="submit">{{ __('notifications.save_campaign') }}</button>
@@ -134,8 +134,8 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                         <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" value="{{ $campaign->title_ar }}" required dir="rtl"></div>
                         <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" value="{{ $campaign->title_en }}" required dir="ltr"></div>
                         <div class="full preview">
-                            <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl">{{ $campaign->body_ar }}</textarea></div>
-                            <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr">{{ $campaign->body_en }}</textarea></div>
+                            <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="نص الإشعار بالعربية">{{ $campaign->body_ar }}</textarea></div>
+                            <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="Notification body in English">{{ $campaign->body_en }}</textarea></div>
                         </div>
                         <div><label>{{ __('notifications.schedule_kind') }}</label><select name="schedule_kind" class="js-schedule-kind"><option value="once" @selected($campaign->schedule_kind==='once')>{{ __('notifications.once') }}</option><option value="recurring" @selected($campaign->schedule_kind==='recurring')>{{ __('notifications.recurring') }}</option></select></div>
                         <div><label>{{ __('notifications.starts_at') }}</label><input name="starts_at" type="datetime-local" value="{{ $campaign->starts_at?->timezone('Asia/Kuwait')->format('Y-m-d\TH:i') }}" required></div>
@@ -167,7 +167,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <summary style="cursor:pointer;font-weight:800">{{ __('notifications.history') }}</summary>
                 <div style="overflow:auto">
                 <table class="history">
-                    <thead><tr><th>#</th><th>{{ __('notifications.scheduled_for') }}</th><th>{{ __('notifications.executed_at') }}</th><th>Status</th><th>{{ __('notifications.generated_notification') }}</th><th>Error</th></tr></thead>
+                    <thead><tr><th>#</th><th>{{ __('notifications.scheduled_for') }}</th><th>{{ __('notifications.executed_at') }}</th><th>{{ app()->getLocale()==='ar'?'الحالة':'Status' }}</th><th>{{ __('notifications.generated_notification') }}</th><th>{{ app()->getLocale()==='ar'?'الخطأ':'Error' }}</th></tr></thead>
                     <tbody>
                     @forelse($campaign->runs as $run)
                         <tr>
