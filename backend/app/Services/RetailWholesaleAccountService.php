@@ -57,10 +57,7 @@ final class RetailWholesaleAccountService
 
     public function syncForStore(Store $store): B2bCustomer
     {
-        $customer = $this->ensureForStore($store);
-        $this->syncIdentity($store->fresh(), $customer);
-
-        return $customer->refresh();
+        return $this->ensureForStore($store);
     }
 
     public function retailStoreIdForCustomer(int $b2bCustomerId): ?int
@@ -91,13 +88,37 @@ final class RetailWholesaleAccountService
                 ]);
         }
 
-        DB::table('b2b_accounts')
+        abort_if(
+            $customer->legacy_customer_id === null,
+            409,
+            'Retail-linked Wholesale customer legacy identity is incomplete.',
+        );
+
+        $account = B2bAccount::query()
             ->where('b2b_customer_id', $customer->getKey())
-            ->update([
+            ->orWhere('customer_id', $customer->legacy_customer_id)
+            ->first();
+
+        if (! $account instanceof B2bAccount) {
+            B2bAccount::query()->create([
+                'customer_id' => $customer->legacy_customer_id,
+                'b2b_customer_id' => $customer->getKey(),
+                'price_tier_id' => null,
                 'company_name' => (string) $store->name,
                 'status' => $store->is_active ? 'active' : 'suspended',
-                'updated_at' => now(),
+                'tax_number' => null,
+                'credit_limit' => 0,
             ]);
+
+            return;
+        }
+
+        $account->update([
+            'customer_id' => $customer->legacy_customer_id,
+            'b2b_customer_id' => $customer->getKey(),
+            'company_name' => (string) $store->name,
+            'status' => $store->is_active ? 'active' : 'suspended',
+        ]);
     }
 
     private function assertRetailStore(Store $store): void
