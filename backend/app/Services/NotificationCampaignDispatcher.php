@@ -138,7 +138,7 @@ final class NotificationCampaignDispatcher
 
                 return [
                     'notification' => $notification,
-                    'campaign' => $campaign->fresh(),
+                    'campaign' => $campaign,
                     'run_id' => (int) $run->getKey(),
                     'scheduled_for' => $scheduledFor->toIso8601String(),
                 ];
