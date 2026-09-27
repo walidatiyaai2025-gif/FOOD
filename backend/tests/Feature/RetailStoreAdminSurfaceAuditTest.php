@@ -80,11 +80,6 @@ class RetailStoreAdminSurfaceAuditTest extends TestCase
             '/admin/catalog?tab=products&store_id='.$this->store,
             '/admin/catalog?tab=categories&store_id='.$this->store,
             '/admin/lookups?scope=store&store_id='.$this->store,
-            '/admin/business?tab=inventory&store_id='.$this->store,
-            '/admin/business?tab=customers&store_id='.$this->store,
-            '/admin/business?tab=promotions&store_id='.$this->store,
-            '/admin/business?tab=content&store_id='.$this->store,
-            '/admin/business?tab=drivers&store_id='.$this->store,
             '/admin/notification-campaigns',
             '/admin/reports?report=orders&store_id='.$this->store.'&channel=b2c',
         ] as $uri) {
@@ -122,7 +117,7 @@ class RetailStoreAdminSurfaceAuditTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($this->admin)
-            ->get('/admin/business?tab=inventory&store_id='.$this->foreignStore)
+            ->get('/admin/b2c/inventory?store_id='.$this->foreignStore)
             ->assertNotFound();
 
         $this->actingAs($this->admin)
@@ -166,7 +161,7 @@ class RetailStoreAdminSurfaceAuditTest extends TestCase
         ])->assertNotFound();
     }
 
-    public function test_operations_center_preserves_selected_store_and_never_offers_b2b_driver_type(): void
+    public function test_retail_driver_workspace_preserves_selected_store_and_never_offers_wholesale_driver_type(): void
     {
         $secondAssigned = (int) DB::table('stores')->insertGetId([
             'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
@@ -186,10 +181,14 @@ class RetailStoreAdminSurfaceAuditTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->get('/admin/business?tab=drivers&store_id='.$this->store)
+            ->get('/admin/b2c/drivers?store_id='.$this->store)
             ->assertOk()
             ->assertSee('Audit Retail Store')
-            ->assertDontSee('Second Assigned Store')
+            ->assertDontSee('Foreign Retail Store')
             ->assertDontSee('value="b2b"', false);
+
+        $this->actingAs($this->admin)
+            ->get('/admin/business?tab=drivers&store_id='.$this->store)
+            ->assertRedirect(route('admin.index'));
     }
 }
