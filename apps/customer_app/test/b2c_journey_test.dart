@@ -57,7 +57,10 @@ void main() {
     expect(find.byKey(const ValueKey('b2c-home-category-image-3')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2c-home-product-42')), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('b2c-home-product-42')));
+    final homeProduct = find.byKey(const ValueKey('b2c-home-product-42'));
+    await tester.ensureVisible(homeProduct);
+    await tester.pumpAndSettle();
+    await tester.tap(homeProduct);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('b2c-product-gallery')), findsOneWidget);
@@ -75,7 +78,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Tomato Box'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('b2c-product-42')));
+    final productTile = find.byKey(const ValueKey('b2c-product-42'));
+    await tester.ensureVisible(productTile);
+    await tester.pumpAndSettle();
+    await tester.tap(productTile);
     await tester.pumpAndSettle();
 
     expect(find.text('/products/42?store=7'), findsOneWidget);
