@@ -145,6 +145,27 @@ return new class extends Migration
                 ]);
             }
 
+            $wholesaleGrants = [
+                'OPERATIONS' => ['stores.view'],
+                'INVENTORY' => ['stores.view'],
+                'FINANCE' => ['stores.view'],
+                'CUSTOMER_SUPPORT' => ['stores.view', 'b2b.accounts.view', 'b2b.accounts.manage'],
+            ];
+
+            foreach ($wholesaleGrants as $roleCode => $permissionCodes) {
+                $roleId = DB::table('roles')->where('code', $roleCode)->value('id');
+                if ($roleId === null) {
+                    continue;
+                }
+
+                foreach (DB::table('permissions')->whereIn('code', $permissionCodes)->pluck('id') as $permissionId) {
+                    DB::table('permission_role')->updateOrInsert([
+                        'permission_id' => (int) $permissionId,
+                        'role_id' => (int) $roleId,
+                    ]);
+                }
+            }
+
             // Legacy custom "both" roles are collapsed to one domain. Retail assignments win.
             foreach (DB::table('roles')->where('scope', 'both')->get(['id']) as $role) {
                 $hasRetailAssignment = DB::table('user_store_roles')
