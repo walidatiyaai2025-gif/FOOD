@@ -16,7 +16,7 @@
         <div>
             <a class="muted" href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a>
             <h1>{{ __('admin.b2b_workspace.modules.'.$module) }}</h1>
-            <div class="muted">{{ app()->getLocale()==='ar' ? 'FOODEX · إدارة الجملة ببيانات مباشرة من النظام' : 'FOODEX · B2B management with live server data' }}</div>
+            <div class="muted">{{ app()->getLocale()==='ar' ? 'FOODEX · إدارة الجملة ببيانات مباشرة من النظام' : 'FOODEX · Wholesale management with live server data' }}</div>
         </div>
         @include('admin._live-notifications')
     </div>
@@ -36,9 +36,9 @@
     @if($errors->any())<div class="panel" style="border-color:#ffd0a6;background:var(--foodex-orange-soft)"><strong>{{ app()->getLocale()==='ar'?'تعذر تنفيذ العملية':'Action could not be completed' }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     <section class="panel workspace-panel">
       <div class="toolbar">
-        <div><strong>{{ __('admin.b2b_workspace.authoritative') }}</strong><div class="muted">{{ app()->getLocale()==='ar' ? 'النطاق محصور في متاجر وقناة B2B.' : 'Scope is restricted to B2B stores and channel data.' }}</div></div>
-        <nav class="links workspace-tabs" aria-label="B2B core modules">
-          @foreach(['dashboard','stores','clients','products','inventory','orders','drivers','pricing','finance','reports','settings'] as $core)
+        <div><strong>{{ __('admin.b2b_workspace.authoritative') }}</strong><div class="muted">{{ app()->getLocale()==='ar' ? 'النطاق محصور في متاجر وقناة B2B.' : 'Scope is restricted to Wholesale stores and channel data.' }}</div></div>
+        <nav class="links workspace-tabs" aria-label="Wholesale core modules">
+          @foreach($visibleModules as $core)
           <a class="{{ $module===$core?'active':'' }}" href="{{ $core==='dashboard'?route('admin.b2b.dashboard'):route('admin.b2b.module',['module'=>$core]) }}">{{ __('admin.b2b_workspace.modules.'.$core) }}</a>
           @endforeach
         </nav>
