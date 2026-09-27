@@ -328,8 +328,7 @@ final class LookupManagementController extends Controller
         bool $creating,
         User $actor,
         Brand|Unit|null $existing = null,
-    ): array
-    {
+    ): array {
         $rules = [
             'scope' => ['nullable', Rule::in([
                 LookupScopeService::GLOBAL,
