@@ -115,10 +115,15 @@ class AdminNavigation
             return false;
         }
 
-        return $user->storeRoleAssignments()->whereHas('role', fn ($query) => $query
-            ->where('roles.is_active', true)
-            ->where('roles.scope', 'store')
-            ->whereIn('roles.code', $storeRoles))->exists();
+        $retailStoreIds = app(TenantContextResolver::class)->retailStoreIds($user);
+
+        return $retailStoreIds !== [] && $user->storeRoleAssignments()
+            ->whereIn('store_id', $retailStoreIds)
+            ->whereHas('role', fn ($query) => $query
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'store')
+                ->whereIn('roles.code', $storeRoles))
+            ->exists();
     }
 
     public function canUseDashboard(User $user): bool
@@ -185,11 +190,16 @@ class AdminNavigation
             return false;
         }
 
-        return $user->storeRoleAssignments()->whereHas('role', fn ($query) => $query
-            ->where('roles.is_active', true)
-            ->where('roles.scope', 'store')
-            ->whereIn('roles.code', $storeRoles)
-            ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', $permission)))->exists();
+        $retailStoreIds = app(TenantContextResolver::class)->retailStoreIds($user);
+
+        return $retailStoreIds !== [] && $user->storeRoleAssignments()
+            ->whereIn('store_id', $retailStoreIds)
+            ->whereHas('role', fn ($query) => $query
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'store')
+                ->whereIn('roles.code', $storeRoles)
+                ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', $permission)))
+            ->exists();
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
@@ -201,6 +211,7 @@ class AdminNavigation
 
         if (! $user->hasPermission($permission)) {
             $hasScopedPermission = $user->storeRoleAssignments()
+                ->whereIn('store_id', app(TenantContextResolver::class)->retailStoreIds($user))
                 ->whereHas('store', fn ($query) => $query->where('stores.is_active', true))
                 ->whereHas('role', fn ($query) => $query
                     ->where('roles.is_active', true)
