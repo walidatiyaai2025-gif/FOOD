@@ -84,6 +84,9 @@ void main() {
     await tester.tap(productTile);
     await tester.pumpAndSettle();
 
+    final routeLocation = find.byKey(const ValueKey('customer-route-location'));
+    await tester.ensureVisible(routeLocation);
+    await tester.pumpAndSettle();
     expect(find.text('/products/42?store=7'), findsOneWidget);
     expect(find.byKey(const ValueKey('b2c-product-detail')), findsOneWidget);
   });
