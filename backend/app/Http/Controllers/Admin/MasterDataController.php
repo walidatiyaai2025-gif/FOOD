@@ -531,7 +531,7 @@ final class MasterDataController extends Controller
             $listing = DB::table('store_products')->where('product_id', $id)->orderBy('store_id')->first();
             $values['store_id'] = $listing?->store_id;
             $values['price'] = $listing?->price;
-            $values['listing_active'] = $listing?->is_active ?? true;
+            $values['listing_active'] = $listing->is_active ?? true;
         }
 
         return $values;
