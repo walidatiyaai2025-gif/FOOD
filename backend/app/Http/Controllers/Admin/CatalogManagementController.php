@@ -49,7 +49,7 @@ final class CatalogManagementController extends Controller
         } else {
             $storeIds = $this->visibleStoreIds($actor, $request);
             $storeIds = $this->catalogReadableStoreIds($actor, $storeIds);
-            if ($storeIds === [] && ! $actor->hasRole('SUPER_ADMIN') && ! $actor->hasRole('B2B_ADMIN')) {
+            if ($storeIds === [] && !$actor->hasRole('SUPER_ADMIN') && !$actor->hasRole('B2B_ADMIN')) {
                 abort(403);
             }
         }
@@ -689,7 +689,7 @@ final class CatalogManagementController extends Controller
         $actor = $this->actor($request);
         $this->assertStoreAccess($request, $storeId, $channel);
 
-        if (strtolower($channel) === 'b2c' && ! $actor->hasRole('SUPER_ADMIN')) {
+        if (strtolower($channel) === 'b2c' && !$actor->hasRole('SUPER_ADMIN')) {
             abort_unless($actor->hasPermission($permission, $storeId), 403);
 
             return;
