@@ -368,7 +368,10 @@
             <div>
                 <div class="empty"><a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a> / {{ __('admin.b2c_workspace.modules.'.$module) }}</div>
                 <h1>{{ __('admin.b2c_workspace.modules.'.$module) }}</h1>
-                @php($selectedStoreName = collect($availableStores)->firstWhere('id', $storeId)?->name)
+                @php
+                    $selectedStore = collect($availableStores)->firstWhere('id', $storeId);
+                    $selectedStoreName = $selectedStore ? $selectedStore->name : null;
+                @endphp
                 <p>{{ __('admin.b2c_workspace.assigned_scope') }}: {{ $storeId }}@if($selectedStoreName) — {{ $selectedStoreName }}@endif</p>
                 @if(count($availableStores) > 1)
                 <form method="get" action="{{ route($module==='dashboard' ? 'admin.b2c.dashboard' : 'admin.b2c.module', $module==='dashboard' ? [] : ['module'=>$module]) }}" class="module-inline-form" style="margin-top:12px">
