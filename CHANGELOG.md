@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.5 - Operational Admin CRUD
+- Add a central Operations & Data Management center for warehouses, stock, customers, promotions, banners and drivers.
+- Add create/edit/delete/deactivate actions with server-side permission checks and dependency safety.
+- Wire B2C Inventory, Customers, Promotions, Content and Drivers screens to their management actions.
+- Keep inventory adjustments above reserved stock and record stock movements.
+
 ## 1.0.4 - Admin CRUD and Arabic RTL
 - Fix the unified Arabic admin shell so the navigation sidebar renders on the physical right while English remains left-to-right.
 - Add a server-authorized Catalog & Store Management center with product, category, brand, unit and store administration.
