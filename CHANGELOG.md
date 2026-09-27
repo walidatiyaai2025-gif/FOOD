@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.11 - Demo Data Admin Access Fix
+- Add a dedicated `/admin/security/demo-data` management page instead of relying on a command-line seeder workflow.
+- Allow authorized `demo_data.manage` operators to create/rebuild and clear isolated FOODEX-DEMO records from the dashboard, including on the deployed environment.
+- Keep demo-data mutations audit logged and cleanup restricted to FOODEX-DEMO markers and the `demo.foodex.test` namespace.
+- Add the Demo Data page to administration navigation and provide Arabic/English UI copy.
+- Keep dashboard update generation cumulative from FOODEX 1.0.6 so 1.0.6 through 1.0.10 installations can upgrade directly.
+
 ## 1.0.10 - Login-first Home Entry
 - Redirect the public FOODEX root URL directly to the canonical Retail management login.
 - Keep the installer endpoint and authenticated management workspaces unchanged.
