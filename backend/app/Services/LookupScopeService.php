@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 final class LookupScopeService
 {
@@ -151,7 +152,7 @@ final class LookupScopeService
         );
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, stdClass> */
     public function visibleRetailStores(User $user): Collection
     {
         $storeIds = $this->tenants->retailStoreIds($user);
