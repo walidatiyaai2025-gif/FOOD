@@ -26,6 +26,22 @@ final class NotificationAudience
             $channels[] = strtolower($driverType);
         }
 
+        $storeIds = collect(DB::table('user_store_roles')
+            ->where('user_id', $user->id)
+            ->pluck('store_id'))
+            ->merge(DB::table('b2c_customers')->where('user_id', $user->id)->pluck('store_id'))
+            ->merge(DB::table('drivers')->where('user_id', $user->id)->whereNotNull('store_id')->pluck('store_id'))
+            ->merge(
+                DB::table('orders')
+                    ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
+                    ->where('b2b_customers.user_id', $user->id)
+                    ->pluck('orders.store_id'),
+            )
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
         return $query
             ->where('status', 'published')
             ->whereNotNull('published_at')
@@ -52,6 +68,14 @@ final class NotificationAudience
                 $channel->where('target_channel', 'all');
                 if ($channels !== []) {
                     $channel->orWhereIn('target_channel', array_values(array_unique($channels)));
+                }
+            })
+            ->where(function (Builder $scope) use ($user, $storeIds): void {
+                $scope->whereNull('store_id')
+                    ->orWhere('user_id', $user->id);
+
+                if ($storeIds !== []) {
+                    $scope->orWhereIn('store_id', $storeIds);
                 }
             });
     }
