@@ -134,11 +134,11 @@ class AdminBusinessManagementTest extends TestCase
         $this->assertDatabaseHas('drivers', ['store_id' => $storeId, 'driver_type' => 'b2c', 'is_active' => 1]);
 
         foreach ([
-            '/admin/b2c/inventory' => 'إدارة المخازن والأرصدة',
-            '/admin/b2c/customers' => 'إضافة / تعديل العملاء',
-            '/admin/b2c/promotions' => 'إضافة / تعديل العروض',
-            '/admin/b2c/content' => 'إضافة / تعديل البنرات',
-            '/admin/b2c/drivers' => 'إضافة / إدارة السائقين',
+            '/admin/b2c/inventory' => 'المخزون',
+            '/admin/b2c/customers' => 'العملاء',
+            '/admin/b2c/promotions' => 'العروض',
+            '/admin/b2c/content' => 'المحتوى والبنرات',
+            '/admin/b2c/drivers' => 'السائقون والتوصيل',
         ] as $uri => $label) {
             $this->actingAs($user)
                 ->get($uri.'?store_id='.$storeId.'&support_access=1')
