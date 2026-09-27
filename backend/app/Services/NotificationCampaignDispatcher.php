@@ -55,6 +55,13 @@ final class NotificationCampaignDispatcher
                 }
 
                 $scheduledFor = CarbonImmutable::instance($campaign->next_run_at);
+
+                if ($campaign->ends_at !== null && now()->greaterThan($campaign->ends_at)) {
+                    $campaign->update(['status' => 'completed', 'next_run_at' => null]);
+
+                    return null;
+                }
+
                 $run = NotificationCampaignRun::query()->firstOrCreate(
                     [
                         'campaign_id' => $campaign->getKey(),
@@ -196,5 +203,7 @@ final class NotificationCampaignDispatcher
                 'error_message' => mb_substr($exception->getMessage(), 0, 1000),
             ],
         );
+
+        $campaign->update(['next_run_at' => now()->addMinutes(5)]);
     }
 }
