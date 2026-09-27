@@ -97,8 +97,12 @@ class B2bWorkspaceController extends Controller
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2b_'.$module;
         $moduleData = $this->moduleData($module, $storeIds, $user);
+        $visibleModules = array_values(array_filter(
+            array_keys(self::MODULE_PERMISSIONS),
+            fn (string $candidate): bool => $this->canOpenModule($user, $candidate),
+        ));
 
-        return view('admin.b2b-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'moduleData'));
+        return view('admin.b2b-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'moduleData', 'visibleModules'));
     }
 
     public function transitionOrder(
@@ -1246,6 +1250,13 @@ class B2bWorkspaceController extends Controller
         $this->tenantContext->wholesale($user);
 
         return $user;
+    }
+
+    private function canOpenModule(User $user, string $module): bool
+    {
+        $permission = self::MODULE_PERMISSIONS[$module] ?? null;
+
+        return $permission === null || $user->hasPermission($permission);
     }
 
     private function authorizeModule(User $user, string $module): void
