@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2 - MySQL/MariaDB Production Installer
+- Switch production and first-run database configuration to MySQL/MariaDB for cPanel hosting.
+- Require `pdo_mysql`, default to port 3306, and retain PostgreSQL runtime compatibility for legacy installations.
+- Add MySQL backup/restore support to the updater and validate deployment recovery against MySQL + Redis.
+- Refresh the first-install setup bundle so `foodex.50sols.com` can install directly against `solscool_foodex`.
+
 ## 1.0.0 - Release Candidate
 - Complete FOODEX Web administration for B2B and B2C with scoped data, permissions, reporting, governance, localization and audited actions.
 - Complete Customer mobile B2B/B2C journeys for authentication, catalog, pricing, cart/checkout, orders, invoices, account data, profile and version policy.
