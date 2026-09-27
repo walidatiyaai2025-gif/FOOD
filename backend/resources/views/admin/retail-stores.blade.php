@@ -1,28 +1,185 @@
 <!doctype html>
 <html lang="{{ str_replace('_','-',app()->getLocale()) }}" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ app()->getLocale()==='ar'?'إدارة متاجر التجزئة':'Retail Store Provisioning' }} · FOODEX</title>
+@include('admin._brand-components')
 <style>
-body{margin:0;background:#f5f7fa;color:#17202a}.page{max-width:1500px;margin:auto;padding:28px}.head,.row,.actions{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.panel,.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px}.panel{padding:20px;margin:18px 0}.card{padding:16px;margin:12px 0}.muted{color:#64748b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}input,select,button{font:inherit;border:1px solid #cbd5e1;border-radius:10px;padding:9px 11px}.btn{cursor:pointer;font-weight:700}.primary{background:#0f172a;color:#fff}.danger{background:#fff1f2;color:#9f1239}.success{background:#ecfdf5;color:#065f46}.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#e2e8f0}.active{background:#dcfce7;color:#166534}.inactive{background:#fee2e2;color:#991b1b}.notice,.errors{padding:12px;border-radius:12px}.notice{background:#f0fdf4}.errors{background:#fff1f2}.assignment{padding:10px;border-top:1px solid #e2e8f0}@media(max-width:720px){.page{padding:14px}}
-</style>@include('admin._brand-components')</head>
-<body><main class="page foodex-admin-page">
+.store-shell{display:grid;gap:var(--foodex-space-5)}.store-panel{padding:var(--foodex-space-5)}
+.store-head{display:flex;gap:var(--foodex-space-4);align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.store-head h2,.store-card h3{margin:0}.store-head p{margin:6px 0 0;color:var(--foodex-muted)}
+.store-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--foodex-space-4)}
+.store-form-grid label{display:grid;gap:7px;font-weight:700}.store-form-grid .wide{grid-column:1/-1}
+.store-card{padding:var(--foodex-space-5);display:grid;gap:var(--foodex-space-4)}
+.store-card-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.store-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.store-assignments{display:grid;gap:8px}
+.store-assignment{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:#fbfcfd;flex-wrap:wrap}
+.store-inline-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.store-search{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.manager-mode-panel{padding:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}
+@media(max-width:720px){.store-panel,.store-card{padding:var(--foodex-space-4)}}
+</style>
+</head>
+<body>
 @php($ar=app()->getLocale()==='ar')
-<div class="head"><div><div class="muted">FOODEX · SUPER_ADMIN</div><h1>{{ $ar?'إدارة متاجر التجزئة':'Retail Store Provisioning' }}</h1><p class="muted">{{ $ar?'إنشاء متاجر التجزئة وتعيين المدراء والأدوار وإدارة الدخول للدعم بشكل صريح ومدقق.':'Create Retail stores, assign managers and store roles, and enter audited support context explicitly.' }}</p></div><a href="{{ route('admin.index') }}">{{ $ar?'العودة للوحة':'Back to dashboard' }}</a></div>
-@if(session('status'))<div class="notice">{{ session('status') }}</div>@endif
-@if($errors->any())<div class="errors"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+<div class="foodex-admin-layout">
+    <aside class="sidebar">@include('admin._sidebar')</aside>
+    <main class="foodex-admin-main foodex-admin-page">
+        <header class="foodex-page-header">
+            <div>
+                <span class="foodex-subtitle">FOODEX · SUPER_ADMIN</span>
+                <h1>{{ $ar?'إدارة متاجر التجزئة':'Retail Store Provisioning' }}</h1>
+                <p>{{ $ar?'إنشاء متاجر التجزئة وتعيين المدراء والأدوار والدخول للدعم من شاشة واحدة منظمة.':'Provision retail stores, assign managers and roles, and enter support context from one organized control plane.' }}</p>
+            </div>
+        </header>
 
-<section class="panel"><h2>{{ $ar?'إنشاء متجر جديد':'Provision a new retail store' }}</h2>
-<form method="post" action="{{ route('admin.retail-stores.store') }}">@csrf
-<div class="grid"><input name="code" required placeholder="STORE_CODE"><input name="name" required placeholder="{{ $ar?'اسم المتجر':'Store name' }}"><select name="manager_mode" id="manager_mode"><option value="existing">{{ $ar?'اختيار مستخدم موجود':'Select existing user' }}</option><option value="new">{{ $ar?'إنشاء مدير جديد':'Create new manager' }}</option></select><select name="manager_user_id"><option value="">{{ $ar?'اختر المستخدم':'Select user' }}</option>@foreach($users as $managedUser)<option value="{{ $managedUser->id }}">{{ $managedUser->name }} · {{ $managedUser->email }}</option>@endforeach</select><input name="manager_name" placeholder="{{ $ar?'اسم المدير الجديد':'New manager name' }}"><input name="manager_email" type="email" placeholder="{{ $ar?'بريد المدير':'Manager email' }}"><input name="manager_password" type="password" placeholder="{{ $ar?'كلمة المرور':'Password' }}"><label><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" checked> {{ $ar?'نشط':'Active' }}</label></div>
-<p class="muted">{{ $ar?'عند اختيار مستخدم موجود تجاهل حقول المدير الجديد.':'When selecting an existing user, new-manager fields are ignored.' }}</p><button class="btn primary">{{ $ar?'إنشاء وتعيين المدير':'Create store & assign manager' }}</button></form></section>
+        <div class="store-shell">
+            <section class="foodex-card store-panel">
+                <div class="store-head">
+                    <div><h2>{{ $ar?'إضافة متجر تجزئة جديد':'Add a retail store' }}</h2><p>{{ $ar?'أكمل بيانات المتجر أولًا ثم اختر أو أنشئ مدير المتجر.':'Complete store details first, then select or create the store manager.' }}</p></div>
+                </div>
 
-<section class="panel"><div class="head"><h2>{{ $ar?'متاجر التجزئة':'Retail Stores' }}</h2><form method="get"><input name="q" value="{{ $search }}" placeholder="{{ $ar?'بحث بالاسم أو الكود':'Search name or code' }}"><button class="btn">{{ $ar?'بحث':'Search' }}</button></form></div>
-@forelse($stores as $store)<article class="card">
-<div class="head"><div><h3>{{ $store->name }} <span class="badge">{{ $store->code }}</span></h3><span class="badge {{ $store->is_active?'active':'inactive' }}">{{ $store->is_active?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div><form method="post" action="{{ route('admin.retail-stores.inspect',$store) }}">@csrf<button class="btn success" @disabled(!$store->is_active)>{{ $ar?'إدارة / فحص المتجر':'Manage / Inspect Store' }}</button></form></div>
-<form method="post" action="{{ route('admin.retail-stores.update',$store) }}">@csrf @method('patch')<div class="grid"><input name="code" value="{{ $store->code }}" required><input name="name" value="{{ $store->name }}" required><label><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($store->is_active)> {{ $ar?'نشط':'Active' }}</label><button class="btn primary">{{ $ar?'حفظ':'Save' }}</button></div></form>
-<h4>{{ $ar?'المدراء والأدوار':'Managers & store roles' }}</h4>
-@foreach($store->storeRoleAssignments as $assignment)<div class="assignment row"><span>{{ $assignment->user?->name }} · {{ $assignment->user?->email }} · <strong>{{ $assignment->role?->code }}</strong></span><form method="post" action="{{ route('admin.retail-stores.roles.remove',[$store,$assignment->id]) }}">@csrf @method('delete')<button class="btn danger">{{ $ar?'إزالة':'Remove' }}</button></form></div>@endforeach
-<form method="post" action="{{ route('admin.retail-stores.roles.assign',$store) }}">@csrf<div class="grid"><select name="user_id" required>@foreach($users as $managedUser)<option value="{{ $managedUser->id }}">{{ $managedUser->name }} · {{ $managedUser->email }}</option>@endforeach</select><select name="role_id" required>@foreach($storeRoles as $role)<option value="{{ $role->id }}">{{ $role->name }} ({{ $role->code }})</option>@endforeach</select><button class="btn">{{ $ar?'إسناد الدور':'Assign role' }}</button></div></form>
-</article>@empty<p class="muted">{{ $ar?'لا توجد متاجر مطابقة.':'No matching retail stores.' }}</p>@endforelse
-{{ $stores->links() }}</section>
-</main></body></html>
+                <form method="post" action="{{ route('admin.retail-stores.store') }}" id="retail-provision-form" data-foodex-stepper>
+                    @csrf
+                    <div class="foodex-step-tabs" role="tablist" aria-label="{{ $ar?'خطوات إضافة المتجر':'Store provisioning steps' }}">
+                        <button class="foodex-step-tab" type="button" role="tab" aria-selected="true" data-step-target="store-details">
+                            @include('admin._premium-icon',['name'=>'storefront']) <span>{{ $ar?'1. بيانات المتجر':'1. Store details' }}</span>
+                        </button>
+                        <button class="foodex-step-tab" type="button" role="tab" aria-selected="false" data-step-target="store-manager">
+                            @include('admin._premium-icon',['name'=>'customers']) <span>{{ $ar?'2. المدير والصلاحية':'2. Manager & access' }}</span>
+                        </button>
+                    </div>
+
+                    <section class="foodex-step-panel" data-step-panel="store-details">
+                        <div class="store-form-grid">
+                            <label>{{ $ar?'كود المتجر':'Store code' }}
+                                <input name="code" value="{{ old('code') }}" required maxlength="80" pattern="[A-Za-z0-9_-]+" placeholder="{{ $ar?'مثال: CAIRO-01':'e.g. CAIRO-01' }}">
+                                <small class="foodex-file-help">{{ $ar?'حروف إنجليزية وأرقام وشرطة فقط؛ لا يتغير تلقائيًا بعد الاستخدام.':'Letters, numbers, dash and underscore only.' }}</small>
+                            </label>
+                            <label>{{ $ar?'اسم المتجر الظاهر':'Store display name' }}
+                                <input name="name" value="{{ old('name') }}" required maxlength="255" placeholder="{{ $ar?'مثال: متجر مدينة نصر':'e.g. Nasr City Store' }}">
+                            </label>
+                            <label class="wide"><span>{{ $ar?'حالة المتجر':'Store status' }}</span>
+                                <span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active','1')==='1')> {{ $ar?'نشط ومتاح للإدارة':'Active and manageable' }}</span>
+                            </label>
+                        </div>
+                        <div class="foodex-step-actions">
+                            <button class="foodex-action-primary" type="button" data-step-next="store-manager">{{ $ar?'التالي: المدير':'Next: Manager' }} →</button>
+                        </div>
+                    </section>
+
+                    <section class="foodex-step-panel" data-step-panel="store-manager" hidden>
+                        <div class="store-form-grid">
+                            <label>{{ $ar?'طريقة تعيين المدير':'Manager assignment' }}
+                                <select name="manager_mode" id="manager_mode" required>
+                                    <option value="existing" @selected(old('manager_mode','existing')==='existing')>{{ $ar?'اختيار مستخدم موجود':'Select existing user' }}</option>
+                                    <option value="new" @selected(old('manager_mode')==='new')>{{ $ar?'إنشاء مدير جديد':'Create new manager' }}</option>
+                                </select>
+                            </label>
+                            <div class="manager-mode-panel wide" data-manager-panel="existing">
+                                <label>{{ $ar?'المستخدم الذي سيصبح مدير المتجر':'Existing manager user' }}
+                                    <select name="manager_user_id">
+                                        <option value="">{{ $ar?'اختر المستخدم':'Select user' }}</option>
+                                        @foreach($users as $managedUser)<option value="{{ $managedUser->id }}" @selected((string)old('manager_user_id')===(string)$managedUser->id)>{{ $managedUser->name }} · {{ $managedUser->email }}</option>@endforeach
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="manager-mode-panel wide" data-manager-panel="new" hidden>
+                                <div class="store-form-grid">
+                                    <label>{{ $ar?'اسم المدير الجديد':'New manager name' }}<input name="manager_name" value="{{ old('manager_name') }}" maxlength="255" placeholder="{{ $ar?'الاسم الكامل':'Full name' }}"></label>
+                                    <label>{{ $ar?'البريد الإلكتروني للمدير':'Manager email' }}<input name="manager_email" type="email" value="{{ old('manager_email') }}" maxlength="255" placeholder="manager@example.com"></label>
+                                    <label>{{ $ar?'كلمة مرور المدير':'Manager password' }}<input name="manager_password" type="password" minlength="8" maxlength="255" placeholder="{{ $ar?'8 أحرف على الأقل':'At least 8 characters' }}"></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="foodex-step-actions">
+                            <button class="foodex-action-secondary button secondary" type="button" data-step-next="store-details">← {{ $ar?'السابق':'Back' }}</button>
+                            <button class="foodex-action-primary" type="submit">{{ $ar?'إنشاء المتجر وتعيين المدير':'Create store & assign manager' }}</button>
+                        </div>
+                    </section>
+                </form>
+            </section>
+
+            <section class="foodex-card store-panel">
+                <div class="store-head">
+                    <div><h2>{{ $ar?'متاجر التجزئة':'Retail Stores' }}</h2><p>{{ $ar?'تعديل البيانات الأساسية وإدارة الأدوار والدخول إلى سياق المتجر.':'Edit core details, manage roles and enter the store context.' }}</p></div>
+                    <form method="get" class="store-search">
+                        <label>{{ $ar?'بحث بالاسم أو الكود':'Search name or code' }}<input name="q" value="{{ $search }}" placeholder="{{ $ar?'اكتب اسم المتجر أو الكود':'Store name or code' }}"></label>
+                        <button class="foodex-action-primary" type="submit">{{ $ar?'بحث':'Search' }}</button>
+                    </form>
+                </div>
+
+                @forelse($stores as $store)
+                    <article class="foodex-card store-card">
+                        <div class="store-card-top">
+                            <div>
+                                <div class="store-meta"><h3>{{ $store->name }}</h3><span class="badge">{{ $store->code }}</span><span class="badge {{ $store->is_active?'active':'' }}">{{ $store->is_active?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div>
+                            </div>
+                            <form method="post" action="{{ route('admin.retail-stores.inspect',$store) }}">@csrf
+                                <button class="foodex-action-secondary button secondary" type="submit" @disabled(!$store->is_active)>⌕ {{ $ar?'إدارة / فحص المتجر':'Manage / Inspect Store' }}</button>
+                            </form>
+                        </div>
+
+                        <form method="post" action="{{ route('admin.retail-stores.update',$store) }}" class="store-form-grid">
+                            @csrf @method('patch')
+                            <label>{{ $ar?'كود المتجر':'Store code' }}<input name="code" value="{{ $store->code }}" required maxlength="80" placeholder="STORE-01"></label>
+                            <label>{{ $ar?'اسم المتجر':'Store name' }}<input name="name" value="{{ $store->name }}" required maxlength="255" placeholder="{{ $ar?'اسم المتجر':'Store name' }}"></label>
+                            <label><span>{{ $ar?'الحالة':'Status' }}</span><span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($store->is_active)> {{ $ar?'نشط':'Active' }}</span></label>
+                            <button class="foodex-action-primary" type="submit">✓ {{ $ar?'حفظ بيانات المتجر':'Save store details' }}</button>
+                        </form>
+
+                        <div>
+                            <h4>{{ $ar?'المدراء والأدوار':'Managers & store roles' }}</h4>
+                            <div class="store-assignments">
+                                @forelse($store->storeRoleAssignments as $assignment)
+                                    <div class="store-assignment">
+                                        <span>{{ $assignment->user?->name }} · {{ $assignment->user?->email }} · <strong>{{ $assignment->role?->code }}</strong></span>
+                                        <form method="post" action="{{ route('admin.retail-stores.roles.remove',[$store,$assignment->id]) }}">@csrf @method('delete')
+                                            <button class="danger btn" type="submit">{{ $ar?'إزالة الإسناد':'Remove assignment' }}</button>
+                                        </form>
+                                    </div>
+                                @empty
+                                    <div class="foodex-empty-state">{{ $ar?'لا توجد أدوار معينة لهذا المتجر.':'No store role assignments yet.' }}</div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <form method="post" action="{{ route('admin.retail-stores.roles.assign',$store) }}" class="store-form-grid">
+                            @csrf
+                            <label>{{ $ar?'المستخدم':'User' }}<select name="user_id" required><option value="">{{ $ar?'اختر المستخدم':'Select user' }}</option>@foreach($users as $managedUser)<option value="{{ $managedUser->id }}">{{ $managedUser->name }} · {{ $managedUser->email }}</option>@endforeach</select></label>
+                            <label>{{ $ar?'الدور داخل المتجر':'Store role' }}<select name="role_id" required><option value="">{{ $ar?'اختر الدور':'Select role' }}</option>@foreach($storeRoles as $role)<option value="{{ $role->id }}">{{ $role->name }} ({{ $role->code }})</option>@endforeach</select></label>
+                            <button class="foodex-action-secondary button secondary" type="submit">＋ {{ $ar?'إسناد الدور':'Assign role' }}</button>
+                        </form>
+                    </article>
+                @empty
+                    <div class="foodex-empty-state">{{ $ar?'لا توجد متاجر مطابقة.':'No matching retail stores.' }}</div>
+                @endforelse
+
+                {{ $stores->links() }}
+            </section>
+        </div>
+    </main>
+</div>
+<script>
+(() => {
+    const form = document.querySelector('[data-foodex-stepper]');
+    if (!form) return;
+    const tabs = [...form.querySelectorAll('[data-step-target]')];
+    const panels = [...form.querySelectorAll('[data-step-panel]')];
+    const activate = (name) => {
+        tabs.forEach(tab => tab.setAttribute('aria-selected', tab.dataset.stepTarget === name ? 'true' : 'false'));
+        panels.forEach(panel => panel.hidden = panel.dataset.stepPanel !== name);
+    };
+    tabs.forEach(tab => tab.addEventListener('click', () => activate(tab.dataset.stepTarget)));
+    form.querySelectorAll('[data-step-next]').forEach(button => button.addEventListener('click', () => activate(button.dataset.stepNext)));
+
+    const mode = document.getElementById('manager_mode');
+    const syncManagerMode = () => {
+        form.querySelectorAll('[data-manager-panel]').forEach(panel => panel.hidden = panel.dataset.managerPanel !== mode.value);
+    };
+    mode?.addEventListener('change', syncManagerMode);
+    syncManagerMode();
+
+    if (@json($errors->any())) activate(@json(old('manager_mode') ? 'store-manager' : 'store-details'));
+})();
+</script>
+</body></html>
