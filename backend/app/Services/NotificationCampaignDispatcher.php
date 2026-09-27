@@ -38,6 +38,7 @@ final class NotificationCampaignDispatcher
 
     public function dispatchCampaign(int $campaignId): bool
     {
+        /** @var array{notification: Notification, run_id: int}|null $result */
         $result = null;
 
         try {
@@ -49,14 +50,20 @@ final class NotificationCampaignDispatcher
 
                 if (! $campaign instanceof NotificationCampaign
                     || $campaign->status !== 'active'
-                    || $campaign->next_run_at === null
-                    || $campaign->next_run_at->isFuture()) {
+                    || $campaign->next_run_at === null) {
                     return null;
                 }
 
-                $scheduledFor = CarbonImmutable::instance($campaign->next_run_at);
+                $scheduledFor = CarbonImmutable::parse((string) $campaign->next_run_at);
+                if ($scheduledFor->isFuture()) {
+                    return null;
+                }
 
-                if ($campaign->ends_at !== null && now()->greaterThan($campaign->ends_at)) {
+                $endsAt = $campaign->ends_at === null
+                    ? null
+                    : CarbonImmutable::parse((string) $campaign->ends_at);
+
+                if ($endsAt !== null && now()->greaterThan($endsAt)) {
                     $campaign->update(['status' => 'completed', 'next_run_at' => null]);
 
                     return null;
@@ -152,35 +159,43 @@ final class NotificationCampaignDispatcher
         }
 
         $value = max(1, (int) $campaign->interval_value);
-        $next = match ((string) $campaign->interval_unit) {
-            'minute' => $scheduledFor->addMinutes($value),
-            'hour' => $scheduledFor->addHours($value),
-            'day' => $scheduledFor->addDays($value),
-            'week' => $scheduledFor->addWeeks($value),
-            'month' => $scheduledFor->addMonthsNoOverflow($value),
-            default => null,
-        };
+        $unit = (string) $campaign->interval_unit;
+        $next = $this->advance($scheduledFor, $unit, $value);
 
-        if (! $next instanceof CarbonImmutable) {
+        if ($next === null) {
             return null;
         }
 
         while ($next->lessThanOrEqualTo(now())) {
-            $next = match ((string) $campaign->interval_unit) {
-                'minute' => $next->addMinutes($value),
-                'hour' => $next->addHours($value),
-                'day' => $next->addDays($value),
-                'week' => $next->addWeeks($value),
-                'month' => $next->addMonthsNoOverflow($value),
-                default => $next,
-            };
+            $candidate = $this->advance($next, $unit, $value);
+            if ($candidate === null) {
+                return null;
+            }
+
+            $next = $candidate;
         }
 
-        if ($campaign->ends_at !== null && $next->greaterThan($campaign->ends_at)) {
+        $endsAt = $campaign->ends_at === null
+            ? null
+            : CarbonImmutable::parse((string) $campaign->ends_at);
+
+        if ($endsAt !== null && $next->greaterThan($endsAt)) {
             return null;
         }
 
         return $next;
+    }
+
+    private function advance(CarbonImmutable $date, string $unit, int $value): ?CarbonImmutable
+    {
+        return match ($unit) {
+            'minute' => $date->addMinutes($value),
+            'hour' => $date->addHours($value),
+            'day' => $date->addDays($value),
+            'week' => $date->addWeeks($value),
+            'month' => $date->addMonthsNoOverflow($value),
+            default => null,
+        };
     }
 
     private function recordFailure(int $campaignId, Throwable $exception): void
