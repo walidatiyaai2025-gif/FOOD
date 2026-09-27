@@ -476,6 +476,16 @@ final class BusinessManagementController extends Controller
         return [...$data, 'is_active' => $request->boolean('is_active')];
     }
 
+    private function assertRetailCustomerStore(User $actor, int $storeId, Request $request): void
+    {
+        app(TenantContextResolver::class)->retail(
+            $actor,
+            $storeId,
+            $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
+            $request,
+        );
+    }
+
     /** @param list<int> $storeIds
      * @return list<int>
      */
