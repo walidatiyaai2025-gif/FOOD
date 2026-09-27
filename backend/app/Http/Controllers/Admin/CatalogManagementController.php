@@ -71,7 +71,7 @@ final class CatalogManagementController extends Controller
                     'categories.name as category',
                     'brands.name as brand',
                     'units.name as unit',
-                    DB::raw("(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path"),
+                    DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
                 ]),
             'categories' => DB::table('categories')
                 ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
