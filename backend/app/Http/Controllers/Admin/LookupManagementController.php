@@ -48,7 +48,7 @@ final class LookupManagementController extends Controller
         if ($isRetailScoped) {
             $requestedStoreId = $request->integer('store_id');
             if ($requestedStoreId > 0) {
-                abort_unless(in_array($requestedStoreId, $retailStoreIds, true), 404);
+                abort_unless(collect($retailStoreIds)->contains($requestedStoreId), 404);
                 $currentStoreId = $requestedStoreId;
             } else {
                 $currentStoreId = $retailStoreIds[0];
@@ -512,7 +512,7 @@ final class LookupManagementController extends Controller
         }
 
         $storeId = isset($data['store_id']) ? (int) $data['store_id'] : ($storeIds[0] ?? 0);
-        abort_unless(in_array($storeId, $storeIds, true), 404);
+        abort_unless(collect($storeIds)->contains($storeId), 404);
 
         return [LookupScopeService::STORE, $storeId];
     }
