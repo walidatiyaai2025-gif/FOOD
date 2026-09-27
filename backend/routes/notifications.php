@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
-use App\Http\Controllers\Api\V1\NotificationController as ApiNotificationController;
 use App\Http\Controllers\Admin\PromotionalNotificationCampaignController;
+use App\Http\Controllers\Api\V1\NotificationController as ApiNotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'management.dashboard'])
