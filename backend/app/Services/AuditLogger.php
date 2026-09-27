@@ -3,6 +3,9 @@
 namespace App\Services;
 
 use App\Models\AuditLog;
+use App\Models\Inventory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 
@@ -26,8 +29,11 @@ class AuditLogger
     ): AuditLog {
         $request ??= request();
 
+        $storeId = $this->resolveStoreId($target, $before, $after);
+
         return AuditLog::query()->create([
             'user_id' => $actor?->getAuthIdentifier(),
+            'store_id' => $storeId,
             'event' => $event,
             'auditable_type' => is_object($target) ? $target::class : null,
             'auditable_id' => is_object($target) && method_exists($target, 'getKey') ? $target->getKey() : null,
@@ -36,6 +42,31 @@ class AuditLogger
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
+    }
+
+    private function resolveStoreId(mixed $target, ?array $before, ?array $after): ?int
+    {
+        if ($target instanceof Model) {
+            $value = $target->getAttribute('store_id');
+            if (is_numeric($value)) {
+                return (int) $value;
+            }
+
+            if ($target instanceof Inventory) {
+                $storeId = DB::table('warehouses')->where('id', $target->warehouse_id)->value('store_id');
+
+                return $storeId === null ? null : (int) $storeId;
+            }
+        }
+
+        foreach ([$after, $before] as $values) {
+            $value = is_array($values) ? ($values['store_id'] ?? null) : null;
+            if (is_numeric($value)) {
+                return (int) $value;
+            }
+        }
+
+        return null;
     }
 
     public function redact(?array $values): ?array
