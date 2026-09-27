@@ -7,11 +7,13 @@ use App\Models\Brand;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CatalogImageService;
 use App\Services\LookupScopeService;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -23,6 +25,7 @@ final class LookupManagementController extends Controller
     public function __construct(
         private readonly LookupScopeService $scope,
         private readonly AuditLogger $audit,
+        private readonly CatalogImageService $images,
         private readonly AdminNavigation $navigation,
     ) {}
 
@@ -35,6 +38,23 @@ final class LookupManagementController extends Controller
             ? (string) $request->query('type')
             : 'brands';
         $table = $type;
+        $stores = $this->scope->visibleRetailStores($actor);
+        $isSuperAdmin = $actor->hasRole('SUPER_ADMIN');
+        $isB2bAdmin = $isSuperAdmin === false && $actor->hasRole('B2B_ADMIN');
+        $retailStoreIds = $stores->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+        $isRetailScoped = $isSuperAdmin === false && $isB2bAdmin === false && $retailStoreIds !== [];
+        $currentStoreId = null;
+
+        if ($isRetailScoped) {
+            $requestedStoreId = $request->integer('store_id');
+            if ($requestedStoreId > 0) {
+                abort_unless(collect($retailStoreIds)->contains($requestedStoreId), 404);
+                $currentStoreId = $requestedStoreId;
+            } else {
+                $currentStoreId = $retailStoreIds[0];
+            }
+        }
+
         if ($type === 'brands') {
             $query = $this->scope->visible(Brand::query(), $actor, 'brands');
         } else {
@@ -42,6 +62,11 @@ final class LookupManagementController extends Controller
         }
 
         $query->leftJoin('stores', 'stores.id', '=', $table.'.store_id');
+
+        if ($isRetailScoped) {
+            $query->where($table.'.scope', LookupScopeService::STORE)
+                ->where($table.'.store_id', $currentStoreId);
+        }
 
         $search = trim((string) $request->query('q', ''));
         if ($search !== '') {
@@ -55,8 +80,8 @@ final class LookupManagementController extends Controller
             });
         }
 
-        $scope = (string) $request->query('scope', 'all');
-        if (in_array($scope, [LookupScopeService::GLOBAL, LookupScopeService::B2B, LookupScopeService::STORE], true)) {
+        $scope = $isSuperAdmin ? (string) $request->query('scope', 'all') : 'all';
+        if ($isSuperAdmin && in_array($scope, [LookupScopeService::GLOBAL, LookupScopeService::B2B, LookupScopeService::STORE], true)) {
             $query->where($table.'.scope', $scope);
         }
 
@@ -67,8 +92,8 @@ final class LookupManagementController extends Controller
             $query->where($table.'.is_active', false);
         }
 
-        $storeId = $request->integer('store_id');
-        if ($storeId > 0) {
+        $storeId = $isSuperAdmin ? $request->integer('store_id') : ($currentStoreId ?? 0);
+        if ($isSuperAdmin && $storeId > 0) {
             $query->where($table.'.store_id', $storeId);
         }
 
@@ -95,9 +120,12 @@ final class LookupManagementController extends Controller
             'navContext' => 'lookup_management',
             'type' => $type,
             'records' => $records,
-            'stores' => $this->scope->visibleRetailStores($actor),
+            'stores' => $stores,
             'manageableScopes' => $this->scope->manageableScopes($actor),
-            'isSuperAdmin' => $actor->hasRole('SUPER_ADMIN'),
+            'isSuperAdmin' => $isSuperAdmin,
+            'isB2bAdmin' => $isB2bAdmin,
+            'isRetailScoped' => $isRetailScoped,
+            'currentStoreId' => $currentStoreId,
             'filters' => [
                 'q' => $search,
                 'scope' => $scope,
@@ -111,7 +139,7 @@ final class LookupManagementController extends Controller
     {
         $this->assertType($type);
         $actor = $this->actor($request);
-        $payload = $this->payload($request, $type, true);
+        $payload = $this->payload($request, $type, true, $actor);
         $this->authorizeScopedPermission($actor, 'lookups.manage', $payload['scope'], $payload['store_id']);
 
         $scopeKey = $this->scope->authorizeMutation(
@@ -128,6 +156,14 @@ final class LookupManagementController extends Controller
             ? Brand::query()->create($payload)
             : Unit::query()->create($payload);
 
+        if ($type === 'brands') {
+            $brandImage = $request->file('brand_image');
+            if ($brandImage instanceof UploadedFile) {
+                $this->images->replaceBrandImage((int) $lookup->getKey(), $brandImage);
+                $lookup->refresh();
+            }
+        }
+
         $this->audit->record(
             'lookup.'.$this->singular($type).'.created',
             $actor,
@@ -137,7 +173,7 @@ final class LookupManagementController extends Controller
             $request,
         );
 
-        return $this->redirect($type, $this->msg('تمت إضافة القيمة المرجعية.', 'Lookup value added.'));
+        return $this->redirect($type, $this->msg('تمت إضافة القيمة المرجعية.', 'Lookup value added.'), $payload['store_id']);
     }
 
     public function update(Request $request, string $type, int $lookup): RedirectResponse
@@ -160,7 +196,7 @@ final class LookupManagementController extends Controller
             $request,
         );
 
-        $payload = $this->payload($request, $type, false);
+        $payload = $this->payload($request, $type, false, $actor, $model);
         $this->authorizeScopedPermission($actor, 'lookups.manage', $payload['scope'], $payload['store_id']);
         $payload['scope_key'] = $this->scope->authorizeMutation(
             $actor,
@@ -174,6 +210,14 @@ final class LookupManagementController extends Controller
         $before = $model->toArray();
         $model->fill($payload)->save();
 
+        if ($type === 'brands') {
+            $brandImage = $request->file('brand_image');
+            if ($brandImage instanceof UploadedFile) {
+                $this->images->replaceBrandImage((int) $model->getKey(), $brandImage);
+                $model->refresh();
+            }
+        }
+
         $this->audit->record(
             'lookup.'.$this->singular($type).'.updated',
             $actor,
@@ -183,7 +227,7 @@ final class LookupManagementController extends Controller
             $request,
         );
 
-        return $this->redirect($type, $this->msg('تم تحديث القيمة المرجعية.', 'Lookup value updated.'));
+        return $this->redirect($type, $this->msg('تم تحديث القيمة المرجعية.', 'Lookup value updated.'), $payload['store_id']);
     }
 
     public function toggle(Request $request, string $type, int $lookup): RedirectResponse
@@ -207,7 +251,7 @@ final class LookupManagementController extends Controller
         );
 
         $before = $model->toArray();
-        $model->is_active = ! (bool) $model->is_active;
+        $model->is_active = (bool) $model->is_active === false;
         $model->save();
 
         $this->audit->record(
@@ -219,7 +263,11 @@ final class LookupManagementController extends Controller
             $request,
         );
 
-        return $this->redirect($type, $this->msg('تم تحديث حالة القيمة المرجعية.', 'Lookup status updated.'));
+        return $this->redirect(
+            $type,
+            $this->msg('تم تحديث حالة القيمة المرجعية.', 'Lookup status updated.'),
+            $model->store_id === null ? null : (int) $model->store_id,
+        );
     }
 
     public function destroy(Request $request, string $type, int $lookup): RedirectResponse
@@ -253,6 +301,9 @@ final class LookupManagementController extends Controller
         }
 
         $before = $model->toArray();
+        if ($type === 'brands') {
+            $this->images->removeBrandImage((int) $model->getKey());
+        }
         $this->audit->record(
             'lookup.'.$this->singular($type).'.deleted',
             $actor,
@@ -263,14 +314,23 @@ final class LookupManagementController extends Controller
         );
         $model->delete();
 
-        return $this->redirect($type, $this->msg('تم حذف القيمة المرجعية.', 'Lookup value deleted.'));
+        return $this->redirect(
+            $type,
+            $this->msg('تم حذف القيمة المرجعية.', 'Lookup value deleted.'),
+            $model->store_id === null ? null : (int) $model->store_id,
+        );
     }
 
     /** @return array<string,mixed> */
-    private function payload(Request $request, string $type, bool $creating): array
-    {
+    private function payload(
+        Request $request,
+        string $type,
+        bool $creating,
+        User $actor,
+        Brand|Unit|null $existing = null,
+    ): array {
         $rules = [
-            'scope' => ['required', Rule::in([
+            'scope' => ['nullable', Rule::in([
                 LookupScopeService::GLOBAL,
                 LookupScopeService::B2B,
                 LookupScopeService::STORE,
@@ -284,22 +344,20 @@ final class LookupManagementController extends Controller
 
         if ($type === 'brands') {
             $rules['slug'] = ['nullable', 'string', 'max:255'];
+            $rules['brand_image'] = [
+                ($creating || ($existing instanceof Brand && blank($existing->image_path))) ? 'required' : 'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
+                'dimensions:min_width=256,min_height=256,max_width=2048,max_height=2048',
+            ];
         } else {
             $rules['code'] = ['required', 'string', 'max:50'];
             $rules['decimal_places'] = ['required', 'integer', 'between:0,6'];
         }
 
         $data = $request->validate($rules);
-        $scope = (string) $data['scope'];
-        $storeId = $scope === LookupScopeService::STORE
-            ? (isset($data['store_id']) ? (int) $data['store_id'] : null)
-            : null;
-
-        if ($scope === LookupScopeService::STORE && $storeId === null) {
-            throw ValidationException::withMessages([
-                'store_id' => [$this->msg('المتجر مطلوب للنطاق Retail Store.', 'A store is required for Retail Store scope.')],
-            ]);
-        }
+        [$scope, $storeId] = $this->mutationScope($actor, $data);
 
         $payload = [
             'scope' => $scope,
@@ -406,9 +464,67 @@ final class LookupManagementController extends Controller
         return $type === 'brands' ? 'brand' : 'unit';
     }
 
-    private function redirect(string $type, string $message): RedirectResponse
+    /** @param array<string,mixed> $data
+     * @return array{0:string,1:?int}
+     */
+    private function mutationScope(User $actor, array $data): array
     {
-        return redirect()->route('admin.lookups.index', ['type' => $type])->with('status', $message);
+        if ($actor->hasRole('SUPER_ADMIN')) {
+            $scope = (string) ($data['scope'] ?? '');
+            if (in_array($scope, [LookupScopeService::GLOBAL, LookupScopeService::B2B, LookupScopeService::STORE], true) === false) {
+                throw ValidationException::withMessages([
+                    'scope' => [$this->msg('اختر نطاقًا صالحًا.', 'Select a valid scope.')],
+                ]);
+            }
+
+            $storeId = $scope === LookupScopeService::STORE && isset($data['store_id'])
+                ? (int) $data['store_id']
+                : null;
+
+            if ($scope === LookupScopeService::STORE && $storeId === null) {
+                throw ValidationException::withMessages([
+                    'store_id' => [$this->msg('المتجر مطلوب لنطاق التجزئة.', 'A store is required for Retail Store scope.')],
+                ]);
+            }
+
+            return [$scope, $storeId];
+        }
+
+        if ($actor->hasRole('B2B_ADMIN')) {
+            if (isset($data['scope']) && $data['scope'] !== LookupScopeService::B2B) {
+                abort(403);
+            }
+            if (empty($data['store_id']) === false) {
+                abort(403);
+            }
+
+            return [LookupScopeService::B2B, null];
+        }
+
+        $storeIds = $this->scope->visibleRetailStores($actor)
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        abort_if($storeIds === [], 403);
+
+        if (isset($data['scope']) && $data['scope'] !== LookupScopeService::STORE) {
+            abort(403);
+        }
+
+        $storeId = isset($data['store_id']) ? (int) $data['store_id'] : ($storeIds[0] ?? 0);
+        abort_unless(collect($storeIds)->contains($storeId), 404);
+
+        return [LookupScopeService::STORE, $storeId];
+    }
+
+    private function redirect(string $type, string $message, ?int $storeId = null): RedirectResponse
+    {
+        $params = ['type' => $type];
+        if ($storeId !== null) {
+            $params['store_id'] = $storeId;
+        }
+
+        return redirect()->route('admin.lookups.index', $params)->with('status', $message);
     }
 
     private function msg(string $ar, string $en): string

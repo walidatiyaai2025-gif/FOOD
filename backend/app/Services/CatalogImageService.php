@@ -129,6 +129,32 @@ final class CatalogImageService
         $this->deletePublicPath($path);
     }
 
+    public function replaceBrandImage(int $brandId, UploadedFile $file): string
+    {
+        $oldPath = DB::table('brands')->where('id', $brandId)->value('image_path');
+        $path = $file->store("catalog/brands/{$brandId}", 'public');
+        $storedPath = 'storage/'.$path;
+
+        DB::table('brands')->where('id', $brandId)->update([
+            'image_path' => $storedPath,
+            'updated_at' => now(),
+        ]);
+
+        $this->deletePublicPath($oldPath);
+
+        return $storedPath;
+    }
+
+    public function removeBrandImage(int $brandId): void
+    {
+        $path = DB::table('brands')->where('id', $brandId)->value('image_path');
+        DB::table('brands')->where('id', $brandId)->update([
+            'image_path' => null,
+            'updated_at' => now(),
+        ]);
+        $this->deletePublicPath($path);
+    }
+
     public function purgeProductImages(int $productId): void
     {
         $paths = DB::table('product_images')->where('product_id', $productId)->pluck('path');

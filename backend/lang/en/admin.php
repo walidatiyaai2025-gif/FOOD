@@ -25,7 +25,7 @@ return [
     'translation_center' => 'Translation Center',
     'security_center' => 'Users & Permissions',
     'catalog_management' => 'Catalog & Categories Management',
-    'lookup_management' => 'Lookup Management Center',
+    'lookup_management' => 'Brands & Units',
     'business_management' => 'Operations & Data Management',
     'retail_store_provisioning' => 'Retail Stores / Provisioning',
     'shell_ready' => 'Management shell is ready',
