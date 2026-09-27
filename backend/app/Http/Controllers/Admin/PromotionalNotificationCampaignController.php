@@ -148,7 +148,7 @@ final class PromotionalNotificationCampaignController extends Controller
         NotificationCampaignDispatcher $dispatcher,
     ): RedirectResponse {
         $actor = $this->authorizeCampaign($request, $campaign);
-        abort_if($campaign->status === 'cancelled', 409);
+        abort_if(in_array($campaign->status, ['completed', 'cancelled'], true), 409);
         $before = $campaign->toArray();
         $campaign->update(['status' => 'active', 'next_run_at' => now()]);
         $audit->record('notification_campaign.send_now', $actor, $campaign, $before, $campaign->fresh()->toArray(), $request);
