@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\RetailWholesaleAccountService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
@@ -21,6 +22,7 @@ final class RetailStoreProvisioningController extends Controller
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly TenantContextResolver $tenantContext,
+        private readonly RetailWholesaleAccountService $wholesaleAccounts,
     ) {}
 
     public function index(Request $request): View
@@ -85,8 +87,11 @@ final class RetailStoreProvisioningController extends Controller
                 ['created_at' => now(), 'updated_at' => now()],
             );
 
+            $wholesaleCustomer = $this->wholesaleAccounts->ensureForStore($store);
+
             $this->audit->record('retail_store.provisioned', $actor, $store, null, [
                 'store_id' => $store->id,
+                'b2b_customer_id' => $wholesaleCustomer->getKey(),
                 'manager_user_id' => $manager->id,
                 'manager_role' => $role->code,
                 'is_active' => $store->is_active,
@@ -115,6 +120,7 @@ final class RetailStoreProvisioningController extends Controller
             'name' => $data['name'],
             'is_active' => $request->boolean('is_active'),
         ]);
+        $this->wholesaleAccounts->syncForStore($store);
 
         $this->audit->record('retail_store.updated', $actor, $store, $before, $store->only(['code', 'name', 'is_active']), $request);
 
