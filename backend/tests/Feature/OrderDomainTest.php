@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\B2bCustomer;
+use App\Models\B2cCustomer;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -337,9 +339,34 @@ class OrderDomainTest extends TestCase
         string $status = 'pending',
         float $reservation = 0,
     ): Order {
+        if ($channel === 'b2b') {
+            $domainCustomer = B2bCustomer::query()->firstOrCreate(
+                ['legacy_customer_id' => $customer->id],
+                [
+                    'user_id' => $customer->user_id,
+                    'name' => $customer->name,
+                    'phone' => $customer->phone,
+                    'email' => $customer->email,
+                ],
+            );
+            $domainReferences = ['b2b_customer_id' => $domainCustomer->id];
+        } else {
+            $domainCustomer = B2cCustomer::query()->firstOrCreate(
+                ['legacy_customer_id' => $customer->id, 'store_id' => $storeId],
+                [
+                    'user_id' => $customer->user_id,
+                    'name' => $customer->name,
+                    'phone' => $customer->phone,
+                    'email' => $customer->email,
+                ],
+            );
+            $domainReferences = ['b2c_customer_id' => $domainCustomer->id];
+        }
+
         $order = Order::query()->create([
             'store_id' => $storeId,
             'customer_id' => $customer->id,
+            ...$domainReferences,
             'address_id' => null,
             'order_number' => 'TEST-'.strtoupper($channel).'-'.uniqid(),
             'channel' => $channel,
