@@ -89,7 +89,7 @@ $scopeLabels=['global'=>$ar?'عام للمنصة':'Platform global','b2b'=>$ar?'
 <label>{{ $ar?'النطاق':'Scope' }}<select name="scope">@foreach($manageableScopes as $scope)<option value="{{ $scope }}" @selected($record->scope===$scope)>{{ $scopeLabels[$scope] }}</option>@endforeach</select></label>
 @if($stores->isNotEmpty())<label>{{ $ar?'المتجر':'Store' }}<select name="store_id"><option value="">—</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected($record->store_id==$store->id)>{{ $store->name }}</option>@endforeach</select></label>@endif
 <input type="hidden" name="is_active" value="{{ $record->is_active?1:0 }}">
-@if($isSuperAdmin && $record->scope==='store')<label class="support"><input type="checkbox" name="support_access" value="1"> {{ $ar?'دعم صريح':'Support access' }}</label>@endif
+@if($isSuperAdmin)<label class="support"><input type="checkbox" name="support_access" value="1"> {{ $ar?'دعم صريح عند النقل/الإدارة بنطاق متجر':'Explicit support access for store scope' }}</label>@endif
 <button class="btn">{{ $ar?'حفظ':'Save' }}</button>
 </form>
 <div class="actions" style="margin-top:8px">
