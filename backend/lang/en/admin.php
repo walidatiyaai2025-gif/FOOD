@@ -25,6 +25,7 @@ return [
     'translation_center' => 'Translation Center',
     'security_center' => 'Users & Permissions',
     'catalog_management' => 'Catalog & Categories Management',
+    'business_management' => 'Operations & Data Management',
     'shell_ready' => 'Management shell is ready',
     'shell_description' => 'This is the shared routing and layout layer. Product, order and reporting screens are implemented in their own issues without creating separate admin applications.',
     'authorization_boundary' => 'UI visibility is not authorization; every real operation must continue to enforce permissions and store scope on the server.',
