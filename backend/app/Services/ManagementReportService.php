@@ -228,6 +228,7 @@ final class ManagementReportService
         $leastByRevenue = $ranked->sortBy('revenue')->values();
 
         $zeroSalesQuery = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
             ->where('products.is_active', true)
             ->when(
@@ -237,6 +238,14 @@ final class ManagementReportService
             ->when(
                 $filters['category_id'] !== null,
                 fn (Builder $query) => $query->where('products.category_id', $filters['category_id']),
+            )
+            ->when(
+                $filters['channel'] !== null,
+                fn (Builder $query) => $query->where('catalogs.channel', $filters['channel']),
+            )
+            ->when(
+                $filters['store_id'] !== null,
+                fn (Builder $query) => $query->where('catalogs.store_id', $filters['store_id']),
             )
             ->when(
                 $filters['store_id'] !== null,
@@ -469,9 +478,15 @@ final class ManagementReportService
 
         $inventory = DB::table('inventories')
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->join('stores', 'stores.id', '=', 'warehouses.store_id')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->when(
                 $filters['store_id'] !== null,
                 fn (Builder $query) => $query->where('warehouses.store_id', $filters['store_id']),
+            )
+            ->when(
+                $filters['channel'] !== null,
+                fn (Builder $query) => $query->where('store_types.code', strtoupper($filters['channel'])),
             );
 
         $formattedRows = $rows
