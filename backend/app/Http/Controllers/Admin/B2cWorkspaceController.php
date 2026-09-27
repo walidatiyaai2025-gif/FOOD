@@ -59,6 +59,11 @@ class B2cWorkspaceController extends Controller
         return match ($module) {
             'products' => [
                 'columns' => ['sku', 'name', 'category', 'store', 'price', 'status'],
+                'actions' => $user->hasPermission('catalog.view') ? [
+                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / edit products', 'url' => route('admin.manage.products')],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage categories', 'url' => route('admin.manage.categories')],
+                    ['label' => app()->getLocale() === 'ar' ? 'العلامات والوحدات' : 'Brands & units', 'url' => route('admin.manage.brands')],
+                ] : [],
                 'rows' => DB::table('store_products')
                     ->join('products', 'products.id', '=', 'store_products.product_id')
                     ->join('stores', 'stores.id', '=', 'store_products.store_id')
@@ -84,6 +89,10 @@ class B2cWorkspaceController extends Controller
             ],
             'inventory' => [
                 'columns' => ['sku', 'name', 'warehouse', 'quantity', 'reserved', 'available'],
+                'actions' => $user->hasPermission('inventory.view') ? [
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن' : 'Manage warehouses', 'url' => route('admin.manage.warehouses')],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المنتجات' : 'Manage products', 'url' => route('admin.manage.products')],
+                ] : [],
                 'rows' => DB::table('inventories')
                     ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
                     ->join('products', 'products.id', '=', 'inventories.product_id')
@@ -133,6 +142,9 @@ class B2cWorkspaceController extends Controller
             ],
             'customers' => [
                 'columns' => ['name', 'phone', 'email', 'orders', 'spent', 'last_order'],
+                'actions' => $user->hasPermission('customers.view') ? [
+                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / edit customers', 'url' => route('admin.manage.customers')],
+                ] : [],
                 'rows' => DB::table('customers')
                     ->join('orders', 'orders.customer_id', '=', 'customers.id')
                     ->whereIn('orders.store_id', $storeIds)
@@ -158,6 +170,9 @@ class B2cWorkspaceController extends Controller
             ],
             'promotions' => [
                 'columns' => ['name', 'store', 'type', 'value', 'period', 'status'],
+                'actions' => $user->hasPermission('promotions.view') ? [
+                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العروض' : 'Add / edit promotions', 'url' => route('admin.manage.promotions')],
+                ] : [],
                 'rows' => DB::table('promotions')
                     ->join('stores', 'stores.id', '=', 'promotions.store_id')
                     ->whereIn('promotions.store_id', $storeIds)
@@ -206,6 +221,10 @@ class B2cWorkspaceController extends Controller
             ],
             'storefront' => [
                 'columns' => ['store', 'products', 'banners', 'status'],
+                'actions' => $user->hasPermission('stores.view') ? [
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المتاجر' : 'Manage stores', 'url' => route('admin.manage.stores')],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة البانرات' : 'Manage banners', 'url' => route('admin.manage.banners')],
+                ] : [],
                 'rows' => DB::table('stores')
                     ->whereIn('stores.id', $storeIds)
                     ->orderBy('stores.name')
@@ -219,6 +238,10 @@ class B2cWorkspaceController extends Controller
             ],
             'content' => [
                 'columns' => ['title', 'store', 'image', 'target', 'sort_order', 'status'],
+                'actions' => $user->hasPermission('promotions.view') ? [
+                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل البانرات' : 'Add / edit banners', 'url' => route('admin.manage.banners')],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة العروض' : 'Manage promotions', 'url' => route('admin.manage.promotions')],
+                ] : [],
                 'rows' => DB::table('banners')
                     ->join('stores', 'stores.id', '=', 'banners.store_id')
                     ->whereIn('banners.store_id', $storeIds)
