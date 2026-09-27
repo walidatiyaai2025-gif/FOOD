@@ -26,9 +26,10 @@ final class OperationalTenantScope
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('user_store_roles.user_id', $user->getKey())
             ->where('roles.is_active', true)
-            ->whereIn('roles.scope', ['store', 'both'])
+            ->where('roles.scope', 'store')
             ->where('permissions.code', $permission)
             ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C')
             ->when($channel !== null, fn ($query) => $query->where('store_types.code', $channel))
             ->pluck('stores.id')
             ->map(static fn ($id): int => (int) $id);
@@ -36,7 +37,7 @@ final class OperationalTenantScope
         if ($user->hasPermission($permission)) {
             $globalRoles = $user->roles()
                 ->where('roles.is_active', true)
-                ->whereIn('roles.scope', ['global', 'both'])
+                ->where('roles.scope', 'global')
                 ->pluck('roles.code')
                 ->all();
 
