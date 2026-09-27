@@ -30,19 +30,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve release version boundary
+      - name: Resolve cumulative update boundary
         shell: bash
+        env:
+          FOODEX_UPDATE_MINIMUM_VERSION: "1.0.6"
         run: |
           set -euo pipefail
           current_version="$(tr -d '[:space:]' < VERSION)"
-          update_base_ref="$(git log --format=%H -- VERSION | sed -n '2p')"
+          minimum_version="$FOODEX_UPDATE_MINIMUM_VERSION"
+          update_base_ref=""
+
+          while read -r candidate; do
+            candidate_version="$(git show "$candidate":VERSION 2>/dev/null | tr -d '[:space:]' || true)"
+            if [[ "$candidate_version" == "$minimum_version" ]]; then
+              update_base_ref="$candidate"
+              break
+            fi
+          done < <(git log --format=%H -- VERSION)
+
           if [[ -z "$update_base_ref" ]]; then
-            echo "::error::Cannot resolve the previous VERSION boundary."
+            echo "::error::Cannot resolve VERSION boundary for cumulative minimum $minimum_version."
             exit 1
           fi
-          previous_version="$(git show "$update_base_ref":VERSION | tr -d '[:space:]')"
+
           echo "CURRENT_VERSION=$current_version" >> "$GITHUB_ENV"
-          echo "PREVIOUS_VERSION=$previous_version" >> "$GITHUB_ENV"
+          echo "MINIMUM_VERSION=$minimum_version" >> "$GITHUB_ENV"
           echo "UPDATE_BASE_REF=$update_base_ref" >> "$GITHUB_ENV"
 
       - name: Build deterministic FOODEX update
@@ -50,7 +62,7 @@ jobs:
           python3 scripts/build-update-bundle.py \
             --base "$UPDATE_BASE_REF" \
             --target-version "$CURRENT_VERSION" \
-            --minimum-current-version "$PREVIOUS_VERSION" \
+            --minimum-current-version "$MINIMUM_VERSION" \
             --output-dir dist/update \
             --release-notes "FOODEX $CURRENT_VERSION cumulative update"
 
@@ -64,7 +76,7 @@ jobs:
           digest = hashlib.sha256(package.read_bytes()).hexdigest()
           import os
           assert manifest["target_version"] == os.environ["CURRENT_VERSION"]
-          assert manifest["minimum_current_version"] == os.environ["PREVIOUS_VERSION"]
+          assert manifest["minimum_current_version"] == os.environ["MINIMUM_VERSION"]
           assert manifest["requires_full_redeploy"] is False
           assert manifest["sha256"] == digest
           with zipfile.ZipFile(package) as archive:
@@ -93,11 +105,11 @@ jobs:
           if git diff --cached --quiet; then
             echo "Generated update package is already published."
           else
-            git commit -m "release: publish generated FOODEX 1.0.6 update bundle"
+            git commit -m "release: publish generated FOODEX ${CURRENT_VERSION} cumulative update bundle"
             git push origin "HEAD:release/${CURRENT_VERSION}-update"
           fi
 
-      - name: Upload FOODEX 1.0.6 update artifact
+      - name: Upload FOODEX update artifact
         uses: actions/upload-artifact@v4
         with:
           name: FOODEX-Update-${{ env.CURRENT_VERSION }}
