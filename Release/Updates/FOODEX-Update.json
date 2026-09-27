@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.2",
-  "minimum_current_version": "1.0.1",
-  "sha256": "2052a258d35e1d2d39b96de0428f5215b3e714d5864de07b7823b50aec77cf71",
+  "target_version": "1.0.3",
+  "minimum_current_version": "1.0.2",
+  "sha256": "ec4e1eae5e2fb9eca872b7797bbe86861aae0b86728219ae44adc39f8216bb2d",
   "contains_migrations": false,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release: build MySQL-ready FOODEX 1.0.2 bundle (#230)",
+  "release_notes": "fix: guarantee fresh-install Super Admin access (#233)",
   "dashboard_fields": {
-    "target_version": "1.0.2",
-    "minimum_current_version": "1.0.1",
-    "sha256": "2052a258d35e1d2d39b96de0428f5215b3e714d5864de07b7823b50aec77cf71",
+    "target_version": "1.0.3",
+    "minimum_current_version": "1.0.2",
+    "sha256": "ec4e1eae5e2fb9eca872b7797bbe86861aae0b86728219ae44adc39f8216bb2d",
     "contains_migrations": false,
-    "release_notes": "release: build MySQL-ready FOODEX 1.0.2 bundle (#230)"
+    "release_notes": "fix: guarantee fresh-install Super Admin access (#233)"
   }
 }
