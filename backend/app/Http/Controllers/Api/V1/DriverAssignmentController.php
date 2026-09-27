@@ -44,7 +44,7 @@ class DriverAssignmentController extends Controller
         abort_unless(strtolower((string) $driver->driver_type) === $channel, 409, 'Driver and order channels must match.');
         $ability = "drivers.{$channel}.manage";
         $user = $request->user();
-        abort_unless($user instanceof User && $user->hasPermission($ability, (int) $order->store_id), 403);
+        abort_unless($user instanceof User, 401);
         app(OperationalTenantScope::class)->assertStore($user, (int) $order->store_id, $ability, $channel);
 
         if ($driver->store_id === null) {
