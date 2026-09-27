@@ -191,7 +191,7 @@ def main() -> int:
             "target_version": args.target_version,
             "minimum_current_version": args.minimum_current_version,
             "sha256": package_hash,
-            "contains_migrations": True,
+            "contains_migrations": contains_migrations,
             "release_notes": args.release_notes,
         },
     }
@@ -206,7 +206,7 @@ def main() -> int:
     print(f"FOODEX update package: {package}")
     print(f"target_version={args.target_version}")
     print(f"minimum_current_version={args.minimum_current_version}")
-    print("contains_migrations=true")
+    print(f"contains_migrations={str(contains_migrations).lower()}")
     print(f"file_count={len(files)}")
     print(f"migration_count={len(migrations)}")
     print(f"sha256={package_hash}")
