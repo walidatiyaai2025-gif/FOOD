@@ -7,12 +7,12 @@
     @include('admin._brand-components')
     <style id="foodex-admin-shell">
         body{margin:0;min-height:100vh}
-        .shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width)}
-        .shell-sidebar{grid-column:2;grid-row:1;min-height:100vh;padding:var(--foodex-space-5)}
-        .main{grid-column:1;grid-row:1;min-width:0;padding:var(--foodex-space-8)}
+        .shell{direction:ltr;min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width)}
+        .shell-sidebar{grid-column:2;grid-row:1;direction:rtl;min-height:100vh;padding:var(--foodex-space-5)}
+        .main{grid-column:1;grid-row:1;direction:rtl;min-width:0;padding:var(--foodex-space-8)}
         html[dir=ltr] .shell{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
-        html[dir=ltr] .shell-sidebar{grid-column:1}
-        html[dir=ltr] .main{grid-column:2}
+        html[dir=ltr] .shell-sidebar{grid-column:1;direction:ltr}
+        html[dir=ltr] .main{grid-column:2;direction:ltr}
         .header{display:flex;gap:var(--foodex-space-4);align-items:flex-start;justify-content:space-between;margin-bottom:var(--foodex-space-6);padding:var(--foodex-space-5);background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm)}
         .eyebrow{color:var(--foodex-muted);margin:0 0 var(--foodex-space-1);font-size:var(--foodex-text-sm);font-weight:var(--foodex-font-weight-medium)}
         h1{margin:0;font-size:clamp(1.55rem,2.2vw,var(--foodex-text-2xl));line-height:var(--foodex-leading-tight);font-weight:var(--foodex-font-weight-bold)}

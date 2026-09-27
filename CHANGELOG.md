@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4 - Admin CRUD and Arabic RTL
+- Fix the unified Arabic admin shell so the navigation sidebar renders on the physical right while English remains left-to-right.
+- Add a server-authorized Catalog & Store Management center with product, category, brand, unit and store administration.
+- Add product create/edit/delete/deactivate behavior, store assignment and pricing, and category create/edit/delete with dependency protection.
+- Wire dashboard and B2C product actions to the management center and add regression coverage for fresh CRUD workflows.
+
 ## 1.0.3 - First-install Admin Access
 - Redirect unauthenticated management requests to the admin login instead of a raw 401 page.
 - Allow the installer-created `SUPER_ADMIN` to open B2C management surfaces before any stores exist.
