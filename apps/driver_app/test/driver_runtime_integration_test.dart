@@ -38,7 +38,7 @@ class FakeAssignments implements DriverAssignmentRepository {
       ];
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status) async {}
+  Future<void> transition(int id, DriverChannel channel, String status, {String? note}) async {}
 }
 
 void main() {

@@ -136,42 +136,99 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
           if (raw is! Map) {
             throw const DriverApiException('Invalid assignment row.');
           }
-          final map = Map<String, dynamic>.from(raw);
-          final assignmentChannel = switch (
-              (map['assignment_type'] ?? '').toString().toLowerCase()) {
-            'b2c' => DriverChannel.b2c,
-            'b2b' => DriverChannel.b2b,
-            _ => throw const DriverApiException('Invalid assignment channel.'),
-          };
-          final orderId = (map['order_id'] as num?)?.toInt() ?? 0;
-          final statuses = (map['available_statuses'] as List? ?? const [])
-              .map((status) => status.toString())
-              .toList(growable: false);
-
-          return DriverAssignment(
-            id: (map['id'] as num).toInt(),
-            orderId: orderId,
-            channel: assignmentChannel,
-            reference: '#$orderId',
-            status: (map['status'] ?? '').toString(),
-            availableStatuses: statuses,
-          );
+          return _assignment(Map<String, dynamic>.from(raw));
         })
         .where((assignment) => assignment.channel == channel)
         .toList(growable: false);
+  }
+
+  DriverAssignment _assignment(Map<String, dynamic> map) {
+    final assignmentChannel = switch (
+        (map['assignment_type'] ?? '').toString().toLowerCase()) {
+      'b2c' => DriverChannel.b2c,
+      'b2b' => DriverChannel.b2b,
+      _ => throw const DriverApiException('Invalid assignment channel.'),
+    };
+
+    final order = map['order'] is Map
+        ? Map<String, dynamic>.from(map['order'] as Map)
+        : <String, dynamic>{};
+    final customer = order['customer'] is Map
+        ? Map<String, dynamic>.from(order['customer'] as Map)
+        : <String, dynamic>{};
+    final store = order['store'] is Map
+        ? Map<String, dynamic>.from(order['store'] as Map)
+        : <String, dynamic>{};
+    final payment = order['payment'] is Map
+        ? Map<String, dynamic>.from(order['payment'] as Map)
+        : <String, dynamic>{};
+    final address = order['address'] is Map
+        ? Map<String, dynamic>.from(order['address'] as Map)
+        : <String, dynamic>{};
+
+    final addressParts = [
+      address['label'],
+      address['line1'],
+      address['line2'],
+      address['area'],
+      address['city'],
+    ]
+        .where((value) => value != null && value.toString().trim().isNotEmpty)
+        .map((value) => value.toString().trim())
+        .toList(growable: false);
+
+    final items = (order['items'] as List? ?? const [])
+        .whereType<Map>()
+        .map((raw) {
+          final item = Map<String, dynamic>.from(raw);
+          return DriverOrderItem(
+            name: (item['name'] ?? '').toString(),
+            sku: (item['sku'] ?? '').toString(),
+            quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
+            lineTotal: (item['line_total'] as num?)?.toDouble() ?? 0,
+          );
+        })
+        .toList(growable: false);
+
+    return DriverAssignment(
+      id: (map['id'] as num).toInt(),
+      orderId: (map['order_id'] as num?)?.toInt() ?? 0,
+      storeId: (map['store_id'] as num?)?.toInt() ?? 0,
+      channel: assignmentChannel,
+      reference: (order['number'] ?? '#${(map['order_id'] as num?)?.toInt() ?? 0}').toString(),
+      status: (map['status'] ?? '').toString(),
+      storeName: (store['name'] ?? '').toString(),
+      orderStatus: (order['status'] ?? '').toString(),
+      customerName: (customer['name'] ?? '').toString(),
+      customerPhone: (customer['phone'] ?? '').toString(),
+      address: addressParts.join(' · '),
+      currency: (order['currency'] ?? 'KWD').toString(),
+      grandTotal: (order['grand_total'] as num?)?.toDouble() ?? 0,
+      paymentMethod: (order['payment_method'] ?? '').toString(),
+      paymentStatus: (payment['status'] ?? '').toString(),
+      customerNote: (order['customer_note'] ?? '').toString(),
+      items: items,
+      availableStatuses: (map['available_statuses'] as List? ?? const [])
+          .map((status) => status.toString())
+          .toList(growable: false),
+    );
   }
 
   @override
   Future<void> transition(
     int id,
     DriverChannel channel,
-    String status,
-  ) async {
+    String status, {
+    String? note,
+  }) async {
     await _request(
       () => _client.post(
         _endpoint('driver/assignments/$id/status'),
         headers: _headers,
-        body: jsonEncode({'status': status}),
+        body: jsonEncode({
+          'status': status,
+          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        }),
       ),
     );
   }
