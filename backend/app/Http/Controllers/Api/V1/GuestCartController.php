@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Pricing\B2bPriceResolver;
 use App\Http\Controllers\Controller;
-use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
+use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
