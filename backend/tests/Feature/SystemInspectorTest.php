@@ -9,8 +9,8 @@ use App\Services\SystemInspectorRecorder;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Tests\TestCase;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Tests\TestCase;
 
 class SystemInspectorTest extends TestCase
 {
