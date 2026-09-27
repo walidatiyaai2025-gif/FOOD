@@ -54,10 +54,13 @@ final class B2cDashboardService
         $activeWindow = max(1, (int) config('admin.active_user_window_minutes', 15));
         $activeSince = now()->subMinutes($activeWindow);
         $activeUsers = DB::table('users')
-            ->where('is_active', true)
-            ->whereNotNull('last_seen_at')
-            ->where('last_seen_at', '>=', $activeSince)
-            ->count();
+            ->join('user_store_roles', 'user_store_roles.user_id', '=', 'users.id')
+            ->whereIn('user_store_roles.store_id', $storeIds)
+            ->where('users.is_active', true)
+            ->whereNotNull('users.last_seen_at')
+            ->where('users.last_seen_at', '>=', $activeSince)
+            ->distinct()
+            ->count('users.id');
 
         return [
             'selected_date' => $selected->toDateString(),
@@ -87,14 +90,9 @@ final class B2cDashboardService
             'distribution' => $this->distribution($orders),
             'low_stock' => $this->lowStock($storeIds),
             'recent_orders' => $this->recentOrders($storeIds),
-            'quick_actions' => $this->quickActions($user),
+            'quick_actions' => $this->quickActions($user, $storeIds),
             'mobile_apps' => $this->mobileApps(),
-            'notifications_unread' => DB::table('notifications')
-                ->whereNull('read_at')
-                ->where(function (Builder $query) use ($user): void {
-                    $query->whereNull('user_id')->orWhere('user_id', $user->id);
-                })
-                ->count(),
+            'notifications_unread' => $this->unreadNotifications($user, $storeIds),
             'search' => $this->search($storeIds, trim((string) $search)),
         ];
     }
@@ -193,7 +191,7 @@ final class B2cDashboardService
     private function recentOrders(array $storeIds): array
     {
         return DB::table('orders')
-            ->join('customers', 'customers.id', '=', 'orders.customer_id')
+            ->join('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
             ->leftJoin('order_items', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2c')
@@ -204,7 +202,7 @@ final class B2cDashboardService
                 'orders.grand_total',
                 'orders.currency',
                 'orders.created_at',
-                'customers.name as customer',
+                'b2c_customers.name as customer',
             ])
             ->selectRaw('COALESCE(SUM(order_items.quantity), 0) as items_count')
             ->groupBy(
@@ -214,7 +212,7 @@ final class B2cDashboardService
                 'orders.grand_total',
                 'orders.currency',
                 'orders.created_at',
-                'customers.name',
+                'b2c_customers.name',
             )
             ->orderByDesc('orders.created_at')
             ->limit(5)
@@ -232,21 +230,22 @@ final class B2cDashboardService
             ->all();
     }
 
-    private function quickActions(User $user): array
+    /** @param list<int> $storeIds */
+    private function quickActions(User $user, array $storeIds): array
     {
         $actions = [];
 
-        if ($user->hasPermission('catalog.create') || $user->hasPermission('catalog.manage')) {
+        if ($this->canAnyStore($user, $storeIds, 'catalog.create') || $this->canAnyStore($user, $storeIds, 'catalog.manage')) {
             $actions[] = ['key' => 'add_product', 'route' => 'admin.catalog.index', 'params' => ['tab' => 'products']];
         }
-        if ($user->hasPermission('orders.view')) {
+        if ($this->canAnyStore($user, $storeIds, 'orders.view')) {
             $actions[] = ['key' => 'manage_orders', 'route' => 'admin.b2c.module', 'params' => ['module' => 'orders']];
         }
-        if ($user->hasPermission('notifications.manage') && Route::has('admin.notifications.index')) {
-            $actions[] = ['key' => 'send_notification', 'route' => 'admin.notifications.index', 'params' => []];
+        if ($this->canAnyStore($user, $storeIds, 'notifications.manage') && Route::has('admin.notification-campaigns.index')) {
+            $actions[] = ['key' => 'send_notification', 'route' => 'admin.notification-campaigns.index', 'params' => []];
         }
-        if ($user->hasPermission('reports.view')) {
-            $actions[] = ['key' => 'view_reports', 'route' => 'admin.reports.index', 'params' => []];
+        if ($this->canAnyStore($user, $storeIds, 'reports.view')) {
+            $actions[] = ['key' => 'view_reports', 'route' => 'admin.reports.index', 'params' => ['channel' => 'b2c']];
         }
 
         return $actions;
@@ -285,16 +284,16 @@ final class B2cDashboardService
         $needle = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $term).'%';
 
         $orders = DB::table('orders')
-            ->join('customers', 'customers.id', '=', 'orders.customer_id')
+            ->join('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2c')
             ->where(function (Builder $query) use ($needle): void {
                 $query->where('orders.order_number', 'like', $needle)
-                    ->orWhere('customers.name', 'like', $needle);
+                    ->orWhere('b2c_customers.name', 'like', $needle);
             })
             ->latest('orders.created_at')
             ->limit(4)
-            ->get(['orders.order_number', 'customers.name'])
+            ->get(['orders.order_number', 'b2c_customers.name'])
             ->map(fn (object $row): array => [
                 'type' => 'order',
                 'title' => (string) $row->order_number,
@@ -319,21 +318,15 @@ final class B2cDashboardService
                 'route' => route('admin.b2c.module', ['module' => 'products']),
             ]);
 
-        $customers = DB::table('customers')
-            ->whereExists(function (Builder $query) use ($storeIds): void {
-                $query->selectRaw('1')
-                    ->from('orders')
-                    ->whereColumn('orders.customer_id', 'customers.id')
-                    ->whereIn('orders.store_id', $storeIds)
-                    ->where('orders.channel', 'b2c');
-            })
+        $customers = DB::table('b2c_customers')
+            ->whereIn('b2c_customers.store_id', $storeIds)
             ->where(function (Builder $query) use ($needle): void {
-                $query->where('customers.name', 'like', $needle)
-                    ->orWhere('customers.email', 'like', $needle)
-                    ->orWhere('customers.phone', 'like', $needle);
+                $query->where('b2c_customers.name', 'like', $needle)
+                    ->orWhere('b2c_customers.email', 'like', $needle)
+                    ->orWhere('b2c_customers.phone', 'like', $needle);
             })
             ->limit(4)
-            ->get(['customers.name', 'customers.email'])
+            ->get(['b2c_customers.name', 'b2c_customers.email'])
             ->map(fn (object $row): array => [
                 'type' => 'customer',
                 'title' => (string) $row->name,
@@ -342,6 +335,53 @@ final class B2cDashboardService
             ]);
 
         return $orders->concat($products)->concat($customers)->take(8)->values()->all();
+    }
+
+    /** @param list<int> $storeIds */
+    private function canAnyStore(User $user, array $storeIds, string $permission): bool
+    {
+        if ($user->hasPermission($permission)) {
+            return true;
+        }
+
+        foreach ($storeIds as $storeId) {
+            if ($user->hasPermission($permission, $storeId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @param list<int> $storeIds */
+    private function unreadNotifications(User $user, array $storeIds): int
+    {
+        return DB::table('notifications')
+            ->where('status', 'published')
+            ->whereNotNull('published_at')
+            ->where('published_at', '<=', now())
+            ->whereIn('app', ['all', 'dashboard'])
+            ->where(function (Builder $target) use ($user): void {
+                $target->where('target_channel', 'all')
+                    ->orWhere('target_channel', 'b2c')
+                    ->orWhere('user_id', $user->id);
+            })
+            ->where(function (Builder $scope) use ($user, $storeIds): void {
+                $scope->whereNull('store_id')
+                    ->orWhere('user_id', $user->id)
+                    ->orWhereIn('store_id', $storeIds);
+            })
+            ->where(function (Builder $audience) use ($user): void {
+                $audience->where('audience', 'all')
+                    ->orWhere('user_id', $user->id);
+            })
+            ->whereNotExists(function (Builder $read) use ($user): void {
+                $read->selectRaw('1')
+                    ->from('notification_reads')
+                    ->whereColumn('notification_reads.notification_id', 'notifications.id')
+                    ->where('notification_reads.user_id', $user->id);
+            })
+            ->count();
     }
 
     private function delta(float|int $current, float|int $previous): ?float
