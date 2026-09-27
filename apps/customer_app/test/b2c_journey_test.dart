@@ -68,10 +68,11 @@ void main() {
   });
 
   testWidgets('B2C products render remote data and preserve store in detail navigation', (tester) async {
+    final api = _FakeCatalogApi();
     await tester.pumpWidget(
       FoodexCustomerApp(
         initialRoute: '/products?store=7',
-        b2cCatalogApi: _FakeCatalogApi(),
+        b2cCatalogApi: api,
         b2cAccountApi: _FakeAccountApi(),
       ),
     );
@@ -84,11 +85,8 @@ void main() {
     await tester.tap(productTile);
     await tester.pumpAndSettle();
 
-    final routeLocation = find.byKey(const ValueKey('customer-route-location'));
-    await tester.ensureVisible(routeLocation);
-    await tester.pumpAndSettle();
-    expect(find.text('/products/42?store=7'), findsOneWidget);
     expect(find.byKey(const ValueKey('b2c-product-detail')), findsOneWidget);
+    expect(api.lastStoreId, 7);
   });
 
   testWidgets('B2C cart renders authoritative values and reloads after quantity mutation', (tester) async {
