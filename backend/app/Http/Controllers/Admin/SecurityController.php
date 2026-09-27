@@ -9,10 +9,12 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\DemoDataManager;
 use App\Services\RbacManager;
+use Database\Seeders\ProductDemoSeeder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -71,6 +73,37 @@ final class SecurityController extends Controller
             'statusFilter' => $status,
             'demoSummary' => $demoData->summary(),
         ]);
+    }
+
+    public function seedDemoData(Request $request, DemoDataManager $demoData): RedirectResponse
+    {
+        Gate::authorize('demo_data.manage');
+        abort_if(App::environment('production'), 403);
+
+        $actor = $this->actor($request);
+        $before = $demoData->summary();
+
+        Artisan::call('db:seed', [
+            '--class' => ProductDemoSeeder::class,
+            '--force' => true,
+        ]);
+
+        $after = $demoData->summary();
+
+        DB::table('audit_logs')->insert([
+            'user_id' => $actor->id,
+            'event' => 'demo_data.seeded',
+            'auditable_type' => 'demo_data',
+            'auditable_id' => null,
+            'before' => json_encode($before, JSON_THROW_ON_ERROR),
+            'after' => json_encode($after, JSON_THROW_ON_ERROR),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return back()->with('status', __('admin.security.demo_data.seeded'));
     }
 
     public function clearDemoData(Request $request, DemoDataManager $demoData): RedirectResponse
