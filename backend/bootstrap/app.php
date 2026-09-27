@@ -4,6 +4,7 @@ use App\Http\Middleware\CorrelationId;
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureManagementDashboardAccess;
 use App\Http\Middleware\ResolveTenantContext;
+use App\Services\SystemInspectorRecorder;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -29,6 +30,10 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Throwable $exception, \Illuminate\Http\Request $request) {
+            if ($request->is('admin/*')) {
+                app(SystemInspectorRecorder::class)->recordException($exception, $request);
+            }
+
             if (! $request->is('api/*') || $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface || $exception instanceof \Illuminate\Validation\ValidationException || $exception instanceof \Illuminate\Auth\AuthenticationException) {
                 return null;
             }
