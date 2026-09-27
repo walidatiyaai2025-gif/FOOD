@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\B2cCustomerService;
 use App\Services\OperationalTenantScope;
-use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
