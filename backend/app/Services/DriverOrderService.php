@@ -10,7 +10,6 @@ use App\Models\OrderStatusHistory;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 final class DriverOrderService
 {
@@ -26,7 +25,8 @@ final class DriverOrderService
         $assignmentStatus = (string) $assignment->status;
         $orderStatus = (string) $order->status;
 
-        if (in_array($orderStatus, ['cancelled', 'delivered'], true)) {
+        if ($assignment->completed_at !== null
+            || in_array($orderStatus, ['cancelled', 'delivered'], true)) {
             return [];
         }
 
@@ -53,7 +53,7 @@ final class DriverOrderService
         $channel = strtolower((string) $assignment->assignment_type);
         $customerTable = $channel === 'b2b' ? 'b2b_customers' : 'b2c_customers';
         $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
-        $domainCustomerId = $order->{$customerColumn};
+        $domainCustomerId = $order->getAttribute($customerColumn);
 
         $customer = $domainCustomerId === null
             ? null
@@ -189,11 +189,11 @@ final class DriverOrderService
             );
 
             $allowed = $this->availableStatuses($locked, $order);
-            if (! in_array($targetStatus, $allowed, true)) {
-                throw ValidationException::withMessages([
-                    'status' => ['The delivery action is not available for the current order state.'],
-                ]);
-            }
+            abort_unless(
+                in_array($targetStatus, $allowed, true),
+                409,
+                'The delivery action is not available for the current order state.',
+            );
 
             $beforeOrder = (string) $order->status;
 
