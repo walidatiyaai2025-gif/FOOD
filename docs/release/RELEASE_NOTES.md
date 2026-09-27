@@ -31,7 +31,7 @@ Status: release candidate identity for the completed repository baseline. Produc
 ## Release and quality evidence
 - Required repository policy and required-ci-gate are green on the completed product baseline.
 - Backend validation covers tests, lint, static analysis, security audit and OpenAPI contract checks.
-- PostgreSQL/Redis deployment acceptance covers clean install, updater fixture, backup/restore and recovery behavior on disposable services.
+- MySQL/MariaDB/Redis deployment acceptance covers clean install, updater fixture, backup/restore and recovery behavior on disposable services.
 - Customer and Driver Android release-mode plus iOS no-codesign validation artifacts are reproducible.
 - Screenshot evidence contains 110 real runtime PNGs covering all 46 approved baseline screens plus Driver states.
 - Screenshot audit reports zero canonical FOODEX palette failures and zero role/surface brand-anchor failures.

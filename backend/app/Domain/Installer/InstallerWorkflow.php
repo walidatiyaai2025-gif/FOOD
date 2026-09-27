@@ -37,8 +37,8 @@ final class InstallerWorkflow
             }
         }
 
-        if (! extension_loaded('pdo_pgsql')) {
-            $failures[] = 'PHP extension [pdo_pgsql] is required for the production PostgreSQL database.';
+        if (! extension_loaded('pdo_mysql')) {
+            $failures[] = 'PHP extension [pdo_mysql] is required for the production MySQL/MariaDB database.';
         }
 
         return $failures;
@@ -69,7 +69,7 @@ final class InstallerWorkflow
     public function saveDatabaseConfiguration(array $data): void
     {
         $this->environment->write([
-            'DB_CONNECTION' => 'pgsql',
+            'DB_CONNECTION' => 'mysql',
             'DB_HOST' => $data['host'],
             'DB_PORT' => (string) $data['port'],
             'DB_DATABASE' => $data['database'],
@@ -360,7 +360,7 @@ final class InstallerWorkflow
         $values = $this->environment->read([
             'DB_CONNECTION', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD',
         ]);
-        $connection = $values['DB_CONNECTION'] ?: (string) config('database.default', 'pgsql');
+        $connection = $values['DB_CONNECTION'] ?: (string) config('database.default', 'mysql');
 
         if ($connection === 'sqlite') {
             $database = $values['DB_DATABASE'] ?: (string) config('database.connections.sqlite.database');
@@ -379,18 +379,34 @@ final class InstallerWorkflow
             return;
         }
 
-        if ($connection !== 'pgsql') {
-            throw new RuntimeException('Unsupported installer database driver.');
+        if ($connection === 'mysql') {
+            config([
+                'database.default' => 'mysql',
+                'database.connections.mysql.host' => $values['DB_HOST'] ?: 'localhost',
+                'database.connections.mysql.port' => $values['DB_PORT'] ?: '3306',
+                'database.connections.mysql.database' => $values['DB_DATABASE'] ?: 'foodex',
+                'database.connections.mysql.username' => $values['DB_USERNAME'] ?: 'foodex',
+                'database.connections.mysql.password' => $values['DB_PASSWORD'] ?? '',
+            ]);
+            DB::purge('mysql');
+
+            return;
         }
 
-        config([
-            'database.default' => 'pgsql',
-            'database.connections.pgsql.host' => $values['DB_HOST'] ?: '127.0.0.1',
-            'database.connections.pgsql.port' => $values['DB_PORT'] ?: '5432',
-            'database.connections.pgsql.database' => $values['DB_DATABASE'] ?: 'foodex',
-            'database.connections.pgsql.username' => $values['DB_USERNAME'] ?: 'foodex',
-            'database.connections.pgsql.password' => $values['DB_PASSWORD'] ?? '',
-        ]);
-        DB::purge('pgsql');
+        if ($connection === 'pgsql') {
+            config([
+                'database.default' => 'pgsql',
+                'database.connections.pgsql.host' => $values['DB_HOST'] ?: '127.0.0.1',
+                'database.connections.pgsql.port' => $values['DB_PORT'] ?: '5432',
+                'database.connections.pgsql.database' => $values['DB_DATABASE'] ?: 'foodex',
+                'database.connections.pgsql.username' => $values['DB_USERNAME'] ?: 'foodex',
+                'database.connections.pgsql.password' => $values['DB_PASSWORD'] ?? '',
+            ]);
+            DB::purge('pgsql');
+
+            return;
+        }
+
+        throw new RuntimeException('Unsupported installer database driver.');
     }
 }

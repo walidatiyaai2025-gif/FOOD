@@ -9,15 +9,15 @@ Evidence convention:
 
 ## Platform and data
 
-- [x] Clean install completes through the First-Run Installer and writes its install lock only after successful completion. Evidence: #124 / PR #130 production-services acceptance on disposable PostgreSQL/Redis.
+- [x] Clean install completes through the First-Run Installer and writes its install lock only after successful completion. Evidence: #124 / PR #130 production-services acceptance on disposable MySQL/MariaDB/Redis.
 - [ ] Upgrade from the previous supported release completes through Update Center. CI validates a real updater package fixture, but the exact previous supported production release package is still required for rehearsal.
-- [ ] Database migrations complete on a production-like copy and rollback safety is verified before maintenance mode exits. Disposable PostgreSQL recovery is green; target staging/production-copy evidence remains required.
+- [ ] Database migrations complete on a production-like copy and rollback safety is verified before maintenance mode exits. Disposable MySQL/MariaDB recovery is green; target staging/production-copy evidence remains required.
 - [x] Minimum production bootstrap/reference data is present without demo credentials or sample customer data. Evidence: #124 production-services acceptance.
 
 ## Update safety and observability
 
 - [x] Update package integrity/compatibility preflight passes in automated updater acceptance.
-- [x] File and database backup completes before release extraction/migration in disposable PostgreSQL acceptance.
+- [x] File and database backup completes before release extraction/migration in disposable MySQL/MariaDB acceptance.
 - [x] Post-update health check passes for application, database and writable storage in automated acceptance.
 - [x] Rollback restores files and database for the tested failure path; #128 keeps maintenance enabled when rollback itself cannot complete safely.
 - [x] Correlation IDs and structured server error logs are covered by merged production-readiness/backend validation without exposing sensitive details.

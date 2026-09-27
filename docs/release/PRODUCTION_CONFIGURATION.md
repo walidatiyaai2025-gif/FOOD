@@ -3,8 +3,8 @@
 Public deployment identity approved for the first FOODEX installation:
 
 - Web/API origin: `https://foodex.50sols.com`
-- PostgreSQL database: `solscool_foodex`
-- PostgreSQL username: `solscool_foodex`
+- MySQL/MariaDB database: `solscool_foodex`
+- MySQL/MariaDB username: `solscool_foodex`
 - Customer mobile API default: `https://foodex.50sols.com`
 - Driver mobile API default: `https://foodex.50sols.com`
 

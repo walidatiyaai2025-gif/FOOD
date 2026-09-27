@@ -26,7 +26,7 @@ Steps are sequential. Progress is persisted under protected application storage 
 
 The installer may write only an explicit allow-list of `.env` keys. Database, Redis and SMTP secrets are never rendered back into the form, logged, committed to Git, or stored in installer progress. Configuration writes use a temporary file followed by an atomic rename.
 
-Production database configuration is PostgreSQL. The database connection is explicitly tested before migrations. Migrations run with `--force`, and seeding uses the deterministic `DatabaseSeeder`/`CoreReferenceSeeder` path.
+Production database configuration is MySQL/MariaDB, optimized for standard cPanel hosting. The database connection is explicitly tested before migrations. PostgreSQL remains a legacy-compatible runtime connection but is not required by the first-run installer. Migrations run with `--force`, and seeding uses the deterministic `DatabaseSeeder`/`CoreReferenceSeeder` path.
 
 ## Health and finish
 

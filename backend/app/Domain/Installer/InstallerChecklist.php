@@ -13,7 +13,7 @@ final class InstallerChecklist
         1 => ['slug' => 'welcome', 'title' => 'Welcome', 'description' => 'Start the secured FOODEX first-run setup.'],
         2 => ['slug' => 'requirements', 'title' => 'Server Requirements', 'description' => 'Verify PHP and required extensions.'],
         3 => ['slug' => 'permissions', 'title' => 'File/Folder Permissions', 'description' => 'Verify runtime directories are writable.'],
-        4 => ['slug' => 'database', 'title' => 'Database Configuration', 'description' => 'Configure the PostgreSQL connection without logging credentials.'],
+        4 => ['slug' => 'database', 'title' => 'Database Configuration', 'description' => 'Configure the MySQL/MariaDB connection without logging credentials.'],
         5 => ['slug' => 'database-test', 'title' => 'Test Database Connection', 'description' => 'Verify the configured database is reachable.'],
         6 => ['slug' => 'platform', 'title' => 'Platform Information', 'description' => 'Set the platform name, URL and primary locale.'],
         7 => ['slug' => 'super-admin', 'title' => 'Create Super Admin', 'description' => 'Prepare the first platform owner account.'],

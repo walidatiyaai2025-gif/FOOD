@@ -30,7 +30,7 @@ class ProductionServicesTest extends TestCase
 
         // This suite is destructive and only runs against an explicitly isolated CI database.
         $this->assertSame('true', getenv('FOODEX_DISPOSABLE_SERVICES'));
-        $this->assertSame('pgsql', DB::connection()->getDriverName());
+        $this->assertSame('mysql', DB::connection()->getDriverName());
         $this->assertSame('foodex_acceptance', DB::connection()->getDatabaseName());
 
         $this->directory = storage_path('framework/testing/deployment-'.bin2hex(random_bytes(6)));
@@ -68,7 +68,7 @@ class ProductionServicesTest extends TestCase
         $workflow = app(InstallerWorkflow::class);
         $workflow->saveDatabaseConfiguration([
             'host' => '127.0.0.1',
-            'port' => '5432',
+            'port' => '3306',
             'database' => 'foodex_acceptance',
             'username' => 'foodex',
             'password' => 'ci-only-password',
@@ -144,7 +144,7 @@ PHP;
         $this->assertDatabaseMissing('system_versions', ['version' => '99.0.1']);
         $this->assertDatabaseHas('update_history', ['to_version' => '99.0.1', 'status' => 'failed']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'updater.failed']);
-        $this->assertNotEmpty(File::glob($this->directory.'/backups/*/database.dump'));
+        $this->assertNotEmpty(File::glob($this->directory.'/backups/*/database.sql'));
         $this->getJson('/api/v1/health')->assertOk();
     }
 
