@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.6",
-  "minimum_current_version": "1.0.5",
-  "sha256": "dcfc5834be9ff15a3bd3d66476bdc496b5390c10dd9773e9834431162fc57ad5",
+  "target_version": "1.0.7",
+  "minimum_current_version": "1.0.6",
+  "sha256": "4f61f762a88a9d1a0228c9a2efbc2dbb5e15a31371a6a8f8e19f173e0ff30afe",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "FOODEX 1.0.6 cumulative update: multi-tenant B2B/B2C isolation, full dashboard and driver order management, scheduled promotional campaigns, Android Firebase production configs, and product/category image management.",
+  "release_notes": "REL-1.0.7: refresh generated trial bundle from current main (#284)",
   "dashboard_fields": {
-    "target_version": "1.0.6",
-    "minimum_current_version": "1.0.5",
-    "sha256": "dcfc5834be9ff15a3bd3d66476bdc496b5390c10dd9773e9834431162fc57ad5",
+    "target_version": "1.0.7",
+    "minimum_current_version": "1.0.6",
+    "sha256": "4f61f762a88a9d1a0228c9a2efbc2dbb5e15a31371a6a8f8e19f173e0ff30afe",
     "contains_migrations": true,
-    "release_notes": "FOODEX 1.0.6 cumulative update: multi-tenant B2B/B2C isolation, full dashboard and driver order management, scheduled promotional campaigns, Android Firebase production configs, and product/category image management."
+    "release_notes": "REL-1.0.7: refresh generated trial bundle from current main (#284)"
   }
 }
