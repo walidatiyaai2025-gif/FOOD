@@ -35,7 +35,7 @@ class B2cWorkspaceController extends Controller
         $counts = [
             'products' => DB::table('store_products')->whereIn('store_id', $storeIds)->count(),
             'orders' => DB::table('orders')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
-            'customers' => DB::table('orders')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->distinct()->count('customer_id'),
+            'customers' => DB::table('b2c_customers')->whereIn('store_id', $storeIds)->count(),
             'inventory' => DB::table('inventories')->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')->whereIn('warehouses.store_id', $storeIds)->count(),
         ];
 
@@ -116,7 +116,7 @@ class B2cWorkspaceController extends Controller
             'orders' => [
                 'columns' => ['number', 'customer', 'store', 'status', 'amount', 'created'],
                 'rows' => DB::table('orders')
-                    ->join('customers', 'customers.id', '=', 'orders.customer_id')
+                    ->join('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
                     ->join('stores', 'stores.id', '=', 'orders.store_id')
                     ->whereIn('orders.store_id', $storeIds)
                     ->where('orders.channel', 'b2c')
@@ -124,7 +124,7 @@ class B2cWorkspaceController extends Controller
                     ->limit(100)
                     ->get([
                         'orders.order_number as number',
-                        'customers.name as customer',
+                        'b2c_customers.name as customer',
                         'stores.name as store',
                         'orders.status',
                         'orders.currency',
@@ -142,19 +142,29 @@ class B2cWorkspaceController extends Controller
             'customers' => [
                 'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.business.index', ['tab' => 'customers'])]],
                 'columns' => ['name', 'phone', 'email', 'orders', 'spent', 'last_order'],
-                'rows' => DB::table('customers')
-                    ->join('orders', 'orders.customer_id', '=', 'customers.id')
-                    ->whereIn('orders.store_id', $storeIds)
-                    ->where('orders.channel', 'b2c')
-                    ->groupBy('customers.id', 'customers.name', 'customers.phone', 'customers.email')
+                'rows' => DB::table('b2c_customers')
+                    ->leftJoin('orders', function ($join): void {
+                        $join->on('orders.b2c_customer_id', '=', 'b2c_customers.id')
+                            ->on('orders.store_id', '=', 'b2c_customers.store_id')
+                            ->where('orders.channel', '=', 'b2c');
+                    })
+                    ->whereIn('b2c_customers.store_id', $storeIds)
+                    ->groupBy(
+                        'b2c_customers.id',
+                        'b2c_customers.store_id',
+                        'b2c_customers.name',
+                        'b2c_customers.phone',
+                        'b2c_customers.email',
+                    )
                     ->orderByDesc(DB::raw('MAX(orders.created_at)'))
+                    ->orderBy('b2c_customers.name')
                     ->limit(100)
                     ->get([
-                        'customers.name',
-                        'customers.phone',
-                        'customers.email',
+                        'b2c_customers.name',
+                        'b2c_customers.phone',
+                        'b2c_customers.email',
                         DB::raw('COUNT(orders.id) as orders_count'),
-                        DB::raw('SUM(orders.grand_total) as total_spent'),
+                        DB::raw('COALESCE(SUM(orders.grand_total), 0) as total_spent'),
                         DB::raw('MAX(orders.created_at) as last_order'),
                     ])->map(fn ($row) => [
                         'name' => $row->name,
@@ -162,7 +172,7 @@ class B2cWorkspaceController extends Controller
                         'email' => $row->email ?: '-',
                         'orders' => (int) $row->orders_count,
                         'spent' => 'KWD '.number_format((float) $row->total_spent, 3),
-                        'last_order' => (string) $row->last_order,
+                        'last_order' => $row->last_order === null ? '-' : (string) $row->last_order,
                     ])->all(),
             ],
             'promotions' => [
