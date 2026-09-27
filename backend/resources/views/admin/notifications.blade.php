@@ -37,16 +37,16 @@
         <h2>{{ __('notifications.create') }}</h2>
         <form method="post" action="{{ route('admin.notifications.store') }}">@csrf
             <div class="grid">
-                <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" required></div>
-                <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" required></div>
-                <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl"></textarea></div>
-                <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr"></textarea></div>
-                <div><label>{{ __('notifications.type') }}</label><input name="type" value="general" required></div>
+                <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" placeholder="عنوان الإشعار بالعربية" required></div>
+                <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" placeholder="Notification title in English" required></div>
+                <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="نص الإشعار بالعربية"></textarea></div>
+                <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="Notification body in English"></textarea></div>
+                <div><label>{{ __('notifications.type') }}</label><input name="type" value="general" placeholder="{{ app()->getLocale()==='ar'?'مثال: عام':'e.g. general' }}" required></div>
                 <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','user'] as $value)<option value="{{ $value }}">{{ __('notifications.audience_options.'.$value) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver'] as $value)<option value="{{ $value }}">{{ __('notifications.app_options.'.$value) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.business_channel') }}</label><select name="target_channel">@foreach(['all','b2c','b2b'] as $value)<option value="{{ $value }}">{{ __('notifications.channel_options.'.$value) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.delivery_channel') }}</label><select name="channel">@foreach(['in_app','push','both'] as $value)<option value="{{ $value }}">{{ __('notifications.delivery_options.'.$value) }}</option>@endforeach</select></div>
-                <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1"></div>
+                <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" placeholder="{{ app()->getLocale()==='ar'?'رقم المستخدم - اختياري':'User ID - optional' }}"></div>
                 <div class="full"><button class="primary" type="submit">{{ __('notifications.save_draft') }}</button></div>
             </div>
         </form>
@@ -71,8 +71,8 @@
                 <div class="grid">
                     <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" value="{{ $notification->title_ar }}" required></div>
                     <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" value="{{ $notification->title_en }}" required></div>
-                    <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" dir="rtl" required>{{ $notification->body_ar }}</textarea></div>
-                    <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" dir="ltr" required>{{ $notification->body_en }}</textarea></div>
+                    <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" dir="rtl" required placeholder="نص الإشعار بالعربية">{{ $notification->body_ar }}</textarea></div>
+                    <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" dir="ltr" required placeholder="Notification body in English">{{ $notification->body_en }}</textarea></div>
                     <div><label>{{ __('notifications.type') }}</label><input name="type" value="{{ $notification->type }}" required></div>
                     <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','user'] as $value)<option value="{{ $value }}" @selected($notification->audience===$value)>{{ __('notifications.audience_options.'.$value) }}</option>@endforeach</select></div>
                     <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver'] as $value)<option value="{{ $value }}" @selected($notification->app===$value)>{{ __('notifications.app_options.'.$value) }}</option>@endforeach</select></div>
