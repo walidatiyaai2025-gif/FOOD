@@ -41,11 +41,58 @@ class RetailStoreProvisioningTest extends TestCase
         $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
 
         $this->assertDatabaseHas('user_store_roles', ['user_id' => $manager->id, 'store_id' => $storeId, 'role_id' => $roleId]);
+        $link = DB::table('retail_wholesale_accounts')->where('retail_store_id', $storeId)->first();
+        $this->assertNotNull($link);
+        $this->assertDatabaseHas('b2b_customers', [
+            'id' => $link->b2b_customer_id,
+            'name' => 'Shop A',
+        ]);
+        $this->assertDatabaseHas('b2b_accounts', [
+            'b2b_customer_id' => $link->b2b_customer_id,
+            'company_name' => 'Shop A',
+            'status' => 'active',
+        ]);
         $this->assertSame([$storeId], app(TenantContextResolver::class)->retailStoreIds($manager));
 
         $assignmentId = (int) DB::table('user_store_roles')->where('user_id', $manager->id)->where('store_id', $storeId)->value('id');
         $this->actingAs($admin)->delete(route('admin.retail-stores.roles.remove', [$storeId, $assignmentId]))->assertRedirect();
         $this->assertSame([], app(TenantContextResolver::class)->retailStoreIds($manager));
+    }
+
+    public function test_retail_store_name_and_activation_control_linked_wholesale_account(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'owner-sync@example.test');
+
+        $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'code' => 'SHOP-SYNC',
+            'name' => 'Shop Sync',
+            'is_active' => '1',
+            'manager_mode' => 'new',
+            'manager_name' => 'Shop Sync Manager',
+            'manager_email' => 'manager-sync@example.test',
+            'manager_password' => 'password123',
+        ])->assertRedirect(route('admin.retail-stores.index'));
+
+        $storeId = (int) DB::table('stores')->where('code', 'SHOP-SYNC')->value('id');
+        $b2bCustomerId = (int) DB::table('retail_wholesale_accounts')
+            ->where('retail_store_id', $storeId)
+            ->value('b2b_customer_id');
+
+        $this->actingAs($admin)->patch(route('admin.retail-stores.update', $storeId), [
+            'code' => 'SHOP-SYNC',
+            'name' => 'Shop Sync Renamed',
+            'is_active' => '0',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('b2b_customers', [
+            'id' => $b2bCustomerId,
+            'name' => 'Shop Sync Renamed',
+        ]);
+        $this->assertDatabaseHas('b2b_accounts', [
+            'b2b_customer_id' => $b2bCustomerId,
+            'company_name' => 'Shop Sync Renamed',
+            'status' => 'suspended',
+        ]);
     }
 
     public function test_non_super_admin_cannot_provision_retail_store(): void

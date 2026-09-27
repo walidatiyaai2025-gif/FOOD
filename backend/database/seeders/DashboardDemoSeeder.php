@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Store;
+use App\Services\RetailWholesaleAccountService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -44,6 +46,8 @@ class DashboardDemoSeeder extends Seeder
                 'is_active' => true,
                 ...$timestamps,
             ]);
+            app(RetailWholesaleAccountService::class)->ensureForStore(Store::query()->findOrFail($storeId));
+
             $catalogId = (int) DB::table('catalogs')->insertGetId([
                 'store_id' => $storeId,
                 'channel' => 'b2c',

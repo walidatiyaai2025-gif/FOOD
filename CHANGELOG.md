@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.9 - Retail Replenishment from Wholesale
+- Represent every Retail store as a managed active Wholesale customer account, including safe backfill for existing stores and automatic linking for new stores and demo fixtures.
+- Keep linked Wholesale account identity/status synchronized with the Retail store and prevent manual account-state drift.
+- On a linked Retail customer's delivered B2B order, atomically consume Wholesale reservations and receive the exact ordered quantities into that Retail store only.
+- Materialize tenant-owned Retail product/category/brand/unit records from the Wholesale source while preserving SKU, order-name snapshot, description, hierarchy, images and lookup metadata without sharing tenant-owned rows.
+- Record purchase cost separately from Retail selling price, preserve an existing Retail selling price, and initialize a new Retail selling price from the received unit cost.
+- Add idempotent replenishment and line-level provenance records so delivery retries cannot duplicate stock.
+- Surface Retail stores clearly in the Wholesale customer picker and show purchase cost separately in Retail product management.
+- Add end-to-end regression coverage for exact-store receiving, cross-store isolation, account provisioning and repeat-delivery idempotency.
+
 ## 1.0.8 - Wholesale / Retail Isolation Hardening
 - Make global operational roles wholesale-only and introduce store-scoped Retail Operations, Inventory, Finance and Customer Support roles.
 - Enforce Retail-only `user_store_roles` and reject attempts to assign store-scoped roles to wholesale stores.

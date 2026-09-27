@@ -48,7 +48,14 @@ final class DemoDataManager
             $inventoryIds = $warehouseIds === [] ? [] : DB::table('inventories')->whereIn('warehouse_id', $warehouseIds)->pluck('id')->map(fn ($id) => (int) $id)->all();
             $assignmentIds = $orderIds === [] ? [] : DB::table('driver_assignments')->whereIn('order_id', $orderIds)->pluck('id')->map(fn ($id) => (int) $id)->all();
             $promotionIds = $storeIds === [] ? [] : DB::table('promotions')->whereIn('store_id', $storeIds)->where('name', 'like', 'FOODEX Demo Promotion %')->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $linkedB2bCustomerIds = $storeIds === [] ? [] : DB::table('retail_wholesale_accounts')->whereIn('retail_store_id', $storeIds)->pluck('b2b_customer_id')->map(fn ($id) => (int) $id)->all();
+            $linkedLegacyCustomerIds = $linkedB2bCustomerIds === [] ? [] : DB::table('b2b_customers')->whereIn('id', $linkedB2bCustomerIds)->whereNotNull('legacy_customer_id')->pluck('legacy_customer_id')->map(fn ($id) => (int) $id)->all();
+            $replenishmentIds = $storeIds === [] ? [] : DB::table('retail_replenishments')->whereIn('retail_store_id', $storeIds)->pluck('id')->map(fn ($id) => (int) $id)->all();
 
+            if ($replenishmentIds !== []) {
+                DB::table('retail_replenishment_items')->whereIn('replenishment_id', $replenishmentIds)->delete();
+                DB::table('retail_replenishments')->whereIn('id', $replenishmentIds)->delete();
+            }
             if ($assignmentIds !== []) {
                 DB::table('delivery_proofs')->whereIn('driver_assignment_id', $assignmentIds)->delete();
             }
@@ -99,8 +106,16 @@ final class DemoDataManager
             DB::table('notifications')->where('type', 'demo_seed')->delete();
             DB::table('categories')->where('slug', 'like', self::CATEGORY_PREFIX.'%')->delete();
             if ($storeIds !== []) {
+                DB::table('retail_wholesale_accounts')->whereIn('retail_store_id', $storeIds)->delete();
                 DB::table('catalogs')->whereIn('store_id', $storeIds)->delete();
                 DB::table('stores')->whereIn('id', $storeIds)->delete();
+            }
+            if ($linkedB2bCustomerIds !== []) {
+                DB::table('b2b_accounts')->whereIn('b2b_customer_id', $linkedB2bCustomerIds)->delete();
+                DB::table('b2b_customers')->whereIn('id', $linkedB2bCustomerIds)->delete();
+            }
+            if ($linkedLegacyCustomerIds !== []) {
+                DB::table('customers')->whereIn('id', $linkedLegacyCustomerIds)->delete();
             }
             DB::table('units')->where('code', self::UNIT_CODE)->delete();
         });
