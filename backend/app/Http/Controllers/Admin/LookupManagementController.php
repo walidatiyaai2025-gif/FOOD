@@ -40,7 +40,7 @@ final class LookupManagementController extends Controller
         $table = $type;
         $stores = $this->scope->visibleRetailStores($actor);
         $isSuperAdmin = $actor->hasRole('SUPER_ADMIN');
-        $isB2bAdmin = $isSuperAdmin === false && $actor->hasRole('B2B_ADMIN');
+        $isB2bAdmin = $isSuperAdmin === false && $this->scope->canAccessWholesale($actor);
         $retailStoreIds = $stores->pluck('id')->map(static fn ($id): int => (int) $id)->all();
         $isRetailScoped = $isSuperAdmin === false && $isB2bAdmin === false && $retailStoreIds !== [];
         $currentStoreId = null;
@@ -490,7 +490,7 @@ final class LookupManagementController extends Controller
             return [$scope, $storeId];
         }
 
-        if ($actor->hasRole('B2B_ADMIN')) {
+        if ($this->scope->canAccessWholesale($actor)) {
             if (isset($data['scope']) && $data['scope'] !== LookupScopeService::B2B) {
                 abort(403);
             }
