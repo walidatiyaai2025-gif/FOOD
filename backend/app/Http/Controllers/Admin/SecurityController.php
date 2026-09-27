@@ -121,7 +121,7 @@ final class SecurityController extends Controller
         Gate::authorize('demo_data.manage');
 
         $request->validate([
-            'confirmation' => ['required', 'in:DELETE DEMO DATA'],
+            'confirmation' => ['required', Rule::in(['DELETE DEMO DATA', 'حذف بيانات العرض'])],
         ]);
 
         $actor = $this->actor($request);
