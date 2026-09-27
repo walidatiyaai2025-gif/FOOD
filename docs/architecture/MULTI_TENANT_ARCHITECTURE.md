@@ -89,6 +89,27 @@ Rules:
 - Customer authentication identity may remain in the shared `users` identity table, but business customer records remain separate.
 - No API or admin query may combine B2B and B2C customer rows without an explicit SUPER_ADMIN/platform report contract.
 
+## 4.1 Retail stores as Wholesale customers and replenishment bridge
+
+Every Retail store is also represented by exactly one managed Wholesale customer/account. This relationship is explicit through `retail_wholesale_accounts`; it is not inferred by name, email or a shared tenant record.
+
+Rules:
+- Creating a Retail store creates its linked Wholesale customer/account automatically.
+- Existing Retail stores are backfilled non-destructively.
+- Retail store activation/name changes synchronize the linked Wholesale account; the linked account status is system-controlled.
+- Wholesale orders for that linked customer remain B2B orders owned by the Wholesale store until completion.
+- When such an order reaches `delivered`, FOODEX creates one idempotent Retail replenishment for the exact target Retail store.
+- Each delivered order line is materialized as a Retail-owned product in that store's own catalog. Wholesale product rows are never attached directly to a Retail catalog or warehouse.
+- Store-scoped brands/units/categories are copied into the target Retail scope; platform-global lookups may be reused.
+- Product images and descriptive metadata are copied into the Retail product representation.
+- The ordered quantity is received into the target Retail inventory and recorded as a purchase receipt stock movement.
+- Purchase cost is recorded separately from Retail selling price. Existing Retail selling price is preserved.
+- `retail_replenishments` and `retail_replenishment_items` retain source order/item/product provenance and make the receive operation retry-safe.
+- A Retail Store A replenishment must never create or mutate product, lookup, price or inventory rows in Retail Store B.
+- Ordinary B2B customers that are not linked Retail stores keep the normal B2B delivery flow and do not create Retail stock.
+
+This bridge is a controlled business workflow between two isolated domains; it is not permission sharing or row sharing.
+
 ## 5. Inventory and operational isolation
 
 Warehouses and inventory are store-owned:
