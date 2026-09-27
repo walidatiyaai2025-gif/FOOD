@@ -198,6 +198,7 @@ class B2cWorkspaceController extends Controller
                     ->limit(100)
                     ->get([
                         'orders.id',
+                        'orders.store_id',
                         'orders.order_number as number',
                         'customers.name as customer',
                         'stores.name as store',
@@ -207,6 +208,7 @@ class B2cWorkspaceController extends Controller
                         'orders.created_at as created',
                     ])->map(fn ($row) => [
                         '_id' => (int) $row->id,
+                        '_store_id' => (int) $row->store_id,
                         'number' => $row->number,
                         'customer' => $row->customer,
                         'store' => $row->store,
