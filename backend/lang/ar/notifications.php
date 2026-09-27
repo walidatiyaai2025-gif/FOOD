@@ -83,7 +83,7 @@ return [
     ],
     'channel_options' => [
         'all' => 'كل القنوات',
-        'b2c' => 'التجزئة B2C',
+        'b2c' => 'التجزئة',
         'b2b' => 'الجملة B2B',
     ],
     'delivery_options' => [
