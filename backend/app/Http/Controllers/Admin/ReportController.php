@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\ManagementReportService;
+use App\Services\OperationalTenantScope;
 use App\Services\ReportExportService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
@@ -93,36 +94,25 @@ final class ReportController extends Controller
     /** @return array<string, mixed> */
     private function options(User $user): array
     {
-        $global = $user->hasPermission('reports.view');
-        $storeIds = $global
-            ? []
-            : $user->storeRoleAssignments()
-                ->whereHas('role.permissions', fn ($query) => $query->where('permissions.code', 'reports.view'))
-                ->pluck('store_id')
-                ->map(fn ($id): int => (int) $id)
-                ->all();
+        $scope = app(OperationalTenantScope::class);
+        $superAdmin = $user->hasRole('SUPER_ADMIN');
+        $storeIds = $scope->allowedStoreIds($user, 'reports.view');
 
         $stores = DB::table('stores')
-            ->when(! $global, fn (Builder $query) => $query->whereIn('id', $storeIds))
+            ->when(! $superAdmin, fn (Builder $query) => $query->whereIn('id', $storeIds))
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name']);
 
         $products = DB::table('products')
-            ->when(! $global, function (Builder $query) use ($storeIds): void {
-                $query->whereExists(function (Builder $sub) use ($storeIds): void {
-                    $sub->selectRaw('1')
-                        ->from('store_products')
-                        ->whereColumn('store_products.product_id', 'products.id')
-                        ->whereIn('store_products.store_id', $storeIds);
-                });
-            })
-            ->orderBy('name')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->when(! $superAdmin, fn (Builder $query) => $query->whereIn('catalogs.store_id', $storeIds))
+            ->orderBy('products.name')
             ->limit(250)
-            ->get(['id', 'name', 'sku']);
+            ->get(['products.id', 'products.name', 'products.sku']);
 
         $customers = DB::table('customers')
-            ->when(! $global, function (Builder $query) use ($storeIds): void {
+            ->when(! $superAdmin, function (Builder $query) use ($storeIds): void {
                 $query->whereExists(function (Builder $sub) use ($storeIds): void {
                     $sub->selectRaw('1')
                         ->from('orders')
@@ -135,7 +125,7 @@ final class ReportController extends Controller
             ->get(['id', 'name', 'type']);
 
         $statuses = DB::table('orders')
-            ->when(! $global, fn (Builder $query) => $query->whereIn('store_id', $storeIds))
+            ->when(! $superAdmin, fn (Builder $query) => $query->whereIn('store_id', $storeIds))
             ->distinct()
             ->orderBy('status')
             ->pluck('status')
@@ -145,7 +135,7 @@ final class ReportController extends Controller
 
         $providers = DB::table('payments')
             ->join('orders', 'orders.id', '=', 'payments.order_id')
-            ->when(! $global, fn (Builder $query) => $query->whereIn('orders.store_id', $storeIds))
+            ->when(! $superAdmin, fn (Builder $query) => $query->whereIn('orders.store_id', $storeIds))
             ->distinct()
             ->orderBy('payments.provider')
             ->pluck('payments.provider')
@@ -155,7 +145,12 @@ final class ReportController extends Controller
 
         return [
             'stores' => $stores,
-            'categories' => DB::table('categories')->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'categories' => DB::table('categories')
+                ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
+                ->where('categories.is_active', true)
+                ->when(! $superAdmin, fn (Builder $query) => $query->whereIn('catalogs.store_id', $storeIds))
+                ->orderBy('categories.name')
+                ->get(['categories.id', 'categories.name']),
             'products' => $products,
             'customers' => $customers,
             'statuses' => $statuses,

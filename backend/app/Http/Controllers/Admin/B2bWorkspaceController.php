@@ -297,6 +297,7 @@ class B2bWorkspaceController extends Controller
                 'rows' => DB::table('drivers')
                     ->join('users', 'users.id', '=', 'drivers.user_id')
                     ->where('drivers.driver_type', 'b2b')
+                    ->whereIn('drivers.store_id', $storeIds)
                     ->orderBy('users.name')
                     ->get(['drivers.id', 'users.name', 'users.email', 'drivers.is_available', 'drivers.is_active'])
                     ->map(fn ($row) => [
@@ -307,12 +308,14 @@ class B2bWorkspaceController extends Controller
                         'active' => (bool) $row->is_active,
                         'assignments' => DB::table('driver_assignments')
                             ->where('driver_id', $row->id)
+                            ->whereIn('store_id', $storeIds)
                             ->where('assignment_type', 'b2b')
                             ->count(),
                     ])->all(),
                 'drivers' => DB::table('drivers')
                     ->join('users', 'users.id', '=', 'drivers.user_id')
                     ->where('drivers.driver_type', 'b2b')
+                    ->whereIn('drivers.store_id', $storeIds)
                     ->where('drivers.is_active', true)
                     ->orderBy('users.name')
                     ->get(['drivers.id', 'users.name'])

@@ -39,7 +39,18 @@ class AdminBusinessManagementTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $catalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $storeId,
+            'channel' => 'b2c',
+            'code' => 'default',
+            'name' => 'Operations Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalogId,
             'unit_id' => $unitId,
             'sku' => 'OPS-1',
             'name' => 'Operations Product',
@@ -111,6 +122,7 @@ class AdminBusinessManagementTest extends TestCase
         $this->assertDatabaseHas('banners', ['title' => 'Launch Banner']);
 
         $this->actingAs($user)->post('/admin/business/drivers', [
+            'store_id' => $storeId,
             'name' => 'Driver One',
             'email' => 'driver-one@example.test',
             'password' => 'StrongPass123!',
@@ -120,7 +132,7 @@ class AdminBusinessManagementTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('users', ['email' => 'driver-one@example.test']);
-        $this->assertDatabaseHas('drivers', ['driver_type' => 'b2c', 'is_active' => 1]);
+        $this->assertDatabaseHas('drivers', ['store_id' => $storeId, 'driver_type' => 'b2c', 'is_active' => 1]);
 
         foreach ([
             '/admin/b2c/inventory' => 'إدارة المخازن والأرصدة',

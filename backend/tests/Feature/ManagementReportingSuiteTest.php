@@ -164,7 +164,18 @@ class ManagementReportingSuiteTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $catalog = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $this->storeA,
+            'channel' => 'b2c',
+            'code' => 'default',
+            'name' => 'Reporting Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $category = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $catalog,
             'name' => 'Reporting',
             'slug' => 'reporting',
             'is_active' => true,
@@ -172,9 +183,9 @@ class ManagementReportingSuiteTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $productA = $this->product($unit, $category, 'RPT-A', 'Best Product');
-        $productB = $this->product($unit, $category, 'RPT-B', 'Least Product');
-        $productZero = $this->product($unit, $category, 'RPT-Z', '=Zero Formula Product');
+        $productA = $this->product($catalog, $unit, $category, 'RPT-A', 'Best Product');
+        $productB = $this->product($catalog, $unit, $category, 'RPT-B', 'Least Product');
+        $productZero = $this->product($catalog, $unit, $category, 'RPT-Z', '=Zero Formula Product');
 
         foreach ([$productA, $productB, $productZero] as $product) {
             DB::table('store_products')->insert([
@@ -218,9 +229,10 @@ class ManagementReportingSuiteTest extends TestCase
         ]);
     }
 
-    private function product(int $unit, int $category, string $sku, string $name): int
+    private function product(int $catalog, int $unit, int $category, string $sku, string $name): int
     {
         return (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog,
             'category_id' => $category,
             'unit_id' => $unit,
             'sku' => $sku,

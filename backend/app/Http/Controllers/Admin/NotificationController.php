@@ -7,12 +7,14 @@ use App\Models\Notification;
 use App\Models\NotificationRead;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\OperationalTenantScope;
 use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 final class NotificationController extends Controller
@@ -126,6 +128,7 @@ final class NotificationController extends Controller
     {
         $actor = $this->authorizeManage($request);
         $data = $this->validated($request);
+        $this->assertScope($actor, $data);
 
         $notification = Notification::query()->create([
             ...$data,
@@ -146,6 +149,7 @@ final class NotificationController extends Controller
     {
         $actor = $this->authorizeManage($request);
         $data = $this->validated($request);
+        $this->assertScope($actor, $data);
         $before = $notification->toArray();
 
         $notification->update([
@@ -184,12 +188,37 @@ final class NotificationController extends Controller
     /** @return Builder<Notification> */
     private function dashboardNotifications(User $user): Builder
     {
+        $storeIds = app(OperationalTenantScope::class)->allowedStoreIds($user, 'orders.view');
+        $channels = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->whereIn('stores.id', $storeIds)
+            ->pluck('store_types.code')
+            ->map(static fn ($code): string => strtolower((string) $code))
+            ->unique()
+            ->values()
+            ->all();
+
         return Notification::query()
             ->where('status', 'published')
             ->whereNotNull('published_at')
             ->where('published_at', '<=', now())
             ->whereIn('app', ['all', 'dashboard'])
-            ->where('target_channel', 'all')
+            ->where(function (Builder $target) use ($user, $channels): void {
+                $target->where('target_channel', 'all')
+                    ->orWhere('user_id', $user->id);
+
+                if ($channels !== []) {
+                    $target->orWhereIn('target_channel', $channels);
+                }
+            })
+            ->where(function (Builder $scope) use ($user, $storeIds): void {
+                $scope->whereNull('store_id')
+                    ->orWhere('user_id', $user->id);
+
+                if ($storeIds !== []) {
+                    $scope->orWhereIn('store_id', $storeIds);
+                }
+            })
             ->where(function (Builder $audience) use ($user): void {
                 $audience->where('audience', 'all')
                     ->orWhere('user_id', $user->id);
@@ -213,6 +242,22 @@ final class NotificationController extends Controller
         return $actor;
     }
 
+    /** @param array<string, mixed> $data */
+    private function assertScope(User $actor, array $data): void
+    {
+        if (($data['store_id'] ?? null) === null) {
+            return;
+        }
+
+        $targetChannel = (string) $data['target_channel'];
+        app(OperationalTenantScope::class)->assertStore(
+            $actor,
+            (int) $data['store_id'],
+            'notifications.manage',
+            in_array($targetChannel, ['b2b', 'b2c'], true) ? $targetChannel : null,
+        );
+    }
+
     private function validated(Request $request): array
     {
         return $request->validate([
@@ -226,6 +271,7 @@ final class NotificationController extends Controller
             'target_channel' => ['required', 'in:all,b2c,b2b'],
             'channel' => ['required', 'in:in_app,push,both'],
             'user_id' => ['nullable', 'required_if:audience,user', 'integer', 'exists:users,id'],
+            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
         ]);
     }
 }

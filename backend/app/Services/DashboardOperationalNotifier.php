@@ -103,8 +103,9 @@ final class DashboardOperationalNotifier
                 'body_en' => $bodyEn,
                 'audience' => 'user',
                 'app' => 'dashboard',
-                'target_channel' => 'all',
+                'target_channel' => $channel,
                 'user_id' => $recipient->id,
+                'store_id' => $storeId,
                 'status' => 'published',
                 'published_at' => now(),
                 'data' => [

@@ -95,7 +95,15 @@ final class PushDeliveryService
             ->limit(500)
             ->get();
 
+        $audience = app(NotificationAudience::class);
+
         foreach ($devices as $device) {
+            $deviceUser = $device->user;
+            if (! $deviceUser instanceof User
+                || ! $audience->apply(Notification::query(), $deviceUser)->whereKey($notification->id)->exists()) {
+                continue;
+            }
+
             $provider = PushProviderSetting::query()
                 ->where('app', $device->app)
                 ->where('platform', $device->platform)
@@ -118,8 +126,8 @@ final class PushDeliveryService
                 continue;
             }
 
-            $user = $device->user;
-            $english = $user instanceof User && $user->locale === 'en';
+            $user = $deviceUser;
+            $english = $user->locale === 'en';
 
             $this->send($provider, $device, [
                 'title' => $english

@@ -248,6 +248,7 @@ class CheckoutController extends Controller
 
                 StockMovement::query()->create([
                     'inventory_id' => $reservation['inventory_id'],
+                    'store_id' => $storeId,
                     'user_id' => $user->getKey(),
                     'type' => 'reserve',
                     'quantity' => $reservation['quantity'],
@@ -272,6 +273,7 @@ class CheckoutController extends Controller
 
             OrderStatusHistory::query()->create([
                 'order_id' => $order->getKey(),
+                'store_id' => $storeId,
                 'user_id' => $user->getKey(),
                 'from_status' => null,
                 'to_status' => 'pending',

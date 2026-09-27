@@ -66,7 +66,7 @@ class B2bAdminWorkspaceTest extends TestCase
         $order = (int) DB::table('orders')->insertGetId(['store_id' => $store, 'customer_id' => $customer, 'order_number' => 'OPS-B2B-1', 'channel' => 'b2b', 'status' => 'pending', 'currency' => 'KWD', 'subtotal' => 10, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 10, 'created_at' => now(), 'updated_at' => now()]);
 
         $driverUser = $this->user('B2B_DRIVER', 'en');
-        $driver = Driver::query()->create(['user_id' => $driverUser->id, 'driver_type' => 'b2b', 'is_available' => true, 'is_active' => true]);
+        $driver = Driver::query()->create(['user_id' => $driverUser->id, 'store_id' => $store, 'driver_type' => 'b2b', 'is_available' => true, 'is_active' => true]);
         $admin = $this->user('B2B_ADMIN', 'en');
 
         $this->actingAs($admin)->get('/admin/b2b/orders')->assertOk()->assertSee('OPS-B2B-1')->assertSee('Operations Buyer');
