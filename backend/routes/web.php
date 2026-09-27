@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AppVersionController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
 use App\Http\Controllers\Admin\MobileSettingsController;
+use App\Http\Controllers\Admin\MasterDataController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\SystemUpdateController;
@@ -95,4 +96,13 @@ Route::prefix('admin')
         Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');
         Route::patch('/settings/translations/{translation}', [TranslationController::class, 'update'])->name('translations.update');
         Route::post('/settings/translations/{translation}/reset', [TranslationController::class, 'reset'])->name('translations.reset');
+
+        foreach (['categories', 'brands', 'units', 'products', 'stores', 'warehouses', 'customers', 'b2b-clients', 'price-tiers', 'promotions', 'banners'] as $resource) {
+            Route::get('/manage/'.$resource, [MasterDataController::class, 'index'])
+                ->defaults('resource', $resource)
+                ->name('manage.'.$resource);
+        }
+        Route::post('/manage/{resource}', [MasterDataController::class, 'store'])->name('manage.store');
+        Route::put('/manage/{resource}/{id}', [MasterDataController::class, 'update'])->whereNumber('id')->name('manage.update');
+        Route::delete('/manage/{resource}/{id}', [MasterDataController::class, 'destroy'])->whereNumber('id')->name('manage.destroy');
     });
