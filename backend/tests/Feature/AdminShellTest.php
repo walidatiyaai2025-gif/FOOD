@@ -33,7 +33,7 @@ class AdminShellTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertSee('إدارة الجملة B2B')
-            ->assertDontSee('إدارة التجزئة B2C');
+            ->assertDontSee('إدارة التجزئة');
 
         $this->actingAs($user)
             ->get('/admin/b2b/dashboard')
@@ -78,7 +78,7 @@ class AdminShellTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertSee('إدارة الجملة B2B')
-            ->assertSee('إدارة التجزئة B2C')
+            ->assertSee('إدارة التجزئة')
             ->assertSee('href="'.route('admin.b2b.dashboard').'"', false)
             ->assertSee('href="'.route('admin.b2c.dashboard').'"', false);
     }
