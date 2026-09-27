@@ -146,6 +146,10 @@ class PromotionalNotificationCampaignTest extends TestCase
         $this->assertNull($campaign->next_run_at);
         $this->assertDatabaseCount('notification_campaign_runs', 2);
         $this->assertDatabaseCount('notifications', 2);
+        $this->assertSame(
+            2,
+            DB::table('audit_logs')->where('event', 'notification_campaign.dispatched')->count(),
+        );
         $this->assertDatabaseHas('notifications', [
             'id' => $firstNotification,
             'type' => 'promotion',
