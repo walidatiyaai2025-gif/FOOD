@@ -11,6 +11,7 @@ use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\ManagementReportService;
 use App\Support\AdminNavigation;
+use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,13 +23,14 @@ class B2bWorkspaceController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly ManagementReportService $reports,
+        private readonly TenantContextResolver $tenantContext,
     ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless($user->roles()->whereIn('roles.code', ['SUPER_ADMIN', 'B2B_ADMIN'])->exists(), 403);
+        $this->tenantContext->wholesale($user);
         $allowed = ['dashboard', 'stores', 'clients', 'products', 'orders', 'drivers', 'pricing', 'reports', 'settings'];
         abort_unless(in_array($module, $allowed, true), 404);
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
@@ -219,8 +221,8 @@ class B2bWorkspaceController extends Controller
             'stores' => [
                 'columns' => ['code', 'name', 'products', 'orders', 'status'],
                 'actions' => $user->hasPermission('stores.view') ? [
-                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المتاجر' : 'Add / edit stores', 'url' => route('admin.manage.stores')],
-                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن' : 'Manage warehouses', 'url' => route('admin.manage.warehouses')],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المتاجر' : 'Manage stores', 'url' => route('admin.catalog.index', ['tab' => 'stores'])],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن' : 'Manage warehouses', 'url' => route('admin.business.index', ['tab' => 'inventory'])],
                 ] : [],
                 'rows' => DB::table('stores')
                     ->whereIn('stores.id', $storeIds)
@@ -237,8 +239,7 @@ class B2bWorkspaceController extends Controller
             'clients' => [
                 'columns' => ['company', 'name', 'email', 'phone', 'tax_number', 'status'],
                 'actions' => $user->hasPermission('b2b.accounts.view') ? [
-                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل عملاء B2B' : 'Add / edit B2B clients', 'url' => route('admin.manage.b2b-clients')],
-                    ['label' => app()->getLocale() === 'ar' ? 'إدارة شرائح الأسعار' : 'Manage price tiers', 'url' => route('admin.manage.price-tiers')],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة بيانات العملاء' : 'Manage customer data', 'url' => route('admin.business.index', ['tab' => 'customers'])],
                 ] : [],
                 'rows' => DB::table('b2b_accounts')
                     ->join('customers', 'customers.id', '=', 'b2b_accounts.customer_id')
@@ -330,8 +331,7 @@ class B2bWorkspaceController extends Controller
             'pricing' => [
                 'columns' => ['tier', 'sku', 'product', 'store', 'unit_price', 'minimum_quantity', 'status'],
                 'actions' => $user->hasPermission('b2b.pricing.view') ? [
-                    ['label' => app()->getLocale() === 'ar' ? 'إدارة شرائح الأسعار' : 'Manage price tiers', 'url' => route('admin.manage.price-tiers')],
-                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المنتجات' : 'Manage products', 'url' => route('admin.manage.products')],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المنتجات' : 'Manage products', 'url' => route('admin.catalog.index', ['tab' => 'products'])],
                 ] : [],
                 'rows' => DB::table('b2b_price_rules')
                     ->join('b2b_price_tiers', 'b2b_price_tiers.id', '=', 'b2b_price_rules.price_tier_id')
@@ -385,9 +385,9 @@ class B2bWorkspaceController extends Controller
             'products' => [
                 'columns' => ['sku', 'name', 'store', 'price', 'available', 'status'],
                 'actions' => $user->hasPermission('catalog.view') ? [
-                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / edit products', 'url' => route('admin.manage.products')],
-                    ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage categories', 'url' => route('admin.manage.categories')],
-                    ['label' => app()->getLocale() === 'ar' ? 'العلامات والوحدات' : 'Brands & units', 'url' => route('admin.manage.brands')],
+                    ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / edit products', 'url' => route('admin.catalog.index', ['tab' => 'products'])],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage categories', 'url' => route('admin.catalog.index', ['tab' => 'categories'])],
+                    ['label' => app()->getLocale() === 'ar' ? 'العلامات والوحدات' : 'Brands & units', 'url' => route('admin.catalog.index', ['tab' => 'brands'])],
                 ] : [],
                 'rows' => DB::table('store_products')
                     ->join('products', 'products.id', '=', 'store_products.product_id')

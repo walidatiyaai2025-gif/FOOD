@@ -27,6 +27,10 @@ final class StoreAccess
 
         return $user->storeRoleAssignments()
             ->where('store_id', $storeId)
+            ->whereHas('store', fn ($query) => $query->where('is_active', true))
+            ->whereHas('role', fn ($query) => $query
+                ->where('is_active', true)
+                ->whereIn('scope', ['store', 'both']))
             ->exists();
     }
 
@@ -69,8 +73,13 @@ final class StoreAccess
     private function assignedStoreIdsQuery(User $user): Builder
     {
         return UserStoreRole::query()
-            ->select('store_id')
-            ->where('user_id', $user->getKey())
+            ->select('user_store_roles.store_id')
+            ->join('roles', 'roles.id', '=', 'user_store_roles.role_id')
+            ->join('stores', 'stores.id', '=', 'user_store_roles.store_id')
+            ->where('user_store_roles.user_id', $user->getKey())
+            ->where('roles.is_active', true)
+            ->whereIn('roles.scope', ['store', 'both'])
+            ->where('stores.is_active', true)
             ->distinct();
     }
 }

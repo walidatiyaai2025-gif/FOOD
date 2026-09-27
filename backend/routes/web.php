@@ -5,7 +5,8 @@ use App\Http\Controllers\Admin\AdminShellController;
 use App\Http\Controllers\Admin\AppVersionController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
-use App\Http\Controllers\Admin\MasterDataController;
+use App\Http\Controllers\Admin\BusinessManagementController;
+use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\MobileSettingsController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SecurityController;
@@ -78,6 +79,36 @@ Route::prefix('admin')
         Route::post('/b2c/inventory/{inventory}/adjust', [B2cWorkspaceController::class, 'adjustInventory'])->whereNumber('inventory')->name('b2c.inventory.adjust');
         Route::get('/b2c/storefront-preview', [B2cWorkspaceController::class, 'show'])->defaults('module', 'storefront')->name('b2c.storefront-preview');
         Route::get('/b2c/{module}', [B2cWorkspaceController::class, 'show'])->name('b2c.module');
+        Route::get('/catalog', [CatalogManagementController::class, 'index'])->name('catalog.index');
+        Route::get('/business', [BusinessManagementController::class, 'index'])->name('business.index');
+        Route::post('/business/warehouses', [BusinessManagementController::class, 'storeWarehouse'])->name('business.warehouses.store');
+        Route::patch('/business/warehouses/{warehouse}', [BusinessManagementController::class, 'updateWarehouse'])->name('business.warehouses.update');
+        Route::post('/business/inventory', [BusinessManagementController::class, 'ensureInventory'])->name('business.inventory.ensure');
+        Route::patch('/business/inventory/{inventory}', [BusinessManagementController::class, 'adjustInventory'])->name('business.inventory.adjust');
+        Route::post('/business/customers', [BusinessManagementController::class, 'storeCustomer'])->name('business.customers.store');
+        Route::patch('/business/customers/{customer}', [BusinessManagementController::class, 'updateCustomer'])->name('business.customers.update');
+        Route::delete('/business/customers/{customer}', [BusinessManagementController::class, 'destroyCustomer'])->name('business.customers.destroy');
+        Route::post('/business/promotions', [BusinessManagementController::class, 'storePromotion'])->name('business.promotions.store');
+        Route::patch('/business/promotions/{promotion}', [BusinessManagementController::class, 'updatePromotion'])->name('business.promotions.update');
+        Route::delete('/business/promotions/{promotion}', [BusinessManagementController::class, 'destroyPromotion'])->name('business.promotions.destroy');
+        Route::post('/business/banners', [BusinessManagementController::class, 'storeBanner'])->name('business.banners.store');
+        Route::patch('/business/banners/{banner}', [BusinessManagementController::class, 'updateBanner'])->name('business.banners.update');
+        Route::delete('/business/banners/{banner}', [BusinessManagementController::class, 'destroyBanner'])->name('business.banners.destroy');
+        Route::post('/business/drivers', [BusinessManagementController::class, 'storeDriver'])->name('business.drivers.store');
+        Route::patch('/business/drivers/{driver}', [BusinessManagementController::class, 'updateDriver'])->name('business.drivers.update');
+        Route::delete('/business/drivers/{driver}', [BusinessManagementController::class, 'destroyDriver'])->name('business.drivers.destroy');
+        Route::post('/catalog/products', [CatalogManagementController::class, 'storeProduct'])->name('catalog.products.store');
+        Route::patch('/catalog/products/{product}', [CatalogManagementController::class, 'updateProduct'])->name('catalog.products.update');
+        Route::delete('/catalog/products/{product}', [CatalogManagementController::class, 'destroyProduct'])->name('catalog.products.destroy');
+        Route::post('/catalog/products/{product}/store', [CatalogManagementController::class, 'assignProduct'])->name('catalog.products.assign');
+        Route::post('/catalog/categories', [CatalogManagementController::class, 'storeCategory'])->name('catalog.categories.store');
+        Route::patch('/catalog/categories/{category}', [CatalogManagementController::class, 'updateCategory'])->name('catalog.categories.update');
+        Route::delete('/catalog/categories/{category}', [CatalogManagementController::class, 'destroyCategory'])->name('catalog.categories.destroy');
+        Route::post('/catalog/brands', [CatalogManagementController::class, 'storeBrand'])->name('catalog.brands.store');
+        Route::delete('/catalog/brands/{brand}', [CatalogManagementController::class, 'destroyBrand'])->name('catalog.brands.destroy');
+        Route::post('/catalog/units', [CatalogManagementController::class, 'storeUnit'])->name('catalog.units.store');
+        Route::post('/catalog/stores', [CatalogManagementController::class, 'storeStore'])->name('catalog.stores.store');
+        Route::patch('/catalog/stores/{store}', [CatalogManagementController::class, 'updateStore'])->name('catalog.stores.update');
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
         Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
@@ -99,13 +130,4 @@ Route::prefix('admin')
         Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');
         Route::patch('/settings/translations/{translation}', [TranslationController::class, 'update'])->name('translations.update');
         Route::post('/settings/translations/{translation}/reset', [TranslationController::class, 'reset'])->name('translations.reset');
-
-        foreach (['categories', 'brands', 'units', 'products', 'stores', 'warehouses', 'customers', 'b2b-clients', 'price-tiers', 'promotions', 'banners'] as $resource) {
-            Route::get('/manage/'.$resource, [MasterDataController::class, 'index'])
-                ->defaults('resource', $resource)
-                ->name('manage.'.$resource);
-        }
-        Route::post('/manage/{resource}', [MasterDataController::class, 'store'])->name('manage.store');
-        Route::put('/manage/{resource}/{id}', [MasterDataController::class, 'update'])->whereNumber('id')->name('manage.update');
-        Route::delete('/manage/{resource}/{id}', [MasterDataController::class, 'destroy'])->whereNumber('id')->name('manage.destroy');
     });

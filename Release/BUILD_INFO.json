@@ -1,29 +1,29 @@
 {
   "schema_version": 1,
-  "version": "1.0.3",
-  "source_commit": "5122131f8afab50039e34c4cfcc55ba5f7fbc08e",
-  "github_run_number": "12",
+  "version": "1.0.5",
+  "source_commit": "3dd8d81e4c2615aa2ec544130aa23f337e5ed21f",
+  "github_run_number": "14",
   "api_base_url": "https://foodex.50sols.com",
   "android_signing": "flutter-template-debug-key-test-only",
   "production_store_ready": false,
   "customer": {
     "file": "FOODEX-Customer.apk",
     "bytes": 53899773,
-    "sha256": "20d48866e509b7fe9971bcde6453439e4adbe92427a73a5630274ac2e647c525",
+    "sha256": "d27c0707a25e2c73940ee7d41fe7d5d56b8d4a04dd840872c5d5e2101789d0e3",
     "application_id": "com.fiftysolution.foodex.customer",
     "firebase_configured": false
   },
   "driver": {
     "file": "FOODEX-Driver.apk",
     "bytes": 52477090,
-    "sha256": "e4da87d100b6801685876cdeeb83ca5abb927a22fac9ddd3a33b758ecbf4860f",
+    "sha256": "a576b21284139ad293c6ad3296d4674ec0e05a38554053d8d966855847349fbc",
     "application_id": "com.fiftysolution.foodex.driver",
     "firebase_configured": false
   },
   "laravel_setup": {
     "file": "FOODEX-Laravel-Setup.zip",
-    "bytes": 8601319,
-    "sha256": "5d66fcd608d3fe582d842a7c8f4a961e0806f58a0a96c8e971b096b4afe1b62b",
+    "bytes": 8615736,
+    "sha256": "8ba0db387b2a0f749a96a37a1d12ce9f3d3664155e7407dc8cdb74b8e0e9bb04",
     "installer_path": "/install",
     "document_root": "backend/public"
   }

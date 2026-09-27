@@ -237,7 +237,7 @@ final class B2cDashboardService
         $actions = [];
 
         if ($user->hasPermission('catalog.create') || $user->hasPermission('catalog.manage')) {
-            $actions[] = ['key' => 'add_product', 'route' => 'admin.manage.products', 'params' => []];
+            $actions[] = ['key' => 'add_product', 'route' => 'admin.catalog.index', 'params' => ['tab' => 'products']];
         }
         if ($user->hasPermission('orders.view')) {
             $actions[] = ['key' => 'manage_orders', 'route' => 'admin.b2c.module', 'params' => ['module' => 'orders']];

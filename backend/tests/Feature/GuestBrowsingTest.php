@@ -31,13 +31,6 @@ class GuestBrowsingTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $categoryId = (int) DB::table('categories')->insertGetId([
-            'name' => 'Fresh',
-            'slug' => 'fresh',
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
 
         $this->storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $b2cTypeId,
@@ -57,12 +50,61 @@ class GuestBrowsingTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $catalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $this->storeId,
+            'channel' => 'b2c',
+            'code' => 'default',
+            'name' => 'B2C One Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $otherCatalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $this->otherStoreId,
+            'channel' => 'b2c',
+            'code' => 'default',
+            'name' => 'B2C Two Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $categoryId = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $catalogId,
+            'name' => 'Fresh',
+            'slug' => 'fresh',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $otherCategoryId = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $otherCatalogId,
+            'name' => 'Fresh',
+            'slug' => 'fresh',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalogId,
             'category_id' => $categoryId,
             'unit_id' => $unitId,
             'sku' => 'SKU-001',
             'name' => 'Guest Product',
             'description' => 'Visible to guests',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $otherProductId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $otherCatalogId,
+            'category_id' => $otherCategoryId,
+            'unit_id' => $unitId,
+            'sku' => 'SKU-001',
+            'name' => 'Other Store Product',
+            'description' => 'Visible only to the other store',
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -79,7 +121,7 @@ class GuestBrowsingTest extends TestCase
             ],
             [
                 'store_id' => $this->otherStoreId,
-                'product_id' => $this->productId,
+                'product_id' => $otherProductId,
                 'price' => 1.500,
                 'is_active' => true,
                 'created_at' => now(),
@@ -186,8 +228,6 @@ class GuestBrowsingTest extends TestCase
 
         $this->getJson("/api/v1/products/{$this->productId}")
             ->assertUnprocessable();
-
-        DB::table('store_products')->where('store_id', $this->otherStoreId)->where('product_id', $this->productId)->update(['is_active' => false]);
 
         $this->getJson("/api/v1/products/{$this->productId}?store={$this->otherStoreId}")
             ->assertNotFound();

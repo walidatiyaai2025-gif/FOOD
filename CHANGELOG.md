@@ -1,11 +1,19 @@
 # Changelog
 
-## 1.0.4 - RTL Admin & Master Data CRUD
-- Fix the Arabic admin shell so the sidebar is physically on the right and page content remains RTL.
-- Add server-authoritative management centers with create, edit and delete controls for categories, brands, units, products, stores, warehouses, customers, B2B clients, B2B price tiers, promotions and banners.
-- Add management entry buttons from B2C and B2B operational modules instead of leaving read-only tables without actions.
-- Seed production-safe default units and B2B price tiers so a fresh installation can create products and wholesale accounts immediately.
-- Guard destructive deletes when operational records still reference products, stores, warehouses, customers, units or price tiers.
+## 1.0.5 - Operational Admin CRUD
+- Add tenant-scoped B2C order transition, driver assignment and inventory adjustment controls directly from operational workspaces.
+- Seed safe default product units and B2B price tiers for fresh installations and upgrades.
+- Preserve the newer catalog/business management centers while integrating the remaining RTL-admin CRUD work from PR #235.
+- Add a central Operations & Data Management center for warehouses, stock, customers, promotions, banners and drivers.
+- Add create/edit/delete/deactivate actions with server-side permission checks and dependency safety.
+- Wire B2C Inventory, Customers, Promotions, Content and Drivers screens to their management actions.
+- Keep inventory adjustments above reserved stock and record stock movements.
+
+## 1.0.4 - Admin CRUD and Arabic RTL
+- Fix the unified Arabic admin shell so the navigation sidebar renders on the physical right while English remains left-to-right.
+- Add a server-authorized Catalog & Store Management center with product, category, brand, unit and store administration.
+- Add product create/edit/delete/deactivate behavior, store assignment and pricing, and category create/edit/delete with dependency protection.
+- Wire dashboard and B2C product actions to the management center and add regression coverage for fresh CRUD workflows.
 
 ## 1.0.3 - First-install Admin Access
 - Redirect unauthenticated management requests to the admin login instead of a raw 401 page.

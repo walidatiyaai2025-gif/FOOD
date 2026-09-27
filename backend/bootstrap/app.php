@@ -3,6 +3,7 @@
 use App\Http\Middleware\CorrelationId;
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureManagementDashboardAccess;
+use App\Http\Middleware\ResolveTenantContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'active.user' => EnsureActiveUser::class,
             'management.dashboard' => EnsureManagementDashboardAccess::class,
+            'tenant.context' => ResolveTenantContext::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

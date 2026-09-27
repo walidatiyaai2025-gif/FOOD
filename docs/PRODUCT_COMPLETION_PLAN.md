@@ -8,6 +8,7 @@ Primary references:
 - `docs/business-rules/CORE_RULES.md`
 - `docs/architecture/SYSTEM_ARCHITECTURE.md`
 - `docs/architecture/ROLE_ARCHITECTURE.md`
+- `docs/architecture/MULTI_TENANT_ARCHITECTURE.md`
 - `docs/architecture/ADMIN_SHELL.md`
 - `docs/api/openapi.yaml`
 
@@ -42,6 +43,11 @@ FOODEX is a complete usable product only when all of the following are true:
 13. End-to-end acceptance journeys pass on clean production-like data.
 14. Installer/update paths can deploy the release safely.
 15. No design-reference row remains `Reference only — not implemented`.
+16. FOODEX is Multi-Store / Multi-Tenant ready: the wholesale principal and every retail store have explicit data ownership boundaries.
+17. B2B wholesale customers and B2C retail customers use separate persistence/domain boundaries.
+18. Catalogs, categories, products, inventory and operational data are server-side scoped to their owning store/domain.
+19. SUPER_ADMIN provisions retail stores and their store-scoped managers; retail managers cannot see B2B or other retail tenants.
+20. All business-managed lookup/master data is administered from a complete Lookup Management Center with explicit scope.
 
 ## 3. Mandatory worker protocol
 
@@ -638,3 +644,79 @@ only when their active files do not conflict. #210 remains blocked on final nati
 application/bundle IDs and Firebase configuration inputs. #211 is implementation-ready.
 Neither task may bypass required CI or direct-push to `main`.
 
+
+
+## 13. Wave J — Multi-Store / Multi-Tenant production readiness (approved 2026-09-27)
+
+This wave is **authoritative and release-blocking**. It supersedes any prior implementation detail that treats B2B and B2C as presentation-only channels over globally shared catalog/customer data. The detailed architecture is `docs/architecture/MULTI_TENANT_ARCHITECTURE.md`.
+
+### Business model
+
+- The FOODEX platform owner is the **wholesale/B2B principal**.
+- Every B2C retail store is an isolated tenant provisioned by SUPER_ADMIN.
+- SUPER_ADMIN is the platform control plane: create stores, assign managers/roles, inspect/audit and explicitly enter a store context when required.
+- B2C Store Admins manage only explicitly assigned retail store(s).
+- B2B administration remains an independent wholesale workspace and never shares retail tenant data.
+- UI separation is insufficient: backend queries, policies, services, exports, jobs, notifications and reports must enforce the same ownership boundary.
+
+### Data-boundary requirements
+
+1. Introduce one authoritative `StoreContext/TenantContext` used by web/API/domain services.
+2. Replace the transitional global catalog model with `Store -> Catalog -> Category/Product` ownership.
+3. Scope SKU uniqueness to the owning catalog/store and category slug uniqueness to the owning catalog.
+4. Replace the shared `customers(type)` persistence model with separate `b2b_customers` and `b2c_customers` domain/tables; B2C customers are store scoped.
+5. Warehouse/inventory/products must share the same owning store; cross-store assignments are rejected.
+6. Orders, carts, promotions, banners, drivers, settings, notifications, reports/exports and audit must preserve store/channel ownership.
+7. Existing production data is migrated in place through versioned migrations; **no database reset**.
+8. All business-managed lookup/master data must be discoverable in one **Lookup Management Center**. Minimum scope includes Brands and Units, plus other configurable lookups introduced by the product. Each lookup declares Global, Wholesale/B2B or Retail Store scope.
+
+### Atomic execution queue
+
+| Task | Issue | Exact branch | Dependencies | Acceptance focus |
+|---|---:|---|---|---|
+| MT-00 Architecture/plan authority | #248 | `docs/248-multitenant-architecture-plan` | none | Plan + architecture + executable issue contracts |
+| MT-01 Tenant/store context foundation | #239 | `feat/239-tenant-store-context` | #248 | StoreContext, ownership primitives, safe migration foundation, denial tests |
+| MT-02 Store-owned catalogs | #240 | `feat/240-store-owned-catalogs` | #239 | Catalog/category/product ownership, scoped SKU/slug, no B2B/B2C cross-catalog visibility |
+| MT-03 Split customer domains | #241 | `feat/241-split-customer-domains` | #239 | Separate B2B/B2C customer tables/services/policies and reference migration |
+| MT-04 Lookup Management Center | #242 | `feat/242-lookup-management-center` | #239 | Brands, units and future lookups CRUD with scope/audit/dependency safety |
+| MT-05 Tenant-scope operations | #243 | `feat/243-tenant-scope-operations` | #239, #240, #241 | Inventory/orders/marketing/drivers/reports/jobs/exports store isolation |
+| MT-06 Retail store provisioning | #244 | `feat/244-retail-store-provisioning` | #239 | SUPER_ADMIN creates B2C store and assigns store-scoped manager/roles |
+| MT-07 B2C isolated workspace | #245 | `feat/245-b2c-tenant-workspace` | #240, #241, #242, #243, #244 | Full retail-store management with zero visibility outside assigned tenants |
+| MT-08 B2B wholesale workspace | #246 | `feat/246-b2b-wholesale-workspace` | #240, #241, #242, #243 | Wholesale catalog/customers/inventory/pricing/orders/finance independent of retail tenants |
+| MT-09 Isolation/migration release gate | #247 | `test/247-multitenant-isolation-release` | #245, #246 | Upgrade without reset + cross-tenant denial E2E + AR/EN QA |
+
+### Scheduler order
+
+```text
+#248 MT-00
+   |
+#239 MT-01
+   |-- #240 MT-02 Catalog ownership
+   |-- #241 MT-03 Customer split
+   |-- #242 MT-04 Lookups
+   |-- #244 MT-06 Store provisioning
+   |
+   +--> #243 MT-05 Operational scoping (after #240 + #241)
+             |
+             +--> #245 MT-07 B2C tenant workspace (also #242 + #244)
+             +--> #246 MT-08 B2B wholesale workspace (also #242)
+                       |
+                       +--> #247 MT-09 isolation/migration release gate
+```
+
+Only MT-01 is promoted to Ready after MT-00 merges. Downstream issues remain `status:backlog` until all listed dependencies are merged.
+
+### Mandatory acceptance journeys
+
+1. SUPER_ADMIN creates a B2C store, creates/selects its manager and assigns `B2C_STORE_ADMIN` to that store only.
+2. That manager logs in and can create categories/products, warehouses/inventory, customers, promotions/content, drivers and view orders/reports only for the assigned store.
+3. A second B2C store/manager cannot read or mutate the first store by URL/API/entity ID tampering.
+4. The platform wholesale owner/admin operates B2B catalogs, wholesale customers, pricing, inventory, orders, finance and drivers without exposing retail tenant data.
+5. B2B customers and B2C customers are persisted in different target tables/domains and all references resolve to the correct domain.
+6. Lookup Management supports Brands and Units at minimum with list/search/add/edit/activate/deactivate/safe-delete and explicit scope.
+7. Cross-store warehouse/product, category parent, pricing, order, driver, export/report and notification leakage is rejected server-side.
+8. Supported production upgrade migrates existing data without reset and rollback/backup evidence is recorded.
+
+### Release rule
+
+FOODEX must not be called Multi-Tenant ready, and no release may claim complete store isolation, until #247 passes against the migrated schema and real application routes.

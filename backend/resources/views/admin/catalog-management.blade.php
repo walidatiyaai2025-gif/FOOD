@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ app()->getLocale()==='ar'?'إدارة الكتالوج':'Catalog Management' }} · FOODEX</title>
+@include('admin._brand-components')
+<style>
+body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
+.catalog-layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width);min-height:100vh}
+.catalog-layout aside{grid-column:2;grid-row:1;direction:rtl;background:var(--foodex-surface);border-left:1px solid var(--foodex-border);padding:var(--foodex-space-5)}
+.catalog-layout main{grid-column:1;grid-row:1;direction:rtl;padding:var(--foodex-space-6);min-width:0}
+html[dir=ltr] .catalog-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
+html[dir=ltr] .catalog-layout aside{grid-column:1;direction:ltr;border-left:0;border-right:1px solid var(--foodex-border)}
+html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
+.header{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px}
+.header h1{margin:0}.muted{color:var(--foodex-muted)}
+.tabs,.actions{display:flex;flex-wrap:wrap;gap:8px}.tabs{margin-bottom:16px}
+.tabs a,.btn{border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:10px;padding:9px 13px;text-decoration:none;font:inherit;cursor:pointer}
+.tabs a.active,.btn.primary{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green)}
+.btn.danger{color:var(--foodex-red)}
+.grid{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px}
+.card{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:16px;box-shadow:var(--foodex-shadow-sm)}
+.form{display:grid;gap:10px}.form label{font-size:.85rem;font-weight:700}.form input,.form select,.form textarea{width:100%;box-sizing:border-box;border:1px solid var(--foodex-border);border-radius:10px;padding:10px;background:#fff;font:inherit}.form textarea{min-height:90px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;align-items:center;gap:8px}.check input{width:auto}
+.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:780px}.table th,.table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.table th{background:var(--foodex-background)}
+.inline-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.inline-form input,.inline-form select{min-width:90px;max-width:170px;padding:7px;border:1px solid var(--foodex-border);border-radius:8px}
+.notice{padding:10px 12px;border-radius:10px;margin-bottom:12px}.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.err{background:#fff1f0;color:var(--foodex-red)}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}.catalog-layout,.catalog-layout[dir]{grid-template-columns:1fr}.catalog-layout aside,.catalog-layout main,html[dir=ltr] .catalog-layout aside,html[dir=ltr] .catalog-layout main{grid-column:1}.catalog-layout aside{grid-row:1;min-height:auto}.catalog-layout main{grid-row:2}}
+</style>
+</head>
+<body>
+<div class="catalog-layout">
+<aside class="sidebar">@include('admin._sidebar',['navContext'=>'b2c_products'])</aside>
+<main>
+<div class="header"><div><h1>{{ app()->getLocale()==='ar'?'إدارة الكتالوج والمتاجر':'Catalog & Store Management' }}</h1><div class="muted">{{ app()->getLocale()==='ar'?'إضافة وتعديل وحذف المنتجات والتصنيفات والعلامات والوحدات وربط المنتجات بالمتاجر.':'Create, edit and remove products, categories, brands and units, and assign products to stores.' }}</div></div><a class="btn" href="{{ route('admin.index') }}">{{ app()->getLocale()==='ar'?'لوحة الإدارة':'Dashboard' }}</a></div>
+@if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
+@if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+<nav class="tabs">
+@foreach(['products'=>'المنتجات','categories'=>'التصنيفات','brands'=>'العلامات التجارية','units'=>'وحدات القياس','stores'=>'المتاجر'] as $key=>$ar)
+<a class="{{ $tab===$key?'active':'' }}" href="{{ route('admin.catalog.index',['tab'=>$key]) }}">{{ app()->getLocale()==='ar'?$ar:ucfirst($key) }}</a>
+@endforeach
+</nav>
+
+@if($tab==='products')
+<div class="grid">
+<section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة منتج':'Add product' }}</h2>
+<form class="form" method="post" action="{{ route('admin.catalog.products.store') }}">@csrf
+<label>SKU<input name="sku" required></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" required></label>
+<label>{{ app()->getLocale()==='ar'?'الوصف':'Description' }}<textarea name="description"></textarea></label>
+<label>{{ app()->getLocale()==='ar'?'المتجر المالك':'Owning store' }}<select name="store_id" required>@foreach($stores as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></label>
+<div class="row"><label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}<select name="category_id"><option value="">—</option>@foreach($categories as $c)<option value="{{ $c->id }}">{{ $c->name }} — {{ $c->catalog_store_name }}</option>@endforeach</select></label>
+<label>{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}<select name="brand_id"><option value="">—</option>@foreach($brands as $b)<option value="{{ $b->id }}">{{ $b->name }}</option>@endforeach</select></label></div>
+<label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id" required>@foreach($units as $u)<option value="{{ $u->id }}">{{ $u->name }} ({{ $u->code }})</option>@endforeach</select></label>
+<label>{{ app()->getLocale()==='ar'?'السعر':'Price' }}<input type="number" step=".001" min="0" name="price"></label>
+<label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
+<button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة المنتج':'Add product' }}</button>
+</form></section>
+<section class="card table-wrap"><table class="table"><thead><tr><th>SKU</th><th>{{ app()->getLocale()==='ar'?'المنتج':'Product' }}</th><th>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}</th><th>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</th><th>{{ app()->getLocale()==='ar'?'ربط بمتجر':'Assign store' }}</th><th>{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</th></tr></thead><tbody>
+@forelse($products as $p)<tr><td>{{ $p->sku }}</td><td>{{ $p->name }}</td><td>{{ $p->category ?: '—' }}</td><td>
+<form class="inline-form" method="post" action="{{ route('admin.catalog.products.update',$p->id) }}">@csrf @method('PATCH')
+<input name="sku" value="{{ $p->sku }}" required><input name="name" value="{{ $p->name }}" required>
+<select name="category_id"><option value="">—</option>@foreach($categories as $c)<option value="{{ $c->id }}" @selected($p->category_id==$c->id)>{{ $c->name }}</option>@endforeach</select>
+<select name="brand_id"><option value="">—</option>@foreach($brands as $b)<option value="{{ $b->id }}" @selected($p->brand_id==$b->id)>{{ $b->name }}</option>@endforeach</select>
+<select name="unit_id">@foreach($units as $u)<option value="{{ $u->id }}" @selected($p->unit_id==$u->id)>{{ $u->name }}</option>@endforeach</select>
+<input type="hidden" name="description" value="{{ $p->description }}"><label class="check"><input type="checkbox" name="is_active" value="1" @checked($p->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></form>
+</td><td><form class="inline-form" method="post" action="{{ route('admin.catalog.products.assign',$p->id) }}">@csrf
+<select name="store_id" required>@foreach($stores->where('id',$p->catalog_store_id) as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select><input type="number" step=".001" min="0" name="price" placeholder="{{ app()->getLocale()==='ar'?'السعر':'Price' }}"><input type="hidden" name="is_active" value="1"><button class="btn">{{ app()->getLocale()==='ar'?'ربط/تحديث':'Assign' }}</button></form></td>
+<td><form method="post" action="{{ route('admin.catalog.products.destroy',$p->id) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'تأكيد الحذف؟':'Delete product?' }}')">@csrf @method('DELETE')<button class="btn danger">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form></td></tr>
+@empty<tr><td colspan="6">{{ app()->getLocale()==='ar'?'لا توجد منتجات. ابدأ من نموذج الإضافة.':'No products yet. Use the add form.' }}</td></tr>@endforelse
+</tbody></table></section></div>
+
+@elseif($tab==='categories')
+<div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة تصنيف':'Add category' }}</h2><form class="form" method="post" action="{{ route('admin.catalog.categories.store') }}">@csrf
+<label>{{ app()->getLocale()==='ar'?'المتجر المالك':'Owning store' }}<select name="store_id" required>@foreach($stores as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" required></label><label>Slug<input name="slug"></label><label>{{ app()->getLocale()==='ar'?'التصنيف الأب':'Parent' }}<select name="parent_id"><option value="">—</option>@foreach($categories as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select></label><label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة التصنيف':'Add category' }}</button></form></section>
+<section class="card table-wrap"><table class="table"><thead><tr><th>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}</th><th>Slug</th><th>{{ app()->getLocale()==='ar'?'الأب':'Parent' }}</th><th>{{ app()->getLocale()==='ar'?'إجراءات':'Actions' }}</th></tr></thead><tbody>@forelse($categories as $c)<tr><td>{{ $c->name }}</td><td>{{ $c->slug }}</td><td>{{ $c->parent_name ?: '—' }}</td><td><form class="inline-form" method="post" action="{{ route('admin.catalog.categories.update',$c->id) }}">@csrf @method('PATCH')<input name="name" value="{{ $c->name }}"><input name="slug" value="{{ $c->slug }}"><select name="parent_id"><option value="">—</option>@foreach($categories->where('id','!=',$c->id) as $parent)<option value="{{ $parent->id }}" @selected($c->parent_id==$parent->id)>{{ $parent->name }}</option>@endforeach</select><label class="check"><input type="checkbox" name="is_active" value="1" @checked($c->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></form><form method="post" action="{{ route('admin.catalog.categories.destroy',$c->id) }}" style="margin-top:6px">@csrf @method('DELETE')<button class="btn danger">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form></td></tr>@empty<tr><td colspan="4">{{ app()->getLocale()==='ar'?'لا توجد تصنيفات.':'No categories.' }}</td></tr>@endforelse</tbody></table></section></div>
+
+@elseif($tab==='brands')
+<div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة علامة تجارية':'Add brand' }}</h2><form class="form" method="post" action="{{ route('admin.catalog.brands.store') }}">@csrf<label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" required></label><label>Slug<input name="slug"></label><button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة':'Add' }}</button></form></section><section class="card"><table class="table"><tbody>@foreach($brands as $b)<tr><td>{{ $b->name }}</td><td>{{ $b->slug }}</td><td><form method="post" action="{{ route('admin.catalog.brands.destroy',$b->id) }}">@csrf @method('DELETE')<button class="btn danger">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form></td></tr>@endforeach</tbody></table></section></div>
+
+@elseif($tab==='units')
+<div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة وحدة قياس':'Add unit' }}</h2><form class="form" method="post" action="{{ route('admin.catalog.units.store') }}">@csrf<label>{{ app()->getLocale()==='ar'?'الكود':'Code' }}<input name="code" required></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" required></label><label>{{ app()->getLocale()==='ar'?'المنازل العشرية':'Decimal places' }}<input type="number" min="0" max="6" name="decimal_places" value="0" required></label><button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة':'Add' }}</button></form></section><section class="card"><table class="table"><thead><tr><th>{{ app()->getLocale()==='ar'?'الكود':'Code' }}</th><th>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}</th><th>{{ app()->getLocale()==='ar'?'الدقة':'Precision' }}</th></tr></thead><tbody>@foreach($units as $u)<tr><td>{{ $u->code }}</td><td>{{ $u->name }}</td><td>{{ $u->decimal_places }}</td></tr>@endforeach</tbody></table></section></div>
+
+@elseif($tab==='stores')
+<div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة متجر':'Add store' }}</h2><form class="form" method="post" action="{{ route('admin.catalog.stores.store') }}">@csrf<label>{{ app()->getLocale()==='ar'?'النوع':'Type' }}<select name="store_type_id">@foreach($storeTypes as $t)<option value="{{ $t->id }}">{{ $t->code }} — {{ $t->name }}</option>@endforeach</select></label><label>{{ app()->getLocale()==='ar'?'الكود':'Code' }}<input name="code" required></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" required></label><label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة المتجر':'Add store' }}</button></form></section><section class="card table-wrap"><table class="table"><thead><tr><th>{{ app()->getLocale()==='ar'?'النوع':'Type' }}</th><th>{{ app()->getLocale()==='ar'?'الكود':'Code' }}</th><th>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}</th><th>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</th></tr></thead><tbody>@foreach($stores as $s)<tr><td>{{ $s->type_code }}</td><td>{{ $s->code }}</td><td>{{ $s->name }}</td><td><form class="inline-form" method="post" action="{{ route('admin.catalog.stores.update',$s->id) }}">@csrf @method('PATCH')<select name="store_type_id">@foreach($storeTypes as $t)<option value="{{ $t->id }}" @selected($s->store_type_id==$t->id)>{{ $t->code }}</option>@endforeach</select><input name="code" value="{{ $s->code }}"><input name="name" value="{{ $s->name }}"><label class="check"><input type="checkbox" name="is_active" value="1" @checked($s->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></form></td></tr>@endforeach</tbody></table></section></div>
+@endif
+</main></div></body></html>

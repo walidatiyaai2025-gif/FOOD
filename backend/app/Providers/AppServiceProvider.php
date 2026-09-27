@@ -6,6 +6,7 @@ use App\Domain\Updater\LaravelUpdateRuntime;
 use App\Domain\Updater\UpdateRuntime;
 use App\Models\User;
 use App\Services\DatabaseTranslationLoader;
+use App\Support\StoreContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Translation\Loader;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->scoped(StoreContext::class, static fn (): StoreContext => new StoreContext);
         $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
         $this->app->extend(
             'translation.loader',
