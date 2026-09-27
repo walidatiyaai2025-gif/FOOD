@@ -1,0 +1,94 @@
+name: FOODEX 1.0.6 Update Bundle
+
+on:
+  push:
+    branches:
+      - release/272-1-0-6-update
+    paths-ignore:
+      - "Release/Updates/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - VERSION
+      - "backend/**"
+      - CHANGELOG.md
+      - docs/release/RELEASE_NOTES.md
+      - scripts/build-update-bundle.py
+      - .github/workflows/release-update-bundle.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-update:
+    name: Build dashboard update package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build deterministic FOODEX update
+        run: |
+          python3 scripts/build-update-bundle.py \
+            --base 3dd8d81e4c2615aa2ec544130aa23f337e5ed21f \
+            --target-version 1.0.6 \
+            --minimum-current-version 1.0.5 \
+            --output-dir dist/update \
+            --release-notes "FOODEX 1.0.6 cumulative update: multi-tenant B2B/B2C isolation, full dashboard and driver order management, scheduled promotional campaigns, Android Firebase production configs, and product/category image management."
+
+      - name: Verify package metadata
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib, zipfile
+          root = pathlib.Path("dist/update")
+          package = root / "FOODEX-Update.zip"
+          manifest = json.loads((root / "FOODEX-Update.json").read_text())
+          digest = hashlib.sha256(package.read_bytes()).hexdigest()
+          assert manifest["target_version"] == "1.0.6"
+          assert manifest["minimum_current_version"] == "1.0.5"
+          assert manifest["contains_migrations"] is True
+          assert manifest["requires_full_redeploy"] is False
+          assert manifest["sha256"] == digest
+          with zipfile.ZipFile(package) as archive:
+              names = archive.namelist()
+              assert "VERSION" in names
+              assert any(name.startswith("backend/database/migrations/") for name in names)
+              assert not any(name.startswith(("apps/", "Release/", "docs/", ".github/")) for name in names)
+              assert not any("/tests/" in name or name.startswith("backend/tests/") for name in names)
+          print("Update bundle verified:", digest)
+          PY
+
+      - name: Publish generated package to release branch
+        if: github.event_name == 'push'
+        run: |
+          cp dist/update/FOODEX-Update.zip Release/Updates/FOODEX-Update.zip
+          cp dist/update/FOODEX-Update.json Release/Updates/FOODEX-Update.json
+          cp dist/update/FOODEX-Update.sha256.txt Release/Updates/FOODEX-Update.sha256.txt
+          cp dist/update/FOODEX-Update.files.txt Release/Updates/FOODEX-Update.files.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Release/Updates/FOODEX-Update.zip \
+                  Release/Updates/FOODEX-Update.json \
+                  Release/Updates/FOODEX-Update.sha256.txt \
+                  Release/Updates/FOODEX-Update.files.txt
+          if git diff --cached --quiet; then
+            echo "Generated update package is already published."
+          else
+            git commit -m "release: publish generated FOODEX 1.0.6 update bundle"
+            git push origin HEAD:release/1.0.6-update
+          fi
+
+      - name: Upload FOODEX 1.0.6 update artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOODEX-Update-1.0.6
+          path: |
+            dist/update/FOODEX-Update.zip
+            dist/update/FOODEX-Update.json
+            dist/update/FOODEX-Update.sha256.txt
+            dist/update/FOODEX-Update.files.txt
+          if-no-files-found: error
+          retention-days: 30

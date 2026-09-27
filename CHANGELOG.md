@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.6 - Multi-Tenant Operations, Orders, Campaigns and Catalog Media
+- Complete the Multi-Store / Multi-Tenant architecture with isolated B2B wholesale and B2C retail workspaces, tenant-owned catalogs, customer-domain separation, scoped lookups and retail-store provisioning.
+- Add complete dashboard order management for B2B and B2C including manual creation, pending-order editing, pricing, discounts, delivery fees, payment records, inventory reservations, lifecycle transitions and driver assignment.
+- Add complete driver order execution with assigned/active/completed/failed views, customer/address/item/payment details, delivery actions, failure reasons, retry flow and authoritative order-status synchronization.
+- Add scheduled promotional notification campaigns for B2B and B2C with one-time and recurring schedules, pause/resume/cancel, tenant-scoped audiences, Firebase delivery, run history and duplicate-dispatch protection.
+- Add product galleries and dedicated category images with upload/change/remove controls, primary image ordering, tenant-safe storage, API image URLs and Customer mobile rendering.
+- Wire production Android Firebase client configuration for Customer and Driver package IDs.
+- Preserve non-destructive upgrade compatibility from FOODEX 1.0.5; this update contains database migrations.
+
 ## 1.0.5 - Operational Admin CRUD
 - Add tenant-scoped B2C order transition, driver assignment and inventory adjustment controls directly from operational workspaces.
 - Seed safe default product units and B2B price tiers for fresh installations and upgrades.
