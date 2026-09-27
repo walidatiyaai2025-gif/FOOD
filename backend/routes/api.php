@@ -102,6 +102,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/orders/{order}/status', [OrderController::class, 'transition']);
         Route::post('/admin/deliveries/assign', [DriverAssignmentController::class, 'assign']);
         Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
-        Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition']);
+        Route::get('/driver/assignments/{assignment}', [DriverAssignmentController::class, 'show'])->whereNumber('assignment');
+        Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition'])->whereNumber('assignment');
     });
 });
