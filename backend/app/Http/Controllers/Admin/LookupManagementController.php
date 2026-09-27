@@ -35,10 +35,13 @@ final class LookupManagementController extends Controller
             ? (string) $request->query('type')
             : 'brands';
         $table = $type;
-        $query = $type === 'brands' ? Brand::query() : Unit::query();
+        if ($type === 'brands') {
+            $query = $this->scope->visible(Brand::query(), $actor, 'brands');
+        } else {
+            $query = $this->scope->visible(Unit::query(), $actor, 'units');
+        }
 
         $query->leftJoin('stores', 'stores.id', '=', $table.'.store_id');
-        $this->scope->visible($query, $actor, $table);
 
         $search = trim((string) $request->query('q', ''));
         if ($search !== '') {
