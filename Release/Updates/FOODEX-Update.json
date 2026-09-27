@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.9",
-  "minimum_current_version": "1.0.8",
-  "sha256": "f413a7e316f51a02e10c7f111b1a59ff3af361b6f627d9569ab11afb6c2aa697",
-  "contains_migrations": true,
+  "target_version": "1.0.10",
+  "minimum_current_version": "1.0.9",
+  "sha256": "1bf7868ec4738b986e90abd0f82435d6c02c895163a8e5c22511714a32e754d0",
+  "contains_migrations": false,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "MT-REPLENISH: Retail stores as Wholesale customers with automatic receiving (#289)",
+  "release_notes": "WEB-ROOT: redirect FOODEX home to login (#292)",
   "dashboard_fields": {
-    "target_version": "1.0.9",
-    "minimum_current_version": "1.0.8",
-    "sha256": "f413a7e316f51a02e10c7f111b1a59ff3af361b6f627d9569ab11afb6c2aa697",
-    "contains_migrations": true,
-    "release_notes": "MT-REPLENISH: Retail stores as Wholesale customers with automatic receiving (#289)"
+    "target_version": "1.0.10",
+    "minimum_current_version": "1.0.9",
+    "sha256": "1bf7868ec4738b986e90abd0f82435d6c02c895163a8e5c22511714a32e754d0",
+    "contains_migrations": false,
+    "release_notes": "WEB-ROOT: redirect FOODEX home to login (#292)"
   }
 }
