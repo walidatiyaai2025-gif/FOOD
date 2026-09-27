@@ -419,7 +419,7 @@
                     <p class="empty">{{ app()->getLocale()==='ar' ? 'بيانات مباشرة ضمن المتاجر المصرح بها لهذا المستخدم.' : 'Live server data restricted to this user\'s assigned stores.' }}</p>
                 </div>
                 <nav class="module-links" aria-label="{{ app()->getLocale()==='ar'?'أقسام التجزئة الأساسية':'Retail core modules' }}">
-                    @foreach(['products','inventory','orders','customers','promotions','drivers','storefront','content','reports','settings'] as $core)
+                    @foreach(array_values(array_filter($visibleModules, fn($candidate) => $candidate !== 'dashboard')) as $core)
                         <a class="{{ $module===$core?'active':'' }}" href="{{ route('admin.b2c.module',array_merge(['module'=>$core,'store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_workspace.modules.'.$core) }}</a>
                     @endforeach
                 </nav>
