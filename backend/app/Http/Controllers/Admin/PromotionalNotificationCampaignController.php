@@ -8,11 +8,13 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\NotificationCampaignDispatcher;
 use App\Services\OperationalTenantScope;
+use App\Support\AdminNavigation;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -20,9 +22,12 @@ final class PromotionalNotificationCampaignController extends Controller
 {
     private const TIMEZONE = 'Asia/Kuwait';
 
+    public function __construct(private readonly AdminNavigation $navigation) {}
+
     public function index(Request $request): View
     {
         $actor = $this->authorizeAccess($request);
+        App::setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
         $search = trim((string) $request->query('q', ''));
         $status = trim((string) $request->query('status', ''));
 
@@ -45,6 +50,9 @@ final class PromotionalNotificationCampaignController extends Controller
             'canB2b' => $actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN'),
             'canAllChannels' => $actor->hasRole('SUPER_ADMIN'),
             'b2cStores' => $this->allowedB2cStores($actor),
+            'user' => $actor,
+            'navGroups' => $this->navigation->groupsFor($actor),
+            'navContext' => 'notification_campaigns',
         ]);
     }
 
