@@ -150,7 +150,9 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
             @endif
 
             <div class="actions" style="margin-top:12px">
-                <form method="post" action="{{ route('admin.notification-campaigns.send-now',$campaign) }}">@csrf<button class="primary">{{ __('notifications.send_now') }}</button></form>
+                @if(!in_array($campaign->status,['completed','cancelled'],true))
+                    <form method="post" action="{{ route('admin.notification-campaigns.send-now',$campaign) }}">@csrf<button class="primary">{{ __('notifications.send_now') }}</button></form>
+                @endif
                 @if($campaign->status==='active')
                     <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="paused"><button class="secondary">{{ __('notifications.pause') }}</button></form>
                 @elseif(!in_array($campaign->status,['completed','cancelled'],true))
