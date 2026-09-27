@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.12 - Administration Navigation and Tenancy Audit
+- Keep SUPER_ADMIN on the platform control plane by default and require explicit audited Retail store inspection before entering a Retail tenant workspace.
+- Remove duplicate and legacy mixed-domain administration entry points that could conflict with the authoritative Wholesale/Retail business model.
+- Make all B2B and Retail workspace navigation permission-aware so links are not shown when the current user cannot open the destination.
+- Keep product/catalog actions in catalog management and inventory/warehouse actions in inventory management.
+- Add persistent user logout to the shared administration sidebar.
+- Complete Arabic administration copy cleanup so Arabic screens do not show English helper text where a proper Arabic label exists.
+- Add descriptive placeholders to administration text fields and a shared fallback for newly introduced fields.
+- Preserve the 1.0.11 Demo Data dashboard workflow and permission/audit safeguards.
+
 ## 1.0.11 - Demo Data Admin Access Fix
 - Add a dedicated `/admin/security/demo-data` management page instead of relying on a command-line seeder workflow.
 - Allow authorized `demo_data.manage` operators to create/rebuild and clear isolated FOODEX-DEMO records from the dashboard, including on the deployed environment.
