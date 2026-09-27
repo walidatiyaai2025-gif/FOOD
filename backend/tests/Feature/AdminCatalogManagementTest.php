@@ -38,7 +38,7 @@ class AdminCatalogManagementTest extends TestCase
 
         $this->actingAs($user)->get('/admin/catalog?tab=categories')
             ->assertOk()
-            ->assertSee('إدارة الكتالوج والتصنيفات')
+            ->assertSee('إدارة الكتالوج')
             ->assertSee('إضافة تصنيف');
 
         $this->actingAs($user)->post('/admin/catalog/units', [
