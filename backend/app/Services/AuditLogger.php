@@ -4,10 +4,10 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\Inventory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AuditLogger
 {
