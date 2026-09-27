@@ -37,24 +37,17 @@ final class CatalogManagementController extends Controller
     public function index(Request $request): View
     {
         $actor = $this->actor($request);
-        $tab = in_array((string) $request->query('tab'), ['products', 'categories', 'stores'], true)
+        $tab = in_array((string) $request->query('tab'), ['products', 'categories'], true)
             ? (string) $request->query('tab')
             : 'products';
-        $canManageStores = $actor->hasRole('SUPER_ADMIN');
 
-        if ($tab === 'stores') {
-            abort_unless($canManageStores, 403);
-            $storeIds = DB::table('stores')
-                ->where('stores.code', '!=', 'SYSTEM-LEGACY-QUARANTINE')
-                ->pluck('stores.id')
-                ->map(static fn ($id): int => (int) $id)
-                ->all();
-        } else {
-            $storeIds = $this->visibleStoreIds($actor, $request);
-            $storeIds = $this->catalogReadableStoreIds($actor, $storeIds);
-            if ($storeIds === [] && $this->canAccessWholesale($actor) === false) {
-                abort(403);
-            }
+        // Store provisioning belongs to the dedicated control-plane screen.
+        // This catalog surface is operational only and never doubles as store management.
+        $canManageStores = false;
+        $storeIds = $this->visibleStoreIds($actor, $request);
+        $storeIds = $this->catalogReadableStoreIds($actor, $storeIds);
+        if ($storeIds === [] && $this->canAccessWholesale($actor) === false) {
+            abort(403);
         }
 
         $scopeParams = [];
@@ -68,7 +61,7 @@ final class CatalogManagementController extends Controller
         return view('admin.catalog-management', [
             'user' => $actor,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
-            'navContext' => 'catalog_management',
+            'navContext' => $request->boolean('support_access') ? 'b2c_products' : 'b2b_products',
             'tab' => $tab,
             'products' => DB::table('products')
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
