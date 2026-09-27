@@ -101,6 +101,80 @@ class PromotionalNotificationCampaignTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_b2c_store_admin_cannot_target_a_user_from_another_store(): void
+    {
+        $mine = $this->store('B2C', 'USER-TARGET-MINE');
+        $other = $this->store('B2C', 'USER-TARGET-OTHER');
+        $admin = $this->storeRoleUser($mine, 'B2C_STORE_ADMIN', 'user-target-admin@example.test');
+
+        $mineUser = User::query()->create([
+            'name' => 'Mine Customer',
+            'email' => 'mine-target@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $foreignUser = User::query()->create([
+            'name' => 'Foreign Customer',
+            'email' => 'foreign-target@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+
+        DB::table('b2c_customers')->insert([
+            [
+                'user_id' => $mineUser->id,
+                'store_id' => $mine,
+                'name' => 'Mine Customer',
+                'email' => $mineUser->email,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'user_id' => $foreignUser->id,
+                'store_id' => $other,
+                'name' => 'Foreign Customer',
+                'email' => $foreignUser->email,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $this->actingAs($admin)->post('/admin/notification-campaigns', $this->payload([
+            'audience' => 'user',
+            'app' => 'customer',
+            'target_channel' => 'b2c',
+            'store_id' => $mine,
+            'user_id' => $foreignUser->id,
+        ]))->assertNotFound();
+
+        $this->actingAs($admin)->post('/admin/notification-campaigns', $this->payload([
+            'audience' => 'user',
+            'app' => 'customer',
+            'target_channel' => 'b2c',
+            'store_id' => $mine,
+            'user_id' => $mineUser->id,
+        ]))->assertRedirect();
+
+        $this->assertDatabaseHas('notification_campaigns', [
+            'store_id' => $mine,
+            'user_id' => $mineUser->id,
+            'target_channel' => 'b2c',
+        ]);
+    }
+
+    public function test_campaign_rejects_customer_driver_app_mismatch(): void
+    {
+        $mine = $this->store('B2C', 'APP-MISMATCH-MINE');
+        $admin = $this->storeRoleUser($mine, 'B2C_STORE_ADMIN', 'app-mismatch-admin@example.test');
+
+        $this->actingAs($admin)->post('/admin/notification-campaigns', $this->payload([
+            'audience' => 'customer',
+            'app' => 'driver',
+            'target_channel' => 'b2c',
+            'store_id' => $mine,
+        ]))->assertSessionHasErrors('app');
+    }
+
     public function test_recurring_campaign_creates_independent_notification_for_every_occurrence(): void
     {
         CarbonImmutable::setTestNow('2026-09-27 14:00:00');

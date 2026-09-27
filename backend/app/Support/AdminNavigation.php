@@ -49,7 +49,7 @@ class AdminNavigation
                 $this->module($user, $channels, 'b2b', 'drivers', 'admin.b2b_workspace.modules.drivers', 'drivers.b2b.view'),
             ]),
             $this->group('catalog', 'admin.nav_groups.catalog', '▦', [
-                $wholesaleOnly ? null : $this->routeItem($user, 'catalog_management', 'admin.catalog_management', 'admin.catalog.index', 'catalog.view'),
+                $wholesaleOnly ? null : $this->routeItemScoped($user, 'catalog_management', 'admin.catalog_management', 'admin.catalog.index', 'catalog.view'),
                 $this->routeItemScoped($user, 'lookup_management', 'admin.lookup_management', 'admin.lookups.index', 'lookups.view'),
                 $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
                 $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),

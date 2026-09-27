@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 
@@ -13,8 +14,15 @@ class AdminShellController extends Controller
 {
     public function __construct(private readonly AdminNavigation $navigation) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        if (! $user->hasRole('SUPER_ADMIN') && $this->isRetailStoreAdmin($user)) {
+            return redirect()->route('admin.b2c.dashboard');
+        }
+
         return $this->render($request);
     }
 
@@ -26,6 +34,16 @@ class AdminShellController extends Controller
     public function b2c(Request $request): View
     {
         return $this->render($request, 'b2c');
+    }
+
+    private function isRetailStoreAdmin(User $user): bool
+    {
+        return $user->storeRoleAssignments()
+            ->whereHas('role', fn ($query) => $query
+                ->where('roles.code', 'B2C_STORE_ADMIN')
+                ->where('roles.is_active', true)
+                ->whereIn('roles.scope', ['store', 'both']))
+            ->exists();
     }
 
     private function render(Request $request, ?string $activeChannel = null): View

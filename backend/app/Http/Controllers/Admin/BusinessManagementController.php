@@ -48,12 +48,20 @@ final class BusinessManagementController extends Controller
             ->orderBy('stores.name')
             ->get(['stores.id', 'stores.name', 'stores.code']);
 
-        $inventoryStoreIds = $this->storeIdsForAny($actor, ['inventory.view', 'inventory.manage']);
-        $promotionStoreIds = $this->storeIdsForAny($actor, ['promotions.view', 'promotions.manage']);
-        $driverStoreIds = array_values(array_unique([
+        $inventoryStoreIds = $this->filterRequestedStoreIds(
+            $actor,
+            $request,
+            $this->storeIdsForAny($actor, ['inventory.view', 'inventory.manage']),
+        );
+        $promotionStoreIds = $this->filterRequestedStoreIds(
+            $actor,
+            $request,
+            $this->storeIdsForAny($actor, ['promotions.view', 'promotions.manage']),
+        );
+        $driverStoreIds = $this->filterRequestedStoreIds($actor, $request, array_values(array_unique([
             ...$this->storeIdsForAny($actor, ['drivers.b2c.view', 'drivers.b2c.manage'], 'b2c'),
             ...$this->storeIdsForAny($actor, ['drivers.b2b.view', 'drivers.b2b.manage'], 'b2b'),
-        ]));
+        ])));
         $visibleStoreIds = match ($tab) {
             'inventory' => $inventoryStoreIds,
             'promotions', 'content' => $promotionStoreIds,
@@ -94,7 +102,10 @@ final class BusinessManagementController extends Controller
                 ]),
             'customers' => $customerRows,
             'customerStores' => $customerStores,
-            'supportStoreId' => $request->integer('support_store_id') ?: null,
+            'supportStoreId' => ($request->integer('support_store_id') ?: $request->integer('store_id')) ?: null,
+            'selectedStoreId' => $request->integer('store_id') ?: null,
+            'canB2cDrivers' => $this->hasPermissionAnywhere($actor, ['drivers.b2c.view', 'drivers.b2c.manage']),
+            'canB2bDrivers' => $this->hasPermissionAnywhere($actor, ['drivers.b2b.view', 'drivers.b2b.manage']),
             'promotions' => DB::table('promotions')
                 ->join('stores', 'stores.id', '=', 'promotions.store_id')
                 ->whereIn('promotions.store_id', $promotionStoreIds)
@@ -252,7 +263,6 @@ final class BusinessManagementController extends Controller
 
     public function storeCustomer(Request $request): RedirectResponse
     {
-        Gate::authorize('customers.create');
         $actor = $this->actor($request);
         $data = $request->validate([
             'type' => ['required', 'in:b2b,b2c'],
@@ -263,6 +273,7 @@ final class BusinessManagementController extends Controller
         ]);
 
         if ($data['type'] === 'b2b') {
+            Gate::forUser($actor)->authorize('customers.create');
             app(TenantContextResolver::class)->wholesale($actor);
             app(B2bCustomerService::class)->create([
                 'name' => $data['name'],
@@ -272,6 +283,7 @@ final class BusinessManagementController extends Controller
         } else {
             $storeId = (int) $data['store_id'];
             $this->assertRetailCustomerStore($actor, $storeId, $request);
+            Gate::forUser($actor)->authorize('customers.create', $storeId);
             app(B2cCustomerService::class)->create($storeId, [
                 'name' => $data['name'],
                 'phone' => $data['phone'] ?? null,
@@ -284,7 +296,6 @@ final class BusinessManagementController extends Controller
 
     public function updateCustomer(Request $request, int $customer): RedirectResponse
     {
-        Gate::authorize('customers.edit');
         $actor = $this->actor($request);
         $data = $request->validate([
             'type' => ['required', 'in:b2b,b2c'],
@@ -294,6 +305,7 @@ final class BusinessManagementController extends Controller
         ]);
 
         if ($data['type'] === 'b2b') {
+            Gate::forUser($actor)->authorize('customers.edit');
             app(TenantContextResolver::class)->wholesale($actor);
             $model = B2bCustomer::query()->findOrFail($customer);
             $model->update([
@@ -304,6 +316,7 @@ final class BusinessManagementController extends Controller
         } else {
             $model = B2cCustomer::query()->findOrFail($customer);
             $this->assertRetailCustomerStore($actor, (int) $model->store_id, $request);
+            Gate::forUser($actor)->authorize('customers.edit', (int) $model->store_id);
             app(B2cCustomerService::class)->update($model, [
                 'name' => $data['name'],
                 'phone' => $data['phone'] ?? null,
@@ -316,11 +329,11 @@ final class BusinessManagementController extends Controller
 
     public function destroyCustomer(Request $request, int $customer): RedirectResponse
     {
-        Gate::authorize('customers.delete');
         $actor = $this->actor($request);
         $type = $request->validate(['type' => ['required', 'in:b2b,b2c']])['type'];
 
         if ($type === 'b2b') {
+            Gate::forUser($actor)->authorize('customers.delete');
             app(TenantContextResolver::class)->wholesale($actor);
             $model = B2bCustomer::query()->findOrFail($customer);
 
@@ -336,6 +349,7 @@ final class BusinessManagementController extends Controller
         } else {
             $model = B2cCustomer::query()->findOrFail($customer);
             $this->assertRetailCustomerStore($actor, (int) $model->store_id, $request);
+            Gate::forUser($actor)->authorize('customers.delete', (int) $model->store_id);
 
             if (DB::table('orders')->where('b2c_customer_id', $model->getKey())->exists()
                 || DB::table('invoices')->where('b2c_customer_id', $model->getKey())->exists()
@@ -623,19 +637,20 @@ final class BusinessManagementController extends Controller
     private function retailCustomerStoreIds(User $actor, Request $request): array
     {
         $tenant = app(TenantContextResolver::class);
+        $requestedStoreId = $request->integer('support_store_id') ?: $request->integer('store_id');
 
         if (! $actor->hasRole('SUPER_ADMIN')) {
-            return $tenant->retailStoreIds($actor);
+            return $this->filterRequestedStoreIds($actor, $request, $tenant->retailStoreIds($actor));
         }
 
-        $storeId = $request->integer('support_store_id');
-        if ($storeId <= 0) {
+        if ($requestedStoreId <= 0) {
             return [];
         }
 
-        $tenant->retail($actor, $storeId, true, $request);
+        abort_unless($request->boolean('support_access'), 403);
+        $tenant->retail($actor, $requestedStoreId, true, $request);
 
-        return [$storeId];
+        return [$requestedStoreId];
     }
 
     private function assertRetailCustomerStore(User $actor, int $storeId, Request $request): void
@@ -682,6 +697,29 @@ final class BusinessManagementController extends Controller
         sort($ids);
 
         return $ids;
+    }
+
+    /** @param list<int> $storeIds
+     * @return list<int>
+     */
+    private function filterRequestedStoreIds(User $actor, Request $request, array $storeIds): array
+    {
+        $requested = $request->integer('store_id');
+        if ($requested <= 0) {
+            return $storeIds;
+        }
+
+        abort_unless(in_array($requested, $storeIds, true), 404);
+
+        if ($actor->hasRole('SUPER_ADMIN')) {
+            $channel = app(OperationalTenantScope::class)->storeChannel($requested);
+            if ($channel === 'b2c') {
+                abort_unless($request->boolean('support_access'), 403);
+                app(TenantContextResolver::class)->retail($actor, $requested, true, $request);
+            }
+        }
+
+        return [$requested];
     }
 
     private function actor(Request $request): User

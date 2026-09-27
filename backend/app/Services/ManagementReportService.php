@@ -730,20 +730,30 @@ final class ManagementReportService
     /** @param array<string, mixed> $filters */
     private function enforceChannelScope(User $user, array $filters): array
     {
-        $b2bOnly = $user->hasRole('B2B_ADMIN')
-            && ! $user->hasRole('SUPER_ADMIN')
-            && ! $user->hasRole('OPERATIONS')
-            && ! $user->hasRole('FINANCE');
-
-        if (! $b2bOnly) {
+        if ($user->hasRole('SUPER_ADMIN')) {
             return $filters;
         }
 
-        if ($filters['channel'] !== null && $filters['channel'] !== 'b2b') {
+        $scope = app(OperationalTenantScope::class);
+        $b2bStoreIds = $scope->allowedStoreIds($user, 'reports.view', 'b2b');
+        $b2cStoreIds = $scope->allowedStoreIds($user, 'reports.view', 'b2c');
+
+        $forcedChannel = null;
+        if ($b2bStoreIds !== [] && $b2cStoreIds === []) {
+            $forcedChannel = 'b2b';
+        } elseif ($b2cStoreIds !== [] && $b2bStoreIds === []) {
+            $forcedChannel = 'b2c';
+        }
+
+        if ($forcedChannel === null) {
+            return $filters;
+        }
+
+        if ($filters['channel'] !== null && $filters['channel'] !== $forcedChannel) {
             abort(403);
         }
 
-        $filters['channel'] = 'b2b';
+        $filters['channel'] = $forcedChannel;
 
         return $filters;
     }

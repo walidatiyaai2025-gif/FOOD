@@ -25,6 +25,21 @@ use Illuminate\Support\Facades\DB;
 
 class B2cWorkspaceController extends Controller
 {
+    /** @var array<string, string|null> */
+    private const MODULE_PERMISSIONS = [
+        'dashboard' => null,
+        'products' => 'catalog.view',
+        'inventory' => 'inventory.view',
+        'orders' => 'orders.view',
+        'customers' => 'customers.view',
+        'promotions' => 'promotions.view',
+        'drivers' => 'drivers.b2c.view',
+        'storefront' => 'stores.view',
+        'content' => 'promotions.view',
+        'reports' => 'reports.view',
+        'settings' => 'settings.view',
+    ];
+
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly B2cDashboardService $dashboard,
@@ -36,10 +51,10 @@ class B2cWorkspaceController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        $allowed = ['dashboard', 'products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'];
-        abort_unless(in_array($module, $allowed, true), 404);
+        abort_unless(array_key_exists($module, self::MODULE_PERMISSIONS), 404);
         $workspace = $this->workspaceContext($request, $user);
         $storeId = $workspace['selected_store_id'];
+        $this->authorizeModule($user, $module, $storeId);
         $storeIds = [$storeId];
         $availableStores = $workspace['stores'];
         $supportAccess = $workspace['support_access'];
@@ -194,6 +209,42 @@ class B2cWorkspaceController extends Controller
         $inventoryApi->adjust($request, $model, $audit);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تعديل المخزون.' : 'Inventory adjusted.');
+    }
+
+    public function saveSetting(Request $request, AuditLogger $audit): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $user);
+        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'settings.manage', 'b2c');
+
+        $data = $request->validate([
+            'key' => ['required', 'string', 'max:255'],
+            'value' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $existing = DB::table('settings')
+            ->where('store_id', $storeId)
+            ->where('key', $data['key'])
+            ->first(['id', 'is_secret']);
+        abort_if($existing !== null && (bool) $existing->is_secret, 403);
+
+        DB::table('settings')->updateOrInsert(
+            ['store_id' => $storeId, 'key' => $data['key']],
+            [
+                'value' => json_encode($data['value'] ?? null, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+
+        $audit->record('b2c.setting.saved', $user, null, null, [
+            'store_id' => $storeId,
+            'key' => $data['key'],
+        ], $request);
+
+        return back()->with('status', app()->getLocale() === 'ar' ? 'تم حفظ إعداد المتجر.' : 'Store setting saved.');
     }
 
     private function moduleData(
@@ -671,6 +722,12 @@ class B2cWorkspaceController extends Controller
                     'setting' => $row->setting,
                     'value' => $this->displaySettingValue($row->value),
                 ])->all(),
+            'stores' => DB::table('stores')
+                ->whereIn('id', $storeIds)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
+                ->all(),
             'actions' => $actions,
         ];
     }
@@ -695,6 +752,16 @@ class B2cWorkspaceController extends Controller
             'columns' => [],
             'rows' => [],
         ];
+    }
+
+    private function authorizeModule(User $user, string $module, int $storeId): void
+    {
+        $permission = self::MODULE_PERMISSIONS[$module] ?? null;
+        if ($permission === null || $user->hasPermission($permission)) {
+            return;
+        }
+
+        abort_unless($storeId > 0 && $user->hasPermission($permission, $storeId), 403);
     }
 
     private function displaySettingValue(mixed $value): string

@@ -93,6 +93,7 @@ Route::prefix('admin')
         Route::post('/b2c/orders/{order}/status', [B2cWorkspaceController::class, 'transitionOrder'])->whereNumber('order')->name('b2c.orders.status');
         Route::post('/b2c/drivers/assign', [B2cWorkspaceController::class, 'assignDriver'])->name('b2c.drivers.assign');
         Route::post('/b2c/inventory/{inventory}/adjust', [B2cWorkspaceController::class, 'adjustInventory'])->whereNumber('inventory')->name('b2c.inventory.adjust');
+        Route::put('/b2c/settings', [B2cWorkspaceController::class, 'saveSetting'])->name('b2c.settings.save');
         Route::get('/b2c/storefront-preview', [B2cWorkspaceController::class, 'show'])->defaults('module', 'storefront')->name('b2c.storefront-preview');
         Route::get('/b2c/{module}', [B2cWorkspaceController::class, 'show'])->name('b2c.module');
         Route::get('/catalog', [CatalogManagementController::class, 'index'])->name('catalog.index');

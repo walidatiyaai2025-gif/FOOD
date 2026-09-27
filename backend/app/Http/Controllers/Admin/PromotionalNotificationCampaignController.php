@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 final class PromotionalNotificationCampaignController extends Controller
 {
@@ -62,6 +63,8 @@ final class PromotionalNotificationCampaignController extends Controller
         $actor = $this->authorizeAccess($request);
         $data = $this->validated($request);
         $this->assertScope($actor, $data);
+        $this->assertAudienceAppCompatibility($data);
+        $this->assertTargetUserScope($data);
         $schedule = $this->scheduleData($data);
 
         $campaign = NotificationCampaign::query()->create([
@@ -93,6 +96,8 @@ final class PromotionalNotificationCampaignController extends Controller
         abort_if(in_array($campaign->status, ['completed', 'cancelled'], true), 409);
         $data = $this->validated($request);
         $this->assertScope($actor, $data);
+        $this->assertAudienceAppCompatibility($data);
+        $this->assertTargetUserScope($data);
         $before = $campaign->toArray();
 
         $campaign->update([
@@ -232,6 +237,92 @@ final class PromotionalNotificationCampaignController extends Controller
 
         abort_unless($target === 'b2c' && $storeId !== null, 403);
         app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'notifications.manage', 'b2c');
+    }
+
+    /** @param array<string, mixed> $data */
+    private function assertAudienceAppCompatibility(array $data): void
+    {
+        $audience = (string) $data['audience'];
+        $app = (string) $data['app'];
+
+        if ($audience === 'customer' && $app === 'driver') {
+            throw ValidationException::withMessages([
+                'app' => ['Customer campaigns cannot target the Driver app.'],
+            ]);
+        }
+
+        if ($audience === 'driver' && $app === 'customer') {
+            throw ValidationException::withMessages([
+                'app' => ['Driver campaigns cannot target the Customer app.'],
+            ]);
+        }
+    }
+
+    /** @param array<string, mixed> $data */
+    private function assertTargetUserScope(array $data): void
+    {
+        if (($data['audience'] ?? null) !== 'user') {
+            return;
+        }
+
+        $userId = (int) ($data['user_id'] ?? 0);
+        $target = (string) ($data['target_channel'] ?? '');
+        $app = (string) ($data['app'] ?? 'all');
+        $storeId = isset($data['store_id']) ? (int) $data['store_id'] : null;
+
+        if ($userId <= 0) {
+            throw ValidationException::withMessages(['user_id' => ['A target user is required.']]);
+        }
+
+        if ($target === 'b2c') {
+            if ($storeId === null) {
+                throw ValidationException::withMessages([
+                    'store_id' => ['A retail store is required for a user-targeted B2C campaign.'],
+                ]);
+            }
+
+            $customer = DB::table('b2c_customers')
+                ->where('user_id', $userId)
+                ->where('store_id', $storeId)
+                ->exists();
+            $driver = DB::table('drivers')
+                ->where('user_id', $userId)
+                ->where('store_id', $storeId)
+                ->where('driver_type', 'b2c')
+                ->exists();
+            $storeUser = DB::table('user_store_roles')
+                ->where('user_id', $userId)
+                ->where('store_id', $storeId)
+                ->exists();
+
+            $allowed = match ($app) {
+                'customer' => $customer,
+                'driver' => $driver,
+                default => $customer || $driver || $storeUser,
+            };
+
+            abort_unless($allowed, 404);
+
+            return;
+        }
+
+        if ($target === 'b2b') {
+            $customer = DB::table('b2b_customers')->where('user_id', $userId)->exists();
+            $driverQuery = DB::table('drivers')
+                ->where('user_id', $userId)
+                ->where('driver_type', 'b2b');
+            if ($storeId !== null) {
+                $driverQuery->where('store_id', $storeId);
+            }
+            $driver = $driverQuery->exists();
+
+            $allowed = match ($app) {
+                'customer' => $customer,
+                'driver' => $driver,
+                default => $customer || $driver,
+            };
+            abort_unless($allowed, 404);
+        }
     }
 
     /** @return list<int> */
