@@ -78,8 +78,9 @@ return [
             'lookups.view', 'lookups.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
-            'customers.view', 'customers.create', 'customers.edit', 'customers.manage',
+            'customers.view', 'customers.create', 'customers.edit', 'customers.delete', 'customers.manage',
             'promotions.view', 'promotions.manage', 'reports.view', 'reports.export',
+            'settings.view', 'settings.manage',
             'drivers.b2c.view', 'drivers.b2c.manage', 'notifications.view', 'notifications.manage',
         ],
         'OPERATIONS' => [
