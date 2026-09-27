@@ -6,7 +6,7 @@ return [
     'families' => [
         'orders' => 'الطلبات والمبيعات',
         'products' => 'المنتجات والكتالوج',
-        'customers' => 'العملاء والجملة B2B',
+        'customers' => 'العملاء والجملة',
         'operations' => 'المتاجر والعمليات',
     ],
     'filters' => [
@@ -39,7 +39,7 @@ return [
         'customer' => 'العميل',
         'total' => 'الإجمالي (د.ك)',
         'payment_method' => 'الدفع',
-        'sku' => 'SKU',
+        'sku' => 'رمز المنتج',
         'name' => 'المنتج',
         'category' => 'التصنيف',
         'quantity' => 'الكمية',
