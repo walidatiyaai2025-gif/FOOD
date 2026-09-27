@@ -20,7 +20,7 @@ class InventoryAdministrationTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
         [$ownInventory, $otherInventory, $storeId] = $this->inventoryFixture();
         $user = User::query()->create(['name' => 'Inventory', 'email' => 'inventory@example.test', 'password' => 'password', 'is_active' => true]);
-        $role = Role::query()->where('code', 'INVENTORY')->firstOrFail();
+        $role = Role::query()->where('code', 'RETAIL_INVENTORY')->firstOrFail();
         UserStoreRole::query()->create(['user_id' => $user->id, 'store_id' => $storeId, 'role_id' => $role->id]);
         Sanctum::actingAs($user);
 
