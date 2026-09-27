@@ -66,11 +66,21 @@ final class ManagementReportService
     {
         $today = CarbonImmutable::now(self::TIMEZONE)->toDateString();
 
+        $channel = $this->nullableString($filters['channel'] ?? null);
+        if ($channel !== null) {
+            $channel = strtolower($channel);
+            if (! in_array($channel, ['b2b', 'b2c'], true)) {
+                throw ValidationException::withMessages([
+                    'channel' => ['Channel must be b2b or b2c.'],
+                ]);
+            }
+        }
+
         return [
             'from' => (string) ($filters['from'] ?? CarbonImmutable::now(self::TIMEZONE)->subDays(29)->toDateString()),
             'to' => (string) ($filters['to'] ?? $today),
             'store_id' => $this->positiveInt($filters['store_id'] ?? null),
-            'channel' => $this->nullableString($filters['channel'] ?? null),
+            'channel' => $channel,
             'status' => $this->nullableString($filters['status'] ?? null),
             'product_id' => $this->positiveInt($filters['product_id'] ?? null),
             'category_id' => $this->positiveInt($filters['category_id'] ?? null),
@@ -84,7 +94,9 @@ final class ManagementReportService
     {
         $query = DB::table('orders')
             ->join('stores', 'stores.id', '=', 'orders.store_id')
-            ->join('customers', 'customers.id', '=', 'orders.customer_id');
+            ->leftJoin('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
+            ->leftJoin('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
+            ->leftJoin('customers as legacy_customers', 'legacy_customers.id', '=', 'orders.customer_id');
 
         $this->applyOrderFilters($query, $filters);
 
@@ -136,7 +148,7 @@ final class ManagementReportService
                 'stores.name as store',
                 'orders.channel',
                 'orders.status',
-                'customers.name as customer',
+                DB::raw('COALESCE(b2c_customers.name, b2b_customers.name, legacy_customers.name) as customer'),
                 'orders.grand_total',
             ])
             ->selectSub(
@@ -318,18 +330,22 @@ final class ManagementReportService
     private function customersReport(array $filters, int $limit): array
     {
         $query = DB::table('orders')
-            ->join('customers', 'customers.id', '=', 'orders.customer_id')
-            ->leftJoin('b2b_accounts', 'b2b_accounts.customer_id', '=', 'customers.id');
+            ->leftJoin('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
+            ->leftJoin('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
+            ->leftJoin('customers as legacy_customers', 'legacy_customers.id', '=', 'orders.customer_id')
+            ->leftJoin('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id');
 
         $this->applyOrderFilters($query, $filters);
 
         $rows = (clone $query)
             ->select([
-                'customers.id',
-                'customers.name',
-                'customers.type',
+                'orders.channel as type',
+                'orders.b2b_customer_id',
+                'orders.b2c_customer_id',
+                'orders.customer_id as legacy_customer_id',
                 'b2b_accounts.company_name',
             ])
+            ->selectRaw('COALESCE(b2c_customers.name, b2b_customers.name, legacy_customers.name) as name')
             ->selectRaw('COUNT(orders.id) as order_count')
             ->selectRaw(
                 'COALESCE(SUM(CASE WHEN orders.status NOT IN (\'cancelled\',\'refunded\') THEN orders.grand_total ELSE 0 END), 0) as order_value',
@@ -337,10 +353,34 @@ final class ManagementReportService
             ->selectSub(
                 DB::table('orders as first_orders')
                     ->selectRaw('MIN(first_orders.created_at)')
-                    ->whereColumn('first_orders.customer_id', 'customers.id'),
+                    ->where(function (Builder $identity): void {
+                        $identity
+                            ->where(function (Builder $b2c): void {
+                                $b2c->whereColumn('first_orders.b2c_customer_id', 'orders.b2c_customer_id')
+                                    ->whereNotNull('orders.b2c_customer_id');
+                            })
+                            ->orWhere(function (Builder $b2b): void {
+                                $b2b->whereColumn('first_orders.b2b_customer_id', 'orders.b2b_customer_id')
+                                    ->whereNotNull('orders.b2b_customer_id');
+                            })
+                            ->orWhere(function (Builder $legacy): void {
+                                $legacy->whereColumn('first_orders.customer_id', 'orders.customer_id')
+                                    ->whereNull('orders.b2c_customer_id')
+                                    ->whereNull('orders.b2b_customer_id');
+                            });
+                    }),
                 'first_order_at',
             )
-            ->groupBy('customers.id', 'customers.name', 'customers.type', 'b2b_accounts.company_name')
+            ->groupBy(
+                'orders.channel',
+                'orders.b2b_customer_id',
+                'orders.b2c_customer_id',
+                'orders.customer_id',
+                'b2c_customers.name',
+                'b2b_customers.name',
+                'legacy_customers.name',
+                'b2b_accounts.company_name',
+            )
             ->orderByDesc('order_value')
             ->get();
 
@@ -589,7 +629,23 @@ final class ManagementReportService
             )
             ->when(
                 $filters['customer_id'] !== null,
-                fn (Builder $builder) => $builder->where('orders.customer_id', $filters['customer_id']),
+                function (Builder $builder) use ($filters): void {
+                    if ($filters['channel'] === 'b2b') {
+                        $builder->where('orders.b2b_customer_id', $filters['customer_id']);
+
+                        return;
+                    }
+
+                    if ($filters['channel'] === 'b2c') {
+                        $builder->where('orders.b2c_customer_id', $filters['customer_id']);
+
+                        return;
+                    }
+
+                    throw ValidationException::withMessages([
+                        'channel' => ['A channel is required when filtering by customer_id.'],
+                    ]);
+                },
             );
 
         if ($applyProductFilter && ($filters['product_id'] !== null || $filters['category_id'] !== null)) {
