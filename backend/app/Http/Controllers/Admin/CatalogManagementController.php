@@ -241,6 +241,7 @@ final class CatalogManagementController extends Controller
             'updated_at' => now(),
         ]);
 
+        /** @var list<UploadedFile> $files */
         $files = collect($request->file('images', []))
             ->filter(static fn ($file): bool => $file instanceof UploadedFile)
             ->values()
