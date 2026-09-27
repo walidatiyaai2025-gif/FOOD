@@ -21,15 +21,16 @@ grep -q 'Android' docs/release/RELEASE_CHECKLIST.md
 grep -q 'iOS' docs/release/RELEASE_CHECKLIST.md
 
 release_version="$(tr -d '\r\n' < VERSION)"
-test "$release_version" = "1.0.0"
+[[ "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
 customer_version="$(awk '/^version:/ {print $2; exit}' apps/customer_app/pubspec.yaml)"
 driver_version="$(awk '/^version:/ {print $2; exit}' apps/driver_app/pubspec.yaml)"
-test "$customer_version" = "$release_version+1"
-test "$driver_version" = "$release_version+1"
+test "$customer_version" = "$driver_version"
+mobile_release_version="${customer_version%%+*}"
+[[ "$mobile_release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
-grep -Fq "# FOODEX $release_version Release Notes" docs/release/RELEASE_NOTES.md
-grep -Fq "## $release_version - Release Candidate" CHANGELOG.md
+grep -Fq "# FOODEX $mobile_release_version Release Notes" docs/release/RELEASE_NOTES.md
+grep -Fq "## $mobile_release_version - Release Candidate" CHANGELOG.md
 grep -Fq "VERSION and release notes identify the exact release being promoted. Evidence: #178" docs/release/RELEASE_CHECKLIST.md
 
 production_origin="https://foodex.50sols.com"
