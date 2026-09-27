@@ -53,10 +53,10 @@ return [
         'notifications.manage' => 'Manage notification content and targeting',
         'drivers.b2b.view' => 'View B2B drivers and delivery operations',
         'drivers.b2b.manage' => 'Manage B2B drivers and delivery operations',
-        'drivers.b2c.view' => 'View B2C drivers and delivery operations',
-        'drivers.b2c.manage' => 'Manage B2C drivers and delivery operations',
+        'drivers.b2c.view' => 'View Retail drivers and delivery operations',
+        'drivers.b2c.manage' => 'Manage Retail drivers and delivery operations',
         'deliveries.b2b.execute' => 'Execute B2B delivery assignments',
-        'deliveries.b2c.execute' => 'Execute B2C delivery assignments',
+        'deliveries.b2c.execute' => 'Execute Retail delivery assignments',
     ],
 
     'roles' => [
@@ -83,9 +83,10 @@ return [
             'settings.view', 'settings.manage',
             'drivers.b2c.view', 'drivers.b2c.manage', 'notifications.view', 'notifications.manage',
         ],
+        // Global operational roles are wholesale-only. Retail counterparts are store-only.
         'OPERATIONS' => [
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
-            'drivers.b2b.view', 'drivers.b2b.manage', 'drivers.b2c.view', 'drivers.b2c.manage', 'reports.view',
+            'drivers.b2b.view', 'drivers.b2b.manage', 'reports.view',
         ],
         'INVENTORY' => [
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage', 'lookups.view',
@@ -93,6 +94,18 @@ return [
         ],
         'FINANCE' => ['finance.view', 'finance.manage', 'reports.view', 'reports.export'],
         'CUSTOMER_SUPPORT' => [
+            'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
+        ],
+        'RETAIL_OPERATIONS' => [
+            'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
+            'drivers.b2c.view', 'drivers.b2c.manage', 'reports.view',
+        ],
+        'RETAIL_INVENTORY' => [
+            'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage', 'lookups.view',
+            'inventory.view', 'inventory.adjust', 'inventory.manage',
+        ],
+        'RETAIL_FINANCE' => ['finance.view', 'finance.manage', 'reports.view', 'reports.export'],
+        'RETAIL_CUSTOMER_SUPPORT' => [
             'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
         ],
         'B2B_DRIVER' => ['deliveries.b2b.execute'],
