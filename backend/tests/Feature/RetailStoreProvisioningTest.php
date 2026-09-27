@@ -114,6 +114,7 @@ class RetailStoreProvisioningTest extends TestCase
     {
         $user = $this->user($email);
         $user->roles()->attach(Role::query()->where('code', $role)->firstOrFail());
+
         return $user;
     }
 
