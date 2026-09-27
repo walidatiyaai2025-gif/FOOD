@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 final class NotificationController extends Controller
@@ -248,11 +249,12 @@ final class NotificationController extends Controller
             return;
         }
 
+        $targetChannel = (string) $data['target_channel'];
         app(OperationalTenantScope::class)->assertStore(
             $actor,
             (int) $data['store_id'],
             'notifications.manage',
-            (string) $data['target_channel'],
+            in_array($targetChannel, ['b2b', 'b2c'], true) ? $targetChannel : null,
         );
     }
 
