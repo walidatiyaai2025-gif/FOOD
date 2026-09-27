@@ -191,6 +191,7 @@ final class CatalogManagementController extends Controller
             return $id;
         });
 
+        /** @var list<UploadedFile> $files */
         $files = collect($request->file('images', []))
             ->filter(static fn ($file): bool => $file instanceof UploadedFile)
             ->values()
@@ -305,6 +306,7 @@ final class CatalogManagementController extends Controller
         }
 
         $this->images->purgeProductImages($product);
+        DB::table('product_images')->where('product_id', $product)->delete();
         DB::table('products')->where('id', $product)->delete();
 
         return back()->with('status', $this->msg('تم حذف المنتج وصوره.', 'Product and images deleted.'));
