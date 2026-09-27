@@ -59,6 +59,12 @@ class AdminShellController extends Controller
 
         $navigation = $this->navigation->for($user);
 
+        // SUPER_ADMIN remains on the platform control plane by default.
+        // Retail support access is entered only through an explicit store context.
+        if ($user->hasRole('SUPER_ADMIN')) {
+            unset($navigation['b2c']);
+        }
+
         if ($activeChannel !== null) {
             abort_unless(array_key_exists($activeChannel, $navigation), 403);
         }
