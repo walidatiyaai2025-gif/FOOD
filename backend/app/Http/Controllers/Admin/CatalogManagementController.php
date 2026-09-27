@@ -242,14 +242,22 @@ final class CatalogManagementController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:categories,slug'],
+            'slug' => ['nullable', 'string', 'max:255'],
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        $catalog = $this->catalogs->defaultCatalogForStore((int) $data['store_id']);
+        $this->assertStoreAccess($request, (int) $data['store_id'], (string) $catalog->channel);
+        $this->catalogs->assertParentInCatalog(isset($data['parent_id']) ? (int) $data['parent_id'] : null, (int) $catalog->id);
+        $slug = $data['slug'] ?: Str::slug($data['name']).'-'.Str::lower(Str::random(5));
+        $this->assertSlugAvailable((int) $catalog->id, $slug);
+
         DB::table('categories')->insert([
+            'catalog_id' => $catalog->id,
             'name' => $data['name'],
-            'slug' => $data['slug'] ?: Str::slug($data['name']).'-'.Str::lower(Str::random(5)),
+            'slug' => $slug,
             'parent_id' => $data['parent_id'] ?? null,
             'is_active' => $request->boolean('is_active', true),
             'created_at' => now(),
@@ -263,12 +271,18 @@ final class CatalogManagementController extends Controller
     {
         Gate::authorize('catalog.manage');
 
+        $owner = $this->categoryOwner($category);
+        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', Rule::unique('categories', 'slug')->ignore($category)],
+            'slug' => ['required', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', 'exists:categories,id', Rule::notIn([$category])],
             'is_active' => ['nullable', 'boolean'],
         ]);
+
+        $this->catalogs->assertParentInCatalog(isset($data['parent_id']) ? (int) $data['parent_id'] : null, (int) $owner->catalog_id);
+        $this->assertSlugAvailable((int) $owner->catalog_id, (string) $data['slug'], $category);
 
         DB::table('categories')->where('id', $category)->update([
             'name' => $data['name'],
@@ -284,6 +298,9 @@ final class CatalogManagementController extends Controller
     public function destroyCategory(Request $request, int $category): RedirectResponse
     {
         Gate::authorize('catalog.manage');
+
+        $owner = $this->categoryOwner($category);
+        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
 
         if (DB::table('products')->where('category_id', $category)->exists()
             || DB::table('categories')->where('parent_id', $category)->exists()) {
@@ -394,6 +411,89 @@ final class CatalogManagementController extends Controller
         ]);
 
         return back()->with('status', $this->msg('تم تعديل المتجر.', 'Store updated.'));
+    }
+
+    private function productOwner(int $product): object
+    {
+        $owner = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->where('products.id', $product)
+            ->first(['products.catalog_id', 'catalogs.store_id', 'catalogs.channel']);
+        abort_if($owner === null, 404);
+
+        return $owner;
+    }
+
+    private function categoryOwner(int $category): object
+    {
+        $owner = DB::table('categories')
+            ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
+            ->where('categories.id', $category)
+            ->first(['categories.catalog_id', 'catalogs.store_id', 'catalogs.channel']);
+        abort_if($owner === null, 404);
+
+        return $owner;
+    }
+
+    private function assertStoreAccess(Request $request, int $storeId, string $channel): void
+    {
+        $actor = $this->actor($request);
+
+        if (strtolower($channel) === 'b2c') {
+            $this->tenantContext->retail($actor, $storeId, $actor->hasRole('SUPER_ADMIN'), $request);
+
+            return;
+        }
+
+        $this->tenantContext->wholesale($actor, $storeId);
+    }
+
+    /** @return list<int> */
+    private function visibleStoreIds(User $actor, Request $request): array
+    {
+        $requested = $request->integer('store_id');
+
+        if ($actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access') && $requested > 0) {
+            $this->tenantContext->retail($actor, $requested, true, $request);
+
+            return [$requested];
+        }
+
+        if ($actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN')) {
+            return DB::table('stores')
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->where('store_types.code', 'B2B')
+                ->where('stores.is_active', true)
+                ->pluck('stores.id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+        }
+
+        return $this->tenantContext->retailStoreIds($actor);
+    }
+
+    private function assertSkuAvailable(int $catalogId, string $sku, ?int $ignoreProduct = null): void
+    {
+        $query = DB::table('products')->where('catalog_id', $catalogId)->where('sku', $sku);
+        if ($ignoreProduct !== null) {
+            $query->where('id', '!=', $ignoreProduct);
+        }
+
+        if ($query->exists()) {
+            throw ValidationException::withMessages(['sku' => ['The SKU has already been used in this catalog.']]);
+        }
+    }
+
+    private function assertSlugAvailable(int $catalogId, string $slug, ?int $ignoreCategory = null): void
+    {
+        $query = DB::table('categories')->where('catalog_id', $catalogId)->where('slug', $slug);
+        if ($ignoreCategory !== null) {
+            $query->where('id', '!=', $ignoreCategory);
+        }
+
+        if ($query->exists()) {
+            throw ValidationException::withMessages(['slug' => ['The slug has already been used in this catalog.']]);
+        }
     }
 
     private function actor(Request $request): User
