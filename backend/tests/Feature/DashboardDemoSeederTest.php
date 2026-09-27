@@ -19,12 +19,12 @@ class DashboardDemoSeederTest extends TestCase
 
         $this->assertGreaterThan(0, $storeId);
         $this->assertSame(1248, DB::table('users')->where('is_active', true)->count());
-        $this->assertSame(532, DB::table('orders')->where('store_id', $storeId)->where('order_number', 'like', 'FOODEX-DEMO-%')->whereDate('created_at', now('Asia/Kuwait')->utc()->toDateString())->count());
+        $this->assertSame(532, DB::table('orders')->where('store_id', $storeId)->where('order_number', 'like', 'FOODEX-DEMO-%')->whereDate('created_at', now('Asia/Kuwait')->toDateString())->count());
 
         $recognizedToday = (float) DB::table('orders')
             ->where('store_id', $storeId)
             ->where('order_number', 'like', 'FOODEX-DEMO-%')
-            ->whereDate('created_at', now('Asia/Kuwait')->utc()->toDateString())
+            ->whereDate('created_at', now('Asia/Kuwait')->toDateString())
             ->whereNotIn('status', ['cancelled', 'refunded'])
             ->sum('grand_total');
         $this->assertSame(48532.0, $recognizedToday);
@@ -32,7 +32,7 @@ class DashboardDemoSeederTest extends TestCase
         $soldToday = (float) DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('orders.store_id', $storeId)
-            ->whereDate('orders.created_at', now('Asia/Kuwait')->utc()->toDateString())
+            ->whereDate('orders.created_at', now('Asia/Kuwait')->toDateString())
             ->whereNotIn('orders.status', ['cancelled', 'refunded'])
             ->sum('order_items.quantity');
         $this->assertSame(1892.0, $soldToday);
