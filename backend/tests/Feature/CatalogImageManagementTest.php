@@ -42,6 +42,8 @@ class CatalogImageManagementTest extends TestCase
         $category = DB::table('categories')->where('slug', 'fresh-food')->first();
         $this->assertNotNull($category);
         $this->assertStringStartsWith('storage/catalog/categories/', (string) $category->image_path);
+        $categoryStoredPath = substr((string) $category->image_path, strlen('storage/'));
+        $this->assertTrue(Storage::disk('public')->exists($categoryStoredPath));
 
         $this->actingAs($admin)->post(route('admin.catalog.products.store'), [
             'support_access' => 1,
@@ -63,6 +65,9 @@ class CatalogImageManagementTest extends TestCase
         $this->assertNotNull($product);
         $this->assertSame(2, DB::table('product_images')->where('product_id', $product->id)->count());
         $this->assertSame(1, DB::table('product_images')->where('product_id', $product->id)->where('is_primary', true)->count());
+        foreach (DB::table('product_images')->where('product_id', $product->id)->pluck('path') as $storedImagePath) {
+            $this->assertTrue(Storage::disk('public')->exists(substr((string) $storedImagePath, strlen('storage/'))));
+        }
 
         $categoryResponse = $this->getJson("/api/v1/stores/{$storeId}/categories")
             ->assertOk()
