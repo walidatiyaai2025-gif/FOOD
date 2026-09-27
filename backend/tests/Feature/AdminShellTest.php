@@ -85,6 +85,48 @@ class AdminShellTest extends TestCase
             ->assertSee('href="'.route('admin.b2c.dashboard').'"', false);
     }
 
+    public function test_fresh_install_super_admin_can_open_all_management_get_surfaces(): void
+    {
+        $user = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
+
+        $this->assertDatabaseCount('stores', 0);
+
+        foreach ([
+            '/admin',
+            '/admin/b2c/dashboard',
+            '/admin/b2c/products',
+            '/admin/b2c/inventory',
+            '/admin/b2c/orders',
+            '/admin/b2c/customers',
+            '/admin/b2c/promotions',
+            '/admin/b2c/drivers',
+            '/admin/b2c/storefront',
+            '/admin/b2c/content',
+            '/admin/b2c/reports',
+            '/admin/b2c/settings',
+            '/admin/b2b/dashboard',
+            '/admin/b2b/stores',
+            '/admin/b2b/clients',
+            '/admin/b2b/products',
+            '/admin/b2b/orders',
+            '/admin/b2b/drivers',
+            '/admin/b2b/pricing',
+            '/admin/b2b/reports',
+            '/admin/b2b/settings',
+            '/admin/reports',
+            '/admin/security',
+            '/admin/settings/app-versions',
+            '/admin/settings/mobile',
+            '/admin/settings/system-update',
+            '/admin/settings/translations',
+            '/admin/notifications',
+        ] as $uri) {
+            $this->actingAs($user)
+                ->get($uri)
+                ->assertOk();
+        }
+    }
+
     public function test_super_admin_sees_grouped_permission_aware_navigation(): void
     {
         $user = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
