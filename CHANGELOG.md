@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.7 - Retail Admin Isolation and Catalog Reliability
+- Complete the B2C retail-admin surface audit so store managers enter their own retail dashboard and remain scoped to assigned stores.
+- Restrict platform store management to the platform owner while preserving tenant-scoped product, category, inventory, customer, promotion, content, driver and reporting workflows.
+- Add role-scoped Brands & Units management with validated brand image upload and grid thumbnails.
+- Fix catalog product editing for legacy references and tenant-owned dropdown data to prevent 422 failures.
+- Harden promotional notification targeting so retail admins cannot address users from another store or mismatch customer/driver app audiences.
+- Refresh the tester distribution from the current main source and build the dashboard update cumulatively from the previous VERSION boundary.
+
 ## 1.0.6 - Multi-Tenant Operations, Orders, Campaigns and Catalog Media
 - Complete the Multi-Store / Multi-Tenant architecture with isolated B2B wholesale and B2C retail workspaces, tenant-owned catalogs, customer-domain separation, scoped lookups and retail-store provisioning.
 - Add complete dashboard order management for B2B and B2C including manual creation, pending-order editing, pricing, discounts, delivery fees, payment records, inventory reservations, lifecycle transitions and driver assignment.
