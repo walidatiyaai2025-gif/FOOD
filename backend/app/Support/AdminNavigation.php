@@ -65,7 +65,7 @@ class AdminNavigation
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'content', 'admin.b2c_workspace.modules.content', 'promotions.view'),
-                $this->routeItemScoped($user, 'notification_campaigns', 'notifications.title', 'admin.notification-campaigns.index', 'notifications.view'),
+                $isSuperAdmin ? null : $this->routeItemScoped($user, 'notification_campaigns', 'notifications.title', 'admin.notification-campaigns.index', 'notifications.view'),
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
