@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
+use App\Http\Controllers\Admin\PromotionalNotificationCampaignController;
 use App\Http\Controllers\Api\V1\NotificationController as ApiNotificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,17 @@ Route::middleware(['web', 'management.dashboard'])
         Route::patch('/{notification}', [AdminNotificationController::class, 'update'])->name('update');
         Route::post('/{notification}/publish', [AdminNotificationController::class, 'publish'])->name('publish');
         Route::delete('/{notification}', [AdminNotificationController::class, 'destroy'])->name('destroy');
+    });
+
+Route::middleware(['web', 'management.dashboard'])
+    ->prefix('admin/notification-campaigns')
+    ->name('admin.notification-campaigns.')
+    ->group(function (): void {
+        Route::get('/', [PromotionalNotificationCampaignController::class, 'index'])->name('index');
+        Route::post('/', [PromotionalNotificationCampaignController::class, 'store'])->name('store');
+        Route::patch('/{campaign}', [PromotionalNotificationCampaignController::class, 'update'])->name('update');
+        Route::post('/{campaign}/state', [PromotionalNotificationCampaignController::class, 'state'])->name('state');
+        Route::post('/{campaign}/send-now', [PromotionalNotificationCampaignController::class, 'sendNow'])->name('send-now');
     });
 
 Route::middleware(['api', 'auth:sanctum', 'active.user'])
