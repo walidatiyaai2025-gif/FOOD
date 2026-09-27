@@ -155,6 +155,10 @@ return new class extends Migration {
         DB::table('warehouses')->orderBy('id')->each(function (object $warehouse): void {
             if ($warehouse->store_id === null) {
                 $this->recordIssue('warehouse', (int) $warehouse->id, null, 'warehouse_store_unresolved');
+                DB::table('warehouses')->where('id', $warehouse->id)->update([
+                    'is_active' => false,
+                    'updated_at' => now(),
+                ]);
 
                 return;
             }
@@ -176,6 +180,10 @@ return new class extends Migration {
                             'inventory_product_store_mismatch',
                             ['product_id' => (int) $inventory->product_id, 'product_store_id' => $productStoreId],
                         );
+                        DB::table('warehouses')->where('id', $warehouse->id)->update([
+                            'is_active' => false,
+                            'updated_at' => now(),
+                        ]);
                     }
                 });
         });
