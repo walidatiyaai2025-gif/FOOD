@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Catalog;
 use App\Models\Order;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -151,9 +152,10 @@ final class RetailWholesaleReplenishmentService
             $this->audit->record(
                 'retail.wholesale_order_received',
                 $actor,
-                $order,
+                Store::query()->findOrFail($retailStoreId),
                 null,
                 [
+                    'store_id' => $retailStoreId,
                     'retail_store_id' => $retailStoreId,
                     'source_wholesale_store_id' => (int) $order->store_id,
                     'source_order_id' => (int) $order->getKey(),
@@ -169,7 +171,7 @@ final class RetailWholesaleReplenishmentService
 
     private function retailCatalogId(int $storeId, string $storeName): int
     {
-        return (int) Catalog::query()->firstOrCreate(
+        $catalog = Catalog::query()->firstOrCreate(
             ['store_id' => $storeId, 'code' => 'default'],
             [
                 'channel' => 'b2c',
@@ -177,7 +179,15 @@ final class RetailWholesaleReplenishmentService
                 'is_active' => true,
                 'is_migration_quarantine' => false,
             ],
-        )->getKey();
+        );
+
+        abort_unless(
+            strtolower((string) $catalog->channel) === 'b2c' && ! $catalog->is_migration_quarantine,
+            409,
+            'Retail default catalog ownership is inconsistent.',
+        );
+
+        return (int) $catalog->getKey();
     }
 
     private function receivingWarehouseId(int $storeId, string $storeCode): int
@@ -214,25 +224,34 @@ final class RetailWholesaleReplenishmentService
             return $sourceUnitId;
         }
 
-        DB::table('units')->updateOrInsert(
-            ['scope_key' => 'store:'.$storeId, 'code' => (string) $source->code],
-            [
-                'store_id' => $storeId,
-                'scope' => 'store',
-                'name' => (string) $source->name,
-                'name_ar' => $source->name_ar,
-                'name_en' => $source->name_en,
-                'decimal_places' => (int) $source->decimal_places,
-                'is_active' => (bool) $source->is_active,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ],
-        );
-
-        return (int) DB::table('units')
+        $target = DB::table('units')
             ->where('scope_key', 'store:'.$storeId)
             ->where('code', $source->code)
-            ->value('id');
+            ->first(['id']);
+
+        $values = [
+            'store_id' => $storeId,
+            'scope' => 'store',
+            'name' => (string) $source->name,
+            'name_ar' => $source->name_ar,
+            'name_en' => $source->name_en,
+            'decimal_places' => (int) $source->decimal_places,
+            'is_active' => (bool) $source->is_active,
+            'updated_at' => now(),
+        ];
+
+        if ($target === null) {
+            return (int) DB::table('units')->insertGetId([
+                'scope_key' => 'store:'.$storeId,
+                'code' => (string) $source->code,
+                ...$values,
+                'created_at' => now(),
+            ]);
+        }
+
+        DB::table('units')->where('id', $target->id)->update($values);
+
+        return (int) $target->id;
     }
 
     private function retailBrandId(int $sourceBrandId, int $storeId): int
@@ -244,25 +263,34 @@ final class RetailWholesaleReplenishmentService
             return $sourceBrandId;
         }
 
-        DB::table('brands')->updateOrInsert(
-            ['scope_key' => 'store:'.$storeId, 'slug' => (string) $source->slug],
-            [
-                'store_id' => $storeId,
-                'scope' => 'store',
-                'name' => (string) $source->name,
-                'name_ar' => $source->name_ar,
-                'name_en' => $source->name_en,
-                'image_path' => $source->image_path,
-                'is_active' => (bool) $source->is_active,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ],
-        );
-
-        return (int) DB::table('brands')
+        $target = DB::table('brands')
             ->where('scope_key', 'store:'.$storeId)
             ->where('slug', $source->slug)
-            ->value('id');
+            ->first(['id']);
+
+        $values = [
+            'store_id' => $storeId,
+            'scope' => 'store',
+            'name' => (string) $source->name,
+            'name_ar' => $source->name_ar,
+            'name_en' => $source->name_en,
+            'image_path' => $source->image_path,
+            'is_active' => (bool) $source->is_active,
+            'updated_at' => now(),
+        ];
+
+        if ($target === null) {
+            return (int) DB::table('brands')->insertGetId([
+                'scope_key' => 'store:'.$storeId,
+                'slug' => (string) $source->slug,
+                ...$values,
+                'created_at' => now(),
+            ]);
+        }
+
+        DB::table('brands')->where('id', $target->id)->update($values);
+
+        return (int) $target->id;
     }
 
     private function retailCategoryId(int $sourceCategoryId, int $catalogId): int
