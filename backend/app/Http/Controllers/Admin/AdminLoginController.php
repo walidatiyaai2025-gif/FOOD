@@ -69,7 +69,7 @@ class AdminLoginController extends Controller
 
         $user = $this->credentials->authenticate($credentials['email'], $credentials['password']);
 
-        if (! $user) {
+        if (!$user) {
             Log::notice('Management login denied', [
                 'channel' => $channel,
                 'reason' => 'invalid_or_inactive_credentials',
@@ -156,7 +156,7 @@ class AdminLoginController extends Controller
 
     private function targetChannel(User $user, string $preferred): ?string
     {
-        if (! $user->is_active) {
+        if (!$user->is_active) {
             return null;
         }
 
