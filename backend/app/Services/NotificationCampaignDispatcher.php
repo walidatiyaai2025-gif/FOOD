@@ -5,13 +5,18 @@ namespace App\Services;
 use App\Models\Notification;
 use App\Models\NotificationCampaign;
 use App\Models\NotificationCampaignRun;
+use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 final class NotificationCampaignDispatcher
 {
-    public function __construct(private readonly PushDeliveryService $push) {}
+    public function __construct(
+        private readonly PushDeliveryService $push,
+        private readonly AuditLogger $audit,
+    ) {}
 
     public function dispatchDue(int $limit = 100): int
     {
@@ -38,7 +43,7 @@ final class NotificationCampaignDispatcher
 
     public function dispatchCampaign(int $campaignId): bool
     {
-        /** @var array{notification: Notification, run_id: int}|null $result */
+        /** @var array{notification: Notification, campaign: NotificationCampaign, run_id: int, scheduled_for: string}|null $result */
         $result = null;
 
         try {
@@ -81,6 +86,12 @@ final class NotificationCampaignDispatcher
                 );
 
                 if (! $run->wasRecentlyCreated) {
+                    $next = $this->nextRun($campaign, $scheduledFor, (int) $campaign->run_count);
+                    $campaign->update([
+                        'next_run_at' => $next,
+                        'status' => $next === null ? 'completed' : 'active',
+                    ]);
+
                     return null;
                 }
 
@@ -127,7 +138,9 @@ final class NotificationCampaignDispatcher
 
                 return [
                     'notification' => $notification,
+                    'campaign' => $campaign->fresh(),
                     'run_id' => (int) $run->getKey(),
+                    'scheduled_for' => $scheduledFor->toIso8601String(),
                 ];
             }, 3);
         } catch (Throwable $exception) {
@@ -141,6 +154,26 @@ final class NotificationCampaignDispatcher
         }
 
         $this->push->dispatchNotification($result['notification']);
+
+        $campaign = $result['campaign'];
+        $actor = $campaign->created_by === null
+            ? null
+            : User::query()->find((int) $campaign->created_by);
+        $auditRequest = Request::create('/artisan/foodex:dispatch-scheduled-notifications', 'CLI');
+        $this->audit->record(
+            'notification_campaign.dispatched',
+            $actor,
+            $campaign,
+            null,
+            [
+                'run_id' => $result['run_id'],
+                'notification_id' => (int) $result['notification']->getKey(),
+                'scheduled_for' => $result['scheduled_for'],
+                'store_id' => $campaign->store_id,
+                'target_channel' => $campaign->target_channel,
+            ],
+            $auditRequest,
+        );
 
         return true;
     }
