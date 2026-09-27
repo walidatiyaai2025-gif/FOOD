@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CatalogImageService;
 use App\Services\CatalogOwnership;
 use App\Services\LookupScopeService;
 use App\Support\AdminNavigation;
@@ -14,6 +15,7 @@ use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -26,6 +28,7 @@ final class CatalogManagementController extends Controller
         private readonly CatalogOwnership $catalogs,
         private readonly TenantContextResolver $tenantContext,
         private readonly LookupScopeService $lookups,
+        private readonly CatalogImageService $images,
     ) {}
 
     public function index(Request $request): View
@@ -68,6 +71,7 @@ final class CatalogManagementController extends Controller
                     'categories.name as category',
                     'brands.name as brand',
                     'units.name as unit',
+                    DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
                 ]),
             'categories' => DB::table('categories')
                 ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
@@ -80,6 +84,7 @@ final class CatalogManagementController extends Controller
                     'categories.id',
                     'categories.name',
                     'categories.slug',
+                    'categories.image_path',
                     'categories.parent_id',
                     'categories.is_active',
                     'categories.catalog_id',
@@ -111,6 +116,23 @@ final class CatalogManagementController extends Controller
                     'store_types.code as type_code',
                 ]),
             'storeTypes' => DB::table('store_types')->orderBy('code')->get(),
+            'productImages' => DB::table('product_images')
+                ->join('products', 'products.id', '=', 'product_images.product_id')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->whereIn('catalogs.store_id', $storeIds)
+                ->where('catalogs.is_migration_quarantine', false)
+                ->orderBy('product_images.product_id')
+                ->orderByDesc('product_images.is_primary')
+                ->orderBy('product_images.sort_order')
+                ->orderBy('product_images.id')
+                ->get([
+                    'product_images.id',
+                    'product_images.product_id',
+                    'product_images.path',
+                    'product_images.sort_order',
+                    'product_images.is_primary',
+                ])
+                ->groupBy('product_id'),
             'assignments' => DB::table('store_products')->get()
                 ->keyBy(fn ($row) => $row->store_id.':'.$row->product_id),
         ]);
@@ -130,6 +152,8 @@ final class CatalogManagementController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'store_id' => ['required', 'integer', 'exists:stores,id'],
             'price' => ['nullable', 'numeric', 'min:0'],
+            'images' => ['nullable', 'array', 'max:8'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $catalog = $this->catalogs->defaultCatalogForStore((int) $data['store_id']);
@@ -141,8 +165,8 @@ final class CatalogManagementController extends Controller
         }
         $this->assertSkuAvailable((int) $catalog->id, (string) $data['sku']);
 
-        DB::transaction(function () use ($data, $request, $catalog): void {
-            $id = DB::table('products')->insertGetId([
+        $id = DB::transaction(function () use ($data, $request, $catalog): int {
+            $id = (int) DB::table('products')->insertGetId([
                 'catalog_id' => $catalog->id,
                 'sku' => $data['sku'],
                 'name' => $data['name'],
@@ -163,9 +187,26 @@ final class CatalogManagementController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            return $id;
         });
 
-        return back()->with('status', $this->msg('تمت إضافة المنتج.', 'Product added.'));
+        /** @var list<UploadedFile> $files */
+        $files = collect($request->file('images', []))
+            ->filter(static fn ($file): bool => $file instanceof UploadedFile)
+            ->values()
+            ->all();
+        if ($files !== []) {
+            $this->images->addProductImages($id, $files);
+        }
+
+        app(AuditLogger::class)->record('catalog.product.created', $this->actor($request), null, null, [
+            'product_id' => $id,
+            'store_id' => (int) $data['store_id'],
+            'image_count' => count($files),
+        ], $request);
+
+        return back()->with('status', $this->msg('تمت إضافة المنتج وصوره.', 'Product and images added.'));
     }
 
     public function updateProduct(Request $request, int $product): RedirectResponse
@@ -183,6 +224,8 @@ final class CatalogManagementController extends Controller
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'unit_id' => ['required', 'integer', 'exists:units,id'],
             'is_active' => ['nullable', 'boolean'],
+            'images' => ['nullable', 'array', 'max:8'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $this->catalogs->assertSameCatalog(isset($data['category_id']) ? (int) $data['category_id'] : null, (int) $owner->catalog_id);
@@ -193,12 +236,54 @@ final class CatalogManagementController extends Controller
         $this->assertSkuAvailable((int) $owner->catalog_id, (string) $data['sku'], $product);
 
         DB::table('products')->where('id', $product)->update([
-            ...collect($data)->except('is_active')->all(),
+            ...collect($data)->except(['is_active', 'images'])->all(),
             'is_active' => $request->boolean('is_active'),
             'updated_at' => now(),
         ]);
 
-        return back()->with('status', $this->msg('تم تعديل المنتج.', 'Product updated.'));
+        /** @var list<UploadedFile> $files */
+        $files = collect($request->file('images', []))
+            ->filter(static fn ($file): bool => $file instanceof UploadedFile)
+            ->values()
+            ->all();
+        if ($files !== []) {
+            $this->images->addProductImages($product, $files);
+        }
+
+        return back()->with('status', $this->msg('تم تعديل المنتج وصوره.', 'Product and images updated.'));
+    }
+
+    public function updateProductImage(Request $request, int $product, int $image): RedirectResponse
+    {
+        Gate::authorize('catalog.edit');
+
+        $owner = $this->productOwner($product);
+        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+
+        $data = $request->validate([
+            'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
+            'is_primary' => ['nullable', 'boolean'],
+        ]);
+
+        $this->images->updateProductImage(
+            $product,
+            $image,
+            (int) $data['sort_order'],
+            $request->boolean('is_primary'),
+        );
+
+        return back()->with('status', $this->msg('تم تحديث ترتيب صورة المنتج.', 'Product image updated.'));
+    }
+
+    public function destroyProductImage(Request $request, int $product, int $image): RedirectResponse
+    {
+        Gate::authorize('catalog.edit');
+
+        $owner = $this->productOwner($product);
+        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+        $this->images->deleteProductImage($product, $image);
+
+        return back()->with('status', $this->msg('تم حذف صورة المنتج.', 'Product image removed.'));
     }
 
     public function destroyProduct(Request $request, int $product): RedirectResponse
@@ -221,9 +306,11 @@ final class CatalogManagementController extends Controller
             ));
         }
 
+        $this->images->purgeProductImages($product);
+        DB::table('product_images')->where('product_id', $product)->delete();
         DB::table('products')->where('id', $product)->delete();
 
-        return back()->with('status', $this->msg('تم حذف المنتج.', 'Product deleted.'));
+        return back()->with('status', $this->msg('تم حذف المنتج وصوره.', 'Product and images deleted.'));
     }
 
     public function assignProduct(Request $request, int $product): RedirectResponse
@@ -267,6 +354,7 @@ final class CatalogManagementController extends Controller
             'store_id' => ['required', 'integer', 'exists:stores,id'],
             'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
             'is_active' => ['nullable', 'boolean'],
+            'category_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $catalog = $this->catalogs->defaultCatalogForStore((int) $data['store_id']);
@@ -275,7 +363,7 @@ final class CatalogManagementController extends Controller
         $slug = ($data['slug'] ?? null) ?: Str::slug($data['name']).'-'.Str::lower(Str::random(5));
         $this->assertSlugAvailable((int) $catalog->id, $slug);
 
-        DB::table('categories')->insert([
+        $categoryId = (int) DB::table('categories')->insertGetId([
             'catalog_id' => $catalog->id,
             'name' => $data['name'],
             'slug' => $slug,
@@ -285,7 +373,12 @@ final class CatalogManagementController extends Controller
             'updated_at' => now(),
         ]);
 
-        return back()->with('status', $this->msg('تمت إضافة التصنيف.', 'Category added.'));
+        $categoryImage = $request->file('category_image');
+        if ($categoryImage instanceof UploadedFile) {
+            $this->images->replaceCategoryImage($categoryId, $categoryImage);
+        }
+
+        return back()->with('status', $this->msg('تمت إضافة التصنيف وصورته.', 'Category and image added.'));
     }
 
     public function updateCategory(Request $request, int $category): RedirectResponse
@@ -300,6 +393,8 @@ final class CatalogManagementController extends Controller
             'slug' => ['required', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', 'exists:categories,id', Rule::notIn([$category])],
             'is_active' => ['nullable', 'boolean'],
+            'category_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_image' => ['nullable', 'boolean'],
         ]);
 
         $this->catalogs->assertParentInCatalog(isset($data['parent_id']) ? (int) $data['parent_id'] : null, (int) $owner->catalog_id);
@@ -313,7 +408,15 @@ final class CatalogManagementController extends Controller
             'updated_at' => now(),
         ]);
 
-        return back()->with('status', $this->msg('تم تعديل التصنيف.', 'Category updated.'));
+        if ($request->boolean('remove_image')) {
+            $this->images->removeCategoryImage($category);
+        }
+        $categoryImage = $request->file('category_image');
+        if ($categoryImage instanceof UploadedFile) {
+            $this->images->replaceCategoryImage($category, $categoryImage);
+        }
+
+        return back()->with('status', $this->msg('تم تعديل التصنيف وصورته.', 'Category and image updated.'));
     }
 
     public function destroyCategory(Request $request, int $category): RedirectResponse
@@ -333,9 +436,10 @@ final class CatalogManagementController extends Controller
             ]);
         }
 
+        $this->images->removeCategoryImage($category);
         DB::table('categories')->where('id', $category)->delete();
 
-        return back()->with('status', $this->msg('تم حذف التصنيف.', 'Category deleted.'));
+        return back()->with('status', $this->msg('تم حذف التصنيف وصورته.', 'Category and image deleted.'));
     }
 
     public function storeBrand(Request $request): RedirectResponse

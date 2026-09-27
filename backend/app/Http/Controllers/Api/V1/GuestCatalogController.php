@@ -47,7 +47,7 @@ class GuestCatalogController extends Controller
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'is_active' => (bool) $category->is_active,
-                    'image_url' => $this->categoryImageUrl((int) $category->id, $store),
+                    'image_url' => $this->categoryImageUrl($category, $store),
                 ])
                 ->values()
                 ->all(),
@@ -276,25 +276,33 @@ class GuestCatalogController extends Controller
         ];
     }
 
-    private function categoryImageUrl(int $categoryId, int $storeId): ?string
+    private function categoryImageUrl(Category $category, int $storeId): ?string
     {
-        $path = DB::table('product_images')
+        $ownImage = $this->assetUrl($category->getAttribute('image_path'));
+        if ($ownImage !== null) {
+            return $ownImage;
+        }
+
+        $fallback = DB::table('product_images')
             ->join('products', 'products.id', '=', 'product_images.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-            ->join('store_products', 'store_products.product_id', '=', 'products.id')
+            ->join('store_products', function ($join): void {
+                $join->on('store_products.product_id', '=', 'products.id')
+                    ->on('store_products.store_id', '=', 'catalogs.store_id');
+            })
+            ->where('products.category_id', $category->id)
             ->where('catalogs.store_id', $storeId)
             ->where('catalogs.channel', 'b2c')
             ->where('catalogs.is_active', true)
             ->where('catalogs.is_migration_quarantine', false)
-            ->where('products.category_id', $categoryId)
             ->where('products.is_active', true)
-            ->where('store_products.store_id', $storeId)
             ->where('store_products.is_active', true)
             ->orderByDesc('product_images.is_primary')
             ->orderBy('product_images.sort_order')
+            ->orderBy('product_images.id')
             ->value('product_images.path');
 
-        return $this->assetUrl($path);
+        return $this->assetUrl($fallback);
     }
 
     private function assetUrl(mixed $path): ?string

@@ -358,6 +358,16 @@ class _B2bProductDetailRemoteState extends StatelessWidget {
           final available = value['available_quantity']?.toString();
           final currency = value['currency']?.toString() ?? 'KWD';
           final tier = value['price_tier']?.toString() ?? '-';
+          final images = (value['images'] as List? ?? const [])
+              .whereType<String>()
+              .where((url) => url.trim().isNotEmpty)
+              .toList(growable: false);
+          final primaryImage = value['image_url']?.toString();
+          final gallery = images.isNotEmpty
+              ? images
+              : (primaryImage == null || primaryImage.isEmpty
+                  ? const <String>[]
+                  : <String>[primaryImage]);
 
           return Card(
             key: const ValueKey('b2b-product-detail-data'),
@@ -366,6 +376,18 @@ class _B2bProductDetailRemoteState extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (gallery.isNotEmpty)
+                    SizedBox(
+                      key: const ValueKey('b2b-product-gallery'),
+                      height: 240,
+                      child: PageView.builder(
+                        itemCount: gallery.length,
+                        itemBuilder: (_, index) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _B2bCatalogImage(url: gallery[index]),
+                        ),
+                      ),
+                    ),
                   Text(
                     name,
                     style: Theme.of(context).textTheme.titleLarge,
@@ -390,6 +412,34 @@ class _B2bProductDetailRemoteState extends StatelessWidget {
             ),
           );
         },
+      );
+}
+
+class _B2bCatalogImage extends StatelessWidget {
+  const _B2bCatalogImage({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: ColoredBox(
+          color: const Color(0xFFF2F4F7),
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, progress) => progress == null
+                ? child
+                : const Center(child: CircularProgressIndicator()),
+            errorBuilder: (_, __, ___) => const Center(
+              child: Icon(
+                Icons.shopping_basket_outlined,
+                color: Color(0xFF087347),
+                size: 42,
+              ),
+            ),
+          ),
+        ),
       );
 }
 
@@ -623,6 +673,15 @@ class _AuthoritativeDataView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (row['image_url'] != null && row['image_url'].toString().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SizedBox(
+                    key: ValueKey('b2b-product-image-${row['id']}'),
+                    height: 140,
+                    child: _B2bCatalogImage(url: row['image_url'].toString()),
+                  ),
+                ),
               if (title != null && title.isNotEmpty)
                 Text(
                   title,
@@ -667,7 +726,7 @@ class _AuthoritativeDataView extends StatelessWidget {
     for (final entry in map.entries) {
       final key = entry.key.toString();
       final value = entry.value;
-      if (value == null) continue;
+      if (value == null || key == 'image_url' || key == 'images') continue;
 
       if (value is Map) {
         widgets.add(

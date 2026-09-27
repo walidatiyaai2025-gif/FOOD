@@ -106,6 +106,7 @@ class B2bPricingController extends Controller
                 'products.id',
                 'products.sku',
                 'products.name',
+                'products.description',
                 'products.category_id',
                 'products.brand_id',
                 'b2b_price_rules.unit_price',
@@ -131,12 +132,26 @@ class B2bPricingController extends Controller
                 ),
             );
 
+        $images = DB::table('product_images')
+            ->where('product_id', $product)
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->pluck('path')
+            ->map(fn ($path): ?string => $this->assetUrl($path))
+            ->filter()
+            ->values()
+            ->all();
+
         return response()->json([
             'id' => (int) $row->id,
             'sku' => (string) $row->sku,
             'name' => (string) $row->name,
             'category_id' => $row->category_id === null ? null : (int) $row->category_id,
             'brand_id' => $row->brand_id === null ? null : (int) $row->brand_id,
+            'description' => $row->description,
+            'image_url' => $images[0] ?? null,
+            'images' => $images,
             'store_id' => $storeId,
             'account_price' => (float) $row->unit_price,
             'minimum_order_quantity' => (float) $row->minimum_quantity,
@@ -178,8 +193,39 @@ class B2bPricingController extends Controller
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')
             ->orderBy('products.id')
-            ->get(['products.id', 'products.sku', 'products.name', 'b2b_price_rules.unit_price', 'b2b_price_rules.minimum_quantity']);
+            ->get([
+                'products.id',
+                'products.sku',
+                'products.name',
+                'b2b_price_rules.store_id',
+                'b2b_price_rules.unit_price',
+                'b2b_price_rules.minimum_quantity',
+                DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
+            ])
+            ->map(fn ($row): array => [
+                'id' => (int) $row->id,
+                'sku' => (string) $row->sku,
+                'name' => (string) $row->name,
+                'store_id' => (int) $row->store_id,
+                'unit_price' => (float) $row->unit_price,
+                'minimum_quantity' => (float) $row->minimum_quantity,
+                'image_url' => $this->assetUrl($row->primary_image_path),
+            ]);
 
         return response()->json(['data' => $rows, 'currency' => 'KWD']);
+    }
+
+    private function assetUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $value = trim($path);
+        if (str_starts_with($value, 'https://') || str_starts_with($value, 'http://')) {
+            return $value;
+        }
+
+        return url('/'.ltrim($value, '/'));
     }
 }

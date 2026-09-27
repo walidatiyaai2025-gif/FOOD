@@ -1105,13 +1105,15 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                   width: 78,
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: const Color(0xFFEAF7EF),
-                        foregroundImage: category.imageUrl == null ? null : NetworkImage(category.imageUrl!),
-                        child: category.imageUrl == null
-                            ? const Icon(Icons.category_rounded, color: Color(0xFF087347))
-                            : null,
+                      SizedBox(
+                        key: ValueKey('b2c-home-category-image-${category.id}'),
+                        width: 60,
+                        height: 60,
+                        child: _catalogImage(
+                          category.imageUrl,
+                          fallback: Icons.category_rounded,
+                          borderRadius: 30,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(category.name, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
@@ -1214,10 +1216,15 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
               (category) => Card(
                 child: ListTile(
                   key: ValueKey('b2c-category-${category.id}'),
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFFEAF7EF),
-                    foregroundImage: category.imageUrl == null ? null : NetworkImage(category.imageUrl!),
-                    child: category.imageUrl == null ? const Icon(Icons.category_rounded) : null,
+                  leading: SizedBox(
+                    key: ValueKey('b2c-category-image-${category.id}'),
+                    width: 44,
+                    height: 44,
+                    child: _catalogImage(
+                      category.imageUrl,
+                      fallback: Icons.category_rounded,
+                      borderRadius: 22,
+                    ),
                   ),
                   title: Text(category.name),
                   trailing: const Icon(Icons.chevron_right),
@@ -1358,6 +1365,16 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
   Widget _productCard(B2cProduct product) => Card(
         child: ListTile(
           key: ValueKey('b2c-product-${product.id}'),
+          leading: SizedBox(
+            key: ValueKey('b2c-product-image-${product.id}'),
+            width: 58,
+            height: 58,
+            child: _catalogImage(
+              product.imageUrl,
+              fallback: Icons.shopping_basket_outlined,
+              borderRadius: 12,
+            ),
+          ),
           title: Text(product.name),
           subtitle: Text(
             product.price == null
@@ -1376,10 +1393,40 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
 
   Widget _buildProduct(Object data) {
     final product = data as B2cProduct;
+    final gallery = product.images.isNotEmpty
+        ? product.images
+        : (product.imageUrl == null ? const <String>[] : <String>[product.imageUrl!]);
+
     return Column(
       key: const ValueKey('b2c-product-detail'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (gallery.isNotEmpty)
+          SizedBox(
+            key: const ValueKey('b2c-product-gallery'),
+            height: 260,
+            child: PageView.builder(
+              itemCount: gallery.length,
+              itemBuilder: (_, index) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _catalogImage(
+                  gallery[index],
+                  fallback: Icons.shopping_basket_outlined,
+                  borderRadius: 22,
+                ),
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            key: const ValueKey('b2c-product-gallery-empty'),
+            height: 180,
+            child: _catalogImage(
+              null,
+              fallback: Icons.shopping_basket_outlined,
+              borderRadius: 22,
+            ),
+          ),
         _dataCard(
           product.name,
           [
@@ -1405,6 +1452,31 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           cartRoute: CustomerRoutePaths.cart,
         ),
       ],
+    );
+  }
+
+  Widget _catalogImage(
+    String? url, {
+    required IconData fallback,
+    required double borderRadius,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: ColoredBox(
+        color: const Color(0xFFF2F4F7),
+        child: url == null || url.trim().isEmpty
+            ? Center(child: Icon(fallback, color: const Color(0xFF087347), size: 40))
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) => progress == null
+                    ? child
+                    : const Center(child: CircularProgressIndicator()),
+                errorBuilder: (_, __, ___) => Center(
+                  child: Icon(fallback, color: const Color(0xFF087347), size: 40),
+                ),
+              ),
+      ),
     );
   }
 
