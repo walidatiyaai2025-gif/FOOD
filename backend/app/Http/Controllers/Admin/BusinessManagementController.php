@@ -305,7 +305,9 @@ final class BusinessManagementController extends Controller
         $storeId = (int) $data['store_id'];
         app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'promotions.manage');
 
-        $path = $images->store($request->file('banner_image'), $storeId);
+        $bannerImage = $request->file('banner_image');
+        abort_unless($bannerImage instanceof \Illuminate\Http\UploadedFile, 422);
+        $path = $images->store($bannerImage, $storeId);
         try {
             unset($data['banner_image']);
             DB::table('banners')->insert([
@@ -335,7 +337,9 @@ final class BusinessManagementController extends Controller
 
         $newPath = null;
         if ($request->hasFile('banner_image')) {
-            $newPath = $images->store($request->file('banner_image'), $storeId);
+            $bannerImage = $request->file('banner_image');
+            abort_unless($bannerImage instanceof \Illuminate\Http\UploadedFile, 422);
+            $newPath = $images->store($bannerImage, $storeId);
         }
         unset($data['banner_image']);
 
