@@ -8,6 +8,7 @@ use App\Models\B2cCustomer;
 use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\B2cCustomerService;
+use App\Services\BannerImageService;
 use App\Services\OperationalTenantScope;
 use App\Support\TenantContextResolver;
 use Illuminate\Http\RedirectResponse;
@@ -297,39 +298,77 @@ final class BusinessManagementController extends Controller
         return back()->with('status', $this->msg('تم حذف العرض.', 'Promotion deleted.'));
     }
 
-    public function storeBanner(Request $request): RedirectResponse
+    public function storeBanner(Request $request, BannerImageService $images): RedirectResponse
     {
         $actor = $this->actor($request);
-        $data = $this->bannerData($request);
-        app(OperationalTenantScope::class)->assertStore($actor, (int) $data['store_id'], 'promotions.manage');
-        DB::table('banners')->insert([...$data, 'created_at' => now(), 'updated_at' => now()]);
+        $data = $this->bannerData($request, true);
+        $storeId = (int) $data['store_id'];
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'promotions.manage');
 
-        return back()->with('status', $this->msg('تمت إضافة البانر.', 'Banner added.'));
+        $path = $images->store($request->file('banner_image'), $storeId);
+        try {
+            unset($data['banner_image']);
+            DB::table('banners')->insert([
+                ...$data,
+                'image_path' => $path,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Throwable $exception) {
+            $images->delete($path);
+            throw $exception;
+        }
+
+        return back()->with('status', $this->msg('تم رفع صورة البانر وإضافته بنجاح.', 'Banner image uploaded and banner added successfully.'));
     }
 
-    public function updateBanner(Request $request, int $banner): RedirectResponse
+    public function updateBanner(Request $request, int $banner, BannerImageService $images): RedirectResponse
     {
         $actor = $this->actor($request);
         $current = DB::table('banners')->where('id', $banner)->first();
         abort_unless($current !== null && $current->store_id !== null, 404);
         app(OperationalTenantScope::class)->assertStore($actor, (int) $current->store_id, 'promotions.manage');
 
-        $data = $this->bannerData($request);
-        app(OperationalTenantScope::class)->assertStore($actor, (int) $data['store_id'], 'promotions.manage');
-        DB::table('banners')->where('id', $banner)->update([...$data, 'updated_at' => now()]);
+        $data = $this->bannerData($request, false);
+        $storeId = (int) $data['store_id'];
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'promotions.manage');
 
-        return back()->with('status', $this->msg('تم تعديل البانر.', 'Banner updated.'));
+        $newPath = null;
+        if ($request->hasFile('banner_image')) {
+            $newPath = $images->store($request->file('banner_image'), $storeId);
+        }
+        unset($data['banner_image']);
+
+        try {
+            DB::table('banners')->where('id', $banner)->update([
+                ...$data,
+                ...($newPath !== null ? ['image_path' => $newPath] : []),
+                'updated_at' => now(),
+            ]);
+        } catch (\Throwable $exception) {
+            if ($newPath !== null) {
+                $images->delete($newPath);
+            }
+            throw $exception;
+        }
+
+        if ($newPath !== null) {
+            $images->delete((string) $current->image_path);
+        }
+
+        return back()->with('status', $this->msg('تم حفظ بيانات البانر وصورته بنجاح.', 'Banner details and image were saved successfully.'));
     }
 
-    public function destroyBanner(Request $request, int $banner): RedirectResponse
+    public function destroyBanner(Request $request, int $banner, BannerImageService $images): RedirectResponse
     {
         $actor = $this->actor($request);
         $current = DB::table('banners')->where('id', $banner)->first();
         abort_unless($current !== null && $current->store_id !== null, 404);
         app(OperationalTenantScope::class)->assertStore($actor, (int) $current->store_id, 'promotions.manage');
         DB::table('banners')->where('id', $banner)->delete();
+        $images->delete((string) $current->image_path);
 
-        return back()->with('status', $this->msg('تم حذف البانر.', 'Banner deleted.'));
+        return back()->with('status', $this->msg('تم حذف البانر وصورته.', 'Banner and its image were deleted.'));
     }
 
     public function storeDriver(Request $request): RedirectResponse
@@ -462,12 +501,12 @@ final class BusinessManagementController extends Controller
         return [...$data, 'is_active' => $request->boolean('is_active')];
     }
 
-    private function bannerData(Request $request): array
+    private function bannerData(Request $request, bool $imageRequired): array
     {
         $data = $request->validate([
             'store_id' => ['required', 'integer', 'exists:stores,id'],
             'title' => ['required', 'string', 'max:255'],
-            'image_path' => ['required', 'string', 'max:2048'],
+            'banner_image' => [$imageRequired ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144', 'dimensions:min_width=600,min_height=240'],
             'target_url' => ['nullable', 'string', 'max:2048'],
             'sort_order' => ['required', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
