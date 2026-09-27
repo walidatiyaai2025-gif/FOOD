@@ -59,9 +59,7 @@ class AdminShellTest extends TestCase
 
         $this->actingAs($user)
             ->get('/admin')
-            ->assertOk()
-            ->assertSee('إدارة التجزئة B2C')
-            ->assertDontSee('إدارة الجملة B2B');
+            ->assertRedirect(route('admin.b2c.dashboard'));
 
         $this->actingAs($user)
             ->get('/admin/b2c/dashboard')
