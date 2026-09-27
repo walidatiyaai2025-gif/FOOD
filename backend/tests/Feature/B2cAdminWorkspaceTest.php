@@ -58,7 +58,7 @@ class B2cAdminWorkspaceTest extends TestCase
         $user->roles()->attach($role);
         DB::table('user_store_roles')->insert(['user_id' => $user->id, 'store_id' => $store, 'role_id' => $role->id, 'created_at' => now(), 'updated_at' => now()]);
 
-        $unit = (int) DB::table('units')->insertGetId(['code' => 'PC', 'name' => 'Piece', 'decimal_places' => 0, 'created_at' => now(), 'updated_at' => now()]);
+        $unit = (int) DB::table('units')->where('code', 'PC')->value('id');
         $product = (int) DB::table('products')->insertGetId(['unit_id' => $unit, 'sku' => 'PREM-1', 'name' => 'زيت زيتون عضوي', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('store_products')->insert(['store_id' => $store, 'product_id' => $product, 'price' => 10, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('inventories')->insert(['warehouse_id' => $warehouse, 'product_id' => $product, 'quantity' => 5, 'reserved_quantity' => 0, 'created_at' => now(), 'updated_at' => now()]);
