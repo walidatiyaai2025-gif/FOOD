@@ -138,6 +138,7 @@ Route::prefix('admin')
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
         Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
+        Route::get('/security/demo-data', [SecurityController::class, 'demoData'])->name('security.demo-data.index');
         Route::post('/security/demo-data', [SecurityController::class, 'seedDemoData'])->name('security.demo-data.seed');
         Route::delete('/security/demo-data', [SecurityController::class, 'clearDemoData'])->name('security.demo-data.clear');
         Route::patch('/security/users/{user}/status', [SecurityController::class, 'updateUserStatus'])->name('security.users.status');
