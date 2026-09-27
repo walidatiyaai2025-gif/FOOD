@@ -11,9 +11,11 @@ use App\Models\B2bAccount;
 use App\Models\Category;
 use App\Models\Driver;
 use App\Models\Inventory;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
 use App\Services\B2bCustomerService;
 use App\Services\CatalogOwnership;
@@ -118,6 +120,35 @@ class B2bWorkspaceController extends Controller
         $orders->transition($request, $order, $audit, $dashboardNotifier);
 
         return back()->with('status', $this->msg('تم تحديث حالة الطلب.', 'Order status updated.'));
+    }
+
+    public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $storeId = $request->integer('store_id');
+        $this->operationalScope->assertStore($actor, $storeId, 'orders.manage', 'b2b');
+
+        $order = $orders->create($request, $actor, 'b2b', $storeId);
+
+        return back()->with('status', $this->msg(
+            'تم إنشاء الطلب '.$order->order_number.'.',
+            'Order '.$order->order_number.' created.',
+        ));
+    }
+
+    public function updateOrder(Request $request, int $order, AdminOrderManagementService $orders): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $model = Order::query()
+            ->whereKey($order)
+            ->where('channel', 'b2b')
+            ->whereNotNull('b2b_customer_id')
+            ->firstOrFail();
+
+        $this->operationalScope->assertStore($actor, (int) $model->store_id, 'orders.manage', 'b2b');
+        $orders->update($request, $actor, $model);
+
+        return back()->with('status', $this->msg('تم تحديث الطلب.', 'Order updated.'));
     }
 
     public function assignDriver(
@@ -913,37 +944,7 @@ class B2bWorkspaceController extends Controller
             ],
             'products' => $this->productModuleData($storeIds, $user),
             'inventory' => $this->inventoryModuleData($storeIds),
-            'orders' => [
-                'columns' => ['number', 'client', 'store', 'status', 'amount', 'created', 'actions'],
-                'rows' => DB::table('orders')
-                    ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
-                    ->join('stores', 'stores.id', '=', 'orders.store_id')
-                    ->whereIn('orders.store_id', $storeIds)
-                    ->where('orders.channel', 'b2b')
-                    ->whereNotNull('orders.b2b_customer_id')
-                    ->orderByDesc('orders.created_at')
-                    ->limit(100)
-                    ->get([
-                        'orders.id',
-                        'orders.order_number as number',
-                        'b2b_customers.name as client',
-                        'stores.name as store',
-                        'orders.status',
-                        'orders.currency',
-                        'orders.grand_total',
-                        'orders.created_at as created',
-                    ])
-                    ->map(fn ($row) => [
-                        '_id' => (int) $row->id,
-                        'number' => $row->number,
-                        'client' => $row->client,
-                        'store' => $row->store,
-                        'status' => $row->status,
-                        'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
-                        'created' => (string) $row->created,
-                        'actions' => true,
-                    ])->all(),
-            ],
+            'orders' => $this->orderModuleData($storeIds),
             'drivers' => [
                 'columns' => ['name', 'email', 'store', 'availability', 'active', 'assignments'],
                 'rows' => DB::table('drivers')
@@ -1051,6 +1052,166 @@ class B2bWorkspaceController extends Controller
             'settings' => $this->settingsModuleData($user, $storeIds),
             default => ['columns' => [], 'rows' => []],
         };
+    }
+
+    private function orderModuleData(array $storeIds): array
+    {
+        $customers = DB::table('b2b_customers')
+            ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
+            ->where('b2b_accounts.status', 'active')
+            ->orderBy('b2b_accounts.company_name')
+            ->orderBy('b2b_customers.name')
+            ->get([
+                'b2b_customers.id',
+                'b2b_customers.name',
+                'b2b_accounts.company_name',
+            ])
+            ->map(fn ($row) => [
+                'id' => (int) $row->id,
+                'name' => trim(($row->company_name ? $row->company_name.' · ' : '').$row->name),
+            ])
+            ->all();
+
+        $rows = DB::table('orders')
+            ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
+            ->join('stores', 'stores.id', '=', 'orders.store_id')
+            ->whereIn('orders.store_id', $storeIds)
+            ->where('orders.channel', 'b2b')
+            ->whereNotNull('orders.b2b_customer_id')
+            ->orderByDesc('orders.created_at')
+            ->limit(100)
+            ->get([
+                'orders.id',
+                'orders.store_id',
+                'orders.b2b_customer_id',
+                'orders.address_id',
+                'orders.order_number as number',
+                'b2b_customers.name as client',
+                'stores.name as store',
+                'orders.status',
+                'orders.currency',
+                'orders.subtotal',
+                'orders.discount_total',
+                'orders.delivery_total',
+                'orders.grand_total',
+                'orders.payment_method',
+                'orders.customer_note',
+                'orders.created_at as created',
+            ])
+            ->map(function ($row): array {
+                $items = DB::table('order_items')
+                    ->where('order_id', $row->id)
+                    ->orderBy('id')
+                    ->get(['product_id', 'sku_snapshot', 'name_snapshot', 'quantity', 'unit_price', 'line_total'])
+                    ->map(fn ($item) => [
+                        'product_id' => (int) $item->product_id,
+                        'sku' => $item->sku_snapshot,
+                        'name' => $item->name_snapshot,
+                        'quantity' => (float) $item->quantity,
+                        'unit_price' => (float) $item->unit_price,
+                        'line_total' => (float) $item->line_total,
+                    ])->all();
+
+                $payment = DB::table('payments')
+                    ->where('order_id', $row->id)
+                    ->orderByDesc('id')
+                    ->first(['provider', 'status', 'amount', 'currency']);
+
+                $history = DB::table('order_status_history')
+                    ->where('order_id', $row->id)
+                    ->where('store_id', $row->store_id)
+                    ->orderByDesc('id')
+                    ->limit(20)
+                    ->get(['from_status', 'to_status', 'note', 'created_at'])
+                    ->map(fn ($entry) => [
+                        'from' => $entry->from_status,
+                        'to' => $entry->to_status,
+                        'note' => $entry->note,
+                        'created_at' => (string) $entry->created_at,
+                    ])->all();
+
+                $invoice = DB::table('invoices')
+                    ->where('order_id', $row->id)
+                    ->orderByDesc('id')
+                    ->first(['invoice_number', 'status', 'total', 'currency']);
+
+                return [
+                    '_id' => (int) $row->id,
+                    '_store_id' => (int) $row->store_id,
+                    '_customer_id' => (int) $row->b2b_customer_id,
+                    '_address_id' => $row->address_id === null ? null : (int) $row->address_id,
+                    '_subtotal' => (float) $row->subtotal,
+                    '_discount_total' => (float) $row->discount_total,
+                    '_delivery_total' => (float) $row->delivery_total,
+                    '_grand_total' => (float) $row->grand_total,
+                    '_payment_method' => $row->payment_method,
+                    '_customer_note' => $row->customer_note,
+                    '_items' => $items,
+                    '_payment' => $payment === null ? null : [
+                        'provider' => $payment->provider,
+                        'status' => $payment->status,
+                        'amount' => (float) $payment->amount,
+                        'currency' => $payment->currency,
+                    ],
+                    '_history' => $history,
+                    '_invoice' => $invoice === null ? null : [
+                        'number' => $invoice->invoice_number,
+                        'status' => $invoice->status,
+                        'total' => (float) $invoice->total,
+                        'currency' => $invoice->currency,
+                    ],
+                    'number' => $row->number,
+                    'client' => $row->client,
+                    'store' => $row->store,
+                    'status' => $row->status,
+                    'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
+                    'created' => (string) $row->created,
+                    'actions' => true,
+                ];
+            })->all();
+
+        return [
+            'columns' => ['number', 'client', 'store', 'status', 'amount', 'created', 'actions'],
+            'rows' => $rows,
+            'customers' => $customers,
+            'stores' => DB::table('stores')
+                ->whereIn('id', $storeIds)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
+                ->all(),
+            'products' => DB::table('products')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->join('store_products', function ($join): void {
+                    $join->on('store_products.product_id', '=', 'products.id')
+                        ->on('store_products.store_id', '=', 'catalogs.store_id');
+                })
+                ->whereIn('catalogs.store_id', $storeIds)
+                ->where('catalogs.channel', 'b2b')
+                ->where('catalogs.is_migration_quarantine', false)
+                ->where('catalogs.is_active', true)
+                ->where('products.is_active', true)
+                ->where('store_products.is_active', true)
+                ->orderBy('products.name')
+                ->get(['products.id', 'catalogs.store_id', 'products.sku', 'products.name'])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'store_id' => (int) $row->store_id,
+                    'sku' => $row->sku,
+                    'name' => $row->name,
+                ])->all(),
+            'addresses' => DB::table('addresses')
+                ->whereIn('b2b_customer_id', collect($customers)->pluck('id')->all())
+                ->orderBy('id')
+                ->get(['id', 'b2b_customer_id'])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'customer_id' => (int) $row->b2b_customer_id,
+                    'label' => 'Address #'.$row->id,
+                ])->all(),
+            'payment_methods' => array_values((array) config('checkout.payment_methods', ['cash_on_delivery'])),
+        ];
     }
 
     /** @return list<int> */
