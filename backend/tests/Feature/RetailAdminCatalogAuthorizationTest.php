@@ -131,7 +131,7 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($retailAdmin)
-            ->post(route('admin.catalog.stores.store'), [
+            ->post(route('admin.retail-stores.store'), [
                 'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
                 'code' => 'NOPE-RETAIL',
                 'name' => 'Nope Retail',
@@ -139,7 +139,7 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($b2bAdmin)
-            ->post(route('admin.catalog.stores.store'), [
+            ->post(route('admin.retail-stores.store'), [
                 'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
                 'code' => 'NOPE-B2B',
                 'name' => 'Nope B2B',
@@ -148,8 +148,7 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
 
         $this->actingAs($owner)
             ->get(route('admin.catalog.index', ['tab' => 'stores']))
-            ->assertOk()
-            ->assertSee('Catalog & Store Management');
+            ->assertRedirect(route('admin.retail-stores.index'));
     }
 
     private function storeManager(string $email, int $storeId): User
