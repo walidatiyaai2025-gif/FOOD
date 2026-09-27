@@ -282,7 +282,7 @@ final class PromotionalNotificationCampaignController extends Controller
     private function scheduleData(array $data): array
     {
         $startsAt = CarbonImmutable::parse((string) $data['starts_at'], self::TIMEZONE)->utc();
-        $endsAt = isset($data['ends_at']) && $data['ends_at'] !== null
+        $endsAt = isset($data['ends_at'])
             ? CarbonImmutable::parse((string) $data['ends_at'], self::TIMEZONE)->utc()
             : null;
 
