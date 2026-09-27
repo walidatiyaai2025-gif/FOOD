@@ -948,31 +948,55 @@ final class MasterDataController extends Controller
 
     private function destroyResource(string $resource, int $id): void
     {
-        match ($resource) {
-            'categories' => DB::table('categories')->where('id', $id)->delete(),
-            'brands' => DB::table('brands')->where('id', $id)->delete(),
-            'units' => $this->deleteIfUnused('units', $id, [['products', 'unit_id']]),
-            'products' => $this->deleteIfUnused('products', $id, [
-                ['order_items', 'product_id'],
-                ['cart_items', 'product_id'],
-                ['inventories', 'product_id'],
-                ['b2b_price_rules', 'product_id'],
-            ]),
-            'stores' => $this->deleteIfUnused('stores', $id, [
-                ['orders', 'store_id'],
-                ['carts', 'store_id'],
-            ]),
-            'warehouses' => $this->deleteIfUnused('warehouses', $id, [['inventories', 'warehouse_id']]),
-            'customers' => $this->deleteIfUnused('customers', $id, [
-                ['orders', 'customer_id'],
-                ['invoices', 'customer_id'],
-            ]),
-            'b2b-clients' => DB::table('b2b_accounts')->where('id', $id)->delete(),
-            'price-tiers' => $this->deleteIfUnused('b2b_price_tiers', $id, [['b2b_accounts', 'price_tier_id'], ['b2b_price_rules', 'price_tier_id']]),
-            'promotions' => DB::table('promotions')->where('id', $id)->delete(),
-            'banners' => DB::table('banners')->where('id', $id)->delete(),
-            default => null,
-        };
+        switch ($resource) {
+            case 'categories':
+                DB::table('categories')->where('id', $id)->delete();
+                return;
+            case 'brands':
+                DB::table('brands')->where('id', $id)->delete();
+                return;
+            case 'units':
+                $this->deleteIfUnused('units', $id, [['products', 'unit_id']]);
+                return;
+            case 'products':
+                $this->deleteIfUnused('products', $id, [
+                    ['order_items', 'product_id'],
+                    ['cart_items', 'product_id'],
+                    ['inventories', 'product_id'],
+                    ['b2b_price_rules', 'product_id'],
+                ]);
+                return;
+            case 'stores':
+                $this->deleteIfUnused('stores', $id, [
+                    ['orders', 'store_id'],
+                    ['carts', 'store_id'],
+                ]);
+                return;
+            case 'warehouses':
+                $this->deleteIfUnused('warehouses', $id, [['inventories', 'warehouse_id']]);
+                return;
+            case 'customers':
+                $this->deleteIfUnused('customers', $id, [
+                    ['orders', 'customer_id'],
+                    ['invoices', 'customer_id'],
+                ]);
+                return;
+            case 'b2b-clients':
+                DB::table('b2b_accounts')->where('id', $id)->delete();
+                return;
+            case 'price-tiers':
+                $this->deleteIfUnused('b2b_price_tiers', $id, [
+                    ['b2b_accounts', 'price_tier_id'],
+                    ['b2b_price_rules', 'price_tier_id'],
+                ]);
+                return;
+            case 'promotions':
+                DB::table('promotions')->where('id', $id)->delete();
+                return;
+            case 'banners':
+                DB::table('banners')->where('id', $id)->delete();
+                return;
+        }
     }
 
     /** @param array<int,array{0:string,1:string}> $references */
