@@ -9,7 +9,6 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
-use App\Models\StockMovement;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CustomerDomainResolver;
@@ -189,101 +188,6 @@ class OrderController extends Controller
             ),
             true,
         );
-    }
-
-    private function releaseReservations(Order $order, User $user): void
-    {
-        $reservations = StockMovement::query()
-            ->where('reference_type', 'order')
-            ->where('reference_id', $order->getKey())
-            ->where('store_id', (int) $order->store_id)
-            ->where('type', 'reserve')
-            ->orderBy('id')
-            ->get();
-
-        foreach ($reservations as $reservation) {
-            $inventory = DB::table('inventories')
-                ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-                ->where('inventories.id', $reservation->inventory_id)
-                ->where('warehouses.store_id', (int) $order->store_id)
-                ->lockForUpdate()
-                ->first(['inventories.*']);
-
-            if ($inventory === null) {
-                continue;
-            }
-
-            $quantity = (float) $reservation->quantity;
-            $reserved = max(0.0, (float) $inventory->reserved_quantity - $quantity);
-
-            DB::table('inventories')
-                ->where('id', $reservation->inventory_id)
-                ->update([
-                    'reserved_quantity' => $reserved,
-                    'updated_at' => now(),
-                ]);
-
-            StockMovement::query()->create([
-                'inventory_id' => $reservation->inventory_id,
-                'store_id' => (int) $order->store_id,
-                'user_id' => $user->getKey(),
-                'type' => 'release',
-                'quantity' => $quantity,
-                'reference_type' => 'order',
-                'reference_id' => $order->getKey(),
-                'reason' => 'order_cancelled',
-            ]);
-        }
-    }
-
-    private function consumeReservations(Order $order, User $user): void
-    {
-        $reservations = StockMovement::query()
-            ->where('reference_type', 'order')
-            ->where('reference_id', $order->getKey())
-            ->where('type', 'reserve')
-            ->orderBy('id')
-            ->get();
-
-        foreach ($reservations as $reservation) {
-            $inventory = DB::table('inventories')
-                ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-                ->where('inventories.id', $reservation->inventory_id)
-                ->where('warehouses.store_id', (int) $order->store_id)
-                ->lockForUpdate()
-                ->first(['inventories.*']);
-
-            abort_if($inventory === null, 409, 'Reserved inventory no longer exists.');
-
-            $quantity = (float) $reservation->quantity;
-            $onHand = (float) $inventory->quantity;
-            $reserved = (float) $inventory->reserved_quantity;
-
-            abort_if(
-                $quantity > $onHand || $quantity > $reserved,
-                409,
-                'Reserved inventory is inconsistent with the order.',
-            );
-
-            DB::table('inventories')
-                ->where('id', $reservation->inventory_id)
-                ->update([
-                    'quantity' => $onHand - $quantity,
-                    'reserved_quantity' => $reserved - $quantity,
-                    'updated_at' => now(),
-                ]);
-
-            StockMovement::query()->create([
-                'inventory_id' => $reservation->inventory_id,
-                'store_id' => (int) $order->store_id,
-                'user_id' => $user->getKey(),
-                'type' => 'sale',
-                'quantity' => -$quantity,
-                'reference_type' => 'order',
-                'reference_id' => $order->getKey(),
-                'reason' => 'order_delivered',
-            ]);
-        }
     }
 
     private function orderPayload(Order $order): array
