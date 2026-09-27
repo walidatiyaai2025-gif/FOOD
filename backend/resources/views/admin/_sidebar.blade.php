@@ -20,6 +20,8 @@
     .nav-group summary:hover{background:var(--foodex-orange-soft)}
     .nav-group-title{display:flex;align-items:center;gap:9px}.nav-children{display:grid;gap:2px;padding:0 8px 7px}
     .nav-child{font-size:.92rem;padding-inline-start:30px}.nav-group[open] .nav-chevron{transform:rotate(180deg)}
+    .sidebar-footer{margin-top:var(--foodex-space-4);padding-top:var(--foodex-space-4);border-top:1px solid var(--foodex-border)}
+    .logout-form{margin:0}.logout-button{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;min-height:var(--foodex-touch-target);border:1px solid #fecaca;background:#fff7f7;color:#b42318;border-radius:var(--foodex-radius-control);font:inherit;font-weight:var(--foodex-font-weight-bold);cursor:pointer}.logout-button:hover{background:#fff0f0}
     .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
     @media(max-width:760px){.sidebar-toggle{display:block}.sidebar.collapsed #admin-navigation,.sidebar.collapsed .nav-search-wrap{display:none}}
 </style>
@@ -68,6 +70,16 @@
         </details>
     @endforeach
 </nav>
+
+<div class="sidebar-footer">
+    <form class="logout-form" method="post" action="{{ route('admin.logout') }}">
+        @csrf
+        <button class="logout-button" type="submit">
+            <span aria-hidden="true">↪</span>
+            <span>{{ __('admin.logout') }}</span>
+        </button>
+    </form>
+</div>
 
 <script>
 (() => {
