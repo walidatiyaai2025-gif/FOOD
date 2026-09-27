@@ -124,7 +124,7 @@ final class PromotionalNotificationCampaignController extends Controller
         $before = $campaign->toArray();
 
         if ($data['state'] === 'active') {
-            abort_if($campaign->status === 'completed', 409);
+            abort_if(in_array($campaign->status, ['completed', 'cancelled'], true), 409);
             $campaign->update([
                 'status' => 'active',
                 'next_run_at' => $campaign->next_run_at ?? $campaign->starts_at ?? now(),
