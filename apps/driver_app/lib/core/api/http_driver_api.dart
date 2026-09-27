@@ -147,14 +147,41 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
           final statuses = (map['available_statuses'] as List? ?? const [])
               .map((status) => status.toString())
               .toList(growable: false);
+          final order = map['order'] is Map
+              ? Map<String, dynamic>.from(map['order'] as Map)
+              : <String, dynamic>{};
+          final customer = order['customer'] is Map
+              ? Map<String, dynamic>.from(order['customer'] as Map)
+              : <String, dynamic>{};
+          final items = (order['items'] as List? ?? const [])
+              .whereType<Map>()
+              .map((raw) {
+                final item = Map<String, dynamic>.from(raw);
+                return DriverOrderItem(
+                  sku: (item['sku'] ?? '').toString(),
+                  name: (item['name'] ?? '').toString(),
+                  quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
+                  unitPrice: (item['unit_price'] as num?)?.toDouble() ?? 0,
+                  lineTotal: (item['line_total'] as num?)?.toDouble() ?? 0,
+                );
+              })
+              .toList(growable: false);
 
           return DriverAssignment(
             id: (map['id'] as num).toInt(),
             orderId: orderId,
             channel: assignmentChannel,
-            reference: '#$orderId',
+            reference: (order['number'] ?? '#$orderId').toString(),
             status: (map['status'] ?? '').toString(),
             availableStatuses: statuses,
+            customerName: (customer['name'] ?? '').toString(),
+            customerPhone: (customer['phone'] ?? '').toString(),
+            paymentMethod: (order['payment_method'] ?? '').toString(),
+            currency: (order['currency'] ?? 'KWD').toString(),
+            grandTotal: (order['grand_total'] as num?)?.toDouble() ?? 0,
+            customerNote: (order['customer_note'] ?? '').toString(),
+            addressId: (order['address_id'] as num?)?.toInt(),
+            items: items,
           );
         })
         .where((assignment) => assignment.channel == channel)
@@ -165,13 +192,17 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
   Future<void> transition(
     int id,
     DriverChannel channel,
-    String status,
-  ) async {
+    String status, {
+    String? note,
+  }) async {
     await _request(
       () => _client.post(
         _endpoint('driver/assignments/$id/status'),
         headers: _headers,
-        body: jsonEncode({'status': status}),
+        body: jsonEncode({
+          'status': status,
+          if (note != null) 'note': note,
+        }),
       ),
     );
   }
