@@ -45,6 +45,7 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
             [
                 'customer_id' => $b2bLegacy,
                 'b2b_customer_id' => $b2bCustomer,
+                'b2c_customer_id' => null,
                 'invoice_number' => 'B2B-INVOICE-VISIBLE',
                 'status' => 'issued',
                 'currency' => 'KWD',
@@ -54,6 +55,7 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
             ],
             [
                 'customer_id' => $b2cLegacy,
+                'b2b_customer_id' => null,
                 'b2c_customer_id' => $b2cCustomer,
                 'invoice_number' => 'B2C-INVOICE-HIDDEN',
                 'status' => 'issued',
