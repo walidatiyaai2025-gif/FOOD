@@ -116,7 +116,7 @@ class LookupManagementCenterTest extends TestCase
             'code' => 'PC-X',
             'decimal_places' => 0,
             'is_active' => 1,
-        ])->assertForbidden();
+        ])->assertNotFound();
 
         $this->actingAs($admin)->post('/admin/lookups/units', [
             'scope' => 'b2b',
