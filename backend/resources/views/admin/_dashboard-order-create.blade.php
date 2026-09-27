@@ -52,7 +52,10 @@
                     <option value="">{{ app()->getLocale()==='ar'?'اختر المنتج':'Select product' }}</option>
                     @foreach($moduleData['products'] as $product)
                         <option value="{{ $product['id'] }}" data-store-id="{{ $product['store_id'] }}">
-                            {{ $product['sku'] }} · {{ $product['name'] }}@isset($product['price']) · {{ number_format((float)$product['price'],3) }} KWD@endisset
+                            {{ $product['sku'] }} · {{ $product['name'] }}
+                            @if(array_key_exists('price',$product))
+                                · {{ number_format((float)$product['price'],3) }} KWD
+                            @endif
                         </option>
                     @endforeach
                 </select>
