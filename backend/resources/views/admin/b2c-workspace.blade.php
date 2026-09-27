@@ -450,6 +450,9 @@
                     <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعيين السائق':'Assign driver' }}</button>
                 </form>
             @endif
+            @if($module==='orders' && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('orders.manage',(int)$storeId)) || $user->hasPermission('orders.manage')))
+                @include('admin._dashboard-order-create',['channel'=>'b2c'])
+            @endif
             @if(count($moduleData['rows']))
                 <div class="module-table-wrap">
                     <table class="module-table foodex-table">
@@ -460,16 +463,7 @@
                             @foreach($moduleData['columns'] as $column)
                                 <td>
                                     @if($column==='actions' && $module==='orders' && ($user->hasPermission('orders.manage',$row['_store_id']) || $user->hasPermission('orders.manage')))
-                                        <form method="post" action="{{ route('admin.b2c.orders.status',['order'=>$row['_id']]) }}" class="module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
-                                            @csrf
-                                            <input type="hidden" name="store_id" value="{{ $storeId }}">
-                                            @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
-                                            <select name="status" required>
-                                                @foreach(['confirmed','preparing','ready','out_for_delivery','delivered','failed','cancelled'] as $state)<option value="{{ $state }}">{{ $state }}</option>@endforeach
-                                            </select>
-                                            <input name="note" maxlength="1000" placeholder="{{ app()->getLocale()==='ar'?'ملاحظة':'Note' }}">
-                                            <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تحديث':'Update' }}</button>
-                                        </form>
+                                        @include('admin._dashboard-order-actions',['channel'=>'b2c','row'=>$row])
                                     @elseif($column==='actions' && is_array($row[$column] ?? null))
                                         <div class="module-links">
                                             @foreach($row[$column] as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach
