@@ -108,19 +108,25 @@ final class CatalogManagementController extends Controller
         Gate::authorize('catalog.create');
 
         $data = $request->validate([
-            'sku' => ['required', 'string', 'max:100', 'unique:products,sku'],
+            'sku' => ['required', 'string', 'max:100'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'unit_id' => ['required', 'integer', 'exists:units,id'],
             'is_active' => ['nullable', 'boolean'],
-            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        DB::transaction(function () use ($data, $request): void {
+        $catalog = $this->catalogs->defaultCatalogForStore((int) $data['store_id']);
+        $this->assertStoreAccess($request, (int) $data['store_id'], (string) $catalog->channel);
+        $this->catalogs->assertSameCatalog(isset($data['category_id']) ? (int) $data['category_id'] : null, (int) $catalog->id);
+        $this->assertSkuAvailable((int) $catalog->id, (string) $data['sku']);
+
+        DB::transaction(function () use ($data, $request, $catalog): void {
             $id = DB::table('products')->insertGetId([
+                'catalog_id' => $catalog->id,
                 'sku' => $data['sku'],
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
@@ -132,16 +138,14 @@ final class CatalogManagementController extends Controller
                 'updated_at' => now(),
             ]);
 
-            if (! empty($data['store_id'])) {
-                DB::table('store_products')->insert([
-                    'store_id' => $data['store_id'],
-                    'product_id' => $id,
-                    'price' => $data['price'] ?? null,
-                    'is_active' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
+            DB::table('store_products')->insert([
+                'store_id' => $data['store_id'],
+                'product_id' => $id,
+                'price' => $data['price'] ?? null,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         });
 
         return back()->with('status', $this->msg('تمت إضافة المنتج.', 'Product added.'));
@@ -151,8 +155,11 @@ final class CatalogManagementController extends Controller
     {
         Gate::authorize('catalog.edit');
 
+        $owner = $this->productOwner($product);
+        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+
         $data = $request->validate([
-            'sku' => ['required', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product)],
+            'sku' => ['required', 'string', 'max:100'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
@@ -160,6 +167,9 @@ final class CatalogManagementController extends Controller
             'unit_id' => ['required', 'integer', 'exists:units,id'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+
+        $this->catalogs->assertSameCatalog(isset($data['category_id']) ? (int) $data['category_id'] : null, (int) $owner->catalog_id);
+        $this->assertSkuAvailable((int) $owner->catalog_id, (string) $data['sku'], $product);
 
         DB::table('products')->where('id', $product)->update([
             ...collect($data)->except('is_active')->all(),
@@ -174,6 +184,8 @@ final class CatalogManagementController extends Controller
     {
         Gate::authorize('catalog.delete');
 
+        $owner = $this->productOwner($product);
+        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
         $used = DB::table('order_items')->where('product_id', $product)->exists();
 
         if ($used) {
@@ -202,6 +214,14 @@ final class CatalogManagementController extends Controller
             'price' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+
+        $owner = $this->productOwner($product);
+        $this->assertStoreAccess($request, (int) $owner->store_id, (string) $owner->channel);
+        if ((int) $data['store_id'] !== (int) $owner->store_id) {
+            throw ValidationException::withMessages([
+                'store_id' => ['A product can only be assigned inside its owning catalog store.'],
+            ]);
+        }
 
         DB::table('store_products')->updateOrInsert(
             ['store_id' => $data['store_id'], 'product_id' => $product],
