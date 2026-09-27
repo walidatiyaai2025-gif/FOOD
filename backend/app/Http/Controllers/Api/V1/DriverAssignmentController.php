@@ -27,11 +27,9 @@ class DriverAssignmentController extends Controller
             ->latest('id')
             ->get();
         $allowed = $this->allowedTransitions();
-        $rows->each(static function (DriverAssignment $assignment) use ($allowed): void {
-            $assignment->setAttribute('available_statuses', $allowed[$assignment->status] ?? []);
-        });
+        $payload = $rows->map(fn (DriverAssignment $assignment): array => $this->payload($assignment, $allowed));
 
-        return response()->json(['data' => $rows]);
+        return response()->json(['data' => $payload]);
     }
 
     public function assign(Request $request, AuditLogger $auditLogger, DashboardOperationalNotifier $dashboardNotifier): JsonResponse
@@ -83,7 +81,10 @@ class DriverAssignmentController extends Controller
     public function transition(Request $request, int $assignment, AuditLogger $auditLogger, DashboardOperationalNotifier $dashboardNotifier): JsonResponse
     {
         [$driver, $channel] = $this->driverContext($request);
-        $data = $request->validate(['status' => ['required', Rule::in(['accepted', 'picked_up', 'out_for_delivery', 'delivered', 'failed'])]]);
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['accepted', 'picked_up', 'out_for_delivery', 'delivered', 'failed'])],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
         $model = DriverAssignment::query()
             ->whereKey($assignment)
             ->where('driver_id', $driver->getKey())
@@ -95,21 +96,100 @@ class DriverAssignmentController extends Controller
         $before = ['status' => $model->status];
         DB::transaction(function () use ($model, $data): void {
             $model->status = $data['status'];
+            if (array_key_exists('note', $data)) {
+                $model->notes = $data['note'];
+            }
             if ($data['status'] === 'delivered') {
                 $model->completed_at = now();
             }
             $model->save();
+
+            $order = Order::query()
+                ->whereKey($model->order_id)
+                ->where('store_id', (int) $model->store_id)
+                ->where('channel', (string) $model->assignment_type)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $targetOrderStatus = match ($data['status']) {
+                'picked_up', 'out_for_delivery' => 'out_for_delivery',
+                'delivered' => 'delivered',
+                'failed' => 'failed',
+                default => null,
+            };
+
+            if ($targetOrderStatus !== null && (string) $order->status !== $targetOrderStatus) {
+                app(OrderController::class)->transition(
+                    request()->duplicate(request: [
+                        'status' => $targetOrderStatus,
+                        'note' => $data['note'] ?? 'driver_delivery_update',
+                    ]),
+                    (int) $order->getKey(),
+                    app(AuditLogger::class),
+                    app(DashboardOperationalNotifier::class),
+                );
+            }
         });
         $auditLogger->record('delivery.assignment.status_changed', $request->user(), $model, $before, ['status' => $model->status], $request);
 
         $fresh = $model->fresh();
-        $fresh->setAttribute('available_statuses', $allowed[$fresh->status] ?? []);
         $order = Order::query()->find($fresh->order_id);
         if ($order instanceof Order && (int) $order->store_id === (int) $fresh->store_id) {
             $dashboardNotifier->deliveryChanged($order, (string) $fresh->status);
         }
 
-        return response()->json(['data' => $fresh]);
+        return response()->json(['data' => $this->payload($fresh, $allowed)]);
+    }
+
+    /** @param array<string, list<string>> $allowed */
+    private function payload(DriverAssignment $assignment, array $allowed): array
+    {
+        $order = Order::query()
+            ->whereKey($assignment->order_id)
+            ->where('store_id', (int) $assignment->store_id)
+            ->where('channel', (string) $assignment->assignment_type)
+            ->firstOrFail();
+
+        $customerTable = $assignment->assignment_type === 'b2b' ? 'b2b_customers' : 'b2c_customers';
+        $customerColumn = $assignment->assignment_type === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
+        $customerId = $order->{$customerColumn};
+        $customer = $customerId === null ? null : DB::table($customerTable)->where('id', $customerId)->first(['name', 'phone', 'email']);
+
+        return [
+            'id' => (int) $assignment->getKey(),
+            'order_id' => (int) $order->getKey(),
+            'assignment_type' => (string) $assignment->assignment_type,
+            'status' => (string) $assignment->status,
+            'available_statuses' => $allowed[$assignment->status] ?? [],
+            'assigned_at' => $assignment->assigned_at,
+            'completed_at' => $assignment->completed_at,
+            'notes' => $assignment->notes,
+            'order' => [
+                'number' => (string) $order->order_number,
+                'status' => (string) $order->status,
+                'currency' => (string) $order->currency,
+                'grand_total' => (float) $order->grand_total,
+                'payment_method' => (string) $order->payment_method,
+                'customer_note' => $order->customer_note,
+                'address_id' => $order->address_id === null ? null : (int) $order->address_id,
+                'customer' => $customer === null ? null : [
+                    'name' => $customer->name,
+                    'phone' => $customer->phone,
+                    'email' => $customer->email,
+                ],
+                'items' => DB::table('order_items')
+                    ->where('order_id', $order->getKey())
+                    ->orderBy('id')
+                    ->get(['sku_snapshot', 'name_snapshot', 'quantity', 'unit_price', 'line_total'])
+                    ->map(fn ($item): array => [
+                        'sku' => $item->sku_snapshot,
+                        'name' => $item->name_snapshot,
+                        'quantity' => (float) $item->quantity,
+                        'unit_price' => (float) $item->unit_price,
+                        'line_total' => (float) $item->line_total,
+                    ])->all(),
+            ],
+        ];
     }
 
     /** @return array<string, list<string>> */
