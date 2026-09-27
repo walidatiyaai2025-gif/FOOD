@@ -73,7 +73,18 @@ class OrderDomainTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $catalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $this->b2cStoreId,
+            'channel' => 'b2c',
+            'code' => 'default',
+            'name' => 'Order Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $categoryId = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $catalogId,
             'name' => 'Orders',
             'slug' => 'orders',
             'is_active' => true,
@@ -81,6 +92,7 @@ class OrderDomainTest extends TestCase
             'updated_at' => now(),
         ]);
         $this->productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalogId,
             'category_id' => $categoryId,
             'unit_id' => $unitId,
             'sku' => 'ORDER-001',
@@ -391,6 +403,7 @@ class OrderDomainTest extends TestCase
 
         OrderStatusHistory::query()->create([
             'order_id' => $order->id,
+            'store_id' => $storeId,
             'user_id' => null,
             'from_status' => null,
             'to_status' => $status,
@@ -407,6 +420,7 @@ class OrderDomainTest extends TestCase
 
             StockMovement::query()->create([
                 'inventory_id' => $this->inventoryId,
+                'store_id' => $storeId,
                 'user_id' => null,
                 'type' => 'reserve',
                 'quantity' => $reservation,
