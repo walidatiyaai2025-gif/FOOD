@@ -195,12 +195,20 @@
             </div>
             <form class="global-search" method="get" action="{{ route('admin.b2c.dashboard') }}">
                 <input type="hidden" name="date" value="{{ $dashboard['selected_date'] }}">
+                <input type="hidden" name="store_id" value="{{ $storeId }}">
+                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <input name="q" value="{{ request('q') }}" placeholder="{{ __('admin.b2c_dashboard.search_placeholder') }}" autocomplete="off">
                 <span class="search-icon">@include('admin._premium-icon',['name'=>'search'])</span>
                 @if(request('q') && count($dashboard['search']))
                 <div class="search-results">
                     @foreach($dashboard['search'] as $result)
-                    <a href="{{ $result['route'] }}"><span><strong>{{ $result['title'] }}</strong><small> · {{ $result['subtitle'] }}</small></span><small>{{ __('admin.b2c_dashboard.search_types.'.$result['type']) }}</small></a>
+                    @php
+                        $scopedSearchUrl = $result['route']
+                            .(str_contains($result['route'], '?') ? '&' : '?')
+                            .'store_id='.$storeId
+                            .($supportAccess ? '&support_access=1' : '');
+                    @endphp
+                    <a href="{{ $scopedSearchUrl }}"><span><strong>{{ $result['title'] }}</strong><small> · {{ $result['subtitle'] }}</small></span><small>{{ __('admin.b2c_dashboard.search_types.'.$result['type']) }}</small></a>
                     @endforeach
                 </div>
                 @endif
@@ -213,8 +221,25 @@
 
         <main class="content">
             <div class="headline">
-                <div><h1>{{ __('admin.b2c_dashboard.hello', ['name'=>$user->name]) }} 👋</h1><p>{{ __('admin.b2c_dashboard.subtitle') }}</p></div>
-                <form class="date-control" method="get" action="{{ route('admin.b2c.dashboard') }}"><span>⌄</span><input type="date" name="date" value="{{ $dashboard['selected_date'] }}" onchange="this.form.submit()"></form>
+                <div>
+                    <h1>{{ __('admin.b2c_dashboard.hello', ['name'=>$user->name]) }} 👋</h1>
+                    <p>{{ __('admin.b2c_dashboard.subtitle') }}</p>
+                    @if(count($availableStores) > 1)
+                    <form method="get" action="{{ route('admin.b2c.dashboard') }}" class="date-control" style="margin-top:10px">
+                        <select name="store_id" onchange="this.form.submit()">
+                            @foreach($availableStores as $availableStore)
+                                <option value="{{ $availableStore->id }}" @selected((int)$availableStore->id===$storeId)>{{ $availableStore->name }} — {{ $availableStore->code }}</option>
+                            @endforeach
+                        </select>
+                        @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    </form>
+                    @endif
+                </div>
+                <form class="date-control" method="get" action="{{ route('admin.b2c.dashboard') }}">
+                    <input type="hidden" name="store_id" value="{{ $storeId }}">
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <span>⌄</span><input type="date" name="date" value="{{ $dashboard['selected_date'] }}" onchange="this.form.submit()">
+                </form>
             </div>
 
             @php
@@ -285,7 +310,7 @@
 
             <section class="bottom">
                 <article class="panel">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.low_stock') }}</h2><small lang="en">Low Stock Products</small></div><a class="section-link" href="{{ route('admin.b2c.module',['module'=>'inventory']) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
+                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.low_stock') }}</h2><small lang="en">Low Stock Products</small></div><a class="section-link" href="{{ route('admin.b2c.module',array_merge(['module'=>'inventory','store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
                     <div class="stock-list">
                         @forelse($dashboard['low_stock'] as $product)
                             <div class="stock"><span class="product-thumb">@if($product['image'])<img src="{{ asset(ltrim($product['image'],'/')) }}" alt="">@else ▧ @endif</span><span><strong>{{ $product['name'] }}</strong><small>{{ $product['sku'] }}</small></span><span class="stock-count">{{ number_format($product['available'],0) }} {{ __('admin.b2c_dashboard.remaining') }}</span></div>
@@ -294,7 +319,7 @@
                 </article>
 
                 <article class="panel">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.recent_orders') }}</h2><small lang="en">Recent Orders</small></div><a class="section-link" href="{{ route('admin.b2c.module',['module'=>'orders']) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
+                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.recent_orders') }}</h2><small lang="en">Recent Orders</small></div><a class="section-link" href="{{ route('admin.b2c.module',array_merge(['module'=>'orders','store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
                     <div class="recent-list">
                         <div class="recent header"><span>#</span><span>{{ __('admin.b2c_dashboard.customer') }}</span><span>{{ __('admin.b2c_dashboard.items') }}</span><span>{{ __('admin.b2c_dashboard.amount') }}</span><span>{{ __('admin.b2c_dashboard.status_label') }}</span><span>{{ __('admin.b2c_dashboard.time') }}</span></div>
                         @forelse($dashboard['recent_orders'] as $order)
@@ -308,7 +333,7 @@
                     <div class="quick-grid">
                         @foreach($dashboard['quick_actions'] as $action)
                             @php $icons=['add_product'=>'products','manage_orders'=>'orders','send_notification'=>'bell','view_reports'=>'reports']; @endphp
-                            <a class="quick" href="{{ route($action['route'],$action['params']) }}"><i>@include('admin._premium-icon',['name'=>$icons[$action['key']]??'more'])</i>{{ __('admin.b2c_dashboard.actions.'.$action['key']) }}</a>
+                            <a class="quick" href="{{ route($action['route'],array_merge($action['params'],['store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}"><i>@include('admin._premium-icon',['name'=>$icons[$action['key']]??'more'])</i>{{ __('admin.b2c_dashboard.actions.'.$action['key']) }}</a>
                         @endforeach
                     </div>
                 </article>
@@ -343,7 +368,24 @@
             <div>
                 <div class="empty"><a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a> / {{ __('admin.b2c_workspace.modules.'.$module) }}</div>
                 <h1>{{ __('admin.b2c_workspace.modules.'.$module) }}</h1>
-                <p>{{ __('admin.b2c_workspace.assigned_scope') }}: {{ implode(', ', $storeIds) }}</p>
+                @php
+                    $selectedStore = collect($availableStores)->firstWhere('id', $storeId);
+                    $selectedStoreName = $selectedStore ? $selectedStore->name : null;
+                @endphp
+                <p>{{ __('admin.b2c_workspace.assigned_scope') }}: {{ $storeId }}@if($selectedStoreName) — {{ $selectedStoreName }}@endif</p>
+                @if(count($availableStores) > 1)
+                <form method="get" action="{{ route($module==='dashboard' ? 'admin.b2c.dashboard' : 'admin.b2c.module', $module==='dashboard' ? [] : ['module'=>$module]) }}" class="module-inline-form" style="margin-top:12px">
+                    <label>{{ app()->getLocale()==='ar'?'المتجر الحالي':'Current store' }}
+                        <select name="store_id" onchange="this.form.submit()">
+                            @foreach($availableStores as $availableStore)
+                                <option value="{{ $availableStore->id }}" @selected((int)$availableStore->id===$storeId)>{{ $availableStore->name }} — {{ $availableStore->code }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <noscript><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تغيير':'Switch' }}</button></noscript>
+                </form>
+                @endif
             </div>
         </div>
         <div class="module-cards">@foreach($counts as $key=>$value)<div class="module-card foodex-card"><strong>{{ __('admin.b2c_workspace.modules.'.$key) }}</strong><p>{{ $value }}</p></div>@endforeach</div>
@@ -371,7 +413,7 @@
                 </div>
                 <nav class="module-links" aria-label="B2C core modules">
                     @foreach(['products','inventory','orders','customers','promotions','drivers','storefront','content','reports','settings'] as $core)
-                        <a class="{{ $module===$core?'active':'' }}" href="{{ route('admin.b2c.module',['module'=>$core]) }}">{{ __('admin.b2c_workspace.modules.'.$core) }}</a>
+                        <a class="{{ $module===$core?'active':'' }}" href="{{ route('admin.b2c.module',array_merge(['module'=>$core,'store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_workspace.modules.'.$core) }}</a>
                     @endforeach
                 </nav>
             </div>
@@ -386,6 +428,8 @@
             @if($module==='inventory' && !empty($moduleData['inventory_options']) && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('inventory.manage',(int)$storeId)) || $user->hasPermission('inventory.manage')))
                 <form method="post" action="{{ route('admin.b2c.inventory.adjust',['inventory'=>$moduleData['inventory_options'][0]['id']]) }}" class="module-inline-form" id="inventory-adjust-form" onsubmit="this.action=this.action.replace(/\/\d+\/adjust$/, '/'+this.inventory_id.value+'/adjust')">
                     @csrf
+                    <input type="hidden" name="store_id" value="{{ $storeId }}">
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     <select name="inventory_id" required>
                         <option value="">{{ app()->getLocale()==='ar'?'اختر الصنف والمخزن':'Select inventory item' }}</option>
                         @foreach($moduleData['inventory_options'] as $inventory)<option value="{{ $inventory['id'] }}">{{ $inventory['label'] }}</option>@endforeach
@@ -399,6 +443,8 @@
             @if($module==='drivers' && !empty($moduleData['drivers']) && !empty($moduleData['orders']) && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('drivers.b2c.manage',(int)$storeId)) || $user->hasPermission('drivers.b2c.manage')))
                 <form method="post" action="{{ route('admin.b2c.drivers.assign') }}" class="module-inline-form">
                     @csrf
+                    <input type="hidden" name="store_id" value="{{ $storeId }}">
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     <select name="driver_id" required><option value="">{{ app()->getLocale()==='ar'?'اختر السائق':'Select driver' }}</option>@foreach($moduleData['drivers'] as $driver)<option value="{{ $driver['id'] }}">{{ $driver['name'] }}</option>@endforeach</select>
                     <select name="order_id" required><option value="">{{ app()->getLocale()==='ar'?'اختر الطلب':'Select order' }}</option>@foreach($moduleData['orders'] as $order)<option value="{{ $order['id'] }}">{{ $order['number'] }}</option>@endforeach</select>
                     <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعيين السائق':'Assign driver' }}</button>
@@ -416,6 +462,8 @@
                                     @if($column==='actions' && $module==='orders' && ($user->hasPermission('orders.manage',$row['_store_id']) || $user->hasPermission('orders.manage')))
                                         <form method="post" action="{{ route('admin.b2c.orders.status',['order'=>$row['_id']]) }}" class="module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
                                             @csrf
+                                            <input type="hidden" name="store_id" value="{{ $storeId }}">
+                                            @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                                             <select name="status" required>
                                                 @foreach(['confirmed','preparing','ready','out_for_delivery','delivered','failed','cancelled'] as $state)<option value="{{ $state }}">{{ $state }}</option>@endforeach
                                             </select>
