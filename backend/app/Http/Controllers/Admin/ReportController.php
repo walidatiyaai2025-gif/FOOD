@@ -86,7 +86,7 @@ final class ReportController extends Controller
             'status' => ['nullable', 'string', 'max:64'],
             'product_id' => ['nullable', 'integer', 'min:1', 'exists:products,id'],
             'category_id' => ['nullable', 'integer', 'min:1', 'exists:categories,id'],
-            'customer_id' => ['nullable', 'integer', 'min:1', 'exists:customers,id'],
+            'customer_id' => ['nullable', 'integer', 'min:1'],
             'payment_provider' => ['nullable', 'string', 'max:64'],
         ];
     }
@@ -111,18 +111,45 @@ final class ReportController extends Controller
             ->limit(250)
             ->get(['products.id', 'products.name', 'products.sku']);
 
-        $customers = DB::table('customers')
-            ->when(! $superAdmin, function (Builder $query) use ($storeIds): void {
-                $query->whereExists(function (Builder $sub) use ($storeIds): void {
-                    $sub->selectRaw('1')
-                        ->from('orders')
-                        ->whereColumn('orders.customer_id', 'customers.id')
-                        ->whereIn('orders.store_id', $storeIds);
-                });
-            })
-            ->orderBy('name')
-            ->limit(250)
-            ->get(['id', 'name', 'type']);
+        $b2cStoreIds = $scope->allowedStoreIds($user, 'reports.view', 'b2c');
+        $b2bStoreIds = $scope->allowedStoreIds($user, 'reports.view', 'b2b');
+
+        $customers = collect();
+        if ($b2cStoreIds !== []) {
+            $customers = $customers->concat(
+                DB::table('b2c_customers')
+                    ->whereIn('store_id', $b2cStoreIds)
+                    ->orderBy('name')
+                    ->limit(250)
+                    ->get(['id', 'name'])
+                    ->map(fn (object $row): object => (object) [
+                        'id' => (int) $row->id,
+                        'name' => (string) $row->name,
+                        'type' => 'b2c',
+                    ]),
+            );
+        }
+        if ($b2bStoreIds !== []) {
+            $customers = $customers->concat(
+                DB::table('b2b_customers')
+                    ->whereExists(function (Builder $sub) use ($b2bStoreIds): void {
+                        $sub->selectRaw('1')
+                            ->from('orders')
+                            ->whereColumn('orders.b2b_customer_id', 'b2b_customers.id')
+                            ->whereIn('orders.store_id', $b2bStoreIds)
+                            ->where('orders.channel', 'b2b');
+                    })
+                    ->orderBy('name')
+                    ->limit(250)
+                    ->get(['id', 'name'])
+                    ->map(fn (object $row): object => (object) [
+                        'id' => (int) $row->id,
+                        'name' => (string) $row->name,
+                        'type' => 'b2b',
+                    ]),
+            );
+        }
+        $customers = $customers->take(250)->values();
 
         $statuses = DB::table('orders')
             ->when(! $superAdmin, fn (Builder $query) => $query->whereIn('store_id', $storeIds))
