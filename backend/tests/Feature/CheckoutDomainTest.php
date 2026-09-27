@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Address;
+use App\Models\B2cCustomer;
 use App\Models\Customer;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
@@ -24,6 +25,8 @@ class CheckoutDomainTest extends TestCase
     private User $user;
 
     private Customer $customer;
+
+    private B2cCustomer $domainCustomer;
 
     private Address $address;
 
@@ -121,8 +124,17 @@ class CheckoutDomainTest extends TestCase
             'email' => $this->user->email,
         ]);
 
+        $this->domainCustomer = B2cCustomer::query()->create([
+            'legacy_customer_id' => $this->customer->id,
+            'store_id' => $this->storeId,
+            'user_id' => $this->user->id,
+            'name' => 'Checkout Customer',
+            'email' => $this->user->email,
+        ]);
+
         $this->address = Address::query()->create([
             'customer_id' => $this->customer->id,
+            'b2c_customer_id' => $this->domainCustomer->id,
             'label' => 'Home',
             'line1' => 'Street 1',
             'city' => 'Kuwait City',
@@ -158,6 +170,7 @@ class CheckoutDomainTest extends TestCase
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
             'customer_id' => $this->customer->id,
+            'b2c_customer_id' => $this->domainCustomer->id,
             'address_id' => $this->address->id,
             'checkout_idempotency_key' => 'checkout-key-000001',
         ]);
@@ -250,8 +263,16 @@ class CheckoutDomainTest extends TestCase
             'name' => 'Other',
             'email' => $otherUser->email,
         ]);
+        $otherDomainCustomer = B2cCustomer::query()->create([
+            'legacy_customer_id' => $otherCustomer->id,
+            'store_id' => $this->storeId,
+            'user_id' => $otherUser->id,
+            'name' => 'Other',
+            'email' => $otherUser->email,
+        ]);
         $otherAddress = Address::query()->create([
             'customer_id' => $otherCustomer->id,
+            'b2c_customer_id' => $otherDomainCustomer->id,
             'line1' => 'Other street',
             'city' => 'Kuwait City',
             'country_code' => 'KW',
