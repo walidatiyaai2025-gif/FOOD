@@ -12,7 +12,7 @@ Issue #3 defines the Laravel runtime foundation only. Product features remain is
 ## Runtime conventions
 
 - Laravel 12 on PHP 8.2+.
-- Production data target: PostgreSQL.
+- Production data target: MySQL/MariaDB.
 - Cache and queues target: Redis.
 - Application timezone: UTC.
 - Arabic is the primary locale; English is the fallback locale.
