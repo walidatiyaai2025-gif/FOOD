@@ -36,6 +36,19 @@ class B2bPricingController extends Controller
             'minimum_quantity' => ['required', 'numeric', 'gt:0'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+        $ownedProduct = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->join('stores', 'stores.id', '=', 'catalogs.store_id')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('products.id', $data['product_id'])
+            ->where('catalogs.store_id', $data['store_id'])
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('store_types.code', 'B2B')
+            ->exists();
+        abort_unless($ownedProduct, 422, 'Product must belong to the selected B2B store catalog.');
+
         $rule = B2bPriceRule::query()->updateOrCreate(
             ['price_tier_id' => $data['price_tier_id'], 'store_id' => $data['store_id'], 'product_id' => $data['product_id']],
             ['unit_price' => $data['unit_price'], 'minimum_quantity' => $data['minimum_quantity'], 'is_active' => $data['is_active'] ?? true],
@@ -73,6 +86,7 @@ class B2bPricingController extends Controller
 
         $row = DB::table('b2b_price_rules')
             ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', function ($join): void {
                 $join->on('store_products.product_id', '=', 'products.id')
                     ->on('store_products.store_id', '=', 'b2b_price_rules.store_id');
@@ -85,6 +99,10 @@ class B2bPricingController extends Controller
             ->where('b2b_price_rules.product_id', $product)
             ->where('b2b_price_rules.is_active', true)
             ->where('products.is_active', true)
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
             ->where('store_products.is_active', true)
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')
@@ -147,6 +165,7 @@ class B2bPricingController extends Controller
         }
         $rows = DB::table('b2b_price_rules')
             ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', function ($join): void {
                 $join->on('store_products.product_id', '=', 'products.id')->on('store_products.store_id', '=', 'b2b_price_rules.store_id');
             })
@@ -156,6 +175,10 @@ class B2bPricingController extends Controller
             ->where('b2b_price_rules.store_id', $storeId)
             ->where('b2b_price_rules.is_active', true)
             ->where('products.is_active', true)
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
             ->where('store_products.is_active', true)
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')

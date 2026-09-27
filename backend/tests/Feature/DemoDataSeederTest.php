@@ -22,7 +22,7 @@ class DemoDataSeederTest extends TestCase
 
         $this->assertSame(10, $first['stores']);
         $this->assertSame(50, $first['customers']);
-        $this->assertSame(20, $first['products']);
+        $this->assertSame(200, $first['products']);
         $this->assertSame(400, $first['orders']);
         $this->assertSame(10, $first['promotions']);
         $this->assertSame(10, $first['banners']);
@@ -50,8 +50,12 @@ class DemoDataSeederTest extends TestCase
             'store_type_id' => $storeTypeId, 'code' => 'REAL-B2C-001', 'name' => 'Real Store', 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        $realCatalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $realStoreId, 'channel' => 'b2c', 'code' => 'default', 'name' => 'Real Catalog',
+            'is_active' => true, 'is_migration_quarantine' => false, 'created_at' => now(), 'updated_at' => now(),
+        ]);
         $realProductId = (int) DB::table('products')->insertGetId([
-            'category_id' => null, 'unit_id' => $unitId, 'sku' => 'REAL-SKU-001', 'name' => 'Real Product', 'is_active' => true,
+            'catalog_id' => $realCatalogId, 'category_id' => null, 'unit_id' => $unitId, 'sku' => 'REAL-SKU-001', 'name' => 'Real Product', 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
         $realCustomerId = (int) DB::table('customers')->insertGetId([

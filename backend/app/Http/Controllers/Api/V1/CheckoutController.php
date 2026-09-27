@@ -138,8 +138,9 @@ class CheckoutController extends Controller
 
             foreach ($cartItems as $cartItem) {
                 $product = Product::query()
+                    ->forStore($storeId)
                     ->whereKey($cartItem->product_id)
-                    ->where('is_active', true)
+                    ->where('products.is_active', true)
                     ->first();
 
                 $storeProduct = DB::table('store_products')

@@ -65,9 +65,6 @@ class ProductDemoSeeder extends Seeder
                 ...$timestamps,
             ]);
 
-            $categoryIds = $this->seedCategories($timestamps);
-            $productIds = $this->seedProducts($categoryIds, $unitId, $timestamps);
-
             for ($storeIndex = 1; $storeIndex <= self::STORE_COUNT; $storeIndex++) {
                 $storeCode = DemoDataManager::STORE_PREFIX.str_pad((string) $storeIndex, 2, '0', STR_PAD_LEFT);
                 $storeId = (int) DB::table('stores')->insertGetId([
@@ -77,6 +74,15 @@ class ProductDemoSeeder extends Seeder
                     'is_active' => true,
                     ...$timestamps,
                 ]);
+                $catalogId = (int) DB::table('catalogs')->insertGetId([
+                    'store_id' => $storeId,
+                    'channel' => 'b2c',
+                    'code' => 'default',
+                    'name' => 'FOODEX '.$this->areas[$storeIndex - 1].' Demo Catalog',
+                    'is_active' => true,
+                    'is_migration_quarantine' => false,
+                    ...$timestamps,
+                ]);
                 $warehouseId = (int) DB::table('warehouses')->insertGetId([
                     'store_id' => $storeId,
                     'code' => 'FOODEX-DEMO-WH-'.str_pad((string) $storeIndex, 2, '0', STR_PAD_LEFT),
@@ -84,6 +90,8 @@ class ProductDemoSeeder extends Seeder
                     'is_active' => true,
                     ...$timestamps,
                 ]);
+                $categoryIds = $this->seedCategories($catalogId, $timestamps);
+                $productIds = $this->seedProducts($catalogId, $categoryIds, $unitId, $timestamps);
 
                 $adminId = $this->seedStoreAdmin($storeIndex, $storeId, $storeAdminRoleId, $now);
                 $driverId = $this->seedDriver($storeIndex, $driverRoleId, $now);
@@ -144,11 +152,12 @@ class ProductDemoSeeder extends Seeder
     /** @param array<string, mixed> $timestamps
      *  @return list<int>
      */
-    private function seedCategories(array $timestamps): array
+    private function seedCategories(int $catalogId, array $timestamps): array
     {
         $ids = [];
         foreach (['بقالة', 'مشروبات', 'منتجات طازجة', 'منزل وعناية'] as $index => $name) {
             $ids[] = (int) DB::table('categories')->insertGetId([
+                'catalog_id' => $catalogId,
                 'name' => $name,
                 'slug' => DemoDataManager::CATEGORY_PREFIX.($index + 1),
                 'is_active' => true,
@@ -163,12 +172,13 @@ class ProductDemoSeeder extends Seeder
      *  @param array<string, mixed> $timestamps
      *  @return list<int>
      */
-    private function seedProducts(array $categoryIds, int $unitId, array $timestamps): array
+    private function seedProducts(int $catalogId, array $categoryIds, int $unitId, array $timestamps): array
     {
         $ids = [];
         foreach ($this->products as $index => $product) {
             $number = $index + 1;
             $productId = (int) DB::table('products')->insertGetId([
+                'catalog_id' => $catalogId,
                 'category_id' => $categoryIds[$index % count($categoryIds)],
                 'unit_id' => $unitId,
                 'sku' => DemoDataManager::PRODUCT_PREFIX.str_pad((string) $number, 3, '0', STR_PAD_LEFT),

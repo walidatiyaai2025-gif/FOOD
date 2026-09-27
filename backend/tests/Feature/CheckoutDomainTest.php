@@ -41,14 +41,6 @@ class CheckoutDomainTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $categoryId = (int) DB::table('categories')->insertGetId([
-            'name' => 'Checkout',
-            'slug' => 'checkout',
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
         $this->storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $b2cTypeId,
             'code' => 'CHECKOUT-B2C',
@@ -57,8 +49,27 @@ class CheckoutDomainTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $catalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $this->storeId,
+            'channel' => 'b2c',
+            'code' => 'default',
+            'name' => 'Checkout Retail Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $categoryId = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $catalogId,
+            'name' => 'Checkout',
+            'slug' => 'checkout',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalogId,
             'category_id' => $categoryId,
             'unit_id' => $unitId,
             'sku' => 'CHECKOUT-001',
