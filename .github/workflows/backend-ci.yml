@@ -53,15 +53,7 @@ jobs:
         run: composer test
 
       - name: Run backend lint
-        shell: bash
-        run: |
-          set -o pipefail
-          if composer lint; then
-            exit 0
-          fi
-          vendor/bin/pint app/Http/Controllers/Admin/CatalogManagementController.php
-          git diff -- app/Http/Controllers/Admin/CatalogManagementController.php
-          exit 1
+        run: composer lint
 
       - name: Run backend static analysis
         run: composer analyse
