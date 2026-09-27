@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CatalogOwnership;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -129,7 +130,7 @@ class AdminCatalogManagementTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $catalogA = app(\App\Services\CatalogOwnership::class)->defaultCatalogForStore($storeA, 'b2c');
+        $catalogA = app(CatalogOwnership::class)->defaultCatalogForStore($storeA, 'b2c');
 
         $legacyUnitId = (int) DB::table('units')->insertGetId([
             'store_id' => $storeB,
@@ -198,8 +199,8 @@ class AdminCatalogManagementTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $catalogA = app(\App\Services\CatalogOwnership::class)->defaultCatalogForStore($storeA, 'b2c');
-        $catalogB = app(\App\Services\CatalogOwnership::class)->defaultCatalogForStore($storeB, 'b2c');
+        $catalogA = app(CatalogOwnership::class)->defaultCatalogForStore($storeA, 'b2c');
+        $catalogB = app(CatalogOwnership::class)->defaultCatalogForStore($storeB, 'b2c');
 
         $validUnitId = (int) DB::table('units')->where('scope', 'global')->where('is_active', true)->value('id');
         $foreignUnitId = (int) DB::table('units')->insertGetId([
