@@ -33,10 +33,18 @@ class AdminLoginController extends Controller
         $user = $request->user();
 
         if ($user instanceof User && $user->is_active) {
+            if ($user->hasRole('SUPER_ADMIN')) {
+                return redirect()->route('admin.index');
+            }
+
             $target = $this->targetChannel($user, $channel);
 
             if ($target !== null) {
-                return redirect()->route("admin.{$target}.dashboard");
+                if ($user->hasRole('SUPER_ADMIN')) {
+            return redirect()->route('admin.index');
+        }
+
+        return redirect()->route("admin.{$target}.dashboard");
             }
         }
 
