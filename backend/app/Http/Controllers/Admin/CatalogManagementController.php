@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,8 @@ final class CatalogManagementController extends Controller
 
         return view('admin.catalog-management', [
             'user' => $actor,
+            'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
+            'navContext' => 'catalog_management',
             'tab' => $tab,
             'products' => DB::table('products')
                 ->leftJoin('categories','categories.id','=','products.category_id')
