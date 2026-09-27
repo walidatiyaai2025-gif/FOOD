@@ -10,7 +10,7 @@ class EmptyRepo implements DriverAssignmentRepository {
   Future<List<DriverAssignment>> list(DriverChannel channel) async => const [];
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status) async {}
+  Future<void> transition(int id, DriverChannel channel, String status, {String? note}) async {}
 }
 
 DriverSession session(DriverChannel channel) => DriverSession(
