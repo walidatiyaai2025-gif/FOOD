@@ -226,25 +226,25 @@ class LookupManagementCenterTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'lookup.brand.created', 'auditable_id' => $brandId]);
     }
 
-    public function test_foreign_store_unit_cannot_be_bound_to_product_by_id_tampering(): void
+    public function test_cross_channel_lookup_id_tampering_is_rejected_server_side(): void
     {
-        $storeA = $this->store('B2C', 'LOOKUP-PRODUCT-A');
-        $storeB = $this->store('B2C', 'LOOKUP-PRODUCT-B');
+        $wholesaleStore = $this->store('B2B', 'LOOKUP-PRODUCT-B2B');
+        $retailStore = $this->store('B2C', 'LOOKUP-PRODUCT-RETAIL');
         DB::table('catalogs')->insert([
-            'store_id' => $storeA,
-            'channel' => 'b2c',
+            'store_id' => $wholesaleStore,
+            'channel' => 'b2b',
             'code' => 'default',
-            'name' => 'Store A Catalog',
+            'name' => 'Wholesale Catalog',
             'is_active' => true,
             'is_migration_quarantine' => false,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $admin = $this->storeAdmin($storeA, 'lookup-product-a@example.test');
+        $admin = $this->globalRole('B2B_ADMIN', 'lookup-product-b2b@example.test');
         $foreignUnitId = (int) DB::table('units')->insertGetId([
-            'store_id' => $storeB,
+            'store_id' => $retailStore,
             'scope' => 'store',
-            'scope_key' => 'store:'.$storeB,
+            'scope_key' => 'store:'.$retailStore,
             'code' => 'FOREIGN-PC',
             'name' => 'Foreign Piece',
             'name_ar' => 'قطعة أجنبية',
@@ -256,7 +256,7 @@ class LookupManagementCenterTest extends TestCase
         ]);
 
         $this->actingAs($admin)->post('/admin/catalog/products', [
-            'store_id' => $storeA,
+            'store_id' => $wholesaleStore,
             'sku' => 'LOOKUP-TAMPER-001',
             'name' => 'Tampered Product',
             'unit_id' => $foreignUnitId,
