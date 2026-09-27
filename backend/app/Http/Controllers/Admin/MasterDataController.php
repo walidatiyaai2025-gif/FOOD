@@ -702,7 +702,7 @@ final class MasterDataController extends Controller
             DB::table('products')->where('id', $id)->update($values);
         }
 
-        if (! empty($data['store_id'])) {
+        if (!empty($data['store_id'])) {
             DB::table('store_products')->updateOrInsert(
                 ['store_id' => (int) $data['store_id'], 'product_id' => $id],
                 [
