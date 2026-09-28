@@ -32,7 +32,7 @@
     </form>
     @endif
 
-    @if(!in_array($row['status'],['delivered','cancelled'],true) && !empty($moduleData['drivers']))
+    @if(!in_array($row['status'],['delivered','cancelled'],true) && !empty($moduleData['drivers']) && empty($row['_assignment']))
     <form method="post" action="{{ route($driverRoute) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
         @csrf
         <input type="hidden" name="order_id" value="{{ $row['_id'] }}">
