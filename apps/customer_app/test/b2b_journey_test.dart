@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
+import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 
 void main() {
@@ -22,6 +23,41 @@ void main() {
     expect(find.text('المشتريات'), findsOneWidget);
     expect(find.text('الفواتير'), findsOneWidget);
     expect(find.text('كشف الحساب'), findsOneWidget);
+  });
+
+  testWidgets('B2B storefront applies server branding and theme on mobile', (tester) async {
+    final storefront = _FakeWholesaleStorefrontApi();
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/home?store_id=70',
+        b2bApi: _FakeB2bApi({
+          'data': [
+            {
+              'id': 42,
+              'name': 'Bulk Water',
+              'sku': 'WATER-42',
+              'account_price': 75,
+              'minimum_order_quantity': 5,
+              'category_id': 3,
+            },
+          ],
+        }),
+        storefrontApi: storefront,
+        actionApi: _FakeCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(storefront.lastStoreId, 70);
+    expect(find.text('فودكس جملة المخصص'), findsOneWidget);
+    expect(find.text('أسعار مخصصة من لوحة التحكم'), findsOneWidget);
+    expect(find.text('ابدأ طلب الجملة'), findsOneWidget);
+    expect(find.text('تصنيفات الجملة'), findsOneWidget);
+    expect(find.text('عروض الحساب'), findsOneWidget);
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+    expect(scaffold.backgroundColor, const Color(0xFFF7F1FC));
   });
 
   testWidgets('B2B product details render authoritative account pricing and inventory', (tester) async {
@@ -268,6 +304,64 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('b2b-error')), findsOneWidget);
   });
+}
+
+class _FakeWholesaleStorefrontApi implements StorefrontApi {
+  int? lastStoreId;
+
+  @override
+  Future<Map<String, dynamic>> selection({
+    String? countryCode,
+    String? city,
+    String? area,
+    bool support = false,
+  }) async =>
+      const {};
+
+  @override
+  Future<Map<String, dynamic>> retailHome(int storeId) async => const {};
+
+  @override
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async {
+    lastStoreId = storeId;
+    return {
+      'store': {'id': storeId, 'name': 'Wholesale'},
+      'theme': {
+        'code': 'wholesale_b2b',
+        'primary': '#712FA5',
+        'primary_dark': '#35195E',
+        'accent': '#D6A7FA',
+        'background': '#F7F1FC',
+      },
+      'branding': {
+        'address': 'القاهرة والإسكندرية',
+        'custom': {
+          'brand_title_ar': 'فودكس جملة المخصص',
+          'brand_subtitle_ar': 'أسعار مخصصة من لوحة التحكم',
+          'hero_cta_ar': 'ابدأ طلب الجملة',
+        },
+      },
+      'sections': [
+        {'key': 'hero', 'type': 'hero', 'sort_order': 10},
+        {
+          'key': 'categories',
+          'type': 'categories',
+          'title_ar': 'تصنيفات الجملة',
+          'sort_order': 20,
+        },
+        {
+          'key': 'offers',
+          'type': 'offers',
+          'title_ar': 'عروض الحساب',
+          'sort_order': 30,
+        },
+      ],
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
+      const {};
 }
 
 class _FakeB2bApi implements B2bApi {
