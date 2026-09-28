@@ -78,7 +78,7 @@ final class RetailWholesaleProductMappingController extends Controller
             ->where('stores.is_active', true)
             ->exists();
 
-        if (! $sourceIsWholesale) {
+        if (!$sourceIsWholesale) {
             throw ValidationException::withMessages([
                 'source_product' => ['The source product must belong to an active wholesale catalog.'],
             ]);
@@ -91,7 +91,7 @@ final class RetailWholesaleProductMappingController extends Controller
             ->where('catalogs.channel', 'b2c')
             ->exists();
 
-        if (! $targetIsRetailTenant) {
+        if (!$targetIsRetailTenant) {
             throw ValidationException::withMessages([
                 'retail_product_id' => ['The retail product must belong to the selected retail store.'],
             ]);
