@@ -1,0 +1,110 @@
+name: FOODEX 1.0.19 Publish Update Branch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-1.0.19-publish.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish cumulative update 1.0.19
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate target and resolve cumulative boundary
+        shell: bash
+        env:
+          FOODEX_UPDATE_MINIMUM_VERSION: "1.0.6"
+        run: |
+          set -euo pipefail
+          current_version="$(tr -d '[:space:]' < VERSION)"
+          test "$current_version" = "1.0.19"
+
+          minimum_version="$FOODEX_UPDATE_MINIMUM_VERSION"
+          update_base_ref=""
+          while read -r candidate; do
+            candidate_version="$(git show "$candidate":VERSION 2>/dev/null | tr -d '[:space:]' || true)"
+            if [[ "$candidate_version" == "$minimum_version" ]]; then
+              update_base_ref="$candidate"
+              break
+            fi
+          done < <(git log --format=%H -- VERSION)
+
+          test -n "$update_base_ref"
+          echo "CURRENT_VERSION=$current_version" >> "$GITHUB_ENV"
+          echo "MINIMUM_VERSION=$minimum_version" >> "$GITHUB_ENV"
+          echo "UPDATE_BASE_REF=$update_base_ref" >> "$GITHUB_ENV"
+
+      - name: Build deterministic cumulative update
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/build-update-bundle.py             --base "$UPDATE_BASE_REF"             --target-version "$CURRENT_VERSION"             --minimum-current-version "$MINIMUM_VERSION"             --output-dir dist/update             --release-notes "FOODEX $CURRENT_VERSION cumulative update"
+
+      - name: Verify generated release
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, pathlib, zipfile
+          root = pathlib.Path("dist/update")
+          package = root / "FOODEX-Update.zip"
+          manifest = json.loads((root / "FOODEX-Update.json").read_text(encoding="utf-8"))
+          digest = hashlib.sha256(package.read_bytes()).hexdigest()
+          assert manifest["target_version"] == "1.0.19"
+          assert manifest["minimum_current_version"] == "1.0.6"
+          assert manifest["sha256"] == digest
+          assert manifest["requires_full_redeploy"] is False
+          with zipfile.ZipFile(package) as archive:
+              assert "VERSION" in archive.namelist()
+              assert archive.read("VERSION").decode("utf-8").strip() == "1.0.19"
+          print("Verified FOODEX update:", digest)
+          PY
+          mkdir -p /tmp/foodex-1.0.19
+          cp dist/update/FOODEX-Update.zip /tmp/foodex-1.0.19/
+          cp dist/update/FOODEX-Update.json /tmp/foodex-1.0.19/
+          cp dist/update/FOODEX-Update.sha256.txt /tmp/foodex-1.0.19/
+          cp dist/update/FOODEX-Update.files.txt /tmp/foodex-1.0.19/
+
+      - name: Publish release/1.0.19-update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git switch -C release/1.0.19-update origin/main
+          git rm -f .github/workflows/release-1.0.19-publish.yml
+
+          mkdir -p Release/Updates
+          cp /tmp/foodex-1.0.19/FOODEX-Update.zip Release/Updates/FOODEX-Update.zip
+          cp /tmp/foodex-1.0.19/FOODEX-Update.json Release/Updates/FOODEX-Update.json
+          cp /tmp/foodex-1.0.19/FOODEX-Update.sha256.txt Release/Updates/FOODEX-Update.sha256.txt
+          cp /tmp/foodex-1.0.19/FOODEX-Update.files.txt Release/Updates/FOODEX-Update.files.txt
+
+          git add Release/Updates
+          git commit -m "release: publish generated FOODEX 1.0.19 cumulative update bundle"
+          git push --force origin HEAD:release/1.0.19-update
+
+      - name: Verify published branch metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin release/1.0.19-update
+          published="$(git show origin/release/1.0.19-update:Release/Updates/FOODEX-Update.json)"
+          python3 - "$published" <<'PY'
+          import json, sys
+          manifest = json.loads(sys.argv[1])
+          assert manifest["target_version"] == "1.0.19"
+          assert manifest["minimum_current_version"] == "1.0.6"
+          print("Published target:", manifest["target_version"])
+          PY
