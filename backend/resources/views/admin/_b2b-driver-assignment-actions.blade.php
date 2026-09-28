@@ -1,0 +1,1 @@
+<form method="post" action="{{ route('admin.b2b.drivers.assignments.reassign',['assignment'=>$row['_assignment_id']]) }}">@csrf<select name="driver_id">@foreach($moduleData['drivers'] as $driver)<option value="{{ $driver['id'] }}">{{ $driver['name'] }}</option>@endforeach</select><button type="submit">Reassign</button></form>
