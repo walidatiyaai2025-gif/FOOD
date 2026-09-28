@@ -22,6 +22,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class B2cWorkspaceController extends Controller
 {
@@ -201,6 +202,88 @@ class B2cWorkspaceController extends Controller
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تعيين السائق.' : 'Driver assigned.');
     }
 
+    public function storeWarehouse(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+            'code' => ['required', 'string', 'max:80', 'unique:warehouses,code'],
+            'name' => ['required', 'string', 'max:255'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+        $storeId = $this->workspaceStoreId($request, $user);
+        abort_unless($storeId === (int) $data['store_id'], 404);
+        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'inventory.manage', 'b2c');
+
+        DB::table('warehouses')->insert([
+            'store_id' => $storeId,
+            'code' => $data['code'],
+            'name' => $data['name'],
+            'is_active' => $request->boolean('is_active', true),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return back()->with('status', $this->msg('تم إنشاء المخزن.', 'Warehouse created.'));
+    }
+
+    public function ensureInventory(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'quantity' => ['required', 'numeric', 'gte:0'],
+        ]);
+        $storeId = $this->workspaceStoreId($request, $user);
+        abort_unless($storeId === (int) $data['store_id'], 404);
+        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'inventory.manage', 'b2c');
+
+        $warehouseOwned = DB::table('warehouses')
+            ->where('id', $data['warehouse_id'])
+            ->where('store_id', $storeId)
+            ->exists();
+        $productOwned = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->where('products.id', $data['product_id'])
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2c')
+            ->where('catalogs.is_migration_quarantine', false)
+            ->exists();
+        abort_unless($warehouseOwned && $productOwned, 404);
+
+        $existing = DB::table('inventories')
+            ->where('warehouse_id', $data['warehouse_id'])
+            ->where('product_id', $data['product_id'])
+            ->first(['id', 'reserved_quantity']);
+        if ($existing !== null && (float) $data['quantity'] < (float) $existing->reserved_quantity) {
+            throw ValidationException::withMessages([
+                'quantity' => [$this->msg('لا يمكن جعل الكمية أقل من الكمية المحجوزة.', 'Quantity cannot be below the reserved quantity.')],
+            ]);
+        }
+
+        if ($existing === null) {
+            DB::table('inventories')->insert([
+                'warehouse_id' => $data['warehouse_id'],
+                'product_id' => $data['product_id'],
+                'quantity' => $data['quantity'],
+                'reserved_quantity' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::table('inventories')->where('id', $existing->id)->update([
+                'quantity' => $data['quantity'],
+                'updated_at' => now(),
+            ]);
+        }
+
+        return back()->with('status', $this->msg('تم إنشاء/تحديث رصيد المخزون.', 'Inventory balance created/updated.'));
+    }
+
     public function adjustInventory(
         Request $request,
         int $inventory,
@@ -284,6 +367,7 @@ class B2cWorkspaceController extends Controller
                 'actions' => [
                     ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / Edit Products', 'url' => route('admin.catalog.index', array_merge(['tab' => 'products'], $scopeParams))],
                     ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage Categories', 'url' => route('admin.catalog.index', array_merge(['tab' => 'categories'], $scopeParams))],
+                    ['label' => app()->getLocale() === 'ar' ? 'إدارة المخزون' : 'Manage Inventory', 'url' => route('admin.b2c.module', array_merge(['module' => 'inventory'], $scopeParams))],
                 ],
                 'columns' => ['sku', 'name', 'category', 'store', 'cost', 'price', 'status'],
                 'rows' => DB::table('store_products')
@@ -311,75 +395,9 @@ class B2cWorkspaceController extends Controller
                         'status' => (bool) $row->status,
                     ])->all(),
             ],
-            'inventory' => [
-                'actions' => [],
-                'inventory_options' => DB::table('inventories')
-                    ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-                    ->join('products', 'products.id', '=', 'inventories.product_id')
-                    ->whereIn('warehouses.store_id', $storeIds)
-                    ->orderBy('products.name')
-                    ->get(['inventories.id', 'products.sku', 'products.name', 'warehouses.name as warehouse'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'label' => $row->sku.' · '.$row->name.' · '.$row->warehouse])
-                    ->all(),
-                'columns' => ['sku', 'name', 'warehouse', 'quantity', 'reserved', 'available'],
-                'rows' => DB::table('inventories')
-                    ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-                    ->join('products', 'products.id', '=', 'inventories.product_id')
-                    ->whereIn('warehouses.store_id', $storeIds)
-                    ->orderBy('products.name')
-                    ->limit(100)
-                    ->get([
-                        'products.sku',
-                        'products.name',
-                        'warehouses.name as warehouse',
-                        'inventories.quantity',
-                        'inventories.reserved_quantity as reserved',
-                    ])->map(fn ($row) => [
-                        'sku' => $row->sku,
-                        'name' => $row->name,
-                        'warehouse' => $row->warehouse,
-                        'quantity' => number_format((float) $row->quantity, 3),
-                        'reserved' => number_format((float) $row->reserved, 3),
-                        'available' => number_format((float) $row->quantity - (float) $row->reserved, 3),
-                    ])->all(),
-            ],
+            'inventory' => $this->inventoryModuleData($storeIds),
             'orders' => $this->orderModuleData($storeIds),
-            'customers' => [
-                'actions' => [],
-                'columns' => ['name', 'phone', 'email', 'orders', 'spent', 'last_order'],
-                'rows' => DB::table('b2c_customers')
-                    ->leftJoin('orders', function ($join): void {
-                        $join->on('orders.b2c_customer_id', '=', 'b2c_customers.id')
-                            ->on('orders.store_id', '=', 'b2c_customers.store_id')
-                            ->where('orders.channel', '=', 'b2c');
-                    })
-                    ->whereIn('b2c_customers.store_id', $storeIds)
-                    ->groupBy(
-                        'b2c_customers.id',
-                        'b2c_customers.store_id',
-                        'b2c_customers.name',
-                        'b2c_customers.phone',
-                        'b2c_customers.email',
-                    )
-                    ->orderByDesc(DB::raw('MAX(orders.created_at)'))
-                    ->orderBy('b2c_customers.name')
-                    ->limit(100)
-                    ->get([
-                        'b2c_customers.name',
-                        'b2c_customers.phone',
-                        'b2c_customers.email',
-                        DB::raw('COUNT(orders.id) as orders_count'),
-                        DB::raw('COALESCE(SUM(orders.grand_total), 0) as total_spent'),
-                        DB::raw('MAX(orders.created_at) as last_order'),
-                    ])->map(fn ($row) => [
-                        'name' => $row->name,
-                        'phone' => $row->phone ?: '-',
-                        'email' => $row->email ?: '-',
-                        'orders' => (int) $row->orders_count,
-                        'spent' => 'EGP '.number_format((float) $row->total_spent, 3),
-                        'last_order' => $row->last_order === null ? '-' : (string) $row->last_order,
-                    ])->all(),
-            ],
+            'customers' => $this->customerModuleData($storeIds),
             'promotions' => [
                 'actions' => [],
                 'columns' => ['name', 'store', 'type', 'value', 'period', 'status'],
@@ -463,40 +481,193 @@ class B2cWorkspaceController extends Controller
                         'status' => (bool) $store->is_active,
                     ])->all(),
             ],
-            'content' => [
-                'actions' => [],
-                'columns' => ['image', 'title', 'target', 'sort_order', 'status', 'actions'],
-                'rows' => DB::table('banners')
-                    ->join('stores', 'stores.id', '=', 'banners.store_id')
-                    ->whereIn('banners.store_id', $storeIds)
-                    ->orderBy('banners.sort_order')
-                    ->orderByDesc('banners.id')
-                    ->limit(100)
-                    ->get([
-                        'banners.id',
-                        'banners.store_id',
-                        'banners.title',
-                        'stores.name as store',
-                        'banners.image_path as image',
-                        'banners.target_url as target',
-                        'banners.sort_order',
-                        'banners.is_active as status',
-                    ])->map(fn ($row) => [
-                        '_id' => (int) $row->id,
-                        '_store_id' => (int) $row->store_id,
-                        'title' => $row->title,
-                        'store' => $row->store,
-                        'image' => $row->image,
-                        'target' => $row->target ?: '',
-                        'sort_order' => (int) $row->sort_order,
-                        'status' => (bool) $row->status,
-                        'actions' => [],
-                    ])->all(),
-            ],
+            'content' => $this->contentModuleData($storeIds),
             'reports' => $this->reportModuleData($user, $storeIds),
             'settings' => $this->settingsModuleData($user, $storeIds),
             default => ['columns' => [], 'rows' => []],
         };
+    }
+
+    /** @param list<int> $storeIds */
+    private function inventoryModuleData(array $storeIds): array
+    {
+        return [
+            'actions' => [],
+            'inventory_options' => DB::table('inventories')
+                ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+                ->join('products', 'products.id', '=', 'inventories.product_id')
+                ->whereIn('warehouses.store_id', $storeIds)
+                ->orderBy('products.name')
+                ->get(['inventories.id', 'products.sku', 'products.name', 'warehouses.name as warehouse'])
+                ->map(fn ($row) => ['id' => (int) $row->id, 'label' => $row->sku.' · '.$row->name.' · '.$row->warehouse])
+                ->all(),
+            'warehouses' => DB::table('warehouses')
+                ->whereIn('store_id', $storeIds)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'store_id', 'code', 'name'])
+                ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'code' => $row->code, 'name' => $row->name])
+                ->all(),
+            'products' => DB::table('products')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->whereIn('catalogs.store_id', $storeIds)
+                ->where('catalogs.channel', 'b2c')
+                ->where('catalogs.is_migration_quarantine', false)
+                ->where('catalogs.is_active', true)
+                ->where('products.is_active', true)
+                ->orderBy('products.name')
+                ->get(['products.id', 'catalogs.store_id', 'products.sku', 'products.name'])
+                ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'sku' => $row->sku, 'name' => $row->name])
+                ->all(),
+            'columns' => ['sku', 'name', 'warehouse', 'quantity', 'reserved', 'available'],
+            'rows' => DB::table('inventories')
+                ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+                ->join('products', 'products.id', '=', 'inventories.product_id')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->whereIn('warehouses.store_id', $storeIds)
+                ->whereColumn('catalogs.store_id', 'warehouses.store_id')
+                ->where('catalogs.channel', 'b2c')
+                ->where('catalogs.is_migration_quarantine', false)
+                ->orderBy('products.name')
+                ->limit(100)
+                ->get([
+                    'products.sku',
+                    'products.name',
+                    'warehouses.name as warehouse',
+                    'inventories.quantity',
+                    'inventories.reserved_quantity as reserved',
+                ])->map(fn ($row) => [
+                    'sku' => $row->sku,
+                    'name' => $row->name,
+                    'warehouse' => $row->warehouse,
+                    'quantity' => number_format((float) $row->quantity, 3),
+                    'reserved' => number_format((float) $row->reserved, 3),
+                    'available' => number_format((float) $row->quantity - (float) $row->reserved, 3),
+                ])->all(),
+        ];
+    }
+
+    /** @param list<int> $storeIds */
+    private function customerModuleData(array $storeIds): array
+    {
+        return [
+            'actions' => [],
+            'columns' => ['image', 'name', 'phone', 'email', 'orders', 'spent', 'last_order', 'actions'],
+            'rows' => DB::table('b2c_customers')
+                ->leftJoin('orders', function ($join): void {
+                    $join->on('orders.b2c_customer_id', '=', 'b2c_customers.id')
+                        ->on('orders.store_id', '=', 'b2c_customers.store_id')
+                        ->where('orders.channel', '=', 'b2c');
+                })
+                ->whereIn('b2c_customers.store_id', $storeIds)
+                ->groupBy(
+                    'b2c_customers.id',
+                    'b2c_customers.store_id',
+                    'b2c_customers.name',
+                    'b2c_customers.phone',
+                    'b2c_customers.email',
+                    'b2c_customers.image_path',
+                )
+                ->orderByDesc(DB::raw('MAX(orders.created_at)'))
+                ->orderBy('b2c_customers.name')
+                ->limit(100)
+                ->get([
+                    'b2c_customers.id',
+                    'b2c_customers.store_id',
+                    'b2c_customers.image_path',
+                    'b2c_customers.name',
+                    'b2c_customers.phone',
+                    'b2c_customers.email',
+                    DB::raw('COUNT(orders.id) as orders_count'),
+                    DB::raw('COALESCE(SUM(orders.grand_total), 0) as total_spent'),
+                    DB::raw('MAX(orders.created_at) as last_order'),
+                ])->map(fn ($row) => [
+                    '_id' => (int) $row->id,
+                    '_store_id' => (int) $row->store_id,
+                    'image' => $row->image_path ?: '',
+                    'name' => $row->name,
+                    'phone' => $row->phone ?: '-',
+                    'email' => $row->email ?: '-',
+                    'orders' => (int) $row->orders_count,
+                    'spent' => 'EGP '.number_format((float) $row->total_spent, 3),
+                    'last_order' => $row->last_order === null ? '-' : (string) $row->last_order,
+                    'actions' => true,
+                ])->all(),
+        ];
+    }
+
+    /** @param list<int> $storeIds */
+    private function contentModuleData(array $storeIds): array
+    {
+        $targets = collect();
+
+        DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->whereIn('catalogs.store_id', $storeIds)
+            ->where('catalogs.channel', 'b2c')
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('products.is_active', true)
+            ->orderBy('products.name')
+            ->get(['products.id', 'products.name'])
+            ->each(fn ($row) => $targets->push([
+                'ref' => 'product:'.(int) $row->id,
+                'label' => $this->msg('منتج · ', 'Product · ').$row->name,
+            ]));
+
+        DB::table('categories')
+            ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
+            ->whereIn('catalogs.store_id', $storeIds)
+            ->where('catalogs.channel', 'b2c')
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('categories.is_active', true)
+            ->orderBy('categories.name')
+            ->get(['categories.id', 'categories.name'])
+            ->each(fn ($row) => $targets->push([
+                'ref' => 'category:'.(int) $row->id,
+                'label' => $this->msg('تصنيف · ', 'Category · ').$row->name,
+            ]));
+
+        $targetLabels = $targets->pluck('label', 'ref');
+
+        return [
+            'actions' => [],
+            'targets' => $targets->values()->all(),
+            'columns' => ['image', 'title', 'target', 'sort_order', 'status', 'actions'],
+            'rows' => DB::table('banners')
+                ->join('stores', 'stores.id', '=', 'banners.store_id')
+                ->whereIn('banners.store_id', $storeIds)
+                ->orderBy('banners.sort_order')
+                ->orderByDesc('banners.id')
+                ->limit(100)
+                ->get([
+                    'banners.id',
+                    'banners.store_id',
+                    'banners.title',
+                    'stores.name as store',
+                    'banners.image_path as image',
+                    'banners.target_type',
+                    'banners.target_id',
+                    'banners.sort_order',
+                    'banners.is_active as status',
+                ])->map(function ($row) use ($targetLabels): array {
+                    $targetRef = $row->target_type !== null && $row->target_id !== null
+                        ? $row->target_type.':'.(int) $row->target_id
+                        : '';
+
+                    return [
+                        '_id' => (int) $row->id,
+                        '_store_id' => (int) $row->store_id,
+                        '_target_ref' => $targetRef,
+                        'title' => $row->title,
+                        'store' => $row->store,
+                        'image' => $row->image,
+                        'target' => $targetRef === '' ? '—' : (string) ($targetLabels[$targetRef] ?? $targetRef),
+                        'sort_order' => (int) $row->sort_order,
+                        'status' => (bool) $row->status,
+                        'actions' => [],
+                    ];
+                })->all(),
+        ];
     }
 
     private function orderModuleData(array $storeIds): array
