@@ -35,7 +35,7 @@ class DriverAssignmentController extends Controller
             );
 
         match ($scope) {
-            'active' => $query->whereNotIn('status', ['delivered', 'failed', 'unassigned']),
+            'active' => $query->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned']),
             'completed' => $query->where('status', 'delivered'),
             'failed' => $query->where('status', 'failed'),
             default => null,
@@ -136,7 +136,7 @@ class DriverAssignmentController extends Controller
 
         $activeAssignment = DriverAssignment::query()
             ->where('order_id', $order->getKey())
-            ->whereNotIn('status', ['delivered', 'failed', 'unassigned'])
+            ->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned'])
             ->latest('id')
             ->first();
 
@@ -220,7 +220,7 @@ class DriverAssignmentController extends Controller
         $assignment = DriverAssignment::query()
             ->where('order_id', $orderModel->getKey())
             ->where('assignment_type', $channel)
-            ->whereNotIn('status', ['delivered', 'failed', 'unassigned'])
+            ->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned'])
             ->latest('id')
             ->first();
 
@@ -269,6 +269,7 @@ class DriverAssignmentController extends Controller
             ->whereKey($assignment)
             ->where('driver_id', $driver->getKey())
             ->where('assignment_type', $channel)
+            ->whereNotIn('status', ['cancelled', 'unassigned'])
             ->when(
                 $driver->store_id !== null,
                 fn ($query) => $query->where('store_id', (int) $driver->store_id),
