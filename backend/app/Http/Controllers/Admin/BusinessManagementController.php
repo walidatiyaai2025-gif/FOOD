@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\B2cCustomerService;
 use App\Services\BannerImageService;
+use App\Services\CustomerImageService;
 use App\Services\OperationalTenantScope;
 use App\Support\TenantContextResolver;
 use Illuminate\Http\RedirectResponse;
@@ -160,7 +161,7 @@ final class BusinessManagementController extends Controller
         return back()->with('status', $this->msg('تم تعديل المخزون.', 'Inventory adjusted.'));
     }
 
-    public function storeCustomer(Request $request): RedirectResponse
+    public function storeCustomer(Request $request, CustomerImageService $images): RedirectResponse
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -169,6 +170,7 @@ final class BusinessManagementController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'email', 'max:255'],
+            'customer_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         if ($data['type'] === 'b2b') {
@@ -183,17 +185,21 @@ final class BusinessManagementController extends Controller
             $storeId = (int) $data['store_id'];
             $this->assertRetailCustomerStore($actor, $storeId, $request);
             Gate::forUser($actor)->authorize('customers.create', $storeId);
-            app(B2cCustomerService::class)->create($storeId, [
+            $model = app(B2cCustomerService::class)->create($storeId, [
                 'name' => $data['name'],
                 'phone' => $data['phone'] ?? null,
                 'email' => $data['email'] ?? null,
             ]);
+            $customerImage = $request->file('customer_image');
+            if ($customerImage instanceof UploadedFile) {
+                $model->update(['image_path' => $images->store($customerImage, $storeId)]);
+            }
         }
 
         return back()->with('status', $this->msg('تمت إضافة العميل.', 'Customer added.'));
     }
 
-    public function updateCustomer(Request $request, int $customer): RedirectResponse
+    public function updateCustomer(Request $request, int $customer, CustomerImageService $images): RedirectResponse
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -201,6 +207,8 @@ final class BusinessManagementController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'email', 'max:255'],
+            'customer_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_image' => ['nullable', 'boolean'],
         ]);
 
         if ($data['type'] === 'b2b') {
@@ -221,6 +229,19 @@ final class BusinessManagementController extends Controller
                 'phone' => $data['phone'] ?? null,
                 'email' => $data['email'] ?? null,
             ]);
+
+            $oldImage = $model->image_path;
+            if ($request->boolean('remove_image')) {
+                $images->delete($oldImage);
+                $model->update(['image_path' => null]);
+                $oldImage = null;
+            }
+            $customerImage = $request->file('customer_image');
+            if ($customerImage instanceof UploadedFile) {
+                $newImage = $images->store($customerImage, (int) $model->store_id);
+                $model->update(['image_path' => $newImage]);
+                $images->delete($oldImage);
+            }
         }
 
         return back()->with('status', $this->msg('تم تعديل العميل.', 'Customer updated.'));
@@ -259,7 +280,9 @@ final class BusinessManagementController extends Controller
                 ]);
             }
 
+            $imagePath = $model->image_path;
             $model->delete();
+            app(CustomerImageService::class)->delete($imagePath);
         }
 
         return back()->with('status', $this->msg('تم حذف العميل.', 'Customer deleted.'));
@@ -512,13 +535,49 @@ final class BusinessManagementController extends Controller
         $data = $request->validate([
             'store_id' => ['required', 'integer', 'exists:stores,id'],
             'title' => ['required', 'string', 'max:255'],
-            'banner_image' => [$imageRequired ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144', 'dimensions:min_width=600,min_height=240'],
-            'target_url' => ['nullable', 'string', 'max:2048'],
+            'banner_image' => [$imageRequired ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144'],
+            'target_ref' => ['nullable', 'string', 'regex:/^(product|category):[1-9][0-9]*$/'],
             'sort_order' => ['required', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        return [...$data, 'is_active' => $request->boolean('is_active')];
+        $targetType = null;
+        $targetId = null;
+        if (! empty($data['target_ref'])) {
+            [$targetType, $targetIdText] = explode(':', (string) $data['target_ref'], 2);
+            $targetId = (int) $targetIdText;
+            $this->assertBannerTargetForStore((int) $data['store_id'], $targetType, $targetId);
+        }
+        unset($data['target_ref']);
+
+        return [
+            ...$data,
+            'target_type' => $targetType,
+            'target_id' => $targetId,
+            'target_url' => $targetType === 'product' ? '/products/'.$targetId : ($targetType === 'category' ? '/categories/'.$targetId : null),
+            'is_active' => $request->boolean('is_active'),
+        ];
+    }
+
+    private function assertBannerTargetForStore(int $storeId, string $targetType, int $targetId): void
+    {
+        $table = $targetType === 'product' ? 'products' : 'categories';
+        $valid = DB::table($table)
+            ->join('catalogs', 'catalogs.id', '=', $table.'.catalog_id')
+            ->where($table.'.id', $targetId)
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2c')
+            ->where('catalogs.is_migration_quarantine', false)
+            ->exists();
+
+        if (! $valid) {
+            throw ValidationException::withMessages([
+                'target_ref' => [$this->msg(
+                    'المنتج أو التصنيف المحدد لا يتبع متجر التجزئة الحالي.',
+                    'The selected product or category does not belong to this Retail store.',
+                )],
+            ]);
+        }
     }
 
     private function assertRetailCustomerStore(User $actor, int $storeId, Request $request): void
