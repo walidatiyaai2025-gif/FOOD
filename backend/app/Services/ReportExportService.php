@@ -193,6 +193,7 @@ final class ReportExportService
 
         $rtl = $locale === 'ar';
         $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->setPDFVersion('1.4');
         $pdf->SetCreator('FOODEX');
         $pdf->SetAuthor('FOODEX');
         $pdf->SetTitle($rtl ? 'تقرير FOODEX' : 'FOODEX Report');
