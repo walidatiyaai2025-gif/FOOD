@@ -41,6 +41,7 @@ class OrderController extends Controller
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'status' => ['nullable', 'string', Rule::in(array_keys(self::TRANSITIONS))],
         ]);
 
         $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
@@ -48,6 +49,10 @@ class OrderController extends Controller
         $paginator = Order::query()
             ->where($customerColumn, $customer->getKey())
             ->where('channel', $channel)
+            ->when(
+                isset($validated['status']),
+                fn ($query) => $query->where('status', $validated['status']),
+            )
             ->latest('id')
             ->paginate((int) ($validated['per_page'] ?? 20));
 
