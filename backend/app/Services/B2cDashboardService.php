@@ -99,7 +99,7 @@ final class B2cDashboardService
             'series' => $this->series($storeIds, $rangeFrom, $rangeTo),
             'distribution' => $this->distribution($orders),
             'low_stock' => $this->lowStock($storeIds),
-            'recent_orders' => $this->recentOrders($storeIds),
+            'recent_orders' => $this->recentOrders($storeIds, $from, $to),
             'quick_actions' => $this->quickActions($user, $storeIds),
             'mobile_apps' => $this->mobileApps(),
             'notifications_unread' => $this->unreadNotifications($user, $storeIds),
@@ -197,7 +197,7 @@ final class B2cDashboardService
     }
 
     /** @param list<int> $storeIds */
-    private function recentOrders(array $storeIds): array
+    private function recentOrders(array $storeIds, string $from, string $to): array
     {
         return DB::table('orders')
             ->leftJoin('b2c_customers', function ($join): void {
@@ -208,6 +208,7 @@ final class B2cDashboardService
             ->leftJoin('order_items', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2c')
+            ->whereBetween('orders.created_at', [$from, $to])
             ->select([
                 'orders.id',
                 'orders.order_number',
