@@ -16,9 +16,7 @@ final class RetailWholesaleReplenishmentService
 
     public function __construct(
         private readonly AuditLogger $audit,
-    )
-    {
-    }
+    ) {}
 
     public function receive(Order $order, User $actor): ?int
     {
