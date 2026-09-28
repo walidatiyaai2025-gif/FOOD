@@ -1,7 +1,12 @@
 # Changelog
 
+## 1.0.20 - System Inspector Production Hotfix
+- Automatically restore and verify `public/storage` during Dashboard Update execution so uploaded media remains publicly reachable after upgrades.
+- Prevent invalid Retail-linked Wholesale account status mutations in the B2B UI and explain that the Retail store controls the lifecycle.
+- Exclude active B2B accounts without an approved price tier from order creation, preventing the pricing 403 recorded by System Inspector.
+- Keep the shared dashboard order form on Egyptian pound display and retain all 1.0.19 Retail production fixes.
+
 ## 1.0.19 - Retail Administration Production Fixes
-- Harden production updates from System Inspector findings: automatically restore `public/storage`, suppress invalid Retail-linked Wholesale status mutations, and hide unpriced B2B customers from order creation.
 - Fix direct Retail catalog access for platform support context and add a canonical category-management route so product/category administration no longer falls into the Wholesale tenant path.
 - Complete Retail inventory management with warehouse creation, initial/current stock balance creation and stock adjustments from the Retail workspace.
 - Add Retail customer image upload, replacement and removal with a neutral fallback avatar when no image is available.
