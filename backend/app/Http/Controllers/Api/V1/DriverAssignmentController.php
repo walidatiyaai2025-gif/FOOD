@@ -320,24 +320,23 @@ class DriverAssignmentController extends Controller
             ->map(static fn ($id): int => (int) $id)
             ->values();
 
-        if ($driver->store_id === null) {
-            if ($assignmentStoreIds->count() === 1) {
-                $driver->forceFill(['store_id' => $assignmentStoreIds->first()])->save();
-            } elseif ($assignmentStoreIds->isEmpty() && $channel === 'b2b') {
-                $driver->forceFill(['store_id' => app(WholesalePrincipal::class)->storeId()])->save();
-            } elseif ($assignmentStoreIds->isEmpty()) {
-                return $driver;
-            } else {
-                abort(403, 'Driver store ownership must be reconciled before delivery execution.');
+        if ($assignmentStoreIds->count() === 1) {
+            $authoritativeStoreId = (int) $assignmentStoreIds->first();
+            if ((int) ($driver->store_id ?? 0) !== $authoritativeStoreId) {
+                $driver->forceFill(['store_id' => $authoritativeStoreId])->save();
             }
+        } elseif ($assignmentStoreIds->isEmpty() && $channel === 'b2b') {
+            $principalStoreId = app(WholesalePrincipal::class)->storeId();
+            if ((int) ($driver->store_id ?? 0) !== $principalStoreId) {
+                $driver->forceFill(['store_id' => $principalStoreId])->save();
+            }
+        } elseif ($assignmentStoreIds->isEmpty()) {
+            return $driver;
+        } else {
+            abort(403, 'Driver assignment history belongs to multiple stores and must be reconciled.');
         }
 
         $storeId = (int) $driver->store_id;
-        abort_unless(
-            $assignmentStoreIds->every(static fn (int $id): bool => $id === $storeId),
-            403,
-            'Driver assignment history belongs to multiple stores and must be reconciled.',
-        );
 
         DriverAssignment::query()
             ->where('driver_id', $driver->getKey())
