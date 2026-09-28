@@ -16,6 +16,7 @@ class CustomerAppRouter {
     this.session, {
     required this.actionApi,
     required this.onAuthenticated,
+    required this.onChannelChanged,
     required this.onSessionExpired,
     this.b2bApi,
     required this.b2cCatalogApi,
@@ -28,6 +29,7 @@ class CustomerAppRouter {
   final B2cAccountApi b2cAccountApi;
   final CustomerActionApi actionApi;
   final CustomerAuthenticated onAuthenticated;
+  final ValueChanged<CustomerChannel> onChannelChanged;
   final VoidCallback onSessionExpired;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -118,6 +120,7 @@ class CustomerAppRouter {
             catalogApi: b2cCatalogApi,
             actionApi: actionApi,
             b2bApi: b2bApi,
+            onChannelChanged: onChannelChanged,
           );
         }
 
