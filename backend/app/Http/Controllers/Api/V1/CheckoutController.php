@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Pricing\B2bPriceResolver;
 use App\Http\Controllers\Controller;
 use App\Models\Address;
+use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\Cart;
 use App\Models\CartItem;
@@ -32,6 +33,7 @@ class CheckoutController extends Controller
             'store_id' => ['required', 'integer', 'min:1'],
             'address_id' => ['required', 'integer', 'min:1'],
             'payment_method' => ['nullable', 'string', 'max:50'],
+            'requested_delivery_date' => ['nullable', 'date', 'after_or_equal:today'],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -48,15 +50,27 @@ class CheckoutController extends Controller
 
         $storeId = (int) $validated['store_id'];
         $resolver = app(CustomerDomainResolver::class);
-        [$customer, $channel] = $resolver->forStore($user, $storeId);
+        [$customer, $channel] = $resolver->forStore($user, $storeId, $request);
         $legacyCustomerId = $resolver->legacyId($customer);
         $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
 
         $addressId = (int) $validated['address_id'];
         $paymentMethod = (string) ($validated['payment_method'] ?? config('checkout.default_payment_method'));
         $note = isset($validated['note']) ? (string) $validated['note'] : null;
+        $requestedDeliveryDate = $validated['requested_delivery_date'] ?? null;
 
+        $b2bAccount = null;
         $allowedMethods = array_values((array) config('checkout.payment_methods', ['cash_on_delivery']));
+        if ($channel === 'b2b') {
+            abort_unless($customer instanceof B2bCustomer, 500);
+            $b2bAccount = B2bAccount::query()
+                ->where('b2b_customer_id', $customer->getKey())
+                ->where('status', 'active')
+                ->firstOrFail();
+            if ((float) $b2bAccount->credit_limit > 0 && ! in_array('account_credit', $allowedMethods, true)) {
+                $allowedMethods[] = 'account_credit';
+            }
+        }
 
         if (! in_array($paymentMethod, $allowedMethods, true)) {
             throw ValidationException::withMessages([
@@ -68,6 +82,7 @@ class CheckoutController extends Controller
             'store_id' => $storeId,
             'address_id' => $addressId,
             'payment_method' => $paymentMethod,
+            'requested_delivery_date' => $requestedDeliveryDate,
             'note' => $note,
         ], JSON_THROW_ON_ERROR));
 
@@ -86,6 +101,8 @@ class CheckoutController extends Controller
             $storeId,
             $channel,
             $paymentMethod,
+            $requestedDeliveryDate,
+            $b2bAccount,
             $note,
             $idempotencyKey,
             $requestHash,
@@ -154,7 +171,14 @@ class CheckoutController extends Controller
                 if ($channel === 'b2b') {
                     abort_unless($customer instanceof B2bCustomer, 500);
                     $pricing = app(B2bPriceResolver::class)->resolve($customer, $storeId, (int) $cartItem->product_id);
-                    abort_if($quantity < $pricing['minimum_quantity'], 409, 'Quantity is below the B2B minimum purchase quantity.');
+                    $minimum = (float) $pricing['minimum_quantity'];
+                    $increment = max(0.001, (float) $pricing['ordering_increment']);
+                    $steps = ($quantity - $minimum) / $increment;
+                    abort_if(
+                        $quantity + 0.0001 < $minimum || abs($steps - round($steps)) >= 0.0001,
+                        409,
+                        'Quantity must meet the B2B minimum and ordering increment.',
+                    );
                     $unitPrice = $pricing['price'];
                 }
                 $lineTotal = round($quantity * $unitPrice, 3);
@@ -206,6 +230,7 @@ class CheckoutController extends Controller
                     'sku_snapshot' => (string) $product->sku,
                     'name_snapshot' => (string) $product->name,
                     'quantity' => $quantity,
+                    'quantity_conversion_factor' => $channel === 'b2b' ? (float) ($pricing['pack_size'] ?? 1) : 1,
                     'unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
                 ];
@@ -215,15 +240,21 @@ class CheckoutController extends Controller
             $deliveryTotal = round((float) config('checkout.delivery_fee', 0), 3);
             $grandTotal = round($subtotal + $deliveryTotal, 3);
 
+            if ($channel === 'b2b' && $paymentMethod === 'account_credit') {
+                abort_unless($b2bAccount instanceof B2bAccount, 403, 'An active B2B account is required.');
+                abort_if((float) $b2bAccount->credit_limit < $grandTotal, 409, 'The order exceeds the available B2B credit limit.');
+            }
+
             $order = Order::query()->create([
                 'store_id' => $storeId,
                 'customer_id' => $legacyCustomerId,
                 $customerColumn => $customer->getKey(),
                 'address_id' => $address->getKey(),
+                'requested_delivery_date' => $requestedDeliveryDate,
                 'order_number' => 'FDX-'.now()->format('Ymd').'-'.Str::upper(Str::random(10)),
                 'channel' => $channel,
                 'status' => 'pending',
-                'currency' => 'KWD',
+                'currency' => 'EGP',
                 'subtotal' => round($subtotal, 3),
                 'discount_total' => 0,
                 'delivery_total' => $deliveryTotal,
@@ -265,7 +296,7 @@ class CheckoutController extends Controller
                 'provider_reference' => null,
                 'status' => 'pending',
                 'amount' => $grandTotal,
-                'currency' => 'KWD',
+                'currency' => 'EGP',
                 'metadata' => [
                     'method' => $paymentMethod,
                 ],
@@ -324,6 +355,7 @@ class CheckoutController extends Controller
                 'sku' => (string) $item->sku_snapshot,
                 'name' => (string) $item->name_snapshot,
                 'quantity' => (float) $item->quantity,
+                'quantity_conversion_factor' => (float) ($item->quantity_conversion_factor ?? 1),
                 'unit_price' => (float) $item->unit_price,
                 'line_total' => (float) $item->line_total,
             ])
@@ -340,6 +372,7 @@ class CheckoutController extends Controller
             'order_number' => (string) $order->order_number,
             'store_id' => (int) $order->store_id,
             'address_id' => $order->address_id === null ? null : (int) $order->address_id,
+            'requested_delivery_date' => $order->requested_delivery_date,
             'channel' => (string) $order->channel,
             'status' => (string) $order->status,
             'currency' => (string) $order->currency,

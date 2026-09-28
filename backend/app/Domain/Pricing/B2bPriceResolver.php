@@ -9,7 +9,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class B2bPriceResolver
 {
-    /** @return array{price: float, minimum_quantity: float} */
+    /** @return array{price: float, minimum_quantity: float, ordering_increment: float, pack_size: float, case_size: float|null, pack_label: string|null, retail_reference_price: float|null} */
     public function resolve(B2bCustomer $customer, int $storeId, int $productId): array
     {
         $account = B2bAccount::query()
@@ -37,12 +37,20 @@ class B2bPriceResolver
             ->where('catalogs.is_migration_quarantine', false)
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')
-            ->first(['b2b_price_rules.unit_price', 'b2b_price_rules.minimum_quantity']);
+            ->first(['b2b_price_rules.unit_price', 'b2b_price_rules.minimum_quantity', 'b2b_price_rules.ordering_increment', 'b2b_price_rules.pack_size', 'b2b_price_rules.case_size', 'b2b_price_rules.pack_label', 'b2b_price_rules.retail_reference_price']);
 
         if ($rule === null) {
             throw new HttpException(409, 'No approved B2B price exists for this product.');
         }
 
-        return ['price' => (float) $rule->unit_price, 'minimum_quantity' => (float) $rule->minimum_quantity];
+        return [
+            'price' => (float) $rule->unit_price,
+            'minimum_quantity' => (float) $rule->minimum_quantity,
+            'ordering_increment' => max(0.001, (float) $rule->ordering_increment),
+            'pack_size' => max(0.001, (float) $rule->pack_size),
+            'case_size' => $rule->case_size === null ? null : (float) $rule->case_size,
+            'pack_label' => $rule->pack_label === null ? null : (string) $rule->pack_label,
+            'retail_reference_price' => $rule->retail_reference_price === null ? null : (float) $rule->retail_reference_price,
+        ];
     }
 }

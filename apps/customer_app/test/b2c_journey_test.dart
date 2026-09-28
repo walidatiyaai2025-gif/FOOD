@@ -18,7 +18,7 @@ void main() {
 
     expect(Directionality.of(tester.element(find.text('تفاصيل المنتج'))), TextDirection.rtl);
     expect(find.text('Tomato Box'), findsOneWidget);
-    expect(find.textContaining('3.250 KWD'), findsOneWidget);
+    expect(find.textContaining('3.250 EGP'), findsOneWidget);
     expect(find.byKey(const ValueKey('b2c-product-gallery')), findsOneWidget);
     expect(find.text('إضافة إلى السلة'), findsOneWidget);
   });
@@ -40,8 +40,14 @@ void main() {
 
     expect(api.lastStoreId, 7);
     expect(find.text('Vegetables'), findsOneWidget);
-    expect(find.text('Weekend Offer'), findsOneWidget);
     expect(find.text('Tomato Box'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.text('Weekend Offer'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Weekend Offer'), findsOneWidget);
   });
 
   testWidgets('B2C category and product images render in catalog surfaces', (tester) async {

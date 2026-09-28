@@ -59,6 +59,7 @@ jobs:
           from PIL import Image
 
           paths = sorted(Path("ScreenShots/01_Mobile").rglob("*.png"))
+          paths += sorted(Path("ScreenShots/02_MultiStore").rglob("*.png"))
           assert paths, "No mobile screenshots generated"
           for path in paths:
               with Image.open(path) as image:
@@ -72,6 +73,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: foodex-mobile-screenshot-qa-${{ github.event.pull_request.number }}
-          path: ScreenShots/01_Mobile/
+          path: |
+            ScreenShots/01_Mobile/
+            ScreenShots/02_MultiStore/
           if-no-files-found: error
           retention-days: 14

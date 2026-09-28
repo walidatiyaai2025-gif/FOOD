@@ -3,15 +3,29 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class B2cStore {
-  const B2cStore({required this.id, required this.name, required this.code});
+  const B2cStore({
+    required this.id,
+    required this.name,
+    required this.code,
+    this.themeCode = 'retail_grocery',
+    this.address,
+    this.logoUrl,
+  });
+
   final int id;
   final String name;
   final String code;
+  final String themeCode;
+  final String? address;
+  final String? logoUrl;
 
   factory B2cStore.fromJson(Map<String, dynamic> json) => B2cStore(
         id: (json['id'] as num).toInt(),
         name: json['name'] as String? ?? '',
         code: json['code'] as String? ?? '',
+        themeCode: json['theme_code'] as String? ?? 'retail_grocery',
+        address: json['address'] as String?,
+        logoUrl: json['logo_url'] as String?,
       );
 }
 
@@ -34,7 +48,7 @@ class B2cProduct {
     required this.name,
     required this.sku,
     this.price,
-    this.currency = 'KWD',
+    this.currency = 'EGP',
     this.description,
     this.categoryId,
     this.imageUrl,
@@ -56,7 +70,7 @@ class B2cProduct {
         name: json['name'] as String? ?? '',
         sku: json['sku'] as String? ?? '',
         price: (json['price'] as num?)?.toDouble(),
-        currency: json['currency'] as String? ?? 'KWD',
+        currency: json['currency'] as String? ?? 'EGP',
         description: json['description'] as String?,
         categoryId: (json['category_id'] as num?)?.toInt(),
         imageUrl: json['image_url'] as String?,

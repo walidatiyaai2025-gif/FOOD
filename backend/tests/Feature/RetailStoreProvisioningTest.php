@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CustomerDomainResolver;
 use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -107,6 +109,56 @@ class RetailStoreProvisioningTest extends TestCase
             'company_name' => 'Shop Sync Renamed',
             'status' => 'suspended',
         ]);
+    }
+
+    public function test_retail_manager_wholesale_entitlement_is_tenant_scoped(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'owner-entitlements@example.test');
+        $tierId = $this->priceTierId();
+
+        foreach ([
+            ['ENT-A', 'Entitled A', 'manager-ent-a@example.test'],
+            ['ENT-B', 'Entitled B', 'manager-ent-b@example.test'],
+        ] as [$code, $name, $email]) {
+            $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+                'code' => $code,
+                'name' => $name,
+                'price_tier_id' => $tierId,
+                'is_active' => '1',
+                'logo' => UploadedFile::fake()->image(strtolower($code).'.png', 256, 256),
+                'manager_mode' => 'new',
+                'manager_name' => $name.' Manager',
+                'manager_email' => $email,
+                'manager_password' => 'password123',
+            ])->assertRedirect(route('admin.retail-stores.index'));
+        }
+
+        $storeA = (int) DB::table('stores')->where('code', 'ENT-A')->value('id');
+        $storeB = (int) DB::table('stores')->where('code', 'ENT-B')->value('id');
+        $managerA = User::query()->where('email', 'manager-ent-a@example.test')->firstOrFail();
+        $resolver = app(CustomerDomainResolver::class);
+
+        $requestA = Request::create('/api/v1/b2b/products', 'GET');
+        $requestA->headers->set('X-FOODEX-Retail-Store-ID', (string) $storeA);
+        $customerA = $resolver->b2bFromRequest($managerA, $requestA);
+
+        $this->assertSame(
+            (int) DB::table('retail_wholesale_accounts')
+                ->where('retail_store_id', $storeA)
+                ->value('b2b_customer_id'),
+            (int) $customerA->id,
+        );
+        $this->assertSame([$storeA], $resolver->entitledRetailStoreIds($managerA));
+
+        $foreign = Request::create('/api/v1/b2b/products', 'GET');
+        $foreign->headers->set('X-FOODEX-Retail-Store-ID', (string) $storeB);
+
+        try {
+            $resolver->b2bFromRequest($managerA, $foreign);
+            $this->fail('Retail manager must not resolve another store wholesale entitlement.');
+        } catch (HttpException $e) {
+            $this->assertSame(403, $e->getStatusCode());
+        }
     }
 
     public function test_super_admin_can_open_retail_store_list_with_unlinked_legacy_store(): void

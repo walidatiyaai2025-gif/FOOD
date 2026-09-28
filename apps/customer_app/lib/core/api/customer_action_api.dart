@@ -34,6 +34,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
     required this.baseUrl,
     this.token,
     CustomerGuestSession? guestSession,
+    this.b2bRetailStoreId,
     http.Client? client,
   })  : guestSession = guestSession ?? CustomerGuestSession(),
         _client = client ?? http.Client();
@@ -41,6 +42,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
   final String baseUrl;
   final String? token;
   final CustomerGuestSession guestSession;
+  final int? b2bRetailStoreId;
   final http.Client _client;
 
   Map<String, String> get _headers => {
@@ -48,6 +50,8 @@ class HttpCustomerActionApi implements CustomerActionApi {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
         if (guestSession.token != null) 'X-Guest-Token': guestSession.token!,
+        if (b2bRetailStoreId != null)
+          'X-FOODEX-Retail-Store-ID': b2bRetailStoreId.toString(),
       };
 
   @override

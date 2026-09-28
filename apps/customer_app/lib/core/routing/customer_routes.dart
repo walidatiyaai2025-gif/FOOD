@@ -4,7 +4,10 @@ abstract final class CustomerRoutePaths {
   static const splash = '/splash';
   static const entry = '/entry';
   static const stores = '/stores';
+  static const storeSelector = '/customer/store-selector';
   static const home = '/home';
+  static const retailHome = '/retail/:store/home';
+  static const retailProductDetails = '/retail/:store/products/:product';
   static const offers = '/offers';
   static const products = '/products';
   static const productDetails = '/products/:id';
@@ -21,6 +24,7 @@ abstract final class CustomerRoutePaths {
   static const profile = '/profile';
 
   static const b2bLogin = '/b2b/login';
+  static const b2bHome = '/b2b/home';
   static const b2bDashboard = '/b2b/dashboard';
   static const b2bPurchaseReports = '/b2b/reports/purchases';
   static const b2bTopProducts = '/b2b/products/top';
@@ -94,8 +98,23 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     channel: CustomerChannel.b2c,
   ),
   CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.storeSelector,
+    label: 'Multi-store selection',
+    channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
     pattern: CustomerRoutePaths.home,
     label: 'B2C home',
+    channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailHome,
+    label: 'Retail storefront',
+    channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailProductDetails,
+    label: 'Retail product details',
     channel: CustomerChannel.b2c,
   ),
   CustomerRouteDefinition(
@@ -180,6 +199,12 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     pattern: CustomerRoutePaths.b2bLogin,
     label: 'B2B login',
     channel: CustomerChannel.b2b,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.b2bHome,
+    label: 'B2B wholesale storefront',
+    channel: CustomerChannel.b2b,
+    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bDashboard,

@@ -10,6 +10,8 @@ import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
+import 'package:foodex_customer_app/core/api/storefront_api.dart';
+import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 
@@ -21,12 +23,26 @@ const _b2c = CustomerSession.authenticated(
   CustomerChannel.b2c,
   accessToken: 'evidence-token',
 );
+const _b2cWholesale = CustomerSession.authenticated(
+  CustomerChannel.b2c,
+  accessToken: 'evidence-token',
+  b2bRetailStoreId: 7,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(_loadEvidenceFont);
 
   final cases = <_CaptureCase>[
+    const _CaptureCase('02_MultiStore/01_store_selection__ar.png', '/customer/store-selector', session: _b2c),
+    const _CaptureCase('02_MultiStore/02_retail_grocery_home__ar.png', '/retail/7/home', session: _b2c),
+    const _CaptureCase('02_MultiStore/03_retail_pharmacy_home__ar.png', '/retail/8/home', session: _b2c),
+    const _CaptureCase('02_MultiStore/04_wholesale_home__ar.png', '/b2b/home?store_id=70', session: _b2cWholesale),
+    const _CaptureCase('02_MultiStore/05_retail_product_details__ar.png', '/retail/7/products/42', session: _b2c),
+    const _CaptureCase('02_MultiStore/06_wholesale_product_details__ar.png', '/b2b/products/42?store_id=70', session: _b2cWholesale),
+    const _CaptureCase('02_MultiStore/07_wholesale_cart__ar.png', '/b2b/cart?store=70', session: _b2cWholesale),
+    const _CaptureCase('02_MultiStore/08_wholesale_checkout__ar.png', '/b2b/checkout?store_id=70', session: _b2cWholesale),
+    const _CaptureCase('02_MultiStore/09_wholesale_orders__ar.png', '/b2b/orders', session: _b2cWholesale),
     const _CaptureCase('01_Mobile/B2B_Customer/01_شاشة_الدخول__default__ar.png', '/b2b/login'),
     const _CaptureCase('01_Mobile/B2B_Customer/02_الصفحة_الرئيسية_Dashboard__populated__ar.png', '/b2b/dashboard', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/03_تقارير_المشتريات_والرسوم_البيانية__populated__ar.png', '/b2b/reports/purchases', session: _b2b),
@@ -79,6 +95,8 @@ void main() {
               b2cCatalogApi: const _EvidenceCatalogApi(),
               b2cAccountApi: const _EvidenceAccountApi(),
               actionApi: const _EvidenceActionApi(),
+              storefrontApi: const _EvidenceStorefrontApi(),
+              wholesaleCommerceApi: const _EvidenceWholesaleCommerceApi(),
               locale: locale,
             ),
           ),
@@ -460,4 +478,149 @@ class _EvidenceActionApi implements CustomerActionApi {
   @override
   Future<Object?> checkout({required int addressId, String? paymentMethod, required String idempotencyKey}) async =>
       {'id': 101, 'status': 'confirmed'};
+}
+
+
+class _EvidenceStorefrontApi implements StorefrontApi {
+  const _EvidenceStorefrontApi();
+
+  @override
+  Future<Map<String, dynamic>> selection({
+    String? countryCode,
+    String? city,
+    String? area,
+    bool support = false,
+  }) async => {
+        'retail_stores': [
+          {
+            'id': 7,
+            'code': 'GROCERY-7',
+            'name': 'FOODEX Fresh Market',
+            'theme_code': 'retail_grocery',
+            'address': 'سموحة · توصيل سريع',
+          },
+          {
+            'id': 8,
+            'code': 'PHARMACY-8',
+            'name': 'FOODEX Pharmacy',
+            'theme_code': 'retail_pharmacy',
+            'address': 'صيدلية · خدمة 24 ساعة',
+          },
+        ],
+        'wholesale_stores': [
+          {
+            'id': 70,
+            'code': 'WHOLESALE-70',
+            'name': 'FOODEX Wholesale',
+            'theme_code': 'wholesale_b2b',
+            'retail_context_ids': [7],
+          },
+        ],
+        'entitlements': {
+          'retail_context_ids': [7],
+          'direct_b2b': false,
+        },
+      };
+
+  @override
+  Future<Map<String, dynamic>> retailHome(int storeId) async {
+    final pharmacy = storeId == 8;
+    return {
+      'store': {
+        'id': storeId,
+        'name': pharmacy ? 'FOODEX Pharmacy' : 'FOODEX Fresh Market',
+      },
+      'theme': {
+        'code': pharmacy ? 'retail_pharmacy' : 'retail_grocery',
+        'primary': pharmacy ? '#0A8DDA' : '#078A43',
+        'primary_dark': pharmacy ? '#0668A9' : '#006736',
+      },
+      'branding': {
+        'address': pharmacy ? 'صيدلية · خدمة 24 ساعة' : 'سموحة · توصيل سريع',
+      },
+      'hero': {
+        'title': pharmacy ? 'صحتك أولويتنا' : 'طازج كل يوم',
+      },
+      'sections': [
+        {'key': 'hero', 'type': 'hero', 'sort_order': 10},
+        {'key': 'categories', 'type': 'categories', 'title_ar': 'التصنيفات', 'sort_order': 20},
+        {'key': 'products', 'type': 'products', 'title_ar': pharmacy ? 'العناية والصحة' : 'وصل حديثًا', 'sort_order': 30},
+      ],
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async => {
+        'store_id': storeId,
+        'addresses': [
+          {
+            'id': 81,
+            'label': 'المتجر',
+            'line1': 'سموحة - شارع FOODEX',
+            'area': 'سموحة',
+            'city': 'الإسكندرية',
+            'country_code': 'EG',
+            'is_default': true,
+          },
+        ],
+        'delivery_dates': ['2026-09-29', '2026-09-30', '2026-10-01'],
+        'payment_methods': ['cash_on_delivery', 'account_credit'],
+        'credit_limit': 5000,
+        'currency': 'EGP',
+      };
+}
+
+class _EvidenceWholesaleCommerceApi implements WholesaleCommerceApi {
+  const _EvidenceWholesaleCommerceApi();
+
+  @override
+  Future<Object?> cart(int storeId) async => {
+        'store_id': storeId,
+        'subtotal': 725.0,
+        'currency': 'EGP',
+        'items': [
+          {
+            'id': 501,
+            'product_id': 42,
+            'name': 'كرتونة طماطم FOODEX',
+            'quantity': 10,
+            'unit_price': 72.5,
+            'line_total': 725.0,
+            'minimum_order_quantity': 5,
+            'ordering_increment': 5,
+            'pack_size': 12,
+            'pack_label': 'كرتونة 12',
+          },
+        ],
+      };
+
+  @override
+  Future<Object?> addItem(int storeId, int productId, double quantity) async =>
+      cart(storeId);
+
+  @override
+  Future<Object?> updateItem(int itemId, double quantity) async => {
+        'id': itemId,
+        'quantity': quantity,
+      };
+
+  @override
+  Future<void> removeItem(int itemId) async {}
+
+  @override
+  Future<Object?> checkout({
+    required int storeId,
+    required int addressId,
+    required String paymentMethod,
+    String? requestedDeliveryDate,
+    String? note,
+    required String idempotencyKey,
+  }) async => {
+        'id': 990,
+        'order_number': 'B2B-990',
+        'store_id': storeId,
+        'status': 'pending',
+        'currency': 'EGP',
+        'grand_total': 725.0,
+      };
 }

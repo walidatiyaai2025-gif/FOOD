@@ -7,6 +7,8 @@ import 'core/api/b2b_api.dart';
 import 'core/api/b2c_catalog_api.dart';
 import 'core/api/b2c_account_api.dart';
 import 'core/api/customer_action_api.dart';
+import 'core/api/storefront_api.dart';
+import 'core/api/wholesale_commerce_api.dart';
 import 'core/auth/customer_session.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/localization/app_translations.dart';
@@ -24,6 +26,8 @@ class FoodexCustomerApp extends StatefulWidget {
     this.b2cCatalogApi,
     this.b2cAccountApi,
     this.actionApi,
+    this.storefrontApi,
+    this.wholesaleCommerceApi,
     this.locale = const Locale('ar'),
     this.translationOverrides = const {},
     this.translationFetcher,
@@ -37,6 +41,8 @@ class FoodexCustomerApp extends StatefulWidget {
   final B2cCatalogApi? b2cCatalogApi;
   final B2cAccountApi? b2cAccountApi;
   final CustomerActionApi? actionApi;
+  final StorefrontApi? storefrontApi;
+  final WholesaleCommerceApi? wholesaleCommerceApi;
   final Locale locale;
   final Map<String, String> translationOverrides;
   final TranslationFetcher? translationFetcher;
@@ -145,6 +151,13 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _bindPushSession();
   }
 
+  void _enterWholesale(int? retailStoreId) {
+    if (!_session.isAuthenticated) return;
+    setState(() {
+      _session = _session.asB2bRetailContext(retailStoreId);
+    });
+  }
+
   void _onSessionExpired() {
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
@@ -165,26 +178,52 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
     final token = _session.accessToken;
     final b2bApi = widget.b2bApi ??
-        (token == null ? null : HttpB2bApi(baseUrl: baseUrl, token: token));
+        (token == null
+            ? null
+            : HttpB2bApi(
+                baseUrl: baseUrl,
+                token: token,
+                retailStoreContextId: _session.b2bRetailStoreId,
+              ));
     final b2cCatalogApi = widget.b2cCatalogApi ?? HttpB2cCatalogApi(baseUrl: baseUrl);
     final actionApi = widget.actionApi ?? HttpCustomerActionApi(
       baseUrl: baseUrl,
       token: token,
       guestSession: _guestSession,
+      b2bRetailStoreId: _session.b2bRetailStoreId,
     );
     final b2cAccountApi = widget.b2cAccountApi ?? HttpB2cAccountApi(
       baseUrl: baseUrl,
       token: token,
       guestSession: _guestSession,
     );
+    final storefrontApi = widget.storefrontApi ??
+        (widget.b2cCatalogApi != null
+            ? null
+            : HttpStorefrontApi(
+                baseUrl: baseUrl,
+                token: token,
+                retailStoreContextId: _session.b2bRetailStoreId,
+              ));
+    final wholesaleCommerceApi = widget.wholesaleCommerceApi ??
+        (token == null || widget.b2bApi != null
+            ? null
+            : HttpWholesaleCommerceApi(
+                baseUrl: baseUrl,
+                token: token,
+                retailStoreContextId: _session.b2bRetailStoreId,
+              ));
     final router = CustomerAppRouter(
       _session,
       b2bApi: b2bApi,
       b2cCatalogApi: b2cCatalogApi,
       b2cAccountApi: b2cAccountApi,
       actionApi: actionApi,
+      storefrontApi: storefrontApi,
+      wholesaleApi: wholesaleCommerceApi,
       onAuthenticated: _onAuthenticated,
       onSessionExpired: _onSessionExpired,
+      onEnterWholesale: _enterWholesale,
     );
 
     return MaterialApp(

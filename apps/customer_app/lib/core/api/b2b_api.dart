@@ -6,16 +6,35 @@ abstract class B2bApi {
 }
 
 class HttpB2bApi implements B2bApi {
-  HttpB2bApi({required this.baseUrl, required this.token, http.Client? client}) : _client = client ?? http.Client();
+  HttpB2bApi({
+    required this.baseUrl,
+    required this.token,
+    this.retailStoreContextId,
+    http.Client? client,
+  }) : _client = client ?? http.Client();
+
   final String baseUrl;
   final String token;
+  final int? retailStoreContextId;
   final http.Client _client;
 
   @override
   Future<Object?> get(String path) async {
-    final response = await _client.get(Uri.parse('$baseUrl$path'), headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'});
-    if (response.statusCode == 401 || response.statusCode == 403) throw const B2bApiException('not_authorized');
-    if (response.statusCode < 200 || response.statusCode >= 300) throw B2bApiException('http_${response.statusCode}');
+    final response = await _client.get(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        if (retailStoreContextId != null)
+          'X-FOODEX-Retail-Store-ID': retailStoreContextId.toString(),
+      },
+    );
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw const B2bApiException('not_authorized');
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw B2bApiException('http_${response.statusCode}');
+    }
     return response.body.isEmpty ? null : jsonDecode(response.body);
   }
 }
