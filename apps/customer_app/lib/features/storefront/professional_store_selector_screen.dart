@@ -35,8 +35,6 @@ class _ProfessionalStoreSelectorScreenState extends State<ProfessionalStoreSelec
   StoreSelectorChannel _channel = StoreSelectorChannel.wholesale;
 
   bool get _rtl => Directionality.of(context) == TextDirection.rtl;
-  bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
-  String t(String ar, String en) => _ar ? ar : en;
 
   Future<Map<String, dynamic>> _load() async {
     if (widget.storefrontApi == null) {
@@ -86,16 +84,15 @@ class _ProfessionalStoreSelectorScreenState extends State<ProfessionalStoreSelec
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(t('اختر متجر التجزئة المستلم', 'Choose receiving retail store'),
+              Text(context.tr('customer.store.receiver.title'),
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
-              Text(t('سيتم ربط طلب الجملة ومخزون الاستلام بهذا المتجر.',
-                  'The wholesale order and receiving inventory will be linked to this store.')),
+              Text(context.tr('customer.store.receiver.subtitle')),
               const SizedBox(height: 12),
               ...ids.map((id) => ListTile(
                 minTileHeight: 48,
                 leading: const Icon(Icons.storefront_rounded),
-                title: Text(names[id]?.isNotEmpty == true ? names[id]! : t('متجر #$id', 'Store #$id')),
+                title: Text(names[id]?.isNotEmpty == true ? names[id]! : '${context.tr('customer.store.generic')} #$id'),
                 onTap: () => Navigator.pop(ctx, id),
               )),
             ]),
@@ -143,8 +140,8 @@ class _ProfessionalStoreSelectorScreenState extends State<ProfessionalStoreSelec
             if (snapshot.hasError) {
               return _SelectorState(
                 icon: Icons.cloud_off_rounded,
-                title: t('تعذر تحميل المتاجر', 'Could not load stores'),
-                subtitle: t('يرجى المحاولة مرة أخرى', 'Please try again'),
+                title: context.tr('customer.store.error.title'),
+                subtitle: context.tr('customer.store.error.subtitle'),
                 button: context.tr('customer.action.retry'),
                 onPressed: _retry,
               );
@@ -185,8 +182,8 @@ class _ProfessionalStoreSelectorScreenState extends State<ProfessionalStoreSelec
                         hasScrollBody: false,
                         child: _SelectorState(
                           icon: Icons.storefront_outlined,
-                          title: t('لا توجد متاجر متاحة حاليًا', 'No stores are currently available'),
-                          subtitle: t('جرّب مرة أخرى بعد قليل.', 'Please try again shortly.'),
+                          title: context.tr('customer.store.empty.available'),
+                          subtitle: context.tr('customer.store.empty.retry'),
                           button: context.tr('customer.action.retry'),
                           onPressed: _retry,
                         ),
@@ -242,7 +239,6 @@ class StoreSelectorHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
     return Column(children: [
       Directionality(
         textDirection: TextDirection.ltr,
@@ -262,7 +258,7 @@ class StoreSelectorHeader extends StatelessWidget {
       Text(context.tr('customer.store.title'), textAlign: TextAlign.center,
         style: const TextStyle(color: Color(0xFF071B37), fontSize: 34, height: 1.2, fontWeight: FontWeight.w900)),
       const SizedBox(height: 8),
-      Text(ar ? 'تسوق من المتاجر المتاحة حسب نوع الخدمة' : 'Shop available stores by service type',
+      Text(context.tr('customer.store.selector.subtitle'),
         textAlign: TextAlign.center,
         style: const TextStyle(color: Color(0xFF778393), fontSize: 18, height: 1.45, fontWeight: FontWeight.w500)),
     ]);
@@ -276,11 +272,10 @@ class StoreTypeSegmentedControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
-    Widget item(StoreSelectorChannel value, String arText, String enText, IconData icon) {
+    Widget item(StoreSelectorChannel value, String key, IconData icon) {
       final active = selected == value;
       return Expanded(child: Semantics(
-        button: true, selected: active, label: ar ? arText : enText,
+        button: true, selected: active, label: context.tr(key),
         child: InkWell(
           onTap: () => onChanged(value),
           borderRadius: BorderRadius.circular(34),
@@ -325,9 +320,9 @@ class StoreTypeSegmentedControl extends StatelessWidget {
       child: Directionality(
         textDirection: TextDirection.ltr,
         child: Row(children: [
-          item(StoreSelectorChannel.wholesale, 'جملة', 'Wholesale', Icons.store_rounded),
+          item(StoreSelectorChannel.wholesale, 'customer.store.tab.wholesale', Icons.store_rounded),
           const SizedBox(width: 4),
-          item(StoreSelectorChannel.retail, 'التجزئة', 'Retail', Icons.shopping_cart_rounded),
+          item(StoreSelectorChannel.retail, 'customer.store.tab.retail', Icons.shopping_cart_rounded),
         ]),
       ),
     );
@@ -518,7 +513,6 @@ class StoreCTA extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
     return SizedBox(
       height: 52, width: compact ? double.infinity : 198,
       child: FilledButton(
@@ -527,7 +521,7 @@ class StoreCTA extends StatelessWidget {
           backgroundColor: const Color(0xFF009B4D), disabledBackgroundColor: const Color(0xFFE5E8EB),
           disabledForegroundColor: const Color(0xFF9AA4B1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
-        child: Text(enabled ? (ar ? 'تسوق الآن' : 'Shop now') : (ar ? 'مغلق الآن' : 'Closed'),
+        child: Text(enabled ? context.tr('customer.store.cta.shop') : context.tr('customer.store.cta.closed'),
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
       ),
     );
