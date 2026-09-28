@@ -18,7 +18,7 @@ void main() {
 
     expect(Directionality.of(tester.element(find.text('تفاصيل المنتج'))), TextDirection.rtl);
     expect(find.text('Tomato Box'), findsOneWidget);
-    expect(find.textContaining('3.250 KWD'), findsOneWidget);
+    expect(find.textContaining('3.250 EGP'), findsOneWidget);
     expect(find.byKey(const ValueKey('b2c-product-gallery')), findsOneWidget);
     expect(find.text('إضافة إلى السلة'), findsOneWidget);
   });
