@@ -140,6 +140,7 @@ final class LookupManagementController extends Controller
         $this->assertType($type);
         $actor = $this->actor($request);
         $payload = $this->payload($request, $type, true, $actor);
+        $this->requireExplicitSupportAccess($actor, $payload['scope'], $request);
         $this->authorizeScopedPermission($actor, 'lookups.manage', $payload['scope'], $payload['store_id']);
 
         $scopeKey = $this->scope->authorizeMutation(
@@ -181,6 +182,7 @@ final class LookupManagementController extends Controller
         $this->assertType($type);
         $actor = $this->actor($request);
         $model = $this->find($type, $lookup);
+        $this->requireExplicitSupportAccess($actor, (string) $model->scope, $request);
         $this->authorizeScopedPermission(
             $actor,
             'lookups.manage',
@@ -197,6 +199,7 @@ final class LookupManagementController extends Controller
         );
 
         $payload = $this->payload($request, $type, false, $actor, $model);
+        $this->requireExplicitSupportAccess($actor, $payload['scope'], $request);
         $this->authorizeScopedPermission($actor, 'lookups.manage', $payload['scope'], $payload['store_id']);
         $payload['scope_key'] = $this->scope->authorizeMutation(
             $actor,
@@ -235,6 +238,7 @@ final class LookupManagementController extends Controller
         $this->assertType($type);
         $actor = $this->actor($request);
         $model = $this->find($type, $lookup);
+        $this->requireExplicitSupportAccess($actor, (string) $model->scope, $request);
         $this->authorizeScopedPermission(
             $actor,
             'lookups.manage',
@@ -275,6 +279,7 @@ final class LookupManagementController extends Controller
         $this->assertType($type);
         $actor = $this->actor($request);
         $model = $this->find($type, $lookup);
+        $this->requireExplicitSupportAccess($actor, (string) $model->scope, $request);
         $this->authorizeScopedPermission(
             $actor,
             'lookups.manage',
@@ -515,6 +520,22 @@ final class LookupManagementController extends Controller
         abort_unless(collect($storeIds)->contains($storeId), 404);
 
         return [LookupScopeService::STORE, $storeId];
+    }
+
+    private function requireExplicitSupportAccess(User $actor, string $scope, Request $request): void
+    {
+        if (! $actor->hasRole('SUPER_ADMIN')
+            || $scope !== LookupScopeService::STORE
+            || $request->boolean('support_access')) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'support_access' => [$this->msg(
+                'فعّل «الدعم الصريح» لإدارة بيانات متجر التجزئة بصلاحية مالك المنصة.',
+                'Enable explicit support access to manage Retail-store data as the platform owner.',
+            )],
+        ]);
     }
 
     private function redirect(string $type, string $message, ?int $storeId = null): RedirectResponse

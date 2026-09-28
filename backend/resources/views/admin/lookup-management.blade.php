@@ -37,6 +37,7 @@ $scopeLabels=['global'=>$ar?'عام للمنصة':'Platform global','b2b'=>$ar?'
 
 @if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+@if($isSuperAdmin)<div class="notice">{{ $ar?'تنبيه: تعديل بيانات نطاق متجر تجزئة يتطلب تفعيل «الدعم الصريح» داخل نفس الإجراء. هذا يحافظ على عزل المتاجر ويسجل عملية الدعم.':'Note: Retail store-scoped changes require Explicit support access on the same action. This preserves tenant isolation and audits the support operation.' }}</div>@endif
 
 <nav class="tabs">
 <a class="tab {{ $type==='brands'?'active':'' }}" href="{{ route('admin.lookups.index',['type'=>'brands']) }}">{{ $ar?'العلامات التجارية':'Brands' }}</a>

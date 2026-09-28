@@ -218,7 +218,9 @@ class LookupManagementCenterTest extends TestCase
             'is_active' => 1,
         ];
 
-        $this->actingAs($admin)->post('/admin/lookups/brands', $payload)->assertForbidden();
+        $this->actingAs($admin)->post('/admin/lookups/brands', $payload)
+            ->assertRedirect()
+            ->assertSessionHasErrors('support_access');
 
         $this->actingAs($admin)->post('/admin/lookups/brands', [
             ...$payload,
@@ -235,6 +237,32 @@ class LookupManagementCenterTest extends TestCase
         ]);
         $this->assertDatabaseHas('audit_logs', ['event' => 'tenant.support_access.entered', 'user_id' => $admin->id]);
         $this->assertDatabaseHas('audit_logs', ['event' => 'lookup.brand.created', 'auditable_id' => $brandId]);
+    }
+
+    public function test_super_admin_store_lookup_mutations_return_support_validation_instead_of_raw_403(): void
+    {
+        $store = $this->store('B2C', 'SUPPORT-ACTIONS');
+        $admin = $this->globalRole('SUPER_ADMIN', 'support-actions@example.test');
+        $brandId = $this->brand('support-actions-brand', 'Support Actions Brand', 'store', $store);
+
+        $this->actingAs($admin)->patch('/admin/lookups/brands/'.$brandId, [
+            'scope' => 'store',
+            'store_id' => $store,
+            'name_ar' => 'علامة دعم',
+            'name_en' => 'Support Brand',
+            'slug' => 'support-actions-brand',
+            'is_active' => 1,
+        ])->assertRedirect()->assertSessionHasErrors('support_access');
+
+        $this->actingAs($admin)->patch('/admin/lookups/brands/'.$brandId.'/status')
+            ->assertRedirect()
+            ->assertSessionHasErrors('support_access');
+
+        $this->actingAs($admin)->delete('/admin/lookups/brands/'.$brandId)
+            ->assertRedirect()
+            ->assertSessionHasErrors('support_access');
+
+        $this->assertDatabaseHas('brands', ['id' => $brandId, 'is_active' => true]);
     }
 
     public function test_cross_channel_lookup_id_tampering_is_rejected_server_side(): void
