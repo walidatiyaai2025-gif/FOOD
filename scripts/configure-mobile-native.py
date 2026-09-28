@@ -82,7 +82,6 @@ def _write_android_brand_resources(app: Path) -> None:
     drawable = res / 'drawable-nodpi'
     _copy(APP_ICON_FOREGROUND, drawable / 'foodex_launcher_foreground.png')
     _copy(APP_ICON_FOREGROUND, drawable / 'foodex_splash_icon.png')
-    _copy(SPLASH_IMAGE, drawable / 'foodex_splash_full.png')
 
     values = res / 'values'
     values.mkdir(parents=True, exist_ok=True)
@@ -114,7 +113,7 @@ def _write_android_brand_resources(app: Path) -> None:
         '    <item>\n'
         '        <bitmap\n'
         '            android:gravity="center"\n'
-        '            android:src="@drawable/foodex_splash_full" />\n'
+        '            android:src="@drawable/foodex_splash_icon" />\n'
         '    </item>\n'
         '</layer-list>\n'
     )
