@@ -167,6 +167,48 @@ class StorefrontAdminBuilderTest extends TestCase
         );
     }
 
+    public function test_super_admin_storefront_mutation_requires_explicit_support_context(): void
+    {
+        $storeId = $this->retailStore('BUILDER-SUPPORT');
+        $admin = User::query()->create([
+            'name' => 'Platform Owner',
+            'email' => 'builder-owner@example.test',
+            'password' => 'Password1234',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $payload = [
+            'store_id' => $storeId,
+            'theme_code' => 'retail_grocery',
+            'primary_color' => '#078A43',
+            'primary_dark_color' => '#006736',
+            'accent_color' => '#B5F23E',
+            'background_color' => '#F8FBF9',
+        ];
+
+        $this->actingAs($admin)
+            ->put(route('admin.b2c.storefront.settings'), $payload)
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('storefront_settings', ['store_id' => $storeId]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.b2c.storefront.settings'), [...$payload, 'support_access' => 1])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('storefront_settings', [
+            'store_id' => $storeId,
+            'theme_code' => 'retail_grocery',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+            'event' => 'tenant.support_access.entered',
+        ]);
+    }
+
     private function storeAdmin(int $storeId, string $email): User
     {
         $user = User::query()->create([
