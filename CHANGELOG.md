@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.16 - B2B Upgrade RBAC Reconciliation
+- Reconcile canonical built-in FOODEX roles and permission assignments during upgrades so existing installations cannot retain stale B2B authorization state.
+- Restore B2B_ADMIN and wholesale operational roles to their canonical global scope and expected permissions, including Orders, Catalog, Inventory, Drivers, Pricing, Finance, Reports and Settings access.
+- Preserve custom/delegated roles unchanged and keep Retail store isolation and cross-channel restrictions intact.
+- Add an upgrade regression test that starts from an intentionally stale B2B_ADMIN database and verifies every approved B2B administration module opens successfully.
+
 ## 1.0.15 - Admin Authorization Surface Audit
 - Replace raw 403 responses on visible Retail store-scoped lookup actions with an actionable Explicit Support Access validation flow for platform owners.
 - Keep Retail tenant isolation intact: SUPER_ADMIN must still explicitly enter audited support access before mutating store-owned Brands or Units.
