@@ -419,11 +419,19 @@
         @elseif($column==='actions' && $module==='reports')
           <div class="links">@foreach($row['actions'] as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach</div>
         @elseif($column==='actions' && $module==='clients' && $user->hasPermission('b2b.accounts.manage'))
-          <form method="post" action="{{ route('admin.b2b.clients.status',['account'=>$row['_id']]) }}" class="links">
-            @csrf @method('patch')
-            <select name="status" required>@foreach(['pending','active','suspended','denied'] as $state)<option value="{{ $state }}" @selected($row['status']===$state)>{{ $state }}</option>@endforeach</select>
-            <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
-          </form>
+          @if(!empty($row['_retail_linked']))
+            <span class="muted" style="display:inline-block;max-width:260px;font-size:12px;line-height:1.55">
+              {{ app()->getLocale()==='ar'
+                  ? 'الحالة مرتبطة بمتجر التجزئة «'.($row['_retail_store_name'] ?: '—').'» ويتم التحكم بها من حالة المتجر.'
+                  : 'Status is controlled by the linked Retail store “'.($row['_retail_store_name'] ?: '—').'”.' }}
+            </span>
+          @else
+            <form method="post" action="{{ route('admin.b2b.clients.status',['account'=>$row['_id']]) }}" class="links">
+              @csrf @method('patch')
+              <select name="status" required>@foreach(['pending','active','suspended','denied'] as $state)<option value="{{ $state }}" @selected($row['status']===$state)>{{ $state }}</option>@endforeach</select>
+              <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
+            </form>
+          @endif
         @elseif($column==='actions' && $module==='products' && $user->hasPermission('catalog.edit'))
           <details><summary>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</summary>
           <form method="post" action="{{ route('admin.b2b.products.update',['product'=>$row['_id']]) }}" class="links workspace-inline-form">
