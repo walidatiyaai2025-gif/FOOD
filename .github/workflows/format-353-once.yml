@@ -1,0 +1,42 @@
+name: Format #353 Once
+
+on:
+  push:
+    branches:
+      - fix/353-push-driver-order-management
+    paths:
+      - ".github/workflows/format-353-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/353-push-driver-order-management
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+      - name: Install backend dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist
+      - name: Apply Pint
+        working-directory: backend
+        run: vendor/bin/pint app routes tests
+      - name: Commit formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git add backend/app backend/routes backend/tests
+          git commit -m "style: apply Pint to #353 changes"
+          git push origin HEAD:fix/353-push-driver-order-management
