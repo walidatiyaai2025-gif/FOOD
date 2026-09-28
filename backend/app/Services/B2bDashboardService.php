@@ -55,7 +55,7 @@ final class B2bDashboardService
             ->count();
 
         $series = $this->series($storeIds, $rangeFrom, $rangeTo);
-        $recentOrders = $this->recentOrders($storeIds);
+        $recentOrders = $this->recentOrders($storeIds, $from, $to);
         $lowStock = $this->lowStock($storeIds);
 
         return [
@@ -147,7 +147,7 @@ final class B2bDashboardService
     }
 
     /** @param list<int> $storeIds */
-    private function recentOrders(array $storeIds): array
+    private function recentOrders(array $storeIds, string $from, string $to): array
     {
         return DB::table('orders')
             ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
@@ -155,6 +155,7 @@ final class B2bDashboardService
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2b')
             ->whereNotNull('orders.b2b_customer_id')
+            ->whereBetween('orders.created_at', [$from, $to])
             ->latest('orders.created_at')
             ->limit(4)
             ->get([
