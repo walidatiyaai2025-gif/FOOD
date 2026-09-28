@@ -197,11 +197,18 @@ class _ProfessionalStoreSelectorScreenState extends State<ProfessionalStoreSelec
                         sliver: SliverList.separated(
                           itemCount: visible.length,
                           separatorBuilder: (_, __) => const SizedBox(height: 18),
-                          itemBuilder: (_, index) => StoreCard(
-                            store: visible[index],
-                            wholesale: channel == StoreSelectorChannel.wholesale,
-                            onTap: () => _open(visible[index], retail, channel: channel),
-                          ),
+                          itemBuilder: (_, index) {
+                            final store = visible[index];
+                            final id = _int(store['id']);
+                            return StoreCard(
+                              key: channel == StoreSelectorChannel.retail && id > 0
+                                  ? ValueKey('b2c-store-$id')
+                                  : ValueKey('wholesale-store-$id'),
+                              store: store,
+                              wholesale: channel == StoreSelectorChannel.wholesale,
+                              onTap: () => _open(store, retail, channel: channel),
+                            );
+                          },
                         ),
                       ),
                   ],
@@ -271,12 +278,25 @@ class StoreTypeSegmentedControl extends StatelessWidget {
               borderRadius: BorderRadius.circular(34),
               boxShadow: active ? const [BoxShadow(color: Color(0x22009B4D), blurRadius: 18, offset: Offset(0, 6))] : null,
             ),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(icon, size: 20, color: active ? Colors.white : const Color(0xFF071B37)),
-              const SizedBox(width: 8),
-              Text(ar ? arText : enText, maxLines: 1,
-                style: TextStyle(color: active ? Colors.white : const Color(0xFF071B37), fontSize: 16, fontWeight: FontWeight.w800)),
-            ]),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(icon, size: 20, color: active ? Colors.white : const Color(0xFF071B37)),
+                  const SizedBox(width: 8),
+                  Text(
+                    ar ? arText : enText,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: active ? Colors.white : const Color(0xFF071B37),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ]),
+              ),
+            ),
           ),
         ),
       ));
