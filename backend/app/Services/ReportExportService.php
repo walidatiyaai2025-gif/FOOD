@@ -187,73 +187,62 @@ final class ReportExportService
     /** @param array<string, mixed> $report */
     private function pdf(array $report, string $locale): string
     {
-        $lines = $this->summaryLines($report, $locale);
+        if (! class_exists(\TCPDF::class)) {
+            throw new RuntimeException('TCPDF is required for Unicode PDF exports.');
+        }
+
+        $rtl = $locale === 'ar';
+        $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetCreator('FOODEX');
+        $pdf->SetAuthor('FOODEX');
+        $pdf->SetTitle($rtl ? 'تقرير FOODEX' : 'FOODEX Report');
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetMargins(10, 12, 10);
+        $pdf->SetAutoPageBreak(true, 12);
+        $pdf->SetCompression(true);
+        $pdf->setRTL($rtl);
+        $pdf->AddPage();
+        $pdf->SetFont('dejavusans', '', 9);
+
+        $align = $rtl ? 'right' : 'left';
+        $dir = $rtl ? 'rtl' : 'ltr';
+        $html = '<div dir="'.$dir.'" style="text-align:'.$align.';font-family:dejavusans;">';
+        foreach ($this->summaryLines($report, $locale) as $line) {
+            $html .= '<div style="margin-bottom:4px;">'.$this->html((string) $line).'</div>';
+        }
+
         $columns = (array) ($report['columns'] ?? []);
-        $lines[] = implode(' | ', array_map(
-            fn (string $column): string => (string) __("reports.columns.{$column}"),
-            $columns,
-        ));
-
+        $html .= '<br><table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;"><thead><tr>';
+        foreach ($columns as $column) {
+            $html .= '<th style="font-weight:bold;background-color:#f3f5f4;">'.$this->html((string) __("reports.columns.{$column}")).'</th>';
+        }
+        $html .= '</tr></thead><tbody>';
         foreach ((array) ($report['rows'] ?? []) as $row) {
-            $lines[] = implode(' | ', array_map(
-                fn (string $column): string => (string) ($row[$column] ?? ''),
-                $columns,
-            ));
-        }
-
-        $pages = array_chunk($lines, 42);
-        $objects = [];
-        $pageObjectIds = [];
-        $fontId = 3;
-        $nextId = 4;
-
-        foreach ($pages as $pageLines) {
-            $pageId = $nextId++;
-            $contentId = $nextId++;
-            $pageObjectIds[] = $pageId;
-
-            $content = "BT\n/F1 9 Tf\n40 800 Td\n12 TL\n";
-            foreach ($pageLines as $line) {
-                $content .= '('.$this->pdfEscape($this->pdfLine((string) $line, $locale)).") Tj\nT*\n";
+            $html .= '<tr>';
+            foreach ($columns as $column) {
+                $html .= '<td>'.$this->html((string) ($row[$column] ?? '')).'</td>';
             }
-            $content .= 'ET';
+            $html .= '</tr>';
+        }
+        $html .= '</tbody></table></div>';
 
-            $objects[$pageId] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] '
-                .'/Resources << /Font << /F1 '.$fontId.' 0 R >> >> /Contents '.$contentId.' 0 R >>';
-            $objects[$contentId] = '<< /Length '.strlen($content)." >>\nstream\n{$content}\nendstream";
+        $pdf->writeHTML($html, true, false, true, false, '');
+        $content = $pdf->Output('', 'S');
+        if (! is_string($content) || ! str_starts_with($content, '%PDF-')) {
+            throw new RuntimeException('Unable to generate Unicode PDF report.');
         }
 
-        $objects[$fontId] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
-        $objects[1] = '<< /Type /Catalog /Pages 2 0 R /Lang ('.($locale === 'ar' ? 'ar-KW' : 'en-US').') >>';
-        $objects[2] = '<< /Type /Pages /Kids ['.implode(' ', array_map(
-            fn (int $id): string => "{$id} 0 R",
-            $pageObjectIds,
-        )).'] /Count '.count($pageObjectIds).' >>';
+        return $content;
+    }
 
-        ksort($objects);
-        $pdf = "%PDF-1.4\n";
-        $offsets = [0];
-
-        foreach ($objects as $id => $body) {
-            $offsets[$id] = strlen($pdf);
-            $pdf .= "{$id} 0 obj\n{$body}\nendobj\n";
-        }
-
-        $xref = strlen($pdf);
-        $maxId = max(array_keys($objects));
-        $pdf .= "xref\n0 ".($maxId + 1)."\n";
-        $pdf .= "0000000000 65535 f \n";
-        for ($id = 1; $id <= $maxId; $id++) {
-            $pdf .= sprintf("%010d 00000 n \n", $offsets[$id] ?? 0);
-        }
-
-        $pdf .= "trailer\n<< /Size ".($maxId + 1)." /Root 1 0 R >>\n";
-        $pdf .= "startxref\n{$xref}\n%%EOF";
-
-        return $pdf;
+    private function html(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     /** @param array<string, mixed> $report */
+    private function summaryLines    /** @param array<string, mixed> $report */
     private function summaryLines(array $report, string $locale): array
     {
         $filters = (array) ($report['filters'] ?? []);
@@ -366,21 +355,5 @@ final class ReportExportService
         }
 
         return $letters;
-    }
-
-    private function pdfEscape(string $value): string
-    {
-        return str_replace(['\\', '(', ')', "\r", "\n"], ['\\\\', '\\(', '\\)', ' ', ' '], $value);
-    }
-
-    private function pdfLine(string $value, string $locale): string
-    {
-        if ($locale !== 'ar' || preg_match('/[\x{0600}-\x{06FF}]/u', $value) !== 1) {
-            return mb_substr($value, 0, 150);
-        }
-
-        $characters = preg_split('//u', mb_substr($value, 0, 150), -1, PREG_SPLIT_NO_EMPTY);
-
-        return is_array($characters) ? implode('', array_reverse($characters)) : $value;
     }
 }
