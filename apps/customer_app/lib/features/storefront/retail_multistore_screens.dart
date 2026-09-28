@@ -88,6 +88,67 @@ class _StoreSelectionDesignScreenState
     };
   }
 
+  Future<int?> _chooseRetailContext(
+    BuildContext context,
+    List<int> contexts,
+    List<Map<String, dynamic>> retailStores,
+  ) async {
+    if (contexts.isEmpty) return null;
+    if (contexts.length == 1) return contexts.first;
+
+    final names = <int, String>{
+      for (final store in retailStores)
+        intValue(store['id']): store['name']?.toString() ?? 'متجر التجزئة',
+    };
+
+    return showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'اختر متجر التجزئة المستلم',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'سيتم ربط طلب الجملة ومخزون الاستلام بهذا المتجر.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6B7785),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...contexts.map(
+                  (storeId) => ListTile(
+                    leading: const Icon(Icons.storefront_outlined),
+                    title: Text(
+                      names[storeId] ?? 'متجر #' + storeId.toString(),
+                    ),
+                    trailing:
+                        const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+                    onTap: () =>
+                        Navigator.of(sheetContext).pop(storeId),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Directionality(
         textDirection: TextDirection.rtl,
@@ -169,7 +230,7 @@ class _StoreSelectionDesignScreenState
                             padding: const EdgeInsets.only(bottom: 14),
                             child: _WholesaleStoreCard(
                               store: store,
-                              onTap: () {
+                              onTap: () async {
                                 final storeId = intValue(store['id']);
                                 final contexts = (store['retail_context_ids']
                                             as List? ??
@@ -178,7 +239,16 @@ class _StoreSelectionDesignScreenState
                                     .where((id) => id > 0)
                                     .toList(growable: false);
                                 final retailContext =
-                                    contexts.isEmpty ? null : contexts.first;
+                                    await _chooseRetailContext(
+                                  context,
+                                  contexts,
+                                  retail,
+                                );
+                                if (contexts.isNotEmpty &&
+                                    retailContext == null) {
+                                  return;
+                                }
+
                                 widget.enterWholesale(retailContext);
                                 var route =
                                     '/b2b/home?store_id=' + storeId.toString();
@@ -186,7 +256,8 @@ class _StoreSelectionDesignScreenState
                                   route += '&retail_store_id=' +
                                       retailContext.toString();
                                 }
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                WidgetsBinding.instance
+                                    .addPostFrameCallback((_) {
                                   if (context.mounted) {
                                     Navigator.of(context).pushNamed(route);
                                   }
