@@ -109,6 +109,19 @@ class RetailStoreProvisioningTest extends TestCase
         ]);
     }
 
+    public function test_super_admin_can_open_retail_store_list_with_unlinked_legacy_store(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'legacy-list@example.test');
+        $this->retailStore('UNLINKED');
+
+        $this->withoutExceptionHandling();
+
+        $this->actingAs($admin)
+            ->get(route('admin.retail-stores.index'))
+            ->assertOk()
+            ->assertSee('Retail Store Provisioning');
+    }
+
     public function test_non_super_admin_cannot_provision_retail_store(): void
     {
         $b2b = $this->userWithRole('B2B_ADMIN', 'b2b@example.test');
