@@ -124,7 +124,10 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async {
     final response = await _request(
-      () => _client.get(_endpoint('driver/assignments'), headers: _headers),
+      () => _client.get(
+        _endpoint('driver/assignments').replace(queryParameters: const {'scope': 'active'}),
+        headers: _headers,
+      ),
     );
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic> || decoded['data'] is! List) {
