@@ -194,7 +194,7 @@ final class StorefrontController extends Controller
             ->all();
 
         $paymentMethods = array_values((array) config('checkout.payment_methods', ['cash_on_delivery']));
-        if ((float) $account->credit_limit > 0 && ! in_array('account_credit', $paymentMethods, true)) {
+        if ((float) $account->credit_limit > 0 && !in_array('account_credit', $paymentMethods, true)) {
             $paymentMethods[] = 'account_credit';
         }
 
@@ -235,7 +235,7 @@ final class StorefrontController extends Controller
                 'storefront_settings.header_address',
             ]);
 
-        if (! $applyZone) {
+        if (!$applyZone) {
             return $query;
         }
 
@@ -290,7 +290,7 @@ final class StorefrontController extends Controller
             return $value;
         }
 
-        if (! is_string($value) || trim($value) === '') {
+        if (!is_string($value) || trim($value) === '') {
             return [];
         }
 
@@ -301,7 +301,7 @@ final class StorefrontController extends Controller
 
     private function assetUrl(mixed $path): ?string
     {
-        if (! is_string($path) || trim($path) === '') {
+        if (!is_string($path) || trim($path) === '') {
             return null;
         }
 
