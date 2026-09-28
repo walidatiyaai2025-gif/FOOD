@@ -8,6 +8,7 @@ use App\Models\B2bPriceRule;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CustomerDomainResolver;
+use App\Services\WholesalePrincipal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -79,6 +80,8 @@ class B2bPricingController extends Controller
             'store_id' => ['required', 'integer', 'min:1'],
         ]);
         $storeId = (int) $validated['store_id'];
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        abort_unless($storeId === $principalStoreId, 404, 'Wholesale store is not available.');
 
         $row = DB::table('b2b_price_rules')
             ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
@@ -158,7 +161,7 @@ class B2bPricingController extends Controller
             'price_tier' => (string) $row->price_tier,
             'available_quantity' => $availableQuantity,
             'is_available' => $availableQuantity === null || $availableQuantity > 0,
-            'currency' => 'KWD',
+            'currency' => 'EGP',
         ]);
     }
 
@@ -169,11 +172,17 @@ class B2bPricingController extends Controller
         $customer = app(CustomerDomainResolver::class)->b2b($user);
         $account = B2bAccount::query()->where('b2b_customer_id', $customer->getKey())->where('status', 'active')->first();
         abort_unless($account instanceof B2bAccount && $account->price_tier_id !== null, 403, 'Approved B2B pricing account is required.');
-        $storeId = $request->integer('store_id');
-        if ($storeId <= 0) {
-            throw ValidationException::withMessages(['store_id' => ['A B2B store is required.']]);
-        }
-        $rows = DB::table('b2b_price_rules')
+        $requestedStoreId = $request->integer('store_id');
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        $storeId = $requestedStoreId > 0 ? $requestedStoreId : $principalStoreId;
+        abort_unless($storeId === $principalStoreId, 404, 'Wholesale store is not available.');
+
+        $validated = $request->validate([
+            'store_id' => ['nullable', 'integer', 'min:1'],
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $rowsQuery = DB::table('b2b_price_rules')
             ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', function ($join): void {
@@ -191,7 +200,17 @@ class B2bPricingController extends Controller
             ->where('catalogs.is_migration_quarantine', false)
             ->where('store_products.is_active', true)
             ->where('stores.is_active', true)
-            ->where('store_types.code', 'B2B')
+            ->where('store_types.code', 'B2B');
+
+        if (isset($validated['q']) && trim((string) $validated['q']) !== '') {
+            $term = '%'.trim((string) $validated['q']).'%';
+            $rowsQuery->where(function ($query) use ($term): void {
+                $query->where('products.name', 'like', $term)
+                    ->orWhere('products.sku', 'like', $term);
+            });
+        }
+
+        $rows = $rowsQuery
             ->orderBy('products.id')
             ->get([
                 'products.id',
@@ -212,7 +231,7 @@ class B2bPricingController extends Controller
                 'image_url' => $this->assetUrl($row->primary_image_path),
             ]);
 
-        return response()->json(['data' => $rows, 'currency' => 'KWD']);
+        return response()->json(['data' => $rows, 'currency' => 'EGP', 'store_id' => $storeId]);
     }
 
     private function assetUrl(mixed $path): ?string
