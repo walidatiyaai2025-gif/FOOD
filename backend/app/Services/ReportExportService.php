@@ -242,7 +242,6 @@ final class ReportExportService
     }
 
     /** @param array<string, mixed> $report */
-    private function summaryLines    /** @param array<string, mixed> $report */
     private function summaryLines(array $report, string $locale): array
     {
         $filters = (array) ($report['filters'] ?? []);
