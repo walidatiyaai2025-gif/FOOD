@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! Schema::hasTable('store_service_zones')) {
+        if (!Schema::hasTable('store_service_zones')) {
             Schema::create('store_service_zones', function (Blueprint $table): void {
                 $table->id();
                 $table->foreignId('store_id')->constrained()->cascadeOnDelete();
@@ -23,7 +23,7 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasTable('storefront_settings')) {
+        if (!Schema::hasTable('storefront_settings')) {
             Schema::create('storefront_settings', function (Blueprint $table): void {
                 $table->id();
                 $table->foreignId('store_id')->unique()->constrained()->cascadeOnDelete();
@@ -38,7 +38,7 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasTable('storefront_sections')) {
+        if (!Schema::hasTable('storefront_sections')) {
             Schema::create('storefront_sections', function (Blueprint $table): void {
                 $table->id();
                 $table->foreignId('store_id')->constrained()->cascadeOnDelete();
@@ -55,7 +55,7 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasTable('retail_wholesale_product_mappings')) {
+        if (!Schema::hasTable('retail_wholesale_product_mappings')) {
             Schema::create('retail_wholesale_product_mappings', function (Blueprint $table): void {
                 $table->id();
                 $table->foreignId('retail_store_id')->constrained('stores')->cascadeOnDelete();
@@ -82,37 +82,37 @@ return new class extends Migration
         }
 
         Schema::table('products', function (Blueprint $table): void {
-            if (! Schema::hasColumn('products', 'barcode')) {
+            if (!Schema::hasColumn('products', 'barcode')) {
                 $table->string('barcode', 120)->nullable()->index()->after('sku');
             }
         });
 
         Schema::table('b2b_price_rules', function (Blueprint $table): void {
-            if (! Schema::hasColumn('b2b_price_rules', 'ordering_increment')) {
+            if (!Schema::hasColumn('b2b_price_rules', 'ordering_increment')) {
                 $table->decimal('ordering_increment', 14, 3)->default(1)->after('minimum_quantity');
             }
-            if (! Schema::hasColumn('b2b_price_rules', 'pack_size')) {
+            if (!Schema::hasColumn('b2b_price_rules', 'pack_size')) {
                 $table->decimal('pack_size', 14, 3)->default(1)->after('ordering_increment');
             }
-            if (! Schema::hasColumn('b2b_price_rules', 'case_size')) {
+            if (!Schema::hasColumn('b2b_price_rules', 'case_size')) {
                 $table->decimal('case_size', 14, 3)->nullable()->after('pack_size');
             }
-            if (! Schema::hasColumn('b2b_price_rules', 'pack_label')) {
+            if (!Schema::hasColumn('b2b_price_rules', 'pack_label')) {
                 $table->string('pack_label', 80)->nullable()->after('case_size');
             }
-            if (! Schema::hasColumn('b2b_price_rules', 'retail_reference_price')) {
+            if (!Schema::hasColumn('b2b_price_rules', 'retail_reference_price')) {
                 $table->decimal('retail_reference_price', 14, 3)->nullable()->after('unit_price');
             }
         });
 
         Schema::table('order_items', function (Blueprint $table): void {
-            if (! Schema::hasColumn('order_items', 'quantity_conversion_factor')) {
+            if (!Schema::hasColumn('order_items', 'quantity_conversion_factor')) {
                 $table->decimal('quantity_conversion_factor', 14, 3)->default(1)->after('quantity');
             }
         });
 
         Schema::table('orders', function (Blueprint $table): void {
-            if (! Schema::hasColumn('orders', 'requested_delivery_date')) {
+            if (!Schema::hasColumn('orders', 'requested_delivery_date')) {
                 $table->date('requested_delivery_date')->nullable()->after('address_id');
             }
         });
