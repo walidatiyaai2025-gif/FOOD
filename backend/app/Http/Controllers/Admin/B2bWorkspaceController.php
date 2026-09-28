@@ -243,6 +243,42 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء سائق الجملة.', 'Wholesale driver created.'));
     }
 
+    public function resetDriverPassword(Request $request, int $driver): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
+        ]);
+
+        $storeId = $this->principal->storeId();
+        $this->operationalScope->assertStore($actor, $storeId, 'drivers.b2b.manage', 'b2b');
+
+        $driverModel = Driver::query()
+            ->whereKey($driver)
+            ->where('driver_type', 'b2b')
+            ->where('store_id', $storeId)
+            ->firstOrFail();
+        $driverUser = User::query()->findOrFail($driverModel->user_id);
+
+        $before = ['driver_id' => $driverModel->id, 'user_id' => $driverUser->id];
+        $driverUser->forceFill(['password' => Hash::make($data['password'])])->save();
+        $driverUser->tokens()->delete();
+
+        $this->audit->record(
+            'b2b.driver.password_reset',
+            $actor,
+            $driverUser,
+            $before,
+            ['driver_id' => $driverModel->id, 'user_id' => $driverUser->id, 'tokens_revoked' => true],
+            $request,
+        );
+
+        return back()->with('status', $this->msg(
+            'تم تعيين كلمة مرور جديدة للسائق وإلغاء جلساته الحالية.',
+            'Driver password reset and existing sessions were revoked.',
+        ));
+    }
+
     public function savePriceRule(Request $request, B2bPricingController $pricing): RedirectResponse
     {
         $actor = $this->actor($request);
@@ -944,8 +980,8 @@ class B2bWorkspaceController extends Controller
                     ->whereIn('drivers.store_id', $storeIds)
                     ->where('drivers.is_active', true)
                     ->orderBy('users.name')
-                    ->get(['drivers.id', 'drivers.store_id', 'users.name'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'name' => $row->name])
+                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.email'])
+                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'name' => $row->name, 'email' => $row->email])
                     ->all(),
                 'orders' => DB::table('orders')
                     ->whereIn('store_id', $storeIds)
