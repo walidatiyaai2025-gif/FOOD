@@ -1,0 +1,1868 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../../core/api/b2b_api.dart';
+import '../../core/api/customer_action_api.dart';
+import '../../core/api/storefront_api.dart';
+import '../../core/api/wholesale_commerce_api.dart';
+import 'storefront_design_system.dart';
+
+class WholesaleHomeDesignScreen extends StatefulWidget {
+  const WholesaleHomeDesignScreen({
+    required this.location,
+    required this.api,
+    required this.actionApi,
+    super.key,
+  });
+
+  final String location;
+  final B2bApi? api;
+  final CustomerActionApi actionApi;
+
+  @override
+  State<WholesaleHomeDesignScreen> createState() =>
+      _WholesaleHomeDesignScreenState();
+}
+
+class _WholesaleHomeDesignScreenState
+    extends State<WholesaleHomeDesignScreen> {
+  final search = TextEditingController();
+  late final int storeId = wholesaleStoreId(widget.location);
+  late Future<Object?> future = _load();
+
+  Future<Object?> _load([String query = '']) {
+    if (widget.api == null || storeId <= 0) {
+      return Future<Object?>.value(const {'data': <Object>[]});
+    }
+    var endpoint =
+        '/api/v1/b2b/products?store_id=' + storeId.toString();
+    if (query.trim().isNotEmpty) {
+      endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
+    }
+    return widget.api!.get(endpoint);
+  }
+
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: FoodexPalette.wholesale.background,
+          body: SafeArea(
+            child: FutureBuilder<Object?>(
+              future: future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const FoodexLoading(
+                    key: ValueKey('b2b-loading'),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return FoodexErrorState(
+                    key: const ValueKey('b2b-error'),
+                    message: 'تعذر تحميل متجر الجملة.',
+                    onRetry: () =>
+                        setState(() => future = _load(search.text)),
+                  );
+                }
+
+                final rows = dataRows(snapshot.data);
+                return ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    _WholesaleHeader(
+                      title: 'متجر الجملة',
+                      onCart: () => Navigator.of(context).pushNamed(
+                        '/b2b/cart?store=' + storeId.toString(),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                      child: TextField(
+                        controller: search,
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (value) =>
+                            setState(() => future = _load(value)),
+                        decoration: const InputDecoration(
+                          hintText: 'البحث بالاسم أو SKU أو الباركود',
+                          prefixIcon: Icon(Icons.search_rounded),
+                          suffixIcon:
+                              Icon(Icons.qr_code_scanner_rounded),
+                        ),
+                      ),
+                    ),
+                    const _WholesaleHero(),
+                    const FoodexSectionHeader(
+                      title: 'التصنيفات',
+                      palette: FoodexPalette.wholesale,
+                    ),
+                    _WholesaleCategoryGrid(rows: rows),
+                    const FoodexSectionHeader(
+                      title: 'عروض الجملة',
+                      palette: FoodexPalette.wholesale,
+                    ),
+                    _WholesaleProductGrid(
+                      rows: rows,
+                      storeId: storeId,
+                      actionApi: widget.actionApi,
+                    ),
+                    const SizedBox(height: 22),
+                  ],
+                );
+              },
+            ),
+          ),
+          bottomNavigationBar: _WholesaleBottomNav(storeId: storeId),
+        ),
+      );
+}
+
+class _WholesaleHeader extends StatelessWidget {
+  const _WholesaleHeader({
+    required this.title,
+    required this.onCart,
+  });
+
+  final String title;
+  final VoidCallback onCart;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+        color: FoodexPalette.wholesale.primaryDark,
+        child: Row(
+          children: [
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              decoration: BoxDecoration(
+                color: FoodexPalette.wholesale.accent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Text(
+                'B2B',
+                style: TextStyle(
+                  color: FoodexPalette.wholesale.primaryDark,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const _RoundHeaderIcon(icon: Icons.notifications_none_rounded),
+            const SizedBox(width: 8),
+            _RoundHeaderIcon(
+              icon: Icons.shopping_cart_outlined,
+              onTap: onCart,
+            ),
+          ],
+        ),
+      );
+}
+
+class _RoundHeaderIcon extends StatelessWidget {
+  const _RoundHeaderIcon({
+    required this.icon,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.white.withOpacity(.14),
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(icon, color: Colors.white),
+          ),
+        ),
+      );
+}
+
+class _WholesaleHero extends StatelessWidget {
+  const _WholesaleHero();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+        child: Container(
+          height: 156,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            gradient: const LinearGradient(
+              colors: [
+                FoodexPalette.wholesale.primary,
+                FoodexPalette.wholesale.primaryDark,
+              ],
+            ),
+          ),
+          child: const Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'أفضل الأسعار لمتاجر التجزئة',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        height: 1.25,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    _WhitePill(label: 'تصفح الكتالوج'),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.warehouse_rounded,
+                size: 78,
+                color: Colors.white54,
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _WhitePill extends StatelessWidget {
+  const _WhitePill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: FoodexPalette.wholesale.primaryDark,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      );
+}
+
+class _WholesaleCategoryGrid extends StatelessWidget {
+  const _WholesaleCategoryGrid({required this.rows});
+
+  final List<Map<String, dynamic>> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = rows
+        .map((row) => row['category_id'])
+        .where((value) => value != null)
+        .map((value) => value.toString())
+        .toSet()
+        .take(6)
+        .toList(growable: false);
+    final count = math.max(6, categories.length);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: count,
+        gridDelegate:
+            const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 9,
+          mainAxisSpacing: 9,
+          childAspectRatio: 1.45,
+        ),
+        itemBuilder: (_, index) => Container(
+          decoration: BoxDecoration(
+            color: FoodexPalette.wholesale.soft,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.inventory_2_outlined,
+                color: FoodexPalette.wholesale.primary,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                index < categories.length
+                    ? 'تصنيف ' + categories[index]
+                    : 'المزيد',
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WholesaleProductGrid extends StatelessWidget {
+  const _WholesaleProductGrid({
+    required this.rows,
+    required this.storeId,
+    required this.actionApi,
+  });
+
+  final List<Map<String, dynamic>> rows;
+  final int storeId;
+  final CustomerActionApi actionApi;
+
+  @override
+  Widget build(BuildContext context) {
+    if (rows.isEmpty) {
+      return const FoodexEmptyState(
+        key: ValueKey('b2b-empty'),
+        title: 'لا توجد منتجات جملة',
+        subtitle: 'لا توجد منتجات متاحة لهذا الحساب حاليًا.',
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: rows.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount:
+            MediaQuery.sizeOf(context).width < 360 ? 1 : 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: .78,
+      ),
+      itemBuilder: (context, index) {
+        final row = rows[index];
+        final id = intValue(row['id']);
+        final minimum = doubleValue(
+          row['minimum_order_quantity'] ?? row['minimum_quantity'],
+          1,
+        );
+
+        return Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => Navigator.of(context).pushNamed(
+              '/b2b/products/' +
+                  id.toString() +
+                  '?store_id=' +
+                  storeId.toString(),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE9E3F0)),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: FoodexProductImage(
+                      url: row['image_url']?.toString(),
+                      palette: FoodexPalette.wholesale,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    row['name']?.toString() ?? '',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'سعر العميل ' +
+                        money(
+                          row['account_price'] ?? row['unit_price'],
+                        ),
+                    style: const TextStyle(
+                      color: FoodexPalette.wholesale.primary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    'الحد الأدنى ' + compactNumber(minimum),
+                    style: const TextStyle(
+                      color: FoodexPalette.wholesale.muted,
+                      fontSize: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 38,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor:
+                            FoodexPalette.wholesale.primary,
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: () async {
+                        try {
+                          await actionApi.addCartItem(
+                            storeId: storeId,
+                            productId: id,
+                            quantity: minimum,
+                          );
+                        } catch (error) {
+                          if (context.mounted) {
+                            await showOperationalError(context, error);
+                          }
+                        }
+                      },
+                      icon: const Icon(
+                        Icons.add_shopping_cart_rounded,
+                        size: 16,
+                      ),
+                      label: const Text(
+                        'أضف',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _WholesaleBottomNav extends StatelessWidget {
+  const _WholesaleBottomNav({required this.storeId});
+
+  final int storeId;
+
+  @override
+  Widget build(BuildContext context) => NavigationBar(
+        selectedIndex: 0,
+        indicatorColor: FoodexPalette.wholesale.soft,
+        onDestinationSelected: (index) {
+          if (index == 1) {
+            Navigator.of(context).pushNamed(
+              '/b2b/products?store_id=' + storeId.toString(),
+            );
+          } else if (index == 2) {
+            Navigator.of(context).pushNamed(
+              '/b2b/cart?store=' + storeId.toString(),
+            );
+          } else if (index == 3) {
+            Navigator.of(context).pushNamed('/b2b/orders');
+          }
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            label: 'الرئيسية',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.grid_view_rounded),
+            label: 'الكتالوج',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.shopping_cart_outlined),
+            label: 'السلة',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            label: 'طلباتي',
+          ),
+        ],
+      );
+}
+
+class WholesaleProductDetailsDesignScreen extends StatefulWidget {
+  const WholesaleProductDetailsDesignScreen({
+    required this.location,
+    required this.api,
+    required this.actionApi,
+    super.key,
+  });
+
+  final String location;
+  final B2bApi? api;
+  final CustomerActionApi actionApi;
+
+  @override
+  State<WholesaleProductDetailsDesignScreen> createState() =>
+      _WholesaleProductDetailsDesignScreenState();
+}
+
+class _WholesaleProductDetailsDesignScreenState
+    extends State<WholesaleProductDetailsDesignScreen> {
+  late final int storeId = wholesaleStoreId(widget.location);
+  late final int productId = productIdFromLocation(widget.location);
+  double? quantity;
+
+  @override
+  Widget build(BuildContext context) {
+    final endpoint = '/api/v1/b2b/products/' +
+        productId.toString() +
+        '?store_id=' +
+        storeId.toString();
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: FutureBuilder<Object?>(
+            future:
+                widget.api?.get(endpoint) ?? Future<Object?>.value(null),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const FoodexLoading(
+                  key: ValueKey('b2b-loading'),
+                );
+              }
+              if (snapshot.hasError) {
+                return const FoodexErrorState(
+                  key: ValueKey('b2b-error'),
+                  message: 'تعذر تحميل المنتج.',
+                );
+              }
+
+              final row = snapshot.data is Map
+                  ? Map<String, dynamic>.from(snapshot.data as Map)
+                  : <String, dynamic>{};
+              if (row.isEmpty) {
+                return const FoodexEmptyState(
+                  key: ValueKey('b2b-empty'),
+                  title: 'المنتج غير متاح',
+                  subtitle: 'لا تتوفر بيانات لهذا المنتج.',
+                );
+              }
+
+              final minimum =
+                  doubleValue(row['minimum_order_quantity'], 1);
+              final increment =
+                  doubleValue(row['ordering_increment'], 1);
+              quantity ??= minimum;
+              final images =
+                  (row['images'] as List? ?? const <Object>[])
+                      .whereType<String>()
+                      .where((value) => value.trim().isNotEmpty)
+                      .toList(growable: true);
+              final primary = row['image_url']?.toString();
+              if (images.isEmpty &&
+                  primary != null &&
+                  primary.isNotEmpty) {
+                images.add(primary);
+              }
+              final currency =
+                  row['currency']?.toString() ?? 'KWD';
+
+              return ListView(
+                key: const ValueKey('b2b-product-detail-data'),
+                padding: const EdgeInsets.fromLTRB(15, 10, 15, 22),
+                children: [
+                  FoodexTopBar(
+                    title: 'تفاصيل المنتج',
+                    actions: [
+                      IconButton(
+                        onPressed: () {},
+                        icon:
+                            const Icon(Icons.favorite_border_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  FoodexGallery(
+                    key: const ValueKey('b2b-product-gallery'),
+                    urls: images,
+                    palette: FoodexPalette.wholesale,
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    row['name']?.toString() ?? '',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    (row['sku']?.toString() ?? '') +
+                        (row['pack_label'] == null
+                            ? ''
+                            : ' · ' + row['pack_label'].toString()),
+                    style: const TextStyle(
+                      color: FoodexPalette.wholesale.muted,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 13),
+                  _PricingPanel(
+                    row: row,
+                    currency: currency,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InfoPill(
+                          icon: Icons.inventory_2_outlined,
+                          label:
+                              'الحد الأدنى ' + compactNumber(minimum),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _InfoPill(
+                          icon: Icons.warehouse_outlined,
+                          label: 'متاح ' +
+                              (row['available_quantity']?.toString() ??
+                                  '—'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  FoodexQuantityCta(
+                    key: const ValueKey('customer-add-cart'),
+                    quantity: quantity!,
+                    increment: increment,
+                    minimum: minimum,
+                    palette: FoodexPalette.wholesale,
+                    label: 'إضافة إلى السلة',
+                    onChanged: (value) =>
+                        setState(() => quantity = value),
+                    onPressed: () async {
+                      try {
+                        await widget.actionApi.addCartItem(
+                          storeId: storeId,
+                          productId: productId,
+                          quantity: quantity!,
+                        );
+                        if (context.mounted) {
+                          Navigator.of(context).pushNamed(
+                            '/b2b/cart?store=' + storeId.toString(),
+                          );
+                        }
+                      } catch (error) {
+                        if (context.mounted) {
+                          await showOperationalError(context, error);
+                        }
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 15),
+                  FoodexDetailAccordion(
+                    title: 'تفاصيل العبوة والتحويل',
+                    body: 'حجم العبوة: ' +
+                        (row['pack_size']?.toString() ?? '1') +
+                        ' · حجم الكرتونة: ' +
+                        (row['case_size']?.toString() ?? '—') +
+                        ' · الزيادة: ' +
+                        (row['ordering_increment']?.toString() ?? '1'),
+                  ),
+                  FoodexDetailAccordion(
+                    title: 'الوصف',
+                    body: row['description']?.toString() ??
+                        'لا توجد تفاصيل إضافية.',
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PricingPanel extends StatelessWidget {
+  const _PricingPanel({
+    required this.row,
+    required this.currency,
+  });
+
+  final Map<String, dynamic> row;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: FoodexPalette.wholesale.soft,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            _PriceRow(
+              label: 'سعر الجملة الأساسي',
+              value: money(
+                row['base_wholesale_price'],
+                currency: currency,
+              ),
+            ),
+            const Divider(height: 18),
+            _PriceRow(
+              label: 'سعر حسابك',
+              value: money(
+                row['account_price'],
+                currency: currency,
+              ),
+              emphasize: true,
+            ),
+            if (row['retail_reference_price'] != null) ...[
+              const Divider(height: 18),
+              _PriceRow(
+                label: 'سعر التجزئة المرجعي',
+                value: money(
+                  row['retail_reference_price'],
+                  currency: currency,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+}
+
+class _PriceRow extends StatelessWidget {
+  const _PriceRow({
+    required this.label,
+    required this.value,
+    this.emphasize = false,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: emphasize
+                  ? FoodexPalette.wholesale.primary
+                  : FoodexPalette.wholesale.text,
+              fontSize: emphasize ? 17 : 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      );
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: FoodexPalette.wholesale.soft,
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: FoodexPalette.wholesale.primary,
+            ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class WholesaleCartDesignScreen extends StatefulWidget {
+  const WholesaleCartDesignScreen({
+    required this.location,
+    required this.api,
+    required this.commerceApi,
+    super.key,
+  });
+
+  final String location;
+  final B2bApi? api;
+  final WholesaleCommerceApi? commerceApi;
+
+  @override
+  State<WholesaleCartDesignScreen> createState() =>
+      _WholesaleCartDesignScreenState();
+}
+
+class _WholesaleCartDesignScreenState
+    extends State<WholesaleCartDesignScreen> {
+  late int storeId = wholesaleStoreId(widget.location);
+  late Future<Object?> future = _load();
+
+  Future<Object?> _load() {
+    if (widget.commerceApi != null && storeId > 0) {
+      return widget.commerceApi!.cart(storeId);
+    }
+    var endpoint = '/api/v1/cart';
+    if (storeId > 0) {
+      endpoint += '?store=' + storeId.toString();
+    }
+    return widget.api?.get(endpoint) ?? Future<Object?>.value(null);
+  }
+
+  Future<void> _update(int id, double value) async {
+    if (widget.commerceApi == null) return;
+    try {
+      await widget.commerceApi!.updateItem(id, value);
+      setState(() => future = _load());
+    } catch (error) {
+      if (mounted) {
+        await showOperationalError(context, error);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: FoodexPalette.wholesale.background,
+          body: SafeArea(
+            child: FutureBuilder<Object?>(
+              future: future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const FoodexLoading(
+                    key: ValueKey('b2b-loading'),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return FoodexErrorState(
+                    key: const ValueKey('b2b-error'),
+                    message: 'تعذر تحميل سلة الجملة.',
+                    onRetry: () =>
+                        setState(() => future = _load()),
+                  );
+                }
+
+                final cart = snapshot.data is Map
+                    ? Map<String, dynamic>.from(snapshot.data as Map)
+                    : <String, dynamic>{};
+                if (storeId <= 0) {
+                  storeId = intValue(cart['store_id']);
+                }
+                final rows = mapRows(cart['items']);
+
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                  children: [
+                    const FoodexTopBar(title: 'سلة الجملة'),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 38,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: FoodexPalette.wholesale.soft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.warehouse_outlined,
+                            color:
+                                FoodexPalette.wholesale.primary,
+                            size: 19,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'متجر الجملة',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    if (rows.isEmpty)
+                      const FoodexEmptyState(
+                        key: ValueKey('b2b-empty'),
+                        title: 'السلة فارغة',
+                        subtitle: 'أضف منتجات من كتالوج الجملة.',
+                      )
+                    else
+                      ...rows.map((row) {
+                        final product = row['product'] is Map
+                            ? Map<String, dynamic>.from(
+                                row['product'] as Map,
+                              )
+                            : row;
+                        final id = intValue(row['id']);
+                        final qty =
+                            doubleValue(row['quantity'], 1);
+                        final increment = doubleValue(
+                          row['ordering_increment'],
+                          1,
+                        );
+                        final minimum = doubleValue(
+                          row['minimum_order_quantity'],
+                          1,
+                        );
+
+                        return _CartLine(
+                          name: product['name']?.toString() ??
+                              row['name']?.toString() ??
+                              '',
+                          subtitle:
+                              product['sku']?.toString() ?? '',
+                          quantity: qty,
+                          price:
+                              row['line_total'] ?? row['unit_price'],
+                          onMinus: widget.commerceApi == null
+                              ? null
+                              : () {
+                                  final next =
+                                      math.max(minimum, qty - increment);
+                                  _update(id, next.toDouble());
+                                },
+                          onPlus: widget.commerceApi == null
+                              ? null
+                              : () => _update(id, qty + increment),
+                        );
+                      }),
+                    const SizedBox(height: 14),
+                    _CartTotalPanel(
+                      subtotal: cart['subtotal'],
+                      enabled: rows.isNotEmpty && storeId > 0,
+                      onCheckout: () => Navigator.of(context)
+                          .pushNamed(
+                            '/b2b/checkout?store_id=' +
+                                storeId.toString(),
+                          ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      );
+}
+
+class _CartLine extends StatelessWidget {
+  const _CartLine({
+    required this.name,
+    required this.subtitle,
+    required this.quantity,
+    required this.price,
+    required this.onMinus,
+    required this.onPlus,
+  });
+
+  final String name;
+  final String subtitle;
+  final double quantity;
+  final Object? price;
+  final VoidCallback? onMinus;
+  final VoidCallback? onPlus;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: const Color(0xFFE9E3F0)),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 66,
+              height: 66,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: FoodexPalette.wholesale.soft,
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(14)),
+                ),
+                child: Icon(
+                  Icons.inventory_2_outlined,
+                  color: FoodexPalette.wholesale.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: FoodexPalette.wholesale.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _MiniStep(
+                        icon: Icons.remove,
+                        onTap: onMinus,
+                      ),
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 9),
+                        child: Text(
+                          compactNumber(quantity),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      _MiniStep(
+                        icon: Icons.add,
+                        onTap: onPlus,
+                      ),
+                      const Spacer(),
+                      Text(
+                        money(price),
+                        style: const TextStyle(
+                          color:
+                              FoodexPalette.wholesale.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _MiniStep extends StatelessWidget {
+  const _MiniStep({
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: FoodexPalette.wholesale.soft,
+        borderRadius: BorderRadius.circular(9),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(9),
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: Icon(icon, size: 17),
+          ),
+        ),
+      );
+}
+
+class _CartTotalPanel extends StatelessWidget {
+  const _CartTotalPanel({
+    required this.subtotal,
+    required this.enabled,
+    required this.onCheckout,
+  });
+
+  final Object? subtotal;
+  final bool enabled;
+  final VoidCallback onCheckout;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: FoodexPalette.wholesale.primaryDark,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'الإجمالي',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                Text(
+                  money(subtotal),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 13),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: enabled ? onCheckout : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor:
+                      FoodexPalette.wholesale.primaryDark,
+                ),
+                child: const Text('إتمام الطلب'),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class WholesaleCheckoutDesignScreen extends StatefulWidget {
+  const WholesaleCheckoutDesignScreen({
+    required this.location,
+    required this.storefrontApi,
+    required this.commerceApi,
+    super.key,
+  });
+
+  final String location;
+  final StorefrontApi? storefrontApi;
+  final WholesaleCommerceApi? commerceApi;
+
+  @override
+  State<WholesaleCheckoutDesignScreen> createState() =>
+      _WholesaleCheckoutDesignScreenState();
+}
+
+class _WholesaleCheckoutDesignScreenState
+    extends State<WholesaleCheckoutDesignScreen> {
+  late final int storeId = wholesaleStoreId(widget.location);
+  late Future<Map<String, dynamic>> future = _load();
+  int? addressId;
+  String? deliveryDate;
+  String? paymentMethod;
+  final note = TextEditingController();
+
+  Future<Map<String, dynamic>> _load() =>
+      widget.storefrontApi?.b2bCheckoutOptions(storeId) ??
+      Future<Map<String, dynamic>>.value(
+        const <String, dynamic>{},
+      );
+
+  @override
+  void dispose() {
+    note.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: FoodexPalette.wholesale.background,
+          body: SafeArea(
+            child: FutureBuilder<Map<String, dynamic>>(
+              future: future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const FoodexLoading();
+                }
+                if (snapshot.hasError) {
+                  return FoodexErrorState(
+                    message:
+                        'تعذر تحميل خيارات إتمام الطلب.',
+                    onRetry: () =>
+                        setState(() => future = _load()),
+                  );
+                }
+
+                final data =
+                    snapshot.data ?? const <String, dynamic>{};
+                final addresses = mapRows(data['addresses']);
+                final dates =
+                    (data['delivery_dates'] as List? ??
+                            const <Object>[])
+                        .map((value) => value.toString())
+                        .toList(growable: false);
+                final methods =
+                    (data['payment_methods'] as List? ??
+                            const <Object>[])
+                        .map((value) => value.toString())
+                        .toList(growable: false);
+
+                addressId ??= addresses.isEmpty
+                    ? null
+                    : intValue(addresses.first['id']);
+                deliveryDate ??=
+                    dates.isEmpty ? null : dates.first;
+                paymentMethod ??=
+                    methods.isEmpty ? null : methods.first;
+
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                  children: [
+                    const FoodexTopBar(title: 'إتمام الطلب'),
+                    const SizedBox(height: 8),
+                    const _CheckoutStepper(),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'عنوان التوصيل',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (addresses.isEmpty)
+                      const FoodexEmptyState(
+                        title: 'لا يوجد عنوان',
+                        subtitle:
+                            'أضف عنوانًا لحساب الجملة قبل إتمام الطلب.',
+                      )
+                    else
+                      ...addresses.map(
+                        (address) => _SelectCard(
+                          selected: addressId ==
+                              intValue(address['id']),
+                          title:
+                              address['label']?.toString() ??
+                                  'العنوان',
+                          subtitle: <Object?>[
+                            address['line1'],
+                            address['area'],
+                            address['city'],
+                          ]
+                              .where(
+                                (value) =>
+                                    value != null &&
+                                    value
+                                        .toString()
+                                        .trim()
+                                        .isNotEmpty,
+                              )
+                              .map((value) => value.toString())
+                              .join('، '),
+                          onTap: () => setState(
+                            () => addressId =
+                                intValue(address['id']),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: deliveryDate,
+                      decoration: const InputDecoration(
+                        labelText: 'تاريخ التوصيل',
+                        prefixIcon:
+                            Icon(Icons.calendar_today_outlined),
+                      ),
+                      items: dates
+                          .map(
+                            (date) => DropdownMenuItem(
+                              value: date,
+                              child: Text(date),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) =>
+                          setState(() => deliveryDate = value),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: paymentMethod,
+                      decoration: const InputDecoration(
+                        labelText: 'طريقة الدفع',
+                        prefixIcon:
+                            Icon(Icons.payments_outlined),
+                      ),
+                      items: methods
+                          .map(
+                            (method) => DropdownMenuItem(
+                              value: method,
+                              child: Text(
+                                paymentLabel(method),
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) =>
+                          setState(() => paymentMethod = value),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: note,
+                      minLines: 3,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'ملاحظات الطلب',
+                        hintText:
+                            'أضف ملاحظات للتجهيز أو التسليم',
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      height: 54,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor:
+                              FoodexPalette.wholesale.primary,
+                        ),
+                        onPressed: widget.commerceApi == null ||
+                                addressId == null ||
+                                paymentMethod == null
+                            ? null
+                            : () async {
+                                try {
+                                  final key = 'fdx-b2b-' +
+                                      storeId.toString() +
+                                      '-' +
+                                      DateTime.now()
+                                          .microsecondsSinceEpoch
+                                          .toString();
+                                  final result = await widget
+                                      .commerceApi!
+                                      .checkout(
+                                    storeId: storeId,
+                                    addressId: addressId!,
+                                    paymentMethod: paymentMethod!,
+                                    requestedDeliveryDate:
+                                        deliveryDate,
+                                    note: note.text,
+                                    idempotencyKey: key,
+                                  );
+                                  if (!context.mounted) return;
+                                  final orderId = result is Map
+                                      ? intValue(result['id'])
+                                      : 0;
+                                  Navigator.of(context)
+                                      .pushReplacementNamed(
+                                    orderId > 0
+                                        ? '/b2b/orders/' +
+                                            orderId.toString()
+                                        : '/b2b/orders',
+                                  );
+                                } catch (error) {
+                                  if (context.mounted) {
+                                    await showOperationalError(
+                                      context,
+                                      error,
+                                    );
+                                  }
+                                }
+                              },
+                        child: const Text('تأكيد الطلب'),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      );
+}
+
+class _CheckoutStepper extends StatelessWidget {
+  const _CheckoutStepper();
+
+  @override
+  Widget build(BuildContext context) => const Row(
+        children: [
+          Expanded(
+            child: _StepDot(
+              number: '1',
+              label: 'العنوان',
+              active: true,
+            ),
+          ),
+          Expanded(
+            child: Divider(
+              color: FoodexPalette.wholesale.accent,
+            ),
+          ),
+          Expanded(
+            child: _StepDot(
+              number: '2',
+              label: 'التوصيل',
+              active: true,
+            ),
+          ),
+          Expanded(
+            child: Divider(
+              color: FoodexPalette.wholesale.accent,
+            ),
+          ),
+          Expanded(
+            child: _StepDot(
+              number: '3',
+              label: 'الدفع',
+              active: false,
+            ),
+          ),
+        ],
+      );
+}
+
+class _StepDot extends StatelessWidget {
+  const _StepDot({
+    required this.number,
+    required this.label,
+    required this.active,
+  });
+
+  final String number;
+  final String label;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: active
+                ? FoodexPalette.wholesale.primary
+                : const Color(0xFFE7E3EA),
+            child: Text(
+              number,
+              style: TextStyle(
+                color: active
+                    ? Colors.white
+                    : FoodexPalette.wholesale.muted,
+                fontSize: 11,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 9),
+          ),
+        ],
+      );
+}
+
+class _SelectCard extends StatelessWidget {
+  const _SelectCard({
+    required this.selected,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: selected
+                      ? FoodexPalette.wholesale.primary
+                      : const Color(0xFFE4E0E7),
+                  width: selected ? 1.6 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    selected
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                    color: selected
+                        ? FoodexPalette.wholesale.primary
+                        : FoodexPalette.wholesale.muted,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            color:
+                                FoodexPalette.wholesale.muted,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class WholesaleOrdersDesignScreen extends StatefulWidget {
+  const WholesaleOrdersDesignScreen({
+    required this.api,
+    super.key,
+  });
+
+  final B2bApi? api;
+
+  @override
+  State<WholesaleOrdersDesignScreen> createState() =>
+      _WholesaleOrdersDesignScreenState();
+}
+
+class _WholesaleOrdersDesignScreenState
+    extends State<WholesaleOrdersDesignScreen> {
+  String status = 'all';
+  late Future<Object?> future = _load();
+
+  Future<Object?> _load() {
+    var endpoint = '/api/v1/b2b/orders';
+    if (status != 'all') {
+      endpoint += '?status=' + status;
+    }
+    return widget.api?.get(endpoint) ??
+        Future<Object?>.value(const {'data': <Object>[]});
+  }
+
+  void _select(String value) {
+    setState(() {
+      status = value;
+      future = _load();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: FoodexPalette.wholesale.background,
+          body: SafeArea(
+            child: FutureBuilder<Object?>(
+              future: future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const FoodexLoading(
+                    key: ValueKey('b2b-loading'),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return FoodexErrorState(
+                    key: const ValueKey('b2b-error'),
+                    message: 'تعذر تحميل الطلبات.',
+                    onRetry: () =>
+                        setState(() => future = _load()),
+                  );
+                }
+
+                final rows = dataRows(snapshot.data);
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                  children: [
+                    const FoodexTopBar(title: 'طلباتي'),
+                    const SizedBox(height: 10),
+                    _OrderTabs(
+                      selected: status,
+                      onChanged: _select,
+                    ),
+                    const SizedBox(height: 12),
+                    if (rows.isEmpty)
+                      const FoodexEmptyState(
+                        key: ValueKey('b2b-empty'),
+                        title: 'لا توجد طلبات',
+                        subtitle: 'لا توجد طلبات بهذه الحالة.',
+                      )
+                    else
+                      ...rows.map(
+                        (row) => _OrderCard(row: row),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      );
+}
+
+class _OrderTabs extends StatelessWidget {
+  const _OrderTabs({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    const values = <(String, String)>[
+      ('all', 'الكل'),
+      ('pending', 'جديد'),
+      ('preparing', 'قيد التجهيز'),
+      ('out_for_delivery', 'قيد التوصيل'),
+      ('delivered', 'مكتمل'),
+    ];
+    return Wrap(
+      spacing: 7,
+      runSpacing: 7,
+      children: values
+          .map(
+            (item) => ChoiceChip(
+              label: Text(item.$2),
+              selected: selected == item.$1,
+              onSelected: (_) => onChanged(item.$1),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+}
+
+class _OrderCard extends StatelessWidget {
+  const _OrderCard({required this.row});
+
+  final Map<String, dynamic> row;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(17),
+        child: InkWell(
+          onTap: () {
+            final id = intValue(row['id']);
+            if (id > 0) {
+              Navigator.of(context)
+                  .pushNamed('/b2b/orders/' + id.toString());
+            }
+          },
+          borderRadius: BorderRadius.circular(17),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFE9E3F0)),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: FoodexPalette.wholesale.soft,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Icon(
+                    Icons.receipt_long_outlined,
+                    color: FoodexPalette.wholesale.primary,
+                  ),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        row['order_number']?.toString() ??
+                            '#' +
+                                (row['id']?.toString() ?? ''),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        row['created_at']?.toString() ?? '',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color:
+                              FoodexPalette.wholesale.muted,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        money(
+                          row['grand_total'] ?? row['total'],
+                        ),
+                        style: const TextStyle(
+                          color:
+                              FoodexPalette.wholesale.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _StatusPill(
+                  status: row['status']?.toString() ?? '',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final delivered = status == 'delivered';
+    final color = delivered
+        ? const Color(0xFF078A43)
+        : const Color(0xFFE58B22);
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        orderStatusLabel(status),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+String paymentLabel(String method) {
+  switch (method) {
+    case 'cash_on_delivery':
+      return 'الدفع عند الاستلام';
+    case 'account_credit':
+      return 'الرصيد الائتماني';
+    default:
+      return method;
+  }
+}
+
+String orderStatusLabel(String status) {
+  switch (status) {
+    case 'pending':
+      return 'جديد';
+    case 'confirmed':
+    case 'preparing':
+      return 'قيد التجهيز';
+    case 'ready':
+    case 'out_for_delivery':
+      return 'قيد التوصيل';
+    case 'delivered':
+      return 'مكتمل';
+    case 'cancelled':
+      return 'ملغي';
+    case 'failed':
+      return 'تعذر التسليم';
+    default:
+      return status;
+  }
+}
