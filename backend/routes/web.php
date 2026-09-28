@@ -164,6 +164,7 @@ Route::prefix('admin')
         Route::get('/settings/mobile', [MobileSettingsController::class, 'index'])->name('mobile-settings.index');
         Route::put('/settings/mobile/app', [MobileSettingsController::class, 'updateApp'])->name('mobile-settings.app');
         Route::put('/settings/mobile/push', [MobileSettingsController::class, 'updateProvider'])->name('mobile-settings.push');
+        Route::post('/settings/mobile/push/test-connection', [MobileSettingsController::class, 'testProvider'])->name('mobile-settings.push.test');
         Route::post('/settings/mobile/test-push', [MobileSettingsController::class, 'testPush'])->name('mobile-settings.test');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
