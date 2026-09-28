@@ -8,11 +8,13 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\RetailWholesaleAccountService;
+use App\Services\StoreLogoService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -23,6 +25,7 @@ final class RetailStoreProvisioningController extends Controller
         private readonly AuditLogger $audit,
         private readonly TenantContextResolver $tenantContext,
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
+        private readonly StoreLogoService $logos,
     ) {}
 
     public function index(Request $request): View
@@ -43,6 +46,26 @@ final class RetailStoreProvisioningController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        $storeIds = $stores->getCollection()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $priceTierByStore = DB::table('retail_wholesale_accounts')
+            ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'retail_wholesale_accounts.b2b_customer_id')
+            ->leftJoin('b2b_price_tiers', 'b2b_price_tiers.id', '=', 'b2b_accounts.price_tier_id')
+            ->whereIn('retail_wholesale_accounts.retail_store_id', $storeIds)
+            ->get([
+                'retail_wholesale_accounts.retail_store_id',
+                'b2b_accounts.price_tier_id',
+                'b2b_price_tiers.name as price_tier_name',
+            ])
+            ->keyBy('retail_store_id');
+
+        $stores->getCollection()->transform(function (Store $store) use ($priceTierByStore): Store {
+            $tier = $priceTierByStore->get($store->id);
+            $store->setAttribute('wholesale_price_tier_id', $tier?->price_tier_id === null ? null : (int) $tier->price_tier_id);
+            $store->setAttribute('wholesale_price_tier_name', $tier?->price_tier_name);
+
+            return $store;
+        });
+
         return view('admin.retail-stores', [
             'user' => $actor,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
@@ -51,6 +74,7 @@ final class RetailStoreProvisioningController extends Controller
             'search' => $search,
             'storeRoles' => Role::query()->where('is_active', true)->where('scope', 'store')->orderBy('name')->get(),
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'email']),
+            'priceTiers' => DB::table('b2b_price_tiers')->orderBy('priority')->orderBy('name')->get(['id', 'code', 'name']),
         ]);
     }
 
@@ -60,6 +84,8 @@ final class RetailStoreProvisioningController extends Controller
         $data = $request->validate([
             'code' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/', 'unique:stores,code'],
             'name' => ['required', 'string', 'max:255'],
+            'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],
             'is_active' => ['nullable', 'boolean'],
             'manager_mode' => ['required', Rule::in(['existing', 'new'])],
             'manager_user_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -76,8 +102,12 @@ final class RetailStoreProvisioningController extends Controller
                 'store_type_id' => $storeTypeId,
                 'code' => strtoupper($data['code']),
                 'name' => $data['name'],
+                'logo_path' => null,
                 'is_active' => $request->boolean('is_active', true),
             ]);
+            $logo = $request->file('logo');
+            abort_unless($logo instanceof UploadedFile, 422, 'Store logo is required.');
+            $store->update(['logo_path' => $this->logos->store($logo, (int) $store->id)]);
 
             $manager = $this->resolveManager($data);
             $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->where('is_active', true)->firstOrFail();
@@ -87,13 +117,15 @@ final class RetailStoreProvisioningController extends Controller
                 ['created_at' => now(), 'updated_at' => now()],
             );
 
-            $wholesaleCustomer = $this->wholesaleAccounts->ensureForStore($store);
+            $wholesaleCustomer = $this->wholesaleAccounts->ensureForStore($store, (int) $data['price_tier_id']);
 
             $this->audit->record('retail_store.provisioned', $actor, $store, null, [
                 'store_id' => $store->id,
                 'b2b_customer_id' => $wholesaleCustomer->getKey(),
                 'manager_user_id' => $manager->id,
                 'manager_role' => $role->code,
+                'price_tier_id' => (int) $data['price_tier_id'],
+                'logo_path' => $store->logo_path,
                 'is_active' => $store->is_active,
             ], $request);
 
@@ -111,18 +143,32 @@ final class RetailStoreProvisioningController extends Controller
         $data = $request->validate([
             'code' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('stores', 'code')->ignore($store->id)],
             'name' => ['required', 'string', 'max:255'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-        $before = $store->only(['code', 'name', 'is_active']);
+        $before = $store->only(['code', 'name', 'logo_path', 'is_active']);
 
-        $store->update([
+        $oldLogo = $store->logo_path;
+        $updates = [
             'code' => strtoupper($data['code']),
             'name' => $data['name'],
             'is_active' => $request->boolean('is_active'),
-        ]);
-        $this->wholesaleAccounts->syncForStore($store);
+        ];
+        if ($request->hasFile('logo')) {
+            $logo = $request->file('logo');
+            abort_unless($logo instanceof UploadedFile, 422, 'Invalid store logo upload.');
+            $updates['logo_path'] = $this->logos->store($logo, (int) $store->id);
+        }
+        $store->update($updates);
+        if (array_key_exists('logo_path', $updates)) {
+            $this->logos->delete($oldLogo);
+        }
+        $this->wholesaleAccounts->syncForStore($store, (int) $data['price_tier_id']);
 
-        $this->audit->record('retail_store.updated', $actor, $store, $before, $store->only(['code', 'name', 'is_active']), $request);
+        $after = $store->only(['code', 'name', 'logo_path', 'is_active']);
+        $after['price_tier_id'] = (int) $data['price_tier_id'];
+        $this->audit->record('retail_store.updated', $actor, $store, $before, $after, $request);
 
         return back()->with('status', $this->msg('تم تحديث المتجر.', 'Retail store updated.'));
     }

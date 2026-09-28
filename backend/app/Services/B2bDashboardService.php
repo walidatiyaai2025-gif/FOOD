@@ -147,7 +147,7 @@ final class B2bDashboardService
     {
         return DB::table('orders')
             ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
-            ->join('stores', 'stores.id', '=', 'orders.store_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', 'orders.warehouse_id')
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2b')
             ->whereNotNull('orders.b2b_customer_id')
@@ -161,7 +161,7 @@ final class B2bDashboardService
                 'orders.currency',
                 'orders.created_at',
                 'b2b_customers.name as customer',
-                'stores.name as store',
+                'warehouses.name as warehouse',
             ])
             ->map(fn (object $row): array => [
                 'id' => (int) $row->id,
@@ -171,7 +171,7 @@ final class B2bDashboardService
                 'currency' => (string) $row->currency,
                 'created_at' => (string) $row->created_at,
                 'customer' => (string) $row->customer,
-                'store' => (string) $row->store,
+                'warehouse' => $row->warehouse === null ? null : (string) $row->warehouse,
             ])
             ->all();
     }

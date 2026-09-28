@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Driver;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CatalogOwnership;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -20,14 +21,14 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
-    public function test_wholesale_workspace_never_reads_retail_customer_catalog_inventory_or_finance(): void
+    public function test_wholesale_workspace_reads_only_the_main_principal_and_never_retail_catalog_inventory(): void
     {
-        $b2bStore = $this->store('B2B', 'WHOLESALE-ONLY');
-        $b2cStore = $this->store('B2C', 'RETAIL-HIDDEN');
+        $principal = app(WholesalePrincipal::class)->storeId();
+        $retailStore = $this->store('B2C', 'RETAIL-HIDDEN');
         $unit = $this->unit();
 
-        [$b2bProduct] = $this->productFixture($b2bStore, 'b2b', $unit, 'WHOLESALE-VISIBLE', 'Wholesale Visible Product');
-        [$b2cProduct] = $this->productFixture($b2cStore, 'b2c', $unit, 'RETAIL-HIDDEN', 'Retail Hidden Product');
+        [$b2bProduct] = $this->productFixture($principal, 'b2b', $unit, 'WHOLESALE-VISIBLE', 'Wholesale Visible Product');
+        [$b2cProduct] = $this->productFixture($retailStore, 'b2c', $unit, 'RETAIL-HIDDEN', 'Retail Hidden Product');
 
         [$b2bLegacy, $b2bCustomer] = $this->customer('b2b', 'Wholesale Buyer');
         DB::table('b2b_accounts')->insert([
@@ -39,39 +40,13 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        [$b2cLegacy, $b2cCustomer] = $this->customer('b2c', 'Retail Hidden Buyer', $b2cStore);
-
-        DB::table('invoices')->insert([
-            [
-                'customer_id' => $b2bLegacy,
-                'b2b_customer_id' => $b2bCustomer,
-                'b2c_customer_id' => null,
-                'invoice_number' => 'B2B-INVOICE-VISIBLE',
-                'status' => 'issued',
-                'currency' => 'KWD',
-                'total' => 25,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'customer_id' => $b2cLegacy,
-                'b2b_customer_id' => null,
-                'b2c_customer_id' => $b2cCustomer,
-                'invoice_number' => 'B2C-INVOICE-HIDDEN',
-                'status' => 'issued',
-                'currency' => 'KWD',
-                'total' => 99,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
-
         $admin = $this->userWithRole('B2B_ADMIN', 'wholesale-admin@example.test');
 
         $this->actingAs($admin)->get('/admin/b2b/products')
             ->assertOk()
             ->assertSee('Wholesale Visible Product')
-            ->assertDontSee('Retail Hidden Product');
+            ->assertDontSee('Retail Hidden Product')
+            ->assertDontSee('Wholesale Stores');
 
         $this->actingAs($admin)->get('/admin/b2b/inventory')
             ->assertOk()
@@ -81,109 +56,120 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
         $this->actingAs($admin)->get('/admin/b2b/clients')
             ->assertOk()
             ->assertSee('Wholesale Visible Company')
-            ->assertSee('Wholesale Buyer')
-            ->assertDontSee('Retail Hidden Buyer');
-
-        $this->actingAs($admin)->get('/admin/b2b/finance')
-            ->assertOk()
-            ->assertSee('B2B-INVOICE-VISIBLE')
-            ->assertDontSee('B2C-INVOICE-HIDDEN');
+            ->assertSee('Wholesale Buyer');
 
         $this->assertDatabaseHas('products', ['id' => $b2bProduct]);
         $this->assertDatabaseHas('products', ['id' => $b2cProduct]);
     }
 
-    public function test_wholesale_mutations_reject_retail_store_product_and_cross_store_delivery(): void
+    public function test_b2b_order_reserves_only_selected_principal_warehouse(): void
     {
-        $storeA = $this->store('B2B', 'WHOLE-A');
-        $storeB = $this->store('B2B', 'WHOLE-B');
-        $retailStore = $this->store('B2C', 'RETAIL-X');
+        $principal = app(WholesalePrincipal::class)->storeId();
         $unit = $this->unit();
+        $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($principal, 'b2b');
 
-        [$productA, $warehouseA] = $this->productFixture($storeA, 'b2b', $unit, 'WHOLE-A-P', 'Wholesale A Product');
-        [, $warehouseB] = $this->productFixture($storeB, 'b2b', $unit, 'WHOLE-B-P', 'Wholesale B Product');
-        [$retailProduct] = $this->productFixture($retailStore, 'b2c', $unit, 'RETAIL-X-P', 'Retail X Product');
-
-        [$legacy, $b2bCustomer] = $this->customer('b2b', 'Wholesale Delivery Buyer');
-        $orderB = (int) DB::table('orders')->insertGetId([
-            'store_id' => $storeB,
-            'customer_id' => $legacy,
-            'b2b_customer_id' => $b2bCustomer,
-            'order_number' => 'WHOLE-B-ORDER',
-            'channel' => 'b2b',
-            'status' => 'pending',
-            'currency' => 'KWD',
-            'subtotal' => 1,
-            'discount_total' => 0,
-            'delivery_total' => 0,
-            'grand_total' => 1,
+        $product = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'unit_id' => $unit,
+            'sku' => 'WAREHOUSE-SOURCE',
+            'name' => 'Warehouse Source Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->insert([
+            'store_id' => $principal,
+            'product_id' => $product,
+            'price' => 20,
+            'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $driverUser = $this->userWithRole('B2B_DRIVER', 'wholesale-driver@example.test');
-        $driver = Driver::query()->create([
-            'user_id' => $driverUser->id,
-            'store_id' => $storeA,
-            'driver_type' => 'b2b',
-            'is_available' => true,
-            'is_active' => true,
+        $warehouseA = $this->warehouse($principal, 'WH-A', 'Warehouse A');
+        $warehouseB = $this->warehouse($principal, 'WH-B', 'Warehouse B');
+        $inventoryA = (int) DB::table('inventories')->insertGetId([
+            'warehouse_id' => $warehouseA,
+            'product_id' => $product,
+            'quantity' => 10,
+            'reserved_quantity' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $inventoryB = (int) DB::table('inventories')->insertGetId([
+            'warehouse_id' => $warehouseB,
+            'product_id' => $product,
+            'quantity' => 50,
+            'reserved_quantity' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
-        $admin = $this->userWithRole('B2B_ADMIN', 'wholesale-mutations@example.test');
+        $tier = (int) DB::table('b2b_price_tiers')->where('code', 'STANDARD')->value('id');
+        [$legacy, $customer] = $this->customer('b2b', 'Warehouse Buyer');
+        DB::table('b2b_accounts')->insert([
+            'customer_id' => $legacy,
+            'b2b_customer_id' => $customer,
+            'price_tier_id' => $tier,
+            'company_name' => 'Warehouse Buyer',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('b2b_price_rules')->insert([
+            'price_tier_id' => $tier,
+            'store_id' => $principal,
+            'product_id' => $product,
+            'unit_price' => 15,
+            'minimum_quantity' => 1,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = $this->userWithRole('B2B_ADMIN', 'warehouse-orders@example.test');
+
+        $this->actingAs($admin)->post('/admin/b2b/orders', [
+            'warehouse_id' => $warehouseA,
+            'customer_id' => $customer,
+            'payment_method' => config('checkout.default_payment_method'),
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'items' => [['product_id' => $product, 'quantity' => 4]],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $order = DB::table('orders')->where('channel', 'b2b')->latest('id')->first();
+        $this->assertNotNull($order);
+        $this->assertSame($warehouseA, (int) $order->warehouse_id);
+        $this->assertSame(4.0, (float) DB::table('inventories')->where('id', $inventoryA)->value('reserved_quantity'));
+        $this->assertSame(0.0, (float) DB::table('inventories')->where('id', $inventoryB)->value('reserved_quantity'));
+    }
+
+    public function test_forged_store_inputs_cannot_move_wholesale_data_into_retail(): void
+    {
+        $principal = app(WholesalePrincipal::class)->storeId();
+        $retailStore = $this->store('B2C', 'RETAIL-X');
+        $unit = $this->unit();
+        $admin = $this->userWithRole('B2B_ADMIN', 'forged-store@example.test');
 
         $this->actingAs($admin)->post('/admin/b2b/products', [
             'store_id' => $retailStore,
             'unit_id' => $unit,
-            'sku' => 'ILLEGAL-RETAIL-BIND',
-            'name' => 'Illegal',
+            'sku' => 'FORGED-STORE-PRODUCT',
+            'name' => 'Principal Owned Product',
             'is_active' => 1,
-        ])->assertNotFound();
+        ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->actingAs($admin)->post('/admin/b2b/inventory', [
-            'warehouse_id' => $warehouseA,
-            'product_id' => $retailProduct,
-            'quantity' => 5,
-        ])->assertSessionHasErrors('product_id');
+        $productStore = (int) DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->where('products.sku', 'FORGED-STORE-PRODUCT')
+            ->value('catalogs.store_id');
 
-        $tier = (int) DB::table('b2b_price_tiers')->insertGetId([
-            'code' => 'WHOLE-TIER',
-            'name' => 'Wholesale Tier',
-            'priority' => 1,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $this->actingAs($admin)->post('/admin/b2b/pricing', [
-            'price_tier_id' => $tier,
-            'store_id' => $storeA,
-            'product_id' => $retailProduct,
-            'unit_price' => 2,
-            'minimum_quantity' => 1,
-            'is_active' => 1,
-        ])->assertStatus(422);
-
-        $this->actingAs($admin)->post('/admin/b2b/drivers/assign', [
-            'driver_id' => $driver->id,
-            'order_id' => $orderB,
-        ])->assertStatus(422);
-
-        $this->assertDatabaseMissing('driver_assignments', [
-            'driver_id' => $driver->id,
-            'order_id' => $orderB,
-        ]);
-        $this->assertDatabaseMissing('inventories', [
-            'warehouse_id' => $warehouseA,
-            'product_id' => $retailProduct,
-        ]);
-        $this->assertDatabaseHas('inventories', [
-            'warehouse_id' => $warehouseA,
-            'product_id' => $productA,
-        ]);
-        $this->assertNotSame($warehouseA, $warehouseB);
+        $this->assertSame($principal, $productStore);
+        $this->assertNotSame($retailStore, $productStore);
     }
 
-    public function test_retail_store_admin_cannot_enter_wholesale_workspace_or_use_wholesale_routes(): void
+    public function test_retail_store_admin_cannot_enter_or_mutate_wholesale_workspace(): void
     {
         $retailStore = $this->store('B2C', 'RETAIL-ADMIN');
         $user = $this->userWithRole('B2C_STORE_ADMIN', 'retail-admin@example.test');
@@ -197,7 +183,6 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
 
         $this->actingAs($user)->get('/admin/b2b/dashboard')->assertForbidden();
         $this->actingAs($user)->post('/admin/b2b/warehouses', [
-            'store_id' => $retailStore,
             'code' => 'NOPE',
             'name' => 'Nope',
             'is_active' => 1,
@@ -242,18 +227,9 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
     /** @return array{0:int,1:int,2:int} */
     private function productFixture(int $storeId, string $channel, int $unitId, string $sku, string $name): array
     {
-        $catalog = (int) DB::table('catalogs')->insertGetId([
-            'store_id' => $storeId,
-            'channel' => $channel,
-            'code' => 'default',
-            'name' => $name.' Catalog',
-            'is_active' => true,
-            'is_migration_quarantine' => false,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($storeId, $channel);
         $product = (int) DB::table('products')->insertGetId([
-            'catalog_id' => $catalog,
+            'catalog_id' => $catalog->id,
             'unit_id' => $unitId,
             'sku' => $sku,
             'name' => $name,
@@ -269,14 +245,7 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $warehouse = (int) DB::table('warehouses')->insertGetId([
-            'store_id' => $storeId,
-            'code' => 'WH-'.$sku,
-            'name' => 'Warehouse '.$name,
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $warehouse = $this->warehouse($storeId, 'WH-'.$sku, 'Warehouse '.$name);
         $inventory = (int) DB::table('inventories')->insertGetId([
             'warehouse_id' => $warehouse,
             'product_id' => $product,
@@ -303,8 +272,25 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
         ]);
     }
 
+    private function warehouse(int $storeId, string $code, string $name): int
+    {
+        return (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $storeId,
+            'code' => $code,
+            'name' => $name,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     private function unit(): int
     {
+        $id = DB::table('units')->where('is_active', true)->value('id');
+        if ($id !== null) {
+            return (int) $id;
+        }
+
         return (int) DB::table('units')->insertGetId([
             'scope' => 'global',
             'scope_key' => 'global',

@@ -43,7 +43,6 @@ class AdminNavigation
             ]),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
                 $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
-                $this->module($user, $channels, 'b2b', 'stores', 'admin.b2b_workspace.modules.stores', 'stores.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
             ]),
             $this->group('catalog', 'admin.nav_groups.catalog', '▦', [
