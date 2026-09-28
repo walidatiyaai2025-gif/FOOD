@@ -201,7 +201,8 @@
     syncManagerMode();
 
     if (@json($errors->any())) {
-        const storeDetailErrors = @json($errors->hasAny(['code','name','logo','price_tier_id','is_active']));
+        @php($hasStoreDetailErrors = $errors->has('code') || $errors->has('name') || $errors->has('logo') || $errors->has('price_tier_id') || $errors->has('is_active'))
+        const storeDetailErrors = @json($hasStoreDetailErrors);
         activate(storeDetailErrors ? 'store-details' : 'store-manager');
     }
 })();
