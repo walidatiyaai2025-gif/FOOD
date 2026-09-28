@@ -173,7 +173,7 @@ class OrderController extends Controller
         $resolver = app(CustomerDomainResolver::class);
 
         if ($request->is('api/v1/b2b/*')) {
-            return [$resolver->b2b($user), 'b2b'];
+            return [$resolver->b2bFromRequest($user, $request), 'b2b'];
         }
 
         return [$resolver->b2cFromRequest($user, $request), 'b2c'];
@@ -204,6 +204,7 @@ class OrderController extends Controller
                 'sku' => (string) $item->sku_snapshot,
                 'name' => (string) $item->name_snapshot,
                 'quantity' => (float) $item->quantity,
+                'quantity_conversion_factor' => (float) ($item->quantity_conversion_factor ?? 1),
                 'unit_price' => (float) $item->unit_price,
                 'line_total' => (float) $item->line_total,
             ])
@@ -235,6 +236,7 @@ class OrderController extends Controller
             'order_number' => (string) $order->order_number,
             'store_id' => (int) $order->store_id,
             'address_id' => $order->address_id === null ? null : (int) $order->address_id,
+            'requested_delivery_date' => $order->requested_delivery_date,
             'channel' => (string) $order->channel,
             'status' => (string) $order->status,
             'currency' => (string) $order->currency,
