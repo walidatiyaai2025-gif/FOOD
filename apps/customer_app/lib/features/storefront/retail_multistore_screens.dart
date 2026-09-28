@@ -151,7 +151,11 @@ class _StoreSelectionDesignScreenState
                                   route += '&retail_store_id=' +
                                       retailContext.toString();
                                 }
-                                Navigator.of(context).pushNamed(route);
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (context.mounted) {
+                                    Navigator.of(context).pushNamed(route);
+                                  }
+                                });
                               },
                             ),
                           ),
