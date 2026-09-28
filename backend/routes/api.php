@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
+use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
 use App\Http\Controllers\Api\V1\TranslationController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +57,8 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/store-selector', [StorefrontController::class, 'selector']);
         Route::get('/b2b/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);
+        Route::get('/b2b/product-mappings', [RetailWholesaleProductMappingController::class, 'index']);
+        Route::put('/b2b/product-mappings/{sourceProduct}', [RetailWholesaleProductMappingController::class, 'upsert']);
         Route::post('/push/devices', [PushDeviceController::class, 'store']);
         Route::delete('/push/devices/{device}', [PushDeviceController::class, 'destroy']);
         Route::get('/admin/security/permissions', [SecurityController::class, 'permissions']);
