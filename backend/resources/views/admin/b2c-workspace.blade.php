@@ -525,6 +525,28 @@
                     <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعيين السائق':'Assign driver' }}</button>
                 </form>
             @endif
+            @if($module==='drivers' && !empty($moduleData['drivers']) && (collect($storeIds)->contains(fn($candidateStoreId) => $user->hasPermission('drivers.b2c.manage',(int)$candidateStoreId)) || $user->hasPermission('drivers.b2c.manage')))
+                <div class="module-inline-form" style="display:block">
+                    <strong>{{ app()->getLocale()==='ar'?'إعادة تعيين كلمة مرور السائق':'Reset driver password' }}</strong>
+                    <p class="empty" style="margin:5px 0 10px">{{ app()->getLocale()==='ar'?'حدد كلمة مرور جديدة للسائق. سيتم إلغاء جلساته الحالية فوراً.':'Set a new driver password. Existing sessions will be revoked immediately.' }}</p>
+                    <div style="display:grid;gap:8px">
+                        @foreach($moduleData['drivers'] as $driver)
+                        <details style="border:1px solid var(--foodex-border);border-radius:12px;padding:10px 12px;background:#fff">
+                            <summary style="cursor:pointer;font-weight:700">{{ $driver['name'] }} · {{ $driver['email'] }}</summary>
+                            <form method="post" action="{{ route('admin.b2c.drivers.password',['driver'=>$driver['id']]) }}" class="module-inline-form" style="margin:10px 0 0">
+                                @csrf @method('PATCH')
+                                <input type="hidden" name="store_id" value="{{ $storeId }}">
+                                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                                <input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="{{ app()->getLocale()==='ar'?'كلمة المرور الجديدة':'New password' }}">
+                                <input name="password_confirmation" type="password" required minlength="8" autocomplete="new-password" placeholder="{{ app()->getLocale()==='ar'?'تأكيد كلمة المرور':'Confirm password' }}">
+                                <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إعادة تعيين كلمة المرور':'Reset password' }}</button>
+                            </form>
+                        </details>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             @if($module==='content' && $storeId > 0 && ($user->hasPermission('promotions.manage',$storeId) || $user->hasPermission('promotions.manage')))
                 <form method="post" action="{{ route('admin.business.banners.store') }}" enctype="multipart/form-data" class="module-inline-form">
                     @csrf
