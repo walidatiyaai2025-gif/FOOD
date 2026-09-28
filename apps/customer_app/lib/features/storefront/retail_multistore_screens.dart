@@ -119,7 +119,8 @@ class _StoreSelectionDesignScreenState
 
                 return LayoutBuilder(
                   builder: (context, constraints) {
-                    final side = constraints.maxWidth < 350 ? 14.0 : 22.0;
+                    final side =
+                        (constraints.maxWidth * .09).clamp(14.0, 38.0).toDouble();
                     return ListView(
                       padding: EdgeInsets.fromLTRB(side, 20, side, 30),
                       children: [
@@ -1151,7 +1152,7 @@ class _RetailProductGrid extends StatelessWidget {
         crossAxisCount: count,
         crossAxisSpacing: 9,
         mainAxisSpacing: 10,
-        childAspectRatio: count == 2 ? .76 : .62,
+        childAspectRatio: count == 2 ? .68 : .52,
       ),
       itemBuilder: (context, index) {
         final product = products[index];
