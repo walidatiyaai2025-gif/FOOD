@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
 use App\Services\B2bCustomerService;
+use App\Services\B2bDashboardService;
 use App\Services\CatalogOwnership;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\LookupScopeService;
@@ -52,6 +53,7 @@ class B2bWorkspaceController extends Controller
 
     public function __construct(
         private readonly AdminNavigation $navigation,
+        private readonly B2bDashboardService $dashboard,
         private readonly ManagementReportService $reports,
         private readonly TenantContextResolver $tenantContext,
         private readonly OperationalTenantScope $operationalScope,
@@ -96,13 +98,20 @@ class B2bWorkspaceController extends Controller
 
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2b_'.$module;
-        $moduleData = $this->moduleData($module, $storeIds, $user);
+        $dashboard = $module === 'dashboard'
+            ? $this->dashboard->build(
+                $user,
+                $storeIds,
+                $request->filled('date') ? $request->string('date')->toString() : null,
+            )
+            : null;
+        $moduleData = $module === 'dashboard' ? null : $this->moduleData($module, $storeIds, $user);
         $visibleModules = array_values(array_filter(
             array_keys(self::MODULE_PERMISSIONS),
             fn (string $candidate): bool => $this->canOpenModule($user, $candidate),
         ));
 
-        return view('admin.b2b-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'moduleData', 'visibleModules'));
+        return view('admin.b2b-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'dashboard', 'moduleData', 'visibleModules'));
     }
 
     public function transitionOrder(
