@@ -168,6 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
     .foodex-feedback-modal.is-error .modal-header{background:#fff0f0;color:#b42318}
     .foodex-feedback-icon{width:34px;height:34px;display:inline-grid;place-items:center;border-radius:999px;background:#fff;font-weight:900}
     .foodex-feedback-title-wrap{display:flex;align-items:center;gap:10px}
+    .foodex-password-control{position:relative;display:flex;align-items:center;min-width:0}
+    .foodex-password-control>input{width:100%;padding-inline-end:48px!important}
+    .foodex-password-toggle{position:absolute;inset-inline-end:6px;width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:var(--foodex-muted);display:grid;place-items:center;cursor:pointer;font-size:19px;line-height:1}
+    .foodex-password-toggle:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
     @media(max-width:640px){.foodex-premium-auto-form{grid-template-columns:1fr;padding:var(--foodex-space-4)}}
 </style>
 
@@ -284,6 +288,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const enhancePasswords = () => {
+        document.querySelectorAll('input[type="password"]').forEach((field) => {
+            if (field.dataset.foodexPasswordReady === '1') return;
+            field.dataset.foodexPasswordReady = '1';
+            const holder = document.createElement('span');
+            holder.className = 'foodex-password-control';
+            field.parentNode?.insertBefore(holder, field);
+            holder.appendChild(field);
+            const toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'foodex-password-toggle';
+            toggle.setAttribute('aria-label', isArabic ? 'إظهار كلمة المرور' : 'Show password');
+            toggle.setAttribute('aria-pressed', 'false');
+            toggle.textContent = '◉';
+            toggle.addEventListener('click', () => {
+                const showing = field.type === 'text';
+                field.type = showing ? 'password' : 'text';
+                toggle.setAttribute('aria-pressed', showing ? 'false' : 'true');
+                toggle.setAttribute('aria-label', isArabic
+                    ? (showing ? 'إظهار كلمة المرور' : 'إخفاء كلمة المرور')
+                    : (showing ? 'Show password' : 'Hide password'));
+                toggle.textContent = showing ? '◉' : '⊘';
+            });
+            holder.appendChild(toggle);
+        });
+    };
+
     const enhanceTabs = () => {
         const iconFor = (element) => {
             const haystack = ((element.getAttribute('href') || '')+' '+element.textContent).toLowerCase();
@@ -376,12 +407,30 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await nativeFetch(...args);
                 if (!response.ok) {
+                    const method = String(options.method || request?.method || 'GET').toUpperCase();
+                    let responseMessage = '';
+                    try {
+                        const clone = response.clone();
+                        const contentType = clone.headers.get('content-type') || '';
+                        if (contentType.includes('application/json')) {
+                            const payload = await clone.json();
+                            responseMessage = payload?.message || payload?.error || '';
+                            if (!responseMessage && payload?.errors) {
+                                responseMessage = Object.values(payload.errors).flat().filter(Boolean).join('\n');
+                            }
+                        }
+                    } catch (_) {}
                     reportInspector({
                         source:'fetch', severity:response.status >= 500 ? 'error' : 'warning',
-                        message:'HTTP '+response.status+' '+response.statusText,
-                        status:response.status, method:options.method || request?.method || 'GET',
+                        message:responseMessage || ('HTTP '+response.status+' '+response.statusText),
+                        status:response.status, method,
                         url:requestUrl || location.href, response_url:response.url,
                     });
+                    if (method !== 'GET') {
+                        showFeedback('error', responseMessage || (isArabic
+                            ? 'تعذر تنفيذ العملية ('+response.status+'). راجع البيانات وحاول مرة أخرى.'
+                            : 'The action could not be completed ('+response.status+'). Review the data and try again.'));
+                    }
                 }
                 return response;
             } catch (error) {
@@ -398,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('DOMContentLoaded', () => {
         enhanceForms();
+        enhancePasswords();
         enhanceTabs();
         if (feedback.errors?.length) showFeedback('error', feedback.errors);
         else if (feedback.status) showFeedback('success', feedback.status);
