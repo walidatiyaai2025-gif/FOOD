@@ -39,7 +39,7 @@ class GuestCartController extends Controller
                 ]);
             }
 
-            [$customer, $channel] = $this->customerContext($user, $resolvedStoreId);
+            [$customer, $channel] = $this->customerContext($user, $resolvedStoreId, $request);
 
             $cart = $token === null
                 ? null
@@ -96,7 +96,7 @@ class GuestCartController extends Controller
         $token = $this->guestToken($request, false);
 
         if ($user instanceof User) {
-            [$customer, $channel] = $this->customerContext($user, $storeId);
+            [$customer, $channel] = $this->customerContext($user, $storeId, $request);
             $this->activeStoreForChannel($storeId, $channel);
 
             $cart = $token === null
@@ -129,7 +129,7 @@ class GuestCartController extends Controller
         $state = $this->productState($storeId, $productId, true);
         if ($user instanceof User && $channel === 'b2b') {
             $pricing = app(B2bPriceResolver::class)->resolve($customer, $storeId, $productId);
-            abort_if($quantity < $pricing['minimum_quantity'], 409, 'Quantity is below the B2B minimum purchase quantity.');
+            $this->assertB2bQuantity($quantity, $pricing);
             $state['price'] = $pricing['price'];
         }
 
@@ -168,6 +168,12 @@ class GuestCartController extends Controller
         );
 
         $quantity = (float) $validated['quantity'];
+        if ((string) $cart->channel === 'b2b' && $cart->b2b_customer_id !== null) {
+            $customer = B2bCustomer::query()->findOrFail((int) $cart->b2b_customer_id);
+            $pricing = app(B2bPriceResolver::class)->resolve($customer, (int) $cart->store_id, (int) $cartItem->product_id);
+            $this->assertB2bQuantity($quantity, $pricing);
+            $state['price'] = $pricing['price'];
+        }
         $this->assertQuantityAvailable($state['available_quantity'], $quantity);
 
         $cartItem->quantity = $quantity;
@@ -203,9 +209,9 @@ class GuestCartController extends Controller
     }
 
     /** @return array{0: B2bCustomer|B2cCustomer, 1: string} */
-    private function customerContext(User $user, int $storeId): array
+    private function customerContext(User $user, int $storeId, Request $request): array
     {
-        return app(CustomerDomainResolver::class)->forStore($user, $storeId);
+        return app(CustomerDomainResolver::class)->forStore($user, $storeId, $request);
     }
 
     private function guestToken(Request $request, bool $required): ?string
@@ -318,7 +324,7 @@ class GuestCartController extends Controller
                 ->where('cart_items.id', $itemId)
                 ->firstOrFail();
 
-            [$customer, $channel] = $this->customerContext($user, (int) $cart->store_id);
+            [$customer, $channel] = $this->customerContext($user, (int) $cart->store_id, $request);
             $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
 
             $item = CartItem::query()
@@ -411,6 +417,30 @@ class GuestCartController extends Controller
         ];
     }
 
+    /** @param array{minimum_quantity: float, ordering_increment: float} $pricing */
+    private function assertB2bQuantity(float $quantity, array $pricing): void
+    {
+        abort_unless(
+            $this->isValidB2bQuantity($quantity, $pricing),
+            409,
+            'Quantity must meet the B2B minimum and ordering increment.',
+        );
+    }
+
+    /** @param array{minimum_quantity: float, ordering_increment: float} $pricing */
+    private function isValidB2bQuantity(float $quantity, array $pricing): bool
+    {
+        $minimum = (float) $pricing['minimum_quantity'];
+        $increment = max(0.001, (float) $pricing['ordering_increment']);
+        if ($quantity + 0.0001 < $minimum) {
+            return false;
+        }
+
+        $steps = ($quantity - $minimum) / $increment;
+
+        return abs($steps - round($steps)) < 0.0001;
+    }
+
     private function assertQuantityAvailable(?float $availableQuantity, float $requestedQuantity): void
     {
         if ($availableQuantity !== null && $requestedQuantity > $availableQuantity) {
@@ -451,7 +481,7 @@ class GuestCartController extends Controller
                 $customer = B2bCustomer::query()->find($cart->b2b_customer_id);
                 if ($customer instanceof B2bCustomer) {
                     $pricing = app(B2bPriceResolver::class)->resolve($customer, (int) $cart->store_id, (int) $row->product_id);
-                    $isAvailable = $quantity >= $pricing['minimum_quantity'];
+                    $isAvailable = $this->isValidB2bQuantity($quantity, $pricing);
                     $unitPrice = $isAvailable ? $pricing['price'] : null;
                 }
             }
@@ -490,6 +520,10 @@ class GuestCartController extends Controller
                 'line_total' => $lineTotal,
                 'is_available' => $isAvailable,
                 'available_quantity' => $state['available_quantity'],
+                'minimum_order_quantity' => isset($pricing) ? (float) $pricing['minimum_quantity'] : null,
+                'ordering_increment' => isset($pricing) ? (float) $pricing['ordering_increment'] : null,
+                'pack_size' => isset($pricing) ? (float) $pricing['pack_size'] : null,
+                'pack_label' => isset($pricing) ? $pricing['pack_label'] : null,
             ];
         })->values()->all();
 
