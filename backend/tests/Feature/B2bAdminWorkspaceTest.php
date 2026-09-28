@@ -10,6 +10,7 @@ use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class B2bAdminWorkspaceTest extends TestCase
@@ -204,6 +205,21 @@ class B2bAdminWorkspaceTest extends TestCase
         $driver = Driver::query()->where('user_id', $driverUserId)->firstOrFail();
         $this->assertSame($store, (int) $driver->store_id);
 
+        $driverUser = User::query()->findOrFail($driverUserId);
+        $driverUser->createToken('driver-before-reset');
+        $this->actingAs($admin)->patch("/admin/b2b/drivers/{$driver->id}/password", [
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertTrue(Hash::check('new-password-123', $driverUser->fresh()->password));
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'tokenable_type' => User::class,
+            'tokenable_id' => $driverUserId,
+        ]);
+
+        $driverPage = $this->actingAs($admin)->get('/admin/b2b/drivers')->assertOk();
+        $driverPage->assertSee('Reset driver password')->assertSee('principal-driver@example.test');
+
         $orderResponse = $this->actingAs($admin)->post('/admin/b2b/orders', [
             'warehouse_id' => $warehouse,
             'customer_id' => $b2bCustomer,
@@ -239,6 +255,13 @@ class B2bAdminWorkspaceTest extends TestCase
             'order_id' => $order->id,
             'assignment_type' => 'b2b',
             'status' => 'assigned',
+        ]);
+
+        $this->actingAs($admin)->post('/admin/b2b/drivers/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertRedirect()->assertSessionHasErrors([
+            'operation' => 'This order already has an active driver assignment. Complete or clear the current assignment before assigning another driver.',
         ]);
 
         $this->actingAs($admin)->post('/admin/b2b/pricing', [
