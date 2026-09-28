@@ -71,7 +71,16 @@ class WholesaleStorefrontBuilderTest extends TestCase
             'locale' => 'ar',
             'is_active' => true,
         ]);
+        $legacyCustomerId = (int) DB::table('customers')->insertGetId([
+            'user_id' => $buyer->id,
+            'type' => 'b2b',
+            'name' => 'Wholesale Buyer',
+            'email' => $buyer->email,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $customerId = (int) DB::table('b2b_customers')->insertGetId([
+            'legacy_customer_id' => $legacyCustomerId,
             'user_id' => $buyer->id,
             'name' => 'Wholesale Buyer',
             'email' => $buyer->email,
@@ -80,6 +89,7 @@ class WholesaleStorefrontBuilderTest extends TestCase
         ]);
         $tierId = (int) DB::table('b2b_price_tiers')->where('code', 'STANDARD')->value('id');
         DB::table('b2b_accounts')->insert([
+            'customer_id' => $legacyCustomerId,
             'b2b_customer_id' => $customerId,
             'company_name' => 'Wholesale Buyer Co',
             'price_tier_id' => $tierId,
@@ -107,10 +117,15 @@ class WholesaleStorefrontBuilderTest extends TestCase
     public function test_retail_admin_cannot_mutate_wholesale_storefront(): void
     {
         $storeId = app(WholesalePrincipal::class)->storeId();
-        $retailStoreId = (int) DB::table('stores')
-            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-            ->where('store_types.code', 'B2C')
-            ->value('stores.id');
+        $retailTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $retailStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $retailTypeId,
+            'code' => 'STOREFRONT-RETAIL-DENIED',
+            'name' => 'Retail Denied',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $user = $this->roleUser('B2C_STORE_ADMIN', 'retail-builder-denied@example.test');
         DB::table('user_store_roles')->insert([
