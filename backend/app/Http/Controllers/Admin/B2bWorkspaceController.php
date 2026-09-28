@@ -1011,7 +1011,7 @@ class B2bWorkspaceController extends Controller
             'inventory' => $this->inventoryModuleData($storeIds),
             'orders' => $this->orderModuleData($storeIds),
             'drivers' => [
-                'columns' => ['name', 'email', 'availability', 'active', 'assignments'],
+                'columns' => ['name', 'email', 'availability', 'active', 'assignments', 'current_order', 'assignment_status', 'actions'],
                 'rows' => DB::table('drivers')
                     ->join('users', 'users.id', '=', 'drivers.user_id')
                     ->where('drivers.driver_type', 'b2b')
