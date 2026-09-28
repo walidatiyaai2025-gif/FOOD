@@ -247,10 +247,15 @@ class StoreSelectorHeader extends StatelessWidget {
             Text('FOODEX', style: TextStyle(color: Color(0xFF071B37), fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: .5)),
             Text('MULTI STORE', style: TextStyle(color: Color(0xFF778393), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 2.1)),
           ]),
-          Container(
-            width: 50, height: 50,
-            decoration: BoxDecoration(color: const Color(0xFF009B4D), borderRadius: BorderRadius.circular(16)),
-            child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 28),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.asset(
+              'assets/store_selector/foodex_app_icon.png',
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
+              cacheWidth: 150,
+            ),
           ),
         ]),
       ),
@@ -403,7 +408,7 @@ class StoreCard extends StatelessWidget {
                   const SizedBox(height: 14),
                   Align(
                     alignment: AlignmentDirectional.centerEnd,
-                    child: StoreCTA(enabled: open, compact: compact, onTap: onTap),
+                    child: StoreCTA(enabled: open, width: compact ? double.infinity : c.maxWidth * .62, onTap: onTap),
                   ),
                 ]);
               }),
@@ -520,15 +525,15 @@ class _StoreStatusBadge extends StatelessWidget {
 }
 
 class StoreCTA extends StatelessWidget {
-  const StoreCTA({required this.enabled, required this.compact, required this.onTap, super.key});
+  const StoreCTA({required this.enabled, required this.width, required this.onTap, super.key});
   final bool enabled;
-  final bool compact;
+  final double width;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 52, width: compact ? double.infinity : 198,
+      height: 52, width: width,
       child: FilledButton(
         onPressed: enabled ? onTap : null,
         style: FilledButton.styleFrom(
