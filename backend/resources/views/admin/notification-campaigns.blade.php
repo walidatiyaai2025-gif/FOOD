@@ -85,7 +85,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
     <form class="panel row" method="get">
         <input name="q" value="{{ $search }}" placeholder="{{ __('notifications.search') }}">
         <select name="status"><option value="">{{ __('notifications.all_statuses') }}</option>@foreach(['draft','active','paused','completed','cancelled'] as $v)<option value="{{ $v }}" @selected($status===$v)>{{ __('notifications.campaign_status.'.$v) }}</option>@endforeach</select>
-        <button class="primary">{{ __('notifications.filter') }}</button>
+        <button class="primary foodex-filter-action">{{ __('notifications.filter') }}</button>
     </form>
 
     <div class="cards">

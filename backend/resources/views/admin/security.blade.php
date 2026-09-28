@@ -15,7 +15,7 @@
 
 <section class="panel">
 <div class="head"><div><h2>{{ __('admin.security.users_title') }}</h2><div class="muted">{{ __('admin.security.users_description') }}</div></div><span class="badge">{{ $users->total() }} {{ __('admin.security.users') }}</span></div>
-<form method="get" class="filters"><input class="grow" type="text" name="q" value="{{ $search }}" placeholder="{{ __('admin.security.search_users') }}"><select name="status"><option value="all" @selected($statusFilter==='all')>{{ __('admin.security.all_statuses') }}</option><option value="active" @selected($statusFilter==='active')>{{ __('admin.security.active') }}</option><option value="inactive" @selected($statusFilter==='inactive')>{{ __('admin.security.inactive') }}</option></select><button class="btn primary">{{ __('admin.security.filter') }}</button></form>
+<form method="get" class="filters"><input class="grow" type="text" name="q" value="{{ $search }}" placeholder="{{ __('admin.security.search_users') }}"><select name="status"><option value="all" @selected($statusFilter==='all')>{{ __('admin.security.all_statuses') }}</option><option value="active" @selected($statusFilter==='active')>{{ __('admin.security.active') }}</option><option value="inactive" @selected($statusFilter==='inactive')>{{ __('admin.security.inactive') }}</option></select><button class="btn primary foodex-filter-action">{{ __('admin.security.filter') }}</button></form>
 
 @forelse($users as $managedUser)
 @php

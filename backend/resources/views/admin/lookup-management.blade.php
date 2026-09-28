@@ -51,7 +51,7 @@ $scopeLabels=['global'=>$ar?'عام للمنصة':'Platform global','b2b'=>$ar?'
 @if($isSuperAdmin)<label>{{ $ar?'النطاق':'Scope' }}<select name="scope"><option value="all">{{ $ar?'كل النطاقات':'All scopes' }}</option>@foreach($scopeLabels as $key=>$label)<option value="{{ $key }}" @selected($filters['scope']===$key)>{{ $label }}</option>@endforeach</select></label>@endif
 <label>{{ $ar?'الحالة':'Status' }}<select name="status"><option value="all">{{ $ar?'الكل':'All' }}</option><option value="active" @selected($filters['status']==='active')>{{ $ar?'نشط':'Active' }}</option><option value="inactive" @selected($filters['status']==='inactive')>{{ $ar?'غير نشط':'Inactive' }}</option></select></label>
 @if($isSuperAdmin && $stores->isNotEmpty())<label>{{ $ar?'المتجر':'Store' }}<select name="store_id"><option value="">{{ $ar?'كل المتاجر المصرح بها':'All authorized stores' }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected($filters['store_id']==$store->id)>{{ $store->name }}</option>@endforeach</select></label>@elseif($isRetailScoped && $stores->count()>1)<label>{{ $ar?'المتجر الحالي':'Current store' }}<select name="store_id" onchange="this.form.submit()">@foreach($stores as $store)<option value="{{ $store->id }}" @selected($currentStoreId===$store->id)>{{ $store->name }}</option>@endforeach</select></label>@endif
-<button class="btn">{{ $ar?'تصفية':'Filter' }}</button>
+<button class="btn foodex-filter-action">{{ $ar?'تصفية':'Filter' }}</button>
 </form>
 </section>
 

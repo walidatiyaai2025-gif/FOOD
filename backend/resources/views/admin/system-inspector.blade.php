@@ -66,7 +66,7 @@
                 <select name="severity"><option value="">{{ $ar?'الكل':'All' }}</option><option value="error" @selected($severity==='error')>error</option><option value="warning" @selected($severity==='warning')>warning</option></select>
             </label>
             <label>{{ $ar?'بحث':'Search' }}<input name="q" value="{{ $search }}" placeholder="{{ $ar?'الرسالة أو الراوت أو Correlation ID':'Message, route or correlation ID' }}"></label>
-            <button class="foodex-action-primary" type="submit">{{ $ar?'تصفية':'Filter' }}</button>
+            <button class="foodex-action-primary foodex-filter-action" type="submit">{{ $ar?'تصفية':'Filter' }}</button>
         </form>
 
         <section class="foodex-card inspector-table-wrap">
