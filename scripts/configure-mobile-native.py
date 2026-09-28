@@ -37,6 +37,16 @@ APP_ICON_FOREGROUND = BRAND_ROOT / 'app_icon_foreground_1024.png'
 SPLASH_IMAGE = BRAND_ROOT / 'splash_master.png'
 SPLASH_BACKGROUND = '#003223'
 SPLASH_ACCENT = '#92D853'
+
+
+def _select_brand_assets(app_name: str) -> None:
+    global APP_ICON, APP_ICON_FOREGROUND, SPLASH_IMAGE
+    if app_name == 'customer':
+        APP_ICON = BRAND_ROOT / 'customer_app_icon_1024.png'
+        APP_ICON_FOREGROUND = BRAND_ROOT / 'customer_app_icon_foreground.png'
+        SPLASH_IMAGE = BRAND_ROOT / 'customer_splash.png'
+
+
 GOOGLE_SERVICES_PLUGIN_VERSION = '4.4.4'
 
 
@@ -475,6 +485,7 @@ def main() -> None:
     parser.add_argument('--platform', choices=('all', 'android', 'ios'), default='all')
     args = parser.parse_args()
 
+    _select_brand_assets(args.app)
     _require_brand_assets()
     identity = IDENTITIES[args.app]
     if args.platform in ('all', 'android'):
