@@ -37,7 +37,7 @@
         .search-results a:hover{background:var(--foodex-green-soft)}
         .search-results small{color:var(--foodex-muted)}
 
-        .content{max-width:1480px;margin:0 auto;padding:var(--foodex-space-5) var(--foodex-space-6) var(--foodex-space-8)}
+        .content{width:100%;max-width:none;margin:0;padding:var(--foodex-space-5) clamp(var(--foodex-space-4),1.8vw,var(--foodex-space-8)) var(--foodex-space-8)}
         .headline{display:flex;justify-content:space-between;align-items:end;gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-4)}
         .headline h1{margin:0 0 4px;font-size:clamp(1.55rem,2.2vw,1.9rem);font-weight:var(--foodex-font-weight-bold);line-height:var(--foodex-leading-tight)}
         .headline p{margin:0;color:var(--foodex-muted);font-size:var(--foodex-text-sm)}
@@ -150,6 +150,19 @@
         .flash.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
         .flash.err{background:#fff1f0;color:var(--foodex-red)}
 
+        @media(min-width:1600px){
+            .content{padding-inline:40px}
+            .topbar{padding-inline:40px;grid-template-columns:minmax(240px,1fr) minmax(170px,.45fr) minmax(420px,620px)}
+            html[dir=ltr] .topbar{grid-template-columns:minmax(420px,620px) minmax(170px,.45fr) minmax(240px,1fr)}
+            .middle{grid-template-columns:minmax(0,2.25fr) minmax(340px,.9fr)}
+            .bottom{grid-template-columns:minmax(290px,.9fr) minmax(560px,1.7fr) minmax(280px,.85fr)}
+            .chart{height:250px}
+        }
+        @media(min-width:1900px){
+            .content{padding-inline:48px}
+            .chart{height:280px}
+            .kpi{min-height:150px}
+        }
         @media(min-width:1280px) and (max-width:1439px){
             .kpi-value{font-size:clamp(1.3rem,1.75vw,1.5rem)}
         }
@@ -163,7 +176,7 @@
             .bottom .panel:nth-child(2){grid-column:1/-1;grid-row:1}
             .recent{grid-template-columns:82px minmax(90px,1fr) 44px 88px 92px 72px}
         }
-        @media(max-width:860px){
+        @media(max-width:1023px){
             .dashboard-layout,html[dir=ltr] .dashboard-layout{grid-template-columns:1fr}
             .dashboard-sidebar,html[dir=ltr] .dashboard-sidebar{display:block;grid-column:1;grid-row:1;position:relative;min-height:auto;height:auto;max-height:320px;overflow:auto;border-inline:0;border-bottom:1px solid var(--foodex-border)}
             .dashboard-shell,html[dir=ltr] .dashboard-shell{grid-column:1!important;grid-row:2}
