@@ -140,7 +140,7 @@ class WholesaleStorefrontBuilderTest extends TestCase
             'store_id' => $storeId,
             'theme_code' => 'wholesale_b2b',
             'primary_color' => '#5D2A91',
-        ])->assertForbidden();
+        ])->assertNotFound();
     }
 
     private function roleUser(string $roleCode, string $email): User
