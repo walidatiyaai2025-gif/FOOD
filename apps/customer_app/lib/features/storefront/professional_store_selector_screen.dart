@@ -105,12 +105,16 @@ class _ProfessionalStoreSelectorScreenState extends State<ProfessionalStoreSelec
     );
   }
 
-  Future<void> _open(Map<String, dynamic> store, List<Map<String, dynamic>> retail) async {
+  Future<void> _open(
+    Map<String, dynamic> store,
+    List<Map<String, dynamic>> retail, {
+    StoreSelectorChannel? channel,
+  }) async {
     if (!_isOpen(store)) return;
     final id = _int(store['id']);
     if (id <= 0) return;
 
-    if (_channel == StoreSelectorChannel.retail) {
+    if ((channel ?? _channel) == StoreSelectorChannel.retail) {
       await Navigator.of(context).pushNamed('/retail/$id/home');
       return;
     }
@@ -149,7 +153,10 @@ class _ProfessionalStoreSelectorScreenState extends State<ProfessionalStoreSelec
             final data = snapshot.data ?? const <String, dynamic>{};
             final retail = _rows(data['retail_stores']);
             final wholesale = _rows(data['wholesale_stores']);
-            final visible = _channel == StoreSelectorChannel.wholesale ? wholesale : retail;
+            final channel = _channel == StoreSelectorChannel.wholesale && wholesale.isEmpty && retail.isNotEmpty
+                ? StoreSelectorChannel.retail
+                : _channel;
+            final visible = channel == StoreSelectorChannel.wholesale ? wholesale : retail;
 
             return LayoutBuilder(builder: (context, c) {
               final side = c.maxWidth < 380 ? 16.0 : 20.0;
@@ -168,7 +175,7 @@ class _ProfessionalStoreSelectorScreenState extends State<ProfessionalStoreSelec
                         const StoreSelectorHeader(),
                         const SizedBox(height: 24),
                         StoreTypeSegmentedControl(
-                          selected: _channel,
+                          selected: channel,
                           onChanged: (value) => setState(() => _channel = value),
                         ),
                       ])),
@@ -192,8 +199,8 @@ class _ProfessionalStoreSelectorScreenState extends State<ProfessionalStoreSelec
                           separatorBuilder: (_, __) => const SizedBox(height: 18),
                           itemBuilder: (_, index) => StoreCard(
                             store: visible[index],
-                            wholesale: _channel == StoreSelectorChannel.wholesale,
-                            onTap: () => _open(visible[index], retail),
+                            wholesale: channel == StoreSelectorChannel.wholesale,
+                            onTap: () => _open(visible[index], retail, channel: channel),
                           ),
                         ),
                       ),
@@ -324,23 +331,26 @@ class StoreCard extends StatelessWidget {
               child: LayoutBuilder(builder: (context, c) {
                 final compact = c.maxWidth < 330;
                 return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    StoreArtwork(logoUrl: logo, pharmacy: pharmacy, wholesale: wholesale),
-                    const SizedBox(width: 14),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(store['name']?.toString() ?? '',
-                        maxLines: 2, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xFF071B37), fontSize: 20, height: 1.2, fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 6),
-                      Text(description, maxLines: 2, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xFF778393), fontSize: 13, height: 1.45, fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 10),
-                      Wrap(spacing: 12, runSpacing: 7, children: [
-                        _Meta(icon: Icons.location_on_outlined, text: address),
-                        _StoreStatusBadge(label: status.$1, kind: status.$2),
-                      ]),
-                    ])),
-                  ]),
+                  if (compact) ...[
+                    Center(child: StoreArtwork(logoUrl: logo, pharmacy: pharmacy, wholesale: wholesale)),
+                    const SizedBox(height: 14),
+                    _StoreCardDetails(
+                      name: store['name']?.toString() ?? '',
+                      description: description,
+                      address: address,
+                      status: status,
+                    ),
+                  ] else
+                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      StoreArtwork(logoUrl: logo, pharmacy: pharmacy, wholesale: wholesale),
+                      const SizedBox(width: 14),
+                      Expanded(child: _StoreCardDetails(
+                        name: store['name']?.toString() ?? '',
+                        description: description,
+                        address: address,
+                        status: status,
+                      )),
+                    ]),
                   const SizedBox(height: 14),
                   Align(
                     alignment: AlignmentDirectional.centerEnd,
@@ -354,6 +364,59 @@ class StoreCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _StoreCardDetails extends StatelessWidget {
+  const _StoreCardDetails({
+    required this.name,
+    required this.description,
+    required this.address,
+    required this.status,
+  });
+
+  final String name;
+  final String description;
+  final String address;
+  final (String, StoreStatusKind) status;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        name,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Color(0xFF071B37),
+          fontSize: 20,
+          height: 1.2,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        description,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Color(0xFF778393),
+          fontSize: 13,
+          height: 1.45,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      const SizedBox(height: 10),
+      Wrap(
+        spacing: 12,
+        runSpacing: 7,
+        children: [
+          _Meta(icon: Icons.location_on_outlined, text: address),
+          _StoreStatusBadge(label: status.$1, kind: status.$2),
+        ],
+      ),
+    ],
+  );
 }
 
 class StoreArtwork extends StatelessWidget {
@@ -495,7 +558,8 @@ bool _isPharmacy(Map<String, dynamic> store) {
 bool _isOpen(Map<String, dynamic> store) {
   if (store['is_active'] == false || store['is_active'] == 0) return false;
   final status = (store['status'] ?? store['availability'] ?? '').toString().toLowerCase();
-  return !{'closed', 'inactive', 'unavailable'}.contains(status);
+  return !{'closed', 'inactive', 'unavailable', 'soon', 'coming_soon', 'coming soon'}.contains(status) &&
+      !status.contains('coming') && !status.contains('soon');
 }
 
 (String, StoreStatusKind) _status(Map<String, dynamic> store, bool ar) {
