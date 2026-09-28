@@ -222,25 +222,27 @@ class StoreSelectorHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     return Column(children: [
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Container(
-          width: 50, height: 50,
-          decoration: BoxDecoration(color: const Color(0xFF009B4D), borderRadius: BorderRadius.circular(16)),
-          child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 28),
-        ),
-        const SizedBox(width: 11),
-        const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('FOODEX', style: TextStyle(color: Color(0xFF071B37), fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: .5)),
-          Text('MULTI STORE', style: TextStyle(color: Color(0xFF778393), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 2.1)),
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('FOODEX', style: TextStyle(color: Color(0xFF071B37), fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: .5)),
+            Text('MULTI STORE', style: TextStyle(color: Color(0xFF778393), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 2.1)),
+          ]),
+          Container(
+            width: 50, height: 50,
+            decoration: BoxDecoration(color: const Color(0xFF009B4D), borderRadius: BorderRadius.circular(16)),
+            child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 28),
+          ),
         ]),
-      ]),
+      ),
       const SizedBox(height: 25),
       Text(context.tr('customer.store.title'), textAlign: TextAlign.center,
-        style: const TextStyle(color: Color(0xFF071B37), fontSize: 32, height: 1.2, fontWeight: FontWeight.w900)),
+        style: const TextStyle(color: Color(0xFF071B37), fontSize: 34, height: 1.2, fontWeight: FontWeight.w900)),
       const SizedBox(height: 8),
       Text(ar ? 'تسوق من المتاجر المتاحة حسب نوع الخدمة' : 'Shop available stores by service type',
         textAlign: TextAlign.center,
-        style: const TextStyle(color: Color(0xFF778393), fontSize: 15, height: 1.5, fontWeight: FontWeight.w500)),
+        style: const TextStyle(color: Color(0xFF778393), fontSize: 18, height: 1.45, fontWeight: FontWeight.w500)),
     ]);
   }
 }
@@ -285,11 +287,14 @@ class StoreTypeSegmentedControl extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(34),
         border: Border.all(color: const Color(0xFFD7EAE0)),
         boxShadow: const [BoxShadow(color: Color(0x10071B37), blurRadius: 18, offset: Offset(0, 6))]),
-      child: Row(children: [
-        item(StoreSelectorChannel.wholesale, 'جملة', 'Wholesale', Icons.store_rounded),
-        const SizedBox(width: 4),
-        item(StoreSelectorChannel.retail, 'التجزئة', 'Retail', Icons.shopping_cart_rounded),
-      ]),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(children: [
+          item(StoreSelectorChannel.wholesale, 'جملة', 'Wholesale', Icons.store_rounded),
+          const SizedBox(width: 4),
+          item(StoreSelectorChannel.retail, 'التجزئة', 'Retail', Icons.shopping_cart_rounded),
+        ]),
+      ),
     );
   }
 }
@@ -389,7 +394,7 @@ class _StoreCardDetails extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           color: Color(0xFF071B37),
-          fontSize: 20,
+          fontSize: 24,
           height: 1.2,
           fontWeight: FontWeight.w900,
         ),
@@ -427,19 +432,21 @@ class StoreArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fallback = Center(
-      child: Icon(
-        wholesale ? Icons.warehouse_rounded : (pharmacy ? Icons.local_pharmacy_rounded : Icons.local_grocery_store_rounded),
-        size: 54,
-        color: const Color(0xFF009B4D),
-      ),
+    final fallbackAsset = pharmacy
+        ? 'assets/store_selector/pharmacy_store_art.webp'
+        : 'assets/store_selector/grocery_store_art.webp';
+    final fallback = Image.asset(
+      fallbackAsset,
+      fit: BoxFit.cover,
+      cacheWidth: 320,
+      filterQuality: FilterQuality.medium,
     );
     return Container(
-      width: 112, height: 112,
+      width: 118, height: 118,
       decoration: BoxDecoration(color: const Color(0xFFF2FBF6), borderRadius: BorderRadius.circular(22)),
       clipBehavior: Clip.antiAlias,
       child: logoUrl != null && logoUrl!.trim().isNotEmpty
-          ? Image.network(logoUrl!, fit: BoxFit.cover, cacheWidth: 280, cacheHeight: 280,
+          ? Image.network(logoUrl!, fit: BoxFit.cover, cacheWidth: 320, cacheHeight: 320,
               errorBuilder: (_, __, ___) => fallback)
           : fallback,
     );
@@ -478,7 +485,7 @@ class StoreCTA extends StatelessWidget {
   Widget build(BuildContext context) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     return SizedBox(
-      height: 50, width: compact ? double.infinity : 190,
+      height: 52, width: compact ? double.infinity : 198,
       child: FilledButton(
         onPressed: enabled ? onTap : null,
         style: FilledButton.styleFrom(
@@ -486,7 +493,7 @@ class StoreCTA extends StatelessWidget {
           disabledForegroundColor: const Color(0xFF9AA4B1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
         child: Text(enabled ? (ar ? 'تسوق الآن' : 'Shop now') : (ar ? 'مغلق الآن' : 'Closed'),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
       ),
     );
   }
