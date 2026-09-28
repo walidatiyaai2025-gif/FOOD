@@ -65,7 +65,7 @@ final class StorefrontDesignController extends Controller
         abort_unless($store !== null, 404);
 
         $currentSettings = DB::table('storefront_settings')->where('store_id', $storeId)->first();
-        $branding = $this->decodeJson($currentSettings?->branding ?? null);
+        $branding = $this->decodeJson(is_object($currentSettings) ? ($currentSettings->branding ?? null) : null);
         foreach (['brand_title_ar', 'brand_title_en', 'brand_subtitle_ar', 'brand_subtitle_en'] as $key) {
             $value = trim((string) ($data[$key] ?? ''));
             if ($value === '') {
