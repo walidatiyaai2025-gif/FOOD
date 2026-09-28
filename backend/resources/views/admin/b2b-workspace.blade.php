@@ -314,6 +314,10 @@
       </div>
       @endif
 
+      @if($module==='storefront')
+        @include('admin._wholesale-storefront-builder')
+      @endif
+
       @if($module==='clients' && $user->hasPermission('b2b.accounts.manage'))
       <form method="post" action="{{ route('admin.b2b.clients.store') }}" class="links workspace-inline-form">
         @csrf
@@ -433,7 +437,7 @@
       @if($module==='orders' && $user->hasPermission('orders.manage'))
       @include('admin._dashboard-order-create',['channel'=>'b2b'])
       @endif
-      @if(count($moduleData['rows']))
+      @if($module!=='storefront' && count($moduleData['rows']))
       <div class="table-wrap"><table class="data foodex-table"><thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column]??$column }}</th>@endforeach</tr></thead><tbody>
       @foreach($moduleData['rows'] as $row)<tr>@foreach($moduleData['columns'] as $column)<td>
         @if(in_array($column,['status','availability','active'],true) && is_bool($row[$column]))<span class="state {{ $row[$column]?'':'off' }}">{{ $row[$column]?(app()->getLocale()==='ar'?'نشط':'Active'):(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span>
@@ -480,7 +484,7 @@
         @else{{ $row[$column] }}@endif
       </td>@endforeach</tr>@endforeach
       </tbody></table></div>
-      @else
+      @elseif($module!=='storefront')
       <div class="empty-state" role="status">{{ app()->getLocale()==='ar' ? 'لا توجد بيانات متاحة في هذا القسم.' : 'No records are available in this section.' }}</div>
       @endif
     </section>
