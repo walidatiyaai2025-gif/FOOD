@@ -5,7 +5,6 @@ import '../../core/api/b2c_catalog_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/localization/app_translations.dart';
-import '../../core/theme/foodex_theme.dart';
 
 typedef StoreWholesaleContextCallback = void Function(int? retailStoreId);
 
