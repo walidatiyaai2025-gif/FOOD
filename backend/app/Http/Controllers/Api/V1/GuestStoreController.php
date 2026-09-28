@@ -28,6 +28,9 @@ class GuestStoreController extends Controller
                     'code' => $store->code,
                     'name' => $store->name,
                     'store_type' => 'B2C',
+                    'storefront_kind' => (string) ($store->storefront_kind ?: 'grocery'),
+                    'storefront_config' => is_array($store->storefront_config) ? $store->storefront_config : [],
+                    'logo_url' => $this->assetUrl($store->getAttribute('logo_path')),
                     'is_active' => (bool) $store->is_active,
                 ])
                 ->values()
@@ -38,5 +41,18 @@ class GuestStoreController extends Controller
                 'total' => $stores->total(),
             ],
         ]);
+    }
+
+    private function assetUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $value = trim($path);
+
+        return str_starts_with($value, 'https://') || str_starts_with($value, 'http://')
+            ? $value
+            : url('/'.ltrim($value, '/'));
     }
 }
