@@ -325,6 +325,8 @@ class DriverAssignmentController extends Controller
                 $driver->forceFill(['store_id' => $assignmentStoreIds->first()])->save();
             } elseif ($assignmentStoreIds->isEmpty() && $channel === 'b2b') {
                 $driver->forceFill(['store_id' => app(WholesalePrincipal::class)->storeId()])->save();
+            } elseif ($assignmentStoreIds->isEmpty()) {
+                return $driver;
             } else {
                 abort(403, 'Driver store ownership must be reconciled before delivery execution.');
             }
