@@ -13,6 +13,7 @@ class MultiStorefrontScreen extends StatefulWidget {
     required this.session,
     required this.catalogApi,
     required this.actionApi,
+    required this.onChannelChanged,
     this.b2bApi,
     super.key,
   });
@@ -22,6 +23,7 @@ class MultiStorefrontScreen extends StatefulWidget {
   final CustomerSession session;
   final B2cCatalogApi catalogApi;
   final CustomerActionApi actionApi;
+  final ValueChanged<CustomerChannel> onChannelChanged;
   final B2bApi? b2bApi;
 
   @override
@@ -74,14 +76,34 @@ class _MultiStorefrontScreenState extends State<MultiStorefrontScreen> {
         ),
       );
 
+  Future<_StoreSelectionData> _loadStoreSelection() async {
+    final stores = await widget.catalogApi.stores();
+    var canWholesale = widget.session.isAuthenticated && widget.session.channel == CustomerChannel.b2b;
+    int? wholesaleStoreId;
+    final api = widget.b2bApi;
+    if (widget.session.isAuthenticated && api != null) {
+      try {
+        final access = await api.get('/api/v1/storefront/access');
+        if (access is Map) {
+          canWholesale = access['can_wholesale'] == true;
+          wholesaleStoreId = (access['wholesale_store_id'] as num?)?.toInt();
+        }
+      } catch (_) {
+        // Retail discovery remains usable if entitlement discovery is unavailable.
+      }
+    }
+    return _StoreSelectionData(stores, canWholesale, wholesaleStoreId);
+  }
+
   Widget _storeSelector() => _shell(
         theme: grocery,
-        child: FutureBuilder<List<B2cStore>>(
-          future: widget.catalogApi.stores(),
+        child: FutureBuilder<_StoreSelectionData>(
+          future: _loadStoreSelection(),
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) return const _LoadingSkeleton();
             if (snapshot.hasError) return _ErrorState(onRetry: () => setState(() {}));
-            final stores = snapshot.data ?? const <B2cStore>[];
+            final data = snapshot.data ?? const _StoreSelectionData([], false, null);
+            final stores = data.stores;
             return ListView(
               padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
               children: [
@@ -101,9 +123,17 @@ class _MultiStorefrontScreenState extends State<MultiStorefrontScreen> {
                         onTap: () => Navigator.of(context).pushReplacementNamed('/home?store=${store.id}'),
                       ),
                     )),
-                if (widget.session.isAuthenticated && widget.session.channel == CustomerChannel.b2b)
+                if (data.canWholesale)
                   _WholesaleEntryCard(
-                    onTap: () => Navigator.of(context).pushReplacementNamed(CustomerRoutePaths.b2bDashboard),
+                    onTap: () {
+                      widget.onChannelChanged(CustomerChannel.b2b);
+                      final target = data.wholesaleStoreId == null
+                          ? CustomerRoutePaths.b2bDashboard
+                          : '${CustomerRoutePaths.b2bDashboard}?store_id=${data.wholesaleStoreId}';
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (context.mounted) Navigator.of(context).pushReplacementNamed(target);
+                      });
+                    },
                   ),
               ],
             );
@@ -359,6 +389,13 @@ class _StoreTheme {
   final Color dark;
   final Color accent;
   final Color background;
+}
+
+class _StoreSelectionData {
+  const _StoreSelectionData(this.stores, this.canWholesale, this.wholesaleStoreId);
+  final List<B2cStore> stores;
+  final bool canWholesale;
+  final int? wholesaleStoreId;
 }
 
 class _RetailHomeData {
