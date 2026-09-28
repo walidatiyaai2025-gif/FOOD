@@ -20,7 +20,7 @@ class CustomerSession {
 
   CustomerSession asB2bRetailContext(int? retailStoreId) =>
       CustomerSession.authenticated(
-        CustomerChannel.b2b,
+        channel ?? CustomerChannel.b2c,
         accessToken: accessToken,
         b2bRetailStoreId: retailStoreId,
       );
