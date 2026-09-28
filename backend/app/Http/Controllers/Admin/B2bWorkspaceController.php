@@ -1010,46 +1010,7 @@ class B2bWorkspaceController extends Controller
             'products' => $this->productModuleData($storeIds, $user),
             'inventory' => $this->inventoryModuleData($storeIds),
             'orders' => $this->orderModuleData($storeIds),
-            'drivers' => [
-                'columns' => ['name', 'email', 'availability', 'active', 'assignments', 'current_order', 'assignment_status', 'actions'],
-                'rows' => DB::table('drivers')
-                    ->join('users', 'users.id', '=', 'drivers.user_id')
-                    ->where('drivers.driver_type', 'b2b')
-                    ->whereIn('drivers.store_id', $storeIds)
-                    ->orderBy('users.name')
-                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.email', 'drivers.is_available', 'drivers.is_active'])
-                    ->map(fn ($row) => [
-                        '_id' => (int) $row->id,
-                        'name' => $row->name,
-                        'email' => $row->email,
-                        'availability' => (bool) $row->is_available,
-                        'active' => (bool) $row->is_active,
-                        'assignments' => DB::table('driver_assignments')
-                            ->where('driver_id', $row->id)
-                            ->where('store_id', $row->store_id)
-                            ->where('assignment_type', 'b2b')
-                            ->count(),
-                    ])->all(),
-                'drivers' => DB::table('drivers')
-                    ->join('users', 'users.id', '=', 'drivers.user_id')
-                    ->where('drivers.driver_type', 'b2b')
-                    ->whereIn('drivers.store_id', $storeIds)
-                    ->where('drivers.is_active', true)
-                    ->orderBy('users.name')
-                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.email'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'name' => $row->name, 'email' => $row->email])
-                    ->all(),
-                'orders' => DB::table('orders')
-                    ->whereIn('store_id', $storeIds)
-                    ->where('channel', 'b2b')
-                    ->whereNotNull('b2b_customer_id')
-                    ->whereNotIn('status', ['delivered', 'cancelled'])
-                    ->orderByDesc('id')
-                    ->limit(100)
-                    ->get(['id', 'store_id', 'order_number'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'number' => $row->order_number])
-                    ->all(),
-            ],
+            'drivers' => $this->driverModuleData($storeIds),
             'pricing' => [
                 'columns' => ['tier', 'sku', 'product', 'unit_price', 'minimum_quantity', 'status'],
                 'rows' => DB::table('b2b_price_rules')
@@ -1099,6 +1060,70 @@ class B2bWorkspaceController extends Controller
             'settings' => $this->settingsModuleData($user, $storeIds),
             default => ['columns' => [], 'rows' => []],
         };
+    }
+
+    private function driverModuleData(array $storeIds): array
+    {
+        $drivers = DB::table('drivers')
+            ->join('users', 'users.id', '=', 'drivers.user_id')
+            ->where('drivers.driver_type', 'b2b')
+            ->whereIn('drivers.store_id', $storeIds)
+            ->orderBy('users.name')
+            ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.email', 'drivers.is_available', 'drivers.is_active']);
+
+        return [
+            'columns' => ['name', 'email', 'availability', 'active', 'assignments', 'current_order', 'assignment_status', 'actions'],
+            'rows' => $drivers->map(function ($row): array {
+                $active = DB::table('driver_assignments')
+                    ->join('orders', 'orders.id', '=', 'driver_assignments.order_id')
+                    ->where('driver_assignments.driver_id', $row->id)
+                    ->where('driver_assignments.store_id', $row->store_id)
+                    ->where('driver_assignments.assignment_type', 'b2b')
+                    ->whereNotIn('driver_assignments.status', ['delivered', 'failed', 'unassigned', 'reassigned'])
+                    ->orderByDesc('driver_assignments.id')
+                    ->first(['driver_assignments.id', 'driver_assignments.status', 'orders.id as order_id', 'orders.order_number']);
+
+                return [
+                    '_id' => (int) $row->id,
+                    '_store_id' => (int) $row->store_id,
+                    '_assignment_id' => $active === null ? null : (int) $active->id,
+                    '_order_id' => $active === null ? null : (int) $active->order_id,
+                    'name' => $row->name,
+                    'email' => $row->email,
+                    'availability' => (bool) $row->is_available,
+                    'active' => (bool) $row->is_active,
+                    'assignments' => DB::table('driver_assignments')
+                        ->where('driver_id', $row->id)
+                        ->where('store_id', $row->store_id)
+                        ->where('assignment_type', 'b2b')
+                        ->count(),
+                    'current_order' => $active?->order_number ?? '—',
+                    'assignment_status' => $active?->status ?? '—',
+                    'actions' => true,
+                ];
+            })->all(),
+            'drivers' => $drivers
+                ->where('is_active', true)
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'store_id' => (int) $row->store_id,
+                    'name' => $row->name,
+                    'email' => $row->email,
+                ])->values()->all(),
+            'orders' => DB::table('orders')
+                ->whereIn('store_id', $storeIds)
+                ->where('channel', 'b2b')
+                ->whereNotNull('b2b_customer_id')
+                ->whereNotIn('status', ['delivered', 'cancelled'])
+                ->orderByDesc('id')
+                ->limit(100)
+                ->get(['id', 'store_id', 'order_number'])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'store_id' => (int) $row->store_id,
+                    'number' => $row->order_number,
+                ])->all(),
+        ];
     }
 
     private function orderModuleData(array $storeIds): array
