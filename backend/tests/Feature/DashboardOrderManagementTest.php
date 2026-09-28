@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\B2cCustomerService;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -119,8 +120,11 @@ class DashboardOrderManagementTest extends TestCase
 
     public function test_b2b_dashboard_order_uses_approved_customer_tier_price_and_minimum_quantity(): void
     {
-        $store = $this->store('B2B', 'ORDER-WHOLESALE');
+        $store = app(WholesalePrincipal::class)->storeId();
         [$product, $inventory] = $this->product($store, 'b2b', 'WHOLESALE-ORDER-SKU', 10, 20);
+        $warehouse = (int) DB::table('inventories')->where('inventories.id', $inventory)
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->value('warehouses.id');
         $tier = (int) DB::table('b2b_price_tiers')->insertGetId([
             'code' => 'ORDER-GOLD',
             'name' => 'Order Gold',
@@ -159,7 +163,7 @@ class DashboardOrderManagementTest extends TestCase
             ->assertSee('Create new order');
 
         $this->actingAs($admin)->post('/admin/b2b/orders', [
-            'store_id' => $store,
+            'warehouse_id' => $warehouse,
             'customer_id' => $customer->id,
             'payment_method' => 'cash_on_delivery',
             'items' => [['product_id' => $product, 'quantity' => 5]],
@@ -168,6 +172,7 @@ class DashboardOrderManagementTest extends TestCase
         $order = DB::table('orders')->where('store_id', $store)->where('channel', 'b2b')->first();
         $this->assertNotNull($order);
         $this->assertSame((int) $customer->id, (int) $order->b2b_customer_id);
+        $this->assertSame($warehouse, (int) $order->warehouse_id);
         $this->assertSame(36.25, (float) $order->subtotal);
         $this->assertSame(36.25, (float) $order->grand_total);
         $this->assertDatabaseHas('order_items', [
@@ -180,7 +185,7 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertSame(5.0, (float) DB::table('inventories')->where('id', $inventory)->value('reserved_quantity'));
 
         $this->actingAs($admin)->post('/admin/b2b/orders', [
-            'store_id' => $store,
+            'warehouse_id' => $warehouse,
             'customer_id' => $customer->id,
             'payment_method' => 'cash_on_delivery',
             'items' => [['product_id' => $product, 'quantity' => 1]],
