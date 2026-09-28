@@ -90,23 +90,12 @@ final class RetailWholesaleReplenishmentService
                     throw new HttpException(409, 'Wholesale order contains a product outside its source catalog.');
                 }
 
-                $unitId = $this->retailUnitId((int) $source->unit_id, $retailStoreId);
-                $brandId = $source->brand_id === null
-                    ? null
-                    : $this->retailBrandId((int) $source->brand_id, $retailStoreId);
-                $categoryId = $source->category_id === null
-                    ? null
-                    : $this->retailCategoryId((int) $source->category_id, $catalogId);
-
-                $retailProductId = $this->retailProductId(
+                [$retailProductId, $conversionFactor] = $this->resolveRetailProductMapping(
+                    $retailStoreId,
                     $catalogId,
+                    (int) $source->id,
                     (string) $item->sku_snapshot,
-                    (string) $item->name_snapshot,
-                    $source->description === null ? null : (string) $source->description,
-                    $categoryId,
-                    $brandId,
-                    $unitId,
-                    (bool) $source->is_active,
+                    $actor,
                 );
 
                 $this->syncImages((int) $source->id, $retailProductId);
@@ -117,7 +106,9 @@ final class RetailWholesaleReplenishmentService
                 );
 
                 $inventoryId = $this->inventoryId($warehouseId, $retailProductId);
-                $quantity = round((float) $item->quantity, 3);
+                $sourceQuantity = round((float) $item->quantity, 3);
+                $quantity = round($sourceQuantity * $conversionFactor, 3);
+                abort_if($quantity <= 0, 409, 'Retail quantity conversion must result in a positive quantity.');
 
                 DB::table('inventories')
                     ->where('id', $inventoryId)
@@ -141,6 +132,8 @@ final class RetailWholesaleReplenishmentService
                     'source_order_item_id' => (int) $item->id,
                     'source_product_id' => (int) $source->id,
                     'retail_product_id' => $retailProductId,
+                    'source_quantity' => $sourceQuantity,
+                    'quantity_conversion_factor' => $conversionFactor,
                     'quantity' => $quantity,
                     'unit_cost' => round((float) $item->unit_price, 3),
                     'line_total' => round((float) $item->line_total, 3),
@@ -167,6 +160,58 @@ final class RetailWholesaleReplenishmentService
 
             return $replenishmentId;
         }, 3);
+    }
+
+    /** @return array{0:int,1:float} */
+    private function resolveRetailProductMapping(
+        int $retailStoreId,
+        int $retailCatalogId,
+        int $wholesaleProductId,
+        string $sku,
+        User $actor,
+    ): array {
+        $mapping = DB::table('retail_wholesale_product_mappings')
+            ->join('products', 'products.id', '=', 'retail_wholesale_product_mappings.retail_product_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->where('retail_wholesale_product_mappings.retail_store_id', $retailStoreId)
+            ->where('retail_wholesale_product_mappings.wholesale_product_id', $wholesaleProductId)
+            ->where('catalogs.store_id', $retailStoreId)
+            ->where('catalogs.channel', 'b2c')
+            ->first([
+                'retail_wholesale_product_mappings.retail_product_id',
+                'retail_wholesale_product_mappings.quantity_conversion_factor',
+            ]);
+
+        if ($mapping !== null) {
+            $factor = (float) $mapping->quantity_conversion_factor;
+            abort_if($factor <= 0, 409, 'Retail quantity conversion factor must be greater than zero.');
+
+            return [(int) $mapping->retail_product_id, $factor];
+        }
+
+        $existingRetailProductId = DB::table('products')
+            ->where('catalog_id', $retailCatalogId)
+            ->where('sku', $sku)
+            ->value('id');
+
+        if ($existingRetailProductId === null) {
+            throw new HttpException(
+                409,
+                'Product mapping required before receiving Wholesale SKU '.$sku.' into Retail inventory.',
+            );
+        }
+
+        DB::table('retail_wholesale_product_mappings')->insert([
+            'retail_store_id' => $retailStoreId,
+            'wholesale_product_id' => $wholesaleProductId,
+            'retail_product_id' => (int) $existingRetailProductId,
+            'quantity_conversion_factor' => 1,
+            'updated_by_user_id' => $actor->getKey(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return [(int) $existingRetailProductId, 1.0];
     }
 
     private function retailCatalogId(int $storeId, string $storeName): int
