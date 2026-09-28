@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.22 - Driver reliability, clear admin errors, and password reset
+
+- Admin mutation conflicts such as duplicate driver assignment, missing Wholesale pricing, and invalid business state now return to the same screen and appear in the FOODEX feedback popup instead of the generic 409 error page.
+- Driver App launches its UI before Firebase/push initialization so messaging startup cannot block the application opening.
+- Driver login now uses the FOODEX branded surface, Arabic/English layout, and a password visibility eye control; native Android builds continue to apply the approved FOODEX icon and splash assets.
+- Drivers & Delivery now supports authorized B2B and B2C driver password resets with tenant/store enforcement, password confirmation, audit logging, and immediate revocation of existing driver API sessions.
+- Driver mobile package version aligned to 1.0.22 and covered by Flutter/backend regression tests.
+
+
 ## 1.0.21 - Wholesale Principal & Retail Commercial Setup
 - Make FOODEX itself the single Wholesale principal; remove user-managed Wholesale branch selectors and keep warehouses beneath the principal.
 - Create and edit B2B orders from a selected source warehouse and reserve stock only from that warehouse.
