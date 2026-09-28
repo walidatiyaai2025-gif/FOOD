@@ -1380,8 +1380,8 @@ class B2bWorkspaceController extends Controller
         $to = $data['to'] ?? null;
 
         if ($from !== null && $to !== null) {
-            $fromDay = CarbonImmutable::createFromFormat('Y-m-d', $from, 'Asia/Kuwait')->startOfDay();
-            $toDay = CarbonImmutable::createFromFormat('Y-m-d', $to, 'Asia/Kuwait')->startOfDay();
+            $fromDay = CarbonImmutable::parse($from, 'Asia/Kuwait')->startOfDay();
+            $toDay = CarbonImmutable::parse($to, 'Asia/Kuwait')->startOfDay();
 
             if ($fromDay->diffInDays($toDay) > 30) {
                 throw ValidationException::withMessages([
