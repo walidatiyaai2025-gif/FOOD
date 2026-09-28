@@ -127,6 +127,7 @@ class GuestCartController extends Controller
         }
 
         $state = $this->productState($storeId, $productId, true);
+        $pricing = null;
         if ($user instanceof User && $channel === 'b2b') {
             $pricing = app(B2bPriceResolver::class)->resolve($customer, $storeId, $productId);
             $this->assertB2bQuantity($quantity, $pricing);
@@ -140,6 +141,7 @@ class GuestCartController extends Controller
 
         $newQuantity = ($item->exists ? (float) $item->quantity : 0.0) + $quantity;
         if ($user instanceof User && $channel === 'b2b') {
+            abort_unless(is_array($pricing), 500, 'B2B pricing context is unavailable.');
             $this->assertB2bQuantity($newQuantity, $pricing);
         }
         $this->assertQuantityAvailable($state['available_quantity'], $newQuantity);
