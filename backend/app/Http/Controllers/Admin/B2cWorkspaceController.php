@@ -551,17 +551,26 @@ class B2cWorkspaceController extends Controller
                     ->orderByDesc('driver_assignments.created_at')
                     ->limit(100)
                     ->get([
+                        'driver_assignments.id as assignment_id',
+                        'driver_assignments.driver_id',
+                        'driver_assignments.store_id',
+                        'orders.id as order_id',
                         'users.name',
                         'drivers.driver_type',
                         'drivers.is_available',
                         'orders.order_number as order_number',
                         'driver_assignments.status as assignment_status',
                     ])->map(fn ($row) => [
+                        '_assignment_id' => (int) $row->assignment_id,
+                        '_driver_id' => (int) $row->driver_id,
+                        '_store_id' => (int) $row->store_id,
+                        '_order_id' => (int) $row->order_id,
                         'name' => $row->name,
                         'driver_type' => app()->getLocale() === 'ar' ? 'التجزئة' : 'Retail',
                         'order' => $row->order_number,
                         'assignment_status' => $row->assignment_status,
                         'availability' => (bool) $row->is_available,
+                        'actions' => true,
                     ])->all(),
             ],
             'storefront' => [
