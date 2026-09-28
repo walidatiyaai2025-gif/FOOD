@@ -35,26 +35,28 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 if (! $request->expectsJson()
                     && ! $request->isMethod('GET')
+                    && ! $request->isMethod('HEAD')
                     && $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                    $status = $exception->getStatusCode();
                     $rawMessage = trim($exception->getMessage());
                     $userLocale = $request->user()?->locale;
                     $locale = in_array($userLocale, ['ar', 'en'], true) ? $userLocale : app()->getLocale();
                     $knownMessages = [
                         'No approved B2B price exists for this product.' => [
-                            'ar' => 'لا يوجد سعر جملة معتمد لهذا المنتج ضمن شريحة تسعير العميل. أضف سعرًا معتمدًا للمنتج ثم أعد المحاولة.',
-                            'en' => 'No approved Wholesale price exists for this product in the customer price tier. Add an approved price and try again.',
+                            'ar' => 'لا يوجد سعر جملة معتمد لهذا المنتج ضمن شريحة تسعير العميل. أضف أو فعّل سعر المنتج في «التسعير والموافقات» ثم أعد إنشاء الطلب.',
+                            'en' => 'No approved Wholesale price exists for this product in the customer price tier. Add or activate the product price under Pricing & Approvals, then retry the order.',
                         ],
                         'Approved B2B pricing account is required.' => [
-                            'ar' => 'يجب أن يكون للعميل حساب تسعير جملة نشط وشريحة سعر معتمدة قبل إنشاء الطلب.',
-                            'en' => 'The customer needs an active Wholesale pricing account and an approved price tier before an order can be created.',
+                            'ar' => 'هذا العميل لا يملك حساب تسعير جملة نشطًا ومعتمدًا. حدّد شريحة التسعير للعميل أولاً ثم أعد المحاولة.',
+                            'en' => 'This customer does not have an active approved Wholesale pricing account. Assign a price tier first, then retry.',
                         ],
                         'Order already has an active driver assignment.' => [
-                            'ar' => 'هذا الطلب لديه سائق مسند بالفعل. أنهِ أو ألغِ الإسناد الحالي قبل تعيين سائق آخر.',
+                            'ar' => 'هذا الطلب لديه سائق مُعيّن بالفعل. أنهِ أو ألغِ التعيين الحالي قبل إسناد سائق آخر.',
                             'en' => 'This order already has an active driver assignment. Complete or clear the current assignment before assigning another driver.',
                         ],
                         'Retail-linked Wholesale account status is controlled by the Retail store status.' => [
-                            'ar' => 'حالة حساب الجملة المرتبط بمتجر التجزئة تُدار من حالة متجر التجزئة نفسه.',
-                            'en' => 'The linked Wholesale account status is controlled by the Retail store status.',
+                            'ar' => 'حالة حساب الجملة المرتبط بمتجر تجزئة تُدار من حالة متجر التجزئة نفسه.',
+                            'en' => 'The Wholesale account linked to a Retail store is controlled by the Retail store status.',
                         ],
                         'Driver and order must belong to the same store.' => [
                             'ar' => 'يجب أن يكون السائق والطلب تابعين لنفس المتجر.',
@@ -66,20 +68,22 @@ return Application::configure(basePath: dirname(__DIR__))
                         ],
                     ];
 
-                    $isActionableConflict = array_key_exists($rawMessage, $knownMessages);
-
-                    if ($isActionableConflict) {
-                        $message = $knownMessages[$rawMessage][$locale] ?? $rawMessage;
-                        if ($message === '') {
-                            $message = $locale === 'ar'
-                                ? 'تعذر تنفيذ العملية المطلوبة. راجع البيانات وحاول مرة أخرى.'
-                                : 'The requested action could not be completed. Review the data and try again.';
-                        }
-
-                        return back()
-                            ->withInput()
-                            ->withErrors(['operation' => $message]);
+                    $message = $knownMessages[$rawMessage][$locale] ?? $rawMessage;
+                    if ($message === '') {
+                        $message = match ($status) {
+                            401 => $locale === 'ar' ? 'انتهت جلسة الدخول. سجّل الدخول مرة أخرى.' : 'Your session has expired. Sign in again.',
+                            403 => $locale === 'ar' ? 'ليس لديك صلاحية لتنفيذ هذه العملية.' : 'You do not have permission to perform this action.',
+                            404 => $locale === 'ar' ? 'السجل المطلوب غير موجود أو خارج نطاق صلاحياتك.' : 'The requested record was not found or is outside your access scope.',
+                            409 => $locale === 'ar' ? 'تعذر تنفيذ العملية بسبب تعارض في حالة البيانات الحالية.' : 'The action conflicts with the current data state.',
+                            419 => $locale === 'ar' ? 'انتهت صلاحية الجلسة. حدّث الصفحة وحاول مرة أخرى.' : 'The page session expired. Refresh the page and try again.',
+                            422 => $locale === 'ar' ? 'تعذر تنفيذ العملية. راجع البيانات المطلوبة وحاول مرة أخرى.' : 'The action could not be completed. Review the required data and try again.',
+                            default => $locale === 'ar' ? 'تعذر تنفيذ العملية (' . $status . ').' : 'The action could not be completed (' . $status . ').',
+                        };
                     }
+
+                    return back()
+                        ->withInput()
+                        ->withErrors(['operation' => $message]);
                 }
             }
 
