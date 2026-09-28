@@ -35,8 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 if (! $request->expectsJson()
                     && ! $request->isMethod('GET')
-                    && $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
-                    && in_array($exception->getStatusCode(), [400, 403, 404, 409, 422], true)) {
+                    && $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
                     $rawMessage = trim($exception->getMessage());
                     $userLocale = $request->user()?->locale;
                     $locale = in_array($userLocale, ['ar', 'en'], true) ? $userLocale : app()->getLocale();
@@ -67,16 +66,22 @@ return Application::configure(basePath: dirname(__DIR__))
                         ],
                     ];
 
-                    $message = $knownMessages[$rawMessage][$locale] ?? $rawMessage;
-                    if ($message === '') {
-                        $message = $locale === 'ar'
-                            ? 'تعذر تنفيذ العملية المطلوبة. راجع البيانات وحاول مرة أخرى.'
-                            : 'The requested action could not be completed. Review the data and try again.';
-                    }
+                    $status = $exception->getStatusCode();
+                    $isActionableConflict = in_array($status, [409, 422], true)
+                        || ($status === 403 && array_key_exists($rawMessage, $knownMessages));
 
-                    return back()
-                        ->withInput()
-                        ->withErrors(['operation' => $message]);
+                    if ($isActionableConflict) {
+                        $message = $knownMessages[$rawMessage][$locale] ?? $rawMessage;
+                        if ($message === '') {
+                            $message = $locale === 'ar'
+                                ? 'تعذر تنفيذ العملية المطلوبة. راجع البيانات وحاول مرة أخرى.'
+                                : 'The requested action could not be completed. Review the data and try again.';
+                        }
+
+                        return back()
+                            ->withInput()
+                            ->withErrors(['operation' => $message]);
+                    }
                 }
             }
 
