@@ -92,6 +92,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
         return WholesaleHomeDesignScreen(
           location: location,
           api: b2bApi,
+          storefrontApi: storefrontApi,
           actionApi: actionApi,
         );
       case CustomerRoutePaths.b2bProductDetails:
