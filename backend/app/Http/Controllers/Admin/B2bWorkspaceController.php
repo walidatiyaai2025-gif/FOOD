@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
 use App\Models\Category;
 use App\Models\Driver;
+use App\Models\DriverAssignment;
 use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\Product;
@@ -21,6 +22,7 @@ use App\Services\B2bCustomerService;
 use App\Services\B2bDashboardService;
 use App\Services\CatalogOwnership;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\DriverAssignmentManagementService;
 use App\Services\LookupScopeService;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
@@ -196,14 +198,68 @@ class B2bWorkspaceController extends Controller
             ->whereNotNull('b2b_customer_id')
             ->first(['id', 'store_id']);
 
-        abort_unless($driver !== null && $driver->store_id !== null && $order !== null, 422);
+        abort_unless($driver !== null && $order !== null, 422);
         $principalStoreId = $this->principal->storeId();
+        if ($driver->store_id === null) {
+            DB::table('drivers')->where('id', $driverId)->update(['store_id' => $principalStoreId, 'updated_at' => now()]);
+            $driver->store_id = $principalStoreId;
+        }
         abort_unless((int) $driver->store_id === $principalStoreId && (int) $order->store_id === $principalStoreId, 422, 'Driver and order must belong to the main Wholesale operation.');
         $this->operationalScope->assertStore($actor, $principalStoreId, 'drivers.b2b.manage', 'b2b');
 
         $deliveries->assign($request, $audit, $dashboardNotifier);
 
         return back()->with('status', $this->msg('تم تعيين السائق.', 'Driver assigned.'));
+    }
+
+    public function withdrawDriverAssignment(
+        Request $request,
+        int $assignment,
+        DriverAssignmentManagementService $assignments,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $storeId = $this->principal->storeId();
+        $this->operationalScope->assertStore($actor, $storeId, 'drivers.b2b.manage', 'b2b');
+
+        $model = DriverAssignment::query()
+            ->whereKey($assignment)
+            ->where('store_id', $storeId)
+            ->where('assignment_type', 'b2b')
+            ->firstOrFail();
+
+        $assignments->withdraw($model, $actor, $request, $request->string('note')->toString() ?: null);
+
+        return back()->with('status', $this->msg('تم سحب الطلب من السائق وأصبح متاحًا لإعادة التعيين.', 'Order withdrawn from the driver and is ready for reassignment.'));
+    }
+
+    public function reassignDriverAssignment(
+        Request $request,
+        int $assignment,
+        DriverAssignmentManagementService $assignments,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $data = $request->validate([
+            'driver_id' => ['required', 'integer', 'exists:drivers,id'],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $storeId = $this->principal->storeId();
+        $this->operationalScope->assertStore($actor, $storeId, 'drivers.b2b.manage', 'b2b');
+
+        $model = DriverAssignment::query()
+            ->whereKey($assignment)
+            ->where('store_id', $storeId)
+            ->where('assignment_type', 'b2b')
+            ->firstOrFail();
+        $driver = Driver::query()
+            ->whereKey((int) $data['driver_id'])
+            ->where('driver_type', 'b2b')
+            ->where('store_id', $storeId)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $assignments->reassign($model, $driver, $actor, $request, $data['note'] ?? null);
+
+        return back()->with('status', $this->msg('تم إعادة تعيين الطلب للسائق الجديد.', 'Order reassigned to the new driver.'));
     }
 
     public function storeDriver(Request $request): RedirectResponse
