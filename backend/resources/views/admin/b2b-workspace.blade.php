@@ -36,10 +36,10 @@
 .b2b-ref-chart-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:-2px;font-family:var(--foodex-font-en);font-size:9px;color:#7b8798;text-align:center}
 .b2b-ref-axis{font-family:var(--foodex-font-en);font-size:9px;fill:#7b8798}
 .b2b-ref-tooltip{fill:#175c35}.b2b-ref-tooltip-text{font-family:var(--foodex-font-en);font-size:9px;font-weight:700;fill:#fff}
-.b2b-ref-donut-body{min-height:222px;display:grid;grid-template-columns:minmax(126px,.95fr) minmax(145px,1.05fr);gap:16px;align-items:center}
+.b2b-ref-donut-body{direction:ltr;min-height:222px;display:grid;grid-template-columns:minmax(126px,.95fr) minmax(145px,1.05fr);gap:16px;align-items:center}
 .b2b-ref-donut{width:142px;height:142px;border-radius:50%;position:relative;margin:auto}
 .b2b-ref-donut:after{content:"";position:absolute;inset:34px;border-radius:50%;background:#fff}
-.b2b-ref-legend{display:grid;gap:16px}.b2b-ref-legend-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:12px}
+.b2b-ref-legend{direction:ltr;display:grid;gap:16px}.b2b-ref-legend-row{direction:ltr;display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:12px}
 .b2b-ref-legend-dot{width:9px;height:9px;border-radius:50%}.b2b-ref-legend-row strong{font-family:var(--foodex-font-en);font-size:11px}
 .b2b-ref-bottom{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,1fr) minmax(230px,.82fr);gap:12px}
 .b2b-ref-bottom .b2b-ref-panel{min-height:264px}
@@ -50,12 +50,12 @@
 .b2b-ref-status.processing,.b2b-ref-status.confirmed,.b2b-ref-status.pending,.b2b-ref-status.paid,.b2b-ref-status.accepted{background:#fff3d7;color:#de8700}
 .b2b-ref-status.assigned,.b2b-ref-status.picked_up,.b2b-ref-status.out_for_delivery,.b2b-ref-status.in_transit{background:#e6f4ff;color:#1f7ac6}
 .b2b-ref-status.cancelled,.b2b-ref-status.refunded{background:#fff0f0;color:#dc2626}
-.b2b-ref-products{display:grid}.b2b-ref-product{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #edf1f5}.b2b-ref-product:last-child{border-bottom:0}
+.b2b-ref-products{display:grid}.b2b-ref-product{direction:ltr;display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #edf1f5}.b2b-ref-product:last-child{border-bottom:0}
 .b2b-ref-product-thumb{width:48px;height:42px;border-radius:9px;background:#f6f8fb;border:1px solid #edf1f5;display:grid;place-items:center;overflow:hidden;color:#f59e0b}
-.b2b-ref-product-thumb img{width:100%;height:100%;object-fit:contain}.b2b-ref-product-name{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.b2b-ref-product-sku{font-family:var(--foodex-font-en);font-size:9px;color:#98a2b3}.b2b-ref-product-qty{font-family:var(--foodex-font-en);font-size:11px;font-weight:700;color:#475467}
-.b2b-ref-alerts{display:grid}.b2b-ref-alert{display:grid;grid-template-columns:42px minmax(0,1fr) 6px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #edf1f5;color:inherit;text-decoration:none}.b2b-ref-alert:last-child{border-bottom:0}
+.b2b-ref-product-thumb img{width:100%;height:100%;object-fit:contain}.b2b-ref-product-name{direction:rtl;text-align:start;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.b2b-ref-product-sku{font-family:var(--foodex-font-en);font-size:9px;color:#98a2b3}.b2b-ref-product-qty{font-family:var(--foodex-font-en);font-size:11px;font-weight:700;color:#475467}
+.b2b-ref-alerts{display:grid}.b2b-ref-alert{direction:ltr;display:grid;grid-template-columns:42px minmax(0,1fr) 6px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #edf1f5;color:inherit;text-decoration:none}.b2b-ref-alert:last-child{border-bottom:0}
 .b2b-ref-alert-icon{width:42px;height:42px;border-radius:10px;display:grid;place-items:center}.b2b-ref-alert-icon .foodex-svg-icon{width:22px;height:22px}
-.b2b-ref-alert.orange .b2b-ref-alert-icon{background:#fff4dc;color:#f59e0b}.b2b-ref-alert.green .b2b-ref-alert-icon{background:#eaf9ef;color:#159447}.b2b-ref-alert-title{font-size:11px;font-weight:700}.b2b-ref-alert-body{margin-top:2px;font-size:9px;color:#7b8798;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.b2b-ref-alert-dot{width:6px;height:6px;border-radius:50%;background:#ef4444}
+.b2b-ref-alert.orange .b2b-ref-alert-icon{background:#fff4dc;color:#f59e0b}.b2b-ref-alert.green .b2b-ref-alert-icon{background:#eaf9ef;color:#159447}.b2b-ref-alert-title{direction:rtl;text-align:start;display:block;font-size:11px;font-weight:700}.b2b-ref-alert-body{direction:rtl;text-align:start;display:block;margin-top:2px;font-size:9px;color:#7b8798;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.b2b-ref-alert-dot{width:6px;height:6px;border-radius:50%;background:#ef4444}
 .b2b-ref-more{display:inline-flex;margin-top:8px;font-size:10px;font-weight:700;color:#2487e3;text-decoration:none}
 .b2b-ref-empty{min-height:140px;display:grid;place-items:center;text-align:center;color:#98a2b3;font-size:11px}
 @media(min-width:1600px){.b2b-ref-kpi{min-height:104px}.b2b-ref-chart-wrap{height:246px}.b2b-ref-chart-wrap svg{height:216px}.b2b-ref-donut-body{min-height:246px}.b2b-ref-bottom .b2b-ref-panel{min-height:286px}}
