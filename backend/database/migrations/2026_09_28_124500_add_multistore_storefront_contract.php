@@ -55,6 +55,26 @@ return new class extends Migration
             });
         }
 
+        if (! Schema::hasTable('retail_wholesale_product_mappings')) {
+            Schema::create('retail_wholesale_product_mappings', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('retail_store_id')->constrained('stores')->cascadeOnDelete();
+                $table->foreignId('source_wholesale_product_id')->constrained('products')->restrictOnDelete();
+                $table->foreignId('retail_product_id')->constrained('products')->restrictOnDelete();
+                $table->decimal('quantity_conversion_factor', 14, 3)->default(1);
+                $table->foreignId('mapped_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->timestamps();
+                $table->unique(
+                    ['retail_store_id', 'source_wholesale_product_id'],
+                    'retail_wholesale_product_mapping_unique',
+                );
+                $table->index(
+                    ['retail_store_id', 'retail_product_id'],
+                    'retail_wholesale_product_mapping_target_idx',
+                );
+            });
+        }
+
         Schema::table('products', function (Blueprint $table): void {
             if (! Schema::hasColumn('products', 'barcode')) {
                 $table->string('barcode', 120)->nullable()->index()->after('sku');
@@ -160,6 +180,7 @@ return new class extends Migration
             }
         });
 
+        Schema::dropIfExists('retail_wholesale_product_mappings');
         Schema::dropIfExists('storefront_sections');
         Schema::dropIfExists('storefront_settings');
         Schema::dropIfExists('store_service_zones');
