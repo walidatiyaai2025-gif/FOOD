@@ -275,7 +275,7 @@ class B2bPricingController extends Controller
 
     private function assetUrl(mixed $path): ?string
     {
-        if (! is_string($path) || trim($path) === '') {
+        if (!is_string($path) || trim($path) === '') {
             return null;
         }
 
