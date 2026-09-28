@@ -13,6 +13,14 @@ class Store extends Model
 
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'storefront_config' => 'array',
+        ];
+    }
+
     /** @return HasMany<UserStoreRole, $this> */
     public function storeRoleAssignments(): HasMany
     {
