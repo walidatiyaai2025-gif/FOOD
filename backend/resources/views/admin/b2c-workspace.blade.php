@@ -574,6 +574,9 @@
                                 <td>
                                     @if($column==='actions' && $module==='orders' && ($user->hasPermission('orders.manage',$row['_store_id']) || $user->hasPermission('orders.manage')))
                                         @include('admin._dashboard-order-actions',['channel'=>'b2c','row'=>$row])
+                                         @php($isB2bOrder=false)
+                                         @php($driverRoute='admin.b2c.drivers.assign')
+                                         @if(!empty($row['_assignment'])) @include('admin._order-driver-management') @endif
                                     @elseif($column==='image' && $module==='content')
                                         <img src="{{ asset($row['image']) }}" alt="{{ $row['title'] }}" style="width:112px;height:58px;object-fit:cover;border-radius:10px;border:1px solid var(--foodex-border)">
                                     @elseif($column==='image' && $module==='customers')
