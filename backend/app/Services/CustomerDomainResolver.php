@@ -16,9 +16,7 @@ final class CustomerDomainResolver
     public function __construct(
         private readonly B2bCustomerRepository $b2b,
         private readonly B2cCustomerRepository $b2c,
-    )
-    {
-    }
+    ) {}
 
     public function b2b(User $user): B2bCustomer
     {
