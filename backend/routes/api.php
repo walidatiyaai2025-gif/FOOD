@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\MobileRuntimeController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PushDeviceController;
+use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontAccessController;
 use App\Http\Controllers\Api\V1\TranslationController;
@@ -54,6 +55,8 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/storefront/access', StorefrontAccessController::class);
+        Route::get('/admin/retail-stores/{store}/wholesale-product-mappings', [RetailWholesaleProductMappingController::class, 'index']);
+        Route::put('/admin/retail-stores/{store}/wholesale-product-mappings/{wholesaleProduct}', [RetailWholesaleProductMappingController::class, 'upsert']);
         Route::post('/push/devices', [PushDeviceController::class, 'store']);
         Route::delete('/push/devices/{device}', [PushDeviceController::class, 'destroy']);
         Route::get('/admin/security/permissions', [SecurityController::class, 'permissions']);
