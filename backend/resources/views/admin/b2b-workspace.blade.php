@@ -139,15 +139,21 @@
     <section class="b2b-reference-dashboard" data-b2b-reference-dashboard="841x564">
         <div class="b2b-ref-kpis">
             @foreach($kpiConfig as $config)
-                @php($kpi = $dashboard['kpis'][$config['key']])
+                @php
+                    $kpi = $dashboard['kpis'][$config['key']];
+                    $kpiValue = $config['money']
+                        ? 'EGP '.number_format((float) $kpi['value'], 0)
+                        : number_format((float) $kpi['value'], 0);
+                    $delta = $kpi['delta'];
+                    $deltaClass = $delta !== null && $delta < 0
+                        ? 'down'
+                        : ($delta === null || $delta == 0 ? 'neutral' : '');
+                @endphp
                 <article class="b2b-ref-card b2b-ref-kpi">
                     <div class="b2b-ref-kpi-copy">
                         <div class="b2b-ref-kpi-label">{{ $config['label'] }}</div>
-                        <div class="b2b-ref-kpi-value">
-                            @if($config['money']) EGP {{ number_format((float)$kpi['value'], 0) }} @else {{ number_format((float)$kpi['value'], 0) }} @endif
-                        </div>
-                        @php($delta = $kpi['delta'])
-                        <div class="b2b-ref-kpi-delta {{ $delta !== null && $delta < 0 ? 'down' : ($delta === null || $delta == 0 ? 'neutral' : '') }}">
+                        <div class="b2b-ref-kpi-value">{{ $kpiValue }}</div>
+                        <div class="b2b-ref-kpi-delta {{ $deltaClass }}">
                             @if($delta === null)
                                 <span>—</span>
                             @elseif($delta > 0)
@@ -184,8 +190,10 @@
                         @if($polyline)<polyline class="b2b-ref-chart-line" points="{{ $polyline }}"/>@endif
                         @foreach($chartPoints as $point)<circle class="b2b-ref-chart-dot" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3.8"/>@endforeach
                         @if(count($chartPoints))
-                            @php($tooltipX = min(466, max(392, $lastPoint['x'] - 58)))
-                            @php($tooltipY = max(6, $lastPoint['y'] - 35))
+                            @php
+                                $tooltipX = min(466, max(392, $lastPoint['x'] - 58));
+                                $tooltipY = max(6, $lastPoint['y'] - 35);
+                            @endphp
                             <rect class="b2b-ref-tooltip" x="{{ $tooltipX }}" y="{{ $tooltipY }}" rx="5" ry="5" width="88" height="24"/>
                             <text class="b2b-ref-tooltip-text" x="{{ $tooltipX + 44 }}" y="{{ $tooltipY + 16 }}" text-anchor="middle">EGP {{ number_format($lastPoint['revenue'],0) }}</text>
                         @endif
@@ -228,7 +236,9 @@
                         </tbody>
                     </table>
                 </div>
-                @else<div class="b2b-ref-empty">{{ $isAr?'لا توجد طلبات حتى الآن':'No orders yet' }}</div>@endif
+                @else
+                    <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد طلبات حتى الآن' : 'No orders yet' }}</div>
+                @endif
                 <a class="b2b-ref-more" href="{{ route('admin.b2b.module',['module'=>'orders']) }}">{{ $isAr?'عرض كل الطلبات':'View all orders' }}</a>
             </article>
 
@@ -239,14 +249,20 @@
                     @foreach($dashboard['top_products'] as $product)
                     <div class="b2b-ref-product">
                         <div class="b2b-ref-product-thumb">
-                            @if($product['image'])<img src="{{ asset($product['image']) }}" alt="{{ $product['name'] }}">@else @include('admin._premium-icon',['name'=>'products']) @endif
+                            @if($product['image'])
+                                <img src="{{ asset($product['image']) }}" alt="{{ $product['name'] }}">
+                            @else
+                                @include('admin._premium-icon',['name'=>'products'])
+                            @endif
                         </div>
                         <div style="min-width:0"><div class="b2b-ref-product-name">{{ $product['name'] }}</div><div class="b2b-ref-product-sku">{{ $product['sku'] }}</div></div>
                         <div class="b2b-ref-product-qty">{{ number_format($product['quantity'],0) }}</div>
                     </div>
                     @endforeach
                 </div>
-                @else<div class="b2b-ref-empty">{{ $isAr?'لا توجد مبيعات منتجات في آخر 7 أيام':'No product sales in the last 7 days' }}</div>@endif
+                @else
+                    <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد مبيعات منتجات في آخر 7 أيام' : 'No product sales in the last 7 days' }}</div>
+                @endif
             </article>
 
             <article class="b2b-ref-card b2b-ref-panel">
@@ -261,7 +277,9 @@
                     </a>
                     @endforeach
                 </div>
-                @else<div class="b2b-ref-empty">{{ $isAr?'لا توجد تنبيهات تشغيلية':'No operational alerts' }}</div>@endif
+                @else
+                    <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد تنبيهات تشغيلية' : 'No operational alerts' }}</div>
+                @endif
             </article>
         </div>
     </section>
