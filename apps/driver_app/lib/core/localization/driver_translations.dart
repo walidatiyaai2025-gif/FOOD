@@ -84,6 +84,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.status.out_for_delivery': 'في الطريق للتسليم',
     'driver.status.delivered': 'تم التسليم',
     'driver.status.failed': 'تعذر التسليم',
+    'driver.status.unassigned': 'تم سحب الطلب',
   };
 
   static const Map<String, String> _en = {
@@ -154,6 +155,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.status.out_for_delivery': 'Out for delivery',
     'driver.status.delivered': 'Delivered',
     'driver.status.failed': 'Delivery failed',
+    'driver.status.unassigned': 'Unassigned',
   };
 
   String text(String key) {
