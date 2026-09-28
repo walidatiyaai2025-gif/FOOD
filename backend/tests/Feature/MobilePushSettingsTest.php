@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Customer;
+use App\Models\Driver;
 use App\Models\PushProviderSetting;
 use App\Models\Role;
 use App\Models\User;
@@ -277,7 +278,7 @@ class MobilePushSettingsTest extends TestCase
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $driver = $this->roleUser('B2B_DRIVER', 'push-driver-service-account@example.test');
-        AppModelsDriver::query()->create([
+        Driver::query()->create([
             'user_id' => $driver->id,
             'driver_type' => 'b2b',
             'is_available' => true,
