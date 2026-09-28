@@ -932,6 +932,8 @@ class B2bWorkspaceController extends Controller
                 'columns' => ['company', 'name', 'email', 'phone', 'tax_number', 'status', 'actions'],
                 'rows' => DB::table('b2b_accounts')
                     ->join('b2b_customers', 'b2b_customers.id', '=', 'b2b_accounts.b2b_customer_id')
+                    ->leftJoin('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'b2b_customers.id')
+                    ->leftJoin('stores as retail_linked_store', 'retail_linked_store.id', '=', 'retail_wholesale_accounts.retail_store_id')
                     ->whereNotNull('b2b_accounts.b2b_customer_id')
                     ->orderBy('b2b_accounts.company_name')
                     ->limit(150)
@@ -943,9 +945,13 @@ class B2bWorkspaceController extends Controller
                         'b2b_customers.phone',
                         'b2b_accounts.tax_number',
                         'b2b_accounts.status',
+                        'retail_wholesale_accounts.retail_store_id',
+                        'retail_linked_store.name as retail_store_name',
                     ])
                     ->map(fn ($row) => [
                         '_id' => (int) $row->id,
+                        '_retail_linked' => $row->retail_store_id !== null,
+                        '_retail_store_name' => $row->retail_store_name,
                         'company' => $row->company,
                         'name' => $row->name,
                         'email' => $row->email ?: '-',
@@ -1074,6 +1080,7 @@ class B2bWorkspaceController extends Controller
             ->leftJoin('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'b2b_customers.id')
             ->leftJoin('stores as retail_customer_store', 'retail_customer_store.id', '=', 'retail_wholesale_accounts.retail_store_id')
             ->where('b2b_accounts.status', 'active')
+            ->whereNotNull('b2b_accounts.price_tier_id')
             ->orderByRaw('retail_customer_store.id IS NULL')
             ->orderBy('b2b_accounts.company_name')
             ->orderBy('b2b_customers.name')
