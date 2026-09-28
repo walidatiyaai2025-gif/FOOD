@@ -24,7 +24,7 @@ final class B2cDashboardService
         [$from] = $this->utcBounds($rangeFrom);
         [, $to] = $this->utcBounds($rangeTo);
 
-        $days = $rangeFrom->diffInDays($rangeTo) + 1;
+        $days = (int) $rangeFrom->diffInDays($rangeTo) + 1;
         $previousRangeTo = $rangeFrom->subDay();
         $previousRangeFrom = $previousRangeTo->subDays($days - 1);
         [$previousFrom] = $this->utcBounds($previousRangeFrom);
