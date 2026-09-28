@@ -211,6 +211,21 @@ class _ProfessionalStoreSelectorScreenState extends State<ProfessionalStoreSelec
                           },
                         ),
                       ),
+                    if (visible.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: IgnorePointer(
+                          child: Align(
+                            alignment: AlignmentDirectional.bottomEnd,
+                            child: Image.asset(
+                              'assets/store_selector/bottom_produce.webp',
+                              width: (c.maxWidth * .72).clamp(220.0, 360.0),
+                              fit: BoxFit.contain,
+                              cacheWidth: 480,
+                              filterQuality: FilterQuality.medium,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ]);
