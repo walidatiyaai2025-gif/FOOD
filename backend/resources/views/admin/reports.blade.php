@@ -43,7 +43,7 @@
                     <div><label>{{ __('reports.filters.product') }}</label><select name="product_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['products'] as $product)<option value="{{ $product->id }}" @selected((string)request('product_id') === (string)$product->id)>{{ $product->sku }} · {{ $product->name }}</option>@endforeach</select></div>
                     <div><label>{{ __('reports.filters.customer') }}</label><select name="customer_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['customers'] as $customer)<option value="{{ $customer->id }}" @selected((string)request('customer_id') === (string)$customer->id)>{{ $customer->name }} · {{ strtoupper($customer->type) }}</option>@endforeach</select></div>
                     <div><label>{{ __('reports.filters.payment') }}</label><select name="payment_provider"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['payment_providers'] as $provider)<option value="{{ $provider }}" @selected(request('payment_provider')===$provider)>{{ $provider }}</option>@endforeach</select></div>
-                    <div class="actions"><button class="button">{{ __('reports.apply') }}</button><a class="button secondary" href="{{ route('admin.reports.index', ['report'=>$report]) }}">{{ __('reports.reset') }}</a></div>
+                    <div class="actions"><button class="button foodex-filter-action">{{ __('reports.apply') }}</button><a class="button secondary" href="{{ route('admin.reports.index', ['report'=>$report]) }}">{{ __('reports.reset') }}</a></div>
                 </div>
             </form>
         </section>
