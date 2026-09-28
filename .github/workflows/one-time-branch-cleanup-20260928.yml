@@ -1,0 +1,56 @@
+name: FOODEX One-Time Branch Cleanup 2026-09-28
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/one-time-branch-cleanup-20260928.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: Delete obsolete completed branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete obsolete branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "feat/multistore-storefront-design-v2-20260928"
+            "feat/multistore-storefront-v2"
+            "fix/undefined-push-driver-assignment-management"
+            "release/1.0.21-update"
+          )
+          for branch in "${branches[@]}"; do
+            if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
+              echo "Deleting $branch"
+              git push origin --delete "$branch"
+            else
+              echo "Already absent: $branch"
+            fi
+          done
+
+      - name: Verify cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          for branch in             "feat/multistore-storefront-design-v2-20260928"             "feat/multistore-storefront-v2"             "fix/undefined-push-driver-assignment-management"             "release/1.0.21-update"; do
+            if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
+              echo "::error::Branch still exists: $branch"
+              failed=1
+            else
+              echo "Confirmed deleted: $branch"
+            fi
+          done
+          git ls-remote --exit-code --heads origin refs/heads/main >/dev/null
+          test "$failed" -eq 0
