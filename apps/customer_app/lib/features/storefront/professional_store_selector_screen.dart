@@ -322,13 +322,25 @@ class StoreTypeSegmentedControl extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(34),
         border: Border.all(color: const Color(0xFFD7EAE0)),
         boxShadow: const [BoxShadow(color: Color(0x10071B37), blurRadius: 18, offset: Offset(0, 6))]),
-      child: Directionality(
-        textDirection: TextDirection.ltr,
-        child: Row(children: [
-          item(StoreSelectorChannel.wholesale, 'customer.store.tab.wholesale', Icons.store_rounded),
-          const SizedBox(width: 4),
-          item(StoreSelectorChannel.retail, 'customer.store.tab.retail', Icons.shopping_cart_rounded),
-        ]),
+      child: Builder(
+        builder: (context) {
+          final rtl = Directionality.of(context) == TextDirection.rtl;
+          final wholesale = item(
+            StoreSelectorChannel.wholesale,
+            'customer.store.tab.wholesale',
+            Icons.store_rounded,
+          );
+          final retail = item(
+            StoreSelectorChannel.retail,
+            'customer.store.tab.retail',
+            Icons.shopping_cart_rounded,
+          );
+          return Row(
+            children: rtl
+                ? [retail, const SizedBox(width: 4), wholesale]
+                : [wholesale, const SizedBox(width: 4), retail],
+          );
+        },
       ),
     );
   }
