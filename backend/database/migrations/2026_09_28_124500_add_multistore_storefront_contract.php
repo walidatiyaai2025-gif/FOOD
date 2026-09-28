@@ -59,10 +59,16 @@ return new class extends Migration
             Schema::create('retail_wholesale_product_mappings', function (Blueprint $table): void {
                 $table->id();
                 $table->foreignId('retail_store_id')->constrained('stores')->cascadeOnDelete();
-                $table->foreignId('source_wholesale_product_id')->constrained('products')->restrictOnDelete();
-                $table->foreignId('retail_product_id')->constrained('products')->restrictOnDelete();
+                $table->unsignedBigInteger('source_wholesale_product_id');
+                $table->unsignedBigInteger('retail_product_id');
+                $table->foreign('source_wholesale_product_id', 'rwp_map_source_fk')
+                    ->references('id')->on('products')->restrictOnDelete();
+                $table->foreign('retail_product_id', 'rwp_map_target_fk')
+                    ->references('id')->on('products')->restrictOnDelete();
                 $table->decimal('quantity_conversion_factor', 14, 3)->default(1);
-                $table->foreignId('mapped_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->unsignedBigInteger('mapped_by_user_id')->nullable();
+                $table->foreign('mapped_by_user_id', 'rwp_map_user_fk')
+                    ->references('id')->on('users')->nullOnDelete();
                 $table->timestamps();
                 $table->unique(
                     ['retail_store_id', 'source_wholesale_product_id'],
