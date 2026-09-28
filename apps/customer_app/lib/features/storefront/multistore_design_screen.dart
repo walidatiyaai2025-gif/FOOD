@@ -68,6 +68,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
       case CustomerRoutePaths.storeSelector:
         return StoreSelectionDesignScreen(
           catalogApi: catalogApi,
+          accountApi: accountApi,
           storefrontApi: storefrontApi,
           session: session,
           enterWholesale: enterWholesale,
