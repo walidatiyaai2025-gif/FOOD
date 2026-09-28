@@ -606,24 +606,125 @@ class B2cWorkspaceController extends Controller
                         'completed_at' => $row->completed_at === null ? null : (string) $row->completed_at,
                     ])->all(),
             ],
-            'storefront' => [
-                'columns' => ['store', 'products', 'banners', 'status'],
-                'rows' => DB::table('stores')
-                    ->whereIn('stores.id', $storeIds)
-                    ->orderBy('stores.name')
-                    ->get(['stores.id', 'stores.name', 'stores.is_active'])
-                    ->map(fn ($store) => [
-                        'store' => $store->name,
-                        'products' => DB::table('store_products')->where('store_id', $store->id)->where('is_active', true)->count(),
-                        'banners' => DB::table('banners')->where('store_id', $store->id)->where('is_active', true)->count(),
-                        'status' => (bool) $store->is_active,
-                    ])->all(),
-            ],
+            'storefront' => $this->storefrontModuleData($storeIds),
             'content' => $this->contentModuleData($storeIds),
             'reports' => $this->reportModuleData($user, $storeIds),
             'settings' => $this->settingsModuleData($user, $storeIds),
             default => ['columns' => [], 'rows' => []],
         };
+    }
+
+    /** @param list<int> $storeIds */
+    private function storefrontModuleData(array $storeIds): array
+    {
+        $store = DB::table('stores')
+            ->whereIn('id', $storeIds)
+            ->orderBy('name')
+            ->first(['id', 'code', 'name', 'logo_path', 'is_active']);
+
+        if ($store === null) {
+            return ['columns' => [], 'rows' => []];
+        }
+
+        $storeId = (int) $store->id;
+        $settings = DB::table('storefront_settings')->where('store_id', $storeId)->first();
+        $branding = [];
+        if ($settings !== null && is_string($settings->branding ?? null)) {
+            $decodedBranding = json_decode($settings->branding, true);
+            $branding = is_array($decodedBranding) ? $decodedBranding : [];
+        }
+
+        $content = $this->contentModuleData([$storeId]);
+
+        return [
+            'columns' => ['store', 'products', 'banners', 'status'],
+            'rows' => [[
+                'store' => $store->name,
+                'products' => DB::table('store_products')->where('store_id', $storeId)->where('is_active', true)->count(),
+                'banners' => DB::table('banners')->where('store_id', $storeId)->where('is_active', true)->count(),
+                'status' => (bool) $store->is_active,
+            ]],
+            'store' => [
+                'id' => $storeId,
+                'code' => $store->code,
+                'name' => $store->name,
+                'logo_path' => $store->logo_path,
+            ],
+            'settings' => [
+                'theme_code' => (string) ($settings->theme_code ?? 'retail_grocery'),
+                'primary_color' => $settings->primary_color ?? '#078A43',
+                'primary_dark_color' => $settings->primary_dark_color ?? '#006736',
+                'accent_color' => $settings->accent_color ?? '#B5F23E',
+                'background_color' => $settings->background_color ?? '#F8FBF9',
+                'header_address' => $settings->header_address ?? '',
+                'brand_title_ar' => (string) ($branding['brand_title_ar'] ?? ''),
+                'brand_title_en' => (string) ($branding['brand_title_en'] ?? ''),
+                'brand_subtitle_ar' => (string) ($branding['brand_subtitle_ar'] ?? ''),
+                'brand_subtitle_en' => (string) ($branding['brand_subtitle_en'] ?? ''),
+            ],
+            'themes' => [
+                'retail_grocery' => $this->msg('بقالة / سوبر ماركت', 'Grocery / Supermarket'),
+                'retail_pharmacy' => $this->msg('صيدلية', 'Pharmacy'),
+                'retail_default' => $this->msg('تجزئة عام', 'General Retail'),
+            ],
+            'section_types' => [
+                'hero' => 'Hero',
+                'banner_slider' => $this->msg('سلايدر بانرات', 'Banner Slider'),
+                'categories' => $this->msg('التصنيفات', 'Categories'),
+                'products' => $this->msg('منتجات', 'Products'),
+                'new_arrivals' => $this->msg('وصل حديثاً', 'New Arrivals'),
+                'featured_products' => $this->msg('منتجات مميزة', 'Featured Products'),
+                'best_sellers' => $this->msg('الأكثر مبيعاً', 'Best Sellers'),
+                'offers' => $this->msg('العروض', 'Offers'),
+                'brands' => $this->msg('العلامات التجارية', 'Brands'),
+                'promo_banner' => $this->msg('بانر ترويجي', 'Promo Banner'),
+                'product_grid' => $this->msg('شبكة منتجات', 'Product Grid'),
+                'product_carousel' => $this->msg('سلايدر منتجات', 'Product Carousel'),
+            ],
+            'sections' => DB::table('storefront_sections')
+                ->where('store_id', $storeId)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get([
+                    'id',
+                    'section_key',
+                    'section_type',
+                    'title_ar',
+                    'title_en',
+                    'sort_order',
+                    'config',
+                    'is_active',
+                ])
+                ->map(function ($section): array {
+                    $config = is_string($section->config) ? trim($section->config) : '';
+
+                    return [
+                        'id' => (int) $section->id,
+                        'section_key' => (string) $section->section_key,
+                        'section_type' => (string) $section->section_type,
+                        'title_ar' => (string) ($section->title_ar ?? ''),
+                        'title_en' => (string) ($section->title_en ?? ''),
+                        'sort_order' => (int) $section->sort_order,
+                        'config_json' => $config,
+                        'is_active' => (bool) $section->is_active,
+                    ];
+                })->all(),
+            'zones' => DB::table('store_service_zones')
+                ->where('store_id', $storeId)
+                ->orderBy('country_code')
+                ->orderBy('city')
+                ->orderBy('area')
+                ->get(['id', 'country_code', 'city', 'area', 'is_active'])
+                ->map(fn ($zone) => [
+                    'id' => (int) $zone->id,
+                    'country_code' => (string) $zone->country_code,
+                    'city' => (string) ($zone->city ?? ''),
+                    'area' => (string) ($zone->area ?? ''),
+                    'is_active' => (bool) $zone->is_active,
+                ])->all(),
+            'targets' => $content['targets'] ?? [],
+            'banners' => $content['rows'] ?? [],
+        ];
     }
 
     /** @param list<int> $storeIds */

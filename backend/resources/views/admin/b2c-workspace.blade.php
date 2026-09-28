@@ -445,6 +445,10 @@
                 </div>
             @endif
 
+            @if($module==='storefront')
+                @include('admin._storefront-builder')
+            @endif
+
             @if($module==='settings' && (collect($storeIds)->contains(fn($candidateStoreId) => $user->hasPermission('settings.manage',(int)$candidateStoreId)) || $user->hasPermission('settings.manage')))
                 <form method="post" action="{{ route('admin.b2c.settings.save') }}" class="module-inline-form">
                     @csrf @method('PUT')
