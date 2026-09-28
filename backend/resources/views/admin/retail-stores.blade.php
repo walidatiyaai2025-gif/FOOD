@@ -58,6 +58,13 @@
                             <label>{{ $ar?'اسم المتجر الظاهر':'Store display name' }}
                                 <input name="name" value="{{ old('name') }}" required maxlength="255" placeholder="{{ $ar?'مثال: متجر مدينة نصر':'e.g. Nasr City Store' }}">
                             </label>
+                            <label>{{ $ar?'نوع واجهة المتجر':'Storefront type' }}
+                                <select name="storefront_kind" required>
+                                    <option value="grocery" @selected(old('storefront_kind','grocery')==='grocery')>{{ $ar?'بقالة / سوبرماركت':'Grocery / Supermarket' }}</option>
+                                    <option value="pharmacy" @selected(old('storefront_kind')==='pharmacy')>{{ $ar?'صيدلية':'Pharmacy' }}</option>
+                                </select>
+                                <small class="foodex-file-help">{{ $ar?'يحدد الثيم والأقسام الديناميكية في تطبيق العميل.':'Controls the dynamic theme and sections in the customer app.' }}</small>
+                            </label>
                             <label>{{ $ar?'شعار المتجر':'Store logo' }}
                                 <input name="logo" type="file" accept="image/jpeg,image/png,image/webp" required>
                                 <small class="foodex-file-help">{{ $ar?'مطلوب عند إنشاء المتجر · JPG / PNG / WebP حتى 5MB':'Required when creating the store · JPG / PNG / WebP up to 5MB' }}</small>
@@ -142,6 +149,7 @@
                             @csrf @method('patch')
                             <label>{{ $ar?'كود المتجر':'Store code' }}<input name="code" value="{{ $store->code }}" required maxlength="80" placeholder="STORE-01"></label>
                             <label>{{ $ar?'اسم المتجر':'Store name' }}<input name="name" value="{{ $store->name }}" required maxlength="255" placeholder="{{ $ar?'اسم المتجر':'Store name' }}"></label>
+                            <label>{{ $ar?'نوع واجهة المتجر':'Storefront type' }}<select name="storefront_kind" required><option value="grocery" @selected(($store->storefront_kind??'grocery')==='grocery')>{{ $ar?'بقالة / سوبرماركت':'Grocery / Supermarket' }}</option><option value="pharmacy" @selected(($store->storefront_kind??'')==='pharmacy')>{{ $ar?'صيدلية':'Pharmacy' }}</option></select></label>
                             <label>{{ $ar?'استبدال الشعار':'Replace logo' }}<input name="logo" type="file" accept="image/jpeg,image/png,image/webp"><small class="foodex-file-help">{{ $ar?'اتركه فارغًا للاحتفاظ بالشعار الحالي.':'Leave empty to keep the current logo.' }}</small></label>
                             <label>{{ $ar?'شريحة تسعير طلبات الجملة':'Wholesale order price tier' }}<select name="price_tier_id" required><option value="">{{ $ar?'اختر شريحة التسعير':'Select price tier' }}</option>@foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((int)$store->wholesale_price_tier_id===(int)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach</select></label>
                             <label><span>{{ $ar?'الحالة':'Status' }}</span><span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($store->is_active)> {{ $ar?'نشط':'Active' }}</span></label>
