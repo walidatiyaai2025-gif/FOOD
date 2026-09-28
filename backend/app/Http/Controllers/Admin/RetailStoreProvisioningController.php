@@ -84,6 +84,7 @@ final class RetailStoreProvisioningController extends Controller
         $data = $request->validate([
             'code' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/', 'unique:stores,code'],
             'name' => ['required', 'string', 'max:255'],
+            'storefront_kind' => ['required', Rule::in(['grocery', 'pharmacy'])],
             'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],
             'is_active' => ['nullable', 'boolean'],
@@ -102,6 +103,8 @@ final class RetailStoreProvisioningController extends Controller
                 'store_type_id' => $storeTypeId,
                 'code' => strtoupper($data['code']),
                 'name' => $data['name'],
+                'storefront_kind' => $data['storefront_kind'],
+                'storefront_config' => $this->storefrontConfig($data['storefront_kind']),
                 'logo_path' => null,
                 'is_active' => $request->boolean('is_active', true),
             ]);
@@ -143,16 +146,19 @@ final class RetailStoreProvisioningController extends Controller
         $data = $request->validate([
             'code' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('stores', 'code')->ignore($store->id)],
             'name' => ['required', 'string', 'max:255'],
+            'storefront_kind' => ['required', Rule::in(['grocery', 'pharmacy'])],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-        $before = $store->only(['code', 'name', 'logo_path', 'is_active']);
+        $before = $store->only(['code', 'name', 'storefront_kind', 'storefront_config', 'logo_path', 'is_active']);
 
         $oldLogo = $store->logo_path;
         $updates = [
             'code' => strtoupper($data['code']),
             'name' => $data['name'],
+            'storefront_kind' => $data['storefront_kind'],
+            'storefront_config' => $this->storefrontConfig($data['storefront_kind']),
             'is_active' => $request->boolean('is_active'),
         ];
         if ($request->hasFile('logo')) {
@@ -166,7 +172,7 @@ final class RetailStoreProvisioningController extends Controller
         }
         $this->wholesaleAccounts->syncForStore($store, (int) $data['price_tier_id']);
 
-        $after = $store->only(['code', 'name', 'logo_path', 'is_active']);
+        $after = $store->only(['code', 'name', 'storefront_kind', 'storefront_config', 'logo_path', 'is_active']);
         $after['price_tier_id'] = (int) $data['price_tier_id'];
         $this->audit->record('retail_store.updated', $actor, $store, $before, $after, $request);
 
@@ -270,6 +276,14 @@ final class RetailStoreProvisioningController extends Controller
             ->where('code', 'B2C')
             ->exists();
         abort_unless($isRetail, 404);
+    }
+
+    private function storefrontConfig(string $kind): array
+    {
+        return [
+            'theme' => $kind,
+            'sections' => ['hero', 'categories', 'recommended_products'],
+        ];
     }
 
     private function msg(string $ar, string $en): string
