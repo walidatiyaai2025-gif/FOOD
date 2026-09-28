@@ -296,7 +296,7 @@ class StoreTypeSegmentedControl extends StatelessWidget {
                   Icon(icon, size: 20, color: active ? Colors.white : const Color(0xFF071B37)),
                   const SizedBox(width: 8),
                   Text(
-                    ar ? arText : enText,
+                    context.tr(key),
                     maxLines: 1,
                     style: TextStyle(
                       color: active ? Colors.white : const Color(0xFF071B37),
@@ -337,12 +337,26 @@ class StoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
     final pharmacy = _isPharmacy(store);
     final open = _isOpen(store);
-    final status = _status(store, ar);
-    final address = _location(store, ar);
-    final description = _description(store, wholesale: wholesale, pharmacy: pharmacy, ar: ar);
+    final statusKind = _statusKind(store);
+    final status = (
+      switch (statusKind) {
+        StoreStatusKind.open => context.tr('customer.store.status.open'),
+        StoreStatusKind.closed => context.tr('customer.store.status.closed'),
+        StoreStatusKind.soon => context.tr('customer.store.status.soon'),
+      },
+      statusKind,
+    );
+    final address = _location(store) ?? context.tr('customer.store.location.fallback');
+    final description = _description(store) ??
+        context.tr(
+          wholesale
+              ? 'customer.store.category.wholesale'
+              : pharmacy
+                  ? 'customer.store.category.pharmacy'
+                  : 'customer.store.category.grocery',
+        );
     final logo = store['logo_url']?.toString();
 
     return Semantics(
@@ -598,27 +612,25 @@ bool _isOpen(Map<String, dynamic> store) {
       !status.contains('coming') && !status.contains('soon');
 }
 
-(String, StoreStatusKind) _status(Map<String, dynamic> store, bool ar) {
+StoreStatusKind _statusKind(Map<String, dynamic> store) {
   final raw = (store['status'] ?? store['availability'] ?? '').toString().toLowerCase();
-  if (raw.contains('soon') || raw.contains('coming')) return (ar ? 'قريبًا' : 'Coming soon', StoreStatusKind.soon);
-  if (!_isOpen(store)) return (ar ? 'مغلق الآن' : 'Closed now', StoreStatusKind.closed);
-  return (ar ? 'يعمل الآن' : 'Open now', StoreStatusKind.open);
+  if (raw.contains('soon') || raw.contains('coming')) return StoreStatusKind.soon;
+  if (!_isOpen(store)) return StoreStatusKind.closed;
+  return StoreStatusKind.open;
 }
 
-String _location(Map<String, dynamic> store, bool ar) {
+String? _location(Map<String, dynamic> store) {
   for (final key in ['location', 'address', 'city', 'area']) {
     final v = store[key]?.toString().trim();
     if (v != null && v.isNotEmpty) return v;
   }
-  return ar ? 'الكويت' : 'Kuwait';
+  return null;
 }
 
-String _description(Map<String, dynamic> store, {required bool wholesale, required bool pharmacy, required bool ar}) {
+String? _description(Map<String, dynamic> store) {
   for (final key in ['subtitle', 'category_name', 'category', 'description']) {
     final v = store[key]?.toString().trim();
     if (v != null && v.isNotEmpty) return v;
   }
-  if (wholesale) return ar ? 'توريد بالجملة · خدمة أعمال' : 'Wholesale supply · Business service';
-  if (pharmacy) return ar ? 'أدوية ومستلزمات صحية · توصيل سريع' : 'Pharmacy & health · Fast delivery';
-  return ar ? 'بقالة وسوبرماركت · توصيل سريع' : 'Grocery & supermarket · Fast delivery';
+  return null;
 }
