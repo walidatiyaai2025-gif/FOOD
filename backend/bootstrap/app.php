@@ -38,7 +38,8 @@ return Application::configure(basePath: dirname(__DIR__))
                     && $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
                     && in_array($exception->getStatusCode(), [400, 403, 404, 409, 422], true)) {
                     $rawMessage = trim($exception->getMessage());
-                    $locale = app()->getLocale();
+                    $userLocale = $request->user()?->locale;
+                    $locale = in_array($userLocale, ['ar', 'en'], true) ? $userLocale : app()->getLocale();
                     $knownMessages = [
                         'No approved B2B price exists for this product.' => [
                             'ar' => 'لا يوجد سعر جملة معتمد لهذا المنتج ضمن شريحة تسعير العميل. أضف سعرًا معتمدًا للمنتج ثم أعد المحاولة.',
