@@ -214,12 +214,9 @@ final class MobileSettingsController extends Controller
             $request,
         );
 
-        return back()->with(
-            'status',
-            $log->status === 'sent'
-                ? __('mobile_settings.test_sent')
-                : __('mobile_settings.test_failed'),
-        );
+        return $log->status === 'sent'
+            ? back()->with('status', __('mobile_settings.test_sent'))
+            : back()->withErrors(['push_test' => __('mobile_settings.test_failed').' '.($log->error_message ?: $log->error_code ?: '')]);
     }
 
     private function authorizeAny(Request $request): User
