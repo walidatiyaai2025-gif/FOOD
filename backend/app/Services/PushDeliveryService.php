@@ -8,6 +8,7 @@ use App\Models\PushDeviceToken;
 use App\Models\PushProviderSetting;
 use App\Models\User;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -17,6 +18,24 @@ final class PushDeliveryService
     public function validateProvider(PushProviderSetting $provider): void
     {
         $this->credentials($provider);
+    }
+
+    /**
+     * Validate that the configured Firebase credentials can produce a usable
+     * OAuth access token. Service-account credentials are preferred; legacy
+     * explicit access tokens remain supported for backwards compatibility.
+     *
+     * @return array{project_id:string,auth_mode:string}
+     */
+    public function testProvider(PushProviderSetting $provider): array
+    {
+        $credentials = $this->credentials($provider);
+        $this->accessToken($provider, $credentials);
+
+        return [
+            'project_id' => (string) $credentials['project_id'],
+            'auth_mode' => isset($credentials['client_email']) ? 'service_account' : 'access_token',
+        ];
     }
 
     public function send(
@@ -60,7 +79,7 @@ final class PushDeliveryService
             $log->update([
                 'status' => 'failed',
                 'error_code' => class_basename($exception),
-                'error_message' => mb_substr($exception->getMessage(), 0, 500),
+                'error_message' => mb_substr($this->exceptionMessage($exception), 0, 500),
             ]);
         }
 
@@ -153,20 +172,31 @@ final class PushDeliveryService
 
         if (! is_array($credentials)) {
             throw ValidationException::withMessages([
-                'credentials_json' => 'Provider credentials are required.',
+                'credentials_json' => 'Firebase credentials are required.',
             ]);
         }
 
-        $required = ['project_id', 'access_token'];
+        $projectId = $credentials['project_id'] ?? null;
+        if (! is_string($projectId) || trim($projectId) === '') {
+            throw ValidationException::withMessages([
+                'credentials_json' => 'Missing Firebase service-account credential: project_id.',
+            ]);
+        }
 
-        foreach ($required as $key) {
+        $legacyToken = $credentials['access_token'] ?? null;
+        if (is_string($legacyToken) && trim($legacyToken) !== '') {
+            /** @var array<string, string> $credentials */
+            return $credentials;
+        }
+
+        foreach (['client_email', 'private_key'] as $key) {
             if (
                 ! isset($credentials[$key])
                 || ! is_string($credentials[$key])
                 || trim($credentials[$key]) === ''
             ) {
                 throw ValidationException::withMessages([
-                    'credentials_json' => "Missing provider credential: {$key}.",
+                    'credentials_json' => "Missing Firebase service-account credential: {$key}.",
                 ]);
             }
         }
@@ -182,7 +212,7 @@ final class PushDeliveryService
         array $credentials,
     ): Response {
         return Http::acceptJson()
-            ->withToken((string) $credentials['access_token'])
+            ->withToken($this->accessToken($provider, $credentials))
             ->timeout(10)
             ->post(
                 'https://fcm.googleapis.com/v1/projects/'
@@ -214,6 +244,104 @@ final class PushDeliveryService
                     ],
                 ],
             );
+    }
+
+    /**
+     * @param array<string, string> $credentials
+     */
+    private function accessToken(PushProviderSetting $provider, array $credentials): string
+    {
+        $legacy = $credentials['access_token'] ?? null;
+        if (is_string($legacy) && trim($legacy) !== '') {
+            return trim($legacy);
+        }
+
+        $projectId = (string) $credentials['project_id'];
+        $clientEmail = (string) $credentials['client_email'];
+        $privateKey = str_replace('\\n', "\n", (string) $credentials['private_key']);
+        $tokenUri = trim((string) ($credentials['token_uri'] ?? 'https://oauth2.googleapis.com/token'));
+        if ($tokenUri === '') {
+            $tokenUri = 'https://oauth2.googleapis.com/token';
+        }
+
+        $cacheKey = 'foodex:fcm-token:'.($provider->getKey() ?? 'new').':'.sha1(
+            $projectId.'|'.$clientEmail.'|'.$privateKey,
+        );
+        $cached = Cache::get($cacheKey);
+        if (is_string($cached) && $cached !== '') {
+            return $cached;
+        }
+
+        $issuedAt = time();
+        $header = $this->base64Url(json_encode([
+            'alg' => 'RS256',
+            'typ' => 'JWT',
+        ], JSON_THROW_ON_ERROR));
+        $claims = $this->base64Url(json_encode([
+            'iss' => $clientEmail,
+            'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
+            'aud' => $tokenUri,
+            'iat' => $issuedAt,
+            'exp' => $issuedAt + 3600,
+        ], JSON_THROW_ON_ERROR));
+        $unsigned = $header.'.'.$claims;
+        $signature = '';
+        $signed = openssl_sign($unsigned, $signature, $privateKey, OPENSSL_ALGO_SHA256);
+        if (! $signed) {
+            throw ValidationException::withMessages([
+                'credentials_json' => 'Firebase service-account private_key is invalid or unreadable.',
+            ]);
+        }
+
+        $assertion = $unsigned.'.'.$this->base64Url($signature);
+        $response = Http::asForm()
+            ->acceptJson()
+            ->timeout(12)
+            ->post($tokenUri, [
+                'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                'assertion' => $assertion,
+            ]);
+
+        if (! $response->successful()) {
+            $message = data_get($response->json(), 'error_description')
+                ?? data_get($response->json(), 'error.message')
+                ?? data_get($response->json(), 'error')
+                ?? 'Google OAuth rejected the Firebase service account.';
+            throw ValidationException::withMessages([
+                'credentials_json' => 'Firebase authentication failed: '.mb_substr((string) $message, 0, 350),
+            ]);
+        }
+
+        $token = $response->json('access_token');
+        if (! is_string($token) || trim($token) === '') {
+            throw ValidationException::withMessages([
+                'credentials_json' => 'Firebase authentication returned no access_token.',
+            ]);
+        }
+
+        $expiresIn = max(300, (int) $response->json('expires_in', 3600));
+        Cache::put($cacheKey, $token, now()->addSeconds(max(60, $expiresIn - 300)));
+
+        return $token;
+    }
+
+    private function base64Url(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
+
+    private function exceptionMessage(Throwable $exception): string
+    {
+        if ($exception instanceof ValidationException) {
+            $first = collect($exception->errors())->flatten()->first();
+            if (is_string($first) && trim($first) !== '') {
+                return $first;
+            }
+        }
+
+        return $exception->getMessage() !== ''
+            ? $exception->getMessage()
+            : class_basename($exception);
     }
 
     private function safeError(mixed $body): string
