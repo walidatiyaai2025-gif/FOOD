@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.22",
-  "minimum_current_version": "1.0.21",
-  "sha256": "24a3d3d99d1863ad43f1c4dc4da2eddba4ca2a5a6105073cd17947d4777e4d6e",
-  "contains_migrations": false,
+  "target_version": "1.0.25",
+  "minimum_current_version": "1.0.6",
+  "sha256": "d78938e9ac29c3517b21e45c0f1c4850d8dea601cc4005f6cf5d8a0e164ab023",
+  "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Fix #347 driver app, error popups and driver password reset",
+  "release_notes": "FOODEX 1.0.25 cumulative update",
   "dashboard_fields": {
-    "target_version": "1.0.22",
-    "minimum_current_version": "1.0.21",
-    "sha256": "24a3d3d99d1863ad43f1c4dc4da2eddba4ca2a5a6105073cd17947d4777e4d6e",
-    "contains_migrations": false,
-    "release_notes": "Fix #347 driver app, error popups and driver password reset"
+    "target_version": "1.0.25",
+    "minimum_current_version": "1.0.6",
+    "sha256": "d78938e9ac29c3517b21e45c0f1c4850d8dea601cc4005f6cf5d8a0e164ab023",
+    "contains_migrations": true,
+    "release_notes": "FOODEX 1.0.25 cumulative update"
   }
 }
