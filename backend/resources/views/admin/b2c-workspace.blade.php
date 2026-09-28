@@ -515,7 +515,7 @@
                 </form>
             @endif
 
-            @if($module==='drivers'            @if($module==='drivers' && !empty($moduleData['drivers']) && !empty($moduleData['orders']) && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('drivers.b2c.manage',(int)$storeId)) || $user->hasPermission('drivers.b2c.manage')))
+            @if($module==='drivers' && !empty($moduleData['drivers']) && !empty($moduleData['orders']) && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('drivers.b2c.manage',(int)$storeId)) || $user->hasPermission('drivers.b2c.manage')))
                 <form method="post" action="{{ route('admin.b2c.drivers.assign') }}" class="module-inline-form">
                     @csrf
                     <input type="hidden" name="store_id" value="{{ $storeId }}">
