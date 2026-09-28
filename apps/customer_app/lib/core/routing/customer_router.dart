@@ -7,6 +7,7 @@ import '../api/customer_action_api.dart';
 import '../auth/customer_session.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
 import '../../features/home/b2c_journey_screen.dart';
+import '../../features/storefront/multi_storefront_screen.dart';
 import '../../shared/customer_action_widgets.dart';
 import 'customer_routes.dart';
 
@@ -95,25 +96,49 @@ class CustomerAppRouter {
     required CustomerRouteDefinition definition,
     required String requestedLocation,
   }) {
+    final multiStorefrontPatterns = <String>{
+      CustomerRoutePaths.stores,
+      CustomerRoutePaths.home,
+      CustomerRoutePaths.productDetails,
+      CustomerRoutePaths.b2bDashboard,
+      CustomerRoutePaths.b2bProductDetails,
+      CustomerRoutePaths.b2bCart,
+      CustomerRoutePaths.b2bCheckout,
+      CustomerRoutePaths.b2bOrders,
+    };
+
     return MaterialPageRoute<void>(
       settings: settings,
-      builder: (_) => definition.channel == CustomerChannel.b2b
-          ? B2bJourneyScreen(
-              definition: definition,
-              location: requestedLocation,
-              api: b2bApi,
-              actionApi: actionApi,
-              onAuthenticated: onAuthenticated,
-            )
-          : B2cJourneyScreen(
-              definition: definition,
-              location: requestedLocation,
-              actionApi: actionApi,
-              catalogApi: b2cCatalogApi,
-              accountApi: b2cAccountApi,
-              onAuthenticated: onAuthenticated,
-              onSessionExpired: onSessionExpired,
-            ),
+      builder: (_) {
+        if (multiStorefrontPatterns.contains(definition.pattern)) {
+          return MultiStorefrontScreen(
+            definition: definition,
+            location: requestedLocation,
+            session: session,
+            catalogApi: b2cCatalogApi,
+            actionApi: actionApi,
+            b2bApi: b2bApi,
+          );
+        }
+
+        return definition.channel == CustomerChannel.b2b
+            ? B2bJourneyScreen(
+                definition: definition,
+                location: requestedLocation,
+                api: b2bApi,
+                actionApi: actionApi,
+                onAuthenticated: onAuthenticated,
+              )
+            : B2cJourneyScreen(
+                definition: definition,
+                location: requestedLocation,
+                actionApi: actionApi,
+                catalogApi: b2cCatalogApi,
+                accountApi: b2cAccountApi,
+                onAuthenticated: onAuthenticated,
+                onSessionExpired: onSessionExpired,
+              );
+      },
     );
   }
 }
