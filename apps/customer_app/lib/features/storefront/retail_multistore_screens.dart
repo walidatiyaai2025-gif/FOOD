@@ -706,6 +706,8 @@ class _RetailHomeBody extends StatelessWidget {
               'title_ar':
                   isPharmacy ? 'منتجات مميزة' : 'منتجات وصلت حديثًا',
             },
+            if (data.offers.isNotEmpty)
+              {'type': 'offers', 'title_ar': 'العروض'},
           ]
         : configuredSections;
 
