@@ -539,7 +539,7 @@ class B2cWorkspaceController extends Controller
                     ->get(['id', 'order_number'])
                     ->map(fn ($row) => ['id' => (int) $row->id, 'number' => $row->order_number])
                     ->all(),
-                'columns' => ['name', 'driver_type', 'order', 'assignment_status', 'availability'],
+                'columns' => ['name', 'driver_type', 'order', 'assignment_status', 'availability', 'actions'],
                 'rows' => DB::table('driver_assignments')
                     ->join('orders', 'orders.id', '=', 'driver_assignments.order_id')
                     ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
