@@ -383,19 +383,19 @@ class StoreArtwork extends StatelessWidget {
   }
 }
 
-enum _StatusKind { open, closed, soon }
+enum StoreStatusKind { open, closed, soon }
 
 class _StoreStatusBadge extends StatelessWidget {
   const _StoreStatusBadge({required this.label, required this.kind});
   final String label;
-  final _StatusKind kind;
+  final StoreStatusKind kind;
 
   @override
   Widget build(BuildContext context) {
     final color = switch (kind) {
-      _StatusKind.open => const Color(0xFF009B4D),
-      _StatusKind.closed => const Color(0xFFD64545),
-      _StatusKind.soon => const Color(0xFFC87513),
+      StoreStatusKind.open => const Color(0xFF009B4D),
+      StoreStatusKind.closed => const Color(0xFFD64545),
+      StoreStatusKind.soon => const Color(0xFFC87513),
     };
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
@@ -498,11 +498,11 @@ bool _isOpen(Map<String, dynamic> store) {
   return !{'closed', 'inactive', 'unavailable'}.contains(status);
 }
 
-(String, _StatusKind) _status(Map<String, dynamic> store, bool ar) {
+(String, StoreStatusKind) _status(Map<String, dynamic> store, bool ar) {
   final raw = (store['status'] ?? store['availability'] ?? '').toString().toLowerCase();
-  if (raw.contains('soon') || raw.contains('coming')) return (ar ? 'قريبًا' : 'Coming soon', _StatusKind.soon);
-  if (!_isOpen(store)) return (ar ? 'مغلق الآن' : 'Closed now', _StatusKind.closed);
-  return (ar ? 'يعمل الآن' : 'Open now', _StatusKind.open);
+  if (raw.contains('soon') || raw.contains('coming')) return (ar ? 'قريبًا' : 'Coming soon', StoreStatusKind.soon);
+  if (!_isOpen(store)) return (ar ? 'مغلق الآن' : 'Closed now', StoreStatusKind.closed);
+  return (ar ? 'يعمل الآن' : 'Open now', StoreStatusKind.open);
 }
 
 String _location(Map<String, dynamic> store, bool ar) {
