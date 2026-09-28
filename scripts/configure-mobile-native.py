@@ -111,7 +111,7 @@ def _write_android_brand_resources(app: Path) -> None:
         '    <item android:drawable="@color/foodex_splash_background" />\n'
         '    <item>\n'
         '        <bitmap\n'
-        '            android:gravity="fill"\n'
+        '            android:gravity="center"\n'
         '            android:src="@drawable/foodex_splash_full" />\n'
         '    </item>\n'
         '</layer-list>\n'
