@@ -210,7 +210,7 @@ class _WholesaleHero extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
         child: Container(
-          height: 156,
+          height: 170,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
@@ -922,7 +922,7 @@ class _WholesaleCartDesignScreenState
                 final rows = mapRows(cart['items']);
 
                 return ListView(
-                  padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
                     const FoodexTopBar(title: 'سلة الجملة'),
                     const SizedBox(height: 8),
@@ -1297,7 +1297,7 @@ class _WholesaleCheckoutDesignScreenState
                     methods.isEmpty ? null : methods.first;
 
                 return ListView(
-                  padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
                     const FoodexTopBar(title: 'إتمام الطلب'),
                     const SizedBox(height: 8),
@@ -1820,7 +1820,7 @@ class _WholesaleOrdersDesignScreenState
 
                 final rows = dataRows(snapshot.data);
                 return ListView(
-                  padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
                     const FoodexTopBar(title: 'طلباتي'),
                     const SizedBox(height: 10),
