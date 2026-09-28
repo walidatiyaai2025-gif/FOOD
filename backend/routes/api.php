@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\MobileRuntimeController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\SecurityController;
+use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\TranslationController;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/stores/{store}/products', [GuestCatalogController::class, 'products']);
     Route::get('/stores/{store}/offers', [GuestCatalogController::class, 'offers']);
     Route::get('/stores/{store}/banners', [GuestCatalogController::class, 'banners']);
+    Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show']);
     Route::get('/products/{product}', [GuestCatalogController::class, 'product']);
 
     Route::get('/cart', [GuestCartController::class, 'show']);
@@ -52,6 +54,8 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::get('/store-selector', [StorefrontController::class, 'selector']);
+        Route::get('/b2b/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);
         Route::post('/push/devices', [PushDeviceController::class, 'store']);
         Route::delete('/push/devices/{device}', [PushDeviceController::class, 'destroy']);
         Route::get('/admin/security/permissions', [SecurityController::class, 'permissions']);
