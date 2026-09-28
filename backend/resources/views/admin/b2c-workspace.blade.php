@@ -41,8 +41,10 @@
         .headline{display:flex;justify-content:space-between;align-items:end;gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-4)}
         .headline h1{margin:0 0 4px;font-size:clamp(1.55rem,2.2vw,1.9rem);font-weight:var(--foodex-font-weight-bold);line-height:var(--foodex-leading-tight)}
         .headline p{margin:0;color:var(--foodex-muted);font-size:var(--foodex-text-sm)}
-        .date-control{display:flex;gap:8px;align-items:center;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);padding:6px 10px;box-shadow:var(--foodex-shadow-sm)}
+        .date-control{display:flex;gap:8px;align-items:end;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);padding:6px 10px;box-shadow:var(--foodex-shadow-sm);flex-wrap:wrap}
+        .date-control label{display:grid;gap:2px;color:var(--foodex-muted);font-size:.68rem;font-weight:var(--foodex-font-weight-bold)}
         .date-control input{border:0!important;outline:0!important;background:transparent!important;color:var(--foodex-ink);min-height:32px!important;box-shadow:none!important;padding:0!important;font-family:var(--foodex-font-en)}
+        .date-control .foodex-filter-action{min-height:36px}
 
         .kpis{direction:ltr;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-3)}
         .kpi{min-width:0;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:var(--foodex-space-4);min-height:140px;box-shadow:var(--foodex-shadow-sm)}
@@ -210,7 +212,8 @@
                 <div><strong>{{ $user->name }}</strong><small>{{ __('admin.b2c_dashboard.system_manager') }}</small></div>
             </a>
             <form class="global-search" method="get" action="{{ route('admin.b2c.dashboard') }}">
-                <input type="hidden" name="date" value="{{ $dashboard['selected_date'] }}">
+                <input type="hidden" name="from" value="{{ $dashboard['selected_from'] }}">
+                <input type="hidden" name="to" value="{{ $dashboard['selected_to'] }}">
                 <input type="hidden" name="store_id" value="{{ $storeId }}">
                 @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <input name="q" value="{{ request('q') }}" placeholder="{{ __('admin.b2c_dashboard.search_placeholder') }}" autocomplete="off">
@@ -249,6 +252,8 @@
                                 <option value="{{ $availableStore->id }}" @selected((int)$availableStore->id===$storeId)>{{ $availableStore->name }} — {{ $availableStore->code }}</option>
                             @endforeach
                         </select>
+                        <input type="hidden" name="from" value="{{ $dashboard['selected_from'] }}">
+                        <input type="hidden" name="to" value="{{ $dashboard['selected_to'] }}">
                         @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     </form>
                     @endif
@@ -256,7 +261,9 @@
                 <form class="date-control" method="get" action="{{ route('admin.b2c.dashboard') }}">
                     <input type="hidden" name="store_id" value="{{ $storeId }}">
                     @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
-                    <span>⌄</span><input type="date" name="date" value="{{ $dashboard['selected_date'] }}" placeholder="YYYY-MM-DD" aria-label="{{ app()->getLocale()==='ar'?'تاريخ التقرير':'Report date' }}" onchange="this.form.submit()">
+                    <label>{{ app()->getLocale()==='ar'?'من':'From' }}<input type="date" name="from" value="{{ $dashboard['selected_from'] }}" required></label>
+                    <label>{{ app()->getLocale()==='ar'?'إلى':'To' }}<input type="date" name="to" value="{{ $dashboard['selected_to'] }}" required></label>
+                    <button class="foodex-filter-action" type="submit">{{ app()->getLocale()==='ar'?'تطبيق':'Apply' }}</button>
                 </form>
             </div>
 
@@ -294,15 +301,20 @@
                     @php
                         $maxOrders=max(1,max(array_column($dashboard['series'],'orders')));
                         $maxRevenue=max(1,max(array_column($dashboard['series'],'revenue')));
+                        $seriesCount=max(1,count($dashboard['series']));
+                        $denominator=max(1,$seriesCount-1);
+                        $labelEvery=max(1,(int)ceil($seriesCount/7));
+                        $step=560/$denominator;
+                        $barWidth=max(8,min(29,$step*.42));
                         $points=[];
-                        foreach($dashboard['series'] as $i=>$row){$x=50+$i*88;$y=192-($row['revenue']/$maxRevenue*130);$points[]="$x,$y";}
+                        foreach($dashboard['series'] as $i=>$row){$x=50+$i*$step;$y=192-($row['revenue']/$maxRevenue*130);$points[]="$x,$y";}
                     @endphp
-                    <div class="chart"><svg viewBox="0 0 650 220" preserveAspectRatio="none">
+                    <div class="chart"><svg viewBox="0 0 650 220" preserveAspectRatio="none" role="img" aria-label="{{ app()->getLocale()==='ar'?'الطلبات والإيرادات خلال الفترة المحددة':'Orders and revenue over the selected period' }}">
                         @for($y=40;$y<=190;$y+=38)<line class="chart-grid" x1="34" y1="{{ $y }}" x2="630" y2="{{ $y }}"/>@endfor
                         @foreach($dashboard['series'] as $i=>$row)
-                            @php $x=36+$i*88; $height=max(4,($row['orders']/$maxOrders*110)); @endphp
-                            <rect class="orders-bar" x="{{ $x }}" y="{{ 192-$height }}" width="29" height="{{ $height }}" rx="5"/>
-                            <text class="axis-label" x="{{ $x+14 }}" y="211" text-anchor="middle">{{ $row['label'] }}</text>
+                            @php $centerX=50+$i*$step; $x=$centerX-($barWidth/2); $height=max(4,($row['orders']/$maxOrders*110)); @endphp
+                            <rect class="orders-bar" x="{{ $x }}" y="{{ 192-$height }}" width="{{ $barWidth }}" height="{{ $height }}" rx="5"/>
+                            @if($i % $labelEvery === 0 || $i === $seriesCount-1)<text class="axis-label" x="{{ $centerX }}" y="211" text-anchor="middle">{{ $row['label'] }}</text>@endif
                         @endforeach
                         <polyline class="revenue-line" points="{{ implode(' ',$points) }}"/>
                         @foreach($points as $point) @php [$cx,$cy]=explode(',',$point); @endphp <circle class="revenue-dot" cx="{{ $cx }}" cy="{{ $cy }}" r="4"/> @endforeach
