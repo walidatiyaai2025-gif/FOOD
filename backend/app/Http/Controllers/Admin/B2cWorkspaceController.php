@@ -22,6 +22,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class B2cWorkspaceController extends Controller
@@ -200,6 +201,46 @@ class B2cWorkspaceController extends Controller
         $deliveries->assign($request, $audit, $dashboardNotifier);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تعيين السائق.' : 'Driver assigned.');
+    }
+
+    public function resetDriverPassword(
+        Request $request,
+        int $driver,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $actor);
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'drivers.b2c.manage', 'b2c');
+
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
+        ]);
+
+        $driverRow = DB::table('drivers')
+            ->where('id', $driver)
+            ->where('store_id', $storeId)
+            ->where('driver_type', 'b2c')
+            ->first(['id', 'user_id']);
+        abort_unless($driverRow !== null, 404);
+
+        $driverUser = User::query()->findOrFail((int) $driverRow->user_id);
+        $driverUser->forceFill(['password' => Hash::make($data['password'])])->save();
+        $driverUser->tokens()->delete();
+
+        $audit->record(
+            'b2c.driver.password_reset',
+            $actor,
+            $driverUser,
+            ['driver_id' => (int) $driverRow->id, 'user_id' => $driverUser->id],
+            ['driver_id' => (int) $driverRow->id, 'user_id' => $driverUser->id, 'tokens_revoked' => true],
+            $request,
+        );
+
+        return back()->with('status', $this->msg(
+            'تم تعيين كلمة مرور جديدة للسائق وإلغاء جلساته الحالية.',
+            'Driver password reset and existing sessions were revoked.',
+        ));
     }
 
     public function storeWarehouse(Request $request): RedirectResponse
@@ -431,8 +472,8 @@ class B2cWorkspaceController extends Controller
                     ->whereIn('drivers.store_id', $storeIds)
                     ->where('drivers.is_active', true)
                     ->orderBy('users.name')
-                    ->get(['drivers.id', 'users.name'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
+                    ->get(['drivers.id', 'users.name', 'users.email'])
+                    ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name, 'email' => $row->email])
                     ->all(),
                 'orders' => DB::table('orders')
                     ->whereIn('store_id', $storeIds)

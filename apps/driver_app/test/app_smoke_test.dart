@@ -26,6 +26,21 @@ void main() {
     expect(directionality.textDirection, TextDirection.rtl);
   });
 
+  testWidgets('driver password eye toggles visibility', (tester) async {
+    await tester.pumpWidget(const FoodexDriverApp());
+
+    final password = find.byKey(const Key('driver-login-password'));
+    expect(tester.widget<TextField>(password).obscureText, isTrue);
+
+    await tester.tap(find.byKey(const Key('driver-password-toggle')));
+    await tester.pump();
+    expect(tester.widget<TextField>(password).obscureText, isFalse);
+
+    await tester.tap(find.byKey(const Key('driver-password-toggle')));
+    await tester.pump();
+    expect(tester.widget<TextField>(password).obscureText, isTrue);
+  });
+
   testWidgets('driver shell mirrors to English LTR', (tester) async {
     await tester.pumpWidget(
       const FoodexDriverApp(locale: Locale('en')),

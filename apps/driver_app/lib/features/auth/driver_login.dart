@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/driver_session.dart';
 import '../../core/localization/driver_translations.dart';
+import '../../core/theme/foodex_theme.dart';
 
 class DriverLoginPage extends StatefulWidget {
   const DriverLoginPage({
@@ -21,6 +22,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _submitting = false;
+  bool _passwordVisible = false;
   String? _errorKey;
 
   @override
@@ -65,75 +67,246 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
   Widget build(BuildContext context) {
     final configured = widget.repository != null;
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    context.tr('driver.app.title'),
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                  const SizedBox(height: 28),
-                  if (!configured)
-                    Text(
-                      context.tr('driver.config.missing'),
-                      key: const Key('driver-config-missing'),
-                      textAlign: TextAlign.center,
-                    ),
-                  if (configured) ...[
-                    TextField(
-                      key: const Key('driver-login-email'),
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.email],
-                      decoration: InputDecoration(
-                        labelText: context.tr('driver.login.email'),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      key: const Key('driver-login-password'),
-                      controller: _password,
-                      obscureText: true,
-                      autofillHints: const [AutofillHints.password],
-                      decoration: InputDecoration(
-                        labelText: context.tr('driver.login.password'),
-                      ),
-                      onSubmitted: (_) => _submit(),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_errorKey != null)
-                      Text(
-                        context.tr(_errorKey!),
-                        key: const Key('driver-login-error'),
-                        textAlign: TextAlign.center,
-                      ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      key: const Key('driver-login-submit'),
-                      onPressed: _submitting ? null : _submit,
-                      child: _submitting
-                          ? const SizedBox.square(
-                              dimension: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(context.tr('driver.login.submit')),
-                    ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    FoodexBrand.greenDark,
+                    FoodexBrand.green,
+                    Theme.of(context).scaffoldBackgroundColor,
+                    Theme.of(context).scaffoldBackgroundColor,
                   ],
-                ],
+                  stops: const [0, .34, .34, 1],
+                ),
               ),
             ),
           ),
-        ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 430),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _DriverBrandHeader(),
+                      const SizedBox(height: 24),
+                      Card(
+                        elevation: 0,
+                        margin: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                          side: const BorderSide(color: FoodexBrand.border),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(22),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                context.tr('driver.login.welcome'),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                context.tr('driver.login.subtitle'),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: FoodexBrand.muted,
+                                    ),
+                              ),
+                              const SizedBox(height: 24),
+                              if (!configured)
+                                Container(
+                                  key: const Key('driver-config-missing'),
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: FoodexBrand.orangeSoft,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Text(
+                                    context.tr('driver.config.missing'),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              if (configured) ...[
+                                TextField(
+                                  key: const Key('driver-login-email'),
+                                  controller: _email,
+                                  keyboardType: TextInputType.emailAddress,
+                                  autofillHints: const [AutofillHints.email],
+                                  textInputAction: TextInputAction.next,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('driver.login.email'),
+                                    prefixIcon: const Icon(Icons.alternate_email_rounded),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextField(
+                                  key: const Key('driver-login-password'),
+                                  controller: _password,
+                                  obscureText: !_passwordVisible,
+                                  autofillHints: const [AutofillHints.password],
+                                  textInputAction: TextInputAction.done,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('driver.login.password'),
+                                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                                    suffixIcon: IconButton(
+                                      key: const Key('driver-password-toggle'),
+                                      tooltip: context.tr(
+                                        _passwordVisible
+                                            ? 'driver.login.hide_password'
+                                            : 'driver.login.show_password',
+                                      ),
+                                      onPressed: () => setState(
+                                        () => _passwordVisible = !_passwordVisible,
+                                      ),
+                                      icon: Icon(
+                                        _passwordVisible
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                      ),
+                                    ),
+                                  ),
+                                  onSubmitted: (_) => _submit(),
+                                ),
+                                const SizedBox(height: 16),
+                                if (_errorKey != null)
+                                  Container(
+                                    key: const Key('driver-login-error'),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF0F0),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: FoodexBrand.red.withAlpha(64),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      context.tr(_errorKey!),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: FoodexBrand.red,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 16),
+                                FilledButton.icon(
+                                  key: const Key('driver-login-submit'),
+                                  onPressed: _submitting ? null : _submit,
+                                  icon: _submitting
+                                      ? const SizedBox.square(
+                                          dimension: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(Icons.login_rounded),
+                                  label: Text(context.tr('driver.login.submit')),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        context.tr('driver.login.secure'),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: FoodexBrand.muted,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+class _DriverBrandHeader extends StatelessWidget {
+  const _DriverBrandHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 82,
+          height: 82,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x2A003223),
+                blurRadius: 28,
+                offset: Offset(0, 14),
+              ),
+            ],
+          ),
+          child: const Stack(
+            alignment: Alignment.center,
+            children: [
+              Text(
+                'FX',
+                style: TextStyle(
+                  color: FoodexBrand.greenDark,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -.8,
+                ),
+              ),
+              Positioned(
+                right: 10,
+                bottom: 10,
+                child: Icon(
+                  Icons.local_shipping_rounded,
+                  color: FoodexBrand.orange,
+                  size: 21,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'FOODEX',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          context.tr('driver.app.title'),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFFE8F7ED),
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }
