@@ -56,6 +56,7 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/store-selector', [StorefrontController::class, 'selector']);
+        Route::get('/b2b/stores/{store}/storefront', [StorefrontController::class, 'showWholesale']);
         Route::get('/b2b/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);
         Route::get('/b2b/product-mappings', [RetailWholesaleProductMappingController::class, 'index']);
         Route::put('/b2b/product-mappings/{sourceProduct}', [RetailWholesaleProductMappingController::class, 'upsert']);

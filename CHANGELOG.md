@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.26 - Dynamic Wholesale storefront and synchronized mobile builds
+
+- Add a dedicated B2B/Wholesale Storefront Builder to the Wholesale admin workspace.
+- Manage Wholesale logo, branding, theme colors, hero content, home-section order/visibility and uploaded banners from the dashboard.
+- Reuse the canonical storefront settings/sections/media model instead of creating a separate hard-coded Wholesale UI engine.
+- Add an authenticated Wholesale storefront API protected by existing B2B entitlement and Retail-to-Wholesale account mapping.
+- Make the customer mobile Wholesale Home load its branding, colors, hero and section composition dynamically from the backend.
+- Keep B2B pricing, MOQ, stock and checkout server-authoritative.
+- Publish synchronized Customer and Driver Android builds as 1.0.26.
+
+
 ## 1.0.25 - Storefront administration and dashboard reporting controls
 
 - Add the Retail Storefront Design Builder for store-scoped branding, theme colors, logo upload, home-section ordering/visibility, service zones, storefront banners and live administration preview.

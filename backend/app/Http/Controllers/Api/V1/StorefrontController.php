@@ -136,6 +136,102 @@ final class StorefrontController extends Controller
         ]);
     }
 
+    public function showWholesale(
+        Request $request,
+        int $store,
+        CustomerDomainResolver $customers,
+    ): JsonResponse {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $storeRow = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $store)
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2B')
+            ->first([
+                'stores.id',
+                'stores.code',
+                'stores.name',
+                'stores.logo_path',
+            ]);
+
+        abort_if($storeRow === null, 404);
+
+        // Resolves either the direct B2B account or an entitled Retail-store
+        // purchasing context. This is the same gate used by pricing/checkout.
+        $customers->b2bFromRequest($user, $request);
+
+        $settings = DB::table('storefront_settings')
+            ->where('store_id', $store)
+            ->first();
+
+        $sections = DB::table('storefront_sections')
+            ->where('store_id', $store)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(static fn (object $section): array => [
+                'key' => (string) $section->section_key,
+                'type' => (string) $section->section_type,
+                'title_ar' => $section->title_ar,
+                'title_en' => $section->title_en,
+                'sort_order' => (int) $section->sort_order,
+                'config' => is_string($section->config)
+                    ? (json_decode($section->config, true) ?: [])
+                    : ((array) ($section->config ?? [])),
+            ])
+            ->values()
+            ->all();
+
+        $banners = DB::table('banners')
+            ->where('store_id', $store)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (object $banner): array => [
+                'id' => (int) $banner->id,
+                'title' => (string) $banner->title,
+                'image_url' => $this->assetUrl($banner->image_path),
+                'target_type' => $banner->target_type,
+                'target_id' => $banner->target_id === null ? null : (int) $banner->target_id,
+                'target_url' => $banner->target_url,
+                'sort_order' => (int) $banner->sort_order,
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'store' => [
+                'id' => (int) $storeRow->id,
+                'code' => (string) $storeRow->code,
+                'name' => (string) $storeRow->name,
+                'logo_url' => $this->assetUrl($storeRow->logo_path ?? null),
+                'store_type' => 'B2B',
+                'channel' => 'b2b',
+                'theme_code' => 'wholesale_b2b',
+                'is_active' => true,
+            ],
+            'theme' => [
+                'code' => (string) ($settings->theme_code ?? 'wholesale_b2b'),
+                'primary' => $settings->primary_color ?? '#5D2A91',
+                'primary_dark' => $settings->primary_dark_color ?? '#35195E',
+                'accent' => $settings->accent_color ?? '#B983F0',
+                'background' => $settings->background_color ?? '#FBFAFD',
+            ],
+            'branding' => [
+                'logo_url' => $this->assetUrl($storeRow->logo_path ?? null),
+                'address' => $settings->header_address ?? null,
+                'custom' => $this->decodedJson($settings->branding ?? null),
+            ],
+            'hero' => $banners[0] ?? null,
+            'banners' => $banners,
+            'sections' => $sections,
+        ]);
+    }
+
     public function b2bCheckoutOptions(
         Request $request,
         CustomerDomainResolver $customers,

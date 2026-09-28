@@ -49,6 +49,7 @@ class B2bWorkspaceController extends Controller
         'pricing' => 'b2b.pricing.view',
         'finance' => 'finance.view',
         'reports' => 'reports.view',
+        'storefront' => 'settings.view',
         'settings' => 'settings.view',
     ];
 
@@ -707,6 +708,129 @@ class B2bWorkspaceController extends Controller
         ];
     }
 
+    /** @param list<int> $storeIds */
+    private function storefrontModuleData(array $storeIds): array
+    {
+        $store = DB::table('stores')
+            ->whereIn('id', $storeIds)
+            ->orderBy('id')
+            ->first(['id', 'code', 'name', 'logo_path', 'is_active']);
+
+        if ($store === null) {
+            return ['columns' => [], 'rows' => []];
+        }
+
+        $storeId = (int) $store->id;
+        $settings = DB::table('storefront_settings')->where('store_id', $storeId)->first();
+        $branding = [];
+        if ($settings !== null && is_string($settings->branding ?? null)) {
+            $decoded = json_decode($settings->branding, true);
+            $branding = is_array($decoded) ? $decoded : [];
+        }
+
+        $targets = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('products.is_active', true)
+            ->orderBy('products.name')
+            ->limit(200)
+            ->get(['products.id', 'products.name'])
+            ->map(fn ($row) => [
+                'ref' => 'product:'.(int) $row->id,
+                'label' => $this->msg('منتج · '.$row->name, 'Product · '.$row->name),
+            ])
+            ->values()
+            ->all();
+
+        $categoryTargets = DB::table('categories')
+            ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('categories.is_active', true)
+            ->orderBy('categories.name')
+            ->limit(120)
+            ->get(['categories.id', 'categories.name'])
+            ->map(fn ($row) => [
+                'ref' => 'category:'.(int) $row->id,
+                'label' => $this->msg('تصنيف · '.$row->name, 'Category · '.$row->name),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'columns' => [],
+            'rows' => [],
+            'store' => [
+                'id' => $storeId,
+                'code' => (string) $store->code,
+                'name' => (string) $store->name,
+                'logo_path' => $store->logo_path,
+            ],
+            'settings' => [
+                'theme_code' => (string) ($settings->theme_code ?? 'wholesale_b2b'),
+                'primary_color' => $settings->primary_color ?? '#5D2A91',
+                'primary_dark_color' => $settings->primary_dark_color ?? '#35195E',
+                'accent_color' => $settings->accent_color ?? '#B983F0',
+                'background_color' => $settings->background_color ?? '#FBFAFD',
+                'header_address' => $settings->header_address ?? '',
+                'brand_title_ar' => (string) ($branding['brand_title_ar'] ?? ''),
+                'brand_title_en' => (string) ($branding['brand_title_en'] ?? ''),
+                'brand_subtitle_ar' => (string) ($branding['brand_subtitle_ar'] ?? ''),
+                'brand_subtitle_en' => (string) ($branding['brand_subtitle_en'] ?? ''),
+                'hero_cta_ar' => (string) ($branding['hero_cta_ar'] ?? ''),
+                'hero_cta_en' => (string) ($branding['hero_cta_en'] ?? ''),
+            ],
+            'section_types' => [
+                'hero' => 'Hero',
+                'banner_slider' => $this->msg('سلايدر بانرات', 'Banner Slider'),
+                'categories' => $this->msg('التصنيفات', 'Categories'),
+                'offers' => $this->msg('عروض الجملة', 'Wholesale Offers'),
+                'featured_products' => $this->msg('منتجات مميزة', 'Featured Products'),
+                'best_sellers' => $this->msg('الأكثر مبيعاً', 'Best Sellers'),
+                'reorder' => $this->msg('إعادة الطلب', 'Reorder'),
+                'brands' => $this->msg('العلامات التجارية', 'Brands'),
+                'product_grid' => $this->msg('شبكة منتجات', 'Product Grid'),
+                'product_carousel' => $this->msg('سلايدر منتجات', 'Product Carousel'),
+            ],
+            'sections' => DB::table('storefront_sections')
+                ->where('store_id', $storeId)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get(['id', 'section_key', 'section_type', 'title_ar', 'title_en', 'sort_order', 'config', 'is_active'])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'section_key' => (string) $row->section_key,
+                    'section_type' => (string) $row->section_type,
+                    'title_ar' => (string) ($row->title_ar ?? ''),
+                    'title_en' => (string) ($row->title_en ?? ''),
+                    'sort_order' => (int) $row->sort_order,
+                    'config_json' => is_string($row->config) ? $row->config : '',
+                    'is_active' => (bool) $row->is_active,
+                ])
+                ->all(),
+            'banners' => DB::table('banners')
+                ->where('store_id', $storeId)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get(['id', 'title', 'image_path', 'target_type', 'target_id', 'sort_order', 'is_active'])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'title' => (string) $row->title,
+                    'image' => $row->image_path,
+                    'target_ref' => $row->target_type !== null && $row->target_id !== null
+                        ? $row->target_type.':'.$row->target_id
+                        : '',
+                    'sort_order' => (int) $row->sort_order,
+                    'is_active' => (bool) $row->is_active,
+                ])
+                ->all(),
+            'targets' => [...$categoryTargets, ...$targets],
+        ];
+    }
+
     private function settingsModuleData(User $user, array $storeIds): array
     {
         $actions = [];
@@ -1131,6 +1255,7 @@ class B2bWorkspaceController extends Controller
             ],
             'finance' => $this->financeModuleData($storeIds),
             'reports' => $this->reportModuleData($user, $storeIds),
+            'storefront' => $this->storefrontModuleData($storeIds),
             'settings' => $this->settingsModuleData($user, $storeIds),
             default => ['columns' => [], 'rows' => []],
         };
