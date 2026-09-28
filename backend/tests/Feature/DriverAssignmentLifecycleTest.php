@@ -198,6 +198,44 @@ class DriverAssignmentLifecycleTest extends TestCase
         ]);
     }
 
+    public function test_cancelled_assignment_is_history_not_active_driver_work(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+        $order->update(['status' => 'ready']);
+
+        $driverUser = $this->roleUser('B2C_DRIVER', 'cancelled-history-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        DB::table('driver_assignments')->insert([
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'store_id' => $storeId,
+            'assignment_type' => 'b2c',
+            'status' => 'cancelled',
+            'assigned_at' => now()->subMinute(),
+            'completed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($driverUser);
+        $this->getJson('/api/v1/driver/assignments?scope=active')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->getJson('/api/v1/driver/assignments?scope=all')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.status', 'cancelled');
+    }
+
     public function test_driver_cannot_open_or_transition_another_drivers_assignment(): void
     {
         $this->seed(CoreReferenceSeeder::class);
