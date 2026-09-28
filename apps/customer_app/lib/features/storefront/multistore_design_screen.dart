@@ -26,9 +26,8 @@ bool shouldUseMultiStoreDesign(
     case CustomerRoutePaths.b2bOrders:
       return true;
     case CustomerRoutePaths.home:
-      return retailStoreIdFromLocation(location) > 0;
     case CustomerRoutePaths.productDetails:
-      return retailStoreIdFromLocation(location) > 0;
+      return false;
     case CustomerRoutePaths.b2bProductDetails:
       return wholesaleStoreIdFromLocation(location) > 0;
     default:
