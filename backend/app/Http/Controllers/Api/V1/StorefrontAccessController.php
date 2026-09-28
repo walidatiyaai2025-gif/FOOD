@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\User;
-use App\Services\CustomerDomainResolver;
 use App\Services\WholesalePrincipal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
