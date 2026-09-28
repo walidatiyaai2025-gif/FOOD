@@ -125,6 +125,7 @@ class RetailStoreProvisioningTest extends TestCase
                 'name' => $name,
                 'price_tier_id' => $tierId,
                 'is_active' => '1',
+                'logo' => UploadedFile::fake()->image(strtolower($code).'.png', 256, 256),
                 'manager_mode' => 'new',
                 'manager_name' => $name.' Manager',
                 'manager_email' => $email,
