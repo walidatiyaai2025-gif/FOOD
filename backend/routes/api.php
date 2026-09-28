@@ -101,6 +101,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/b2b/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/status', [OrderController::class, 'transition']);
         Route::post('/admin/deliveries/assign', [DriverAssignmentController::class, 'assign']);
+        Route::delete('/admin/deliveries/orders/{order}', [DriverAssignmentController::class, 'unassign'])->whereNumber('order');
         Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
         Route::get('/driver/assignments/{assignment}', [DriverAssignmentController::class, 'show'])->whereNumber('assignment');
         Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition'])->whereNumber('assignment');
