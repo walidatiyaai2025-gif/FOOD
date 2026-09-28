@@ -1,0 +1,1 @@
+<form method="post" action="{{ route('admin.b2b.drivers.assignments.withdraw',['assignment'=>$row['_assignment_id']]) }}">@csrf<button class="danger btn" type="submit">Remove assignment</button></form>
