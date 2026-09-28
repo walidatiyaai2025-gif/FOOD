@@ -9,6 +9,7 @@ import '../../core/api/wholesale_commerce_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/routing/customer_routes.dart';
 import 'retail_multistore_screens.dart';
+import 'professional_store_selector_screen.dart';
 import 'wholesale_multistore_screens.dart';
 
 bool shouldUseMultiStoreDesign(
@@ -66,7 +67,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
     switch (definition.pattern) {
       case CustomerRoutePaths.stores:
       case CustomerRoutePaths.storeSelector:
-        return StoreSelectionDesignScreen(
+        return ProfessionalStoreSelectorScreen(
           catalogApi: catalogApi,
           accountApi: accountApi,
           storefrontApi: storefrontApi,
