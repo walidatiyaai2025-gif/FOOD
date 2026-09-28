@@ -30,11 +30,14 @@ backend/app/Services/DemoDataManager.php
 backend/app/Services/LookupScopeService.php
 backend/app/Services/ManagementReportService.php
 backend/app/Services/OperationalTenantScope.php
+backend/app/Services/OrderInventoryReservationService.php
 backend/app/Services/RbacManager.php
 backend/app/Services/ReportExportService.php
 backend/app/Services/RetailWholesaleAccountService.php
 backend/app/Services/RetailWholesaleReplenishmentService.php
+backend/app/Services/StoreLogoService.php
 backend/app/Services/SystemInspectorRecorder.php
+backend/app/Services/WholesalePrincipal.php
 backend/app/Support/AdminNavigation.php
 backend/app/Support/StoreAccess.php
 backend/app/Support/TenantContextResolver.php
@@ -50,6 +53,7 @@ backend/database/migrations/2026_09_27_221500_switch_business_currency_to_egp.ph
 backend/database/migrations/2026_09_27_230500_create_system_inspector_events.php
 backend/database/migrations/2026_09_28_040000_reconcile_builtin_role_permissions.php
 backend/database/migrations/2026_09_28_053500_reconcile_retail_admin_media_targets.php
+backend/database/migrations/2026_09_28_065500_make_b2b_principal_and_warehouse_orders.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/ProductDemoSeeder.php
