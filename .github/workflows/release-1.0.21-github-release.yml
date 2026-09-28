@@ -1,0 +1,122 @@
+name: FOODEX 1.0.21 One-Time GitHub Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-1.0.21-github-release.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish GitHub Release 1.0.21
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate latest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          test "$version" = "1.0.21"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "TAG=v$version" >> "$GITHUB_ENV"
+          echo "Latest main: $GITHUB_SHA"
+
+      - name: Fetch and verify cumulative update assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "release/1.0.21-update:refs/remotes/origin/release/1.0.21-update"
+          mkdir -p /tmp/foodex-release
+          for file in FOODEX-Update.zip FOODEX-Update.json FOODEX-Update.sha256.txt FOODEX-Update.files.txt; do
+            git show "origin/release/1.0.21-update:Release/Updates/$file" > "/tmp/foodex-release/$file"
+          done
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          root = pathlib.Path("/tmp/foodex-release")
+          manifest = json.loads((root / "FOODEX-Update.json").read_text(encoding="utf-8"))
+          package = root / "FOODEX-Update.zip"
+          digest = hashlib.sha256(package.read_bytes()).hexdigest()
+          assert manifest["target_version"] == "1.0.21"
+          assert manifest["minimum_current_version"] == "1.0.6"
+          assert manifest["sha256"] == digest
+          assert manifest["contains_migrations"] is True
+          assert manifest["requires_full_redeploy"] is False
+          print("Verified update SHA256:", digest)
+          PY
+
+      - name: Remove obsolete trial release branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          obsolete="release/221-generated-trial-bundle"
+          if git ls-remote --exit-code --heads origin "refs/heads/$obsolete" >/dev/null 2>&1; then
+            git push origin --delete "$obsolete"
+          fi
+          ! git ls-remote --exit-code --heads origin "refs/heads/$obsolete" >/dev/null 2>&1
+
+      - name: Tag latest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f "$TAG" "$GITHUB_SHA"
+          git push --force origin "refs/tags/$TAG"
+
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          cat > /tmp/foodex-release/RELEASE_NOTES.md <<EOF
+          # FOODEX 1.0.21
+
+          Latest production release from `main`.
+
+          Source commit: `$GITHUB_SHA`
+
+          ## Wholesale Principal & Retail Commercial Setup
+          - FOODEX is the single Wholesale principal; warehouses sit beneath it with no user-managed Wholesale branch selector.
+          - B2B orders are created from a selected source warehouse and reserve stock only from that warehouse.
+          - B2B drivers, catalog, pricing and settings inherit the main Wholesale principal without selecting a store.
+          - Retail store provisioning requires a logo and Wholesale price tier, synchronized to the linked B2B purchasing account.
+
+          ## Update package
+          - Target version: 1.0.21
+          - Minimum current version: 1.0.6
+          - Contains migrations: Yes
+          - Full redeploy required: No
+          - SHA256: c2a2c9440dcf28edb933453af3e1221eaa44e537c13ca5974616147d4ee94e0b
+          EOF
+
+      - name: Publish GitHub Release and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          assets=(
+            /tmp/foodex-release/FOODEX-Update.zip
+            /tmp/foodex-release/FOODEX-Update.json
+            /tmp/foodex-release/FOODEX-Update.sha256.txt
+            /tmp/foodex-release/FOODEX-Update.files.txt
+          )
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG"               --repo "$GITHUB_REPOSITORY"               --title "FOODEX $VERSION"               --notes-file /tmp/foodex-release/RELEASE_NOTES.md               --latest
+            gh release upload "$TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "${assets[@]}"               --repo "$GITHUB_REPOSITORY"               --verify-tag               --title "FOODEX $VERSION"               --notes-file /tmp/foodex-release/RELEASE_NOTES.md               --latest
+          fi
+
+      - name: Verify published GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName,name,isLatest,isDraft,isPrerelease,url             --jq 'select(.tagName=="v1.0.21" and .name=="FOODEX 1.0.21" and .isLatest==true and .isDraft==false and .isPrerelease==false)'
