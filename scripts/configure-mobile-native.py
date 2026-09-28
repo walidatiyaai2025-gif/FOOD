@@ -43,7 +43,9 @@ def _select_brand_assets(app_name: str) -> None:
     global APP_ICON, APP_ICON_FOREGROUND, SPLASH_IMAGE
     if app_name == 'customer':
         APP_ICON = BRAND_ROOT / 'customer_app_icon_1024.png'
-        APP_ICON_FOREGROUND = BRAND_ROOT / 'customer_app_icon_foreground.png'
+        # Reuse the validated full customer icon for Android adaptive/splash drawables.
+        # AAPT2 is unstable with the transparent package foreground PNG in drawable-nodpi.
+        APP_ICON_FOREGROUND = APP_ICON
         SPLASH_IMAGE = BRAND_ROOT / 'customer_splash.png'
 
 
