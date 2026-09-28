@@ -1,0 +1,64 @@
+name: FOODEX 1.0.21 One-Time Branch Cleanup
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-1.0.21-branch-cleanup.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: Delete completed branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release state
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(tr -d '[:space:]' < VERSION)" = "1.0.21"
+          git ls-remote --exit-code --heads origin refs/heads/release/1.0.21-update >/dev/null
+
+      - name: Delete completed branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "release/1.0.19-update"
+            "release/1.0.20-update"
+            "release/221-generated-trial-bundle"
+            "release/334-1.0.21-wholesale-principal"
+          )
+          for branch in "${branches[@]}"; do
+            if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
+              echo "Deleting $branch"
+              git push origin --delete "$branch"
+            else
+              echo "Already absent: $branch"
+            fi
+          done
+
+      - name: Verify cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          for branch in             "release/1.0.19-update"             "release/1.0.20-update"             "release/221-generated-trial-bundle"             "release/334-1.0.21-wholesale-principal"; do
+            if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
+              echo "::error::Branch still exists: $branch"
+              failed=1
+            else
+              echo "Confirmed deleted: $branch"
+            fi
+          done
+          git ls-remote --exit-code --heads origin refs/heads/main >/dev/null
+          git ls-remote --exit-code --heads origin refs/heads/release/1.0.21-update >/dev/null
+          test "$failed" -eq 0
