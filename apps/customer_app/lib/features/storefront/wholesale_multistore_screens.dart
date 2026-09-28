@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_interpolation_to_compose_strings, deprecated_member_use
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
