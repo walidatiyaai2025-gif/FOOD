@@ -109,15 +109,18 @@ final class RetailWholesaleReplenishmentService
                     (bool) $source->is_active,
                 );
 
+                $conversionFactor = max(0.001, (float) ($item->quantity_conversion_factor ?? 1));
+                $retailUnitCost = round((float) $item->unit_price / $conversionFactor, 3);
+
                 $this->syncImages((int) $source->id, $retailProductId);
                 $this->syncStoreProduct(
                     $retailStoreId,
                     $retailProductId,
-                    (float) $item->unit_price,
+                    $retailUnitCost,
                 );
 
                 $inventoryId = $this->inventoryId($warehouseId, $retailProductId);
-                $quantity = round((float) $item->quantity, 3);
+                $quantity = round((float) $item->quantity * $conversionFactor, 3);
 
                 DB::table('inventories')
                     ->where('id', $inventoryId)
@@ -142,7 +145,7 @@ final class RetailWholesaleReplenishmentService
                     'source_product_id' => (int) $source->id,
                     'retail_product_id' => $retailProductId,
                     'quantity' => $quantity,
-                    'unit_cost' => round((float) $item->unit_price, 3),
+                    'unit_cost' => $retailUnitCost,
                     'line_total' => round((float) $item->line_total, 3),
                     'created_at' => now(),
                     'updated_at' => now(),
