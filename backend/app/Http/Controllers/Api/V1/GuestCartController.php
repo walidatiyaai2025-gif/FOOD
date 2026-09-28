@@ -381,7 +381,7 @@ class GuestCartController extends Controller
             && (bool) $storeProduct->is_active
             && $storeProduct->price !== null;
 
-        if (! $catalogAvailable) {
+        if (!$catalogAvailable) {
             if ($mustBeAvailable) {
                 abort(404, 'Product is not available in this store.');
             }
