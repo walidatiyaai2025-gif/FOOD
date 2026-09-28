@@ -48,7 +48,7 @@ class B2bPricingTest extends TestCase
             ->assertJsonPath('price_tier', 'GOLD')
             ->assertJsonPath('available_quantity', 8)
             ->assertJsonPath('is_available', true)
-            ->assertJsonPath('currency', 'KWD');
+            ->assertJsonPath('currency', 'EGP');
         $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 1])->assertConflict();
         $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 6])->assertConflict();
         $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 5])
