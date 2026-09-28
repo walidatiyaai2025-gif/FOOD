@@ -223,7 +223,7 @@ class CheckoutController extends Controller
                 'order_number' => 'FDX-'.now()->format('Ymd').'-'.Str::upper(Str::random(10)),
                 'channel' => $channel,
                 'status' => 'pending',
-                'currency' => 'KWD',
+                'currency' => 'EGP',
                 'subtotal' => round($subtotal, 3),
                 'discount_total' => 0,
                 'delivery_total' => $deliveryTotal,
@@ -265,7 +265,7 @@ class CheckoutController extends Controller
                 'provider_reference' => null,
                 'status' => 'pending',
                 'amount' => $grandTotal,
-                'currency' => 'KWD',
+                'currency' => 'EGP',
                 'metadata' => [
                     'method' => $paymentMethod,
                 ],
