@@ -12,7 +12,12 @@ import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 
 void main() {
-  const widths = <double>[320, 390, 430, 480];
+  const devices = <Size>[
+    Size(360, 800),
+    Size(390, 844),
+    Size(412, 915),
+    Size(480, 960),
+  ];
   const routes = <String>[
     '/customer/store-selector',
     '/retail/7/home',
@@ -25,13 +30,14 @@ void main() {
     '/b2b/orders',
   ];
 
-  for (final width in widths) {
+  for (final device in devices) {
     testWidgets(
       'multi-store screens render without overflow at ' +
-          width.toInt().toString() +
-          ' logical px',
+          device.width.toInt().toString() +
+          'x' +
+          device.height.toInt().toString(),
       (tester) async {
-        await tester.binding.setSurfaceSize(Size(width, 900));
+        await tester.binding.setSurfaceSize(device);
         addTearDown(() => tester.binding.setSurfaceSize(null));
 
         for (final route in routes) {
@@ -60,8 +66,9 @@ void main() {
             reason: 'Route ' +
                 route +
                 ' failed at ' +
-                width.toInt().toString() +
-                'px',
+                device.width.toInt().toString() +
+                'x' +
+                device.height.toInt().toString(),
           );
         }
       },
