@@ -200,7 +200,8 @@ class B2bAdminWorkspaceTest extends TestCase
             'email' => 'principal-driver@example.test',
             'password' => 'password123',
         ])->assertRedirect()->assertSessionHasNoErrors();
-        $driver = Driver::query()->whereHas('user', fn ($query) => $query->where('email', 'principal-driver@example.test'))->firstOrFail();
+        $driverUserId = (int) User::query()->where('email', 'principal-driver@example.test')->value('id');
+        $driver = Driver::query()->where('user_id', $driverUserId)->firstOrFail();
         $this->assertSame($store, (int) $driver->store_id);
 
         $orderResponse = $this->actingAs($admin)->post('/admin/b2b/orders', [
