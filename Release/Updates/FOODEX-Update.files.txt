@@ -1,5 +1,6 @@
 VERSION
 backend/app/Domain/Installer/InstallerWorkflow.php
+backend/app/Domain/Updater/LaravelUpdateRuntime.php
 backend/app/Http/Controllers/Admin/AdminLoginController.php
 backend/app/Http/Controllers/Admin/AdminProfileController.php
 backend/app/Http/Controllers/Admin/AdminShellController.php
@@ -67,6 +68,7 @@ backend/public/demo/banners/fresh-market.svg
 backend/public/demo/banners/weekly-offers.svg
 backend/resources/views/admin/_brand-components.blade.php
 backend/resources/views/admin/_dashboard-order-actions.blade.php
+backend/resources/views/admin/_dashboard-order-create.blade.php
 backend/resources/views/admin/_premium-icon.blade.php
 backend/resources/views/admin/_premium-sidebar.blade.php
 backend/resources/views/admin/_sidebar.blade.php
