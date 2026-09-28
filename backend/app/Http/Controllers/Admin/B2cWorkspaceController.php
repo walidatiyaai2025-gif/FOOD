@@ -523,11 +523,7 @@ class B2cWorkspaceController extends Controller
             'rows' => DB::table('inventories')
                 ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
                 ->join('products', 'products.id', '=', 'inventories.product_id')
-                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
                 ->whereIn('warehouses.store_id', $storeIds)
-                ->whereColumn('catalogs.store_id', 'warehouses.store_id')
-                ->where('catalogs.channel', 'b2c')
-                ->where('catalogs.is_migration_quarantine', false)
                 ->orderBy('products.name')
                 ->limit(100)
                 ->get([
