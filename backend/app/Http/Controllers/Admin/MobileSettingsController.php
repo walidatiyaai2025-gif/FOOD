@@ -154,6 +154,51 @@ final class MobileSettingsController extends Controller
         return back()->with('status', __('mobile_settings.push_saved'));
     }
 
+    public function testProvider(
+        Request $request,
+        AuditLogger $audit,
+        PushDeliveryService $push,
+    ): RedirectResponse {
+        $actor = $this->authorize($request, 'push_settings.manage');
+        $data = $request->validate([
+            'app' => ['required', 'in:customer,driver'],
+            'platform' => ['required', 'in:android,ios'],
+            'environment' => ['required', 'in:development,staging,production'],
+        ]);
+
+        $provider = PushProviderSetting::query()
+            ->where('app', $data['app'])
+            ->where('platform', $data['platform'])
+            ->where('environment', $data['environment'])
+            ->first();
+
+        if ($provider === null) {
+            throw ValidationException::withMessages([
+                'credentials_json' => __('mobile_settings.provider_missing'),
+            ]);
+        }
+
+        $result = $push->testProvider($provider);
+        $audit->record(
+            'push.provider_tested',
+            $actor,
+            $provider,
+            null,
+            [
+                'app' => $provider->app,
+                'platform' => $provider->platform,
+                'environment' => $provider->environment,
+                'project_id' => $result['project_id'],
+                'auth_mode' => $result['auth_mode'],
+            ],
+            $request,
+        );
+
+        return back()->with('status', app()->getLocale() === 'ar'
+            ? 'تم التحقق من اتصال Firebase بنجاح باستخدام '.$result['auth_mode'].'.'
+            : 'Firebase authentication verified successfully using '.$result['auth_mode'].'.');
+    }
+
     public function testPush(
         Request $request,
         AuditLogger $audit,
@@ -214,12 +259,18 @@ final class MobileSettingsController extends Controller
             $request,
         );
 
-        return back()->with(
-            'status',
-            $log->status === 'sent'
-                ? __('mobile_settings.test_sent')
-                : __('mobile_settings.test_failed'),
-        );
+        if ($log->status !== 'sent') {
+            $reason = trim((string) $log->error_message);
+
+            return back()->withErrors([
+                'push_test' => (app()->getLocale() === 'ar'
+                    ? 'فشل الإشعار التجريبي'
+                    : 'Test notification failed')
+                    .($reason !== '' ? ': '.$reason : '.'),
+            ]);
+        }
+
+        return back()->with('status', __('mobile_settings.test_sent'));
     }
 
     private function authorizeAny(Request $request): User
