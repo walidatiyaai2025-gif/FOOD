@@ -57,7 +57,7 @@ final class CustomerDomainResolver
 
         $this->assertStoreChannel($retailStoreId, 'B2C');
         $supportAccess = $user->hasRole('SUPER_ADMIN')
-            && filter_var($request->header('X-FOODEX-Support-Access', false), FILTER_VALIDATE_BOOL);
+            && filter_var($request->header('X-FOODEX-Support-Access'), FILTER_VALIDATE_BOOL);
 
         if (! $supportAccess) {
             abort_unless(in_array($retailStoreId, $this->entitledRetailStoreIds($user), true), 403, 'Wholesale purchasing is not enabled for this retail store manager.');
