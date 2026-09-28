@@ -90,26 +90,66 @@ final class RetailWholesaleReplenishmentService
                     throw new HttpException(409, 'Wholesale order contains a product outside its source catalog.');
                 }
 
-                $unitId = $this->retailUnitId((int) $source->unit_id, $retailStoreId);
-                $brandId = $source->brand_id === null
-                    ? null
-                    : $this->retailBrandId((int) $source->brand_id, $retailStoreId);
-                $categoryId = $source->category_id === null
-                    ? null
-                    : $this->retailCategoryId((int) $source->category_id, $catalogId);
-
-                $retailProductId = $this->retailProductId(
-                    $catalogId,
-                    (string) $item->sku_snapshot,
-                    (string) $item->name_snapshot,
-                    $source->description === null ? null : (string) $source->description,
-                    $categoryId,
-                    $brandId,
-                    $unitId,
-                    (bool) $source->is_active,
-                );
-
                 $conversionFactor = max(0.001, (float) ($item->quantity_conversion_factor ?? 1));
+                $mapping = DB::table('retail_wholesale_product_mappings')
+                    ->where('retail_store_id', $retailStoreId)
+                    ->where('source_wholesale_product_id', $source->id)
+                    ->first(['retail_product_id', 'quantity_conversion_factor']);
+
+                if ($mapping !== null) {
+                    $retailProductId = (int) $mapping->retail_product_id;
+                    $conversionFactor = max(0.001, (float) $mapping->quantity_conversion_factor);
+                    $mappedTargetExists = DB::table('products')
+                        ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                        ->where('products.id', $retailProductId)
+                        ->where('catalogs.store_id', $retailStoreId)
+                        ->where('catalogs.channel', 'b2c')
+                        ->exists();
+                    abort_unless($mappedTargetExists, 409, 'Wholesale product mapping points outside the retail tenant.');
+                } else {
+                    $existingTarget = DB::table('products')
+                        ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                        ->where('catalogs.id', $catalogId)
+                        ->where('products.sku', $item->sku_snapshot)
+                        ->first(['products.id']);
+
+                    if ($existingTarget === null && abs($conversionFactor - 1.0) > 0.0001) {
+                        throw new HttpException(
+                            409,
+                            'Converted wholesale packs require an explicit retail product mapping before receipt.',
+                        );
+                    }
+
+                    $unitId = $this->retailUnitId((int) $source->unit_id, $retailStoreId);
+                    $brandId = $source->brand_id === null
+                        ? null
+                        : $this->retailBrandId((int) $source->brand_id, $retailStoreId);
+                    $categoryId = $source->category_id === null
+                        ? null
+                        : $this->retailCategoryId((int) $source->category_id, $catalogId);
+
+                    $retailProductId = $this->retailProductId(
+                        $catalogId,
+                        (string) $item->sku_snapshot,
+                        (string) $item->name_snapshot,
+                        $source->description === null ? null : (string) $source->description,
+                        $categoryId,
+                        $brandId,
+                        $unitId,
+                        (bool) $source->is_active,
+                    );
+
+                    DB::table('retail_wholesale_product_mappings')->insert([
+                        'retail_store_id' => $retailStoreId,
+                        'source_wholesale_product_id' => (int) $source->id,
+                        'retail_product_id' => $retailProductId,
+                        'quantity_conversion_factor' => $conversionFactor,
+                        'mapped_by_user_id' => $actor->getKey(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
                 $retailUnitCost = round((float) $item->unit_price / $conversionFactor, 3);
 
                 $this->syncImages((int) $source->id, $retailProductId);
