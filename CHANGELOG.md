@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.18 - Premium B2B Dashboard Reference Layout
+- Rebuild the Wholesale dashboard to match the supplied premium reference proportions with four KPI cards, a seven-day sales chart, order distribution donut, latest orders, top-selling products, and operational alerts.
+- Use live tenant-scoped B2B orders, customers, inventory, invoices and product sales instead of mock numbers.
+- Add responsive RTL/LTR behavior while preserving the widescreen administration shell and B2B authorization boundaries.
+- Add regression coverage for the reference 841x564 dashboard geometry and live business data.
+
 ## 1.0.17 - Widescreen Responsive Administration
 - Make the shared FOODEX administration shell fluid on 1440p, 1920p and ultrawide displays instead of capping content at narrow fixed widths.
 - Expand the Retail dashboard across the available viewport with wider desktop grids, larger analytics surfaces and consistent spacing.
