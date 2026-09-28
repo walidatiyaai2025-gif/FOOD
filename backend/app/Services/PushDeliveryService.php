@@ -247,7 +247,7 @@ final class PushDeliveryService
     }
 
     /**
-     * @param array<string, string> $credentials
+     * @param  array<string, string>  $credentials
      */
     private function accessToken(PushProviderSetting $provider, array $credentials): string
     {

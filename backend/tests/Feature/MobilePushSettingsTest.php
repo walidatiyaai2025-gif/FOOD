@@ -307,12 +307,10 @@ class MobilePushSettingsTest extends TestCase
             'is_test' => 1,
         ]);
 
-        Http::assertSent(fn ($request): bool =>
-            $request->url() === 'https://oauth2.googleapis.com/token'
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://oauth2.googleapis.com/token'
             && ($request['grant_type'] ?? null) === 'urn:ietf:params:oauth:grant-type:jwt-bearer'
         );
-        Http::assertSent(fn ($request): bool =>
-            str_contains($request->url(), 'fcm.googleapis.com/v1/projects/foodex-prod/messages:send')
+        Http::assertSent(fn ($request): bool => str_contains($request->url(), 'fcm.googleapis.com/v1/projects/foodex-prod/messages:send')
             && $request->hasHeader('Authorization', 'Bearer service-account-access-token')
         );
     }
