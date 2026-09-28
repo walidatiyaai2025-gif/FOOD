@@ -4,9 +4,12 @@ import '../api/b2b_api.dart';
 import '../api/b2c_catalog_api.dart';
 import '../api/b2c_account_api.dart';
 import '../api/customer_action_api.dart';
+import '../api/storefront_api.dart';
+import '../api/wholesale_commerce_api.dart';
 import '../auth/customer_session.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
 import '../../features/home/b2c_journey_screen.dart';
+import '../../features/storefront/multistore_design_screen.dart';
 import '../../shared/customer_action_widgets.dart';
 import 'customer_routes.dart';
 
@@ -16,7 +19,10 @@ class CustomerAppRouter {
     required this.actionApi,
     required this.onAuthenticated,
     required this.onSessionExpired,
+    required this.onEnterWholesale,
     this.b2bApi,
+    this.storefrontApi,
+    this.wholesaleApi,
     required this.b2cCatalogApi,
     required this.b2cAccountApi,
   });
@@ -26,8 +32,11 @@ class CustomerAppRouter {
   final B2cCatalogApi b2cCatalogApi;
   final B2cAccountApi b2cAccountApi;
   final CustomerActionApi actionApi;
+  final StorefrontApi? storefrontApi;
+  final WholesaleCommerceApi? wholesaleApi;
   final CustomerAuthenticated onAuthenticated;
   final VoidCallback onSessionExpired;
+  final ValueChanged<int?> onEnterWholesale;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final requestedLocation = settings.name ?? CustomerRoutePaths.splash;
@@ -80,11 +89,16 @@ class CustomerAppRouter {
     }
 
     if (session.channel != requested.channel) {
-      return definitionFor(
-        requested.channel == CustomerChannel.b2b
-            ? CustomerRoutePaths.b2bLogin
-            : CustomerRoutePaths.entry,
-      );
+      final entitledRetailManager =
+          requested.channel == CustomerChannel.b2b &&
+          session.b2bRetailStoreId != null;
+      if (!entitledRetailManager) {
+        return definitionFor(
+          requested.channel == CustomerChannel.b2b
+              ? CustomerRoutePaths.b2bLogin
+              : CustomerRoutePaths.entry,
+        );
+      }
     }
 
     return null;
@@ -97,23 +111,40 @@ class CustomerAppRouter {
   }) {
     return MaterialPageRoute<void>(
       settings: settings,
-      builder: (_) => definition.channel == CustomerChannel.b2b
-          ? B2bJourneyScreen(
-              definition: definition,
-              location: requestedLocation,
-              api: b2bApi,
-              actionApi: actionApi,
-              onAuthenticated: onAuthenticated,
-            )
-          : B2cJourneyScreen(
-              definition: definition,
-              location: requestedLocation,
-              actionApi: actionApi,
-              catalogApi: b2cCatalogApi,
-              accountApi: b2cAccountApi,
-              onAuthenticated: onAuthenticated,
-              onSessionExpired: onSessionExpired,
-            ),
+      builder: (_) {
+        if (shouldUseMultiStoreDesign(definition, requestedLocation)) {
+          return MultiStoreDesignScreen(
+            definition: definition,
+            location: requestedLocation,
+            session: session,
+            catalogApi: b2cCatalogApi,
+            accountApi: b2cAccountApi,
+            actionApi: actionApi,
+            b2bApi: b2bApi,
+            storefrontApi: storefrontApi,
+            wholesaleApi: wholesaleApi,
+            enterWholesale: onEnterWholesale,
+          );
+        }
+
+        return definition.channel == CustomerChannel.b2b
+            ? B2bJourneyScreen(
+                definition: definition,
+                location: requestedLocation,
+                api: b2bApi,
+                actionApi: actionApi,
+                onAuthenticated: onAuthenticated,
+              )
+            : B2cJourneyScreen(
+                definition: definition,
+                location: requestedLocation,
+                actionApi: actionApi,
+                catalogApi: b2cCatalogApi,
+                accountApi: b2cAccountApi,
+                onAuthenticated: onAuthenticated,
+                onSessionExpired: onSessionExpired,
+              );
+      },
     );
   }
 }
