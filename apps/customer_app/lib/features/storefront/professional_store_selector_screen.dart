@@ -337,7 +337,7 @@ class StoreCard extends StatelessWidget {
                       const SizedBox(height: 10),
                       Wrap(spacing: 12, runSpacing: 7, children: [
                         _Meta(icon: Icons.location_on_outlined, text: address),
-                        StoreStatusBadge(label: status.$1, kind: status.$2),
+                        _StoreStatusBadge(label: status.$1, kind: status.$2),
                       ]),
                     ])),
                   ]),
@@ -385,8 +385,8 @@ class StoreArtwork extends StatelessWidget {
 
 enum _StatusKind { open, closed, soon }
 
-class StoreStatusBadge extends StatelessWidget {
-  const StoreStatusBadge({required this.label, required this.kind, super.key});
+class _StoreStatusBadge extends StatelessWidget {
+  const _StoreStatusBadge({required this.label, required this.kind});
   final String label;
   final _StatusKind kind;
 
