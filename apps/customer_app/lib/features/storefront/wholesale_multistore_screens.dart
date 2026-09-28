@@ -14,12 +14,14 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
   const WholesaleHomeDesignScreen({
     required this.location,
     required this.api,
+    required this.storefrontApi,
     required this.actionApi,
     super.key,
   });
 
   final String location;
   final B2bApi? api;
+  final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
 
   @override
@@ -31,18 +33,32 @@ class _WholesaleHomeDesignScreenState
     extends State<WholesaleHomeDesignScreen> {
   final search = TextEditingController();
   late final int storeId = wholesaleStoreId(widget.location);
-  late Future<Object?> future = _load();
+  late Future<Map<String, dynamic>> future = _load();
 
-  Future<Object?> _load([String query = '']) {
+  Future<Map<String, dynamic>> _load([String query = '']) async {
     if (widget.api == null || storeId <= 0) {
-      return Future<Object?>.value(const {'data': <Object>[]});
+      return const {
+        'products': {'data': <Object>[]},
+        'storefront': <String, Object?>{},
+      };
     }
+
     var endpoint =
         '/api/v1/b2b/products?store_id=' + storeId.toString();
     if (query.trim().isNotEmpty) {
       endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
     }
-    return widget.api!.get(endpoint);
+
+    final products = await widget.api!.get(endpoint);
+    Map<String, dynamic> storefront = <String, dynamic>{};
+    if (widget.storefrontApi != null) {
+      storefront = await widget.storefrontApi!.wholesaleHome(storeId);
+    }
+
+    return {
+      'products': products,
+      'storefront': storefront,
+    };
   }
 
   @override
@@ -54,32 +70,172 @@ class _WholesaleHomeDesignScreenState
   @override
   Widget build(BuildContext context) => Directionality(
         textDirection: TextDirection.rtl,
-        child: Scaffold(
-          backgroundColor: Color(0xFFFBFAFD),
-          body: SafeArea(
-            child: FutureBuilder<Object?>(
-              future: future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const FoodexLoading(
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Scaffold(
+                body: SafeArea(
+                  child: FoodexLoading(
                     key: ValueKey('b2b-loading'),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return FoodexErrorState(
+                  ),
+                ),
+              );
+            }
+            if (snapshot.hasError) {
+              return Scaffold(
+                body: SafeArea(
+                  child: FoodexErrorState(
                     key: const ValueKey('b2b-error'),
                     message: 'تعذر تحميل متجر الجملة.',
                     onRetry: () =>
                         setState(() => future = _load(search.text)),
-                  );
-                }
+                  ),
+                ),
+              );
+            }
 
-                final rows = dataRows(snapshot.data);
-                return ListView(
+            final payload = snapshot.data ?? const <String, dynamic>{};
+            final rows = dataRows(payload['products']);
+            final storefront = payload['storefront'] is Map
+                ? Map<String, dynamic>.from(
+                    payload['storefront'] as Map,
+                  )
+                : <String, dynamic>{};
+            final theme = storefront['theme'] is Map
+                ? Map<String, dynamic>.from(storefront['theme'] as Map)
+                : <String, dynamic>{};
+            final branding = storefront['branding'] is Map
+                ? Map<String, dynamic>.from(
+                    storefront['branding'] as Map,
+                  )
+                : <String, dynamic>{};
+            final custom = branding['custom'] is Map
+                ? Map<String, dynamic>.from(branding['custom'] as Map)
+                : <String, dynamic>{};
+            final store = storefront['store'] is Map
+                ? Map<String, dynamic>.from(storefront['store'] as Map)
+                : <String, dynamic>{};
+            final hero = storefront['hero'] is Map
+                ? Map<String, dynamic>.from(storefront['hero'] as Map)
+                : <String, dynamic>{};
+            final palette = _wholesalePalette(theme);
+
+            final title =
+                custom['brand_title_ar']?.toString().trim().isNotEmpty ==
+                        true
+                    ? custom['brand_title_ar'].toString()
+                    : (store['name']?.toString().trim().isNotEmpty == true
+                        ? store['name'].toString()
+                        : 'متجر الجملة');
+            final heroTitle =
+                custom['brand_subtitle_ar']?.toString().trim().isNotEmpty ==
+                        true
+                    ? custom['brand_subtitle_ar'].toString()
+                    : 'أفضل الأسعار لمتاجر التجزئة';
+            final heroCta =
+                custom['hero_cta_ar']?.toString().trim().isNotEmpty == true
+                    ? custom['hero_cta_ar'].toString()
+                    : 'تصفح الكتالوج';
+
+            final sections = (storefront['sections'] as List? ??
+                    const <Object>[])
+                .whereType<Map>()
+                .map((row) => Map<String, dynamic>.from(row))
+                .toList(growable: false);
+            final effectiveSections = sections.isEmpty
+                ? <Map<String, dynamic>>[
+                    {'type': 'hero', 'sort_order': 10},
+                    {
+                      'type': 'categories',
+                      'title_ar': 'التصنيفات',
+                      'sort_order': 20,
+                    },
+                    {
+                      'type': 'offers',
+                      'title_ar': 'عروض الجملة',
+                      'sort_order': 30,
+                    },
+                  ]
+                : sections;
+
+            final content = <Widget>[];
+            for (final section in effectiveSections) {
+              final type = section['type']?.toString() ?? '';
+              final sectionTitle =
+                  section['title_ar']?.toString().trim().isNotEmpty == true
+                      ? section['title_ar'].toString()
+                      : _defaultWholesaleSectionTitle(type);
+
+              switch (type) {
+                case 'hero':
+                case 'banner_slider':
+                  content.add(
+                    _WholesaleHero(
+                      title: heroTitle,
+                      cta: heroCta,
+                      imageUrl: hero['image_url']?.toString(),
+                      palette: palette,
+                    ),
+                  );
+                  break;
+                case 'categories':
+                  content.add(
+                    FoodexSectionHeader(
+                      title: sectionTitle,
+                      palette: palette,
+                    ),
+                  );
+                  content.add(
+                    _WholesaleCategoryGrid(
+                      rows: rows,
+                      palette: palette,
+                    ),
+                  );
+                  break;
+                case 'offers':
+                case 'featured_products':
+                case 'best_sellers':
+                case 'reorder':
+                case 'product_grid':
+                case 'product_carousel':
+                  content.add(
+                    FoodexSectionHeader(
+                      title: sectionTitle,
+                      palette: palette,
+                    ),
+                  );
+                  content.add(
+                    _WholesaleProductGrid(
+                      rows: rows,
+                      storeId: storeId,
+                      actionApi: widget.actionApi,
+                      palette: palette,
+                    ),
+                  );
+                  break;
+                case 'brands':
+                  content.add(
+                    FoodexSectionHeader(
+                      title: sectionTitle,
+                      palette: palette,
+                    ),
+                  );
+                  break;
+              }
+            }
+
+            return Scaffold(
+              backgroundColor: palette.background,
+              body: SafeArea(
+                child: ListView(
                   padding: EdgeInsets.zero,
                   children: [
                     _WholesaleHeader(
-                      title: 'متجر الجملة',
+                      title: title,
+                      logoUrl: branding['logo_url']?.toString(),
+                      address: branding['address']?.toString(),
+                      palette: palette,
                       onCart: () => Navigator.of(context).pushNamed(
                         '/b2b/cart?store=' + storeId.toString(),
                       ),
@@ -99,28 +255,17 @@ class _WholesaleHomeDesignScreenState
                         ),
                       ),
                     ),
-                    const _WholesaleHero(),
-                    const FoodexSectionHeader(
-                      title: 'التصنيفات',
-                      palette: FoodexPalette.wholesale,
-                    ),
-                    _WholesaleCategoryGrid(rows: rows),
-                    const FoodexSectionHeader(
-                      title: 'عروض الجملة',
-                      palette: FoodexPalette.wholesale,
-                    ),
-                    _WholesaleProductGrid(
-                      rows: rows,
-                      storeId: storeId,
-                      actionApi: widget.actionApi,
-                    ),
+                    ...content,
                     const SizedBox(height: 22),
                   ],
-                );
-              },
-            ),
-          ),
-          bottomNavigationBar: _WholesaleBottomNav(storeId: storeId),
+                ),
+              ),
+              bottomNavigationBar: _WholesaleBottomNav(
+                storeId: storeId,
+                palette: palette,
+              ),
+            );
+          },
         ),
       );
 }
@@ -129,42 +274,80 @@ class _WholesaleHeader extends StatelessWidget {
   const _WholesaleHeader({
     required this.title,
     required this.onCart,
+    required this.palette,
+    this.logoUrl,
+    this.address,
   });
 
   final String title;
+  final String? logoUrl;
+  final String? address;
   final VoidCallback onCart;
+  final FoodexPalette palette;
 
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
-        color: Color(0xFF35195E),
+        color: palette.primaryDark,
         child: Row(
           children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-              decoration: BoxDecoration(
-                color: Color(0xFFB983F0),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: const Text(
-                'B2B',
-                style: TextStyle(
-                  color: Color(0xFF35195E),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
+            if (logoUrl != null && logoUrl!.trim().isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  logoUrl!,
+                  width: 44,
+                  height: 44,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const SizedBox(width: 44, height: 44),
                 ),
               ),
-            ),
-            const SizedBox(width: 10),
+              const SizedBox(width: 9),
+            ] else ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: palette.accent,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'B2B',
+                  style: TextStyle(
+                    color: palette.primaryDark,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
             Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 19,
-                  fontWeight: FontWeight.w800,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (address != null && address!.trim().isNotEmpty)
+                    Text(
+                      address!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(.78),
+                        fontSize: 10,
+                      ),
+                    ),
+                ],
               ),
             ),
             const _RoundHeaderIcon(icon: Icons.notifications_none_rounded),
@@ -204,7 +387,17 @@ class _RoundHeaderIcon extends StatelessWidget {
 }
 
 class _WholesaleHero extends StatelessWidget {
-  const _WholesaleHero();
+  const _WholesaleHero({
+    required this.title,
+    required this.cta,
+    required this.palette,
+    this.imageUrl,
+  });
+
+  final String title;
+  final String cta;
+  final String? imageUrl;
+  final FoodexPalette palette;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -214,14 +407,11 @@ class _WholesaleHero extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFF5D2A91),
-                Color(0xFF35195E),
-              ],
+            gradient: LinearGradient(
+              colors: [palette.primary, palette.primaryDark],
             ),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Expanded(
                 child: Column(
@@ -229,24 +419,43 @@ class _WholesaleHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'أفضل الأسعار لمتاجر التجزئة',
-                      style: TextStyle(
+                      title,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         height: 1.25,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(height: 12),
-                    _WhitePill(label: 'تصفح الكتالوج'),
+                    const SizedBox(height: 12),
+                    _WhitePill(
+                      label: cta,
+                      palette: palette,
+                    ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.warehouse_rounded,
-                size: 78,
-                color: Colors.white54,
-              ),
+              if (imageUrl != null && imageUrl!.trim().isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    imageUrl!,
+                    width: 100,
+                    height: 112,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.warehouse_rounded,
+                      size: 78,
+                      color: Colors.white.withOpacity(.45),
+                    ),
+                  ),
+                )
+              else
+                Icon(
+                  Icons.warehouse_rounded,
+                  size: 78,
+                  color: Colors.white.withOpacity(.45),
+                ),
             ],
           ),
         ),
@@ -254,9 +463,13 @@ class _WholesaleHero extends StatelessWidget {
 }
 
 class _WhitePill extends StatelessWidget {
-  const _WhitePill({required this.label});
+  const _WhitePill({
+    required this.label,
+    required this.palette,
+  });
 
   final String label;
+  final FoodexPalette palette;
 
   @override
   Widget build(BuildContext context) => Align(
@@ -265,13 +478,13 @@ class _WhitePill extends StatelessWidget {
           padding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: palette.accent,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             label,
-            style: const TextStyle(
-              color: Color(0xFF35195E),
+            style: TextStyle(
+              color: palette.primaryDark,
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
@@ -281,9 +494,13 @@ class _WhitePill extends StatelessWidget {
 }
 
 class _WholesaleCategoryGrid extends StatelessWidget {
-  const _WholesaleCategoryGrid({required this.rows});
+  const _WholesaleCategoryGrid({
+    required this.rows,
+    required this.palette,
+  });
 
   final List<Map<String, dynamic>> rows;
+  final FoodexPalette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -311,16 +528,16 @@ class _WholesaleCategoryGrid extends StatelessWidget {
         ),
         itemBuilder: (_, index) => Container(
           decoration: BoxDecoration(
-            color: Color(0xFFF5F0FA),
+            color: palette.soft,
             borderRadius: BorderRadius.circular(16),
           ),
           alignment: Alignment.center,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.inventory_2_outlined,
-                color: Color(0xFF5D2A91),
+                color: palette.primary,
               ),
               const SizedBox(height: 4),
               Text(
@@ -345,11 +562,13 @@ class _WholesaleProductGrid extends StatelessWidget {
     required this.rows,
     required this.storeId,
     required this.actionApi,
+    required this.palette,
   });
 
   final List<Map<String, dynamic>> rows;
   final int storeId;
   final CustomerActionApi actionApi;
+  final FoodexPalette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -395,7 +614,7 @@ class _WholesaleProductGrid extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE9E3F0)),
+                border: Border.all(color: palette.soft),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Column(
@@ -404,7 +623,7 @@ class _WholesaleProductGrid extends StatelessWidget {
                   Expanded(
                     child: FoodexProductImage(
                       url: row['image_url']?.toString(),
-                      palette: FoodexPalette.wholesale,
+                      palette: palette,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -423,16 +642,16 @@ class _WholesaleProductGrid extends StatelessWidget {
                         money(
                           row['account_price'] ?? row['unit_price'],
                         ),
-                    style: const TextStyle(
-                      color: Color(0xFF5D2A91),
+                    style: TextStyle(
+                      color: palette.primary,
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
                     ),
                   ),
                   Text(
                     'الحد الأدنى ' + compactNumber(minimum),
-                    style: const TextStyle(
-                      color: Color(0xFF6F6A7D),
+                    style: TextStyle(
+                      color: palette.muted,
                       fontSize: 10,
                     ),
                   ),
@@ -442,8 +661,7 @@ class _WholesaleProductGrid extends StatelessWidget {
                     height: 38,
                     child: FilledButton.icon(
                       style: FilledButton.styleFrom(
-                        backgroundColor:
-                            Color(0xFF5D2A91),
+                        backgroundColor: palette.primary,
                         padding:
                             const EdgeInsets.symmetric(horizontal: 8),
                       ),
@@ -481,14 +699,18 @@ class _WholesaleProductGrid extends StatelessWidget {
 }
 
 class _WholesaleBottomNav extends StatelessWidget {
-  const _WholesaleBottomNav({required this.storeId});
+  const _WholesaleBottomNav({
+    required this.storeId,
+    required this.palette,
+  });
 
   final int storeId;
+  final FoodexPalette palette;
 
   @override
   Widget build(BuildContext context) => NavigationBar(
         selectedIndex: 0,
-        indicatorColor: Color(0xFFF5F0FA),
+        indicatorColor: palette.soft,
         onDestinationSelected: (index) {
           if (index == 1) {
             Navigator.of(context).pushNamed(
@@ -521,6 +743,44 @@ class _WholesaleBottomNav extends StatelessWidget {
           ),
         ],
       );
+}
+
+FoodexPalette _wholesalePalette(Map<String, dynamic> theme) {
+  final base = FoodexPalette.wholesale;
+  return FoodexPalette(
+    primary: _colorFromHex(theme['primary'], base.primary),
+    primaryDark:
+        _colorFromHex(theme['primary_dark'], base.primaryDark),
+    accent: _colorFromHex(theme['accent'], base.accent),
+    background: _colorFromHex(theme['background'], base.background),
+    soft: base.soft,
+    text: base.text,
+    muted: base.muted,
+  );
+}
+
+Color _colorFromHex(Object? value, Color fallback) {
+  final text = value?.toString().trim() ?? '';
+  final match = RegExp(r'^#([0-9a-fA-F]{6})$').firstMatch(text);
+  if (match == null) return fallback;
+  return Color(int.parse('FF' + match.group(1)!, radix: 16));
+}
+
+String _defaultWholesaleSectionTitle(String type) {
+  switch (type) {
+    case 'categories':
+      return 'التصنيفات';
+    case 'featured_products':
+      return 'منتجات مميزة';
+    case 'best_sellers':
+      return 'الأكثر مبيعًا';
+    case 'reorder':
+      return 'إعادة الطلب';
+    case 'brands':
+      return 'العلامات التجارية';
+    default:
+      return 'عروض الجملة';
+  }
 }
 
 class WholesaleProductDetailsDesignScreen extends StatefulWidget {
