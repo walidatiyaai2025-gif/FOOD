@@ -550,6 +550,50 @@ class _EvidenceStorefrontApi implements StorefrontApi {
   }
 
   @override
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async => {
+        'store': {
+          'id': storeId,
+          'code': 'WHOLESALE-$storeId',
+          'name': 'FOODEX Wholesale',
+          'theme_code': 'wholesale_b2b',
+        },
+        'theme': {
+          'code': 'wholesale_b2b',
+          'primary': '#5D2A91',
+          'primary_dark': '#35195E',
+          'accent': '#B983F0',
+          'background': '#FBFAFD',
+        },
+        'branding': {
+          'address': 'تغطية توريد الجملة',
+          'custom': {
+            'brand_title_ar': 'FOODEX جملة',
+            'brand_subtitle_ar': 'أفضل الأسعار لمتاجر التجزئة',
+            'hero_cta_ar': 'تصفح الكتالوج',
+          },
+        },
+        'hero': {
+          'title': 'عرض الجملة',
+          'image_url': null,
+        },
+        'sections': [
+          {'key': 'hero', 'type': 'hero', 'sort_order': 10},
+          {
+            'key': 'categories',
+            'type': 'categories',
+            'title_ar': 'التصنيفات',
+            'sort_order': 20,
+          },
+          {
+            'key': 'offers',
+            'type': 'offers',
+            'title_ar': 'عروض الجملة',
+            'sort_order': 30,
+          },
+        ],
+      };
+
+  @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async => {
         'store_id': storeId,
         'addresses': [
