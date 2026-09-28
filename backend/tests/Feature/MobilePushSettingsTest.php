@@ -232,6 +232,90 @@ class MobilePushSettingsTest extends TestCase
         ]);
     }
 
+    public function test_service_account_credentials_generate_oauth_token_and_send_push(): void
+    {
+        $admin = $this->admin();
+        $key = openssl_pkey_new([
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ]);
+        $this->assertNotFalse($key);
+        $pem = '';
+        $this->assertTrue(openssl_pkey_export($key, $pem));
+
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'access_token' => 'service-account-access-token',
+                'expires_in' => 3600,
+                'token_type' => 'Bearer',
+            ], 200),
+            'fcm.googleapis.com/*' => Http::response([
+                'name' => 'projects/foodex-prod/messages/service-account-1',
+            ], 200),
+        ]);
+
+        $this->actingAs($admin)->put('/admin/settings/mobile/push', [
+            'app' => 'driver',
+            'platform' => 'android',
+            'environment' => 'production',
+            'enabled' => '1',
+            'credentials_json' => json_encode([
+                'type' => 'service_account',
+                'project_id' => 'foodex-prod',
+                'client_email' => 'firebase-adminsdk@foodex-prod.iam.gserviceaccount.com',
+                'private_key' => $pem,
+                'token_uri' => 'https://oauth2.googleapis.com/token',
+            ], JSON_THROW_ON_ERROR),
+            'default_sound' => 'default',
+            'default_channel' => 'foodex_default',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->actingAs($admin)->post('/admin/settings/mobile/push/test-connection', [
+            'app' => 'driver',
+            'platform' => 'android',
+            'environment' => 'production',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $driver = $this->roleUser('B2B_DRIVER', 'push-driver-service-account@example.test');
+        AppModelsDriver::query()->create([
+            'user_id' => $driver->id,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($driver);
+        $deviceId = $this->postJson('/api/v1/push/devices', [
+            'app' => 'driver',
+            'platform' => 'android',
+            'environment' => 'production',
+            'token' => 'driver-service-account-device-token',
+        ])->assertCreated()->json('data.id');
+
+        $this->actingAs($admin)->post('/admin/settings/mobile/test-push', [
+            'device_id' => $deviceId,
+            'title_ar' => 'اختبار السائق',
+            'title_en' => 'Driver test',
+            'body_ar' => 'رسالة اختبار',
+            'body_en' => 'Test message',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('push_delivery_logs', [
+            'device_id' => $deviceId,
+            'status' => 'sent',
+            'is_test' => 1,
+        ]);
+
+        Http::assertSent(fn ($request): bool =>
+            $request->url() === 'https://oauth2.googleapis.com/token'
+            && ($request['grant_type'] ?? null) === 'urn:ietf:params:oauth:grant-type:jwt-bearer'
+        );
+        Http::assertSent(fn ($request): bool =>
+            str_contains($request->url(), 'fcm.googleapis.com/v1/projects/foodex-prod/messages:send')
+            && $request->hasHeader('Authorization', 'Bearer service-account-access-token')
+        );
+    }
+
     public function test_non_privileged_admin_is_denied(): void
     {
         $user = User::query()->create([
@@ -247,6 +331,20 @@ class MobilePushSettingsTest extends TestCase
         $this->actingAs($user)
             ->get('/admin/settings/mobile')
             ->assertForbidden();
+    }
+
+    private function roleUser(string $role, string $email): User
+    {
+        $user = User::query()->create([
+            'name' => $role,
+            'email' => $email,
+            'password' => 'password',
+            'locale' => 'ar',
+            'is_active' => true,
+        ]);
+        $user->roles()->attach(Role::query()->where('code', $role)->firstOrFail());
+
+        return $user;
     }
 
     private function admin(): User
