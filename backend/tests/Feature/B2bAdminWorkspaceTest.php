@@ -43,10 +43,20 @@ class B2bAdminWorkspaceTest extends TestCase
         DB::table('inventories')->insert(['warehouse_id' => $warehouse, 'product_id' => $product, 'quantity' => 20, 'reserved_quantity' => 3, 'created_at' => now(), 'updated_at' => now()]);
         [$customer, $b2bCustomer] = $this->b2bCustomer('Buyer One', 'buyer-one@example.test', '50000000');
         DB::table('b2b_accounts')->insert(['customer_id' => $customer, 'b2b_customer_id' => $b2bCustomer, 'company_name' => 'Buyer Co', 'tax_number' => 'TAX-1', 'status' => 'active', 'created_at' => now(), 'updated_at' => now()]);
-        DB::table('orders')->insert(['store_id' => $store, 'customer_id' => $customer, 'b2b_customer_id' => $b2bCustomer, 'order_number' => 'B2B-ORDER-1', 'channel' => 'b2b', 'status' => 'processing', 'currency' => 'EGP', 'subtotal' => 12.5, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 12.5, 'created_at' => now(), 'updated_at' => now()]);
+        $order = (int) DB::table('orders')->insertGetId(['store_id' => $store, 'customer_id' => $customer, 'b2b_customer_id' => $b2bCustomer, 'order_number' => 'B2B-ORDER-1', 'channel' => 'b2b', 'status' => 'processing', 'currency' => 'EGP', 'subtotal' => 12.5, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 12.5, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('order_items')->insert(['order_id' => $order, 'product_id' => $product, 'sku_snapshot' => 'B2B-SKU', 'name_snapshot' => 'B2B Product', 'quantity' => 2, 'unit_price' => 6.25, 'line_total' => 12.5, 'created_at' => now(), 'updated_at' => now()]);
         $admin = $this->user('B2B_ADMIN', 'en');
 
-        $this->actingAs($admin)->get('/admin/b2b/dashboard')->assertOk()->assertSee('B2B-ORDER-1')->assertSee('Buyer One');
+        $this->actingAs($admin)->get('/admin/b2b/dashboard')
+            ->assertOk()
+            ->assertSee('data-b2b-reference-dashboard="841x564"', false)
+            ->assertSee('B2B-ORDER-1')
+            ->assertSee('Buyer One')
+            ->assertSee('B2B Product')
+            ->assertSee('Today sales')
+            ->assertSee('Order distribution')
+            ->assertSee('Top-selling products')
+            ->assertSee('Alerts & notifications');
         $this->actingAs($admin)->get('/admin/b2b/stores')->assertOk()->assertSee('Wholesale One');
         $this->actingAs($admin)->get('/admin/b2b/clients')->assertOk()->assertSee('Buyer Co')->assertSee('TAX-1');
         $this->actingAs($admin)->get('/admin/b2b/products')->assertOk()->assertSee('B2B Product')->assertSee('17.000')->assertSee('12.500 EGP');
@@ -232,15 +242,18 @@ class B2bAdminWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('data-b2b-premium="v1"', false)
             ->assertSee('class="main foodex-admin-page"', false)
-            ->assertSee('foodex-page-header', false)
-            ->assertSee('foodex-card metric-card', false)
-            ->assertSee('workspace-tabs', false)
-            ->assertSee('foodex-table', false)
+            ->assertSee('data-b2b-reference-dashboard="841x564"', false)
+            ->assertSee('b2b-ref-kpis', false)
+            ->assertSee('b2b-ref-middle', false)
+            ->assertSee('b2b-ref-bottom', false)
+            ->assertSee('b2b-ref-chart-wrap', false)
+            ->assertSee('b2b-ref-donut', false)
+            ->assertSee('grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr)', false)
+            ->assertSee('grid-template-columns:minmax(0,1.45fr) minmax(260px,1fr) minmax(230px,.82fr)', false)
             ->assertSee('var(--foodex-sidebar-width)', false)
-            ->assertSee('var(--foodex-radius-card)', false)
-            ->assertSee('.layout{direction:ltr;display:grid;', false)
-            ->assertSee('@media(max-width:1023px)', false)
-            ->assertSee('max-height:320px;overflow:auto', false)
+            ->assertSee('@media(max-width:1279px)', false)
+            ->assertSee('@media(max-width:820px)', false)
+            ->assertSee('@media(max-width:560px)', false)
             ->assertDontSee('font-weight:850', false);
     }
 
