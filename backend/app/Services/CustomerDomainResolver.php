@@ -43,6 +43,26 @@ final class CustomerDomainResolver
             }
         }
 
+        if (! $customer instanceof B2bCustomer) {
+            $linkedIds = DB::table('user_store_roles')
+                ->join('roles', 'roles.id', '=', 'user_store_roles.role_id')
+                ->join('retail_wholesale_accounts', 'retail_wholesale_accounts.retail_store_id', '=', 'user_store_roles.store_id')
+                ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'retail_wholesale_accounts.b2b_customer_id')
+                ->where('user_store_roles.user_id', $user->getKey())
+                ->where('roles.code', 'B2C_STORE_ADMIN')
+                ->where('roles.is_active', true)
+                ->where('b2b_accounts.status', 'active')
+                ->distinct()
+                ->pluck('retail_wholesale_accounts.b2b_customer_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->values();
+
+            abort_if($linkedIds->count() > 1, 409, 'Select a retail store before entering Wholesale.');
+            if ($linkedIds->count() === 1) {
+                $customer = B2bCustomer::query()->find($linkedIds->first());
+            }
+        }
+
         abort_unless($customer instanceof B2bCustomer, 403, 'B2B customer profile is required.');
 
         return $customer;
