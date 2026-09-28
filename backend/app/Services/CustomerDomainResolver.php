@@ -48,6 +48,58 @@ final class CustomerDomainResolver
         return $customer;
     }
 
+    public function b2bFromRequest(User $user, Request $request): B2bCustomer
+    {
+        $retailStoreId = $this->requestedRetailStoreId($request);
+        if ($retailStoreId === null) {
+            return $this->b2b($user);
+        }
+
+        $this->assertStoreChannel($retailStoreId, 'B2C');
+        $supportAccess = $user->hasRole('SUPER_ADMIN')
+            && filter_var($request->header('X-FOODEX-Support-Access', false), FILTER_VALIDATE_BOOL);
+
+        if (! $supportAccess) {
+            abort_unless(in_array($retailStoreId, $this->entitledRetailStoreIds($user), true), 403, 'Wholesale purchasing is not enabled for this retail store manager.');
+        }
+
+        $customerId = DB::table('retail_wholesale_accounts')
+            ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'retail_wholesale_accounts.b2b_customer_id')
+            ->where('retail_wholesale_accounts.retail_store_id', $retailStoreId)
+            ->where('b2b_accounts.status', 'active')
+            ->whereNotNull('b2b_accounts.price_tier_id')
+            ->value('retail_wholesale_accounts.b2b_customer_id');
+
+        abort_if($customerId === null, 403, 'Wholesale entitlement is not configured for this retail store.');
+
+        return B2bCustomer::query()->findOrFail((int) $customerId);
+    }
+
+    /** @return list<int> */
+    public function entitledRetailStoreIds(User $user): array
+    {
+        return DB::table('user_store_roles')
+            ->join('roles', 'roles.id', '=', 'user_store_roles.role_id')
+            ->join('stores', 'stores.id', '=', 'user_store_roles.store_id')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->join('retail_wholesale_accounts', 'retail_wholesale_accounts.retail_store_id', '=', 'stores.id')
+            ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'retail_wholesale_accounts.b2b_customer_id')
+            ->where('user_store_roles.user_id', $user->getKey())
+            ->where('roles.code', 'B2C_STORE_ADMIN')
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'store')
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C')
+            ->where('b2b_accounts.status', 'active')
+            ->whereNotNull('b2b_accounts.price_tier_id')
+            ->pluck('stores.id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
     public function b2c(User $user, int $storeId): B2cCustomer
     {
         $this->assertStoreChannel($storeId, 'B2C');
@@ -164,7 +216,7 @@ final class CustomerDomainResolver
     }
 
     /** @return array{0: B2bCustomer|B2cCustomer, 1: string} */
-    public function forStore(User $user, int $storeId): array
+    public function forStore(User $user, int $storeId, ?Request $request = null): array
     {
         $channel = strtolower((string) DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
@@ -175,7 +227,7 @@ final class CustomerDomainResolver
         abort_unless(in_array($channel, ['b2b', 'b2c'], true), 404);
 
         return $channel === 'b2b'
-            ? [$this->b2b($user), 'b2b']
+            ? [($request === null ? $this->b2b($user) : $this->b2bFromRequest($user, $request)), 'b2b']
             : [$this->b2c($user, $storeId), 'b2c'];
     }
 
@@ -245,6 +297,21 @@ final class CustomerDomainResolver
             ->whereNull('b2b_customer_id')
             ->whereNull('b2c_customer_id')
             ->update(['b2b_customer_id' => $b2bCustomerId, 'updated_at' => now()]);
+    }
+
+    private function requestedRetailStoreId(Request $request): ?int
+    {
+        foreach ([
+            $request->input('retail_store_id'),
+            $request->query('retail_store_id'),
+            $request->header('X-FOODEX-Retail-Store-ID'),
+        ] as $value) {
+            if (is_numeric($value) && (int) $value > 0) {
+                return (int) $value;
+            }
+        }
+
+        return null;
     }
 
     private function requestedStoreId(Request $request): ?int
