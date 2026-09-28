@@ -53,7 +53,7 @@ class _WholesaleHomeDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: FoodexPalette.wholesale.background,
+          backgroundColor: Color(0xFFFBFAFD),
           body: SafeArea(
             child: FutureBuilder<Object?>(
               future: future,
@@ -135,20 +135,20 @@ class _WholesaleHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
-        color: FoodexPalette.wholesale.primaryDark,
+        color: Color(0xFF35195E),
         child: Row(
           children: [
             Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
               decoration: BoxDecoration(
-                color: FoodexPalette.wholesale.accent,
+                color: Color(0xFFB983F0),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: const Text(
                 'B2B',
                 style: TextStyle(
-                  color: FoodexPalette.wholesale.primaryDark,
+                  color: Color(0xFF35195E),
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                 ),
@@ -214,8 +214,8 @@ class _WholesaleHero extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             gradient: const LinearGradient(
               colors: [
-                FoodexPalette.wholesale.primary,
-                FoodexPalette.wholesale.primaryDark,
+                Color(0xFF5D2A91),
+                Color(0xFF35195E),
               ],
             ),
           ),
@@ -269,7 +269,7 @@ class _WhitePill extends StatelessWidget {
           child: Text(
             label,
             style: const TextStyle(
-              color: FoodexPalette.wholesale.primaryDark,
+              color: Color(0xFF35195E),
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
@@ -309,7 +309,7 @@ class _WholesaleCategoryGrid extends StatelessWidget {
         ),
         itemBuilder: (_, index) => Container(
           decoration: BoxDecoration(
-            color: FoodexPalette.wholesale.soft,
+            color: Color(0xFFF5F0FA),
             borderRadius: BorderRadius.circular(16),
           ),
           alignment: Alignment.center,
@@ -318,7 +318,7 @@ class _WholesaleCategoryGrid extends StatelessWidget {
             children: [
               const Icon(
                 Icons.inventory_2_outlined,
-                color: FoodexPalette.wholesale.primary,
+                color: Color(0xFF5D2A91),
               ),
               const SizedBox(height: 4),
               Text(
@@ -422,7 +422,7 @@ class _WholesaleProductGrid extends StatelessWidget {
                           row['account_price'] ?? row['unit_price'],
                         ),
                     style: const TextStyle(
-                      color: FoodexPalette.wholesale.primary,
+                      color: Color(0xFF5D2A91),
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
                     ),
@@ -430,7 +430,7 @@ class _WholesaleProductGrid extends StatelessWidget {
                   Text(
                     'الحد الأدنى ' + compactNumber(minimum),
                     style: const TextStyle(
-                      color: FoodexPalette.wholesale.muted,
+                      color: Color(0xFF6F6A7D),
                       fontSize: 10,
                     ),
                   ),
@@ -441,7 +441,7 @@ class _WholesaleProductGrid extends StatelessWidget {
                     child: FilledButton.icon(
                       style: FilledButton.styleFrom(
                         backgroundColor:
-                            FoodexPalette.wholesale.primary,
+                            Color(0xFF5D2A91),
                         padding:
                             const EdgeInsets.symmetric(horizontal: 8),
                       ),
@@ -486,7 +486,7 @@ class _WholesaleBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) => NavigationBar(
         selectedIndex: 0,
-        indicatorColor: FoodexPalette.wholesale.soft,
+        indicatorColor: Color(0xFFF5F0FA),
         onDestinationSelected: (index) {
           if (index == 1) {
             Navigator.of(context).pushNamed(
@@ -637,7 +637,7 @@ class _WholesaleProductDetailsDesignScreenState
                             ? ''
                             : ' · ' + row['pack_label'].toString()),
                     style: const TextStyle(
-                      color: FoodexPalette.wholesale.muted,
+                      color: Color(0xFF6F6A7D),
                       fontSize: 12,
                     ),
                   ),
@@ -734,7 +734,7 @@ class _PricingPanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: FoodexPalette.wholesale.soft,
+          color: Color(0xFFF5F0FA),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -794,8 +794,8 @@ class _PriceRow extends StatelessWidget {
             value,
             style: TextStyle(
               color: emphasize
-                  ? FoodexPalette.wholesale.primary
-                  : FoodexPalette.wholesale.text,
+                  ? Color(0xFF5D2A91)
+                  : Color(0xFF17142A),
               fontSize: emphasize ? 17 : 13,
               fontWeight: FontWeight.w800,
             ),
@@ -818,7 +818,7 @@ class _InfoPill extends StatelessWidget {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: FoodexPalette.wholesale.soft,
+          color: Color(0xFFF5F0FA),
           borderRadius: BorderRadius.circular(13),
         ),
         child: Row(
@@ -826,7 +826,7 @@ class _InfoPill extends StatelessWidget {
             Icon(
               icon,
               size: 18,
-              color: FoodexPalette.wholesale.primary,
+              color: Color(0xFF5D2A91),
             ),
             const SizedBox(width: 7),
             Expanded(
@@ -892,7 +892,7 @@ class _WholesaleCartDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: FoodexPalette.wholesale.background,
+          backgroundColor: Color(0xFFFBFAFD),
           body: SafeArea(
             child: FutureBuilder<Object?>(
               future: future,
@@ -929,7 +929,7 @@ class _WholesaleCartDesignScreenState
                       padding:
                           const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: FoodexPalette.wholesale.soft,
+                        color: Color(0xFFF5F0FA),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Row(
@@ -937,7 +937,7 @@ class _WholesaleCartDesignScreenState
                           Icon(
                             Icons.warehouse_outlined,
                             color:
-                                FoodexPalette.wholesale.primary,
+                                Color(0xFF5D2A91),
                             size: 19,
                           ),
                           SizedBox(width: 8),
@@ -1049,13 +1049,13 @@ class _CartLine extends StatelessWidget {
               height: 66,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: FoodexPalette.wholesale.soft,
+                  color: Color(0xFFF5F0FA),
                   borderRadius:
                       BorderRadius.all(Radius.circular(14)),
                 ),
                 child: Icon(
                   Icons.inventory_2_outlined,
-                  color: FoodexPalette.wholesale.primary,
+                  color: Color(0xFF5D2A91),
                 ),
               ),
             ),
@@ -1076,7 +1076,7 @@ class _CartLine extends StatelessWidget {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 10,
-                      color: FoodexPalette.wholesale.muted,
+                      color: Color(0xFF6F6A7D),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -1105,7 +1105,7 @@ class _CartLine extends StatelessWidget {
                         money(price),
                         style: const TextStyle(
                           color:
-                              FoodexPalette.wholesale.primary,
+                              Color(0xFF5D2A91),
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -1130,7 +1130,7 @@ class _MiniStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: FoodexPalette.wholesale.soft,
+        color: Color(0xFFF5F0FA),
         borderRadius: BorderRadius.circular(9),
         child: InkWell(
           onTap: onTap,
@@ -1159,7 +1159,7 @@ class _CartTotalPanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: FoodexPalette.wholesale.primaryDark,
+          color: Color(0xFF35195E),
           borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
@@ -1190,7 +1190,7 @@ class _CartTotalPanel extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor:
-                      FoodexPalette.wholesale.primaryDark,
+                      Color(0xFF35195E),
                 ),
                 child: const Text('إتمام الطلب'),
               ),
@@ -1242,7 +1242,7 @@ class _WholesaleCheckoutDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: FoodexPalette.wholesale.background,
+          backgroundColor: Color(0xFFFBFAFD),
           body: SafeArea(
             child: FutureBuilder<Map<String, dynamic>>(
               future: future,
@@ -1387,7 +1387,7 @@ class _WholesaleCheckoutDesignScreenState
                       child: FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor:
-                              FoodexPalette.wholesale.primary,
+                              Color(0xFF5D2A91),
                         ),
                         onPressed: widget.commerceApi == null ||
                                 addressId == null ||
@@ -1459,7 +1459,7 @@ class _CheckoutStepper extends StatelessWidget {
           ),
           Expanded(
             child: Divider(
-              color: FoodexPalette.wholesale.accent,
+              color: Color(0xFFB983F0),
             ),
           ),
           Expanded(
@@ -1471,7 +1471,7 @@ class _CheckoutStepper extends StatelessWidget {
           ),
           Expanded(
             child: Divider(
-              color: FoodexPalette.wholesale.accent,
+              color: Color(0xFFB983F0),
             ),
           ),
           Expanded(
@@ -1502,14 +1502,14 @@ class _StepDot extends StatelessWidget {
           CircleAvatar(
             radius: 16,
             backgroundColor: active
-                ? FoodexPalette.wholesale.primary
+                ? Color(0xFF5D2A91)
                 : const Color(0xFFE7E3EA),
             child: Text(
               number,
               style: TextStyle(
                 color: active
                     ? Colors.white
-                    : FoodexPalette.wholesale.muted,
+                    : Color(0xFF6F6A7D),
                 fontSize: 11,
               ),
             ),
@@ -1551,7 +1551,7 @@ class _SelectCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: selected
-                      ? FoodexPalette.wholesale.primary
+                      ? Color(0xFF5D2A91)
                       : const Color(0xFFE4E0E7),
                   width: selected ? 1.6 : 1,
                 ),
@@ -1563,8 +1563,8 @@ class _SelectCard extends StatelessWidget {
                         ? Icons.radio_button_checked
                         : Icons.radio_button_off,
                     color: selected
-                        ? FoodexPalette.wholesale.primary
-                        : FoodexPalette.wholesale.muted,
+                        ? Color(0xFF5D2A91)
+                        : Color(0xFF6F6A7D),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1583,7 +1583,7 @@ class _SelectCard extends StatelessWidget {
                           subtitle,
                           style: const TextStyle(
                             color:
-                                FoodexPalette.wholesale.muted,
+                                Color(0xFF6F6A7D),
                             fontSize: 11,
                           ),
                         ),
@@ -1636,7 +1636,7 @@ class _WholesaleOrdersDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: FoodexPalette.wholesale.background,
+          backgroundColor: Color(0xFFFBFAFD),
           body: SafeArea(
             child: FutureBuilder<Object?>(
               future: future,
@@ -1750,12 +1750,12 @@ class _OrderCard extends StatelessWidget {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: FoodexPalette.wholesale.soft,
+                    color: Color(0xFFF5F0FA),
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: const Icon(
                     Icons.receipt_long_outlined,
-                    color: FoodexPalette.wholesale.primary,
+                    color: Color(0xFF5D2A91),
                   ),
                 ),
                 const SizedBox(width: 11),
@@ -1778,7 +1778,7 @@ class _OrderCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 10,
                           color:
-                              FoodexPalette.wholesale.muted,
+                              Color(0xFF6F6A7D),
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -1788,7 +1788,7 @@ class _OrderCard extends StatelessWidget {
                         ),
                         style: const TextStyle(
                           color:
-                              FoodexPalette.wholesale.primary,
+                              Color(0xFF5D2A91),
                           fontWeight: FontWeight.w800,
                         ),
                       ),
