@@ -27,6 +27,7 @@ use App\Services\OperationalTenantScope;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -99,12 +100,11 @@ class B2bWorkspaceController extends Controller
 
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2b_'.$module;
+        [$dashboardFrom, $dashboardTo] = $module === 'dashboard'
+            ? $this->dashboardRange($request)
+            : [null, null];
         $dashboard = $module === 'dashboard'
-            ? $this->dashboard->build(
-                $user,
-                $storeIds,
-                $request->filled('date') ? $request->string('date')->toString() : null,
-            )
+            ? $this->dashboard->build($user, $storeIds, $dashboardFrom, $dashboardTo)
             : null;
         $moduleData = $module === 'dashboard' ? null : $this->moduleData($module, $storeIds, $user);
         $visibleModules = array_values(array_filter(
@@ -1361,6 +1361,39 @@ class B2bWorkspaceController extends Controller
     private function wholesaleStoreIds(User $user): array
     {
         return [$this->principal->storeId()];
+    }
+
+    /** @return array{0:?string,1:?string} */
+    private function dashboardRange(Request $request): array
+    {
+        $data = $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        if (! isset($data['from']) && ! isset($data['to']) && isset($data['date'])) {
+            return [$data['date'], $data['date']];
+        }
+
+        $from = $data['from'] ?? null;
+        $to = $data['to'] ?? null;
+
+        if ($from !== null && $to !== null) {
+            $fromDay = CarbonImmutable::createFromFormat('Y-m-d', $from, 'Asia/Kuwait')->startOfDay();
+            $toDay = CarbonImmutable::createFromFormat('Y-m-d', $to, 'Asia/Kuwait')->startOfDay();
+
+            if ($fromDay->diffInDays($toDay) > 30) {
+                throw ValidationException::withMessages([
+                    'to' => [$this->msg(
+                        'الفترة القصوى للوحة التحكم هي 31 يومًا.',
+                        'The dashboard date range can be at most 31 days.',
+                    )],
+                ]);
+            }
+        }
+
+        return [$from, $to];
     }
 
     private function actor(Request $request): User
