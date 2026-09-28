@@ -340,15 +340,15 @@ class DriverAssignmentController extends Controller
         DriverAssignment::query()
             ->where('driver_id', $driver->getKey())
             ->where('assignment_type', $channel)
-            ->whereNull('store_id')
-            ->get(['id', 'order_id'])
+            ->get(['id', 'order_id', 'store_id'])
             ->each(function (DriverAssignment $assignment) use ($storeId, $channel): void {
                 $matches = Order::query()
                     ->whereKey($assignment->order_id)
                     ->where('store_id', $storeId)
                     ->where('channel', $channel)
                     ->exists();
-                if ($matches) {
+
+                if ($matches && (int) ($assignment->store_id ?? 0) !== $storeId) {
                     $assignment->forceFill(['store_id' => $storeId])->save();
                 }
             });
