@@ -77,12 +77,16 @@ jobs:
       - name: Prepare release notes
         shell: bash
         run: |
-          cat > /tmp/foodex-release/RELEASE_NOTES.md <<EOF
-          # FOODEX 1.0.21
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          sha = os.environ["GITHUB_SHA"]
+          notes = f"""# FOODEX 1.0.21
 
           Latest production release from `main`.
 
-          Source commit: `$GITHUB_SHA`
+          Source commit: `{sha}`
 
           ## Wholesale Principal & Retail Commercial Setup
           - FOODEX is the single Wholesale principal; warehouses sit beneath it with no user-managed Wholesale branch selector.
@@ -96,8 +100,11 @@ jobs:
           - Contains migrations: Yes
           - Full redeploy required: No
           - SHA256: c2a2c9440dcf28edb933453af3e1221eaa44e537c13ca5974616147d4ee94e0b
-          EOF
+          """
+          Path("/tmp/foodex-release/RELEASE_NOTES.md").write_text(notes, encoding="utf-8")
+          PY
 
+      - name: Publish GitHub Release and assets
       - name: Publish GitHub Release and assets
         shell: bash
         run: |
@@ -117,6 +124,36 @@ jobs:
 
       - name: Verify published GitHub Release
         shell: bash
+        run: |
+          set -euo pipefail
+          latest="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest")"
+          python3 - "$latest" "$GITHUB_SHA" <<'PY'
+          import json
+          import subprocess
+          import sys
+
+          release = json.loads(sys.argv[1])
+          expected_sha = sys.argv[2]
+          assert release["tag_name"] == "v1.0.21"
+          assert release["name"] == "FOODEX 1.0.21"
+          assert release["draft"] is False
+          assert release["prerelease"] is False
+          assets = {asset["name"] for asset in release.get("assets", [])}
+          assert {
+              "FOODEX-Update.zip",
+              "FOODEX-Update.json",
+              "FOODEX-Update.sha256.txt",
+              "FOODEX-Update.files.txt",
+          }.issubset(assets)
+
+          remote = subprocess.check_output(
+              ["git", "ls-remote", "origin", "refs/tags/v1.0.21"],
+              text=True,
+          ).strip().split()[0]
+          assert remote == expected_sha, (remote, expected_sha)
+          print("Verified latest GitHub Release v1.0.21 at", expected_sha)
+          PY
+
         run: |
           set -euo pipefail
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName,name,isLatest,isDraft,isPrerelease,url             --jq 'select(.tagName=="v1.0.21" and .name=="FOODEX 1.0.21" and .isLatest==true and .isDraft==false and .isPrerelease==false)'
