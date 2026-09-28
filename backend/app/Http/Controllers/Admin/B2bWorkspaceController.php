@@ -1259,6 +1259,15 @@ class B2bWorkspaceController extends Controller
                     ->orderByDesc('id')
                     ->first(['invoice_number', 'status', 'total', 'currency']);
 
+                $assignment = DB::table('driver_assignments')
+                    ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+                    ->join('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('driver_assignments.order_id', $row->id)
+                    ->where('driver_assignments.assignment_type', 'b2b')
+                    ->whereNotIn('driver_assignments.status', ['delivered', 'failed', 'unassigned', 'reassigned'])
+                    ->orderByDesc('driver_assignments.id')
+                    ->first(['driver_assignments.id', 'driver_assignments.driver_id', 'driver_assignments.status', 'users.name as driver_name']);
+
                 return [
                     '_id' => (int) $row->id,
                     '_store_id' => (int) $row->store_id,
@@ -1284,6 +1293,12 @@ class B2bWorkspaceController extends Controller
                         'status' => $invoice->status,
                         'total' => (float) $invoice->total,
                         'currency' => $invoice->currency,
+                    ],
+                    '_assignment' => $assignment === null ? null : [
+                        'id' => (int) $assignment->id,
+                        'driver_id' => (int) $assignment->driver_id,
+                        'driver_name' => $assignment->driver_name,
+                        'status' => $assignment->status,
                     ],
                     'number' => $row->number,
                     'client' => $row->client,
