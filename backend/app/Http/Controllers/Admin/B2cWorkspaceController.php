@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
+use App\Models\Driver;
+use App\Models\DriverAssignment;
 use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\User;
@@ -13,6 +15,7 @@ use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
 use App\Services\B2cDashboardService;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\DriverAssignmentManagementService;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
@@ -201,6 +204,58 @@ class B2cWorkspaceController extends Controller
         $deliveries->assign($request, $audit, $dashboardNotifier);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تعيين السائق.' : 'Driver assigned.');
+    }
+
+    public function withdrawDriverAssignment(
+        Request $request,
+        int $assignment,
+        DriverAssignmentManagementService $assignments,
+    ): RedirectResponse {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $actor);
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'drivers.b2c.manage', 'b2c');
+
+        $model = DriverAssignment::query()
+            ->whereKey($assignment)
+            ->where('store_id', $storeId)
+            ->where('assignment_type', 'b2c')
+            ->firstOrFail();
+
+        $assignments->withdraw($model, $actor, $request, $request->string('note')->toString() ?: null);
+
+        return back()->with('status', $this->msg('تم سحب الطلب من السائق وأصبح متاحًا لإعادة التعيين.', 'Order withdrawn from the driver and is ready for reassignment.'));
+    }
+
+    public function reassignDriverAssignment(
+        Request $request,
+        int $assignment,
+        DriverAssignmentManagementService $assignments,
+    ): RedirectResponse {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $data = $request->validate([
+            'driver_id' => ['required', 'integer', 'exists:drivers,id'],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $storeId = $this->workspaceStoreId($request, $actor);
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'drivers.b2c.manage', 'b2c');
+
+        $model = DriverAssignment::query()
+            ->whereKey($assignment)
+            ->where('store_id', $storeId)
+            ->where('assignment_type', 'b2c')
+            ->firstOrFail();
+        $driver = Driver::query()
+            ->whereKey((int) $data['driver_id'])
+            ->where('driver_type', 'b2c')
+            ->where('store_id', $storeId)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $assignments->reassign($model, $driver, $actor, $request, $data['note'] ?? null);
+
+        return back()->with('status', $this->msg('تم إعادة تعيين الطلب للسائق الجديد.', 'Order reassigned to the new driver.'));
     }
 
     public function resetDriverPassword(
