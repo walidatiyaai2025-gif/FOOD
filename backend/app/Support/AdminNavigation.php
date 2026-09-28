@@ -34,16 +34,17 @@ class AdminNavigation
         $channels = $this->for($user);
         $isSuperAdmin = $user->hasRole('SUPER_ADMIN');
 
+        // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
+        // then marketing/reporting. Administration stays last and never invents cross-channel links.
         $groups = [
             $this->group('overview', 'admin.nav_groups.overview', '⌂', [
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.channels.b2c', null),
+                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
             ]),
-            $this->group('operations', 'admin.nav_groups.operations', '↻', [
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'orders', 'admin.b2c_workspace.modules.orders', 'orders.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
-                $this->module($user, $channels, 'b2b', 'orders', 'admin.b2b_workspace.modules.orders', 'orders.view'),
-                $this->module($user, $channels, 'b2b', 'drivers', 'admin.b2b_workspace.modules.drivers', 'drivers.b2b.view'),
+            $this->group('stores', 'admin.nav_groups.stores', '⌂', [
+                $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
+                $this->module($user, $channels, 'b2b', 'stores', 'admin.b2b_workspace.modules.stores', 'stores.view'),
+                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
             ]),
             $this->group('catalog', 'admin.nav_groups.catalog', '▦', [
                 $this->routeItemScoped($user, 'lookup_management', 'admin.lookup_management', 'admin.lookups.index', 'lookups.view'),
@@ -57,10 +58,11 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
                 $this->module($user, $channels, 'b2b', 'clients', 'admin.b2b_workspace.modules.clients', 'b2b.accounts.view'),
             ]),
-            $this->group('stores', 'admin.nav_groups.stores', '⌂', [
-                $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
-                $this->module($user, $channels, 'b2b', 'stores', 'admin.b2b_workspace.modules.stores', 'stores.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
+            $this->group('operations', 'admin.nav_groups.operations', '↻', [
+                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'orders', 'admin.b2c_workspace.modules.orders', 'orders.view'),
+                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
+                $this->module($user, $channels, 'b2b', 'orders', 'admin.b2b_workspace.modules.orders', 'orders.view'),
+                $this->module($user, $channels, 'b2b', 'drivers', 'admin.b2b_workspace.modules.drivers', 'drivers.b2b.view'),
             ]),
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
@@ -74,6 +76,7 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2b', 'reports', 'admin.b2b_workspace.modules.reports', 'reports.view'),
             ]),
             $this->group('administration', 'admin.nav_groups.administration', '⚙', [
+                $this->routeItemOpen('profile', 'admin.profile', 'admin.profile.index'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'settings', 'admin.b2c_workspace.modules.settings', null),
                 $this->module($user, $channels, 'b2b', 'settings', 'admin.b2b_workspace.modules.settings', 'settings.view'),
                 $this->routeItem($user, 'security', 'admin.security_center', 'admin.security.index', 'security.view'),
@@ -246,6 +249,16 @@ class AdminNavigation
         }
 
         return null;
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function routeItemOpen(string $key, string $label, string $route): ?array
+    {
+        if (! Route::has($route)) {
+            return null;
+        }
+
+        return ['key' => $key, 'label' => $label, 'route' => $route, 'params' => [], 'permission' => null];
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */

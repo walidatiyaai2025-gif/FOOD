@@ -464,8 +464,8 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'content' => [
-                'actions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل البنرات' : 'Add / Edit Banners', 'url' => route('admin.business.index', array_merge(['tab' => 'content'], $scopeParams))]],
-                'columns' => ['title', 'store', 'image', 'target', 'sort_order', 'status'],
+                'actions' => [],
+                'columns' => ['image', 'title', 'target', 'sort_order', 'status', 'actions'],
                 'rows' => DB::table('banners')
                     ->join('stores', 'stores.id', '=', 'banners.store_id')
                     ->whereIn('banners.store_id', $storeIds)
@@ -473,6 +473,8 @@ class B2cWorkspaceController extends Controller
                     ->orderByDesc('banners.id')
                     ->limit(100)
                     ->get([
+                        'banners.id',
+                        'banners.store_id',
                         'banners.title',
                         'stores.name as store',
                         'banners.image_path as image',
@@ -480,12 +482,15 @@ class B2cWorkspaceController extends Controller
                         'banners.sort_order',
                         'banners.is_active as status',
                     ])->map(fn ($row) => [
+                        '_id' => (int) $row->id,
+                        '_store_id' => (int) $row->store_id,
                         'title' => $row->title,
                         'store' => $row->store,
                         'image' => $row->image,
-                        'target' => $row->target ?: '-',
+                        'target' => $row->target ?: '',
                         'sort_order' => (int) $row->sort_order,
                         'status' => (bool) $row->status,
+                        'actions' => [],
                     ])->all(),
             ],
             'reports' => $this->reportModuleData($user, $storeIds),
@@ -760,7 +765,7 @@ class B2cWorkspaceController extends Controller
             'inventory' => [['label' => app()->getLocale() === 'ar' ? 'إدارة المخازن والأرصدة' : 'Manage Warehouses & Stock', 'url' => route('admin.retail-stores.index')]],
             'customers' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العملاء' : 'Add / Edit Customers', 'url' => route('admin.retail-stores.index')]],
             'promotions' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل العروض' : 'Add / Edit Promotions', 'url' => route('admin.retail-stores.index')]],
-            'content' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل البنرات' : 'Add / Edit Banners', 'url' => route('admin.retail-stores.index')]],
+            'content' => [],
             'drivers' => [['label' => app()->getLocale() === 'ar' ? 'إضافة / إدارة السائقين' : 'Add / Manage Drivers', 'url' => route('admin.retail-stores.index')]],
             default => [],
         };

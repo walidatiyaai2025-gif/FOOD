@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminLoginController;
+use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminShellController;
 use App\Http\Controllers\Admin\AppVersionController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
@@ -65,6 +66,9 @@ Route::prefix('admin')
     ->middleware('management.dashboard')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
+        Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
+        Route::patch('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('profile.password');
+        Route::patch('/profile/locale', [AdminProfileController::class, 'updateLocale'])->name('profile.locale');
         Route::get('/b2b/dashboard', [B2bWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2b.dashboard');
         Route::post('/b2b/orders', [B2bWorkspaceController::class, 'storeOrder'])->name('b2b.orders.store');
         Route::patch('/b2b/orders/{order}', [B2bWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2b.orders.update');

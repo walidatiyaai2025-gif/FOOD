@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/auth/driver_session.dart';
 import 'core/localization/driver_translations.dart';
+import 'core/theme/foodex_theme.dart';
 import 'features/tasks/driver_journey.dart';
 
 export 'core/auth/driver_session.dart' show DriverChannel;
@@ -108,29 +109,153 @@ class _DriverHomePage extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                context.tr('driver.home.title'),
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: AlignmentDirectional.topStart,
+                  end: AlignmentDirectional.bottomEnd,
+                  colors: [FoodexBrand.greenDark, FoodexBrand.green],
+                ),
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x24165D2D),
+                    blurRadius: 24,
+                    offset: Offset(0, 12),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(routeName, key: const Key('driver-route')),
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                key: const Key('driver-open-deliveries'),
-                onPressed: () => Navigator.of(context).pushNamed(deliveriesRoute),
-                icon: const Icon(Icons.local_shipping_outlined),
-                label: Text(context.tr('driver.deliveries.title')),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Colors.white24,
+                        foregroundColor: Colors.white,
+                        child: Icon(Icons.local_shipping_rounded),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'FOODEX DRIVER',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: .8,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  Text(
+                    context.tr('driver.home.title'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    context.tr('driver.home.subtitle'),
+                    style: const TextStyle(color: Color(0xFFE3F5E9)),
+                  ),
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    key: const Key('driver-open-deliveries'),
+                    onPressed: () => Navigator.of(context).pushNamed(deliveriesRoute),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: FoodexBrand.greenDark,
+                    ),
+                    icon: const Icon(Icons.route_rounded),
+                    label: Text(context.tr('driver.home.open_deliveries')),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _DriverHomeMetric(
+                    icon: Icons.verified_rounded,
+                    label: context.tr('driver.home.ready'),
+                    value: '✓',
+                    tone: FoodexBrand.greenSoft,
+                    foreground: FoodexBrand.greenDark,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _DriverHomeMetric(
+                    icon: Icons.hub_rounded,
+                    label: context.tr('driver.home.channel'),
+                    value: routeName.contains('/b2b/') ? 'B2B' : 'Retail',
+                    tone: FoodexBrand.orangeSoft,
+                    foreground: FoodexBrand.orange,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.shield_outlined),
+                title: Text(context.tr('driver.app.title')),
+                subtitle: Text(routeName, key: const Key('driver-route')),
+                trailing: const Icon(Icons.lock_outline_rounded),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _DriverHomeMetric extends StatelessWidget {
+  const _DriverHomeMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.tone,
+    required this.foreground,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color tone;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        constraints: const BoxConstraints(minHeight: 122),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: tone,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: foreground.withAlpha(31)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: foreground),
+            const SizedBox(height: 18),
+            Text(value, style: TextStyle(color: foreground, fontSize: 22, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 3),
+            Text(label, maxLines: 2, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      );
 }
 
 class _DriverRouteDenied extends StatelessWidget {

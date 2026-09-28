@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.14 - Business Navigation, Self-Service Profile and Premium Mobile Commerce
+- Reorder administration navigation around the actual business flow and make the sidebar compact/collapsed by default with a single authoritative permission-driven implementation.
+- Add a self-service user profile showing global/store roles and effective permissions, plus secure password change and Arabic/English account language switching.
+- Remove conflicting legacy sidebar and mixed-domain management UI; SUPER_ADMIN no longer receives Retail operational navigation outside explicit Retail support context.
+- Replace banner image-path text entry with real verified image upload, preview, replacement and file cleanup inside the Retail content workspace.
+- Seed three premium merchandising banners per demo Retail store with reusable visual assets.
+- Upgrade Customer mobile visual system and Retail journey surfaces for a premium e-commerce presentation while preserving API, routing and checkout rules.
+- Upgrade Driver mobile home, search/filter surfaces and delivery task cards for a professional field-operations experience.
+- Keep Wholesale/Retail authorization, tenant boundaries and all existing business logic unchanged.
+
 ## 1.0.13 - Premium Administration and System Inspector
 - Apply a shared premium form layer across administration with explicit field labels, descriptive placeholders, consistent controls, image previews and responsive spacing without changing business rules.
 - Show clear Bootstrap-style success/error modals after admin mutations and validation failures while retaining server-authoritative validation.

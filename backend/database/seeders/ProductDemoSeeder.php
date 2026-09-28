@@ -127,13 +127,33 @@ class ProductDemoSeeder extends Seeder
                     ...$timestamps,
                 ]);
                 DB::table('banners')->insert([
-                    'store_id' => $storeId,
-                    'title' => 'FOODEX Demo Banner '.str_pad((string) $storeIndex, 2, '0', STR_PAD_LEFT),
-                    'image_path' => '/demo/banners/store-'.$storeIndex.'.svg',
-                    'target_url' => '/offers',
-                    'sort_order' => $storeIndex,
-                    'is_active' => true,
-                    ...$timestamps,
+                    [
+                        'store_id' => $storeId,
+                        'title' => 'Fresh Market · '.$storeIndex,
+                        'image_path' => '/demo/banners/fresh-market.svg',
+                        'target_url' => '/products?sort=popular',
+                        'sort_order' => 10,
+                        'is_active' => true,
+                        ...$timestamps,
+                    ],
+                    [
+                        'store_id' => $storeId,
+                        'title' => 'Weekly Offers · '.$storeIndex,
+                        'image_path' => '/demo/banners/weekly-offers.svg',
+                        'target_url' => '/offers',
+                        'sort_order' => 20,
+                        'is_active' => true,
+                        ...$timestamps,
+                    ],
+                    [
+                        'store_id' => $storeId,
+                        'title' => 'Free Delivery · '.$storeIndex,
+                        'image_path' => '/demo/banners/free-delivery.svg',
+                        'target_url' => '/cart',
+                        'sort_order' => 30,
+                        'is_active' => true,
+                        ...$timestamps,
+                    ],
                 ]);
                 DB::table('notifications')->insert([
                     'user_id' => $adminId,

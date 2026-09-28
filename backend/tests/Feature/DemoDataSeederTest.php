@@ -25,7 +25,7 @@ class DemoDataSeederTest extends TestCase
         $this->assertSame(200, $first['products']);
         $this->assertSame(400, $first['orders']);
         $this->assertSame(10, $first['promotions']);
-        $this->assertSame(10, $first['banners']);
+        $this->assertSame(30, $first['banners']);
         $this->assertSame(10, $first['drivers']);
         $this->assertSame(10, $first['notifications']);
         $this->assertSame(200, DB::table('store_products')->whereIn('store_id', $this->demoStoreIds())->count());

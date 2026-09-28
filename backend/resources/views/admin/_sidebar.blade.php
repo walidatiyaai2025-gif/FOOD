@@ -1,122 +1,145 @@
 @include('admin._brand')
-<style>
-    .sidebar{background:var(--foodex-surface);color:var(--foodex-ink);padding:var(--foodex-space-5);overflow:auto;border-inline-end:1px solid var(--foodex-border)}
-    .brand-row{display:flex;align-items:center;justify-content:space-between;gap:var(--foodex-space-3);margin-bottom:var(--foodex-space-5)}
-    .brand-link{display:inline-flex;align-items:center;gap:8px;color:var(--foodex-green-dark);text-decoration:none;font-weight:var(--foodex-font-weight-bold);letter-spacing:.025em;font-size:1.08rem}
-    .brand-mark{position:relative;width:22px;height:22px;display:inline-block}
-    .brand-mark::before,.brand-mark::after{content:"";position:absolute;border-radius:100% 0 100% 0;transform:rotate(-30deg)}
-    .brand-mark::before{width:14px;height:19px;inset:0 auto auto 5px;background:var(--foodex-green)}
-    .brand-mark::after{width:10px;height:13px;inset:9px auto auto 0;background:var(--foodex-orange)}
-    .sidebar-toggle{display:none;border:1px solid var(--foodex-border);background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-radius:var(--foodex-radius-control);min-width:var(--foodex-touch-target);min-height:var(--foodex-touch-target);padding:7px 10px;cursor:pointer}
-    .nav-search{width:100%;border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:var(--foodex-radius-control);min-height:var(--foodex-control-height);padding:10px 12px;margin-bottom:var(--foodex-space-3);outline:none}
-    .nav-search:focus{border-color:var(--foodex-green);box-shadow:0 0 0 3px rgba(21,138,58,.12)}
-    .nav-home,.nav-child{display:flex;gap:8px;align-items:center;color:var(--foodex-ink);text-decoration:none;border-radius:var(--foodex-radius-control);min-height:var(--foodex-touch-target);padding:9px 11px}
-    .nav-home{margin-bottom:8px}
-    .nav-home:hover,.nav-child:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-    .nav-home.active,.nav-child.active{background:var(--foodex-green);color:#fff;box-shadow:0 8px 20px rgba(21,138,58,.16)}
-    .nav-group{border-top:1px solid var(--foodex-border);padding-top:6px;margin-top:6px}
-    .nav-group summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:10px 8px;border-radius:10px;font-weight:var(--foodex-font-weight-bold);color:var(--foodex-ink)}
-    .nav-group summary::-webkit-details-marker{display:none}
-    .nav-group summary:hover{background:var(--foodex-orange-soft)}
-    .nav-group-title{display:flex;align-items:center;gap:9px}.nav-children{display:grid;gap:2px;padding:0 8px 7px}
-    .nav-child{font-size:.92rem;padding-inline-start:30px}.nav-group[open] .nav-chevron{transform:rotate(180deg)}
-    .sidebar-footer{margin-top:var(--foodex-space-4);padding-top:var(--foodex-space-4);border-top:1px solid var(--foodex-border)}
-    .logout-form{margin:0}.logout-button{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;min-height:var(--foodex-touch-target);border:1px solid #fecaca;background:#fff7f7;color:#b42318;border-radius:var(--foodex-radius-control);font:inherit;font-weight:var(--foodex-font-weight-bold);cursor:pointer}.logout-button:hover{background:#fff0f0}
-    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    @media(max-width:760px){.sidebar-toggle{display:block}.sidebar.collapsed #admin-navigation,.sidebar.collapsed .nav-search-wrap{display:none}}
-</style>
 @php
-    $brandSuffix = str_starts_with((string) ($navContext ?? ''), 'b2b_')
-        ? ' · B2B'
-        : (str_starts_with((string) ($navContext ?? ''), 'b2c_') ? (app()->getLocale()==='ar' ? ' · التجزئة' : ' · Retail') : '');
+    $ar = app()->getLocale() === 'ar';
+    $secondaryLocale = $ar ? 'en' : 'ar';
+    $childIcon = static function (string $key): string {
+        return match (true) {
+            str_contains($key, 'dashboard') => 'home',
+            str_contains($key, 'order') => 'orders',
+            str_contains($key, 'product'), str_contains($key, 'catalog'), str_contains($key, 'lookup') => 'products',
+            str_contains($key, 'inventor') => 'inventory',
+            str_contains($key, 'customer'), str_contains($key, 'client'), $key === 'profile' => 'customers',
+            str_contains($key, 'driver'), str_contains($key, 'delivery') => 'delivery',
+            str_contains($key, 'store') => 'storefront',
+            str_contains($key, 'promotion') => 'promotions',
+            str_contains($key, 'notification') => 'bell',
+            str_contains($key, 'report'), str_contains($key, 'finance') => 'reports',
+            str_contains($key, 'mobile'), str_contains($key, 'version') => 'mobile',
+            str_contains($key, 'inspector') => 'inspector',
+            str_contains($key, 'translation'), str_contains($key, 'content') => 'content',
+            default => 'settings',
+        };
+    };
 @endphp
-<div class="brand-row" data-foodex-brand="v1">
-    <a class="brand-link" href="{{ route('admin.index') }}"><span class="brand-mark" aria-hidden="true"></span><span>FOODEX{{ $brandSuffix }}</span></a>
-    <button class="sidebar-toggle" type="button" aria-label="{{ __('admin.sidebar_toggle') }}" aria-controls="admin-navigation" aria-expanded="true">☰</button>
-</div>
+<style id="foodex-authoritative-sidebar">
+aside.foodex-sidebar-collapsed{padding:10px!important;width:82px!important;min-width:82px!important;overflow-x:hidden}
+aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
+.foodex-sidebar-shell{min-height:100%;display:flex;flex-direction:column;gap:10px}
+.foodex-sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.foodex-sidebar-brand{min-height:48px;display:flex;align-items:center;gap:9px;color:var(--foodex-green-dark);font-weight:800;text-decoration:none;white-space:nowrap;overflow:hidden}
+.foodex-sidebar-brand-mark{width:34px;height:34px;flex:0 0 34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,var(--foodex-green),var(--foodex-green-dark));color:#fff;font-family:var(--foodex-font-en);font-size:12px}
+.foodex-sidebar-toggle{width:40px;height:40px;flex:0 0 40px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-green-dark);cursor:pointer;font-size:18px}
+.foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
+.foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:44px;display:grid;grid-template-columns:24px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+.foodex-nav-group[open]{border-color:var(--foodex-border);background:#fbfcfd}.foodex-nav-group[open] summary{color:var(--foodex-green-dark)}.foodex-nav-group[open] .foodex-nav-chevron{transform:rotate(180deg)}
+.foodex-nav-children{display:grid;gap:3px;padding:0 7px 7px}.foodex-nav-link{min-height:44px;display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;color:var(--foodex-ink);text-decoration:none}.foodex-nav-link:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-nav-link.active{background:var(--foodex-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.14)}
+.foodex-nav-label{display:block;min-width:0}.foodex-nav-label strong{display:block;font-size:.86rem;line-height:1.2}.foodex-nav-label small{display:block;color:var(--foodex-muted);font-size:.67rem;margin-top:2px}.foodex-nav-link.active small{color:rgba(255,255,255,.8)}
+.foodex-sidebar-footer{margin-top:auto;padding-top:10px;border-top:1px solid var(--foodex-border);display:grid;gap:7px}.foodex-sidebar-account,.foodex-sidebar-language,.foodex-sidebar-logout{min-height:44px;display:grid;grid-template-columns:24px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;border:1px solid var(--foodex-border);background:#fff;color:var(--foodex-ink);text-decoration:none;font:inherit;text-align:start;cursor:pointer}.foodex-sidebar-account:hover,.foodex-sidebar-language:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-sidebar-logout{color:#b42318;background:#fff8f7;border-color:#fecaca}
+aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
+aside.foodex-sidebar-collapsed .foodex-sidebar-search,
+aside.foodex-sidebar-collapsed .foodex-nav-label,
+aside.foodex-sidebar-collapsed .foodex-nav-chevron,
+aside.foodex-sidebar-collapsed .foodex-nav-group>summary span:nth-child(2),
+aside.foodex-sidebar-collapsed .foodex-sidebar-footer span:last-child{display:none!important}
+aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:center;flex-wrap:wrap}
+aside.foodex-sidebar-collapsed .foodex-sidebar-brand{justify-content:center;width:100%}
+aside.foodex-sidebar-collapsed .foodex-sidebar-toggle{width:100%}
+aside.foodex-sidebar-collapsed .foodex-nav-group{border:0;background:transparent}
+aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:1fr;place-items:center;padding:7px}
+aside.foodex-sidebar-collapsed .foodex-nav-group:not([open]) .foodex-nav-children{display:none}
+aside.foodex-sidebar-collapsed .foodex-nav-group[open] .foodex-nav-children{padding:3px 0}
+aside.foodex-sidebar-collapsed .foodex-nav-link{grid-template-columns:1fr;place-items:center;padding:7px}
+aside.foodex-sidebar-collapsed .foodex-sidebar-account,
+aside.foodex-sidebar-collapsed .foodex-sidebar-language,
+aside.foodex-sidebar-collapsed .foodex-sidebar-logout{grid-template-columns:1fr;place-items:center;padding:7px}
+.foodex-admin-layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:minmax(0,1fr) 82px}
+html[dir=ltr] .foodex-admin-layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:82px minmax(0,1fr)}
+.layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:minmax(0,1fr) 82px}
+html[dir=ltr] .layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:82px minmax(0,1fr)}
+.dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed){grid-template-columns:minmax(0,1fr) 82px}
+html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed){grid-template-columns:82px minmax(0,1fr)}
+@media(max-width:1023px){aside.foodex-sidebar-collapsed,aside.foodex-sidebar-expanded{width:100%!important;min-width:0!important}.foodex-admin-layout:has(>.sidebar.foodex-sidebar-collapsed),html[dir=ltr] .foodex-admin-layout:has(>.sidebar.foodex-sidebar-collapsed),.layout:has(>.sidebar.foodex-sidebar-collapsed),html[dir=ltr] .layout:has(>.sidebar.foodex-sidebar-collapsed),.dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed),html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed){grid-template-columns:1fr}.foodex-sidebar-shell{min-height:auto}}
+</style>
 
-<div class="nav-search-wrap">
-    <label class="sr-only" for="admin-nav-search">{{ __('admin.sidebar_search') }}</label>
-    <input id="admin-nav-search" class="nav-search" type="search" placeholder="{{ __('admin.sidebar_search') }}" autocomplete="off">
-</div>
+<div class="foodex-sidebar-shell" data-foodex-brand="v1">
+    <div class="foodex-sidebar-head">
+        <a class="foodex-sidebar-brand" href="{{ route('admin.index') }}"><span class="foodex-sidebar-brand-mark">FX</span><span>FOODEX</span></a>
+        <button class="foodex-sidebar-toggle" type="button" aria-label="{{ __('admin.sidebar_toggle') }}" aria-expanded="false" data-foodex-sidebar-toggle>☰</button>
+    </div>
 
-<nav id="admin-navigation" aria-label="{{ __('admin.navigation') }}">
-    <a class="nav-home {{ ($navContext ?? '') === 'overview' ? 'active' : '' }}" href="{{ route('admin.index') }}">
-        <span aria-hidden="true">⌂</span>
-        <span>{{ __('admin.overview') }}</span>
-    </a>
+    <div class="foodex-sidebar-search">
+        @include('admin._premium-icon',['name'=>'search'])
+        <input type="search" data-foodex-nav-search placeholder="{{ __('admin.sidebar_search') }}" autocomplete="off">
+    </div>
 
-    @foreach ($navGroups as $group)
-        @php
-            $groupActive = collect($group['children'])->contains(fn ($child) => ($navContext ?? '') === $child['key']);
-        @endphp
-        <details class="nav-group" data-nav-group="{{ $group['key'] }}" {{ $groupActive ? 'open' : '' }}>
-            <summary>
-                <span class="nav-group-title"><span aria-hidden="true">{{ $group['icon'] }}</span> {{ __($group['label']) }}</span>
-                <span class="nav-chevron" aria-hidden="true">⌄</span>
-            </summary>
-            <div class="nav-children">
-                @foreach ($group['children'] as $child)
-                    <a
-                        class="nav-child {{ ($navContext ?? '') === $child['key'] ? 'active' : '' }}"
-                        href="{{ route($child['route'], $child['params']) }}"
-                        data-nav-label="{{ mb_strtolower(__($child['label'])) }}"
-                        @if (($navContext ?? '') === $child['key']) aria-current="page" @endif
-                    >
-                        {{ __($child['label']) }}
-                    </a>
-                @endforeach
-            </div>
-        </details>
-    @endforeach
-</nav>
+    <nav class="foodex-nav" aria-label="{{ __('admin.navigation') }}" data-foodex-nav>
+        @foreach($navGroups as $group)
+            @php($groupActive = collect($group['children'])->contains(fn($child)=>($navContext??'')===$child['key']))
+            <details class="foodex-nav-group" data-group="{{ $group['key'] }}" data-nav-group="{{ $group['key'] }}" {{ $groupActive?'open':'' }}>
+                <summary>
+                    <span aria-hidden="true">{{ $group['icon'] }}</span>
+                    <span>{{ __($group['label']) }}</span>
+                    <span class="foodex-nav-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="foodex-nav-children">
+                    @foreach($group['children'] as $child)
+                        <a class="foodex-nav-link {{ ($navContext??'')===$child['key']?'active':'' }}" href="{{ route($child['route'],$child['params']) }}" data-nav-label="{{ mb_strtolower(__($child['label'])) }}" @if(($navContext??'')===$child['key']) aria-current="page" @endif>
+                            @include('admin._premium-icon',['name'=>$childIcon($child['key'])])
+                            <span class="foodex-nav-label"><strong>{{ __($child['label']) }}</strong><small lang="{{ $secondaryLocale }}">{{ __($child['label'],[],$secondaryLocale) }}</small></span>
+                        </a>
+                    @endforeach
+                </div>
+            </details>
+        @endforeach
+    </nav>
 
-<div class="sidebar-footer">
-    <form class="logout-form" method="post" action="{{ route('admin.logout') }}">
-        @csrf
-        <button class="logout-button" type="submit">
-            <span aria-hidden="true">↪</span>
-            <span>{{ __('admin.logout') }}</span>
-        </button>
-    </form>
+    <div class="foodex-sidebar-footer">
+        <a class="foodex-sidebar-account {{ ($navContext??'')==='profile'?'active':'' }}" href="{{ route('admin.profile.index') }}">
+            @include('admin._premium-icon',['name'=>'customers'])<span>{{ $user->name ?? __('admin.profile') }}</span>
+        </a>
+        <form method="post" action="{{ route('admin.profile.locale') }}">@csrf @method('PATCH')<input type="hidden" name="locale" value="{{ $ar?'en':'ar' }}"><button class="foodex-sidebar-language" type="submit">@include('admin._premium-icon',['name'=>'globe'])<span>{{ $ar?'English':'العربية' }}</span></button></form>
+        <form method="post" action="{{ route('admin.logout') }}">@csrf<button class="foodex-sidebar-logout" type="submit"><span aria-hidden="true">↪</span><span>{{ __('admin.logout') }}</span></button></form>
+    </div>
 </div>
 
 <script>
 (() => {
-    const root = document.getElementById('admin-navigation');
-    if (!root) return;
+    const shell = document.currentScript?.closest('aside') || document.querySelector('aside.sidebar,aside.dashboard-sidebar');
+    if (!shell || shell.dataset.foodexSidebarReady === '1') return;
+    shell.dataset.foodexSidebarReady = '1';
 
-    const userKey = @json('foodex.admin.nav.'.($user->id ?? 'guest'));
-    const groups = [...root.querySelectorAll('[data-nav-group]')];
+    const toggle = shell.querySelector('[data-foodex-sidebar-toggle]');
+    const nav = shell.querySelector('[data-foodex-nav]');
+    const search = shell.querySelector('[data-foodex-nav-search]');
+    const stateKey = 'foodex.sidebar.expanded.{{ $user->id ?? 'guest' }}';
 
-    groups.forEach((group) => {
-        const key = userKey + '.' + group.dataset.navGroup;
-        const persisted = localStorage.getItem(key);
-        if (persisted === 'open') group.open = true;
-        if (persisted === 'closed' && !group.querySelector('[aria-current="page"]')) group.open = false;
-        group.addEventListener('toggle', () => localStorage.setItem(key, group.open ? 'open' : 'closed'));
+    const setExpanded = (expanded) => {
+        shell.classList.toggle('foodex-sidebar-expanded', expanded);
+        shell.classList.toggle('foodex-sidebar-collapsed', !expanded);
+        toggle?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        localStorage.setItem(stateKey, expanded ? '1' : '0');
+    };
+
+    const mobile = matchMedia('(max-width:1023px)').matches;
+    setExpanded(mobile || localStorage.getItem(stateKey) === '1');
+    toggle?.addEventListener('click', () => setExpanded(shell.classList.contains('foodex-sidebar-collapsed')));
+
+    const groups = [...(nav?.querySelectorAll('[data-group]') || [])];
+    groups.forEach(group => {
+        if (!group.querySelector('[aria-current="page"]') && !mobile) group.open = false;
     });
 
-    const search = document.getElementById('admin-nav-search');
     search?.addEventListener('input', () => {
         const needle = search.value.trim().toLocaleLowerCase();
-        groups.forEach((group) => {
-            let visible = false;
-            group.querySelectorAll('.nav-child').forEach((link) => {
-                const match = needle === '' || (link.dataset.navLabel || '').includes(needle);
-                link.hidden = !match;
-                visible ||= match;
+        groups.forEach(group => {
+            let visible=false;
+            group.querySelectorAll('.foodex-nav-link').forEach(link => {
+                const match = needle==='' || (link.dataset.navLabel||'').includes(needle);
+                link.hidden=!match; visible ||= match;
             });
-            group.hidden = !visible;
-            if (needle !== '' && visible) group.open = true;
+            group.hidden=!visible;
+            if(needle!=='' && visible) group.open=true;
         });
-    });
-
-    const toggle = document.querySelector('.sidebar-toggle');
-    const sidebar = document.querySelector('.sidebar');
-    toggle?.addEventListener('click', () => {
-        const collapsed = sidebar?.classList.toggle('collapsed') ?? false;
-        toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     });
 })();
 </script>

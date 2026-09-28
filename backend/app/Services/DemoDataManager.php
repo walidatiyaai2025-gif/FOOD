@@ -21,13 +21,17 @@ final class DemoDataManager
     /** @return array<string, int> */
     public function summary(): array
     {
+        $storeIds = DB::table('stores')
+            ->where('code', 'like', self::STORE_PREFIX.'%')
+            ->pluck('id');
+
         return [
-            'stores' => DB::table('stores')->where('code', 'like', self::STORE_PREFIX.'%')->count(),
+            'stores' => $storeIds->count(),
             'customers' => DB::table('customers')->where('email', 'like', '%'.self::CUSTOMER_EMAIL_SUFFIX)->count(),
             'products' => DB::table('products')->where('sku', 'like', self::PRODUCT_PREFIX.'%')->count(),
             'orders' => DB::table('orders')->where('order_number', 'like', self::ORDER_PREFIX.'%')->count(),
             'promotions' => DB::table('promotions')->where('name', 'like', 'FOODEX Demo Promotion %')->count(),
-            'banners' => DB::table('banners')->where('title', 'like', 'FOODEX Demo Banner %')->count(),
+            'banners' => $storeIds->isEmpty() ? 0 : DB::table('banners')->whereIn('store_id', $storeIds)->count(),
             'drivers' => DB::table('users')->where('email', 'like', 'driver%'.self::CUSTOMER_EMAIL_SUFFIX)->count(),
             'notifications' => DB::table('notifications')->where('type', 'demo_seed')->count(),
         ];
@@ -73,7 +77,7 @@ final class DemoDataManager
                     DB::table('cart_items')->whereIn('cart_id', $cartIds)->delete();
                     DB::table('carts')->whereIn('id', $cartIds)->delete();
                 }
-                DB::table('banners')->whereIn('store_id', $storeIds)->where('title', 'like', 'FOODEX Demo Banner %')->delete();
+                DB::table('banners')->whereIn('store_id', $storeIds)->delete();
                 DB::table('settings')->whereIn('store_id', $storeIds)->delete();
             }
             if ($promotionIds !== []) {

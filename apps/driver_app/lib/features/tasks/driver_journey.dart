@@ -389,8 +389,21 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
               ],
             ),
           if (state == DriverLoadState.ready)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: FoodexBrand.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: FoodexBrand.border),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x10172033),
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
               child: Column(
                 children: [
                   TextField(
@@ -471,9 +484,22 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                           final assignment = visible[index];
                           return Card(
                             key: Key('assignment-${assignment.id}'),
-                            margin: const EdgeInsets.only(bottom: 10),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            elevation: 0,
                             child: ListTile(
-                              contentPadding: const EdgeInsets.all(14),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              leading: Container(
+                                width: 46,
+                                height: 46,
+                                decoration: BoxDecoration(
+                                  color: FoodexBrand.greenSoft,
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: const Icon(
+                                  Icons.local_shipping_rounded,
+                                  color: FoodexBrand.greenDark,
+                                ),
+                              ),
                               title: Row(
                                 children: [
                                   Expanded(
@@ -540,7 +566,15 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                                   ],
                                 ),
                               ),
-                              trailing: const Icon(Icons.chevron_right),
+                              trailing: Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: FoodexBrand.surfaceMuted,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.chevron_right_rounded),
+                              ),
                               onTap: () => _showDetail(assignment),
                             ),
                           );
