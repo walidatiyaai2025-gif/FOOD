@@ -372,6 +372,14 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                 : 'driver.b2b.title',
           ),
         ),
+        actions: [
+          IconButton(
+            key: const Key('driver-refresh-assignments'),
+            tooltip: context.tr('driver.refresh'),
+            onPressed: state == DriverLoadState.loading ? null : _load,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
       ),
       body: Column(
         children: [
