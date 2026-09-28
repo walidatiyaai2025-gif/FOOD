@@ -40,10 +40,10 @@ void main() {
 
     expect(api.lastStoreId, 7);
     expect(find.text('Vegetables'), findsOneWidget);
+    expect(find.text('Tomato Box'), findsWidgets);
     await tester.drag(find.byType(ListView).first, const Offset(0, -500));
     await tester.pumpAndSettle();
     expect(find.text('Weekend Offer'), findsOneWidget);
-    expect(find.text('Tomato Box'), findsWidgets);
   });
 
   testWidgets('B2C category and product images render in catalog surfaces', (tester) async {
