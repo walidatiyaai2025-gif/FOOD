@@ -467,6 +467,13 @@
             <input name="reason" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'السبب':'Reason' }}">
             <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعديل':'Adjust' }}</button>
           </form>
+        @elseif($column==='actions' && $module==='drivers')
+          @if(!empty($row['_assignment_id']))
+            @include('admin._b2b-driver-withdraw')
+            @include('admin._b2b-driver-assignment-actions')
+          @else
+            <span class="muted">—</span>
+          @endif
         @elseif($column==='actions' && $module==='orders' && $user->hasPermission('orders.manage'))
           @include('admin._dashboard-order-actions',['channel'=>'b2b','row'=>$row]) @if(!empty($row['_assignment'])) @include('admin._order-driver-management',['isB2bOrder'=>true,'driverRoute'=>'admin.b2b.drivers.assign']) @endif
         @else{{ $row[$column] }}@endif
