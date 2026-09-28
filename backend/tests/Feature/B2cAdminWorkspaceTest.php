@@ -7,6 +7,7 @@ use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class B2cAdminWorkspaceTest extends TestCase
@@ -192,6 +193,72 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertSee('premium')
             ->assertDontSee('payments.secret')
             ->assertDontSee('never-show');
+    }
+
+    public function test_store_admin_can_reset_only_its_driver_password(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $type = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $mine = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $type, 'code' => 'DRIVER-MINE', 'name' => 'Driver Mine',
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $other = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $type, 'code' => 'DRIVER-OTHER', 'name' => 'Driver Other',
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $admin = User::query()->create([
+            'name' => 'Driver Store Admin', 'email' => 'driver-store-admin@example.test',
+            'password' => 'password', 'locale' => 'en', 'is_active' => true,
+        ]);
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $admin->roles()->attach($role);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id, 'store_id' => $mine, 'role_id' => $role->id,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $driverUser = User::query()->create([
+            'name' => 'Mine Driver', 'email' => 'mine-driver@example.test',
+            'password' => 'old-password', 'locale' => 'ar', 'is_active' => true,
+        ]);
+        $driver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id, 'store_id' => $mine, 'driver_type' => 'b2c',
+            'is_available' => true, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $driverUser->createToken('retail-driver-before-reset');
+
+        $otherUser = User::query()->create([
+            'name' => 'Other Driver', 'email' => 'other-driver@example.test',
+            'password' => 'other-old-password', 'locale' => 'ar', 'is_active' => true,
+        ]);
+        $otherDriver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $otherUser->id, 'store_id' => $other, 'driver_type' => 'b2c',
+            'is_available' => true, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $page = $this->actingAs($admin)->get('/admin/b2c/drivers')->assertOk();
+        $page->assertSee('Reset driver password')->assertSee('mine-driver@example.test')->assertDontSee('other-driver@example.test');
+
+        $this->actingAs($admin)->patch("/admin/b2c/drivers/{$driver}/password", [
+            'store_id' => $mine,
+            'password' => 'retail-new-password',
+            'password_confirmation' => 'retail-new-password',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertTrue(Hash::check('retail-new-password', $driverUser->fresh()->password));
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'tokenable_type' => User::class,
+            'tokenable_id' => $driverUser->id,
+        ]);
+
+        $this->actingAs($admin)->patch("/admin/b2c/drivers/{$otherDriver}/password", [
+            'store_id' => $mine,
+            'password' => 'must-not-change',
+            'password_confirmation' => 'must-not-change',
+        ])->assertNotFound();
+        $this->assertFalse(Hash::check('must-not-change', $otherUser->fresh()->password));
     }
 
     public function test_b2c_admin_without_assigned_store_is_forbidden_and_invalid_module_is_not_found(): void
