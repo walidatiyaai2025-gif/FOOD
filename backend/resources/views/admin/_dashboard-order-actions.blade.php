@@ -43,7 +43,7 @@
         <select name="driver_id" required>
             <option value="">{{ app()->getLocale()==='ar'?'تعيين سائق':'Assign driver' }}</option>
             @foreach($moduleData['drivers'] as $driver)
-                @if($driver['store_id']===$row['_store_id'])
+                @if($isB2bOrder || $driver['store_id']===$row['_store_id'])
                     <option value="{{ $driver['id'] }}">{{ $driver['name'] }}</option>
                 @endif
             @endforeach
@@ -59,14 +59,14 @@
                 <strong>{{ app()->getLocale()==='ar'?'البنود':'Items' }}</strong>
                 <ul style="margin:6px 0">
                     @foreach($row['_items'] as $item)
-                        <li>{{ $item['sku'] }} · {{ $item['name'] }} — {{ number_format($item['quantity'],3) }} × {{ number_format($item['unit_price'],3) }} = {{ number_format($item['line_total'],3) }} KWD</li>
+                        <li>{{ $item['sku'] }} · {{ $item['name'] }} — {{ number_format($item['quantity'],3) }} × {{ number_format($item['unit_price'],3) }} = {{ number_format($item['line_total'],3) }} EGP</li>
                     @endforeach
                 </ul>
             </div>
             <div>
-                {{ app()->getLocale()==='ar'?'الإجمالي الفرعي':'Subtotal' }}: {{ number_format($row['_subtotal'],3) }} KWD ·
-                {{ app()->getLocale()==='ar'?'الخصم':'Discount' }}: {{ number_format($row['_discount_total'],3) }} KWD ·
-                {{ app()->getLocale()==='ar'?'التوصيل':'Delivery' }}: {{ number_format($row['_delivery_total'],3) }} KWD
+                {{ app()->getLocale()==='ar'?'الإجمالي الفرعي':'Subtotal' }}: {{ number_format($row['_subtotal'],3) }} EGP ·
+                {{ app()->getLocale()==='ar'?'الخصم':'Discount' }}: {{ number_format($row['_discount_total'],3) }} EGP ·
+                {{ app()->getLocale()==='ar'?'التوصيل':'Delivery' }}: {{ number_format($row['_delivery_total'],3) }} EGP
             </div>
             @if($row['_payment'])
                 <div>{{ app()->getLocale()==='ar'?'الدفع':'Payment' }}: {{ $row['_payment']['provider'] }} · {{ $row['_payment']['status'] }} · {{ number_format($row['_payment']['amount'],3) }} {{ $row['_payment']['currency'] }}</div>
@@ -89,11 +89,16 @@
             @endif
 
             @if($row['status']==='pending')
-                <form method="post" action="{{ route($updateRoute,['order'=>$row['_id']]) }}" class="workspace-inline-form module-inline-form js-dashboard-order-form" style="margin-top:8px">
+                <form method="post" action="{{ route($updateRoute,['order'=>$row['_id']]) }}" class="workspace-inline-form module-inline-form js-dashboard-order-form" style="margin-top:8px" data-order-channel="{{ $channel }}">
                     @csrf
                     @method('patch')
                     @if($isB2bOrder)
-                        <input type="hidden" name="store_id" value="{{ $row['_store_id'] }}">
+                        <select name="warehouse_id" class="js-order-warehouse" required>
+                            <option value="">{{ app()->getLocale()==='ar'?'اختر مخزن الصرف':'Select source warehouse' }}</option>
+                            @foreach($moduleData['warehouses'] as $warehouse)
+                                <option value="{{ $warehouse['id'] }}" @selected($row['_warehouse_id']===$warehouse['id'])>{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>
+                            @endforeach
+                        </select>
                     @else
                         <input type="hidden" name="store_id" value="{{ $storeId }}">
                         @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
@@ -128,11 +133,18 @@
                                 <select name="items[{{ $index }}][product_id]" class="js-order-product" required style="min-width:260px">
                                     <option value="">{{ app()->getLocale()==='ar'?'اختر المنتج':'Select product' }}</option>
                                     @foreach($moduleData['products'] as $product)
-                                        <option value="{{ $product['id'] }}" data-store-id="{{ $product['store_id'] }}" @selected($currentItem['product_id']===$product['id'])>
+                                        <option value="{{ $product['id'] }}"
+                                            @if($isB2bOrder)
+                                                data-warehouse-ids="{{ implode(',', $product['warehouse_ids'] ?? []) }}"
+                                            @else
+                                                data-store-id="{{ $product['store_id'] }}"
+                                            @endif
+                                            @selected($currentItem['product_id']===$product['id'])
+                                        >
                                             {{ $product['sku'] }} · {{ $product['name'] }}
-                            @if(array_key_exists('price',$product))
-                                · {{ number_format((float)$product['price'],3) }} KWD
-                            @endif
+                                            @if(array_key_exists('price',$product))
+                                                · {{ number_format((float)$product['price'],3) }} EGP
+                                            @endif
                                         </option>
                                     @endforeach
                                 </select>

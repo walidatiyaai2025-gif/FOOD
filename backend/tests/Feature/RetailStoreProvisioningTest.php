@@ -7,7 +7,9 @@ use App\Models\User;
 use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
@@ -19,15 +21,19 @@ class RetailStoreProvisioningTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        Storage::fake('public');
     }
 
     public function test_super_admin_can_provision_store_and_manager_then_revocation_blocks_access(): void
     {
         $admin = $this->userWithRole('SUPER_ADMIN', 'owner@example.test');
+        $tierId = $this->priceTierId();
 
         $response = $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
             'code' => 'SHOP-A',
             'name' => 'Shop A',
+            'logo' => UploadedFile::fake()->image('shop-a.png', 256, 256),
+            'price_tier_id' => $tierId,
             'is_active' => '1',
             'manager_mode' => 'new',
             'manager_name' => 'Shop A Manager',
@@ -50,8 +56,12 @@ class RetailStoreProvisioningTest extends TestCase
         $this->assertDatabaseHas('b2b_accounts', [
             'b2b_customer_id' => $link->b2b_customer_id,
             'company_name' => 'Shop A',
+            'price_tier_id' => $tierId,
             'status' => 'active',
         ]);
+        $logoPath = (string) DB::table('stores')->where('id', $storeId)->value('logo_path');
+        $this->assertStringStartsWith('storage/stores/'.$storeId.'/branding/', $logoPath);
+        Storage::disk('public')->assertExists(substr($logoPath, strlen('storage/')));
         $this->assertSame([$storeId], app(TenantContextResolver::class)->retailStoreIds($manager));
 
         $assignmentId = (int) DB::table('user_store_roles')->where('user_id', $manager->id)->where('store_id', $storeId)->value('id');
@@ -62,10 +72,13 @@ class RetailStoreProvisioningTest extends TestCase
     public function test_retail_store_name_and_activation_control_linked_wholesale_account(): void
     {
         $admin = $this->userWithRole('SUPER_ADMIN', 'owner-sync@example.test');
+        $tierId = $this->priceTierId();
 
         $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
             'code' => 'SHOP-SYNC',
             'name' => 'Shop Sync',
+            'logo' => UploadedFile::fake()->image('shop-sync.png', 256, 256),
+            'price_tier_id' => $tierId,
             'is_active' => '1',
             'manager_mode' => 'new',
             'manager_name' => 'Shop Sync Manager',
@@ -81,6 +94,7 @@ class RetailStoreProvisioningTest extends TestCase
         $this->actingAs($admin)->patch(route('admin.retail-stores.update', $storeId), [
             'code' => 'SHOP-SYNC',
             'name' => 'Shop Sync Renamed',
+            'price_tier_id' => $tierId,
             'is_active' => '0',
         ])->assertRedirect();
 
@@ -93,6 +107,19 @@ class RetailStoreProvisioningTest extends TestCase
             'company_name' => 'Shop Sync Renamed',
             'status' => 'suspended',
         ]);
+    }
+
+    public function test_super_admin_can_open_retail_store_list_with_unlinked_legacy_store(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'legacy-list@example.test');
+        $this->retailStore('UNLINKED');
+
+        $this->withoutExceptionHandling();
+
+        $this->actingAs($admin)
+            ->get(route('admin.retail-stores.index'))
+            ->assertOk()
+            ->assertSee('Retail Store Provisioning');
     }
 
     public function test_non_super_admin_cannot_provision_retail_store(): void
@@ -155,6 +182,11 @@ class RetailStoreProvisioningTest extends TestCase
             'event' => 'tenant.support_access.entered',
             'auditable_id' => $storeId,
         ]);
+    }
+
+    private function priceTierId(): int
+    {
+        return (int) DB::table('b2b_price_tiers')->where('code', 'STANDARD')->value('id');
     }
 
     private function userWithRole(string $role, string $email): User

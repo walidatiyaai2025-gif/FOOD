@@ -9,6 +9,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\RetailWholesaleAccountService;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,7 @@ class RetailWholesaleReplenishmentTest extends TestCase
 
     public function test_delivered_wholesale_order_materializes_product_and_quantity_into_exact_retail_store_once(): void
     {
-        $wholesaleStore = $this->store('B2B', 'WHOLESALE-REPL');
+        $wholesaleStore = app(WholesalePrincipal::class)->storeId();
         $retailStore = $this->store('B2C', 'RETAIL-REPL');
         $otherRetailStore = $this->store('B2C', 'RETAIL-OTHER');
 
@@ -140,6 +141,7 @@ class RetailWholesaleReplenishmentTest extends TestCase
         $admin = $this->globalAdmin('B2B_ADMIN', 'replenishment-admin@example.test');
         $order = Order::query()->create([
             'store_id' => $wholesaleStore,
+            'warehouse_id' => $sourceWarehouse,
             'customer_id' => $retailCustomer->legacy_customer_id,
             'b2b_customer_id' => $retailCustomer->id,
             'b2c_customer_id' => null,
@@ -273,7 +275,15 @@ class RetailWholesaleReplenishmentTest extends TestCase
 
     public function test_normal_wholesale_customer_delivery_does_not_create_retail_replenishment(): void
     {
-        $wholesaleStore = $this->store('B2B', 'WHOLESALE-NORMAL');
+        $wholesaleStore = app(WholesalePrincipal::class)->storeId();
+        $sourceWarehouse = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $wholesaleStore,
+            'code' => 'WHOLESALE-NORMAL-WH',
+            'name' => 'Wholesale Normal Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $customer = app(B2bCustomerService::class)->create(['name' => 'Independent Wholesale Buyer']);
         B2bAccount::query()->create([
             'customer_id' => $customer->legacy_customer_id,
@@ -285,6 +295,7 @@ class RetailWholesaleReplenishmentTest extends TestCase
         $admin = $this->globalAdmin('B2B_ADMIN', 'normal-wholesale@example.test');
         $order = Order::query()->create([
             'store_id' => $wholesaleStore,
+            'warehouse_id' => $sourceWarehouse,
             'customer_id' => $customer->legacy_customer_id,
             'b2b_customer_id' => $customer->id,
             'order_number' => 'WHOLESALE-NORMAL-1',

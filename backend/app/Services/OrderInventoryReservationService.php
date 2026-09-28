@@ -16,18 +16,31 @@ final class OrderInventoryReservationService
     public function reserve(Order $order, User $user, array $items, string $reason = 'dashboard_order'): void
     {
         foreach ($items as $item) {
-            $inventoryRows = DB::table('inventories')
+            $inventoryQuery = DB::table('inventories')
                 ->select('inventories.id', 'inventories.quantity', 'inventories.reserved_quantity')
                 ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
                 ->where('warehouses.store_id', (int) $order->store_id)
                 ->where('warehouses.is_active', true)
-                ->where('inventories.product_id', $item['product_id'])
+                ->where('inventories.product_id', $item['product_id']);
+
+            if (strtolower((string) $order->channel) === 'b2b') {
+                if ($order->warehouse_id === null) {
+                    throw new HttpException(409, 'A Wholesale warehouse is required for this order.');
+                }
+                $inventoryQuery->where('warehouses.id', (int) $order->warehouse_id);
+            }
+
+            $inventoryRows = $inventoryQuery
                 ->orderBy('inventories.id')
                 ->lockForUpdate()
                 ->get();
 
-            // Products without inventory rows remain non-stock-managed, matching checkout behavior.
             if ($inventoryRows->isEmpty()) {
+                if (strtolower((string) $order->channel) === 'b2b') {
+                    throw new HttpException(409, 'A selected product is not stocked in the selected Wholesale warehouse.');
+                }
+
+                // Retail checkout keeps its existing non-stock-managed product behavior.
                 continue;
             }
 

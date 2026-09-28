@@ -96,7 +96,6 @@ class AdminShellTest extends TestCase
         foreach ([
             '/admin',
             '/admin/b2b/dashboard',
-            '/admin/b2b/stores',
             '/admin/b2b/clients',
             '/admin/b2b/products',
             '/admin/b2b/orders',

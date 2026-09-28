@@ -15,7 +15,7 @@
 .store-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.store-assignments{display:grid;gap:8px}
 .store-assignment{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:#fbfcfd;flex-wrap:wrap}
 .store-inline-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.store-search{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
-.manager-mode-panel{padding:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}
+.manager-mode-panel{padding:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}.store-logo{width:64px;height:64px;border-radius:14px;object-fit:cover;border:1px solid var(--foodex-border);background:#fff}.store-logo-placeholder{width:64px;height:64px;border-radius:14px;display:grid;place-items:center;border:1px dashed var(--foodex-border);background:#f8fafc;font-size:28px}
 @media(max-width:720px){.store-panel,.store-card{padding:var(--foodex-space-4)}}
 </style>
 </head>
@@ -38,7 +38,7 @@
                     <div><h2>{{ $ar?'إضافة متجر تجزئة جديد':'Add a retail store' }}</h2><p>{{ $ar?'أكمل بيانات المتجر أولًا ثم اختر أو أنشئ مدير المتجر.':'Complete store details first, then select or create the store manager.' }}</p></div>
                 </div>
 
-                <form method="post" action="{{ route('admin.retail-stores.store') }}" id="retail-provision-form" data-foodex-stepper>
+                <form method="post" action="{{ route('admin.retail-stores.store') }}" enctype="multipart/form-data" id="retail-provision-form" data-foodex-stepper>
                     @csrf
                     <div class="foodex-step-tabs" role="tablist" aria-label="{{ $ar?'خطوات إضافة المتجر':'Store provisioning steps' }}">
                         <button class="foodex-step-tab" type="button" role="tab" aria-selected="true" data-step-target="store-details">
@@ -57,6 +57,17 @@
                             </label>
                             <label>{{ $ar?'اسم المتجر الظاهر':'Store display name' }}
                                 <input name="name" value="{{ old('name') }}" required maxlength="255" placeholder="{{ $ar?'مثال: متجر مدينة نصر':'e.g. Nasr City Store' }}">
+                            </label>
+                            <label>{{ $ar?'شعار المتجر':'Store logo' }}
+                                <input name="logo" type="file" accept="image/jpeg,image/png,image/webp" required>
+                                <small class="foodex-file-help">{{ $ar?'مطلوب عند إنشاء المتجر · JPG / PNG / WebP حتى 5MB':'Required when creating the store · JPG / PNG / WebP up to 5MB' }}</small>
+                            </label>
+                            <label>{{ $ar?'شريحة تسعير طلبات الجملة':'Wholesale order price tier' }}
+                                <select name="price_tier_id" required>
+                                    <option value="">{{ $ar?'اختر شريحة التسعير':'Select price tier' }}</option>
+                                    @foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((string)old('price_tier_id')===(string)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach
+                                </select>
+                                <small class="foodex-file-help">{{ $ar?'هذه الشريحة ستُطبق تلقائيًا عندما يطلب متجر التجزئة من متجر الجملة الرئيسي.':'This tier is applied automatically when the Retail store purchases from the main Wholesale operation.' }}</small>
                             </label>
                             <label class="wide"><span>{{ $ar?'حالة المتجر':'Store status' }}</span>
                                 <span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active','1')==='1')> {{ $ar?'نشط ومتاح للإدارة':'Active and manageable' }}</span>
@@ -111,18 +122,28 @@
                 @forelse($stores as $store)
                     <article class="foodex-card store-card">
                         <div class="store-card-top">
-                            <div>
-                                <div class="store-meta"><h3>{{ $store->name }}</h3><span class="badge">{{ $store->code }}</span><span class="badge {{ $store->is_active?'active':'' }}">{{ $store->is_active?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div>
+                            <div style="display:flex;align-items:center;gap:12px">
+                                @if($store->logo_path)
+                                    <img class="store-logo" src="{{ asset(ltrim($store->logo_path,'/')) }}" alt="{{ $store->name }}">
+                                @else
+                                    <span class="store-logo-placeholder" aria-label="{{ $ar?'لا يوجد شعار':'No logo' }}">🏪</span>
+                                @endif
+                                <div>
+                                    <div class="store-meta"><h3>{{ $store->name }}</h3><span class="badge">{{ $store->code }}</span><span class="badge {{ $store->is_active?'active':'' }}">{{ $store->is_active?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div>
+                                    <small class="foodex-file-help">{{ $ar?'شريحة الجملة':'Wholesale tier' }}: <strong>{{ $store->wholesale_price_tier_name ?: ($ar?'غير محددة':'Not assigned') }}</strong></small>
+                                </div>
                             </div>
                             <form method="post" action="{{ route('admin.retail-stores.inspect',$store) }}">@csrf
                                 <button class="foodex-action-secondary button secondary" type="submit" @disabled(!$store->is_active)>⌕ {{ $ar?'إدارة / فحص المتجر':'Manage / Inspect Store' }}</button>
                             </form>
                         </div>
 
-                        <form method="post" action="{{ route('admin.retail-stores.update',$store) }}" class="store-form-grid">
+                        <form method="post" action="{{ route('admin.retail-stores.update',$store) }}" enctype="multipart/form-data" class="store-form-grid">
                             @csrf @method('patch')
                             <label>{{ $ar?'كود المتجر':'Store code' }}<input name="code" value="{{ $store->code }}" required maxlength="80" placeholder="STORE-01"></label>
                             <label>{{ $ar?'اسم المتجر':'Store name' }}<input name="name" value="{{ $store->name }}" required maxlength="255" placeholder="{{ $ar?'اسم المتجر':'Store name' }}"></label>
+                            <label>{{ $ar?'استبدال الشعار':'Replace logo' }}<input name="logo" type="file" accept="image/jpeg,image/png,image/webp"><small class="foodex-file-help">{{ $ar?'اتركه فارغًا للاحتفاظ بالشعار الحالي.':'Leave empty to keep the current logo.' }}</small></label>
+                            <label>{{ $ar?'شريحة تسعير طلبات الجملة':'Wholesale order price tier' }}<select name="price_tier_id" required><option value="">{{ $ar?'اختر شريحة التسعير':'Select price tier' }}</option>@foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((int)$store->wholesale_price_tier_id===(int)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach</select></label>
                             <label><span>{{ $ar?'الحالة':'Status' }}</span><span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($store->is_active)> {{ $ar?'نشط':'Active' }}</span></label>
                             <button class="foodex-action-primary" type="submit">✓ {{ $ar?'حفظ بيانات المتجر':'Save store details' }}</button>
                         </form>
@@ -179,7 +200,11 @@
     mode?.addEventListener('change', syncManagerMode);
     syncManagerMode();
 
-    if (@json($errors->any())) activate(@json(old('manager_mode') ? 'store-manager' : 'store-details'));
+    if (@json($errors->any())) {
+        @php($hasStoreDetailErrors = $errors->has('code') || $errors->has('name') || $errors->has('logo') || $errors->has('price_tier_id') || $errors->has('is_active'))
+        const storeDetailErrors = @json($hasStoreDetailErrors);
+        activate(storeDetailErrors ? 'store-details' : 'store-manager');
+    }
 })();
 </script>
 </body></html>

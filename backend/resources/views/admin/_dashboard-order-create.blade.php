@@ -8,13 +8,13 @@
     <summary style="cursor:pointer;font-weight:800">
         {{ app()->getLocale()==='ar' ? 'إنشاء طلب جديد' : 'Create new order' }}
     </summary>
-    <form method="post" action="{{ route($orderStoreRoute) }}" class="workspace-inline-form module-inline-form js-dashboard-order-form" style="margin-top:14px">
+    <form method="post" action="{{ route($orderStoreRoute) }}" class="workspace-inline-form module-inline-form js-dashboard-order-form" style="margin-top:14px" data-order-channel="{{ $channel }}">
         @csrf
         @if($isB2bOrder)
-            <select name="store_id" class="js-order-store" required>
-                <option value="">{{ app()->getLocale()==='ar'?'اختر متجر الجملة':'Select wholesale store' }}</option>
-                @foreach($moduleData['stores'] as $store)
-                    <option value="{{ $store['id'] }}">{{ $store['name'] }}</option>
+            <select name="warehouse_id" class="js-order-warehouse" required>
+                <option value="">{{ app()->getLocale()==='ar'?'اختر مخزن الصرف':'Select source warehouse' }}</option>
+                @foreach($moduleData['warehouses'] as $warehouse)
+                    <option value="{{ $warehouse['id'] }}">{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>
                 @endforeach
             </select>
         @else
@@ -22,19 +22,12 @@
             @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
         @endif
 
-        <select name="customer_id" class="js-order-customer" required @disabled($isB2bOrder && empty($moduleData['customers']))>
+        <select name="customer_id" class="js-order-customer" required>
             <option value="">{{ app()->getLocale()==='ar'?'اختر العميل':'Select customer' }}</option>
             @foreach($moduleData['customers'] as $customer)
                 <option value="{{ $customer['id'] }}">{{ $customer['name'] }}</option>
             @endforeach
         </select>
-        @if($isB2bOrder && empty($moduleData['customers']))
-            <div class="muted" style="flex:1 1 100%;font-size:12px">
-                {{ app()->getLocale()==='ar'
-                    ? 'لا يوجد عميل جملة نشط لديه شريحة سعر معتمدة. اعتمد شريحة السعر للعميل قبل إنشاء الطلب.'
-                    : 'No active Wholesale customer has an approved price tier. Approve customer pricing before creating an order.' }}
-            </div>
-        @endif
 
         <select name="address_id" class="js-order-address">
             <option value="">{{ app()->getLocale()==='ar'?'بدون عنوان / استلام':'No address / pickup' }}</option>
@@ -58,7 +51,13 @@
                 <select name="items[0][product_id]" class="js-order-product" required style="min-width:260px">
                     <option value="">{{ app()->getLocale()==='ar'?'اختر المنتج':'Select product' }}</option>
                     @foreach($moduleData['products'] as $product)
-                        <option value="{{ $product['id'] }}" data-store-id="{{ $product['store_id'] }}">
+                        <option value="{{ $product['id'] }}"
+                            @if($isB2bOrder)
+                                data-warehouse-ids="{{ implode(',', $product['warehouse_ids'] ?? []) }}"
+                            @else
+                                data-store-id="{{ $product['store_id'] }}"
+                            @endif
+                        >
                             {{ $product['sku'] }} · {{ $product['name'] }}
                             @if(array_key_exists('price',$product))
                                 · {{ number_format((float)$product['price'],3) }} EGP
@@ -73,7 +72,7 @@
 
         <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button type="button" class="js-add-order-line">{{ app()->getLocale()==='ar'?'إضافة صنف':'Add item' }}</button>
-            <button class="foodex-primary" type="submit" @disabled($isB2bOrder && empty($moduleData['customers']))>{{ app()->getLocale()==='ar'?'إنشاء الطلب':'Create order' }}</button>
+            <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إنشاء الطلب':'Create order' }}</button>
         </div>
     </form>
 </details>
@@ -82,11 +81,20 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const refresh = (form) => {
+        const isB2b = form.dataset.orderChannel === 'b2b';
+        const warehouse = form.querySelector('.js-order-warehouse')?.value || '';
         const store = form.querySelector('.js-order-store')?.value || form.querySelector('input[name="store_id"]')?.value || '';
         const customer = form.querySelector('.js-order-customer')?.value || '';
 
-        form.querySelectorAll('.js-order-product option[data-store-id]').forEach((option) => {
-            const visible = !store || option.dataset.storeId === store;
+        form.querySelectorAll('.js-order-product option[value]').forEach((option) => {
+            if (!option.value) return;
+            let visible = true;
+            if (isB2b) {
+                const warehouseIds = (option.dataset.warehouseIds || '').split(',').filter(Boolean);
+                visible = warehouse !== '' && warehouseIds.includes(warehouse);
+            } else if (option.dataset.storeId) {
+                visible = !store || option.dataset.storeId === store;
+            }
             option.hidden = !visible;
             option.disabled = !visible;
             if (!visible && option.selected) option.selected = false;
@@ -114,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.js-dashboard-order-form').forEach((form) => {
         refresh(form);
+        form.querySelector('.js-order-warehouse')?.addEventListener('change', () => refresh(form));
         form.querySelector('.js-order-store')?.addEventListener('change', () => refresh(form));
         form.querySelector('.js-order-customer')?.addEventListener('change', () => refresh(form));
 

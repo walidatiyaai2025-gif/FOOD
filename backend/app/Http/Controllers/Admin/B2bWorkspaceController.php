@@ -24,6 +24,7 @@ use App\Services\DashboardOperationalNotifier;
 use App\Services\LookupScopeService;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
@@ -39,7 +40,6 @@ class B2bWorkspaceController extends Controller
     /** @var array<string, string|null> */
     private const MODULE_PERMISSIONS = [
         'dashboard' => null,
-        'stores' => 'stores.view',
         'clients' => 'b2b.accounts.view',
         'products' => 'catalog.view',
         'inventory' => 'inventory.view',
@@ -60,6 +60,7 @@ class B2bWorkspaceController extends Controller
         private readonly CatalogOwnership $catalogs,
         private readonly LookupScopeService $lookups,
         private readonly AuditLogger $audit,
+        private readonly WholesalePrincipal $principal,
     ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View
@@ -71,7 +72,7 @@ class B2bWorkspaceController extends Controller
 
         $storeIds = $this->wholesaleStoreIds($user);
         $counts = [
-            'stores' => count($storeIds),
+            'warehouses' => DB::table('warehouses')->whereIn('store_id', $storeIds)->where('is_active', true)->count(),
             'clients' => DB::table('b2b_accounts')->whereNotNull('b2b_customer_id')->count(),
             'products' => DB::table('products')
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -128,6 +129,7 @@ class B2bWorkspaceController extends Controller
             ->whereNotNull('b2b_customer_id')
             ->first(['id', 'store_id']);
         abort_unless($row !== null, 404);
+        abort_unless((int) $row->store_id === $this->principal->storeId(), 404);
         $this->operationalScope->assertStore($actor, (int) $row->store_id, 'orders.manage', 'b2b');
 
         $orders->transition($request, $order, $audit, $dashboardNotifier);
@@ -138,7 +140,15 @@ class B2bWorkspaceController extends Controller
     public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
     {
         $actor = $this->actor($request);
-        $storeId = $request->integer('store_id');
+        $warehouseId = $request->integer('warehouse_id');
+        $warehouse = DB::table('warehouses')
+            ->where('id', $warehouseId)
+            ->where('is_active', true)
+            ->first(['id', 'store_id']);
+        abort_unless($warehouse !== null, 422, 'A valid Wholesale warehouse is required.');
+
+        $storeId = $this->principal->storeId();
+        abort_unless((int) $warehouse->store_id === $storeId, 422, 'Warehouse must belong to the main Wholesale operation.');
         $this->operationalScope->assertStore($actor, $storeId, 'orders.manage', 'b2b');
 
         $order = $orders->create($request, $actor, 'b2b', $storeId);
@@ -158,6 +168,7 @@ class B2bWorkspaceController extends Controller
             ->whereNotNull('b2b_customer_id')
             ->firstOrFail();
 
+        abort_unless((int) $model->store_id === $this->principal->storeId(), 404);
         $this->operationalScope->assertStore($actor, (int) $model->store_id, 'orders.manage', 'b2b');
         $orders->update($request, $actor, $model);
 
@@ -186,8 +197,9 @@ class B2bWorkspaceController extends Controller
             ->first(['id', 'store_id']);
 
         abort_unless($driver !== null && $driver->store_id !== null && $order !== null, 422);
-        abort_unless((int) $driver->store_id === (int) $order->store_id, 422, 'Driver and order must belong to the same wholesale store.');
-        $this->operationalScope->assertStore($actor, (int) $order->store_id, 'drivers.b2b.manage', 'b2b');
+        $principalStoreId = $this->principal->storeId();
+        abort_unless((int) $driver->store_id === $principalStoreId && (int) $order->store_id === $principalStoreId, 422, 'Driver and order must belong to the main Wholesale operation.');
+        $this->operationalScope->assertStore($actor, $principalStoreId, 'drivers.b2b.manage', 'b2b');
 
         $deliveries->assign($request, $audit, $dashboardNotifier);
 
@@ -198,13 +210,12 @@ class B2bWorkspaceController extends Controller
     {
         $actor = $this->actor($request);
         $data = $request->validate([
-            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'max:255'],
         ]);
 
-        $storeId = (int) $data['store_id'];
+        $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'drivers.b2b.manage', 'b2b');
 
         $driver = DB::transaction(function () use ($data, $storeId): Driver {
@@ -235,8 +246,9 @@ class B2bWorkspaceController extends Controller
     public function savePriceRule(Request $request, B2bPricingController $pricing): RedirectResponse
     {
         $actor = $this->actor($request);
-        $storeId = $request->integer('store_id');
+        $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'b2b.pricing.manage', 'b2b');
+        $request->merge(['store_id' => $storeId]);
 
         $pricing->upsert($request);
 
@@ -274,14 +286,13 @@ class B2bWorkspaceController extends Controller
     {
         $actor = $this->actor($request);
         $data = $request->validate([
-            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $storeId = (int) $data['store_id'];
+        $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'catalog.manage', 'b2b');
         $catalog = $this->catalogs->defaultCatalogForStore($storeId, 'b2b');
         $parentId = isset($data['parent_id']) ? (int) $data['parent_id'] : null;
@@ -310,7 +321,6 @@ class B2bWorkspaceController extends Controller
     {
         $actor = $this->actor($request);
         $data = $request->validate([
-            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'unit_id' => ['required', 'integer', 'exists:units,id'],
@@ -321,7 +331,7 @@ class B2bWorkspaceController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $storeId = (int) $data['store_id'];
+        $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'catalog.create', 'b2b');
         $catalog = $this->catalogs->defaultCatalogForStore($storeId, 'b2b');
         $categoryId = isset($data['category_id']) ? (int) $data['category_id'] : null;
@@ -380,6 +390,7 @@ class B2bWorkspaceController extends Controller
             ->first(['catalogs.id as catalog_id', 'catalogs.store_id']);
         abort_unless($owner !== null, 404);
         $storeId = (int) $owner->store_id;
+        abort_unless($storeId === $this->principal->storeId(), 404);
         $this->operationalScope->assertStore($actor, $storeId, 'catalog.edit', 'b2b');
 
         $data = $request->validate([
@@ -445,12 +456,11 @@ class B2bWorkspaceController extends Controller
     {
         $actor = $this->actor($request);
         $data = $request->validate([
-            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'code' => ['required', 'string', 'max:80', 'unique:warehouses,code'],
             'name' => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-        $storeId = (int) $data['store_id'];
+        $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'inventory.manage', 'b2b');
 
         $warehouseId = (int) DB::table('warehouses')->insertGetId([
@@ -483,6 +493,7 @@ class B2bWorkspaceController extends Controller
         $warehouse = DB::table('warehouses')->where('id', $data['warehouse_id'])->first(['id', 'store_id']);
         abort_unless($warehouse !== null && $warehouse->store_id !== null, 404);
         $storeId = (int) $warehouse->store_id;
+        abort_unless($storeId === $this->principal->storeId(), 404);
         $this->operationalScope->assertStore($actor, $storeId, 'inventory.manage', 'b2b');
         $this->operationalScope->assertProductOwnedByStore((int) $data['product_id'], $storeId);
 
@@ -513,6 +524,7 @@ class B2bWorkspaceController extends Controller
             ->first(['inventories.id', 'warehouses.store_id']);
         abort_unless($row !== null && $row->store_id !== null, 404);
         $storeId = (int) $row->store_id;
+        abort_unless($storeId === $this->principal->storeId(), 404);
         $this->operationalScope->assertStore($actor, $storeId, 'inventory.adjust', 'b2b');
 
         DB::transaction(function () use ($inventory, $data, $actor, $storeId): void {
@@ -552,11 +564,10 @@ class B2bWorkspaceController extends Controller
     {
         $actor = $this->actor($request);
         $data = $request->validate([
-            'store_id' => ['required', 'integer', 'exists:stores,id'],
             'key' => ['required', 'string', 'max:255'],
             'value' => ['nullable', 'string', 'max:5000'],
         ]);
-        $storeId = (int) $data['store_id'];
+        $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'settings.manage', 'b2b');
 
         DB::table('settings')->updateOrInsert(
@@ -578,36 +589,31 @@ class B2bWorkspaceController extends Controller
 
     private function reportModuleData(User $user, array $storeIds): array
     {
-        $stores = DB::table('stores')->whereIn('id', $storeIds)->orderBy('name')->get(['id', 'name']);
+        $storeId = (int) ($storeIds[0] ?? $this->principal->storeId());
+        $data = $this->reports->run($user, 'orders', ['store_id' => $storeId, 'channel' => 'b2b']);
+
+        $actions = [[
+            'label' => $this->msg('فتح مركز التقارير', 'Open reports'),
+            'url' => route('admin.reports.index', ['report' => 'orders', 'store_id' => $storeId, 'channel' => 'b2b']),
+        ]];
+
+        if ($user->hasPermission('reports.export', $storeId)) {
+            foreach (['xlsx', 'docx', 'pdf'] as $format) {
+                $actions[] = [
+                    'label' => strtoupper($format),
+                    'url' => route('admin.reports.export', ['report' => 'orders', 'format' => $format, 'store_id' => $storeId, 'channel' => 'b2b']),
+                ];
+            }
+        }
 
         return [
-            'columns' => ['store', 'orders', 'revenue', 'average', 'actions'],
-            'rows' => $stores->map(function ($store) use ($user): array {
-                $storeId = (int) $store->id;
-                $data = $this->reports->run($user, 'orders', ['store_id' => $storeId, 'channel' => 'b2b']);
-
-                $actions = [[
-                    'label' => $this->msg('فتح مركز التقارير', 'Open reports'),
-                    'url' => route('admin.reports.index', ['report' => 'orders', 'store_id' => $storeId, 'channel' => 'b2b']),
-                ]];
-
-                if ($user->hasPermission('reports.export', $storeId)) {
-                    foreach (['xlsx', 'docx', 'pdf'] as $format) {
-                        $actions[] = [
-                            'label' => strtoupper($format),
-                            'url' => route('admin.reports.export', ['report' => 'orders', 'format' => $format, 'store_id' => $storeId, 'channel' => 'b2b']),
-                        ];
-                    }
-                }
-
-                return [
-                    'store' => $store->name,
-                    'orders' => (int) data_get($data, 'kpis.orders', 0),
-                    'revenue' => 'EGP '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
-                    'average' => 'EGP '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
-                    'actions' => $actions,
-                ];
-            })->all(),
+            'columns' => ['orders', 'revenue', 'average', 'actions'],
+            'rows' => [[
+                'orders' => (int) data_get($data, 'kpis.orders', 0),
+                'revenue' => 'EGP '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
+                'average' => 'EGP '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
+                'actions' => $actions,
+            ]],
         ];
     }
 
@@ -631,26 +637,17 @@ class B2bWorkspaceController extends Controller
         }
 
         return [
-            'columns' => ['store', 'setting', 'value'],
+            'columns' => ['setting', 'value'],
             'rows' => DB::table('settings')
-                ->join('stores', 'stores.id', '=', 'settings.store_id')
                 ->whereIn('settings.store_id', $storeIds)
                 ->where('settings.is_secret', false)
-                ->orderBy('stores.name')
                 ->orderBy('settings.key')
                 ->limit(150)
-                ->get(['stores.name as store', 'settings.key as setting', 'settings.value'])
+                ->get(['settings.key as setting', 'settings.value'])
                 ->map(fn ($row) => [
-                    'store' => $row->store,
                     'setting' => $row->setting,
                     'value' => $this->displaySettingValue($row->value),
                 ])->all(),
-            'stores' => DB::table('stores')
-                ->whereIn('id', $storeIds)
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
-                ->all(),
             'actions' => $actions,
         ];
     }
@@ -712,25 +709,22 @@ class B2bWorkspaceController extends Controller
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
             ->join('products', 'products.id', '=', 'inventories.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-            ->join('stores', 'stores.id', '=', 'warehouses.store_id')
             ->whereIn('warehouses.store_id', $storeIds)
             ->whereColumn('catalogs.store_id', 'warehouses.store_id')
             ->where('catalogs.channel', 'b2b')
             ->where('catalogs.is_migration_quarantine', false)
-            ->orderBy('stores.name')
+            ->orderBy('warehouses.name')
             ->orderBy('products.name')
             ->get([
                 'inventories.id',
                 'inventories.quantity',
                 'inventories.reserved_quantity',
                 'warehouses.name as warehouse',
-                'stores.name as store',
                 'products.sku',
                 'products.name as product',
             ])
             ->map(fn ($row) => [
                 '_id' => (int) $row->id,
-                'store' => $row->store,
                 'warehouse' => $row->warehouse,
                 'sku' => $row->sku,
                 'product' => $row->product,
@@ -741,14 +735,8 @@ class B2bWorkspaceController extends Controller
             ])->all();
 
         return [
-            'columns' => ['store', 'warehouse', 'sku', 'product', 'quantity', 'reserved', 'available', 'actions'],
+            'columns' => ['warehouse', 'sku', 'product', 'quantity', 'reserved', 'available', 'actions'],
             'rows' => $rows,
-            'stores' => DB::table('stores')
-                ->whereIn('id', $storeIds)
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
-                ->all(),
             'warehouses' => DB::table('warehouses')
                 ->whereIn('store_id', $storeIds)
                 ->where('is_active', true)
@@ -776,16 +764,8 @@ class B2bWorkspaceController extends Controller
 
     private function productModuleData(array $storeIds, User $user): array
     {
-        $stores = DB::table('stores')
-            ->whereIn('id', $storeIds)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
-            ->all();
-
         $rows = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-            ->join('stores', 'stores.id', '=', 'catalogs.store_id')
             ->leftJoin('store_products', function ($join): void {
                 $join->on('store_products.product_id', '=', 'products.id')
                     ->on('store_products.store_id', '=', 'catalogs.store_id');
@@ -805,7 +785,6 @@ class B2bWorkspaceController extends Controller
                 'products.name',
                 'products.description',
                 'products.is_active',
-                'stores.name as store',
                 'store_products.price',
             ])
             ->map(function ($row): array {
@@ -825,7 +804,6 @@ class B2bWorkspaceController extends Controller
                     '_description' => $row->description,
                     'sku' => $row->sku,
                     'name' => $row->name,
-                    'store' => $row->store,
                     'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' EGP',
                     'available' => number_format((float) $stock, 3),
                     'status' => (bool) $row->is_active,
@@ -849,9 +827,8 @@ class B2bWorkspaceController extends Controller
             ->all();
 
         return [
-            'columns' => ['sku', 'name', 'store', 'price', 'available', 'status', 'actions'],
+            'columns' => ['sku', 'name', 'price', 'available', 'status', 'actions'],
             'rows' => $rows,
-            'stores' => $stores,
             'categories' => $categories,
             'brands' => DB::table('brands')
                 ->where('is_active', true)
@@ -905,29 +882,6 @@ class B2bWorkspaceController extends Controller
                         'created' => (string) $row->created,
                     ])->all(),
             ],
-            'stores' => [
-                'columns' => ['code', 'name', 'products', 'orders', 'status'],
-                'rows' => DB::table('stores')
-                    ->whereIn('stores.id', $storeIds)
-                    ->orderBy('stores.name')
-                    ->get(['stores.id', 'stores.code', 'stores.name', 'stores.is_active'])
-                    ->map(fn ($store) => [
-                        'code' => $store->code,
-                        'name' => $store->name,
-                        'products' => DB::table('products')
-                            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-                            ->where('catalogs.store_id', $store->id)
-                            ->where('catalogs.channel', 'b2b')
-                            ->where('catalogs.is_migration_quarantine', false)
-                            ->count(),
-                        'orders' => DB::table('orders')
-                            ->where('store_id', $store->id)
-                            ->where('channel', 'b2b')
-                            ->whereNotNull('b2b_customer_id')
-                            ->count(),
-                        'status' => (bool) $store->is_active,
-                    ])->all(),
-            ],
             'clients' => [
                 'columns' => ['company', 'name', 'email', 'phone', 'tax_number', 'status', 'actions'],
                 'rows' => DB::table('b2b_accounts')
@@ -965,19 +919,17 @@ class B2bWorkspaceController extends Controller
             'inventory' => $this->inventoryModuleData($storeIds),
             'orders' => $this->orderModuleData($storeIds),
             'drivers' => [
-                'columns' => ['name', 'email', 'store', 'availability', 'active', 'assignments'],
+                'columns' => ['name', 'email', 'availability', 'active', 'assignments'],
                 'rows' => DB::table('drivers')
                     ->join('users', 'users.id', '=', 'drivers.user_id')
-                    ->join('stores', 'stores.id', '=', 'drivers.store_id')
                     ->where('drivers.driver_type', 'b2b')
                     ->whereIn('drivers.store_id', $storeIds)
                     ->orderBy('users.name')
-                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.email', 'stores.name as store', 'drivers.is_available', 'drivers.is_active'])
+                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.email', 'drivers.is_available', 'drivers.is_active'])
                     ->map(fn ($row) => [
                         '_id' => (int) $row->id,
                         'name' => $row->name,
                         'email' => $row->email,
-                        'store' => $row->store,
                         'availability' => (bool) $row->is_available,
                         'active' => (bool) $row->is_active,
                         'assignments' => DB::table('driver_assignments')
@@ -1005,32 +957,23 @@ class B2bWorkspaceController extends Controller
                     ->get(['id', 'store_id', 'order_number'])
                     ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'number' => $row->order_number])
                     ->all(),
-                'stores' => DB::table('stores')
-                    ->whereIn('id', $storeIds)
-                    ->orderBy('name')
-                    ->get(['id', 'name'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
-                    ->all(),
             ],
             'pricing' => [
-                'columns' => ['tier', 'sku', 'product', 'store', 'unit_price', 'minimum_quantity', 'status'],
+                'columns' => ['tier', 'sku', 'product', 'unit_price', 'minimum_quantity', 'status'],
                 'rows' => DB::table('b2b_price_rules')
                     ->join('b2b_price_tiers', 'b2b_price_tiers.id', '=', 'b2b_price_rules.price_tier_id')
                     ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
                     ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-                    ->join('stores', 'stores.id', '=', 'b2b_price_rules.store_id')
                     ->whereIn('b2b_price_rules.store_id', $storeIds)
                     ->whereColumn('catalogs.store_id', 'b2b_price_rules.store_id')
                     ->where('catalogs.channel', 'b2b')
                     ->where('catalogs.is_migration_quarantine', false)
-                    ->orderBy('stores.name')
                     ->orderBy('products.name')
                     ->limit(100)
                     ->get([
                         'b2b_price_tiers.name as tier',
                         'products.sku',
                         'products.name as product',
-                        'stores.name as store',
                         'b2b_price_rules.unit_price',
                         'b2b_price_rules.minimum_quantity',
                         'b2b_price_rules.is_active as status',
@@ -1039,19 +982,12 @@ class B2bWorkspaceController extends Controller
                         'tier' => $row->tier,
                         'sku' => $row->sku,
                         'product' => $row->product,
-                        'store' => $row->store,
                         'unit_price' => number_format((float) $row->unit_price, 3).' EGP',
                         'minimum_quantity' => number_format((float) $row->minimum_quantity, 3),
                         'status' => (bool) $row->status,
                     ])->all(),
                 'tiers' => DB::table('b2b_price_tiers')
                     ->orderBy('priority')
-                    ->get(['id', 'name'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
-                    ->all(),
-                'stores' => DB::table('stores')
-                    ->whereIn('id', $storeIds)
-                    ->orderBy('name')
                     ->get(['id', 'name'])
                     ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
                     ->all(),
@@ -1099,9 +1035,52 @@ class B2bWorkspaceController extends Controller
             ])
             ->all();
 
+        $warehouses = DB::table('warehouses')
+            ->whereIn('store_id', $storeIds)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code'])
+            ->map(fn ($row) => [
+                'id' => (int) $row->id,
+                'name' => $row->name,
+                'code' => $row->code,
+            ])
+            ->all();
+
+        $warehouseIdsByProduct = DB::table('inventories')
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->whereIn('warehouses.store_id', $storeIds)
+            ->where('warehouses.is_active', true)
+            ->get(['inventories.product_id', 'warehouses.id as warehouse_id'])
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->pluck('warehouse_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
+
+        $products = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->join('store_products', function ($join): void {
+                $join->on('store_products.product_id', '=', 'products.id')
+                    ->on('store_products.store_id', '=', 'catalogs.store_id');
+            })
+            ->whereIn('catalogs.store_id', $storeIds)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('catalogs.is_active', true)
+            ->where('products.is_active', true)
+            ->where('store_products.is_active', true)
+            ->orderBy('products.name')
+            ->get(['products.id', 'catalogs.store_id', 'products.sku', 'products.name'])
+            ->map(fn ($row) => [
+                'id' => (int) $row->id,
+                'store_id' => (int) $row->store_id,
+                'sku' => $row->sku,
+                'name' => $row->name,
+                'warehouse_ids' => $warehouseIdsByProduct->get($row->id, []),
+            ])
+            ->all();
+
         $rows = DB::table('orders')
             ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
-            ->join('stores', 'stores.id', '=', 'orders.store_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', 'orders.warehouse_id')
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2b')
             ->whereNotNull('orders.b2b_customer_id')
@@ -1110,11 +1089,12 @@ class B2bWorkspaceController extends Controller
             ->get([
                 'orders.id',
                 'orders.store_id',
+                'orders.warehouse_id',
                 'orders.b2b_customer_id',
                 'orders.address_id',
                 'orders.order_number as number',
                 'b2b_customers.name as client',
-                'stores.name as store',
+                'warehouses.name as warehouse',
                 'orders.status',
                 'orders.currency',
                 'orders.subtotal',
@@ -1165,6 +1145,7 @@ class B2bWorkspaceController extends Controller
                 return [
                     '_id' => (int) $row->id,
                     '_store_id' => (int) $row->store_id,
+                    '_warehouse_id' => $row->warehouse_id === null ? null : (int) $row->warehouse_id,
                     '_customer_id' => (int) $row->b2b_customer_id,
                     '_address_id' => $row->address_id === null ? null : (int) $row->address_id,
                     '_subtotal' => (float) $row->subtotal,
@@ -1189,45 +1170,21 @@ class B2bWorkspaceController extends Controller
                     ],
                     'number' => $row->number,
                     'client' => $row->client,
-                    'store' => $row->store,
+                    'warehouse' => $row->warehouse ?: $this->msg('طلب قديم - مخزن غير محدد', 'Legacy order - warehouse not set'),
                     'status' => $row->status,
                     'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
                     'created' => (string) $row->created,
                     'actions' => true,
                 ];
-            })->all();
+            })
+            ->all();
 
         return [
-            'columns' => ['number', 'client', 'store', 'status', 'amount', 'created', 'actions'],
+            'columns' => ['number', 'client', 'warehouse', 'status', 'amount', 'created', 'actions'],
             'rows' => $rows,
             'customers' => $customers,
-            'stores' => DB::table('stores')
-                ->whereIn('id', $storeIds)
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
-                ->all(),
-            'products' => DB::table('products')
-                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-                ->join('store_products', function ($join): void {
-                    $join->on('store_products.product_id', '=', 'products.id')
-                        ->on('store_products.store_id', '=', 'catalogs.store_id');
-                })
-                ->whereIn('catalogs.store_id', $storeIds)
-                ->where('catalogs.channel', 'b2b')
-                ->where('catalogs.is_migration_quarantine', false)
-                ->where('catalogs.is_active', true)
-                ->where('products.is_active', true)
-                ->where('store_products.is_active', true)
-                ->orderBy('products.name')
-                ->get(['products.id', 'catalogs.store_id', 'products.sku', 'products.name'])
-                ->map(fn ($row) => [
-                    'id' => (int) $row->id,
-                    'store_id' => (int) $row->store_id,
-                    'sku' => $row->sku,
-                    'name' => $row->name,
-                ])->all(),
+            'warehouses' => $warehouses,
+            'products' => $products,
             'addresses' => DB::table('addresses')
                 ->whereIn('b2b_customer_id', collect($customers)->pluck('id')->all())
                 ->orderBy('id')
@@ -1236,7 +1193,8 @@ class B2bWorkspaceController extends Controller
                     'id' => (int) $row->id,
                     'customer_id' => (int) $row->b2b_customer_id,
                     'label' => 'Address #'.$row->id,
-                ])->all(),
+                ])
+                ->all(),
             'drivers' => DB::table('drivers')
                 ->join('users', 'users.id', '=', 'drivers.user_id')
                 ->where('drivers.driver_type', 'b2b')
@@ -1248,7 +1206,8 @@ class B2bWorkspaceController extends Controller
                     'id' => (int) $row->id,
                     'store_id' => (int) $row->store_id,
                     'name' => $row->name,
-                ])->all(),
+                ])
+                ->all(),
             'payment_methods' => array_values((array) config('checkout.payment_methods', ['cash_on_delivery'])),
         ];
     }
@@ -1256,7 +1215,7 @@ class B2bWorkspaceController extends Controller
     /** @return list<int> */
     private function wholesaleStoreIds(User $user): array
     {
-        return $this->operationalScope->allowedStoreIds($user, 'stores.view', 'b2b');
+        return [$this->principal->storeId()];
     }
 
     private function actor(Request $request): User

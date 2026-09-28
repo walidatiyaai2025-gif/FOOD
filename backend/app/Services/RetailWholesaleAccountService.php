@@ -11,9 +11,9 @@ final class RetailWholesaleAccountService
 {
     public function __construct(private readonly B2bCustomerService $customers) {}
 
-    public function ensureForStore(Store $store): B2bCustomer
+    public function ensureForStore(Store $store, ?int $priceTierId = null): B2bCustomer
     {
-        return DB::transaction(function () use ($store): B2bCustomer {
+        return DB::transaction(function () use ($store, $priceTierId): B2bCustomer {
             $locked = Store::query()->whereKey($store->getKey())->lockForUpdate()->firstOrFail();
             $this->assertRetailStore($locked);
 
@@ -23,7 +23,7 @@ final class RetailWholesaleAccountService
 
             if ($existingCustomerId !== null) {
                 $customer = B2bCustomer::query()->findOrFail((int) $existingCustomerId);
-                $this->syncIdentity($locked, $customer);
+                $this->syncIdentity($locked, $customer, $priceTierId);
 
                 return $customer->refresh();
             }
@@ -37,7 +37,7 @@ final class RetailWholesaleAccountService
             B2bAccount::query()->create([
                 'customer_id' => $customer->legacy_customer_id,
                 'b2b_customer_id' => $customer->getKey(),
-                'price_tier_id' => null,
+                'price_tier_id' => $priceTierId,
                 'company_name' => (string) $locked->name,
                 'status' => $locked->is_active ? 'active' : 'suspended',
                 'tax_number' => null,
@@ -55,9 +55,9 @@ final class RetailWholesaleAccountService
         }, 3);
     }
 
-    public function syncForStore(Store $store): B2bCustomer
+    public function syncForStore(Store $store, ?int $priceTierId = null): B2bCustomer
     {
-        return $this->ensureForStore($store);
+        return $this->ensureForStore($store, $priceTierId);
     }
 
     public function retailStoreIdForCustomer(int $b2bCustomerId): ?int
@@ -69,7 +69,7 @@ final class RetailWholesaleAccountService
         return $storeId === null ? null : (int) $storeId;
     }
 
-    private function syncIdentity(Store $store, B2bCustomer $customer): void
+    private function syncIdentity(Store $store, B2bCustomer $customer, ?int $priceTierId = null): void
     {
         DB::table('b2b_customers')
             ->where('id', $customer->getKey())
@@ -103,7 +103,7 @@ final class RetailWholesaleAccountService
             B2bAccount::query()->create([
                 'customer_id' => $customer->legacy_customer_id,
                 'b2b_customer_id' => $customer->getKey(),
-                'price_tier_id' => null,
+                'price_tier_id' => $priceTierId,
                 'company_name' => (string) $store->name,
                 'status' => $store->is_active ? 'active' : 'suspended',
                 'tax_number' => null,
@@ -113,12 +113,17 @@ final class RetailWholesaleAccountService
             return;
         }
 
-        $account->update([
+        $updates = [
             'customer_id' => $customer->legacy_customer_id,
             'b2b_customer_id' => $customer->getKey(),
             'company_name' => (string) $store->name,
             'status' => $store->is_active ? 'active' : 'suspended',
-        ]);
+        ];
+        if ($priceTierId !== null) {
+            $updates['price_tier_id'] = $priceTierId;
+        }
+
+        $account->update($updates);
     }
 
     private function assertRetailStore(Store $store): void

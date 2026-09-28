@@ -29,7 +29,8 @@ final class AdminOrderManagementService
 
     public function create(Request $request, User $actor, string $channel, int $storeId): Order
     {
-        $data = $this->validated($request);
+        $data = $this->validated($request, $channel);
+        $warehouseId = $this->warehouseId($channel, $storeId, $data['warehouse_id'] ?? null);
         [$customerId, $legacyCustomerId] = $this->customerIds($channel, $storeId, (int) $data['customer_id']);
         $addressId = $this->addressId($channel, $customerId, $data['address_id'] ?? null);
         $lines = $this->lineSnapshots($channel, $storeId, $customerId, $data['items']);
@@ -41,6 +42,7 @@ final class AdminOrderManagementService
             $actor,
             $channel,
             $storeId,
+            $warehouseId,
             $customerId,
             $legacyCustomerId,
             $addressId,
@@ -53,6 +55,7 @@ final class AdminOrderManagementService
 
             $order = Order::query()->create([
                 'store_id' => $storeId,
+                'warehouse_id' => $warehouseId,
                 'customer_id' => $legacyCustomerId,
                 $customerColumn => $customerId,
                 'address_id' => $addressId,
@@ -112,6 +115,7 @@ final class AdminOrderManagementService
                 null,
                 [
                     'store_id' => $storeId,
+                    'warehouse_id' => $warehouseId,
                     'channel' => $channel,
                     'customer_id' => $customerId,
                     'grand_total' => $totals['grand_total'],
@@ -133,7 +137,10 @@ final class AdminOrderManagementService
 
     public function update(Request $request, User $actor, Order $order): Order
     {
-        $data = $this->validated($request);
+        $channel = strtolower((string) $order->channel);
+        $storeId = (int) $order->store_id;
+        $data = $this->validated($request, $channel);
+        $warehouseId = $this->warehouseId($channel, $storeId, $data['warehouse_id'] ?? null);
 
         if ((string) $order->status !== 'pending') {
             throw ValidationException::withMessages([
@@ -147,8 +154,6 @@ final class AdminOrderManagementService
             ]);
         }
 
-        $channel = strtolower((string) $order->channel);
-        $storeId = (int) $order->store_id;
         [$customerId, $legacyCustomerId] = $this->customerIds($channel, $storeId, (int) $data['customer_id']);
         $addressId = $this->addressId($channel, $customerId, $data['address_id'] ?? null);
         $lines = $this->lineSnapshots($channel, $storeId, $customerId, $data['items']);
@@ -159,6 +164,7 @@ final class AdminOrderManagementService
             'b2b_customer_id' => $order->b2b_customer_id,
             'b2c_customer_id' => $order->b2c_customer_id,
             'address_id' => $order->address_id,
+            'warehouse_id' => $order->warehouse_id,
             'subtotal' => (float) $order->subtotal,
             'discount_total' => (float) $order->discount_total,
             'delivery_total' => (float) $order->delivery_total,
@@ -173,6 +179,7 @@ final class AdminOrderManagementService
             $data,
             $channel,
             $storeId,
+            $warehouseId,
             $customerId,
             $legacyCustomerId,
             $addressId,
@@ -197,6 +204,7 @@ final class AdminOrderManagementService
                 'customer_id' => $legacyCustomerId,
                 'b2b_customer_id' => $channel === 'b2b' ? $customerId : null,
                 'b2c_customer_id' => $channel === 'b2c' ? $customerId : null,
+                'warehouse_id' => $warehouseId,
                 'address_id' => $addressId,
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount_total'],
@@ -252,6 +260,7 @@ final class AdminOrderManagementService
                 $before,
                 [
                     'store_id' => $storeId,
+                    'warehouse_id' => $warehouseId,
                     'channel' => $channel,
                     'customer_id' => $customerId,
                     'grand_total' => $totals['grand_total'],
@@ -268,9 +277,12 @@ final class AdminOrderManagementService
     }
 
     /** @return array<string, mixed> */
-    private function validated(Request $request): array
+    private function validated(Request $request, string $channel): array
     {
         return $request->validate([
+            'warehouse_id' => $channel === 'b2b'
+                ? ['required', 'integer', 'exists:warehouses,id']
+                : ['nullable', 'integer', 'exists:warehouses,id'],
             'customer_id' => ['required', 'integer', 'min:1'],
             'address_id' => ['nullable', 'integer', 'min:1'],
             'payment_method' => ['required', 'string', 'max:50'],
@@ -281,6 +293,27 @@ final class AdminOrderManagementService
             'items.*.product_id' => ['required', 'integer', 'min:1', 'distinct'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
         ]);
+    }
+
+    private function warehouseId(string $channel, int $storeId, mixed $warehouseId): ?int
+    {
+        if ($channel !== 'b2b') {
+            return null;
+        }
+
+        $warehouse = DB::table('warehouses')
+            ->where('id', (int) $warehouseId)
+            ->where('store_id', $storeId)
+            ->where('is_active', true)
+            ->first(['id']);
+
+        if ($warehouse === null) {
+            throw ValidationException::withMessages([
+                'warehouse_id' => ['The selected warehouse must belong to the main Wholesale operation.'],
+            ]);
+        }
+
+        return (int) $warehouse->id;
     }
 
     /** @return array{0: int, 1: int} domain customer id, legacy customer id */

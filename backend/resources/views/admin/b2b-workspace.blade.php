@@ -222,14 +222,14 @@
                 @if(count($dashboard['recent_orders']))
                 <div class="b2b-ref-orders-wrap">
                     <table class="b2b-ref-orders">
-                        <thead><tr><th>#</th><th>{{ $isAr?'رقم الطلب':'Order' }}</th><th>{{ $isAr?'العميل':'Customer' }}</th><th>{{ $isAr?'الفرع':'Store' }}</th><th>{{ $isAr?'المبلغ':'Amount' }}</th><th>{{ $isAr?'الحالة':'Status' }}</th></tr></thead>
+                        <thead><tr><th>#</th><th>{{ $isAr?'رقم الطلب':'Order' }}</th><th>{{ $isAr?'العميل':'Customer' }}</th><th>{{ $isAr?'مخزن الصرف':'Source warehouse' }}</th><th>{{ $isAr?'المبلغ':'Amount' }}</th><th>{{ $isAr?'الحالة':'Status' }}</th></tr></thead>
                         <tbody>
                         @foreach($dashboard['recent_orders'] as $index=>$order)
                             <tr>
                                 <td>{{ $index+1 }}</td>
                                 <td class="b2b-ref-order-number">#{{ $order['number'] }}</td>
                                 <td>{{ $order['customer'] }}</td>
-                                <td>{{ $order['store'] }}</td>
+                                <td>{{ $order['warehouse'] ?: ($isAr?'غير محدد':'Not set') }}</td>
                                 <td class="foodex-number">{{ $order['currency'] }} {{ number_format($order['amount'],0) }}</td>
                                 <td><span class="b2b-ref-status {{ $order['status'] }}">{{ $statusLabels[$order['status']] ?? $order['status'] }}</span></td>
                             </tr>
@@ -296,7 +296,7 @@
     @if($errors->any())<div class="panel" style="border-color:#ffd0a6;background:var(--foodex-orange-soft)"><strong>{{ app()->getLocale()==='ar'?'تعذر تنفيذ العملية':'Action could not be completed' }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     <section class="panel workspace-panel">
       <div class="toolbar">
-        <div><strong>{{ __('admin.b2b_workspace.authoritative') }}</strong><div class="muted">{{ app()->getLocale()==='ar' ? 'النطاق محصور في متاجر وعمليات الجملة.' : 'Scope is restricted to Wholesale stores and channel data.' }}</div></div>
+        <div><strong>{{ __('admin.b2b_workspace.authoritative') }}</strong><div class="muted">{{ app()->getLocale()==='ar' ? 'النطاق هو متجر الجملة الرئيسي ومخازنه؛ لا توجد فروع جملة مستقلة.' : 'The scope is the main Wholesale operation and its warehouses; there are no separate Wholesale branches.' }}</div></div>
         <nav class="links workspace-tabs" aria-label="Wholesale core modules">
           @foreach($visibleModules as $core)
           <a class="{{ $module===$core?'active':'' }}" href="{{ $core==='dashboard'?route('admin.b2b.dashboard'):route('admin.b2b.module',['module'=>$core]) }}">{{ __('admin.b2b_workspace.modules.'.$core) }}</a>
@@ -325,7 +325,6 @@
       @if($module==='products' && $user->hasPermission('catalog.manage'))
       <form method="post" action="{{ route('admin.b2b.categories.store') }}" class="links workspace-inline-form">
         @csrf
-        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'فرع الجملة':'Wholesale store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
         <select name="parent_id"><option value="">{{ app()->getLocale()==='ar'?'بدون تصنيف أب':'No parent category' }}</option>@foreach($moduleData['categories'] as $category)<option value="{{ $category['id'] }}">{{ $category['name'] }}</option>@endforeach</select>
         <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم التصنيف':'Category name' }}">
         <input name="slug" required maxlength="255" placeholder="category-slug">
@@ -337,7 +336,6 @@
       @if($module==='products' && $user->hasPermission('catalog.create'))
       <form method="post" action="{{ route('admin.b2b.products.store') }}" class="links workspace-inline-form">
         @csrf
-        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'فرع الجملة':'Wholesale store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
         <input name="sku" required maxlength="120" placeholder="SKU">
         <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}">
         <select name="category_id"><option value="">{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}</option>@foreach($moduleData['categories'] as $category)<option value="{{ $category['id'] }}">{{ $category['name'] }}</option>@endforeach</select>
@@ -353,7 +351,6 @@
       @if($module==='inventory' && $user->hasPermission('inventory.manage'))
       <form method="post" action="{{ route('admin.b2b.warehouses.store') }}" class="links workspace-inline-form">
         @csrf
-        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'فرع الجملة':'Wholesale store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
         <input name="code" required maxlength="80" placeholder="{{ app()->getLocale()==='ar'?'كود المخزن':'Warehouse code' }}">
         <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم المخزن':'Warehouse name' }}">
         <input type="hidden" name="is_active" value="1">
@@ -371,7 +368,6 @@
       @if($module==='drivers' && $user->hasPermission('drivers.b2b.manage'))
       <form method="post" action="{{ route('admin.b2b.drivers.store') }}" class="links workspace-inline-form">
         @csrf
-        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'فرع الجملة':'Wholesale store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
         <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم السائق':'Driver name' }}">
         <input name="email" type="email" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'البريد':'Email' }}">
         <input name="password" type="password" required minlength="8" placeholder="{{ app()->getLocale()==='ar'?'كلمة المرور':'Password' }}">
@@ -382,7 +378,6 @@
       @if($module==='settings' && $user->hasPermission('settings.manage'))
       <form method="post" action="{{ route('admin.b2b.settings.save') }}" class="links workspace-inline-form">
         @csrf @method('put')
-        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'فرع الجملة':'Wholesale store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
         <input name="key" required maxlength="255" placeholder="wholesale.setting.key">
         <input name="value" maxlength="5000" placeholder="{{ app()->getLocale()==='ar'?'القيمة':'Value' }}">
         <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ الإعداد':'Save setting' }}</button>
@@ -400,7 +395,6 @@
       <form method="post" action="{{ route('admin.b2b.pricing.save') }}" class="links workspace-inline-form">
         @csrf
         <select name="price_tier_id" required><option value="">{{ app()->getLocale()==='ar'?'شريحة السعر':'Price tier' }}</option>@foreach($moduleData['tiers'] as $tier)<option value="{{ $tier['id'] }}">{{ $tier['name'] }}</option>@endforeach</select>
-        <select name="store_id" required><option value="">{{ app()->getLocale()==='ar'?'الفرع':'Store' }}</option>@foreach($moduleData['stores'] as $store)<option value="{{ $store['id'] }}">{{ $store['name'] }}</option>@endforeach</select>
         <select name="product_id" required><option value="">{{ app()->getLocale()==='ar'?'المنتج':'Product' }}</option>@foreach($moduleData['products'] as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach</select>
         <input name="unit_price" type="number" min="0" step="0.001" placeholder="{{ app()->getLocale()==='ar'?'سعر الوحدة':'Unit price' }}" required>
         <input name="minimum_quantity" type="number" min="0.001" step="0.001" placeholder="{{ app()->getLocale()==='ar'?'الحد الأدنى':'Minimum quantity' }}" required>

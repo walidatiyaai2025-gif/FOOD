@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.20 - Wholesale Principal & Retail Commercial Setup
+- Make FOODEX itself the single Wholesale principal; remove user-managed Wholesale branch selectors and keep warehouses beneath the principal.
+- Create and edit B2B orders from a selected source warehouse and reserve stock only from that warehouse.
+- Make B2B drivers, catalog, pricing and settings inherit the main Wholesale principal without selecting a store.
+- Require a logo and Wholesale price tier when provisioning a Retail store; synchronize that tier to the Retail store's linked B2B purchasing account.
+
 ## 1.0.20 - System Inspector Production Hotfix
 - Automatically restore and verify `public/storage` during Dashboard Update execution so uploaded media remains publicly reachable after upgrades.
 - Prevent invalid Retail-linked Wholesale account status mutations in the B2B UI and explain that the Retail store controls the lifecycle.
