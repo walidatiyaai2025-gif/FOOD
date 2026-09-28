@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.24 - Driver assignment production hardening
+
+- Reconcile B2B and Retail driver execution permissions during production upgrades so existing driver roles can execute their assigned deliveries after an update.
+- Treat cancelled driver assignments as historical rather than active work in both the Driver API and Driver app filters.
+- Block transitions against cancelled or unassigned assignment rows while preserving assignment history.
+- Keep the Firebase service-account authentication and complete assign/unassign/reassign controls introduced in 1.0.23.
+- Add regression coverage for cancelled assignment visibility and production permission reconciliation.
+
 ## 1.0.23 - Firebase service-account push and complete driver order control
 
 - Replace expiring manually-entered Firebase access tokens with encrypted Google/Firebase service-account JSON and automatic OAuth2 token generation/cache for Firebase HTTP v1, while retaining legacy access-token compatibility.
