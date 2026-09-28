@@ -11,6 +11,7 @@ use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverOrderService;
 use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -33,7 +34,7 @@ class DriverAssignmentController extends Controller
             );
 
         match ($scope) {
-            'active' => $query->whereNotIn('status', ['delivered', 'failed']),
+            'active' => $query->whereNotIn('status', ['delivered', 'failed', 'unassigned', 'reassigned']),
             'completed' => $query->where('status', 'delivered'),
             'failed' => $query->where('status', 'failed'),
             default => null,
@@ -134,7 +135,7 @@ class DriverAssignmentController extends Controller
         abort_if(
             DriverAssignment::query()
                 ->where('order_id', $order->getKey())
-                ->whereNotIn('status', ['delivered', 'failed'])
+                ->whereNotIn('status', ['delivered', 'failed', 'unassigned', 'reassigned'])
                 ->exists(),
             409,
             'Order already has an active driver assignment.',
@@ -223,13 +224,28 @@ class DriverAssignmentController extends Controller
         abort_unless($user->hasPermission("deliveries.{$channel}.execute"), 403);
 
         if ($driver->store_id === null) {
-            abort_unless(
-                ! DriverAssignment::query()->where('driver_id', $driver->getKey())->exists(),
-                403,
-                'Driver store ownership must be reconciled before delivery execution.',
-            );
+            $historicalStores = DriverAssignment::query()
+                ->where('driver_id', $driver->getKey())
+                ->whereNotNull('store_id')
+                ->distinct()
+                ->pluck('store_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->values()
+                ->all();
+
+            if (count($historicalStores) === 1) {
+                $driver->forceFill(['store_id' => $historicalStores[0]])->save();
+            } elseif ($historicalStores === [] && $channel === 'b2b') {
+                $driver->forceFill(['store_id' => app(WholesalePrincipal::class)->storeId()])->save();
+            } else {
+                abort_unless(
+                    $historicalStores === [],
+                    403,
+                    'Driver store ownership is ambiguous and must be reconciled before delivery execution.',
+                );
+            }
         }
 
-        return [$driver, $channel];
+        return [$driver->fresh(), $channel];
     }
 }
