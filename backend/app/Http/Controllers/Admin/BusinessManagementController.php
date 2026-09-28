@@ -13,11 +13,13 @@ use App\Services\OperationalTenantScope;
 use App\Support\TenantContextResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 final class BusinessManagementController extends Controller
 {
@@ -306,7 +308,7 @@ final class BusinessManagementController extends Controller
         app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'promotions.manage');
 
         $bannerImage = $request->file('banner_image');
-        abort_unless($bannerImage instanceof \Illuminate\Http\UploadedFile, 422);
+        abort_unless($bannerImage instanceof UploadedFile, 422);
         $path = $images->store($bannerImage, $storeId);
         try {
             unset($data['banner_image']);
@@ -316,7 +318,7 @@ final class BusinessManagementController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             $images->delete($path);
             throw $exception;
         }
@@ -338,7 +340,7 @@ final class BusinessManagementController extends Controller
         $newPath = null;
         if ($request->hasFile('banner_image')) {
             $bannerImage = $request->file('banner_image');
-            abort_unless($bannerImage instanceof \Illuminate\Http\UploadedFile, 422);
+            abort_unless($bannerImage instanceof UploadedFile, 422);
             $newPath = $images->store($bannerImage, $storeId);
         }
         unset($data['banner_image']);
@@ -349,7 +351,7 @@ final class BusinessManagementController extends Controller
                 ...($newPath !== null ? ['image_path' => $newPath] : []),
                 'updated_at' => now(),
             ]);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             if ($newPath !== null) {
                 $images->delete($newPath);
             }
