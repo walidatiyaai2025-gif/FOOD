@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\OperationalTenantScope;
 use App\Services\StoreLogoService;
+use App\Support\TenantContextResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -59,7 +60,7 @@ final class StorefrontDesignController extends Controller
         ]);
 
         $storeId = (int) $data['store_id'];
-        $this->assertStore($actor, $storeId);
+        $this->assertStore($actor, $storeId, $request);
 
         $store = DB::table('stores')->where('id', $storeId)->first(['id', 'logo_path']);
         abort_unless($store !== null, 404);
@@ -133,7 +134,7 @@ final class StorefrontDesignController extends Controller
         $actor = $this->actor($request);
         $data = $this->sectionData($request);
         $storeId = (int) $data['store_id'];
-        $this->assertStore($actor, $storeId);
+        $this->assertStore($actor, $storeId, $request);
 
         if (DB::table('storefront_sections')
             ->where('store_id', $storeId)
@@ -174,7 +175,7 @@ final class StorefrontDesignController extends Controller
         $current = DB::table('storefront_sections')->where('id', $section)->first();
         abort_unless($current !== null, 404);
         $storeId = (int) $current->store_id;
-        $this->assertStore($actor, $storeId);
+        $this->assertStore($actor, $storeId, $request);
 
         $data = $this->sectionData($request);
         abort_unless((int) $data['store_id'] === $storeId, 404);
@@ -219,7 +220,7 @@ final class StorefrontDesignController extends Controller
         $current = DB::table('storefront_sections')->where('id', $section)->first();
         abort_unless($current !== null, 404);
         $storeId = (int) $current->store_id;
-        $this->assertStore($actor, $storeId);
+        $this->assertStore($actor, $storeId, $request);
 
         DB::table('storefront_sections')->where('id', $section)->delete();
 
@@ -244,7 +245,7 @@ final class StorefrontDesignController extends Controller
         ]);
 
         $storeId = (int) $data['store_id'];
-        $this->assertStore($actor, $storeId);
+        $this->assertStore($actor, $storeId, $request);
         $country = strtoupper($data['country_code']);
         $city = $this->nullableTrim($data['city'] ?? null);
         $area = $this->nullableTrim($data['area'] ?? null);
@@ -279,7 +280,7 @@ final class StorefrontDesignController extends Controller
         $current = DB::table('store_service_zones')->where('id', $zone)->first();
         abort_unless($current !== null, 404);
         $storeId = (int) $current->store_id;
-        $this->assertStore($actor, $storeId);
+        $this->assertStore($actor, $storeId, $request);
 
         DB::table('store_service_zones')->where('id', $zone)->delete();
 
@@ -305,8 +306,14 @@ final class StorefrontDesignController extends Controller
         ]);
     }
 
-    private function assertStore(User $actor, int $storeId): void
+    private function assertStore(User $actor, int $storeId, Request $request): void
     {
+        app(TenantContextResolver::class)->retail(
+            $actor,
+            $storeId,
+            $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
+            $request,
+        );
         app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'settings.manage', 'b2c');
     }
 
