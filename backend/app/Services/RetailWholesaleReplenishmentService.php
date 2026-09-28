@@ -225,7 +225,7 @@ final class RetailWholesaleReplenishmentService
         );
 
         abort_unless(
-            strtolower((string) $catalog->channel) === 'b2c' && ! $catalog->is_migration_quarantine,
+            strtolower((string) $catalog->channel) === 'b2c' && !$catalog->is_migration_quarantine,
             409,
             'Retail default catalog ownership is inconsistent.',
         );
@@ -441,7 +441,7 @@ final class RetailWholesaleReplenishmentService
                 continue;
             }
 
-            $isPrimary = ! $hasPrimary && (bool) $image->is_primary;
+            $isPrimary = !$hasPrimary && (bool) $image->is_primary;
             DB::table('product_images')->insert([
                 'product_id' => $retailProductId,
                 'path' => (string) $image->path,
