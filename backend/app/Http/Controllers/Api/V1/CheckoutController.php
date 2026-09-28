@@ -67,12 +67,12 @@ class CheckoutController extends Controller
                 ->where('b2b_customer_id', $customer->getKey())
                 ->where('status', 'active')
                 ->firstOrFail();
-            if ((float) $b2bAccount->credit_limit > 0 && !in_array('account_credit', $allowedMethods, true)) {
+            if ((float) $b2bAccount->credit_limit > 0 && ! in_array('account_credit', $allowedMethods, true)) {
                 $allowedMethods[] = 'account_credit';
             }
         }
 
-        if (!in_array($paymentMethod, $allowedMethods, true)) {
+        if (! in_array($paymentMethod, $allowedMethods, true)) {
             throw ValidationException::withMessages([
                 'payment_method' => ['The selected payment method is not configured.'],
             ]);
@@ -117,7 +117,7 @@ class CheckoutController extends Controller
 
             if ($existing instanceof Order) {
                 abort_if(
-                    !hash_equals((string) $existing->checkout_request_hash, $requestHash),
+                    ! hash_equals((string) $existing->checkout_request_hash, $requestHash),
                     409,
                     'Idempotency key was already used for a different checkout request.',
                 );
