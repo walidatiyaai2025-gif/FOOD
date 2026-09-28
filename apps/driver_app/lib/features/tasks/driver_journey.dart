@@ -148,7 +148,8 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     return assignments.where((assignment) {
       final matchesFilter = switch (_filter) {
         DriverOrderFilter.active =>
-          !const ['delivered', 'failed', 'unassigned'].contains(assignment.status),
+          !const ['delivered', 'failed', 'cancelled', 'unassigned']
+              .contains(assignment.status),
         DriverOrderFilter.completed => assignment.status == 'delivered',
         DriverOrderFilter.failed => assignment.status == 'failed',
         DriverOrderFilter.all => true,

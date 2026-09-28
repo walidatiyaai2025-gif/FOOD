@@ -15,3 +15,9 @@ Issue #98 centralizes Customer and Driver runtime/store metadata and push delive
 - Android creates the `foodex_updates` notification channel; iOS uses the production push entitlement and Firebase/APNs bridge.
 - Client token refresh re-registers the device; logout/session teardown revokes the current server device record.
 - Notification taps are constrained to approved in-app destinations and foreground pushes surface in-app without bypassing authorization.
+
+## Firebase service-account authentication
+
+For production Firebase HTTP v1 delivery, paste the Google/Firebase service-account JSON for the selected app/platform/environment. FOODEX requires `project_id`, `client_email`, and `private_key`; `token_uri` is optional and defaults to Google's OAuth endpoint. The JSON is encrypted at rest. FOODEX signs a short-lived JWT, obtains an OAuth2 access token, caches it before expiry, and refreshes it automatically. Operators should not paste a manually generated access token for normal production use.
+
+Legacy provider records containing `project_id` plus `access_token` remain supported during migration. Test-send failures preserve the actionable provider/OAuth reason in the administration delivery log.
