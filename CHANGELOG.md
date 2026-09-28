@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.20 - Wholesale Principal & Retail Commercial Setup
+## 1.0.21 - Wholesale Principal & Retail Commercial Setup
 - Make FOODEX itself the single Wholesale principal; remove user-managed Wholesale branch selectors and keep warehouses beneath the principal.
 - Create and edit B2B orders from a selected source warehouse and reserve stock only from that warehouse.
 - Make B2B drivers, catalog, pricing and settings inherit the main Wholesale principal without selecting a store.
