@@ -62,10 +62,8 @@ class _MultiStorefrontScreenState extends State<MultiStorefrontScreen> {
     }
   }
 
-  _StoreTheme _retailTheme(B2cStore? store) {
-    final key = '${store?.code ?? ''} ${store?.name ?? ''}'.toLowerCase();
-    return key.contains('pharm') || key.contains('صيد') ? pharmacy : grocery;
-  }
+  _StoreTheme _retailTheme(B2cStore? store) =>
+      store?.storefrontKind == 'pharmacy' ? pharmacy : grocery;
 
   Widget _shell({required Widget child, required _StoreTheme theme, Widget? bottom}) => Directionality(
         textDirection: TextDirection.rtl,
@@ -158,23 +156,32 @@ class _MultiStorefrontScreenState extends State<MultiStorefrontScreen> {
             slivers: [
               SliverToBoxAdapter(child: _RetailHeader(store: data.store, theme: theme)),
               SliverToBoxAdapter(child: _SearchBox(theme: theme, hint: 'ابحث عن منتجات المتجر...')),
-              SliverToBoxAdapter(child: _HeroBanner(banner: data.banners.isEmpty ? null : data.banners.first, theme: theme)),
-              SliverToBoxAdapter(child: _CategoryRail(categories: data.categories, theme: theme, storeId: id)),
-              SliverToBoxAdapter(child: _SectionHeader(title: 'منتجات موصى بها', theme: theme)),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 100),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: .52, crossAxisSpacing: 8, mainAxisSpacing: 8),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _RetailProductCard(
-                      product: data.products[index],
-                      theme: theme,
-                      onTap: () => Navigator.of(context).pushNamed('/products/${data.products[index].id}?store=$id'),
+              if (data.store.sections.contains('hero'))
+                SliverToBoxAdapter(child: _HeroBanner(banner: data.banners.isEmpty ? null : data.banners.first, theme: theme)),
+              if (data.store.sections.contains('categories'))
+                SliverToBoxAdapter(child: _CategoryRail(categories: data.categories, theme: theme, storeId: id)),
+              if (data.store.sections.contains('recommended_products'))
+                SliverToBoxAdapter(child: _SectionHeader(title: 'منتجات موصى بها', theme: theme)),
+              if (data.store.sections.contains('recommended_products'))
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 100),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: MediaQuery.sizeOf(context).width < 360 ? 2 : 3,
+                      childAspectRatio: MediaQuery.sizeOf(context).width < 360 ? .66 : .52,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
                     ),
-                    childCount: data.products.length,
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _RetailProductCard(
+                        product: data.products[index],
+                        theme: theme,
+                        onTap: () => Navigator.of(context).pushNamed('/products/${data.products[index].id}?store=$id'),
+                      ),
+                      childCount: data.products.length,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         );
@@ -422,7 +429,7 @@ class _Pill extends StatelessWidget { const _Pill(this.text, this.active); final
 class _StoreCard extends StatelessWidget {
   const _StoreCard({required this.store, required this.theme, required this.onTap});
   final B2cStore store; final _StoreTheme theme; final VoidCallback onTap;
-  @override Widget build(BuildContext context)=>InkWell(onTap:onTap,borderRadius:BorderRadius.circular(18),child:Container(minHeight:112,padding:const EdgeInsets.all(12),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18),border:Border.all(color:theme.primary.withOpacity(.35))),child:Row(children:[Container(width:82,height:82,decoration:BoxDecoration(color:theme.background,borderRadius:BorderRadius.circular(14)),child:Icon(Icons.storefront_rounded,color:theme.primary,size:40)),const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(store.name,style:const TextStyle(fontWeight:FontWeight.w800,fontSize:16)),const SizedBox(height:5),Text(store.code,style:const TextStyle(fontSize:12,color:Color(0xFF6B7785))),const SizedBox(height:8),Text('متاح الآن • توصيل سريع',style:TextStyle(fontSize:11,color:theme.primary,fontWeight:FontWeight.w700))]))])));
+  @override Widget build(BuildContext context)=>InkWell(onTap:onTap,borderRadius:BorderRadius.circular(18),child:Container(minHeight:112,padding:const EdgeInsets.all(12),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18),border:Border.all(color:theme.primary.withOpacity(.35))),child:Row(children:[Container(width:82,height:82,clipBehavior:Clip.antiAlias,decoration:BoxDecoration(color:theme.background,borderRadius:BorderRadius.circular(14)),child:store.logoUrl==null?Icon(Icons.storefront_rounded,color:theme.primary,size:40):Image.network(store.logoUrl!,fit:BoxFit.cover,errorBuilder:(_,__,___)=>Icon(Icons.storefront_rounded,color:theme.primary,size:40))),const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(store.name,style:const TextStyle(fontWeight:FontWeight.w800,fontSize:16)),const SizedBox(height:5),Text(store.code,style:const TextStyle(fontSize:12,color:Color(0xFF6B7785))),const SizedBox(height:8),Text('متاح الآن • توصيل سريع',style:TextStyle(fontSize:11,color:theme.primary,fontWeight:FontWeight.w700))]))])));
 }
 
 class _WholesaleEntryCard extends StatelessWidget { const _WholesaleEntryCard({required this.onTap}); final VoidCallback onTap; @override Widget build(BuildContext context)=>InkWell(onTap:onTap,borderRadius:BorderRadius.circular(18),child:Container(padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:const Color(0xFFF5F0FA),borderRadius:BorderRadius.circular(18),border:Border.all(color:const Color(0xFFB983F0))),child:const Row(children:[CircleAvatar(backgroundColor:Color(0xFF5D2A91),child:Text('B2B',style:TextStyle(color:Colors.white,fontSize:10,fontWeight:FontWeight.w800))),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('متجر الجملة',style:TextStyle(fontWeight:FontWeight.w800,fontSize:16)),Text('للمسؤولين والحسابات المعتمدة فقط',style:TextStyle(fontSize:11,color:Color(0xFF6F6A7D)))])),Icon(Icons.chevron_left_rounded)])));}
