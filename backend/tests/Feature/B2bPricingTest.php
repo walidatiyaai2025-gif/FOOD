@@ -23,7 +23,7 @@ class B2bPricingTest extends TestCase
         $admin = $this->userWithRole('B2B_ADMIN', 'pricing-admin@example.test');
         Sanctum::actingAs($admin);
 
-        $this->putJson('/api/v1/admin/b2b/prices', ['price_tier_id' => $tierId, 'store_id' => $storeId, 'product_id' => $productId, 'unit_price' => 7.250, 'minimum_quantity' => 5])->assertCreated();
+        $this->putJson('/api/v1/admin/b2b/prices', ['price_tier_id' => $tierId, 'store_id' => $storeId, 'product_id' => $productId, 'unit_price' => 7.250, 'minimum_quantity' => 5, 'ordering_increment' => 5, 'pack_size' => 12, 'case_size' => 24, 'pack_label' => 'Case 12', 'retail_reference_price' => 9.500])->assertCreated();
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.price_rule.saved']);
 
         $buyer = User::query()->create(['name' => 'Buyer', 'email' => 'price-buyer@example.test', 'password' => 'password', 'is_active' => true]);
@@ -40,12 +40,24 @@ class B2bPricingTest extends TestCase
             ->assertJsonPath('name', 'Wholesale Product')
             ->assertJsonPath('account_price', 7.25)
             ->assertJsonPath('minimum_order_quantity', 5)
+            ->assertJsonPath('ordering_increment', 5)
+            ->assertJsonPath('pack_size', 12)
+            ->assertJsonPath('case_size', 24)
+            ->assertJsonPath('pack_label', 'Case 12')
+            ->assertJsonPath('retail_reference_price', 9.5)
             ->assertJsonPath('price_tier', 'GOLD')
             ->assertJsonPath('available_quantity', 8)
             ->assertJsonPath('is_available', true)
             ->assertJsonPath('currency', 'KWD');
         $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 1])->assertConflict();
-        $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 5])->assertCreated()->assertJsonPath('items.0.unit_price_snapshot', 7.25)->assertJsonPath('subtotal', 36.25);
+        $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 6])->assertConflict();
+        $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 5])
+            ->assertCreated()
+            ->assertJsonPath('items.0.unit_price_snapshot', 7.25)
+            ->assertJsonPath('items.0.minimum_order_quantity', 5)
+            ->assertJsonPath('items.0.ordering_increment', 5)
+            ->assertJsonPath('items.0.pack_size', 12)
+            ->assertJsonPath('subtotal', 36.25);
     }
 
     public function test_unapproved_account_and_unauthorized_admin_are_denied(): void
