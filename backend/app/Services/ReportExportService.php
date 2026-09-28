@@ -230,7 +230,7 @@ final class ReportExportService
 
         $pdf->writeHTML($html, true, false, true, false, '');
         $content = $pdf->Output('', 'S');
-        if (! is_string($content) || ! str_starts_with($content, '%PDF-')) {
+        if (! str_starts_with($content, '%PDF-')) {
             throw new RuntimeException('Unable to generate Unicode PDF report.');
         }
 
