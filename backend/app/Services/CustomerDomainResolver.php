@@ -16,13 +16,15 @@ final class CustomerDomainResolver
     public function __construct(
         private readonly B2bCustomerRepository $b2b,
         private readonly B2cCustomerRepository $b2c,
-    ) {}
+    )
+    {
+    }
 
     public function b2b(User $user): B2bCustomer
     {
         $customer = $this->b2b->forUser($user);
 
-        if (!$customer instanceof B2bCustomer) {
+        if (! $customer instanceof B2bCustomer) {
             $legacy = Customer::query()
                 ->where('user_id', $user->getKey())
                 ->where('type', 'b2b')
@@ -59,7 +61,7 @@ final class CustomerDomainResolver
         $supportAccess = $user->hasRole('SUPER_ADMIN')
             && filter_var($request->header('X-FOODEX-Support-Access', false), FILTER_VALIDATE_BOOL);
 
-        if (!$supportAccess) {
+        if (! $supportAccess) {
             abort_unless(in_array($retailStoreId, $this->entitledRetailStoreIds($user), true), 403, 'Wholesale purchasing is not enabled for this retail store manager.');
         }
 
@@ -106,7 +108,7 @@ final class CustomerDomainResolver
 
         $customer = $this->b2c->forUserAndStore($user, $storeId);
 
-        if (!$customer instanceof B2cCustomer) {
+        if (! $customer instanceof B2cCustomer) {
             $legacy = Customer::query()
                 ->where('user_id', $user->getKey())
                 ->where('type', 'b2c')
@@ -207,7 +209,7 @@ final class CustomerDomainResolver
             return [$b2b, 'b2b'];
         }
 
-        if (!$b2b instanceof B2bCustomer && count($b2cStoreIds) === 1) {
+        if (! $b2b instanceof B2bCustomer && count($b2cStoreIds) === 1) {
             return [$this->b2c($user, $b2cStoreIds[0]), 'b2c'];
         }
 
