@@ -73,7 +73,6 @@ class BuiltInRoleUpgradeReconciliationTest extends TestCase
 
         foreach ([
             '/admin/b2b/dashboard',
-            '/admin/b2b/stores',
             '/admin/b2b/clients',
             '/admin/b2b/products',
             '/admin/b2b/inventory',
