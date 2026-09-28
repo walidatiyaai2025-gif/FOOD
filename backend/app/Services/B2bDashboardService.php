@@ -12,15 +12,17 @@ final class B2bDashboardService
     private const TIMEZONE = 'Asia/Kuwait';
 
     /** @param list<int> $storeIds */
-    public function build(User $user, array $storeIds, ?string $date = null): array
+    public function build(User $user, array $storeIds, ?string $fromDate = null, ?string $toDate = null): array
     {
-        $selected = CarbonImmutable::parse(
-            $date ?: CarbonImmutable::now(self::TIMEZONE)->toDateString(),
-            self::TIMEZONE,
-        )->startOfDay();
+        [$rangeFrom, $rangeTo] = $this->range($fromDate, $toDate);
+        [$from] = $this->utcBounds($rangeFrom);
+        [, $to] = $this->utcBounds($rangeTo);
 
-        [$from, $to] = $this->utcBounds($selected);
-        [$previousFrom, $previousTo] = $this->utcBounds($selected->subDay());
+        $days = (int) $rangeFrom->diffInDays($rangeTo) + 1;
+        $previousRangeTo = $rangeFrom->subDay();
+        $previousRangeFrom = $previousRangeTo->subDays($days - 1);
+        [$previousFrom] = $this->utcBounds($previousRangeFrom);
+        [, $previousTo] = $this->utcBounds($previousRangeTo);
 
         $orders = $this->orders($storeIds, $from, $to);
         $previousOrders = $this->orders($storeIds, $previousFrom, $previousTo);
@@ -52,12 +54,15 @@ final class B2bDashboardService
             ->where('created_at', '<', $from)
             ->count();
 
-        $series = $this->series($storeIds, $selected);
-        $recentOrders = $this->recentOrders($storeIds);
+        $series = $this->series($storeIds, $rangeFrom, $rangeTo);
+        $recentOrders = $this->recentOrders($storeIds, $from, $to);
         $lowStock = $this->lowStock($storeIds);
 
         return [
-            'selected_date' => $selected->toDateString(),
+            'selected_date' => $rangeTo->toDateString(),
+            'selected_from' => $rangeFrom->toDateString(),
+            'selected_to' => $rangeTo->toDateString(),
+            'range_days' => $days,
             'timezone' => self::TIMEZONE,
             'currency' => 'EGP',
             'scope_store_ids' => $storeIds,
@@ -82,7 +87,7 @@ final class B2bDashboardService
             'series' => $series,
             'distribution' => $this->distribution($orders),
             'recent_orders' => $recentOrders,
-            'top_products' => $this->topProducts($storeIds, $selected),
+            'top_products' => $this->topProducts($storeIds, $rangeFrom, $rangeTo),
             'alerts' => $this->alerts($storeIds, $recentOrders, $lowStock),
         ];
     }
@@ -98,12 +103,11 @@ final class B2bDashboardService
     }
 
     /** @param list<int> $storeIds */
-    private function series(array $storeIds, CarbonImmutable $selected): array
+    private function series(array $storeIds, CarbonImmutable $rangeFrom, CarbonImmutable $rangeTo): array
     {
         $rows = [];
 
-        for ($offset = 6; $offset >= 0; $offset--) {
-            $day = $selected->subDays($offset);
+        for ($day = $rangeFrom; $day->lte($rangeTo); $day = $day->addDay()) {
             [$from, $to] = $this->utcBounds($day);
             $query = $this->orders($storeIds, $from, $to);
 
@@ -143,7 +147,7 @@ final class B2bDashboardService
     }
 
     /** @param list<int> $storeIds */
-    private function recentOrders(array $storeIds): array
+    private function recentOrders(array $storeIds, string $from, string $to): array
     {
         return DB::table('orders')
             ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
@@ -151,6 +155,7 @@ final class B2bDashboardService
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2b')
             ->whereNotNull('orders.b2b_customer_id')
+            ->whereBetween('orders.created_at', [$from, $to])
             ->latest('orders.created_at')
             ->limit(4)
             ->get([
@@ -177,10 +182,10 @@ final class B2bDashboardService
     }
 
     /** @param list<int> $storeIds */
-    private function topProducts(array $storeIds, CarbonImmutable $selected): array
+    private function topProducts(array $storeIds, CarbonImmutable $rangeFrom, CarbonImmutable $rangeTo): array
     {
-        [$from] = $this->utcBounds($selected->subDays(6));
-        [, $to] = $this->utcBounds($selected);
+        [$from] = $this->utcBounds($rangeFrom);
+        [, $to] = $this->utcBounds($rangeTo);
 
         return DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
@@ -315,6 +320,23 @@ final class B2bDashboardService
         }
 
         return array_slice($alerts, 0, 4);
+    }
+
+    /** @return array{0:CarbonImmutable,1:CarbonImmutable} */
+    private function range(?string $fromDate, ?string $toDate): array
+    {
+        $today = CarbonImmutable::now(self::TIMEZONE)->startOfDay();
+
+        if ($fromDate !== null && $toDate === null) {
+            $from = CarbonImmutable::parse($fromDate, self::TIMEZONE)->startOfDay();
+
+            return [$from, $from];
+        }
+
+        $to = CarbonImmutable::parse($toDate ?: $today->toDateString(), self::TIMEZONE)->startOfDay();
+        $from = CarbonImmutable::parse($fromDate ?: $to->subDays(6)->toDateString(), self::TIMEZONE)->startOfDay();
+
+        return [$from, $to];
     }
 
     private function delta(float|int $current, float|int $previous): ?float

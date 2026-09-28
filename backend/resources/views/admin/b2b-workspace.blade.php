@@ -26,7 +26,7 @@
 .b2b-ref-panel{padding:15px 16px}
 .b2b-ref-panel-head{direction:ltr;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
 .b2b-ref-panel-head h2{direction:rtl;text-align:start;margin:0;font-size:15px;line-height:1.2;font-weight:700}
-.b2b-ref-filter{height:34px;min-height:34px!important;border:1px solid #e3e8ef;border-radius:8px;background:#fff;color:#475467;padding:0 10px;font-size:11px;font-weight:700}
+.b2b-ref-filter{height:34px;min-height:34px!important;border:1px solid #e3e8ef;border-radius:8px;background:#fff;color:#475467;padding:0 10px;font-size:11px;font-weight:700}.b2b-date-range{display:flex;align-items:end;gap:6px;flex-wrap:wrap}.b2b-date-range label{display:grid;gap:3px;font-size:9px;font-weight:700;color:#667085}.b2b-date-range input{height:34px;min-height:34px!important;min-width:126px;padding:0 8px;font-family:var(--foodex-font-en);font-size:10px}.b2b-date-range .foodex-filter-action{min-height:34px;height:34px;padding-inline:12px;font-size:10px}
 .b2b-ref-chart-wrap{position:relative;height:222px;direction:ltr}
 .b2b-ref-chart-wrap svg{display:block;width:100%;height:194px;overflow:visible}
 .b2b-ref-chart-grid{stroke:#edf1f5;stroke-width:1}
@@ -90,15 +90,18 @@
     @php
         $isAr = app()->getLocale() === 'ar';
         $kpiConfig = [
-            ['key'=>'sales','label'=>$isAr?'مبيعات اليوم':'Today sales','icon'=>'revenue','money'=>true],
+            ['key'=>'sales','label'=>$isAr?'مبيعات الفترة':'Period sales','icon'=>'revenue','money'=>true],
             ['key'=>'orders','label'=>$isAr?'عدد الطلبات':'Orders','icon'=>'orders','money'=>false],
             ['key'=>'customers','label'=>$isAr?'عدد العملاء':'Customers','icon'=>'customers','money'=>false],
             ['key'=>'average','label'=>$isAr?'متوسط قيمة الطلب':'Average order value','icon'=>'storefront','money'=>true],
         ];
         $series = collect($dashboard['series'])->values();
         $maxRevenue = max(1, (float) $series->max('revenue'));
-        $chartPoints = $series->map(function ($point, $index) use ($maxRevenue) {
-            $x = 38 + ($index * (486 / 6));
+        $seriesCount = max(1, $series->count());
+        $chartDenominator = max(1, $seriesCount - 1);
+        $labelEvery = max(1, (int) ceil($seriesCount / 7));
+        $chartPoints = $series->map(function ($point, $index) use ($maxRevenue, $chartDenominator) {
+            $x = 38 + ($index * (486 / $chartDenominator));
             $y = 178 - (((float) $point['revenue'] / $maxRevenue) * 132);
             return ['x'=>round($x,1),'y'=>round($y,1),'revenue'=>(float)$point['revenue'],'label'=>$point['label']];
         })->all();
@@ -175,12 +178,14 @@
             <article class="b2b-ref-card b2b-ref-panel">
                 <div class="b2b-ref-panel-head">
                     <h2>{{ $isAr?'المبيعات اليومية':'Daily sales' }}</h2>
-                    <select class="b2b-ref-filter" aria-label="{{ $isAr ? 'الفترة' : 'Period' }}">
-                        <option>{{ $isAr ? 'آخر 7 أيام' : 'Last 7 days' }}</option>
-                    </select>
+                    <form class="b2b-date-range" method="get" action="{{ route('admin.b2b.module',['module'=>'dashboard']) }}">
+                        <label>{{ $isAr?'من':'From' }}<input type="date" name="from" value="{{ $dashboard['selected_from'] }}" required></label>
+                        <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ $dashboard['selected_to'] }}" required></label>
+                        <button class="foodex-filter-action" type="submit">{{ $isAr?'تطبيق':'Apply' }}</button>
+                    </form>
                 </div>
                 <div class="b2b-ref-chart-wrap">
-                    <svg viewBox="0 0 560 200" role="img" aria-label="{{ $isAr?'مبيعات آخر 7 أيام':'Sales over the last 7 days' }}">
+                    <svg viewBox="0 0 560 200" role="img" aria-label="{{ $isAr?'مبيعات الفترة المحددة':'Sales over the selected period' }}">
                         <defs><linearGradient id="b2bRevenueGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#33c56b" stop-opacity=".26"/><stop offset="100%" stop-color="#33c56b" stop-opacity=".02"/></linearGradient></defs>
                         @foreach([46,90,134,178] as $gridY)<line class="b2b-ref-chart-grid" x1="38" y1="{{ $gridY }}" x2="524" y2="{{ $gridY }}"/>@endforeach
                         <text class="b2b-ref-axis" x="5" y="181">0</text>
@@ -199,7 +204,7 @@
                             <text class="b2b-ref-tooltip-text" x="{{ $tooltipX + 44 }}" y="{{ $tooltipY + 16 }}" text-anchor="middle">EGP {{ number_format($lastPoint['revenue'],0) }}</text>
                         @endif
                     </svg>
-                    <div class="b2b-ref-chart-labels">@foreach($dashboard['series'] as $point)<span>{{ $point['label'] }}</span>@endforeach</div>
+                    <div class="b2b-ref-chart-labels" style="grid-template-columns:repeat({{ max(1,count($dashboard['series'])) }},minmax(0,1fr))">@foreach($dashboard['series'] as $index=>$point)<span>{{ ($index % $labelEvery === 0 || $index === count($dashboard['series'])-1) ? $point['label'] : '' }}</span>@endforeach</div>
                 </div>
             </article>
 
@@ -262,7 +267,7 @@
                     @endforeach
                 </div>
                 @else
-                    <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد مبيعات منتجات في آخر 7 أيام' : 'No product sales in the last 7 days' }}</div>
+                    <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد مبيعات منتجات في الفترة المحددة' : 'No product sales in the selected period' }}</div>
                 @endif
             </article>
 
