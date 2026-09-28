@@ -33,7 +33,7 @@
     .back{color:var(--foodex-green-dark)!important;box-shadow:none}
     .badge.active,.active.badge{background:var(--foodex-green-soft)!important;color:var(--foodex-green-dark)!important}
 
-    .foodex-admin-page{max-width:1500px;margin:0 auto;padding:var(--foodex-space-8)}
+    .foodex-admin-page{width:100%;max-width:none!important;min-width:0;margin:0!important;padding:clamp(var(--foodex-space-4),1.8vw,var(--foodex-space-8))}
     .foodex-form{display:grid;gap:var(--foodex-space-3);background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:var(--foodex-space-5);box-shadow:var(--foodex-shadow-sm);margin-bottom:var(--foodex-space-5)}
     .foodex-form label{display:grid;gap:var(--foodex-space-2);font-weight:var(--foodex-font-weight-medium);color:var(--foodex-ink)}
     .foodex-form button{justify-self:start}
@@ -45,7 +45,7 @@
     /* PH-06.7 shared utility shells and UI states. */
     .foodex-admin-layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width);min-height:100vh;background:var(--foodex-background)}
     .foodex-admin-layout>.sidebar{grid-column:2;grid-row:1;direction:rtl;min-height:100vh;padding:var(--foodex-space-5);border-inline-start:1px solid var(--foodex-border)}
-    .foodex-admin-layout>.foodex-admin-main{grid-column:1;grid-row:1;direction:rtl;min-width:0;padding:var(--foodex-space-8)}
+    .foodex-admin-layout>.foodex-admin-main{grid-column:1;grid-row:1;direction:rtl;min-width:0;width:100%;max-width:none;padding:clamp(var(--foodex-space-4),1.8vw,var(--foodex-space-8))}
     html[dir=ltr] .foodex-admin-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
     html[dir=ltr] .foodex-admin-layout>.sidebar{grid-column:1;direction:ltr;border-inline-start:0;border-inline-end:1px solid var(--foodex-border)}
     html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{grid-column:2;direction:ltr}
@@ -62,6 +62,46 @@
     .pagination a,.pagination span,.pager a,.pager span{min-width:var(--foodex-touch-target);min-height:var(--foodex-touch-target);display:inline-grid;place-items:center;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-surface);color:var(--foodex-ink);text-decoration:none;padding:0 var(--foodex-space-2)}
     .pagination [aria-current="page"],.pager [aria-current="page"]{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff}
     .badge{display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:3px 9px;border-radius:999px;background:var(--foodex-background);color:var(--foodex-muted);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-medium)}
+
+
+    /* Wide-screen + responsive administration geometry. */
+    .foodex-admin-layout,.shell,.layout,.catalog-layout,.lookup-layout,.module-layout{width:100%;max-width:none}
+    .foodex-admin-main,.foodex-admin-page,.main{min-width:0}
+    .table-wrap,.module-table-wrap,.foodex-table-wrap{width:100%;max-width:100%;overflow:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
+    .foodex-table{width:100%;max-width:100%}
+    .foodex-form,.foodex-premium-auto-form{min-width:0}
+    img,svg,video,canvas{max-width:100%}
+
+    @media(min-width:1440px){
+        :root{--foodex-sidebar-width:248px;--foodex-table-cell-x:16px}
+        .foodex-admin-page,.foodex-admin-layout>.foodex-admin-main{padding-inline:clamp(28px,2vw,44px)}
+        .foodex-page-header{margin-bottom:28px}
+        .foodex-premium-auto-form{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+    }
+    @media(min-width:1800px){
+        :root{--foodex-sidebar-width:260px}
+        .foodex-admin-page,.foodex-admin-layout>.foodex-admin-main{padding-inline:48px}
+        .foodex-premium-auto-form{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    }
+    @media(max-width:1023px){
+        .foodex-admin-page{padding:var(--foodex-space-6)}
+        .foodex-page-header{gap:var(--foodex-space-3)}
+        .table-wrap,.module-table-wrap,.foodex-table-wrap{border-radius:var(--foodex-radius-md)}
+    }
+    @media(max-width:767px){
+        .foodex-admin-page{padding:var(--foodex-space-4)}
+        .foodex-page-header{width:100%;align-items:stretch}
+        .foodex-page-header>*{min-width:0}
+        .foodex-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:thin}
+        .foodex-tabs a,.foodex-tab{flex:0 0 auto;white-space:nowrap}
+        .foodex-premium-auto-form{grid-template-columns:minmax(0,1fr)}
+        .pagination,.pager{justify-content:center}
+    }
+    @media(max-width:479px){
+        .foodex-admin-page{padding:12px}
+        .foodex-card,.panel,.card,.filters,.back{border-radius:12px}
+        .foodex-modal{padding:var(--foodex-space-4)}
+    }
 
     @media(max-width:1023px){
         .foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{grid-template-columns:1fr}

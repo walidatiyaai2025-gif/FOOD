@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.17 - Widescreen Responsive Administration
+- Make the shared FOODEX administration shell fluid on 1440p, 1920p and ultrawide displays instead of capping content at narrow fixed widths.
+- Expand the Retail dashboard across the available viewport with wider desktop grids, larger analytics surfaces and consistent spacing.
+- Standardize the desktop/sidebar/tablet geometry across Reports, Mobile Settings, Catalog and Lookup administration.
+- Keep data tables inside self-scrolling containers so narrow screens do not force page-level horizontal scrolling.
+- Align responsive behavior around common 1023px tablet, 767px mobile and 479px compact breakpoints while preserving RTL/LTR sidebar behavior and business logic.
+
 ## 1.0.16 - B2B Upgrade RBAC Reconciliation
 - Reconcile canonical built-in FOODEX roles and permission assignments during upgrades so existing installations cannot retain stale B2B authorization state.
 - Restore B2B_ADMIN and wholesale operational roles to their canonical global scope and expected permissions, including Orders, Catalog, Inventory, Drivers, Pricing, Finance, Reports and Settings access.

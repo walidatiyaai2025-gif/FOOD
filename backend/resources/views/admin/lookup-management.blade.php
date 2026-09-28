@@ -22,7 +22,7 @@ input,select{border:1px solid var(--foodex-border);border-radius:9px;padding:9px
 .table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:1040px}.table th,.table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.table th{background:var(--foodex-background)}
 .badge{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:11px;background:#eef2f6}.badge.on{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.off{background:#f2f4f7;color:#667085}
 .actions{display:flex;gap:6px;flex-wrap:wrap}.brand-thumb{width:56px;height:56px;object-fit:contain;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;padding:4px;box-sizing:border-box}.image-help{font-size:11px;color:var(--foodex-muted);max-width:240px}.support{font-size:11px;color:var(--foodex-muted);display:flex!important;align-items:center;grid-auto-flow:column}.support input{min-width:auto}
-@media(max-width:1000px){.lookup-layout{grid-template-columns:1fr}.lookup-layout aside,.lookup-layout main,html[dir=ltr] .lookup-layout aside,html[dir=ltr] .lookup-layout main{grid-column:1}.lookup-layout aside{grid-row:1}.lookup-layout main{grid-row:2}}
+@media(max-width:1023px){.lookup-layout{grid-template-columns:1fr}.lookup-layout aside,.lookup-layout main,html[dir=ltr] .lookup-layout aside,html[dir=ltr] .lookup-layout main{grid-column:1}.lookup-layout aside{grid-row:1}.lookup-layout main{grid-row:2}}
 </style>
 </head>
 <body>
