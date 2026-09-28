@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.19 - Retail Administration Production Fixes
+- Fix direct Retail catalog access for platform support context and add a canonical category-management route so product/category administration no longer falls into the Wholesale tenant path.
+- Complete Retail inventory management with warehouse creation, initial/current stock balance creation and stock adjustments from the Retail workspace.
+- Add Retail customer image upload, replacement and removal with a neutral fallback avatar when no image is available.
+- Replace free-form banner URLs with store-scoped product/category targets and accept valid banner images without the previous minimum-dimension rejection.
+- Render Arabic PDF reports with Unicode RTL fonts instead of WinAnsi text to eliminate garbled Arabic exports.
+- Reconcile production schema drift for category images plus customer-image and banner-target fields, with regression coverage for the reported production defects.
+
 ## 1.0.18 - Premium B2B Dashboard Reference Layout
 - Rebuild the Wholesale dashboard to match the supplied premium reference proportions with four KPI cards, a seven-day sales chart, order distribution donut, latest orders, top-selling products, and operational alerts.
 - Use live tenant-scoped B2B orders, customers, inventory, invoices and product sales instead of mock numbers.
