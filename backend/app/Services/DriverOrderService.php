@@ -32,7 +32,12 @@ final class DriverOrderService
 
         return match ($assignmentStatus) {
             'assigned' => ['accepted'],
-            'accepted' => $orderStatus === 'ready' ? ['picked_up'] : [],
+            'accepted' => match ($orderStatus) {
+                'ready' => ['picked_up'],
+                'out_for_delivery' => ['delivered', 'failed'],
+                'failed' => ['out_for_delivery'],
+                default => [],
+            },
             'picked_up' => $orderStatus === 'ready' ? ['out_for_delivery'] : [],
             'out_for_delivery' => $orderStatus === 'out_for_delivery' ? ['delivered', 'failed'] : [],
             'failed' => $orderStatus === 'failed' ? ['out_for_delivery'] : [],

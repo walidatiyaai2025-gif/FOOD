@@ -416,13 +416,13 @@
                     'sku'=>'رمز المنتج','name'=>'الاسم','category'=>'التصنيف','store'=>'المتجر','cost'=>'تكلفة الشراء','price'=>'سعر البيع','status'=>'الحالة',
                     'warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','available'=>'المتاح',
                     'number'=>'رقم الطلب','customer'=>'العميل','amount'=>'الإجمالي','created'=>'تاريخ الإنشاء',
-                    'phone'=>'الهاتف','email'=>'البريد','orders'=>'الطلبات','spent'=>'إجمالي الإنفاق','last_order'=>'آخر طلب','type'=>'النوع','value'=>'القيمة','period'=>'الفترة','driver_type'=>'نوع السائق','order'=>'الطلب','assignment_status'=>'حالة التوصيل','availability'=>'التوفر','products'=>'المنتجات','banners'=>'البانرات','title'=>'العنوان','image'=>'الصورة','target'=>'المنتج / التصنيف','sort_order'=>'الترتيب','average'=>'متوسط الطلب','setting'=>'الإعداد','actions'=>'إجراءات',
+                    'phone'=>'الهاتف','email'=>'البريد','orders'=>'الطلبات','spent'=>'إجمالي الإنفاق','last_order'=>'آخر طلب','type'=>'النوع','value'=>'القيمة','period'=>'الفترة','driver_type'=>'نوع السائق','driver'=>'السائق','order'=>'الطلب','assignment_status'=>'حالة التوصيل','availability'=>'التوفر','products'=>'المنتجات','banners'=>'البانرات','title'=>'العنوان','image'=>'الصورة','target'=>'المنتج / التصنيف','sort_order'=>'الترتيب','average'=>'متوسط الطلب','setting'=>'الإعداد','actions'=>'إجراءات',
                 ]
                 : [
                     'sku'=>'SKU','name'=>'Name','category'=>'Category','store'=>'Store','cost'=>'Purchase cost','price'=>'Selling price','status'=>'Status',
                     'warehouse'=>'Warehouse','quantity'=>'Quantity','reserved'=>'Reserved','available'=>'Available',
                     'number'=>'Order','customer'=>'Customer','amount'=>'Amount','created'=>'Created',
-                    'phone'=>'Phone','email'=>'Email','orders'=>'Orders','spent'=>'Total spent','last_order'=>'Last order','type'=>'Type','value'=>'Value','period'=>'Period','driver_type'=>'Driver type','order'=>'Order','assignment_status'=>'Delivery status','availability'=>'Availability','products'=>'Products','banners'=>'Banners','title'=>'Title','image'=>'Image','target'=>'Product / Category','sort_order'=>'Sort order','average'=>'Average order','setting'=>'Setting','actions'=>'Actions',
+                    'phone'=>'Phone','email'=>'Email','orders'=>'Orders','spent'=>'Total spent','last_order'=>'Last order','type'=>'Type','value'=>'Value','period'=>'Period','driver_type'=>'Driver type','driver'=>'Driver','order'=>'Order','assignment_status'=>'Delivery status','availability'=>'Availability','products'=>'Products','banners'=>'Banners','title'=>'Title','image'=>'Image','target'=>'Product / Category','sort_order'=>'Sort order','average'=>'Average order','setting'=>'Setting','actions'=>'Actions',
                 ];
         @endphp
         <section class="module-panel foodex-card">
@@ -547,6 +547,9 @@
                 </div>
             @endif
 
+            @if($module==='drivers' && (collect($storeIds)->contains(fn($candidateStoreId) => $user->hasPermission('drivers.b2c.manage',(int)$candidateStoreId)) || $user->hasPermission('drivers.b2c.manage')))
+                @include('admin._driver-assignment-management',['channel'=>'b2c'])
+            @endif
             @if($module==='content' && $storeId > 0 && ($user->hasPermission('promotions.manage',$storeId) || $user->hasPermission('promotions.manage')))
                 <form method="post" action="{{ route('admin.business.banners.store') }}" enctype="multipart/form-data" class="module-inline-form">
                     @csrf

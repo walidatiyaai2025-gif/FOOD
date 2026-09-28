@@ -72,6 +72,132 @@ class DriverAssignmentLifecycleTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_reassign_and_unassign_order_while_preserving_history(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+        $order->update(['status' => 'ready']);
+
+        $admin = $this->roleUser('B2C_STORE_ADMIN', 'delivery-reassign-admin@example.test');
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+            'role_id' => $roleId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $driverOneUser = $this->roleUser('B2C_DRIVER', 'delivery-reassign-one@example.test');
+        $driverOne = Driver::query()->create([
+            'user_id' => $driverOneUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+        $driverTwoUser = $this->roleUser('B2C_DRIVER', 'delivery-reassign-two@example.test');
+        $driverTwo = Driver::query()->create([
+            'user_id' => $driverTwoUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+        $firstId = $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driverOne->id,
+            'order_id' => $order->id,
+        ])->assertCreated()->json('data.id');
+
+        $secondId = $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driverTwo->id,
+            'order_id' => $order->id,
+            'replace_existing' => true,
+        ])->assertCreated()->json('data.id');
+
+        $this->assertDatabaseHas('driver_assignments', [
+            'id' => $firstId,
+            'status' => 'unassigned',
+        ]);
+        $this->assertDatabaseHas('driver_assignments', [
+            'id' => $secondId,
+            'driver_id' => $driverTwo->id,
+            'status' => 'assigned',
+        ]);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.unassigned']);
+
+        Sanctum::actingAs($driverOneUser);
+        $this->getJson('/api/v1/driver/assignments?scope=active')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        Sanctum::actingAs($driverTwoUser);
+        $this->getJson('/api/v1/driver/assignments?scope=active')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $secondId)
+            ->assertJsonPath('data.0.order.number', $order->order_number);
+
+        Sanctum::actingAs($admin);
+        $this->deleteJson('/api/v1/admin/deliveries/orders/'.$order->id, [
+            'reason' => 'dispatcher_removed',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('driver_assignments', [
+            'id' => $secondId,
+            'status' => 'unassigned',
+        ]);
+
+        Sanctum::actingAs($driverTwoUser);
+        $this->getJson('/api/v1/driver/assignments?scope=active')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_legacy_driver_store_and_assignment_scope_are_reconciled_for_visibility(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+        $order->update(['status' => 'ready']);
+
+        $driverUser = $this->roleUser('B2C_DRIVER', 'legacy-visible-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => null,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+        $assignmentId = (int) DB::table('driver_assignments')->insertGetId([
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'store_id' => null,
+            'assignment_type' => 'b2c',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($driverUser);
+        $this->getJson('/api/v1/driver/assignments?scope=active')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $assignmentId)
+            ->assertJsonPath('data.0.order.number', $order->order_number);
+
+        $this->assertDatabaseHas('drivers', [
+            'id' => $driver->id,
+            'store_id' => $storeId,
+        ]);
+        $this->assertDatabaseHas('driver_assignments', [
+            'id' => $assignmentId,
+            'store_id' => $storeId,
+        ]);
+    }
+
     public function test_driver_cannot_open_or_transition_another_drivers_assignment(): void
     {
         $this->seed(CoreReferenceSeeder::class);

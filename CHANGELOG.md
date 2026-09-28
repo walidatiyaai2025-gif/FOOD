@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.23 - Firebase service-account push and complete driver order control
+
+- Replace expiring manually-entered Firebase access tokens with encrypted Google/Firebase service-account JSON and automatic OAuth2 token generation/cache for Firebase HTTP v1, while retaining legacy access-token compatibility.
+- Add a Firebase connection test in Mobile & Push Settings and expose the sanitized provider/OAuth failure reason in test sends and delivery logs.
+- Show the current driver and assignment status directly in B2B and B2C order management.
+- Allow dispatchers to assign, pull/unassign, and reassign orders between drivers while preserving prior assignment rows and audit history.
+- Add a dedicated Drivers & Delivery assignment-management panel covering current and historical assignments.
+- Reconcile legacy Driver/store and assignment/store ownership from the authoritative order so already-assigned orders become visible in the Driver app again.
+- Treat pulled/unassigned deliveries as historical instead of active Driver tasks, with Arabic/English status copy and regression coverage.
+
 ## 1.0.22 - Driver reliability, clear admin errors, and password reset
 
 - Admin mutation conflicts such as duplicate driver assignment, missing Wholesale pricing, and invalid business state now return to the same screen and appear in the FOODEX feedback popup instead of the generic 409 error page.

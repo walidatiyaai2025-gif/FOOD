@@ -30,6 +30,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.error': 'تعذر تحميل التوصيلات',
     'driver.offline': 'لا يوجد اتصال. أعد المحاولة عند عودة الشبكة.',
     'driver.retry': 'إعادة المحاولة',
+    'driver.refresh': 'تحديث الطلبات',
     'driver.route.denied': 'هذا المسار غير متاح لدور السائق الحالي',
     'driver.route.not_found': 'المسار غير موجود',
     'driver.login.email': 'البريد الإلكتروني',
@@ -84,6 +85,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.status.out_for_delivery': 'في الطريق للتسليم',
     'driver.status.delivered': 'تم التسليم',
     'driver.status.failed': 'تعذر التسليم',
+    'driver.status.unassigned': 'تم سحب الطلب',
   };
 
   static const Map<String, String> _en = {
@@ -100,6 +102,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.error': 'Unable to load deliveries',
     'driver.offline': 'No connection. Try again when the network is back.',
     'driver.retry': 'Retry',
+    'driver.refresh': 'Refresh orders',
     'driver.route.denied': 'This route is not available for this driver role',
     'driver.route.not_found': 'Route not found',
     'driver.login.email': 'Email',
@@ -154,6 +157,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.status.out_for_delivery': 'Out for delivery',
     'driver.status.delivered': 'Delivered',
     'driver.status.failed': 'Delivery failed',
+    'driver.status.unassigned': 'Unassigned',
   };
 
   String text(String key) {

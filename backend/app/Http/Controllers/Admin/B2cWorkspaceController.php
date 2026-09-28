@@ -203,6 +203,66 @@ class B2cWorkspaceController extends Controller
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تعيين السائق.' : 'Driver assigned.');
     }
 
+    public function reassignDriver(
+        Request $request,
+        int $order,
+        DriverAssignmentController $deliveries,
+        AuditLogger $audit,
+        DashboardOperationalNotifier $dashboardNotifier,
+    ): RedirectResponse {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $actor);
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'drivers.b2c.manage', 'b2c');
+
+        $orderModel = Order::query()
+            ->whereKey($order)
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->whereNotNull('b2c_customer_id')
+            ->firstOrFail();
+
+        $request->merge([
+            'store_id' => $storeId,
+            'order_id' => (int) $orderModel->getKey(),
+            'replace_existing' => true,
+        ]);
+        $deliveries->assign($request, $audit, $dashboardNotifier);
+
+        return back()->with('status', $this->msg(
+            'تم إعادة تعيين الطلب إلى السائق الجديد.',
+            'Order reassigned to the new driver.',
+        ));
+    }
+
+    public function unassignDriver(
+        Request $request,
+        int $order,
+        DriverAssignmentController $deliveries,
+        AuditLogger $audit,
+        DashboardOperationalNotifier $dashboardNotifier,
+    ): RedirectResponse {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $actor);
+        app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'drivers.b2c.manage', 'b2c');
+
+        $orderModel = Order::query()
+            ->whereKey($order)
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->whereNotNull('b2c_customer_id')
+            ->firstOrFail();
+
+        $request->merge(['store_id' => $storeId]);
+        $deliveries->unassign($request, (int) $orderModel->getKey(), $audit, $dashboardNotifier);
+
+        return back()->with('status', $this->msg(
+            'تم سحب الطلب من السائق وإعادته لقائمة الطلبات غير المعينة.',
+            'Order removed from the driver and returned to the unassigned queue.',
+        ));
+    }
+
     public function resetDriverPassword(
         Request $request,
         int $driver,
@@ -472,17 +532,23 @@ class B2cWorkspaceController extends Controller
                     ->whereIn('drivers.store_id', $storeIds)
                     ->where('drivers.is_active', true)
                     ->orderBy('users.name')
-                    ->get(['drivers.id', 'users.name', 'users.email'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name, 'email' => $row->email])
+                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.email'])
+                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'name' => $row->name, 'email' => $row->email])
                     ->all(),
                 'orders' => DB::table('orders')
-                    ->whereIn('store_id', $storeIds)
-                    ->where('channel', 'b2c')
-                    ->whereNotIn('status', ['delivered', 'cancelled'])
-                    ->orderByDesc('id')
+                    ->whereIn('orders.store_id', $storeIds)
+                    ->where('orders.channel', 'b2c')
+                    ->whereNotIn('orders.status', ['delivered', 'cancelled'])
+                    ->whereNotExists(function ($query): void {
+                        $query->selectRaw('1')
+                            ->from('driver_assignments')
+                            ->whereColumn('driver_assignments.order_id', 'orders.id')
+                            ->whereNotIn('driver_assignments.status', ['delivered', 'failed', 'unassigned']);
+                    })
+                    ->orderByDesc('orders.id')
                     ->limit(100)
-                    ->get(['id', 'order_number'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'number' => $row->order_number])
+                    ->get(['orders.id', 'orders.store_id', 'orders.order_number'])
+                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'number' => $row->order_number])
                     ->all(),
                 'columns' => ['name', 'driver_type', 'order', 'assignment_status', 'availability'],
                 'rows' => DB::table('driver_assignments')
@@ -507,6 +573,37 @@ class B2cWorkspaceController extends Controller
                         'order' => $row->order_number,
                         'assignment_status' => $row->assignment_status,
                         'availability' => (bool) $row->is_available,
+                    ])->all(),
+                'assignments_list' => DB::table('driver_assignments')
+                    ->join('orders', 'orders.id', '=', 'driver_assignments.order_id')
+                    ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+                    ->join('users', 'users.id', '=', 'drivers.user_id')
+                    ->whereIn('driver_assignments.store_id', $storeIds)
+                    ->where('driver_assignments.assignment_type', 'b2c')
+                    ->where('orders.channel', 'b2c')
+                    ->orderByDesc('driver_assignments.id')
+                    ->limit(150)
+                    ->get([
+                        'driver_assignments.id',
+                        'driver_assignments.order_id',
+                        'driver_assignments.driver_id',
+                        'driver_assignments.store_id',
+                        'driver_assignments.status',
+                        'driver_assignments.assigned_at',
+                        'driver_assignments.completed_at',
+                        'orders.order_number',
+                        'users.name as driver_name',
+                    ])
+                    ->map(fn ($row) => [
+                        'id' => (int) $row->id,
+                        'order_id' => (int) $row->order_id,
+                        'driver_id' => (int) $row->driver_id,
+                        'store_id' => (int) $row->store_id,
+                        'order' => $row->order_number,
+                        'driver' => $row->driver_name,
+                        'status' => $row->status,
+                        'assigned_at' => (string) $row->assigned_at,
+                        'completed_at' => $row->completed_at === null ? null : (string) $row->completed_at,
                     ])->all(),
             ],
             'storefront' => [
@@ -760,6 +857,20 @@ class B2cWorkspaceController extends Controller
                         'line_total' => (float) $item->line_total,
                     ])->all();
 
+                $activeAssignment = DB::table('driver_assignments')
+                    ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+                    ->join('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('driver_assignments.order_id', $row->id)
+                    ->where('driver_assignments.assignment_type', 'b2c')
+                    ->whereNotIn('driver_assignments.status', ['delivered', 'failed', 'unassigned'])
+                    ->orderByDesc('driver_assignments.id')
+                    ->first([
+                        'driver_assignments.id',
+                        'driver_assignments.driver_id',
+                        'driver_assignments.status',
+                        'users.name as driver_name',
+                    ]);
+
                 $payment = DB::table('payments')
                     ->where('order_id', $row->id)
                     ->orderByDesc('id')
@@ -794,6 +905,8 @@ class B2cWorkspaceController extends Controller
                     '_grand_total' => (float) $row->grand_total,
                     '_payment_method' => $row->payment_method,
                     '_customer_note' => $row->customer_note,
+                    '_assignment_id' => $activeAssignment === null ? null : (int) $activeAssignment->id,
+                    '_driver_id' => $activeAssignment === null ? null : (int) $activeAssignment->driver_id,
                     '_items' => $items,
                     '_payment' => $payment === null ? null : [
                         'provider' => $payment->provider,
@@ -811,6 +924,8 @@ class B2cWorkspaceController extends Controller
                     'number' => $row->number,
                     'customer' => $row->customer,
                     'store' => $row->store,
+                    'driver' => $activeAssignment?->driver_name ?: $this->msg('غير معين', 'Unassigned'),
+                    'assignment_status' => $activeAssignment?->status ?: $this->msg('غير معين', 'Unassigned'),
                     'status' => $row->status,
                     'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
                     'created' => (string) $row->created,
@@ -819,7 +934,7 @@ class B2cWorkspaceController extends Controller
             })->all();
 
         return [
-            'columns' => ['number', 'customer', 'store', 'status', 'amount', 'created', 'actions'],
+            'columns' => ['number', 'customer', 'store', 'driver', 'assignment_status', 'status', 'amount', 'created', 'actions'],
             'rows' => $rows,
             'customers' => $customers,
             'products' => DB::table('store_products')

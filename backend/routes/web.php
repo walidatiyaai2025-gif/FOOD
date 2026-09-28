@@ -74,6 +74,8 @@ Route::prefix('admin')
         Route::patch('/b2b/orders/{order}', [B2bWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2b.orders.update');
         Route::post('/b2b/orders/{order}/status', [B2bWorkspaceController::class, 'transitionOrder'])->whereNumber('order')->name('b2b.orders.status');
         Route::post('/b2b/drivers/assign', [B2bWorkspaceController::class, 'assignDriver'])->name('b2b.drivers.assign');
+        Route::patch('/b2b/orders/{order}/driver', [B2bWorkspaceController::class, 'reassignDriver'])->whereNumber('order')->name('b2b.orders.driver.reassign');
+        Route::delete('/b2b/orders/{order}/driver', [B2bWorkspaceController::class, 'unassignDriver'])->whereNumber('order')->name('b2b.orders.driver.unassign');
         Route::post('/b2b/pricing', [B2bWorkspaceController::class, 'savePriceRule'])->name('b2b.pricing.save');
         Route::post('/b2b/clients', [B2bWorkspaceController::class, 'storeClient'])->name('b2b.clients.store');
         Route::patch('/b2b/clients/{account}/status', [B2bWorkspaceController::class, 'updateClientStatus'])->name('b2b.clients.status');
@@ -94,6 +96,8 @@ Route::prefix('admin')
         Route::patch('/b2c/orders/{order}', [B2cWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2c.orders.update');
         Route::post('/b2c/orders/{order}/status', [B2cWorkspaceController::class, 'transitionOrder'])->whereNumber('order')->name('b2c.orders.status');
         Route::post('/b2c/drivers/assign', [B2cWorkspaceController::class, 'assignDriver'])->name('b2c.drivers.assign');
+        Route::patch('/b2c/orders/{order}/driver', [B2cWorkspaceController::class, 'reassignDriver'])->whereNumber('order')->name('b2c.orders.driver.reassign');
+        Route::delete('/b2c/orders/{order}/driver', [B2cWorkspaceController::class, 'unassignDriver'])->whereNumber('order')->name('b2c.orders.driver.unassign');
         Route::patch('/b2c/drivers/{driver}/password', [B2cWorkspaceController::class, 'resetDriverPassword'])->whereNumber('driver')->name('b2c.drivers.password');
         Route::post('/b2c/warehouses', [B2cWorkspaceController::class, 'storeWarehouse'])->name('b2c.warehouses.store');
         Route::post('/b2c/inventory', [B2cWorkspaceController::class, 'ensureInventory'])->name('b2c.inventory.ensure');
@@ -164,6 +168,7 @@ Route::prefix('admin')
         Route::get('/settings/mobile', [MobileSettingsController::class, 'index'])->name('mobile-settings.index');
         Route::put('/settings/mobile/app', [MobileSettingsController::class, 'updateApp'])->name('mobile-settings.app');
         Route::put('/settings/mobile/push', [MobileSettingsController::class, 'updateProvider'])->name('mobile-settings.push');
+        Route::post('/settings/mobile/push/test-connection', [MobileSettingsController::class, 'testProvider'])->name('mobile-settings.push.test');
         Route::post('/settings/mobile/test-push', [MobileSettingsController::class, 'testPush'])->name('mobile-settings.test');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
