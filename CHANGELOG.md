@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.15 - Admin Authorization Surface Audit
+- Replace raw 403 responses on visible Retail store-scoped lookup actions with an actionable Explicit Support Access validation flow for platform owners.
+- Keep Retail tenant isolation intact: SUPER_ADMIN must still explicitly enter audited support access before mutating store-owned Brands or Units.
+- Add automated navigation authorization coverage for SUPER_ADMIN, B2B_ADMIN and B2C_STORE_ADMIN so every visible admin destination must open without 403/404/5xx responses.
+- Preserve forbidden cross-domain and cross-store surfaces while making the visible administration experience internally consistent.
+
 ## 1.0.14 - Business Navigation, Self-Service Profile and Premium Mobile Commerce
 - Reorder administration navigation around the actual business flow and make the sidebar compact/collapsed by default with a single authoritative permission-driven implementation.
 - Add a self-service user profile showing global/store roles and effective permissions, plus secure password change and Arabic/English account language switching.
