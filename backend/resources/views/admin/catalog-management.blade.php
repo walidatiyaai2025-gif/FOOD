@@ -31,7 +31,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 </head>
 <body>
 <div class="catalog-layout">
-<aside class="sidebar">@include('admin._sidebar',['navContext'=>'b2c_products'])</aside>
+<aside class="sidebar">@include('admin._sidebar',['navContext'=>$navContext])</aside>
 <main>
 <div class="header"><div><h1>{{ app()->getLocale()==='ar'?($canManageStores?'إدارة الكتالوج والمتاجر':'إدارة الكتالوج'):($canManageStores?'Catalog & Store Management':'Catalog Management') }}</h1><div class="muted">{{ app()->getLocale()==='ar'?($canManageStores?'إدارة المنتجات والتصنيفات والمتاجر من نطاق المنصة.':'إدارة منتجات وتصنيفات المتجر المصرح فقط.') : ($canManageStores?'Manage catalog and store configuration from the platform control plane.':'Manage products and categories only for the authorized store.') }}</div></div><a class="btn" href="{{ route('admin.index') }}">{{ app()->getLocale()==='ar'?'لوحة الإدارة':'Dashboard' }}</a></div>
 @if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
@@ -44,6 +44,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <a class="{{ $tab==='stores'?'active':'' }}" href="{{ route('admin.catalog.index',['tab'=>'stores']) }}">{{ app()->getLocale()==='ar'?'المتاجر':'Stores' }}</a>
 @endif
 <a href="{{ route('admin.lookups.index', $scopeParams) }}">{{ app()->getLocale()==='ar'?'العلامات والوحدات':'Brands & Units' }}</a>
+@if($inventoryUrl)<a href="{{ $inventoryUrl }}">{{ app()->getLocale()==='ar'?'إدارة المخزون':'Inventory Management' }}</a>@endif
 </nav>
 
 @if($tab==='products')
