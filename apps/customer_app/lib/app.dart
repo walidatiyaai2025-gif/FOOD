@@ -145,6 +145,14 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _bindPushSession();
   }
 
+  void _switchChannel(CustomerChannel channel) {
+    final token = _session.accessToken;
+    if (token == null || token.isEmpty) return;
+    setState(() {
+      _session = CustomerSession.authenticated(channel, accessToken: token);
+    });
+  }
+
   void _onSessionExpired() {
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
@@ -184,6 +192,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       b2cAccountApi: b2cAccountApi,
       actionApi: actionApi,
       onAuthenticated: _onAuthenticated,
+      onChannelChanged: _switchChannel,
       onSessionExpired: _onSessionExpired,
     );
 
