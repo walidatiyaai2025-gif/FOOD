@@ -271,7 +271,7 @@ class GuestCatalogController extends Controller
             'brand_id' => $product->brand_id === null ? null : (int) $product->brand_id,
             'is_active' => (bool) $product->is_active,
             'price' => $price === null ? null : (float) $price,
-            'currency' => 'KWD',
+            'currency' => 'EGP',
             'image_url' => $this->assetUrl($primaryImage),
         ];
     }
