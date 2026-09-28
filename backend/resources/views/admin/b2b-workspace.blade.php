@@ -468,7 +468,7 @@
             <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعديل':'Adjust' }}</button>
           </form>
         @elseif($column==='actions' && $module==='orders' && $user->hasPermission('orders.manage'))
-          @include('admin._dashboard-order-actions',['channel'=>'b2b','row'=>$row])
+          @include('admin._dashboard-order-actions',['channel'=>'b2b','row'=>$row]) @if(!empty($row['_assignment'])) @include('admin._order-driver-management',['isB2bOrder'=>true,'driverRoute'=>'admin.b2b.drivers.assign']) @endif
         @else{{ $row[$column] }}@endif
       </td>@endforeach</tr>@endforeach
       </tbody></table></div>
