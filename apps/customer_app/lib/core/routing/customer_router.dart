@@ -112,7 +112,12 @@ class CustomerAppRouter {
     return MaterialPageRoute<void>(
       settings: settings,
       builder: (_) {
-        if (multiStorefrontPatterns.contains(definition.pattern)) {
+        final hasStoreContext = Uri.parse(requestedLocation).queryParameters.containsKey('store') ||
+            Uri.parse(requestedLocation).queryParameters.containsKey('store_id');
+        final useMultiStorefront = multiStorefrontPatterns.contains(definition.pattern) &&
+            (definition.pattern != CustomerRoutePaths.productDetails || hasStoreContext);
+
+        if (useMultiStorefront) {
           return MultiStorefrontScreen(
             definition: definition,
             location: requestedLocation,
