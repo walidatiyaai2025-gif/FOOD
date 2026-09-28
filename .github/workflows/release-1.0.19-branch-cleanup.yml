@@ -1,0 +1,74 @@
+name: FOODEX 1.0.19 One-Time Branch Cleanup
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-1.0.19-branch-cleanup.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: Delete obsolete completed branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate target version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          test "$version" = "1.0.19"
+          echo "Target version confirmed: $version"
+
+      - name: Delete obsolete branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "fix/1.0.10-cumulative-update-demo-button"
+            "release/1.0.10-update"
+            "release/221-generated-trial-bundle"
+            "release/295-1-0-10-update"
+            "release/309-1.0.15-admin-auth"
+          )
+
+          for branch in "${branches[@]}"; do
+            if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
+              echo "Deleting $branch"
+              git push origin --delete "$branch"
+            else
+              echo "Already absent: $branch"
+            fi
+          done
+
+      - name: Verify cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "fix/1.0.10-cumulative-update-demo-button"
+            "release/1.0.10-update"
+            "release/221-generated-trial-bundle"
+            "release/295-1-0-10-update"
+            "release/309-1.0.15-admin-auth"
+          )
+
+          failed=0
+          for branch in "${branches[@]}"; do
+            if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
+              echo "::error::Branch still exists: $branch"
+              failed=1
+            else
+              echo "Confirmed deleted: $branch"
+            fi
+          done
+
+          test "$failed" -eq 0
