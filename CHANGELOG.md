@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.25 - Storefront administration and dashboard reporting controls
+
+- Add the Retail Storefront Design Builder for store-scoped branding, theme colors, logo upload, home-section ordering/visibility, service zones, storefront banners and live administration preview.
+- Keep Storefront administration tenant-safe: Retail managers can mutate only their assigned store, while platform support requires explicit audited support context.
+- Standardize dashboard filter/search actions on the canonical FOODEX green action style across administration.
+- Replace the fixed/single-day dashboard period controls in B2B and B2C with explicit From/To date ranges, defaulting to the last 7 days and supporting up to 31 days.
+- Make B2B/B2C KPIs, revenue/order charts, order distribution and recent orders honor the selected range; B2B top products now follow the same range.
+- Compare KPI deltas against the immediately preceding period of equal length and adapt chart spacing/labels for wider ranges.
+- Preserve RTL/LTR, responsive behavior, Retail store/support context and dashboard search context.
+
+
 ## 1.0.24 - Driver assignment production hardening
 
 - Reconcile B2B and Retail driver execution permissions during production upgrades so existing driver roles can execute their assigned deliveries after an update.
