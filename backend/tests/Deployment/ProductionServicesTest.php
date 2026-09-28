@@ -24,6 +24,8 @@ class ProductionServicesTest extends TestCase
 
     private string $migrationPath;
 
+    private bool $publicStorageLinkExisted;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -38,6 +40,7 @@ class ProductionServicesTest extends TestCase
         $this->originalVersion = (string) file_get_contents(base_path('../VERSION'));
         $this->migrationPath = database_path('migrations/2999_01_01_000000_deployment_failure_probe.php');
         $this->assertFileDoesNotExist($this->migrationPath);
+        $this->publicStorageLinkExisted = is_link(public_path('storage')) || is_dir(public_path('storage'));
         copy(base_path('.env'), $this->directory.'/.env');
         config([
             'foodex.installer_env_path' => $this->directory.'/.env',
@@ -58,6 +61,11 @@ class ProductionServicesTest extends TestCase
         }
         if (isset($this->directory)) {
             File::deleteDirectory($this->directory);
+        }
+        if (isset($this->publicStorageLinkExisted)
+            && $this->publicStorageLinkExisted === false
+            && is_link(public_path('storage'))) {
+            @unlink(public_path('storage'));
         }
 
         parent::tearDown();
@@ -111,6 +119,10 @@ class ProductionServicesTest extends TestCase
         $this->assertSame('success', $history->status);
         $this->assertFalse(app()->isDownForMaintenance());
         $this->assertSame('99.0.0', trim((string) file_get_contents(base_path('../VERSION'))));
+        $this->assertTrue(
+            is_link(public_path('storage')) || is_dir(public_path('storage')),
+            'Updater must guarantee that public/storage is available after a successful update.',
+        );
 
         $migration = <<<'PHP'
 <?php

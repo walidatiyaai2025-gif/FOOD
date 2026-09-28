@@ -22,12 +22,19 @@
             @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
         @endif
 
-        <select name="customer_id" class="js-order-customer" required>
+        <select name="customer_id" class="js-order-customer" required @disabled($isB2bOrder && empty($moduleData['customers']))>
             <option value="">{{ app()->getLocale()==='ar'?'اختر العميل':'Select customer' }}</option>
             @foreach($moduleData['customers'] as $customer)
                 <option value="{{ $customer['id'] }}">{{ $customer['name'] }}</option>
             @endforeach
         </select>
+        @if($isB2bOrder && empty($moduleData['customers']))
+            <div class="muted" style="flex:1 1 100%;font-size:12px">
+                {{ app()->getLocale()==='ar'
+                    ? 'لا يوجد عميل جملة نشط لديه شريحة سعر معتمدة. اعتمد شريحة السعر للعميل قبل إنشاء الطلب.'
+                    : 'No active Wholesale customer has an approved price tier. Approve customer pricing before creating an order.' }}
+            </div>
+        @endif
 
         <select name="address_id" class="js-order-address">
             <option value="">{{ app()->getLocale()==='ar'?'بدون عنوان / استلام':'No address / pickup' }}</option>
@@ -54,7 +61,7 @@
                         <option value="{{ $product['id'] }}" data-store-id="{{ $product['store_id'] }}">
                             {{ $product['sku'] }} · {{ $product['name'] }}
                             @if(array_key_exists('price',$product))
-                                · {{ number_format((float)$product['price'],3) }} KWD
+                                · {{ number_format((float)$product['price'],3) }} EGP
                             @endif
                         </option>
                     @endforeach
@@ -66,7 +73,7 @@
 
         <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button type="button" class="js-add-order-line">{{ app()->getLocale()==='ar'?'إضافة صنف':'Add item' }}</button>
-            <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إنشاء الطلب':'Create order' }}</button>
+            <button class="foodex-primary" type="submit" @disabled($isB2bOrder && empty($moduleData['customers']))>{{ app()->getLocale()==='ar'?'إنشاء الطلب':'Create order' }}</button>
         </div>
     </form>
 </details>

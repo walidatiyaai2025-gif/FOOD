@@ -234,6 +234,8 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             || Artisan::call('view:cache') !== 0) {
             throw new RuntimeException('Application caches could not be rebuilt.');
         }
+
+        $this->ensurePublicStorageLink();
     }
 
     public function healthCheck(): void
@@ -467,6 +469,21 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     {
         if (! is_dir($path) && ! @mkdir($path, 0750, true) && ! is_dir($path)) {
             throw new RuntimeException('Required updater directory could not be prepared.');
+        }
+    }
+
+    private function ensurePublicStorageLink(): void
+    {
+        $publicRoot = (string) config('filesystems.disks.public.root');
+        $this->ensureDirectory($publicRoot);
+
+        $publicLink = public_path('storage');
+        if (! is_link($publicLink) && ! is_dir($publicLink)) {
+            Artisan::call('storage:link');
+        }
+
+        if (! is_link($publicLink) && ! is_dir($publicLink)) {
+            throw new RuntimeException('The public/storage link could not be prepared after the update.');
         }
     }
 
