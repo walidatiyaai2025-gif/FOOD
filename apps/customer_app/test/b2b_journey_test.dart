@@ -54,6 +54,11 @@ void main() {
     expect(find.text('أسعار مخصصة من لوحة التحكم'), findsOneWidget);
     expect(find.text('ابدأ طلب الجملة'), findsOneWidget);
     expect(find.text('تصنيفات الجملة'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('عروض الحساب'),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('عروض الحساب'), findsOneWidget);
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
