@@ -55,7 +55,7 @@
     <form class="panel row" method="get">
         <input name="q" value="{{ $search }}" placeholder="{{ __('notifications.search') }}">
         <select name="status"><option value="">{{ __('notifications.all_statuses') }}</option>@foreach(['draft','published'] as $value)<option value="{{ $value }}" @selected($status===$value)>{{ __('notifications.status_options.'.$value) }}</option>@endforeach</select>
-        <button class="primary">{{ __('notifications.filter') }}</button>
+        <button class="primary foodex-filter-action">{{ __('notifications.filter') }}</button>
     </form>
 
     <div class="cards">
