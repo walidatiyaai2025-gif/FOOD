@@ -8,9 +8,9 @@
 *{box-sizing:border-box}body{margin:0;overflow-x:hidden}.layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width);min-height:100vh;background:var(--foodex-background)}.sidebar{grid-column:2;grid-row:1;direction:rtl;padding:var(--foodex-space-5);position:sticky;inset-block-start:0;height:100vh}.main{grid-column:1;grid-row:1;direction:rtl;min-width:0;width:100%;max-width:none!important;padding:var(--foodex-space-8)}html[dir=ltr] .layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}html[dir=ltr] .sidebar{grid-column:1;direction:ltr}html[dir=ltr] .main{grid-column:2;direction:ltr}.headline{margin-bottom:var(--foodex-space-6)}.headline h1{margin:var(--foodex-space-1) 0 0}.headline .muted{max-width:760px}.muted{color:var(--foodex-muted)}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-5)}.metric-card{position:relative;overflow:hidden;padding:var(--foodex-space-5)!important;min-height:122px}.metric-card:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--foodex-green)}.metric-card:nth-child(2n):before{background:var(--foodex-orange)}.metric-card strong{font-size:var(--foodex-text-xs);color:var(--foodex-muted);font-weight:var(--foodex-font-weight-medium)}.metric-card p{font-family:var(--foodex-font-en);font-size:clamp(1.6rem,2.3vw,2rem);font-weight:var(--foodex-font-weight-bold);line-height:1.1;margin:var(--foodex-space-3) 0 0;color:var(--foodex-ink)}.panel{margin-top:var(--foodex-space-4);padding:var(--foodex-space-5)}.workspace-panel{box-shadow:var(--foodex-shadow)}.toolbar{display:flex;justify-content:space-between;gap:var(--foodex-space-4);align-items:flex-start;margin-bottom:var(--foodex-space-4)}.toolbar>div:first-child{max-width:520px}.links{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center}.workspace-tabs{justify-content:flex-end}.links a{min-height:var(--foodex-control-height);display:inline-flex;align-items:center;padding:0 var(--foodex-space-3);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold);text-decoration:none;background:var(--foodex-surface);color:var(--foodex-ink)}.links a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:#c9e7d3}.links a.active{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green);box-shadow:0 8px 20px rgba(21,138,58,.14)}.table-wrap{overflow:auto;border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-sm)}.data{min-width:760px}.data th,.data td{vertical-align:middle}.state{display:inline-flex;align-items:center;gap:6px;font-weight:var(--foodex-font-weight-medium)}.state:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--foodex-green)}.state.off:before{background:#98a2b3}.badge{display:inline-flex;align-items:center;min-height:26px;border-radius:999px;padding:3px 9px;background:var(--foodex-orange-soft);color:var(--foodex-orange);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold)}.badge.active,.badge.delivered{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.suspended,.badge.denied,.badge.cancelled{background:#fff0f0;color:var(--foodex-red)}.workspace-inline-form{padding:var(--foodex-space-4);margin-bottom:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}.workspace-inline-form input,.workspace-inline-form select{min-width:150px}.empty-state{display:grid;place-items:center;min-height:160px;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;padding:var(--foodex-space-6);color:var(--foodex-muted)}@media(max-width:1279px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar{flex-direction:column}.workspace-tabs{justify-content:flex-start}}@media(max-width:1023px){.layout,html[dir=ltr] .layout{grid-template-columns:1fr}.sidebar,html[dir=ltr] .sidebar{grid-column:1;grid-row:1;position:relative;height:auto;max-height:320px;overflow:auto}.main,html[dir=ltr] .main{grid-column:1;grid-row:2;padding:var(--foodex-space-6)!important}}@media(max-width:767px){.main,html[dir=ltr] .main{padding:var(--foodex-space-4)!important}.cards{grid-template-columns:1fr}.toolbar{align-items:stretch}.links a{flex:1 1 auto;justify-content:center}.workspace-inline-form{align-items:stretch}.workspace-inline-form input,.workspace-inline-form select,.workspace-inline-form button{width:100%}.data{min-width:680px}}
 
 /* B2B dashboard reference: 841x564 source ratio translated to live responsive admin geometry. */
-.b2b-reference-dashboard{display:grid;gap:12px;width:100%}
+.b2b-reference-dashboard{direction:ltr;display:grid;gap:12px;width:100%}
 .b2b-ref-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.b2b-ref-card{background:#fff;border:1px solid #e7edf3;border-radius:12px;box-shadow:0 2px 10px rgba(16,24,40,.035);min-width:0}
+.b2b-ref-card{direction:rtl;background:#fff;border:1px solid #e7edf3;border-radius:12px;box-shadow:0 2px 10px rgba(16,24,40,.035);min-width:0}
 .b2b-ref-kpi{min-height:96px;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:12px;align-items:center}
 .b2b-ref-kpi-copy{min-width:0}.b2b-ref-kpi-label{font-size:12px;color:#667085;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .b2b-ref-kpi-value{margin-top:3px;font-family:var(--foodex-font-en);font-size:22px;line-height:1.1;font-weight:700;color:#172033;white-space:nowrap}
@@ -24,8 +24,8 @@
 .b2b-ref-kpi:nth-child(4) .b2b-ref-kpi-icon{background:#fff6e9;color:#f59e0b}
 .b2b-ref-middle{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:12px}
 .b2b-ref-panel{padding:15px 16px}
-.b2b-ref-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
-.b2b-ref-panel-head h2{margin:0;font-size:15px;line-height:1.2;font-weight:700}
+.b2b-ref-panel-head{direction:ltr;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.b2b-ref-panel-head h2{direction:rtl;text-align:start;margin:0;font-size:15px;line-height:1.2;font-weight:700}
 .b2b-ref-filter{height:34px;min-height:34px!important;border:1px solid #e3e8ef;border-radius:8px;background:#fff;color:#475467;padding:0 10px;font-size:11px;font-weight:700}
 .b2b-ref-chart-wrap{position:relative;height:222px;direction:ltr}
 .b2b-ref-chart-wrap svg{display:block;width:100%;height:194px;overflow:visible}
@@ -43,7 +43,7 @@
 .b2b-ref-legend-dot{width:9px;height:9px;border-radius:50%}.b2b-ref-legend-row strong{font-family:var(--foodex-font-en);font-size:11px}
 .b2b-ref-bottom{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,1fr) minmax(230px,.82fr);gap:12px}
 .b2b-ref-bottom .b2b-ref-panel{min-height:264px}
-.b2b-ref-orders{width:100%;border-collapse:collapse;font-size:11px}.b2b-ref-orders th{padding:9px 7px;background:#f8fafc;color:#667085;font-size:10px;font-weight:700;text-align:start;border-block:1px solid #edf1f5}.b2b-ref-orders td{padding:10px 7px;border-bottom:1px solid #edf1f5;vertical-align:middle}.b2b-ref-orders tr:last-child td{border-bottom:0}
+.b2b-ref-orders{direction:ltr;width:100%;border-collapse:collapse;font-size:11px}.b2b-ref-orders th{direction:rtl;padding:9px 7px;background:#f8fafc;color:#667085;font-size:10px;font-weight:700;text-align:start;border-block:1px solid #edf1f5}.b2b-ref-orders td{direction:rtl;padding:10px 7px;border-bottom:1px solid #edf1f5;vertical-align:middle}.b2b-ref-orders tr:last-child td{border-bottom:0}
 .b2b-ref-order-number{font-family:var(--foodex-font-en);font-weight:700;color:#344054}
 .b2b-ref-status{display:inline-flex;align-items:center;justify-content:center;min-height:24px;border-radius:7px;padding:3px 8px;font-size:9px;font-weight:700;white-space:nowrap}
 .b2b-ref-status.completed,.b2b-ref-status.delivered{background:#daf9e5;color:#168a46}
@@ -108,7 +108,8 @@
             : '';
         $lastPoint = count($chartPoints) ? $chartPoints[count($chartPoints)-1] : ['x'=>524,'y'=>178,'revenue'=>0];
         $distribution = $dashboard['distribution'];
-        $distributionTotal = max(1, array_sum($distribution));
+        $distributionCount = array_sum($distribution);
+        $distributionTotal = max(1, $distributionCount);
         $processingPct = round(($distribution['processing'] / $distributionTotal) * 100, 1);
         $deliveryPct = round(($distribution['delivery'] / $distributionTotal) * 100, 1);
         $completedPct = round(($distribution['completed'] / $distributionTotal) * 100, 1);
@@ -174,9 +175,9 @@
             <article class="b2b-ref-card b2b-ref-panel">
                 <div class="b2b-ref-panel-head">
                     <h2>{{ $isAr?'المبيعات اليومية':'Daily sales' }}</h2>
-                    <form method="get" action="{{ route('admin.b2b.dashboard') }}">
-                        <input type="date" name="date" value="{{ $dashboard['selected_date'] }}" class="b2b-ref-filter" onchange="this.form.submit()">
-                    </form>
+                    <select class="b2b-ref-filter" aria-label="{{ $isAr ? 'الفترة' : 'Period' }}">
+                        <option>{{ $isAr ? 'آخر 7 أيام' : 'Last 7 days' }}</option>
+                    </select>
                 </div>
                 <div class="b2b-ref-chart-wrap">
                     <svg viewBox="0 0 560 200" role="img" aria-label="{{ $isAr?'مبيعات آخر 7 أيام':'Sales over the last 7 days' }}">
@@ -205,7 +206,7 @@
             <article class="b2b-ref-card b2b-ref-panel">
                 <div class="b2b-ref-panel-head"><h2>{{ $isAr?'توزيع الطلبات':'Order distribution' }}</h2></div>
                 <div class="b2b-ref-donut-body">
-                    <div class="b2b-ref-donut" style="background:conic-gradient(#13984b 0 {{ $processingEnd }}%,#73d99b {{ $processingEnd }}% {{ $deliveryEnd }}%,#2d86dc {{ $deliveryEnd }}% 100%)"></div>
+                    <div class="b2b-ref-donut" style="background:{{ $distributionCount > 0 ? 'conic-gradient(#13984b 0 '.$processingEnd.'%,#73d99b '.$processingEnd.'% '.$deliveryEnd.'%,#2d86dc '.$deliveryEnd.'% 100%)' : '#edf1f5' }}"></div>
                     <div class="b2b-ref-legend">
                         <div class="b2b-ref-legend-row"><span class="b2b-ref-legend-dot" style="background:#13984b"></span><span>{{ $isAr?'قيد التجهيز':'Processing' }}</span><strong>{{ $processingPct }}%</strong></div>
                         <div class="b2b-ref-legend-row"><span class="b2b-ref-legend-dot" style="background:#73d99b"></span><span>{{ $isAr?'قيد التوصيل':'In delivery' }}</span><strong>{{ $deliveryPct }}%</strong></div>
