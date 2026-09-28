@@ -117,23 +117,22 @@ class HttpWholesaleCommerceApi implements WholesaleCommerceApi {
 
     http.Response response;
     try {
-      switch (method) {
-        case 'POST':
-          response = await _client.post(
-            uri,
-            headers: headers,
-            body: jsonEncode(body ?? const {}),
-          );
-        case 'PATCH':
-          response = await _client.patch(
-            uri,
-            headers: headers,
-            body: jsonEncode(body ?? const {}),
-          );
-        case 'DELETE':
-          response = await _client.delete(uri, headers: headers);
-        default:
-          response = await _client.get(uri, headers: headers);
+      if (method == 'POST') {
+        response = await _client.post(
+          uri,
+          headers: headers,
+          body: jsonEncode(body ?? const {}),
+        );
+      } else if (method == 'PATCH') {
+        response = await _client.patch(
+          uri,
+          headers: headers,
+          body: jsonEncode(body ?? const {}),
+        );
+      } else if (method == 'DELETE') {
+        response = await _client.delete(uri, headers: headers);
+      } else {
+        response = await _client.get(uri, headers: headers);
       }
     } on http.ClientException {
       throw const WholesaleCommerceException('تعذر الاتصال بالخادم.');
