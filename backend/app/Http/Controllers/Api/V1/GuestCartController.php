@@ -139,6 +139,9 @@ class GuestCartController extends Controller
         ]);
 
         $newQuantity = ($item->exists ? (float) $item->quantity : 0.0) + $quantity;
+        if ($user instanceof User && $channel === 'b2b') {
+            $this->assertB2bQuantity($newQuantity, $pricing);
+        }
         $this->assertQuantityAvailable($state['available_quantity'], $newQuantity);
 
         $item->quantity = $newQuantity;
