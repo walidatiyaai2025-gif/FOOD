@@ -6,12 +6,70 @@
 @include('admin._brand-components')
 <style>
 *{box-sizing:border-box}body{margin:0;overflow-x:hidden}.layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width);min-height:100vh;background:var(--foodex-background)}.sidebar{grid-column:2;grid-row:1;direction:rtl;padding:var(--foodex-space-5);position:sticky;inset-block-start:0;height:100vh}.main{grid-column:1;grid-row:1;direction:rtl;min-width:0;width:100%;max-width:none!important;padding:var(--foodex-space-8)}html[dir=ltr] .layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}html[dir=ltr] .sidebar{grid-column:1;direction:ltr}html[dir=ltr] .main{grid-column:2;direction:ltr}.headline{margin-bottom:var(--foodex-space-6)}.headline h1{margin:var(--foodex-space-1) 0 0}.headline .muted{max-width:760px}.muted{color:var(--foodex-muted)}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-5)}.metric-card{position:relative;overflow:hidden;padding:var(--foodex-space-5)!important;min-height:122px}.metric-card:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--foodex-green)}.metric-card:nth-child(2n):before{background:var(--foodex-orange)}.metric-card strong{font-size:var(--foodex-text-xs);color:var(--foodex-muted);font-weight:var(--foodex-font-weight-medium)}.metric-card p{font-family:var(--foodex-font-en);font-size:clamp(1.6rem,2.3vw,2rem);font-weight:var(--foodex-font-weight-bold);line-height:1.1;margin:var(--foodex-space-3) 0 0;color:var(--foodex-ink)}.panel{margin-top:var(--foodex-space-4);padding:var(--foodex-space-5)}.workspace-panel{box-shadow:var(--foodex-shadow)}.toolbar{display:flex;justify-content:space-between;gap:var(--foodex-space-4);align-items:flex-start;margin-bottom:var(--foodex-space-4)}.toolbar>div:first-child{max-width:520px}.links{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center}.workspace-tabs{justify-content:flex-end}.links a{min-height:var(--foodex-control-height);display:inline-flex;align-items:center;padding:0 var(--foodex-space-3);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold);text-decoration:none;background:var(--foodex-surface);color:var(--foodex-ink)}.links a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:#c9e7d3}.links a.active{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green);box-shadow:0 8px 20px rgba(21,138,58,.14)}.table-wrap{overflow:auto;border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-sm)}.data{min-width:760px}.data th,.data td{vertical-align:middle}.state{display:inline-flex;align-items:center;gap:6px;font-weight:var(--foodex-font-weight-medium)}.state:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--foodex-green)}.state.off:before{background:#98a2b3}.badge{display:inline-flex;align-items:center;min-height:26px;border-radius:999px;padding:3px 9px;background:var(--foodex-orange-soft);color:var(--foodex-orange);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold)}.badge.active,.badge.delivered{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.suspended,.badge.denied,.badge.cancelled{background:#fff0f0;color:var(--foodex-red)}.workspace-inline-form{padding:var(--foodex-space-4);margin-bottom:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}.workspace-inline-form input,.workspace-inline-form select{min-width:150px}.empty-state{display:grid;place-items:center;min-height:160px;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;padding:var(--foodex-space-6);color:var(--foodex-muted)}@media(max-width:1279px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar{flex-direction:column}.workspace-tabs{justify-content:flex-start}}@media(max-width:1023px){.layout,html[dir=ltr] .layout{grid-template-columns:1fr}.sidebar,html[dir=ltr] .sidebar{grid-column:1;grid-row:1;position:relative;height:auto;max-height:320px;overflow:auto}.main,html[dir=ltr] .main{grid-column:1;grid-row:2;padding:var(--foodex-space-6)!important}}@media(max-width:767px){.main,html[dir=ltr] .main{padding:var(--foodex-space-4)!important}.cards{grid-template-columns:1fr}.toolbar{align-items:stretch}.links a{flex:1 1 auto;justify-content:center}.workspace-inline-form{align-items:stretch}.workspace-inline-form input,.workspace-inline-form select,.workspace-inline-form button{width:100%}.data{min-width:680px}}
+
+/* B2B dashboard reference: 841x564 source ratio translated to live responsive admin geometry. */
+.b2b-reference-dashboard{direction:ltr;display:grid;gap:12px;width:100%}
+.b2b-ref-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.b2b-ref-card{direction:rtl;background:#fff;border:1px solid #e7edf3;border-radius:12px;box-shadow:0 2px 10px rgba(16,24,40,.035);min-width:0}
+.b2b-ref-kpi{min-height:96px;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:12px;align-items:center}
+.b2b-ref-kpi-copy{min-width:0}.b2b-ref-kpi-label{font-size:12px;color:#667085;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.b2b-ref-kpi-value{margin-top:3px;font-family:var(--foodex-font-en);font-size:22px;line-height:1.1;font-weight:700;color:#172033;white-space:nowrap}
+.b2b-ref-kpi-delta{margin-top:7px;font-family:var(--foodex-font-en);font-size:11px;font-weight:700;color:#16a34a;display:flex;align-items:center;gap:4px}
+.b2b-ref-kpi-delta.down{color:#ef4444}.b2b-ref-kpi-delta.neutral{color:#98a2b3}
+.b2b-ref-kpi-icon{width:48px;height:48px;border-radius:10px;display:grid;place-items:center}
+.b2b-ref-kpi-icon .foodex-svg-icon{width:25px;height:25px}
+.b2b-ref-kpi:nth-child(1) .b2b-ref-kpi-icon{background:#e9fbef;color:#13984b}
+.b2b-ref-kpi:nth-child(2) .b2b-ref-kpi-icon{background:#ebf5ff;color:#2d86dc}
+.b2b-ref-kpi:nth-child(3) .b2b-ref-kpi-icon{background:#fff5e8;color:#f59e0b}
+.b2b-ref-kpi:nth-child(4) .b2b-ref-kpi-icon{background:#fff6e9;color:#f59e0b}
+.b2b-ref-middle{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:12px}
+.b2b-ref-panel{padding:15px 16px}
+.b2b-ref-panel-head{direction:ltr;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.b2b-ref-panel-head h2{direction:rtl;text-align:start;margin:0;font-size:15px;line-height:1.2;font-weight:700}
+.b2b-ref-filter{height:34px;min-height:34px!important;border:1px solid #e3e8ef;border-radius:8px;background:#fff;color:#475467;padding:0 10px;font-size:11px;font-weight:700}
+.b2b-ref-chart-wrap{position:relative;height:222px;direction:ltr}
+.b2b-ref-chart-wrap svg{display:block;width:100%;height:194px;overflow:visible}
+.b2b-ref-chart-grid{stroke:#edf1f5;stroke-width:1}
+.b2b-ref-chart-line{fill:none;stroke:#16a34a;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.b2b-ref-chart-area{fill:url(#b2bRevenueGradient)}
+.b2b-ref-chart-dot{fill:#fff;stroke:#16a34a;stroke-width:2.4}
+.b2b-ref-chart-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:-2px;font-family:var(--foodex-font-en);font-size:9px;color:#7b8798;text-align:center}
+.b2b-ref-axis{font-family:var(--foodex-font-en);font-size:9px;fill:#7b8798}
+.b2b-ref-tooltip{fill:#175c35}.b2b-ref-tooltip-text{font-family:var(--foodex-font-en);font-size:9px;font-weight:700;fill:#fff}
+.b2b-ref-donut-body{direction:ltr;min-height:222px;display:grid;grid-template-columns:minmax(126px,.95fr) minmax(145px,1.05fr);gap:16px;align-items:center}
+.b2b-ref-donut{width:142px;height:142px;border-radius:50%;position:relative;margin:auto}
+.b2b-ref-donut:after{content:"";position:absolute;inset:34px;border-radius:50%;background:#fff}
+.b2b-ref-legend{direction:ltr;display:grid;gap:16px}.b2b-ref-legend-row{direction:ltr;display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:12px}
+.b2b-ref-legend-dot{width:9px;height:9px;border-radius:50%}.b2b-ref-legend-row strong{font-family:var(--foodex-font-en);font-size:11px}
+.b2b-ref-bottom{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,1fr) minmax(230px,.82fr);gap:12px}
+.b2b-ref-bottom .b2b-ref-panel{min-height:264px}
+.b2b-ref-orders{direction:ltr;width:100%;border-collapse:collapse;font-size:11px}.b2b-ref-orders th{direction:rtl;padding:9px 7px;background:#f8fafc;color:#667085;font-size:10px;font-weight:700;text-align:start;border-block:1px solid #edf1f5}.b2b-ref-orders td{direction:rtl;padding:10px 7px;border-bottom:1px solid #edf1f5;vertical-align:middle}.b2b-ref-orders tr:last-child td{border-bottom:0}
+.b2b-ref-order-number{font-family:var(--foodex-font-en);font-weight:700;color:#344054}
+.b2b-ref-status{display:inline-flex;align-items:center;justify-content:center;min-height:24px;border-radius:7px;padding:3px 8px;font-size:9px;font-weight:700;white-space:nowrap}
+.b2b-ref-status.completed,.b2b-ref-status.delivered{background:#daf9e5;color:#168a46}
+.b2b-ref-status.processing,.b2b-ref-status.confirmed,.b2b-ref-status.pending,.b2b-ref-status.paid,.b2b-ref-status.accepted{background:#fff3d7;color:#de8700}
+.b2b-ref-status.assigned,.b2b-ref-status.picked_up,.b2b-ref-status.out_for_delivery,.b2b-ref-status.in_transit{background:#e6f4ff;color:#1f7ac6}
+.b2b-ref-status.cancelled,.b2b-ref-status.refunded{background:#fff0f0;color:#dc2626}
+.b2b-ref-products{display:grid}.b2b-ref-product{direction:ltr;display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #edf1f5}.b2b-ref-product:last-child{border-bottom:0}
+.b2b-ref-product-thumb{width:48px;height:42px;border-radius:9px;background:#f6f8fb;border:1px solid #edf1f5;display:grid;place-items:center;overflow:hidden;color:#f59e0b}
+.b2b-ref-product-thumb img{width:100%;height:100%;object-fit:contain}.b2b-ref-product-name{direction:rtl;text-align:start;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.b2b-ref-product-sku{font-family:var(--foodex-font-en);font-size:9px;color:#98a2b3}.b2b-ref-product-qty{font-family:var(--foodex-font-en);font-size:11px;font-weight:700;color:#475467}
+.b2b-ref-alerts{display:grid}.b2b-ref-alert{direction:ltr;display:grid;grid-template-columns:42px minmax(0,1fr) 6px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #edf1f5;color:inherit;text-decoration:none}.b2b-ref-alert:last-child{border-bottom:0}
+.b2b-ref-alert-icon{width:42px;height:42px;border-radius:10px;display:grid;place-items:center}.b2b-ref-alert-icon .foodex-svg-icon{width:22px;height:22px}
+.b2b-ref-alert.orange .b2b-ref-alert-icon{background:#fff4dc;color:#f59e0b}.b2b-ref-alert.green .b2b-ref-alert-icon{background:#eaf9ef;color:#159447}.b2b-ref-alert-title{direction:rtl;text-align:start;display:block;font-size:11px;font-weight:700}.b2b-ref-alert-body{direction:rtl;text-align:start;display:block;margin-top:2px;font-size:9px;color:#7b8798;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.b2b-ref-alert-dot{width:6px;height:6px;border-radius:50%;background:#ef4444}
+.b2b-ref-more{display:inline-flex;margin-top:8px;font-size:10px;font-weight:700;color:#2487e3;text-decoration:none}
+.b2b-ref-empty{min-height:140px;display:grid;place-items:center;text-align:center;color:#98a2b3;font-size:11px}
+@media(min-width:1600px){.b2b-ref-kpi{min-height:104px}.b2b-ref-chart-wrap{height:246px}.b2b-ref-chart-wrap svg{height:216px}.b2b-ref-donut-body{min-height:246px}.b2b-ref-bottom .b2b-ref-panel{min-height:286px}}
+@media(max-width:1279px){.b2b-ref-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.b2b-ref-middle{grid-template-columns:1fr}.b2b-ref-bottom{grid-template-columns:1fr 1fr}.b2b-ref-bottom>.b2b-ref-panel:first-child{grid-column:1/-1}}
+@media(max-width:820px){.b2b-ref-kpis,.b2b-ref-bottom{grid-template-columns:1fr}.b2b-ref-bottom>.b2b-ref-panel:first-child{grid-column:auto}.b2b-ref-donut-body{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.b2b-reference-dashboard{gap:10px}.b2b-ref-kpi{min-height:86px;padding:12px}.b2b-ref-kpi-value{font-size:19px}.b2b-ref-panel{padding:12px}.b2b-ref-chart-wrap{height:190px}.b2b-ref-chart-wrap svg{height:166px}.b2b-ref-donut-body{grid-template-columns:1fr;gap:10px}.b2b-ref-donut{width:126px;height:126px}.b2b-ref-donut:after{inset:31px}.b2b-ref-orders{min-width:560px}.b2b-ref-orders-wrap{overflow:auto}.b2b-ref-bottom .b2b-ref-panel{min-height:auto}}
+
 </style>
 </head>
 <body>
 <div class="layout b2b-premium-shell" data-b2b-premium="v1">
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="main foodex-admin-page">
+    @if($module !== 'dashboard')
     <div class="headline foodex-page-header">
         <div>
             <a class="muted" href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a>
@@ -25,6 +83,208 @@
         <article class="card foodex-card metric-card"><strong>{{ __('admin.b2b_workspace.modules.'.$key) }}</strong><p>{{ number_format($value) }}</p></article>
         @endforeach
     </section>
+    @endif
+
+
+    @if($module === 'dashboard' && $dashboard)
+    @php
+        $isAr = app()->getLocale() === 'ar';
+        $kpiConfig = [
+            ['key'=>'sales','label'=>$isAr?'مبيعات اليوم':'Today sales','icon'=>'revenue','money'=>true],
+            ['key'=>'orders','label'=>$isAr?'عدد الطلبات':'Orders','icon'=>'orders','money'=>false],
+            ['key'=>'customers','label'=>$isAr?'عدد العملاء':'Customers','icon'=>'customers','money'=>false],
+            ['key'=>'average','label'=>$isAr?'متوسط قيمة الطلب':'Average order value','icon'=>'storefront','money'=>true],
+        ];
+        $series = collect($dashboard['series'])->values();
+        $maxRevenue = max(1, (float) $series->max('revenue'));
+        $chartPoints = $series->map(function ($point, $index) use ($maxRevenue) {
+            $x = 38 + ($index * (486 / 6));
+            $y = 178 - (((float) $point['revenue'] / $maxRevenue) * 132);
+            return ['x'=>round($x,1),'y'=>round($y,1),'revenue'=>(float)$point['revenue'],'label'=>$point['label']];
+        })->all();
+        $polyline = collect($chartPoints)->map(fn($point)=>$point['x'].','.$point['y'])->implode(' ');
+        $areaPath = count($chartPoints)
+            ? 'M '.$chartPoints[0]['x'].' 190 L '.collect($chartPoints)->map(fn($point)=>$point['x'].' '.$point['y'])->implode(' L ').' L '.$chartPoints[count($chartPoints)-1]['x'].' 190 Z'
+            : '';
+        $lastPoint = count($chartPoints) ? $chartPoints[count($chartPoints)-1] : ['x'=>524,'y'=>178,'revenue'=>0];
+        $distribution = $dashboard['distribution'];
+        $distributionCount = array_sum($distribution);
+        $distributionTotal = max(1, $distributionCount);
+        $processingPct = round(($distribution['processing'] / $distributionTotal) * 100, 1);
+        $deliveryPct = round(($distribution['delivery'] / $distributionTotal) * 100, 1);
+        $completedPct = round(($distribution['completed'] / $distributionTotal) * 100, 1);
+        $processingEnd = $processingPct;
+        $deliveryEnd = $processingPct + $deliveryPct;
+        $statusLabels = [
+            'pending'=>$isAr?'قيد الانتظار':'Pending',
+            'confirmed'=>$isAr?'مؤكد':'Confirmed',
+            'processing'=>$isAr?'قيد التجهيز':'Processing',
+            'paid'=>$isAr?'مدفوع':'Paid',
+            'accepted'=>$isAr?'مقبول':'Accepted',
+            'assigned'=>$isAr?'تم التعيين':'Assigned',
+            'picked_up'=>$isAr?'تم الاستلام':'Picked up',
+            'out_for_delivery'=>$isAr?'قيد التوصيل':'Out for delivery',
+            'in_transit'=>$isAr?'في الطريق':'In transit',
+            'delivered'=>$isAr?'مكتمل':'Delivered',
+            'completed'=>$isAr?'مكتمل':'Completed',
+            'cancelled'=>$isAr?'ملغي':'Cancelled',
+            'refunded'=>$isAr?'مسترد':'Refunded',
+        ];
+        $alertLabels = [
+            'low_stock'=>$isAr?'مخزون منخفض':'Low stock',
+            'new_order'=>$isAr?'طلب جديد':'New order',
+            'delivered'=>$isAr?'تم التوصيل':'Delivered',
+            'overdue_invoice'=>$isAr?'فاتورة متأخرة':'Overdue invoice',
+        ];
+    @endphp
+    <section class="b2b-reference-dashboard" data-b2b-reference-dashboard="841x564">
+        <div class="b2b-ref-kpis">
+            @foreach($kpiConfig as $config)
+                @php
+                    $kpi = $dashboard['kpis'][$config['key']];
+                    $kpiValue = $config['money']
+                        ? 'EGP '.number_format((float) $kpi['value'], 0)
+                        : number_format((float) $kpi['value'], 0);
+                    $delta = $kpi['delta'];
+                    $deltaClass = $delta !== null && $delta < 0
+                        ? 'down'
+                        : ($delta === null || $delta == 0 ? 'neutral' : '');
+                @endphp
+                <article class="b2b-ref-card b2b-ref-kpi">
+                    <div class="b2b-ref-kpi-copy">
+                        <div class="b2b-ref-kpi-label">{{ $config['label'] }}</div>
+                        <div class="b2b-ref-kpi-value">{{ $kpiValue }}</div>
+                        <div class="b2b-ref-kpi-delta {{ $deltaClass }}">
+                            @if($delta === null)
+                                <span>—</span>
+                            @elseif($delta > 0)
+                                <span>↑</span><span>{{ number_format(abs($delta),1) }}%</span>
+                            @elseif($delta < 0)
+                                <span>↓</span><span>{{ number_format(abs($delta),1) }}%</span>
+                            @else
+                                <span>→</span><span>0%</span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="b2b-ref-kpi-icon">@include('admin._premium-icon',['name'=>$config['icon']])</div>
+                </article>
+            @endforeach
+        </div>
+
+        <div class="b2b-ref-middle">
+            <article class="b2b-ref-card b2b-ref-panel">
+                <div class="b2b-ref-panel-head">
+                    <h2>{{ $isAr?'المبيعات اليومية':'Daily sales' }}</h2>
+                    <select class="b2b-ref-filter" aria-label="{{ $isAr ? 'الفترة' : 'Period' }}">
+                        <option>{{ $isAr ? 'آخر 7 أيام' : 'Last 7 days' }}</option>
+                    </select>
+                </div>
+                <div class="b2b-ref-chart-wrap">
+                    <svg viewBox="0 0 560 200" role="img" aria-label="{{ $isAr?'مبيعات آخر 7 أيام':'Sales over the last 7 days' }}">
+                        <defs><linearGradient id="b2bRevenueGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#33c56b" stop-opacity=".26"/><stop offset="100%" stop-color="#33c56b" stop-opacity=".02"/></linearGradient></defs>
+                        @foreach([46,90,134,178] as $gridY)<line class="b2b-ref-chart-grid" x1="38" y1="{{ $gridY }}" x2="524" y2="{{ $gridY }}"/>@endforeach
+                        <text class="b2b-ref-axis" x="5" y="181">0</text>
+                        <text class="b2b-ref-axis" x="2" y="137">{{ number_format($maxRevenue*.33/1000,0) }}K</text>
+                        <text class="b2b-ref-axis" x="2" y="93">{{ number_format($maxRevenue*.66/1000,0) }}K</text>
+                        <text class="b2b-ref-axis" x="2" y="49">{{ number_format($maxRevenue/1000,0) }}K</text>
+                        @if($areaPath)<path class="b2b-ref-chart-area" d="{{ $areaPath }}"/>@endif
+                        @if($polyline)<polyline class="b2b-ref-chart-line" points="{{ $polyline }}"/>@endif
+                        @foreach($chartPoints as $point)<circle class="b2b-ref-chart-dot" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3.8"/>@endforeach
+                        @if(count($chartPoints))
+                            @php
+                                $tooltipX = min(466, max(392, $lastPoint['x'] - 58));
+                                $tooltipY = max(6, $lastPoint['y'] - 35);
+                            @endphp
+                            <rect class="b2b-ref-tooltip" x="{{ $tooltipX }}" y="{{ $tooltipY }}" rx="5" ry="5" width="88" height="24"/>
+                            <text class="b2b-ref-tooltip-text" x="{{ $tooltipX + 44 }}" y="{{ $tooltipY + 16 }}" text-anchor="middle">EGP {{ number_format($lastPoint['revenue'],0) }}</text>
+                        @endif
+                    </svg>
+                    <div class="b2b-ref-chart-labels">@foreach($dashboard['series'] as $point)<span>{{ $point['label'] }}</span>@endforeach</div>
+                </div>
+            </article>
+
+            <article class="b2b-ref-card b2b-ref-panel">
+                <div class="b2b-ref-panel-head"><h2>{{ $isAr?'توزيع الطلبات':'Order distribution' }}</h2></div>
+                <div class="b2b-ref-donut-body">
+                    <div class="b2b-ref-donut" style="background:{{ $distributionCount > 0 ? 'conic-gradient(#13984b 0 '.$processingEnd.'%,#73d99b '.$processingEnd.'% '.$deliveryEnd.'%,#2d86dc '.$deliveryEnd.'% 100%)' : '#edf1f5' }}"></div>
+                    <div class="b2b-ref-legend">
+                        <div class="b2b-ref-legend-row"><span class="b2b-ref-legend-dot" style="background:#13984b"></span><span>{{ $isAr?'قيد التجهيز':'Processing' }}</span><strong>{{ $processingPct }}%</strong></div>
+                        <div class="b2b-ref-legend-row"><span class="b2b-ref-legend-dot" style="background:#73d99b"></span><span>{{ $isAr?'قيد التوصيل':'In delivery' }}</span><strong>{{ $deliveryPct }}%</strong></div>
+                        <div class="b2b-ref-legend-row"><span class="b2b-ref-legend-dot" style="background:#2d86dc"></span><span>{{ $isAr?'مكتمل':'Completed' }}</span><strong>{{ $completedPct }}%</strong></div>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <div class="b2b-ref-bottom">
+            <article class="b2b-ref-card b2b-ref-panel">
+                <div class="b2b-ref-panel-head"><h2>{{ $isAr?'أحدث الطلبات':'Latest orders' }}</h2></div>
+                @if(count($dashboard['recent_orders']))
+                <div class="b2b-ref-orders-wrap">
+                    <table class="b2b-ref-orders">
+                        <thead><tr><th>#</th><th>{{ $isAr?'رقم الطلب':'Order' }}</th><th>{{ $isAr?'العميل':'Customer' }}</th><th>{{ $isAr?'الفرع':'Store' }}</th><th>{{ $isAr?'المبلغ':'Amount' }}</th><th>{{ $isAr?'الحالة':'Status' }}</th></tr></thead>
+                        <tbody>
+                        @foreach($dashboard['recent_orders'] as $index=>$order)
+                            <tr>
+                                <td>{{ $index+1 }}</td>
+                                <td class="b2b-ref-order-number">#{{ $order['number'] }}</td>
+                                <td>{{ $order['customer'] }}</td>
+                                <td>{{ $order['store'] }}</td>
+                                <td class="foodex-number">{{ $order['currency'] }} {{ number_format($order['amount'],0) }}</td>
+                                <td><span class="b2b-ref-status {{ $order['status'] }}">{{ $statusLabels[$order['status']] ?? $order['status'] }}</span></td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @else
+                    <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد طلبات حتى الآن' : 'No orders yet' }}</div>
+                @endif
+                <a class="b2b-ref-more" href="{{ route('admin.b2b.module',['module'=>'orders']) }}">{{ $isAr?'عرض كل الطلبات':'View all orders' }}</a>
+            </article>
+
+            <article class="b2b-ref-card b2b-ref-panel">
+                <div class="b2b-ref-panel-head"><h2>{{ $isAr?'أكثر المنتجات مبيعًا':'Top-selling products' }}</h2><span class="muted" style="font-size:9px">{{ $isAr?'الكمية المباعة':'Sold qty' }}</span></div>
+                @if(count($dashboard['top_products']))
+                <div class="b2b-ref-products">
+                    @foreach($dashboard['top_products'] as $product)
+                    <div class="b2b-ref-product">
+                        <div class="b2b-ref-product-thumb">
+                            @if($product['image'])
+                                <img src="{{ asset($product['image']) }}" alt="{{ $product['name'] }}">
+                            @else
+                                @include('admin._premium-icon',['name'=>'products'])
+                            @endif
+                        </div>
+                        <div style="min-width:0"><div class="b2b-ref-product-name">{{ $product['name'] }}</div><div class="b2b-ref-product-sku">{{ $product['sku'] }}</div></div>
+                        <div class="b2b-ref-product-qty">{{ number_format($product['quantity'],0) }}</div>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                    <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد مبيعات منتجات في آخر 7 أيام' : 'No product sales in the last 7 days' }}</div>
+                @endif
+            </article>
+
+            <article class="b2b-ref-card b2b-ref-panel">
+                <div class="b2b-ref-panel-head"><h2>{{ $isAr?'إشعارات وتنبيهات':'Alerts & notifications' }}</h2><span style="width:6px;height:6px;border-radius:50%;background:#ef4444"></span></div>
+                @if(count($dashboard['alerts']))
+                <div class="b2b-ref-alerts">
+                    @foreach($dashboard['alerts'] as $alert)
+                    <a class="b2b-ref-alert {{ $alert['tone'] }}" href="{{ $alert['url'] }}">
+                        <span class="b2b-ref-alert-icon">@include('admin._premium-icon',['name'=>$alert['icon']])</span>
+                        <span style="min-width:0"><span class="b2b-ref-alert-title">{{ $alertLabels[$alert['title']] ?? $alert['title'] }}</span><span class="b2b-ref-alert-body">{{ $alert['body'] }}</span></span>
+                        <span class="b2b-ref-alert-dot"></span>
+                    </a>
+                    @endforeach
+                </div>
+                @else
+                    <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد تنبيهات تشغيلية' : 'No operational alerts' }}</div>
+                @endif
+            </article>
+        </div>
+    </section>
+    @endif
 
     @if($moduleData)
     @php
