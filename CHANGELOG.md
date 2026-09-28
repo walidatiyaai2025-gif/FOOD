@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.0.19 - Retail Administration Production Fixes
+- Harden production updates from System Inspector findings: automatically restore `public/storage`, suppress invalid Retail-linked Wholesale status mutations, and hide unpriced B2B customers from order creation.
 - Fix direct Retail catalog access for platform support context and add a canonical category-management route so product/category administration no longer falls into the Wholesale tenant path.
 - Complete Retail inventory management with warehouse creation, initial/current stock balance creation and stock adjustments from the Retail workspace.
 - Add Retail customer image upload, replacement and removal with a neutral fallback avatar when no image is available.
