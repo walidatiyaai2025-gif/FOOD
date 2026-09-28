@@ -365,15 +365,21 @@ class StoreArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fallback = pharmacy ? 'assets/store_selector/pharmacy_store_art.webp' : 'assets/store_selector/grocery_store_art.webp';
+    final fallback = Center(
+      child: Icon(
+        wholesale ? Icons.warehouse_rounded : (pharmacy ? Icons.local_pharmacy_rounded : Icons.local_grocery_store_rounded),
+        size: 54,
+        color: const Color(0xFF009B4D),
+      ),
+    );
     return Container(
       width: 112, height: 112,
       decoration: BoxDecoration(color: const Color(0xFFF2FBF6), borderRadius: BorderRadius.circular(22)),
       clipBehavior: Clip.antiAlias,
       child: logoUrl != null && logoUrl!.trim().isNotEmpty
           ? Image.network(logoUrl!, fit: BoxFit.cover, cacheWidth: 280, cacheHeight: 280,
-              errorBuilder: (_, __, ___) => Image.asset(fallback, fit: BoxFit.cover, cacheWidth: 280))
-          : Image.asset(fallback, fit: BoxFit.cover, cacheWidth: 280),
+              errorBuilder: (_, __, ___) => fallback)
+          : fallback,
     );
   }
 }
