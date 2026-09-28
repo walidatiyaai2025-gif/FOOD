@@ -184,7 +184,7 @@ class B2bPricingController extends Controller
             'price_tier' => (string) $row->price_tier,
             'available_quantity' => $availableQuantity,
             'is_available' => $availableQuantity === null || $availableQuantity > 0,
-            'currency' => 'KWD',
+            'currency' => 'EGP',
         ]);
     }
 
@@ -270,7 +270,7 @@ class B2bPricingController extends Controller
                 'image_url' => $this->assetUrl($row->primary_image_path),
             ]);
 
-        return response()->json(['data' => $rows, 'currency' => 'KWD']);
+        return response()->json(['data' => $rows, 'currency' => 'EGP']);
     }
 
     private function assetUrl(mixed $path): ?string
