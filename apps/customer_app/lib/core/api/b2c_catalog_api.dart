@@ -3,16 +3,42 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class B2cStore {
-  const B2cStore({required this.id, required this.name, required this.code});
+  const B2cStore({
+    required this.id,
+    required this.name,
+    required this.code,
+    this.storefrontKind = 'grocery',
+    this.logoUrl,
+    this.sections = const ['hero', 'categories', 'recommended_products'],
+  });
+
   final int id;
   final String name;
   final String code;
+  final String storefrontKind;
+  final String? logoUrl;
+  final List<String> sections;
 
-  factory B2cStore.fromJson(Map<String, dynamic> json) => B2cStore(
-        id: (json['id'] as num).toInt(),
-        name: json['name'] as String? ?? '',
-        code: json['code'] as String? ?? '',
-      );
+  factory B2cStore.fromJson(Map<String, dynamic> json) {
+    final config = json['storefront_config'] is Map
+        ? Map<String, dynamic>.from(json['storefront_config'] as Map)
+        : const <String, dynamic>{};
+    final configuredSections = (config['sections'] as List?)
+            ?.whereType<String>()
+            .toList(growable: false) ??
+        const <String>[];
+
+    return B2cStore(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String? ?? '',
+      code: json['code'] as String? ?? '',
+      storefrontKind: json['storefront_kind'] as String? ?? 'grocery',
+      logoUrl: json['logo_url'] as String?,
+      sections: configuredSections.isEmpty
+          ? const ['hero', 'categories', 'recommended_products']
+          : configuredSections,
+    );
+  }
 }
 
 class B2cCategory {
