@@ -13,15 +13,22 @@ final class B2cDashboardService
     private const TIMEZONE = 'Asia/Kuwait';
 
     /** @param list<int> $storeIds */
-    public function build(User $user, array $storeIds, ?string $date = null, ?string $search = null): array
-    {
-        $selected = CarbonImmutable::parse(
-            $date ?: CarbonImmutable::now(self::TIMEZONE)->toDateString(),
-            self::TIMEZONE,
-        )->startOfDay();
+    public function build(
+        User $user,
+        array $storeIds,
+        ?string $fromDate = null,
+        ?string $toDate = null,
+        ?string $search = null,
+    ): array {
+        [$rangeFrom, $rangeTo] = $this->range($fromDate, $toDate);
+        [$from] = $this->utcBounds($rangeFrom);
+        [, $to] = $this->utcBounds($rangeTo);
 
-        [$from, $to] = $this->utcBounds($selected);
-        [$previousFrom, $previousTo] = $this->utcBounds($selected->subDay());
+        $days = $rangeFrom->diffInDays($rangeTo) + 1;
+        $previousRangeTo = $rangeFrom->subDay();
+        $previousRangeFrom = $previousRangeTo->subDays($days - 1);
+        [$previousFrom] = $this->utcBounds($previousRangeFrom);
+        [, $previousTo] = $this->utcBounds($previousRangeTo);
 
         $orders = $this->orders($storeIds, $from, $to);
         $previousOrders = $this->orders($storeIds, $previousFrom, $previousTo);
@@ -63,7 +70,10 @@ final class B2cDashboardService
             ->count('users.id');
 
         return [
-            'selected_date' => $selected->toDateString(),
+            'selected_date' => $rangeTo->toDateString(),
+            'selected_from' => $rangeFrom->toDateString(),
+            'selected_to' => $rangeTo->toDateString(),
+            'range_days' => $days,
             'timezone' => self::TIMEZONE,
             'currency' => 'KWD',
             'scope_store_ids' => $storeIds,
@@ -86,7 +96,7 @@ final class B2cDashboardService
                     'delta' => $this->delta($sold, $previousSold),
                 ],
             ],
-            'series' => $this->series($storeIds, $selected),
+            'series' => $this->series($storeIds, $rangeFrom, $rangeTo),
             'distribution' => $this->distribution($orders),
             'low_stock' => $this->lowStock($storeIds),
             'recent_orders' => $this->recentOrders($storeIds),
@@ -107,18 +117,17 @@ final class B2cDashboardService
     }
 
     /** @param list<int> $storeIds */
-    private function series(array $storeIds, CarbonImmutable $selected): array
+    private function series(array $storeIds, CarbonImmutable $rangeFrom, CarbonImmutable $rangeTo): array
     {
         $rows = [];
 
-        for ($offset = 6; $offset >= 0; $offset--) {
-            $day = $selected->subDays($offset);
+        for ($day = $rangeFrom; $day->lte($rangeTo); $day = $day->addDay()) {
             [$from, $to] = $this->utcBounds($day);
             $query = $this->orders($storeIds, $from, $to);
 
             $rows[] = [
                 'date' => $day->toDateString(),
-                'label' => $day->format('m/d'),
+                'label' => $day->format('d/m'),
                 'orders' => (int) (clone $query)->count('orders.id'),
                 'revenue' => round((float) (clone $query)
                     ->whereNotIn('orders.status', ['cancelled', 'refunded'])
@@ -395,6 +404,23 @@ final class B2cDashboardService
                     ->where('notification_reads.user_id', $user->id);
             })
             ->count();
+    }
+
+    /** @return array{0:CarbonImmutable,1:CarbonImmutable} */
+    private function range(?string $fromDate, ?string $toDate): array
+    {
+        $today = CarbonImmutable::now(self::TIMEZONE)->startOfDay();
+
+        if ($fromDate !== null && $toDate === null) {
+            $from = CarbonImmutable::parse($fromDate, self::TIMEZONE)->startOfDay();
+
+            return [$from, $from];
+        }
+
+        $to = CarbonImmutable::parse($toDate ?: $today->toDateString(), self::TIMEZONE)->startOfDay();
+        $from = CarbonImmutable::parse($fromDate ?: $to->subDays(6)->toDateString(), self::TIMEZONE)->startOfDay();
+
+        return [$from, $to];
     }
 
     private function delta(float|int $current, float|int $previous): ?float
