@@ -133,7 +133,7 @@ class StorefrontAdminBuilderTest extends TestCase
             'primary_dark_color' => '#006736',
             'accent_color' => '#B5F23E',
             'background_color' => '#F8FBF9',
-        ])->assertNotFound();
+        ])->assertForbidden();
 
         $this->assertDatabaseMissing('storefront_settings', ['store_id' => $storeB]);
     }
