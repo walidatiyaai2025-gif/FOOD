@@ -437,7 +437,7 @@ class _WholesaleStoreCard extends StatelessWidget {
                     ),
                     child: Icon(
                       Icons.warehouse_rounded,
-                      color: FoodexPalette.wholesale.primary,
+                      color: Color(0xFF5D2A91),
                       size: 34,
                     ),
                   ),
@@ -460,7 +460,7 @@ class _WholesaleStoreCard extends StatelessWidget {
                       Text(
                         'للمسؤولين والمعتمدين فقط',
                         style: TextStyle(
-                          color: FoodexPalette.wholesale.muted,
+                          color: Color(0xFF6F6A7D),
                           fontSize: 12,
                         ),
                       ),
@@ -469,7 +469,7 @@ class _WholesaleStoreCard extends StatelessWidget {
                 ),
                 Icon(
                   Icons.arrow_back_ios_new_rounded,
-                  color: FoodexPalette.wholesale.primary,
+                  color: Color(0xFF5D2A91),
                   size: 18,
                 ),
               ],
@@ -488,7 +488,7 @@ class _B2bBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
           decoration: BoxDecoration(
-            color: FoodexPalette.wholesale.primary,
+            color: Color(0xFF5D2A91),
             borderRadius: BorderRadius.circular(999),
           ),
           child: const Text(
