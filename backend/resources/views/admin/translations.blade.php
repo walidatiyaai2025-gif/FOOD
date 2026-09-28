@@ -62,7 +62,7 @@
                 <option value="{{ $item }}" @selected($surface === $item)>{{ strtoupper($item) }}</option>
             @endforeach
         </select>
-        <button class="primary" type="submit">{{ __('admin.translations.filter') }}</button>
+        <button class="primary foodex-filter-action" type="submit">{{ __('admin.translations.filter') }}</button>
     </form>
 
     <div class="grid">
