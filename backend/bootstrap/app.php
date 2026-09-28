@@ -66,9 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
                         ],
                     ];
 
-                    $status = $exception->getStatusCode();
-                    $isActionableConflict = in_array($status, [409, 422], true)
-                        || ($status === 403 && array_key_exists($rawMessage, $knownMessages));
+                    $isActionableConflict = array_key_exists($rawMessage, $knownMessages);
 
                     if ($isActionableConflict) {
                         $message = $knownMessages[$rawMessage][$locale] ?? $rawMessage;
