@@ -1222,17 +1222,25 @@ class WholesaleCheckoutDesignScreen extends StatefulWidget {
 class _WholesaleCheckoutDesignScreenState
     extends State<WholesaleCheckoutDesignScreen> {
   late final int storeId = wholesaleStoreId(widget.location);
-  late Future<Map<String, dynamic>> future = _load();
+  late Future<_CheckoutPayload> future = _load();
   int? addressId;
   String? deliveryDate;
   String? paymentMethod;
   final note = TextEditingController();
 
-  Future<Map<String, dynamic>> _load() =>
-      widget.storefrontApi?.b2bCheckoutOptions(storeId) ??
-      Future<Map<String, dynamic>>.value(
-        const <String, dynamic>{},
-      );
+  Future<_CheckoutPayload> _load() async {
+    final options = widget.storefrontApi == null
+        ? const <String, dynamic>{}
+        : await widget.storefrontApi!.b2bCheckoutOptions(storeId);
+    final rawCart = widget.commerceApi == null
+        ? null
+        : await widget.commerceApi!.cart(storeId);
+    final cart = rawCart is Map
+        ? Map<String, dynamic>.from(rawCart)
+        : <String, dynamic>{};
+
+    return _CheckoutPayload(options: options, cart: cart);
+  }
 
   @override
   void dispose() {
@@ -1246,7 +1254,7 @@ class _WholesaleCheckoutDesignScreenState
         child: Scaffold(
           backgroundColor: Color(0xFFFBFAFD),
           body: SafeArea(
-            child: FutureBuilder<Map<String, dynamic>>(
+            child: FutureBuilder<_CheckoutPayload>(
               future: future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
@@ -1261,8 +1269,13 @@ class _WholesaleCheckoutDesignScreenState
                   );
                 }
 
-                final data =
-                    snapshot.data ?? const <String, dynamic>{};
+                final payload = snapshot.data ??
+                    const _CheckoutPayload(
+                      options: <String, dynamic>{},
+                      cart: <String, dynamic>{},
+                    );
+                final data = payload.options;
+                final cart = payload.cart;
                 final addresses = mapRows(data['addresses']);
                 final dates =
                     (data['delivery_dates'] as List? ??
@@ -1383,6 +1396,8 @@ class _WholesaleCheckoutDesignScreenState
                             'أضف ملاحظات للتجهيز أو التسليم',
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    _CheckoutSummary(cart: cart),
                     const SizedBox(height: 18),
                     SizedBox(
                       height: 54,
@@ -1442,6 +1457,152 @@ class _WholesaleCheckoutDesignScreenState
               },
             ),
           ),
+        ),
+      );
+}
+
+class _CheckoutPayload {
+  const _CheckoutPayload({
+    required this.options,
+    required this.cart,
+  });
+
+  final Map<String, dynamic> options;
+  final Map<String, dynamic> cart;
+}
+
+class _CheckoutSummary extends StatelessWidget {
+  const _CheckoutSummary({required this.cart});
+
+  final Map<String, dynamic> cart;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = mapRows(cart['items']);
+    final currency = cart['currency']?.toString() ?? 'EGP';
+    final subtotal = cart['subtotal'];
+    final delivery = cart['delivery_total'] ?? cart['delivery_fee'];
+    final grandTotal = cart['grand_total'] ?? cart['total'] ?? subtotal;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE9E3F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'ملخص الطلب',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (items.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...items.take(3).map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 7),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item['name']?.toString() ??
+                            (item['product'] is Map
+                                ? (item['product'] as Map)['name']
+                                        ?.toString() ??
+                                    'منتج'
+                                : 'منتج'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '× ' +
+                          (item['quantity']?.toString() ?? '1'),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6F6A7D),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const Divider(height: 18),
+          _SummaryRow(
+            label: 'الإجمالي الفرعي',
+            value: money(subtotal, currency: currency),
+          ),
+          if (delivery != null)
+            _SummaryRow(
+              label: 'التوصيل',
+              value: money(delivery, currency: currency),
+            ),
+          const SizedBox(height: 7),
+          _SummaryRow(
+            label: 'الإجمالي',
+            value: money(grandTotal, currency: currency),
+            strong: true,
+          ),
+          const SizedBox(height: 7),
+          const Text(
+            'يتم التحقق من السعر والحد الأدنى والكميات مرة أخرى على الخادم عند التأكيد.',
+            style: TextStyle(
+              fontSize: 10,
+              height: 1.4,
+              color: Color(0xFF6F6A7D),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.strong = false,
+  });
+
+  final String label;
+  final String value;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: strong ? 13 : 11,
+                  fontWeight:
+                      strong ? FontWeight.w800 : FontWeight.w500,
+                ),
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                color: strong
+                    ? const Color(0xFF5D2A91)
+                    : const Color(0xFF17142A),
+                fontSize: strong ? 16 : 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
       );
 }
