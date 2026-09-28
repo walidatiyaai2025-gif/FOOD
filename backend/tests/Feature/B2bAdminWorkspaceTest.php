@@ -107,6 +107,83 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($admin)->get('/admin/b2b/pricing')->assertOk()->assertSee('7.250 EGP')->assertSee('5.000');
     }
 
+    public function test_inspector_guardrails_hide_retail_managed_status_and_unpriced_order_customers(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $b2bType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $b2cType = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+
+        DB::table('stores')->insert([
+            'store_type_id' => $b2bType,
+            'code' => 'INSPECT-B2B',
+            'name' => 'Inspector Wholesale',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $retailStore = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cType,
+            'code' => 'INSPECT-RETAIL',
+            'name' => 'Inspector Retail',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        [$retailLegacy, $retailCustomer] = $this->b2bCustomer('Retail Linked Buyer', 'retail-linked@example.test');
+        $retailAccount = (int) DB::table('b2b_accounts')->insertGetId([
+            'customer_id' => $retailLegacy,
+            'b2b_customer_id' => $retailCustomer,
+            'price_tier_id' => null,
+            'company_name' => 'Inspector Retail',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('retail_wholesale_accounts')->insert([
+            'retail_store_id' => $retailStore,
+            'b2b_customer_id' => $retailCustomer,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $tier = (int) DB::table('b2b_price_tiers')->insertGetId([
+            'code' => 'INSPECT-APPROVED',
+            'name' => 'Inspector Approved',
+            'priority' => 10,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        [$approvedLegacy, $approvedCustomer] = $this->b2bCustomer('Approved Buyer', 'approved-buyer@example.test');
+        $approvedAccount = (int) DB::table('b2b_accounts')->insertGetId([
+            'customer_id' => $approvedLegacy,
+            'b2b_customer_id' => $approvedCustomer,
+            'price_tier_id' => $tier,
+            'company_name' => 'Approved Company',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = $this->user('B2B_ADMIN', 'en');
+
+        $clients = $this->actingAs($admin)->get('/admin/b2b/clients')->assertOk();
+        $clients->assertSee('Status is controlled by the linked Retail store');
+        $this->assertStringNotContainsString(
+            route('admin.b2b.clients.status', ['account' => $retailAccount], false),
+            $clients->getContent(),
+        );
+        $this->assertStringContainsString(
+            route('admin.b2b.clients.status', ['account' => $approvedAccount], false),
+            $clients->getContent(),
+        );
+
+        $orders = $this->actingAs($admin)->get('/admin/b2b/orders')->assertOk();
+        $orders->assertSee('Approved Buyer');
+        $orders->assertDontSee('Retail Linked Buyer');
+        $orders->assertDontSee('Approved B2B pricing account is required.');
+    }
+
     public function test_b2b_operation_wrappers_reject_cross_channel_resources(): void
     {
         $this->seed(CoreReferenceSeeder::class);
