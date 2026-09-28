@@ -74,6 +74,8 @@ Route::prefix('admin')
         Route::patch('/b2b/orders/{order}', [B2bWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2b.orders.update');
         Route::post('/b2b/orders/{order}/status', [B2bWorkspaceController::class, 'transitionOrder'])->whereNumber('order')->name('b2b.orders.status');
         Route::post('/b2b/drivers/assign', [B2bWorkspaceController::class, 'assignDriver'])->name('b2b.drivers.assign');
+        Route::post('/b2b/drivers/assignments/{assignment}/withdraw', [B2bWorkspaceController::class, 'withdrawDriverAssignment'])->whereNumber('assignment')->name('b2b.drivers.assignments.withdraw');
+        Route::post('/b2b/drivers/assignments/{assignment}/reassign', [B2bWorkspaceController::class, 'reassignDriverAssignment'])->whereNumber('assignment')->name('b2b.drivers.assignments.reassign');
         Route::post('/b2b/pricing', [B2bWorkspaceController::class, 'savePriceRule'])->name('b2b.pricing.save');
         Route::post('/b2b/clients', [B2bWorkspaceController::class, 'storeClient'])->name('b2b.clients.store');
         Route::patch('/b2b/clients/{account}/status', [B2bWorkspaceController::class, 'updateClientStatus'])->name('b2b.clients.status');
@@ -94,6 +96,8 @@ Route::prefix('admin')
         Route::patch('/b2c/orders/{order}', [B2cWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2c.orders.update');
         Route::post('/b2c/orders/{order}/status', [B2cWorkspaceController::class, 'transitionOrder'])->whereNumber('order')->name('b2c.orders.status');
         Route::post('/b2c/drivers/assign', [B2cWorkspaceController::class, 'assignDriver'])->name('b2c.drivers.assign');
+        Route::post('/b2c/drivers/assignments/{assignment}/withdraw', [B2cWorkspaceController::class, 'withdrawDriverAssignment'])->whereNumber('assignment')->name('b2c.drivers.assignments.withdraw');
+        Route::post('/b2c/drivers/assignments/{assignment}/reassign', [B2cWorkspaceController::class, 'reassignDriverAssignment'])->whereNumber('assignment')->name('b2c.drivers.assignments.reassign');
         Route::patch('/b2c/drivers/{driver}/password', [B2cWorkspaceController::class, 'resetDriverPassword'])->whereNumber('driver')->name('b2c.drivers.password');
         Route::post('/b2c/warehouses', [B2cWorkspaceController::class, 'storeWarehouse'])->name('b2c.warehouses.store');
         Route::post('/b2c/inventory', [B2cWorkspaceController::class, 'ensureInventory'])->name('b2c.inventory.ensure');
