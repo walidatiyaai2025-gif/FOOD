@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -66,10 +67,27 @@ final class CatalogManagementController extends Controller
             $scopeParams['support_access'] = 1;
         }
 
+        $contextStoreId = count($storeIds) === 1 ? (int) $storeIds[0] : null;
+        $contextChannel = $contextStoreId === null ? null : $this->storeChannel($contextStoreId);
+        if ($actor->hasRole('SUPER_ADMIN') && $contextChannel === 'b2c') {
+            $scopeParams['support_access'] = 1;
+        }
+        $navContext = $contextChannel === 'b2c' ? 'b2c_products' : 'b2b_products';
+        $inventoryUrl = $contextStoreId !== null && $contextChannel === 'b2c'
+            ? route('admin.b2c.module', array_merge(
+                ['module' => 'inventory', 'store_id' => $contextStoreId],
+                $actor->hasRole('SUPER_ADMIN') ? ['support_access' => 1] : [],
+            ))
+            : null;
+        $categoryImageColumn = Schema::hasColumn('categories', 'image_path')
+            ? 'categories.image_path'
+            : DB::raw('NULL as image_path');
+
         return view('admin.catalog-management', [
             'user' => $actor,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
-            'navContext' => $request->boolean('support_access') ? 'b2c_products' : 'b2b_products',
+            'navContext' => $navContext,
+            'inventoryUrl' => $inventoryUrl,
             'tab' => $tab,
             'products' => DB::table('products')
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -109,7 +127,7 @@ final class CatalogManagementController extends Controller
                     'categories.id',
                     'categories.name',
                     'categories.slug',
-                    'categories.image_path',
+                    $categoryImageColumn,
                     'categories.parent_id',
                     'categories.is_active',
                     'categories.catalog_id',
@@ -165,6 +183,19 @@ final class CatalogManagementController extends Controller
             'canManageStores' => $canManageStores,
             'scopeParams' => $scopeParams,
         ]);
+    }
+
+    public function categories(Request $request): RedirectResponse
+    {
+        $params = ['tab' => 'categories'];
+        if ($request->integer('store_id') > 0) {
+            $params['store_id'] = $request->integer('store_id');
+        }
+        if ($request->boolean('support_access')) {
+            $params['support_access'] = 1;
+        }
+
+        return redirect()->route('admin.catalog.index', $params);
     }
 
     public function storeProduct(Request $request): RedirectResponse
@@ -721,10 +752,20 @@ final class CatalogManagementController extends Controller
     {
         $requested = $request->integer('store_id');
 
-        if ($actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access') && $requested > 0) {
-            $this->tenantContext->retail($actor, $requested, true, $request);
+        if ($actor->hasRole('SUPER_ADMIN') && $requested > 0) {
+            $channel = $this->storeChannel($requested);
+            if ($channel === 'b2c') {
+                $this->tenantContext->retail($actor, $requested, true, $request);
 
-            return [$requested];
+                return [$requested];
+            }
+            if ($channel === 'b2b') {
+                $this->tenantContext->wholesale($actor, $requested);
+
+                return [$requested];
+            }
+
+            abort(404);
         }
 
         if ($this->canAccessWholesale($actor)) {
@@ -809,6 +850,16 @@ final class CatalogManagementController extends Controller
         if ($query->exists()) {
             throw ValidationException::withMessages(['slug' => ['The slug has already been used in this catalog.']]);
         }
+    }
+
+    private function storeChannel(int $storeId): ?string
+    {
+        $code = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->value('store_types.code');
+
+        return is_string($code) ? strtolower($code) : null;
     }
 
     private function canAccessWholesale(User $actor): bool

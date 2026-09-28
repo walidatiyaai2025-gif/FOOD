@@ -416,13 +416,13 @@
                     'sku'=>'رمز المنتج','name'=>'الاسم','category'=>'التصنيف','store'=>'المتجر','cost'=>'تكلفة الشراء','price'=>'سعر البيع','status'=>'الحالة',
                     'warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','available'=>'المتاح',
                     'number'=>'رقم الطلب','customer'=>'العميل','amount'=>'الإجمالي','created'=>'تاريخ الإنشاء',
-                    'phone'=>'الهاتف','email'=>'البريد','orders'=>'الطلبات','spent'=>'إجمالي الإنفاق','last_order'=>'آخر طلب','type'=>'النوع','value'=>'القيمة','period'=>'الفترة','driver_type'=>'نوع السائق','order'=>'الطلب','assignment_status'=>'حالة التوصيل','availability'=>'التوفر','products'=>'المنتجات','banners'=>'البانرات','title'=>'العنوان','image'=>'الصورة','target'=>'الرابط','sort_order'=>'الترتيب','average'=>'متوسط الطلب','setting'=>'الإعداد','actions'=>'إجراءات',
+                    'phone'=>'الهاتف','email'=>'البريد','orders'=>'الطلبات','spent'=>'إجمالي الإنفاق','last_order'=>'آخر طلب','type'=>'النوع','value'=>'القيمة','period'=>'الفترة','driver_type'=>'نوع السائق','order'=>'الطلب','assignment_status'=>'حالة التوصيل','availability'=>'التوفر','products'=>'المنتجات','banners'=>'البانرات','title'=>'العنوان','image'=>'الصورة','target'=>'المنتج / التصنيف','sort_order'=>'الترتيب','average'=>'متوسط الطلب','setting'=>'الإعداد','actions'=>'إجراءات',
                 ]
                 : [
                     'sku'=>'SKU','name'=>'Name','category'=>'Category','store'=>'Store','cost'=>'Purchase cost','price'=>'Selling price','status'=>'Status',
                     'warehouse'=>'Warehouse','quantity'=>'Quantity','reserved'=>'Reserved','available'=>'Available',
                     'number'=>'Order','customer'=>'Customer','amount'=>'Amount','created'=>'Created',
-                    'phone'=>'Phone','email'=>'Email','orders'=>'Orders','spent'=>'Total spent','last_order'=>'Last order','type'=>'Type','value'=>'Value','period'=>'Period','driver_type'=>'Driver type','order'=>'Order','assignment_status'=>'Delivery status','availability'=>'Availability','products'=>'Products','banners'=>'Banners','title'=>'Title','image'=>'Image','target'=>'Target','sort_order'=>'Sort order','average'=>'Average order','setting'=>'Setting','actions'=>'Actions',
+                    'phone'=>'Phone','email'=>'Email','orders'=>'Orders','spent'=>'Total spent','last_order'=>'Last order','type'=>'Type','value'=>'Value','period'=>'Period','driver_type'=>'Driver type','order'=>'Order','assignment_status'=>'Delivery status','availability'=>'Availability','products'=>'Products','banners'=>'Banners','title'=>'Title','image'=>'Image','target'=>'Product / Category','sort_order'=>'Sort order','average'=>'Average order','setting'=>'Setting','actions'=>'Actions',
                 ];
         @endphp
         <section class="module-panel foodex-card">
@@ -456,18 +456,62 @@
                 </form>
             @endif
 
-            @if($module==='inventory' && !empty($moduleData['inventory_options']) && (collect($storeIds)->contains(fn($storeId) => $user->hasPermission('inventory.manage',(int)$storeId)) || $user->hasPermission('inventory.manage')))
-                <form method="post" action="{{ route('admin.b2c.inventory.adjust',['inventory'=>$moduleData['inventory_options'][0]['id']]) }}" class="module-inline-form" id="inventory-adjust-form" onsubmit="this.action=this.action.replace(/\/\d+\/adjust$/, '/'+this.inventory_id.value+'/adjust')">
+            @if($module==='inventory' && (collect($storeIds)->contains(fn($candidateStoreId) => $user->hasPermission('inventory.manage',(int)$candidateStoreId)) || $user->hasPermission('inventory.manage')))
+                <div style="display:grid;gap:10px;margin-bottom:14px">
+                    <form method="post" action="{{ route('admin.b2c.warehouses.store') }}" class="module-inline-form">
+                        @csrf
+                        <input type="hidden" name="store_id" value="{{ $storeId }}">
+                        @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                        <input name="code" required maxlength="80" placeholder="{{ app()->getLocale()==='ar'?'كود المخزن - مثال RET-01':'Warehouse code - e.g. RET-01' }}">
+                        <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم المخزن':'Warehouse name' }}">
+                        <label style="display:flex;align-items:center;gap:7px"><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
+                        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة مخزن':'Add warehouse' }}</button>
+                    </form>
+                    @if(!empty($moduleData['warehouses']) && !empty($moduleData['products']))
+                    <form method="post" action="{{ route('admin.b2c.inventory.ensure') }}" class="module-inline-form">
+                        @csrf
+                        <input type="hidden" name="store_id" value="{{ $storeId }}">
+                        @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                        <select name="warehouse_id" required>
+                            <option value="">{{ app()->getLocale()==='ar'?'اختر المخزن':'Select warehouse' }}</option>
+                            @foreach($moduleData['warehouses'] as $warehouse)<option value="{{ $warehouse['id'] }}">{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>@endforeach
+                        </select>
+                        <select name="product_id" required>
+                            <option value="">{{ app()->getLocale()==='ar'?'اختر المنتج':'Select product' }}</option>
+                            @foreach($moduleData['products'] as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach
+                        </select>
+                        <input name="quantity" type="number" step="0.001" min="0" required placeholder="{{ app()->getLocale()==='ar'?'الكمية الحالية':'Current quantity' }}">
+                        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إنشاء / تحديث الرصيد':'Create / update balance' }}</button>
+                    </form>
+                    @endif
+                    @if(!empty($moduleData['inventory_options']))
+                    <form method="post" action="{{ route('admin.b2c.inventory.adjust',['inventory'=>$moduleData['inventory_options'][0]['id']]) }}" class="module-inline-form" id="inventory-adjust-form" onsubmit="this.action=this.action.replace(/\/\d+\/adjust$/, '/'+this.inventory_id.value+'/adjust')">
+                        @csrf
+                        <input type="hidden" name="store_id" value="{{ $storeId }}">
+                        @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                        <select name="inventory_id" required>
+                            <option value="">{{ app()->getLocale()==='ar'?'اختر الصنف والمخزن':'Select inventory item' }}</option>
+                            @foreach($moduleData['inventory_options'] as $inventory)<option value="{{ $inventory['id'] }}">{{ $inventory['label'] }}</option>@endforeach
+                        </select>
+                        <input name="quantity_delta" type="number" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'التغيير + أو -':'Adjustment + or -' }}">
+                        <input name="reason" maxlength="255" required placeholder="{{ app()->getLocale()==='ar'?'سبب التعديل':'Adjustment reason' }}">
+                        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعديل المخزون':'Adjust stock' }}</button>
+                    </form>
+                    @endif
+                </div>
+            @endif
+
+            @if($module==='customers' && $storeId > 0 && ($user->hasPermission('customers.create',$storeId) || $user->hasPermission('customers.create')))
+                <form method="post" action="{{ route('admin.business.customers.store') }}" enctype="multipart/form-data" class="module-inline-form">
                     @csrf
+                    <input type="hidden" name="type" value="b2c">
                     <input type="hidden" name="store_id" value="{{ $storeId }}">
                     @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
-                    <select name="inventory_id" required>
-                        <option value="">{{ app()->getLocale()==='ar'?'اختر الصنف والمخزن':'Select inventory item' }}</option>
-                        @foreach($moduleData['inventory_options'] as $inventory)<option value="{{ $inventory['id'] }}">{{ $inventory['label'] }}</option>@endforeach
-                    </select>
-                    <input name="quantity_delta" type="number" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'التغيير + أو -':'Adjustment + or -' }}">
-                    <input name="reason" maxlength="255" required placeholder="{{ app()->getLocale()==='ar'?'سبب التعديل':'Adjustment reason' }}">
-                    <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعديل المخزون':'Adjust stock' }}</button>
+                    <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم العميل':'Customer name' }}">
+                    <input name="phone" maxlength="100" placeholder="{{ app()->getLocale()==='ar'?'رقم الهاتف':'Phone number' }}">
+                    <input name="email" type="email" maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'البريد الإلكتروني':'Email address' }}">
+                    <input type="file" name="customer_image" accept="image/jpeg,image/png,image/webp" aria-label="{{ app()->getLocale()==='ar'?'صورة العميل':'Customer image' }}">
+                    <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة العميل':'Add customer' }}</button>
                 </form>
             @endif
 
@@ -488,7 +532,7 @@
                     @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     <input name="title" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'عنوان البانر':'Banner title' }}">
                     <input type="file" name="banner_image" accept="image/jpeg,image/png,image/webp" required aria-label="{{ app()->getLocale()==='ar'?'صورة البانر':'Banner image' }}">
-                    <input name="target_url" maxlength="2048" placeholder="{{ app()->getLocale()==='ar'?'رابط العرض أو المنتج - اختياري':'Offer or product URL - optional' }}">
+                    <select name="target_ref" required><option value="">{{ app()->getLocale()==='ar'?'اختر المنتج أو التصنيف':'Select product or category' }}</option>@foreach(($moduleData['targets'] ?? []) as $target)<option value="{{ $target['ref'] }}">{{ $target['label'] }}</option>@endforeach</select>
                     <input type="number" name="sort_order" min="0" value="0" required placeholder="{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}">
                     <label style="display:flex;align-items:center;gap:7px"><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
                     <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'رفع وإضافة البانر':'Upload & add banner' }}</button>
@@ -510,6 +554,31 @@
                                         @include('admin._dashboard-order-actions',['channel'=>'b2c','row'=>$row])
                                     @elseif($column==='image' && $module==='content')
                                         <img src="{{ asset($row['image']) }}" alt="{{ $row['title'] }}" style="width:112px;height:58px;object-fit:cover;border-radius:10px;border:1px solid var(--foodex-border)">
+                                    @elseif($column==='image' && $module==='customers')
+                                        @if(!empty($row['image']))
+                                            <img src="{{ asset(ltrim($row['image'],'/')) }}" alt="{{ $row['name'] }}" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:1px solid var(--foodex-border)">
+                                        @else
+                                            <span aria-label="{{ app()->getLocale()==='ar'?'صورة افتراضية للعميل':'Default customer avatar' }}" style="width:48px;height:48px;border-radius:50%;display:inline-grid;place-items:center;background:var(--foodex-background);border:1px solid var(--foodex-border);font-size:24px">👤</span>
+                                        @endif
+                                    @elseif($column==='actions' && $module==='customers')
+                                        <div style="display:grid;gap:7px;min-width:300px">
+                                            @if($user->hasPermission('customers.edit',$row['_store_id']) || $user->hasPermission('customers.edit'))
+                                            <form method="post" action="{{ route('admin.business.customers.update',$row['_id']) }}" enctype="multipart/form-data" class="module-inline-form" style="margin:0;padding:10px">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="type" value="b2c">
+                                                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                                                <input name="name" value="{{ $row['name'] }}" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم العميل':'Customer name' }}">
+                                                <input name="phone" value="{{ $row['phone']==='-'?'':$row['phone'] }}" maxlength="100" placeholder="{{ app()->getLocale()==='ar'?'رقم الهاتف':'Phone number' }}">
+                                                <input name="email" value="{{ $row['email']==='-'?'':$row['email'] }}" type="email" maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'البريد الإلكتروني':'Email address' }}">
+                                                <input type="file" name="customer_image" accept="image/jpeg,image/png,image/webp" aria-label="{{ app()->getLocale()==='ar'?'استبدال صورة العميل':'Replace customer image' }}">
+                                                @if(!empty($row['image']))<label style="display:flex;align-items:center;gap:7px"><input type="checkbox" name="remove_image" value="1"> {{ app()->getLocale()==='ar'?'حذف الصورة الحالية':'Remove current image' }}</label>@endif
+                                                <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
+                                            </form>
+                                            @endif
+                                            @if($user->hasPermission('customers.delete',$row['_store_id']) || $user->hasPermission('customers.delete'))
+                                            <form method="post" action="{{ route('admin.business.customers.destroy',$row['_id']) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'حذف العميل؟':'Delete this customer?' }}')">@csrf @method('DELETE')<input type="hidden" name="type" value="b2c">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
+                                            @endif
+                                        </div>
                                     @elseif($column==='actions' && $module==='content')
                                         <div style="display:grid;gap:7px;min-width:310px">
                                             <form method="post" action="{{ route('admin.business.banners.update',$row['_id']) }}" enctype="multipart/form-data" class="module-inline-form" style="margin:0;padding:10px">
@@ -518,7 +587,7 @@
                                                 @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                                                 <input name="title" value="{{ $row['title'] }}" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'عنوان البانر':'Banner title' }}">
                                                 <input type="file" name="banner_image" accept="image/jpeg,image/png,image/webp" aria-label="{{ app()->getLocale()==='ar'?'استبدال صورة البانر':'Replace banner image' }}">
-                                                <input name="target_url" value="{{ $row['target'] }}" maxlength="2048" placeholder="{{ app()->getLocale()==='ar'?'الرابط المستهدف':'Target URL' }}">
+                                                 <select name="target_ref" required><option value="">{{ app()->getLocale()==='ar'?'اختر المنتج أو التصنيف':'Select product or category' }}</option>@foreach(($moduleData['targets'] ?? []) as $target)<option value="{{ $target['ref'] }}" @selected($row['_target_ref']===$target['ref'])>{{ $target['label'] }}</option>@endforeach</select>
                                                 <input type="number" name="sort_order" min="0" value="{{ $row['sort_order'] }}" required>
                                                 <label style="display:flex;align-items:center;gap:7px"><input type="checkbox" name="is_active" value="1" @checked($row['status'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
                                                 <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
