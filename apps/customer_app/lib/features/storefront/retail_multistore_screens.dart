@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../core/api/b2c_account_api.dart';
 import '../../core/api/b2c_catalog_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
@@ -13,6 +14,7 @@ typedef WholesaleContextCallback = void Function(int? retailStoreId);
 class StoreSelectionDesignScreen extends StatefulWidget {
   const StoreSelectionDesignScreen({
     required this.catalogApi,
+    required this.accountApi,
     required this.storefrontApi,
     required this.session,
     required this.enterWholesale,
@@ -20,6 +22,7 @@ class StoreSelectionDesignScreen extends StatefulWidget {
   });
 
   final B2cCatalogApi catalogApi;
+  final B2cAccountApi accountApi;
   final StorefrontApi? storefrontApi;
   final CustomerSession session;
   final WholesaleContextCallback enterWholesale;
@@ -36,7 +39,36 @@ class _StoreSelectionDesignScreenState
 
   Future<Map<String, dynamic>> _load() async {
     if (widget.storefrontApi != null) {
-      return widget.storefrontApi!.selection();
+      String? countryCode;
+      String? city;
+      String? area;
+
+      if (widget.session.isAuthenticated) {
+        try {
+          final rawAddresses = await widget.accountApi.addresses();
+          final addresses = rawAddresses is Map
+              ? mapRows(rawAddresses['data'])
+              : mapRows(rawAddresses);
+          if (addresses.isNotEmpty) {
+            final selected = addresses.cast<Map<String, dynamic>>().firstWhere(
+                  (address) => address['is_default'] == true ||
+                      address['is_default'] == 1,
+                  orElse: () => addresses.first,
+                );
+            countryCode = selected['country_code']?.toString();
+            city = selected['city']?.toString();
+            area = selected['area']?.toString();
+          }
+        } catch (_) {
+          // Store discovery remains available when no saved address exists.
+        }
+      }
+
+      return widget.storefrontApi!.selection(
+        countryCode: countryCode,
+        city: city,
+        area: area,
+      );
     }
     final stores = await widget.catalogApi.stores();
     return {
