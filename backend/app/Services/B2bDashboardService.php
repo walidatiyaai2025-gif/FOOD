@@ -241,9 +241,10 @@ final class B2bDashboardService
             ->all();
     }
 
-    /** @param list<int> $storeIds
-     * @param list<array<string,mixed>> $recentOrders
-     * @param list<array<string,mixed>> $lowStock
+    /**
+     * @param  list<int>  $storeIds
+     * @param  list<array<string,mixed>>  $recentOrders
+     * @param  list<array<string,mixed>>  $lowStock
      */
     private function alerts(array $storeIds, array $recentOrders, array $lowStock): array
     {
