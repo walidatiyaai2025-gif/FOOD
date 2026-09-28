@@ -182,8 +182,14 @@ class FoodexGallery extends StatelessWidget {
   final FoodexPalette palette;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        height: 250,
+  Widget build(BuildContext context) {
+    final available = math.max(0.0, MediaQuery.sizeOf(context).width - 30);
+    final width = math.min(320.0, math.max(280.0, available * .86));
+    return Align(
+      alignment: Alignment.center,
+      child: SizedBox(
+        width: math.min(width, available),
+        height: math.min(width, available) * .78,
         child: PageView.builder(
           itemCount: math.max(1, urls.length),
           itemBuilder: (_, index) => Padding(
@@ -194,7 +200,9 @@ class FoodexGallery extends StatelessWidget {
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class FoodexQuantityCta extends StatelessWidget {
