@@ -22,6 +22,8 @@ abstract class StorefrontApi {
 
   Future<Map<String, dynamic>> retailHome(int storeId);
 
+  Future<Map<String, dynamic>> wholesaleHome(int storeId);
+
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId);
 }
 
@@ -82,6 +84,10 @@ class HttpStorefrontApi implements StorefrontApi {
   @override
   Future<Map<String, dynamic>> retailHome(int storeId) async =>
       _asMap(await _get('/api/v1/stores/$storeId/storefront'));
+
+  @override
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async =>
+      _asMap(await _get('/api/v1/b2b/stores/$storeId/storefront'));
 
   @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
