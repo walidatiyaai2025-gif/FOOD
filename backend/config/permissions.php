@@ -32,6 +32,7 @@ return [
         'inventory.view' => 'View inventory',
         'inventory.adjust' => 'Adjust inventory quantities',
         'inventory.manage' => 'Manage inventory',
+        'inventory.replenishment_mapping.manage' => 'Map wholesale products into retail inventory units',
         'orders.view' => 'View orders',
         'orders.edit' => 'Edit order details where business rules allow',
         'orders.approve' => 'Approve controlled order transitions',
@@ -66,7 +67,7 @@ return [
             'b2b.accounts.view', 'b2b.accounts.manage', 'b2b.pricing.view', 'b2b.pricing.manage',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage',
             'lookups.view', 'lookups.manage',
-            'inventory.view', 'inventory.adjust', 'inventory.manage',
+            'inventory.view', 'inventory.adjust', 'inventory.manage', 'inventory.replenishment_mapping.manage',
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
             'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage',
@@ -103,7 +104,7 @@ return [
         ],
         'RETAIL_INVENTORY' => [
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage', 'lookups.view',
-            'inventory.view', 'inventory.adjust', 'inventory.manage',
+            'inventory.view', 'inventory.adjust', 'inventory.manage', 'inventory.replenishment_mapping.manage',
         ],
         'RETAIL_FINANCE' => ['finance.view', 'finance.manage', 'reports.view', 'reports.export'],
         'RETAIL_CUSTOMER_SUPPORT' => [
