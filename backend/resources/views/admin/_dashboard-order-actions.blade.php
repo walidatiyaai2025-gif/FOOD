@@ -3,6 +3,8 @@
     $statusRoute = $isB2bOrder ? 'admin.b2b.orders.status' : 'admin.b2c.orders.status';
     $updateRoute = $isB2bOrder ? 'admin.b2b.orders.update' : 'admin.b2c.orders.update';
     $driverRoute = $isB2bOrder ? 'admin.b2b.drivers.assign' : 'admin.b2c.drivers.assign';
+    $driverReassignRoute = $isB2bOrder ? 'admin.b2b.orders.driver.reassign' : 'admin.b2c.orders.driver.reassign';
+    $driverUnassignRoute = $isB2bOrder ? 'admin.b2b.orders.driver.unassign' : 'admin.b2c.orders.driver.unassign';
     $statusTransitions = match ($row['status']) {
         'pending' => ['confirmed','cancelled'],
         'confirmed' => ['preparing','cancelled'],
@@ -33,23 +35,54 @@
     @endif
 
     @if(!in_array($row['status'],['delivered','cancelled'],true) && !empty($moduleData['drivers']))
-    <form method="post" action="{{ route($driverRoute) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
-        @csrf
-        <input type="hidden" name="order_id" value="{{ $row['_id'] }}">
-        @if(!$isB2bOrder)
-            <input type="hidden" name="store_id" value="{{ $storeId }}">
-            @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
-        @endif
-        <select name="driver_id" required>
-            <option value="">{{ app()->getLocale()==='ar'?'تعيين سائق':'Assign driver' }}</option>
-            @foreach($moduleData['drivers'] as $driver)
-                @if($isB2bOrder || $driver['store_id']===$row['_store_id'])
-                    <option value="{{ $driver['id'] }}">{{ $driver['name'] }}</option>
+        @if(empty($row['_assignment_id']))
+        <form method="post" action="{{ route($driverRoute) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
+            @csrf
+            <input type="hidden" name="order_id" value="{{ $row['_id'] }}">
+            @if(!$isB2bOrder)
+                <input type="hidden" name="store_id" value="{{ $storeId }}">
+                @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
+            @endif
+            <select name="driver_id" required>
+                <option value="">{{ app()->getLocale()==='ar'?'تعيين سائق':'Assign driver' }}</option>
+                @foreach($moduleData['drivers'] as $driver)
+                    @if($isB2bOrder || $driver['store_id']===$row['_store_id'])
+                        <option value="{{ $driver['id'] }}">{{ $driver['name'] }}</option>
+                    @endif
+                @endforeach
+            </select>
+            <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعيين':'Assign' }}</button>
+        </form>
+        @else
+        <div style="display:grid;gap:7px;padding:9px;border:1px solid var(--foodex-border);border-radius:10px;background:#fbfcfd">
+            <strong>{{ app()->getLocale()==='ar'?'السائق الحالي':'Current driver' }}: {{ $row['driver'] }} · {{ $row['assignment_status'] }}</strong>
+            <form method="post" action="{{ route($driverReassignRoute,['order'=>$row['_id']]) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
+                @csrf @method('PATCH')
+                @if(!$isB2bOrder)
+                    <input type="hidden" name="store_id" value="{{ $storeId }}">
+                    @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
                 @endif
-            @endforeach
-        </select>
-        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعيين':'Assign' }}</button>
-    </form>
+                <select name="driver_id" required>
+                    <option value="">{{ app()->getLocale()==='ar'?'إعادة تعيين إلى سائق':'Reassign to driver' }}</option>
+                    @foreach($moduleData['drivers'] as $driver)
+                        @if(($isB2bOrder || $driver['store_id']===$row['_store_id']) && $driver['id']!==($row['_driver_id'] ?? null))
+                            <option value="{{ $driver['id'] }}">{{ $driver['name'] }}</option>
+                        @endif
+                    @endforeach
+                </select>
+                <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إعادة تعيين':'Reassign' }}</button>
+            </form>
+            <form method="post" action="{{ route($driverUnassignRoute,['order'=>$row['_id']]) }}" style="margin:0" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'سحب الطلب من السائق الحالي؟':'Remove this order from the current driver?' }}')">
+                @csrf @method('DELETE')
+                @if(!$isB2bOrder)
+                    <input type="hidden" name="store_id" value="{{ $storeId }}">
+                    @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
+                @endif
+                <input type="hidden" name="reason" value="manual_unassign">
+                <button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'سحب الطلب من السائق':'Unassign driver' }}</button>
+            </form>
+        </div>
+        @endif
     @endif
 
     <details>
