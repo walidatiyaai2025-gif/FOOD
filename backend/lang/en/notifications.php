@@ -3,7 +3,7 @@
 return [
     'title' => 'Notifications Center',
     'description' => 'Create, manage and publish Arabic/English notifications for customers and drivers.',
-    'campaigns' => 'Scheduled Promotional Campaigns',
+    'campaigns' => 'Promotional Campaigns',
     'campaigns_description' => 'Create immediate, one-time or recurring promotional campaigns with a complete execution history.',
     'campaign_name' => 'Campaign name',
     'create_campaign' => 'Create promotional campaign',
