@@ -19,6 +19,7 @@ class B2cJourneyScreen extends StatefulWidget {
     required this.catalogApi,
     required this.accountApi,
     required this.onAuthenticated,
+    required this.onPlatformAuthenticated,
     required this.onSessionExpired,
     super.key,
   });
@@ -29,6 +30,7 @@ class B2cJourneyScreen extends StatefulWidget {
   final B2cCatalogApi catalogApi;
   final B2cAccountApi accountApi;
   final CustomerAuthenticated onAuthenticated;
+  final ValueChanged<String> onPlatformAuthenticated;
   final VoidCallback onSessionExpired;
 
   @override
@@ -43,6 +45,14 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
   bool _dependenciesReady = false;
 
   int? get _categoryId => int.tryParse(Uri.parse(widget.location).queryParameters['category'] ?? '');
+
+  String? get _nextRoute {
+    final value = Uri.parse(widget.location).queryParameters['next'];
+    if (value == null || value.trim().isEmpty) return null;
+    final uri = Uri.tryParse(value);
+    if (uri == null || !uri.path.startsWith('/')) return null;
+    return value;
+  }
   String? get _query => Uri.parse(widget.location).queryParameters['q'];
   String get _sort => Uri.parse(widget.location).queryParameters['sort'] == 'price' ? 'price' : 'name';
   String get _direction => Uri.parse(widget.location).queryParameters['direction'] == 'desc' ? 'desc' : 'asc';
@@ -450,7 +460,9 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
               channel: CustomerChannel.b2c,
               api: widget.actionApi,
               onAuthenticated: widget.onAuthenticated,
-              successRoute: _withStore(CustomerRoutePaths.checkoutAddressPayment),
+              onPlatformAuthenticated: widget.onPlatformAuthenticated,
+              successRoute:
+                  _nextRoute ?? _withStore(CustomerRoutePaths.checkoutAddressPayment),
             ),
           ],
         );
@@ -719,14 +731,40 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       key: const ValueKey('b2c-orders-data'),
       children: rows.map((order) {
         final id = (order['id'] as num?)?.toInt();
+        final store = order['store'] is Map
+            ? Map<String, dynamic>.from(order['store'] as Map)
+            : const <String, dynamic>{};
+        final channel = order['channel']?.toString().toLowerCase() ?? 'b2c';
+        final storeName = store['name']?.toString().trim();
+        final logoUrl = store['logo_url']?.toString();
+        final channelLabel = channel == 'b2b'
+            ? context.tr('customer.orders.channel.wholesale')
+            : context.tr('customer.orders.channel.retail');
+
         return Card(
           child: ListTile(
+            leading: CircleAvatar(
+              backgroundImage: logoUrl != null && logoUrl.isNotEmpty
+                  ? NetworkImage(logoUrl)
+                  : null,
+              child: logoUrl == null || logoUrl.isEmpty
+                  ? Icon(
+                      channel == 'b2b'
+                          ? Icons.warehouse_outlined
+                          : Icons.storefront_outlined,
+                    )
+                  : null,
+            ),
             title: Text(order['order_number']?.toString() ?? '#${id ?? ''}'),
             subtitle: Text(
-              '${order['status'] ?? ''} · ${order['grand_total'] ?? order['total'] ?? ''} ${order['currency'] ?? 'KWD'}',
+              '${storeName == null || storeName.isEmpty ? channelLabel : storeName} · $channelLabel\n'
+              '${order['status'] ?? ''} · ${order['grand_total'] ?? order['total'] ?? ''} ${order['currency'] ?? 'EGP'}',
             ),
+            isThreeLine: true,
             trailing: const Icon(Icons.chevron_right),
-            onTap: id == null ? null : () => Navigator.of(context).pushNamed('/orders/$id/track'),
+            onTap: id == null
+                ? null
+                : () => Navigator.of(context).pushNamed('/orders/$id/track'),
           ),
         );
       }).toList(growable: false),

@@ -13,6 +13,7 @@ class B2bJourneyScreen extends StatelessWidget {
     required this.location,
     required this.actionApi,
     required this.onAuthenticated,
+    required this.onPlatformAuthenticated,
     this.api,
     super.key,
   });
@@ -22,6 +23,7 @@ class B2bJourneyScreen extends StatelessWidget {
   final B2bApi? api;
   final CustomerActionApi actionApi;
   final CustomerAuthenticated onAuthenticated;
+  final ValueChanged<String> onPlatformAuthenticated;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +96,7 @@ class B2bJourneyScreen extends StatelessWidget {
               channel: CustomerChannel.b2b,
               api: actionApi,
               onAuthenticated: onAuthenticated,
+              onPlatformAuthenticated: onPlatformAuthenticated,
               successRoute: CustomerRoutePaths.b2bDashboard,
             ),
           ],

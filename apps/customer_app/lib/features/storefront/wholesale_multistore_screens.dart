@@ -721,7 +721,7 @@ class _WholesaleBottomNav extends StatelessWidget {
               '/b2b/cart?store=' + storeId.toString(),
             );
           } else if (index == 3) {
-            Navigator.of(context).pushNamed('/b2b/orders');
+            Navigator.of(context).pushNamed('/orders');
           }
         },
         destinations: const [
@@ -1708,9 +1708,10 @@ class _WholesaleCheckoutDesignScreenState
                                   Navigator.of(context)
                                       .pushReplacementNamed(
                                     orderId > 0
-                                        ? '/b2b/orders/' +
-                                            orderId.toString()
-                                        : '/b2b/orders',
+                                        ? '/orders/' +
+                                            orderId.toString() +
+                                            '/track'
+                                        : '/orders',
                                   );
                                 } catch (error) {
                                   if (context.mounted) {

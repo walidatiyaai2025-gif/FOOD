@@ -182,9 +182,14 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   void _onSessionExpired() {
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
+    _guestSession.clear();
     setState(() {
       _session = const CustomerSession.guest();
     });
+    _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+      CustomerRoutePaths.marketplace,
+      (route) => false,
+    );
   }
 
   Future<void> _logout(CustomerActionApi actionApi) async {
@@ -200,11 +205,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     }
 
     if (!mounted) return;
+    _guestSession.clear();
     setState(() {
       _session = const CustomerSession.guest();
     });
     _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      CustomerRoutePaths.entry,
+      CustomerRoutePaths.marketplace,
       (route) => false,
     );
   }

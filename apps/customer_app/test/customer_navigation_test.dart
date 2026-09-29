@@ -67,18 +67,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('تسجيل الدخول'), findsWidgets);
-    expect(find.text('/auth/checkout'), findsOneWidget);
+    expect(find.textContaining('/auth/checkout'), findsOneWidget);
+    expect(find.textContaining('next='), findsOneWidget);
   });
 
-  testWidgets('guest B2B protected route redirects to B2B login',
+  testWidgets('guest B2B protected route redirects to the unified Customer login',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(initialRoute: '/b2b/dashboard'),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
-    expect(find.text('/b2b/login'), findsOneWidget);
+    expect(find.text('تسجيل الدخول'), findsWidgets);
+    expect(find.textContaining('/auth/checkout'), findsOneWidget);
+    expect(find.textContaining('next='), findsOneWidget);
   });
 
   testWidgets('authenticated B2C session reaches B2C protected routes',
@@ -123,7 +125,7 @@ void main() {
     expect(find.text('/b2b/login'), findsOneWidget);
   });
 
-  testWidgets('platform-wide customer can enter retail and wholesale protected routes',
+  testWidgets('platform-wide customer can enter Retail protected routes from one Wholesale session',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
@@ -138,5 +140,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('حسابي'), findsWidgets);
+  });
+
+  testWidgets('platform-wide customer can enter Wholesale protected routes from one Retail session',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(
+        session: CustomerSession.authenticated(
+          CustomerChannel.b2c,
+          accessToken: 'token',
+          platformWide: true,
+        ),
+        initialRoute: '/b2b/dashboard',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('لوحة الأعمال'), findsOneWidget);
+    expect(find.text('/b2b/dashboard'), findsOneWidget);
   });
 }

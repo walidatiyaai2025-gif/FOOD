@@ -15,12 +15,14 @@ class CustomerLoginAction extends StatefulWidget {
     required this.api,
     required this.onAuthenticated,
     required this.successRoute,
+    this.onPlatformAuthenticated,
     super.key,
   });
 
   final CustomerChannel channel;
   final CustomerActionApi api;
   final CustomerAuthenticated onAuthenticated;
+  final ValueChanged<String>? onPlatformAuthenticated;
   final String successRoute;
 
   @override
@@ -29,18 +31,26 @@ class CustomerLoginAction extends StatefulWidget {
 
 class _CustomerLoginActionState extends State<CustomerLoginAction> {
   final _username = TextEditingController();
+  final _password = TextEditingController();
   bool _busy = false;
   String? _error;
+
+  bool get _requiresPassword => widget.api is HttpCustomerActionApi;
 
   @override
   void dispose() {
     _username.dispose();
+    _password.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (_username.text.trim().isEmpty) {
       setState(() => _error = 'customer.validation.username');
+      return;
+    }
+    if (_requiresPassword && _password.text.isEmpty) {
+      setState(() => _error = 'customer.validation.password');
       return;
     }
 
@@ -50,11 +60,20 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
     });
 
     try {
-      final result = await widget.api.login(
-        username: _username.text.trim(),
-      );
+      final result = widget.api is HttpCustomerActionApi
+          ? await (widget.api as HttpCustomerActionApi).credentialLogin(
+              email: _username.text.trim(),
+              password: _password.text,
+            )
+          : await widget.api.login(
+              username: _username.text.trim(),
+            );
       if (!mounted) return;
-      widget.onAuthenticated(widget.channel, result.token);
+      if (result.platformCustomer && widget.onPlatformAuthenticated != null) {
+        widget.onPlatformAuthenticated!(result.token);
+      } else {
+        widget.onAuthenticated(widget.channel, result.token);
+      }
       Navigator.of(context).pushReplacementNamed(widget.successRoute);
     } catch (_) {
       if (mounted) setState(() => _error = 'customer.error.action_failed');
@@ -73,9 +92,29 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
             textInputAction: TextInputAction.done,
             autocorrect: false,
             enableSuggestions: false,
-            decoration: InputDecoration(labelText: context.tr('customer.login.username')),
-            onSubmitted: (_) => _submit(),
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: _requiresPassword
+                  ? context.tr('customer.login.email')
+                  : context.tr('customer.login.username'),
+            ),
+            onSubmitted: (_) {
+              if (!_requiresPassword) _submit();
+            },
           ),
+          if (_requiresPassword) ...[
+            const SizedBox(height: 10),
+            TextField(
+              key: const ValueKey('customer-login-password'),
+              controller: _password,
+              obscureText: true,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: context.tr('customer.login.password'),
+              ),
+              onSubmitted: (_) => _submit(),
+            ),
+          ],
           if (_error != null) ...[
             const SizedBox(height: 8),
             Text(

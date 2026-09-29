@@ -154,7 +154,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               OutlinedButton(
                 onPressed: () {
                   Navigator.pop(sheetContext);
-                  Navigator.of(context).pushNamed('/b2b/login');
+                  Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace');
                 },
                 child: Text(context.tr('customer.action.login')),
               ),
@@ -223,7 +223,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           storeName: wholesale['name']?.toString() ?? 'FOODEX',
                           authenticated: widget.session.isAuthenticated,
                           onRegister: _register,
-                          onLogin: () => Navigator.of(context).pushNamed('/b2b/login'),
+                          onLogin: () => Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace'),
                         ),
                       ),
                       if (retail.isNotEmpty)
