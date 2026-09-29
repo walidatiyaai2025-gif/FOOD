@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\CredentialAuthenticator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,6 +38,60 @@ class AuthController extends Controller
         ]);
     }
 
+    public function mobileTrialLogin(Request $request): JsonResponse
+    {
+        abort_unless((bool) config('foodex.mobile_trial_username_login', false), 404);
+
+        $validated = $request->validate([
+            'username' => ['required', 'string', 'max:120'],
+            'app' => ['required', 'string', 'in:customer,driver'],
+        ]);
+
+        $username = strtolower(trim((string) $validated['username']));
+        $user = User::query()
+            ->where('is_active', true)
+            ->whereRaw('LOWER(username) = ?', [$username])
+            ->first();
+
+        if (! $user instanceof User) {
+            throw ValidationException::withMessages([
+                'username' => ['The provided username is invalid.'],
+            ]);
+        }
+
+        if ($validated['app'] === 'driver') {
+            $driverExists = DB::table('drivers')
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->exists();
+            $driverRole = $user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER');
+
+            if (! $driverExists || ! $driverRole) {
+                throw ValidationException::withMessages([
+                    'username' => ['This username is not authorized for the Driver app.'],
+                ]);
+            }
+        } else {
+            $customerExists = DB::table('customers')->where('user_id', $user->id)->exists()
+                || DB::table('b2b_customers')->where('user_id', $user->id)->exists()
+                || DB::table('b2c_customers')->where('user_id', $user->id)->exists()
+                || DB::table('user_store_roles')->where('user_id', $user->id)->exists();
+
+            if (! $customerExists) {
+                throw ValidationException::withMessages([
+                    'username' => ['This username is not authorized for the Customer app.'],
+                ]);
+            }
+        }
+
+        return response()->json([
+            'token' => $user->createToken('foodex-'.$validated['app'].'-trial')->plainTextToken,
+            'token_type' => 'Bearer',
+            'trial_username_login' => true,
+            'user' => $this->identity($user),
+        ]);
+    }
+
     public function logout(Request $request): Response
     {
         $accessToken = $request->user()?->currentAccessToken();
@@ -57,7 +112,7 @@ class AuthController extends Controller
         return response()->json($this->identity($user));
     }
 
-    /** @return array{id:int,name:string,email:string,locale:string,roles:list<string>,store_ids:list<int>} */
+    /** @return array{id:int,name:string,username:?string,email:string,locale:string,roles:list<string>,store_ids:list<int>} */
     private function identity(User $user): array
     {
         $roles = $user->roles()
@@ -79,6 +134,7 @@ class AuthController extends Controller
         return [
             'id' => (int) $user->getKey(),
             'name' => (string) $user->name,
+            'username' => $user->username === null ? null : (string) $user->username,
             'email' => (string) $user->email,
             'locale' => (string) $user->locale,
             'roles' => $roles,
