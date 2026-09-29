@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Address;
+use App\Models\User;
 use App\Services\CustomerDomainResolver;
 use App\Services\PlatformCustomerService;
 use Database\Seeders\CoreReferenceSeeder;
@@ -289,7 +290,7 @@ class AuthoritativePricingQuoteTest extends TestCase
         ]);
     }
 
-    private function platformCustomer(string $email): \App\Models\User
+    private function platformCustomer(string $email): User
     {
         return app(PlatformCustomerService::class)->register([
             'name' => 'Pricing Customer',
