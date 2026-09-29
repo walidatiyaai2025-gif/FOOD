@@ -12,6 +12,7 @@ import 'core/api/wholesale_commerce_api.dart';
 import 'core/auth/customer_session.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/localization/app_translations.dart';
+import 'core/location/customer_location_service.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
@@ -33,6 +34,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.translationFetcher,
     this.theme,
     this.pushService,
+    this.locationService,
   });
 
   final CustomerSession session;
@@ -48,6 +50,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final TranslationFetcher? translationFetcher;
   final ThemeData? theme;
   final CustomerFirebasePushService? pushService;
+  final CustomerLocationService? locationService;
 
   @override
   State<FoodexCustomerApp> createState() => _FoodexCustomerAppState();
@@ -275,6 +278,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       onSessionExpired: _onSessionExpired,
       onEnterWholesale: _enterWholesale,
       onPlatformRegistered: _onPlatformRegistered,
+      locationService: widget.locationService ??
+          const GeolocatorCustomerLocationService(),
     );
 
     return MaterialApp(
