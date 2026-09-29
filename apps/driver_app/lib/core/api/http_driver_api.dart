@@ -98,9 +98,10 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
       throw const DriverOfflineException();
     }
   }
+
 }
 
-class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
+class HttpDriverAssignmentRepository implements DriverProofAssignmentRepository {
   HttpDriverAssignmentRepository(
     String baseUrl,
     this.token, {
@@ -124,7 +125,7 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
   Future<List<DriverAssignment>> list(DriverChannel channel) async {
     final response = await _request(
       () => _client.get(
-        _endpoint('driver/assignments').replace(queryParameters: const {'scope': 'active'}),
+        _endpoint('driver/assignments').replace(queryParameters: const {'scope': 'all'}),
         headers: _headers,
       ),
     );
@@ -250,6 +251,9 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
       availableStatuses: (map['available_statuses'] as List? ?? const [])
           .map((status) => status.toString())
           .toList(growable: false),
+      assignedAt: (map['assigned_at'] ?? '').toString(),
+      completedAt: (map['completed_at'] ?? '').toString(),
+      createdAt: (order['created_at'] ?? '').toString(),
     );
   }
 
@@ -259,6 +263,7 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
     DriverChannel channel,
     String status, {
     String? note,
+    String? failureReason,
   }) async {
     await _request(
       () => _client.post(
@@ -266,10 +271,52 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
         headers: _headers,
         body: jsonEncode({
           'status': status,
+          if (failureReason != null && failureReason.trim().isNotEmpty)
+            'failure_reason': failureReason.trim(),
           if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
         }),
       ),
     );
+  }
+
+  @override
+  Future<void> transitionWithProof(
+    int id,
+    DriverChannel channel,
+    String status,
+    String proofImagePath, {
+    String? note,
+    String? failureReason,
+  }) async {
+    final request = http.MultipartRequest(
+      'POST',
+      _endpoint('driver/assignments/$id/status'),
+    );
+    request.headers.addAll({
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    });
+    request.fields['status'] = status;
+    if (failureReason != null && failureReason.trim().isNotEmpty) {
+      request.fields['failure_reason'] = failureReason.trim();
+    }
+    if (note != null && note.trim().isNotEmpty) {
+      request.fields['note'] = note.trim();
+    }
+    request.files.add(
+      await http.MultipartFile.fromPath('proof_image', proofImagePath),
+    );
+
+    final http.Response response;
+    try {
+      final streamed = await _client.send(request);
+      response = await http.Response.fromStream(streamed);
+    } on SocketException {
+      throw const DriverOfflineException();
+    } on http.ClientException {
+      throw const DriverOfflineException();
+    }
+    _ensureSuccess(response);
   }
 
   Future<http.Response> _request(
@@ -284,6 +331,10 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
       throw const DriverOfflineException();
     }
 
+    _ensureSuccess(response);
+    return response;
+  }
+  void _ensureSuccess(http.Response response) {
     if (response.statusCode == 401) {
       throw const DriverSessionExpiredException();
     }
@@ -293,6 +344,6 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw const DriverApiException();
     }
-    return response;
   }
+
 }

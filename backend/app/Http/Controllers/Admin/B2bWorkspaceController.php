@@ -1215,17 +1215,36 @@ class B2bWorkspaceController extends Controller
                         'orders.order_number',
                         'users.name as driver_name',
                     ])
-                    ->map(fn ($row) => [
-                        'id' => (int) $row->id,
-                        'order_id' => (int) $row->order_id,
-                        'driver_id' => (int) $row->driver_id,
-                        'store_id' => (int) $row->store_id,
-                        'order' => $row->order_number,
-                        'driver' => $row->driver_name,
-                        'status' => $row->status,
-                        'assigned_at' => (string) $row->assigned_at,
-                        'completed_at' => $row->completed_at === null ? null : (string) $row->completed_at,
-                    ])->all(),
+                    ->map(function ($row): array {
+                        $proof = DB::table('delivery_proofs')
+                            ->where('driver_assignment_id', $row->id)
+                            ->where(function ($query): void {
+                                $query->whereNotNull('file_path')
+                                    ->orWhereNotNull('reason_code')
+                                    ->orWhereNotNull('note');
+                            })
+                            ->orderByDesc('id')
+                            ->first(['proof_type', 'file_path', 'reason_code', 'note', 'captured_at']);
+
+                        return [
+                            'id' => (int) $row->id,
+                            'order_id' => (int) $row->order_id,
+                            'driver_id' => (int) $row->driver_id,
+                            'store_id' => (int) $row->store_id,
+                            'order' => $row->order_number,
+                            'driver' => $row->driver_name,
+                            'status' => $row->status,
+                            'assigned_at' => (string) $row->assigned_at,
+                            'completed_at' => $row->completed_at === null ? null : (string) $row->completed_at,
+                            'proof' => $proof === null ? null : [
+                                'type' => (string) $proof->proof_type,
+                                'file_path' => $proof->file_path === null ? null : (string) $proof->file_path,
+                                'reason_code' => $proof->reason_code === null ? null : (string) $proof->reason_code,
+                                'note' => $proof->note === null ? null : (string) $proof->note,
+                                'captured_at' => $proof->captured_at === null ? null : (string) $proof->captured_at,
+                            ],
+                        ];
+                    })->all(),
             ],
             'pricing' => [
                 'columns' => ['tier', 'sku', 'product', 'unit_price', 'minimum_quantity', 'status'],
