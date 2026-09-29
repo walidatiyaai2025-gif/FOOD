@@ -73,6 +73,19 @@
     const toasts = root.querySelector('[data-live-toasts]');
     const readAll = root.querySelector('[data-live-read-all]');
     const csrf = @json(csrf_token());
+    const currentXsrfToken = () => {
+        const row = document.cookie.split('; ').find((value) => value.startsWith('XSRF-TOKEN='));
+        return row ? decodeURIComponent(row.substring('XSRF-TOKEN='.length)) : null;
+    };
+    const mutationHeaders = () => {
+        const xsrf = currentXsrfToken();
+        return {
+            'X-CSRF-TOKEN': csrf,
+            ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {}),
+            'Accept':'application/json',
+            'X-Requested-With':'XMLHttpRequest',
+        };
+    };
     let latestId = 0;
     let initialized = false;
     let timer = null;
@@ -114,7 +127,13 @@
         try {
             const url = new URL(root.dataset.feedUrl, window.location.origin);
             if (latestId > 0) url.searchParams.set('after_id', String(latestId));
-            const response = await fetch(url, {headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}});
+            const response = await fetch(url, {
+                headers:{
+                    'Accept':'application/json',
+                    'X-Requested-With':'XMLHttpRequest',
+                    'X-FOODEX-BACKGROUND':'1',
+                },
+            });
             if (!response.ok) throw new Error('live-feed-' + response.status);
             const payload = await response.json();
             const items = Array.isArray(payload.data) ? payload.data : [];
@@ -173,7 +192,7 @@
         const url = root.dataset.readUrl.replace('__ID__', item.dataset.notificationId);
         const response = await fetch(url, {
             method:'POST',
-            headers:{'X-CSRF-TOKEN':csrf,'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
+            headers:mutationHeaders()
         });
         if (response.ok) {
             item.dataset.unread = 'false';
@@ -186,7 +205,7 @@
     readAll.addEventListener('click', async () => {
         const response = await fetch(root.dataset.readAllUrl, {
             method:'POST',
-            headers:{'X-CSRF-TOKEN':csrf,'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
+            headers:mutationHeaders()
         });
         if (response.ok) {
             list.querySelectorAll('[data-unread="true"]').forEach((item) => item.dataset.unread = 'false');
