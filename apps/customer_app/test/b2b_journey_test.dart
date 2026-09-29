@@ -26,6 +26,27 @@ void main() {
     expect(find.text('كشف الحساب'), findsOneWidget);
   });
 
+  testWidgets('B2B profile exposes the unified customer address book',
+      (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: const CustomerSession.authenticated(
+          CustomerChannel.b2b,
+          accessToken: 'token',
+          platformWide: true,
+        ),
+        initialRoute: '/b2b/profile',
+        b2bApi: _FakeB2bApi({
+          'company_name': 'Acme Foods',
+          'email': 'buyer@example.test',
+        }),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('العناوين'), findsOneWidget);
+  });
+
   testWidgets('B2B storefront applies server branding and theme on mobile', (tester) async {
     final storefront = _FakeWholesaleStorefrontApi();
     await tester.pumpWidget(
