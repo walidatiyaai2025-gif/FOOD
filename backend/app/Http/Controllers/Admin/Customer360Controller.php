@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformCustomer;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
@@ -14,6 +15,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use stdClass;
 
 final class Customer360Controller extends Controller
 {
@@ -267,20 +269,22 @@ final class Customer360Controller extends Controller
         $invoices = $this->invoicesQuery($customer, $domains, $access);
         $origin = $this->originPresentation($customer, $access);
         $wholesale = $this->wholesaleInfo($customer, $access);
+        $relatedUser = $customer->user;
+        $userIsActive = $relatedUser instanceof User ? $relatedUser->is_active : true;
 
         return [
             'id' => (int) $customer->getKey(),
             'name' => (string) $customer->name,
             'email' => (string) $customer->email,
             'phone' => $customer->phone,
-            'active' => (bool) $customer->is_active && (bool) ($customer->user?->is_active ?? true),
+            'active' => (bool) $customer->is_active && $userIsActive,
             'origin' => $origin,
             'registration_source' => (string) $customer->registration_source,
             'registered_at' => $customer->registered_at,
             'orders_count' => (clone $orders)->count(),
-            'orders_total' => (float) ((clone $orders)->sum('orders.grand_total') ?? 0),
+            'orders_total' => (float) (clone $orders)->sum('orders.grand_total'),
             'invoices_count' => (clone $invoices)->count(),
-            'invoices_total' => (float) ((clone $invoices)->sum('invoices.total') ?? 0),
+            'invoices_total' => (float) (clone $invoices)->sum('invoices.total'),
             'wholesale_tier' => $wholesale['tier_name'] ?? null,
             'url' => route('admin.customer-360.show', ['platformCustomer' => $customer->getKey()]),
         ];
@@ -438,10 +442,11 @@ final class Customer360Controller extends Controller
             || in_array($storeId, $access['origin_store_ids'], true)
         );
 
-        if ($canRevealStore && $customer->originStore !== null) {
+        $originStore = $customer->originStore;
+        if ($canRevealStore && $originStore instanceof Store) {
             return [
                 'channel' => $channel,
-                'label' => $customer->originStore->name.' · '.$customer->originStore->code,
+                'label' => $originStore->name.' · '.$originStore->code,
                 'exact' => true,
             ];
         }
@@ -462,7 +467,7 @@ final class Customer360Controller extends Controller
         return ['channel' => 'unknown', 'label' => $this->msg('مصدر قديم / غير معروف', 'Legacy / unknown source'), 'exact' => false];
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, stdClass> */
     private function originStores(array $access): Collection
     {
         if ($access['origin_store_ids'] === []) {
