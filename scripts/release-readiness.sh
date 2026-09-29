@@ -29,8 +29,9 @@ test "$customer_version" = "$driver_version"
 mobile_release_version="${customer_version%%+*}"
 [[ "$mobile_release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
-grep -Fq "# FOODEX $mobile_release_version Release Notes" docs/release/RELEASE_NOTES.md
-grep -Fq "## $mobile_release_version - Release Candidate" CHANGELOG.md
+test "$release_version" = "$mobile_release_version"
+grep -Eq '^# FOODEX [0-9]+\.[0-9]+\.[0-9]+ Release Notes$' docs/release/RELEASE_NOTES.md
+grep -Fq "## $mobile_release_version -" CHANGELOG.md
 grep -Fq "VERSION and release notes identify the exact release being promoted. Evidence: #178" docs/release/RELEASE_CHECKLIST.md
 
 production_origin="https://foodex.50sols.com"

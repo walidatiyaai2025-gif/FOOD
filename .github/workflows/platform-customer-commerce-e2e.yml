@@ -1,0 +1,113 @@
+name: FOODEX Platform Customer Commerce E2E
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-validation:
+    name: Backend + MySQL commerce validation
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' }}
+    uses: ./.github/workflows/backend-ci.yml
+
+  customer-validation:
+    name: Customer Android/iOS commerce validation
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' }}
+    uses: ./.github/workflows/customer-app-ci.yml
+
+  driver-validation:
+    name: Driver Android/iOS commerce validation
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' }}
+    uses: ./.github/workflows/driver-app-ci.yml
+
+  runtime-evidence:
+    name: Runtime screenshot evidence
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' }}
+    uses: ./.github/workflows/screenshot-evidence.yml
+
+  release-gate:
+    name: Platform Customer commerce release gate
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e') }}
+    needs:
+      - backend-validation
+      - customer-validation
+      - driver-validation
+      - runtime-evidence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every release surface to pass
+        shell: bash
+        env:
+          BACKEND_RESULT: ${{ needs.backend-validation.result }}
+          CUSTOMER_RESULT: ${{ needs.customer-validation.result }}
+          DRIVER_RESULT: ${{ needs.driver-validation.result }}
+          EVIDENCE_RESULT: ${{ needs.runtime-evidence.result }}
+        run: |
+          set -euo pipefail
+          for pair in             "backend:$BACKEND_RESULT"             "customer:$CUSTOMER_RESULT"             "driver:$DRIVER_RESULT"             "runtime-evidence:$EVIDENCE_RESULT"; do
+            name="${pair%%:*}"
+            result="${pair#*:}"
+            if [[ "$result" != "success" ]]; then
+              echo "::error::$name release evidence did not pass (result: $result)"
+              exit 1
+            fi
+          done
+
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify release identity and journey evidence contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ./scripts/release-readiness.sh
+
+          grep -Fq 'test_retail_origin_registration_materializes_source_retail_and_wholesale_with_store_default_tier' backend/tests/Feature/PlatformCustomerRegistrationOriginTest.php
+          grep -Fq 'test_platform_customer_orders_aggregate_wholesale_and_retail_with_store_provenance' backend/tests/Feature/PlatformCustomerUnifiedOrdersTest.php
+          grep -Fq 'test_platform_customer_order_detail_rejects_foreign_customer_and_store_channel_tampering' backend/tests/Feature/PlatformCustomerUnifiedOrdersTest.php
+          grep -Fq 'test_checkout_reprices_live_price_and_historical_snapshot_does_not_drift' backend/tests/Feature/AuthoritativePricingQuoteTest.php
+          grep -Fq 'test_wholesale_order_keeps_tier_and_price_snapshot_after_tier_changes' backend/tests/Feature/AuthoritativePricingQuoteTest.php
+          grep -Fq 'test_super_admin_sees_exact_origin_and_all_materialized_retail_stores' backend/tests/Feature/DashboardCustomer360Test.php
+          grep -Fq 'test_retail_dashboard_quote_and_multiline_invoice_are_authoritative' backend/tests/Feature/DashboardOrderManagementTest.php
+          grep -Fq 'test_wholesale_dashboard_quote_uses_selected_warehouse_and_tier_for_multiple_lines' backend/tests/Feature/DashboardOrderManagementTest.php
+          grep -Fq 'test_assigned_driver_receives_safe_invoice_and_note_timeline_only_for_own_assignment' backend/tests/Feature/DriverInvoiceNotificationTest.php
+          grep -Fq 'test_retail_operational_notifications_are_store_scoped_deduplicated_and_have_authorized_deep_links' backend/tests/Feature/DriverInvoiceNotificationTest.php
+          grep -Fq "B2B product details render authoritative account pricing and inventory" apps/customer_app/test/b2b_journey_test.dart
+          grep -Fq "B2C store selection propagates store context to home" apps/customer_app/test/b2c_journey_test.dart
+          grep -Fq "driver can open assigned invoice receipt from order detail" apps/driver_app/test/driver_journey_test.dart
+          grep -Fq "detail action uses backend supplied status and channel boundary" apps/driver_app/test/driver_journey_test.dart
+          grep -Fq "customer app renders English LTR from the bilingual catalog" apps/customer_app/test/localization_test.dart
+          grep -Fq "driver app renders English LTR from the bilingual catalog" apps/driver_app/test/localization_test.dart
+
+      - name: Write exact release evidence manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          version="$(tr -d '\r\n' < VERSION)"
+          {
+            echo "FOODEX Platform Customer Commerce E2E"
+            echo "candidate_commit=$GITHUB_SHA"
+            echo "version=$version"
+            echo "backend_validation=${{ needs.backend-validation.result }}"
+            echo "customer_validation=${{ needs.customer-validation.result }}"
+            echo "driver_validation=${{ needs.driver-validation.result }}"
+            echo "runtime_evidence=${{ needs.runtime-evidence.result }}"
+            echo "journeys=12"
+            echo "release_gate=PASS"
+          } > artifacts/platform-customer-commerce-e2e.txt
+
+      - name: Upload release evidence manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-customer-commerce-e2e-${{ github.sha }}
+          path: artifacts/platform-customer-commerce-e2e.txt
+          if-no-files-found: error
+          retention-days: 30
