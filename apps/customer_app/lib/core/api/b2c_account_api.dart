@@ -15,6 +15,7 @@ abstract interface class B2cAccountApi {
   Future<Object?> addresses();
   Future<Object?> createAddress(Map<String, dynamic> values);
   Future<Object?> updateAddress(int addressId, Map<String, dynamic> values);
+  Future<Object?> setDefaultAddress(int addressId);
   Future<void> removeAddress(int addressId);
   Future<Object?> favorites();
   Future<void> addFavorite(int productId);
@@ -137,6 +138,12 @@ class HttpB2cAccountApi implements B2cAccountApi {
   ) async {
     _requireToken();
     return _write('PATCH', '/api/v1/profile/addresses/$addressId', values);
+  }
+
+  @override
+  Future<Object?> setDefaultAddress(int addressId) async {
+    _requireToken();
+    return _write('POST', '/api/v1/profile/addresses/$addressId/default', const {});
   }
 
   @override
