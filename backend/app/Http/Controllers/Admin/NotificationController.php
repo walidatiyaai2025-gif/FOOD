@@ -314,6 +314,7 @@ final class NotificationController extends Controller
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
         ]);
     }
+
     private function storeImage(Request $request, MarketingImageService $images, mixed $storeId): ?string
     {
         $file = $request->file('image');
