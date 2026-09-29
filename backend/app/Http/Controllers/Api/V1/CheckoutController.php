@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\Cart;
@@ -18,6 +17,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CommerceQuoteService;
 use App\Services\CouponRedemptionService;
+use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\InvoiceService;
@@ -98,10 +98,8 @@ class CheckoutController extends Controller
             'coupon_code' => $couponCode,
         ], JSON_THROW_ON_ERROR));
 
-        $address = Address::query()
-            ->whereKey($addressId)
-            ->where($customerColumn, $customer->getKey())
-            ->firstOrFail();
+        $address = app(CustomerAddressService::class)
+            ->findOwned($user, $addressId, $customer, $channel);
 
         /** @var array{0: Order, 1: bool} $result */
         $result = DB::transaction(function () use (
