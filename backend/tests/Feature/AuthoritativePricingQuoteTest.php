@@ -16,10 +16,15 @@ class AuthoritativePricingQuoteTest extends TestCase
     use RefreshDatabase;
 
     private int $wholesale;
+
     private int $retailA;
+
     private int $retailB;
+
     private int $wholesaleProduct;
+
     private int $retailAProduct;
+
     private int $retailBProduct;
 
     protected function setUp(): void
