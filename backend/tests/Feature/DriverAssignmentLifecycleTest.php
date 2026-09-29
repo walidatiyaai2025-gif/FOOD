@@ -106,6 +106,121 @@ class DriverAssignmentLifecycleTest extends TestCase
         ]);
     }
 
+    public function test_failed_delivery_requires_reason_and_returns_order_to_ready_pickup_state(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+        $order->update(['status' => 'ready']);
+
+        $admin = $this->roleUser('B2C_STORE_ADMIN', 'failure-admin@example.test');
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert(['user_id' => $admin->id, 'store_id' => $storeId, 'role_id' => $roleId, 'created_at' => now(), 'updated_at' => now()]);
+        $driverUser = $this->roleUser('B2C_DRIVER', 'failure-driver@example.test');
+        $driver = Driver::query()->create(['user_id' => $driverUser->id, 'store_id' => $storeId, 'driver_type' => 'b2c', 'is_available' => true, 'is_active' => true]);
+
+        Sanctum::actingAs($admin);
+        $assignmentId = $this->postJson('/api/v1/admin/deliveries/assign', ['driver_id' => $driver->id, 'order_id' => $order->id])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($driverUser);
+        foreach (['accepted', 'picked_up', 'out_for_delivery'] as $status) {
+            $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", ['status' => $status])->assertOk();
+        }
+
+        $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", ['status' => 'failed'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['failure_reason']);
+
+        $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
+            'status' => 'failed',
+            'failure_reason' => 'customer_no_answer',
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'picked_up')
+            ->assertJsonPath('data.order.status', 'ready')
+            ->assertJsonPath('data.available_statuses.0', 'out_for_delivery');
+
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => 'out_for_delivery',
+            'to_status' => 'failed',
+            'note' => 'customer_no_answer',
+        ]);
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => 'failed',
+            'to_status' => 'ready',
+            'note' => 'customer_no_answer',
+        ]);
+        $this->assertDatabaseHas('delivery_proofs', [
+            'driver_assignment_id' => $assignmentId,
+            'proof_type' => 'failure_note',
+            'to_status' => 'failed',
+            'reason_code' => 'customer_no_answer',
+            'note' => null,
+        ]);
+    }
+
+    public function test_delivered_transition_can_store_optional_proof_image(): void
+    {
+        Storage::fake('public');
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+        $order->update(['status' => 'ready']);
+
+        $admin = $this->roleUser('B2C_STORE_ADMIN', 'proof-admin@example.test');
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+            'role_id' => $roleId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $driverUser = $this->roleUser('B2C_DRIVER', 'proof-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+        $assignmentId = $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($driverUser);
+        foreach (['accepted', 'picked_up', 'out_for_delivery'] as $status) {
+            $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
+                'status' => $status,
+            ])->assertOk();
+        }
+
+        $response = $this->post(
+            "/api/v1/driver/assignments/{$assignmentId}/status",
+            [
+                'status' => 'delivered',
+                'note' => 'Delivered at reception',
+                'proof_image' => UploadedFile::fake()->image('proof.jpg', 640, 480),
+            ],
+            ['Accept' => 'application/json'],
+        )->assertOk()
+            ->assertJsonPath('data.status', 'delivered');
+
+        $proof = DB::table('delivery_proofs')
+            ->where('driver_assignment_id', $assignmentId)
+            ->where('proof_type', 'delivery_image')
+            ->first();
+
+        $this->assertNotNull($proof);
+        $this->assertSame('Delivered at reception', $proof->note);
+        $this->assertNotNull($proof->file_path);
+        Storage::disk('public')->assertExists($proof->file_path);
+        $response->assertJsonPath('data.order.driver_history.0.proof_type', 'delivery_image');
+        $response->assertJsonPath('data.order.driver_history.0.file_path', $proof->file_path);
+    }
+
     public function test_driver_payload_uses_immutable_order_delivery_snapshot(): void
     {
         $this->seed(CoreReferenceSeeder::class);
