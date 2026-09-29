@@ -187,6 +187,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const inspectorEnabled = @json(auth()->check());
     const inspectorUrl = @json(route('admin.inspector.client-events'));
     const csrfToken = @json(csrf_token());
+    let inspectorSuppressed = false;
+    const currentXsrfToken = () => {
+        const row = document.cookie.split('; ').find((value) => value.startsWith('XSRF-TOKEN='));
+        return row ? decodeURIComponent(row.substring('XSRF-TOKEN='.length)) : null;
+    };
     const feedback = {
         status: @json($foodexUiStatus),
         errors: @json($foodexUiErrors),
@@ -372,12 +377,21 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const reportInspector = (payload) => {
-        if (!inspectorEnabled || !nativeFetch || location.pathname.startsWith('/admin/inspector')) return;
+        if (inspectorSuppressed || !inspectorEnabled || !nativeFetch || location.pathname.startsWith('/admin/inspector')) return;
+        const xsrfToken = currentXsrfToken();
         nativeFetch(inspectorUrl, {
             method:'POST',
             credentials:'same-origin',
-            headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':csrfToken,'X-FOODEX-INSPECTOR':'1'},
+            headers:{
+                'Content-Type':'application/json',
+                'Accept':'application/json',
+                'X-CSRF-TOKEN':csrfToken,
+                ...(xsrfToken ? {'X-XSRF-TOKEN':xsrfToken} : {}),
+                'X-FOODEX-INSPECTOR':'1',
+            },
             body:JSON.stringify(payload),
+        }).then((response) => {
+            if (response.status === 419 || response.status === 401) inspectorSuppressed = true;
         }).catch(() => {});
     };
 
@@ -406,6 +420,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const options = args[1] || {};
             const requestUrl = typeof request === 'string' ? request : request?.url;
             if (options.headers?.['X-FOODEX-INSPECTOR'] || requestUrl === inspectorUrl) return nativeFetch(...args);
+            let sameOriginRequest = true;
+            try {
+                sameOriginRequest = !requestUrl || new URL(requestUrl, location.href).origin === location.origin;
+            } catch (_) {}
+
             try {
                 const response = await nativeFetch(...args);
                 if (!response.ok) {
@@ -422,12 +441,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
                     } catch (_) {}
-                    reportInspector({
-                        source:'fetch', severity:response.status >= 500 ? 'error' : 'warning',
-                        message:responseMessage || ('HTTP '+response.status+' '+response.statusText),
-                        status:response.status, method,
-                        url:requestUrl || location.href, response_url:response.url,
-                    });
+                    if (sameOriginRequest) {
+                        reportInspector({
+                            source:'fetch', severity:response.status >= 500 ? 'error' : 'warning',
+                            message:responseMessage || ('HTTP '+response.status+' '+response.statusText),
+                            status:response.status, method,
+                            url:requestUrl || location.href, response_url:response.url,
+                        });
+                    }
                     if (method !== 'GET') {
                         showFeedback('error', responseMessage || (isArabic
                             ? 'تعذر تنفيذ العملية ('+response.status+'). راجع البيانات وحاول مرة أخرى.'
@@ -436,12 +457,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return response;
             } catch (error) {
-                reportInspector({
-                    source:'fetch', severity:'error',
-                    message:error?.message || 'Fetch request failed',
-                    method:options.method || request?.method || 'GET',
-                    url:requestUrl || location.href, stack:error?.stack || null,
-                });
+                if (sameOriginRequest) {
+                    reportInspector({
+                        source:'fetch', severity:'error',
+                        message:error?.message || 'Fetch request failed',
+                        method:options.method || request?.method || 'GET',
+                        url:requestUrl || location.href, stack:error?.stack || null,
+                    });
+                }
                 throw error;
             }
         };
