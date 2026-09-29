@@ -29,7 +29,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
-    final marketplace = await _get('${baseUrl}/api/v1/marketplace');
+    final marketplace = await _get('$baseUrl/api/v1/marketplace');
     final wholesale = marketplace['main_wholesale_store'] is Map
         ? Map<String, dynamic>.from(marketplace['main_wholesale_store'] as Map)
         : <String, dynamic>{};
@@ -39,7 +39,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     }
 
     final storefront = await _get(
-      '${baseUrl}/api/v1/wholesale/stores/$storeId/storefront',
+      '$baseUrl/api/v1/wholesale/stores/$storeId/storefront',
     );
 
     return {
