@@ -36,6 +36,7 @@ return [
     'catalog_management' => 'Catalog & Categories Management',
     'lookup_management' => 'Brands & Units',
     'business_management' => 'Operations & Data Management',
+    'order_management' => 'Order Management',
     'retail_store_provisioning' => 'Retail Stores / Provisioning',
     'shell_ready' => 'Management shell is ready',
     'shell_description' => 'This is the shared routing and layout layer. Product, order and reporting screens are implemented in their own issues without creating separate admin applications.',
