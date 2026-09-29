@@ -211,7 +211,7 @@ final class CouponManagementController extends Controller
             ->where('stores.is_active', true)
             ->where('stores.coupons_enabled', true);
 
-        if (! $actor->hasRole('SUPER_ADMIN')) {
+        if (!$actor->hasRole('SUPER_ADMIN')) {
             $ids = app(TenantContextResolver::class)->retailStoreIds($actor);
             if ($ids === []) {
                 return [];
