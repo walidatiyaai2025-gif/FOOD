@@ -1161,8 +1161,29 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
     final area = TextEditingController(
       text: existing?['area']?.toString() ?? '',
     );
+    final governorate = TextEditingController(
+      text: existing?['governorate']?.toString() ?? '',
+    );
+    final block = TextEditingController(
+      text: existing?['block']?.toString() ?? '',
+    );
+    final avenue = TextEditingController(
+      text: existing?['avenue']?.toString() ?? '',
+    );
+    final building = TextEditingController(
+      text: existing?['building']?.toString() ?? '',
+    );
+    final floor = TextEditingController(
+      text: existing?['floor']?.toString() ?? '',
+    );
+    final apartment = TextEditingController(
+      text: existing?['apartment']?.toString() ?? '',
+    );
     final city = TextEditingController(
       text: existing?['city']?.toString() ?? 'Kuwait City',
+    );
+    final country = TextEditingController(
+      text: existing?['country']?.toString() ?? 'Kuwait',
     );
     final countryCode = TextEditingController(
       text: existing?['country_code']?.toString() ?? 'KW',
@@ -1180,6 +1201,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         (existing?['location_accuracy_meters'] as num?)?.toDouble();
     var locationSource =
         existing?['location_source']?.toString() ?? 'manual';
+    var makeDefault = existing?['is_default'] == true;
     var locating = false;
     String? locationError;
 
@@ -1235,10 +1257,59 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                     ),
                   ),
                   TextField(
+                    key: const ValueKey('b2c-address-governorate'),
+                    controller: governorate,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.governorate'),
+                    ),
+                  ),
+                  TextField(
+                    key: const ValueKey('b2c-address-block'),
+                    controller: block,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.block'),
+                    ),
+                  ),
+                  TextField(
+                    key: const ValueKey('b2c-address-avenue'),
+                    controller: avenue,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.avenue'),
+                    ),
+                  ),
+                  TextField(
+                    key: const ValueKey('b2c-address-building'),
+                    controller: building,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.building'),
+                    ),
+                  ),
+                  TextField(
+                    key: const ValueKey('b2c-address-floor'),
+                    controller: floor,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.floor'),
+                    ),
+                  ),
+                  TextField(
+                    key: const ValueKey('b2c-address-apartment'),
+                    controller: apartment,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.apartment'),
+                    ),
+                  ),
+                  TextField(
                     key: const ValueKey('b2c-address-city'),
                     controller: city,
                     decoration: InputDecoration(
                       labelText: context.tr('customer.addresses.city'),
+                    ),
+                  ),
+                  TextField(
+                    key: const ValueKey('b2c-address-country'),
+                    controller: country,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.country'),
                     ),
                   ),
                   TextField(
@@ -1263,6 +1334,17 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                     maxLines: 2,
                     decoration: InputDecoration(
                       labelText: context.tr('customer.addresses.notes'),
+                    ),
+                  ),
+                  SwitchListTile.adaptive(
+                    key: const ValueKey('b2c-address-default-switch'),
+                    contentPadding: EdgeInsets.zero,
+                    value: makeDefault,
+                    onChanged: (value) {
+                      setDialogState(() => makeDefault = value);
+                    },
+                    title: Text(
+                      context.tr('customer.addresses.set_default'),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1405,6 +1487,17 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         'street': line1.text.trim(),
         'city': city.text.trim(),
         'area': area.text.trim().isEmpty ? null : area.text.trim(),
+        'governorate': governorate.text.trim().isEmpty
+            ? null
+            : governorate.text.trim(),
+        'block': block.text.trim().isEmpty ? null : block.text.trim(),
+        'avenue': avenue.text.trim().isEmpty ? null : avenue.text.trim(),
+        'building':
+            building.text.trim().isEmpty ? null : building.text.trim(),
+        'floor': floor.text.trim().isEmpty ? null : floor.text.trim(),
+        'apartment':
+            apartment.text.trim().isEmpty ? null : apartment.text.trim(),
+        'country': country.text.trim().isEmpty ? null : country.text.trim(),
         'country_code': countryCode.text.trim().toUpperCase(),
         'landmark':
             landmark.text.trim().isEmpty ? null : landmark.text.trim(),
@@ -1415,6 +1508,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         'location_accuracy_meters': accuracy,
         'location_source':
             latitude == null || longitude == null ? 'manual' : locationSource,
+        'is_default': makeDefault,
       };
 
       try {
