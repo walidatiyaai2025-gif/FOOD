@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.30 - Retail store accordion and lookup creation UX
+
+- Show existing Retail stores as a single-open accordion ordered from newest to oldest, with the latest-created store expanded by default.
+- Keep store editing, Wholesale tier, support inspection and manager/role controls inside each accordion panel.
+- Replace the generic inline Lookup create block with a clear type-specific Add button and responsive modal dialog.
+- Use "Add new brand / إضافة علامة تجارية جديدة" for Brands and "Add new unit / إضافة وحدة قياس جديدة" for Units.
+- Preserve tenant scope, explicit support access, image validation, RTL/LTR behavior and existing lookup authorization.
+- Keep Dashboard, Customer and Driver release identities synchronized at 1.0.30.
+
 ## 1.0.29 - Advertising center, coupons and mobile trial login
 
 - Add the Advertising / الدعايا admin section with promotional campaigns and tenant-scoped coupon management.
