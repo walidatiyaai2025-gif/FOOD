@@ -68,6 +68,7 @@ void main() {
     const _CaptureCase('01_Mobile/B2C_Customer/10_العنوان_والدفع__default__ar.png', '/checkout/address-payment', session: _b2c),
     const _CaptureCase('01_Mobile/B2C_Customer/11_تتبع_الطلب__populated__ar.png', '/orders/101/track', session: _b2c),
     const _CaptureCase('01_Mobile/B2C_Customer/12_الملف_الشخصي_والمفضلة__populated__ar.png', '/profile', session: _b2c),
+    const _CaptureCase('01_Mobile/B2C_Customer/13_عناويني__populated__ar.png', '/profile/addresses', session: _b2c),
   ];
 
   for (final locale in const [Locale('ar'), Locale('en')]) {
@@ -117,6 +118,56 @@ void main() {
         });
       });
     }
+
+    testWidgets('capture My Addresses edit with location $localeCode', (tester) async {
+      tester.view.physicalSize = const Size(430, 932);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final boundaryKey = GlobalKey();
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: boundaryKey,
+          child: FoodexCustomerApp(
+            theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+            session: _b2c,
+            initialRoute: '/profile/addresses',
+            b2bApi: const _EvidenceB2bApi(),
+            b2cCatalogApi: const _EvidenceCatalogApi(),
+            b2cAccountApi: const _EvidenceAccountApi(),
+            actionApi: const _EvidenceActionApi(),
+            storefrontApi: const _EvidenceStorefrontApi(),
+            wholesaleCommerceApi: const _EvidenceWholesaleCommerceApi(),
+            locale: locale,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('b2c-address-menu-8')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(PopupMenuItem<String>).first);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('b2c-address-location-preview')),
+        findsOneWidget,
+      );
+
+      await tester.runAsync(() async {
+        final boundary = boundaryKey.currentContext!.findRenderObject()!
+            as RenderRepaintBoundary;
+        final image = await boundary.toImage(pixelRatio: 1);
+        final data = await image.toByteData(format: ui.ImageByteFormat.png);
+        final file = File(
+          '../../ScreenShots/01_Mobile/B2C_Customer/14_تعديل_العنوان_والموقع__populated__$localeCode.png',
+        );
+        file.parent.createSync(recursive: true);
+        file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
+        expect(file.lengthSync(), greaterThan(1000));
+      });
+    });
   }
 }
 
@@ -416,6 +467,11 @@ class _EvidenceAccountApi implements B2cAccountApi {
             'area': 'بيان',
             'city': 'Kuwait City',
             'country_code': 'KW',
+            'latitude': 29.3031,
+            'longitude': 48.0489,
+            'location_accuracy_meters': 6.0,
+            'location_source': 'map_pin',
+            'landmark': 'قرب الجمعية',
             'is_default': true,
           }
         ],
