@@ -262,6 +262,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
             child: Text(context.tr('driver.dismiss')),
           ),
           FilledButton(
+            key: Key('driver-status-confirm-$status'),
             onPressed: () {
               final value = controller.text.trim();
               if (status == 'failed' && value.isEmpty) return;
