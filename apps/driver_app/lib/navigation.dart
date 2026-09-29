@@ -279,7 +279,6 @@ class _DriverHomePageState extends State<_DriverHomePage> {
                 builder: (context, constraints) {
                   final itemWidth = (constraints.maxWidth - 24) / 4;
                   return Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       for (var index = 0; index < metrics.length; index++) ...[
                         if (index > 0) const SizedBox(width: 8),
