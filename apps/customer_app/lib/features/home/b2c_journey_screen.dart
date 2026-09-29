@@ -45,6 +45,14 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
   bool _dependenciesReady = false;
 
   int? get _categoryId => int.tryParse(Uri.parse(widget.location).queryParameters['category'] ?? '');
+
+  String? get _nextRoute {
+    final value = Uri.parse(widget.location).queryParameters['next'];
+    if (value == null || value.trim().isEmpty) return null;
+    final uri = Uri.tryParse(value);
+    if (uri == null || !uri.path.startsWith('/')) return null;
+    return value;
+  }
   String? get _query => Uri.parse(widget.location).queryParameters['q'];
   String get _sort => Uri.parse(widget.location).queryParameters['sort'] == 'price' ? 'price' : 'name';
   String get _direction => Uri.parse(widget.location).queryParameters['direction'] == 'desc' ? 'desc' : 'asc';
@@ -453,7 +461,8 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
               api: widget.actionApi,
               onAuthenticated: widget.onAuthenticated,
               onPlatformAuthenticated: widget.onPlatformAuthenticated,
-              successRoute: _withStore(CustomerRoutePaths.checkoutAddressPayment),
+              successRoute:
+                  _nextRoute ?? _withStore(CustomerRoutePaths.checkoutAddressPayment),
             ),
           ],
         );
