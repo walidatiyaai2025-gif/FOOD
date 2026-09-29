@@ -181,8 +181,9 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
           }
         }
         if (match != null) {
+          final focusedAssignment = match;
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _showDetail(match);
+            if (mounted) _showDetail(focusedAssignment);
           });
         }
       }
