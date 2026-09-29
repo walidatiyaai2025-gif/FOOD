@@ -281,7 +281,27 @@ class DriverAssignmentController extends Controller
                 'required',
                 Rule::in(['accepted', 'picked_up', 'out_for_delivery', 'delivered', 'failed']),
             ],
-            'note' => ['nullable', 'string', 'max:1000'],
+            'failure_reason' => [
+                Rule::requiredIf(fn (): bool => $request->string('status')->toString() === 'failed'),
+                'nullable',
+                Rule::in([
+                    'customer_no_answer',
+                    'wrong_address',
+                    'customer_refused',
+                    'customer_absent',
+                    'payment_issue',
+                    'order_issue',
+                    'other',
+                ]),
+            ],
+            'note' => [
+                Rule::requiredIf(fn (): bool => $request->string('status')->toString() === 'failed'
+                    && $request->string('failure_reason')->toString() === 'other'),
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+            'proof_image' => ['nullable', 'image', 'max:5120'],
         ]);
 
         $model = DriverAssignment::query()
@@ -302,6 +322,8 @@ class DriverAssignmentController extends Controller
             (string) $data['status'],
             $data['note'] ?? null,
             $request,
+            $request->file('proof_image'),
+            $data['failure_reason'] ?? null,
         );
 
         return response()->json(['data' => $driverOrders->payload($fresh)]);
