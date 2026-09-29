@@ -42,7 +42,7 @@ final class MobileAppDownloadController extends Controller
             $version = trim((string) @file_get_contents(base_path('../VERSION')));
         }
 
-        if (! is_string($version) || preg_match('/^\d+\.\d+\.\d+$/', $version) !== 1) {
+        if ($version === '' || preg_match('/^\d+\.\d+\.\d+$/', $version) !== 1) {
             throw new RuntimeException('Current FOODEX version could not be determined for APK download.');
         }
 
