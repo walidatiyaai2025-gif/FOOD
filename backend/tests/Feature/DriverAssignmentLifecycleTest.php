@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Address;
 use App\Models\Customer;
 use App\Models\Driver;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\OrderDeliveryAddressSnapshotService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +72,77 @@ class DriverAssignmentLifecycleTest extends TestCase
             'proof_type' => 'status_note',
             'note' => 'Driver action delivered',
         ]);
+    }
+
+    public function test_driver_payload_uses_immutable_order_delivery_snapshot(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+
+        $address = Address::query()->create([
+            'customer_id' => $order->customer_id,
+            'label' => 'Home',
+            'recipient_name' => 'Delivery Customer',
+            'delivery_phone' => '+201000000999',
+            'line1' => 'Original delivery street',
+            'city' => 'Cairo',
+            'country_code' => 'EG',
+            'landmark' => 'Original landmark',
+            'delivery_notes' => 'Ring once',
+            'latitude' => 30.0444200,
+            'longitude' => 31.2357120,
+            'location_source' => 'map_pin',
+            'is_default' => true,
+        ]);
+
+        $order->fill([
+            'address_id' => $address->id,
+            ...app(OrderDeliveryAddressSnapshotService::class)->attributes($address),
+            'status' => 'ready',
+        ])->save();
+
+        $address->update([
+            'line1' => 'Mutated customer address',
+            'landmark' => 'Mutated landmark',
+            'latitude' => 29.5000000,
+            'longitude' => 30.5000000,
+        ]);
+
+        $admin = $this->roleUser('B2C_STORE_ADMIN', 'snapshot-admin@example.test');
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+            'role_id' => $roleId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $driverUser = $this->roleUser('B2C_DRIVER', 'snapshot-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+        $assignmentId = $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($driverUser);
+        $this->getJson("/api/v1/driver/assignments/{$assignmentId}")
+            ->assertOk()
+            ->assertJsonPath('data.order.address.line1', 'Original delivery street')
+            ->assertJsonPath('data.order.address.landmark', 'Original landmark')
+            ->assertJsonPath('data.order.address.delivery_notes', 'Ring once')
+            ->assertJsonPath('data.order.address.has_coordinates', true)
+            ->assertJsonPath('data.order.navigation.available', true)
+            ->assertJsonPath('data.order.navigation.latitude', 30.04442)
+            ->assertJsonPath('data.order.navigation.longitude', 31.235712);
     }
 
     public function test_admin_can_reassign_and_unassign_order_while_preserving_history(): void
