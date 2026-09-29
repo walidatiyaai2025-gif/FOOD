@@ -8,6 +8,7 @@ use App\Services\AuditLogger;
 use App\Services\CredentialAuthenticator;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -48,6 +49,13 @@ class AdminLoginController extends Controller
             'channel' => $channel,
             'locale' => $locale,
         ]);
+    }
+
+    public function csrfToken(Request $request): JsonResponse
+    {
+        return response()
+            ->json(['token' => csrf_token()])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }
 
     public function store(Request $request): RedirectResponse
