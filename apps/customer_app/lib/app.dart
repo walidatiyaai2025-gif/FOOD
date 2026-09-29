@@ -64,7 +64,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   Timer? _versionFooterTimer;
   bool _showVersionFooter = false;
 
-  static const _appVersion = '1.0.31';
+  static const _appVersion = '1.0.32';
 
   @override
   void initState() {
@@ -157,6 +157,17 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   void _onAuthenticated(CustomerChannel channel, String token) {
     setState(() {
       _session = CustomerSession.authenticated(channel, accessToken: token);
+    });
+    _bindPushSession();
+  }
+
+  void _onPlatformRegistered(String token) {
+    setState(() {
+      _session = CustomerSession.authenticated(
+        CustomerChannel.b2b,
+        accessToken: token,
+        platformWide: true,
+      );
     });
     _bindPushSession();
   }
@@ -257,6 +268,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       onAuthenticated: _onAuthenticated,
       onSessionExpired: _onSessionExpired,
       onEnterWholesale: _enterWholesale,
+      onPlatformRegistered: _onPlatformRegistered,
     );
 
     return MaterialApp(

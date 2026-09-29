@@ -3,6 +3,7 @@ import '../auth/customer_session.dart';
 abstract final class CustomerRoutePaths {
   static const splash = '/splash';
   static const entry = '/entry';
+  static const marketplace = '/marketplace';
   static const stores = '/stores';
   static const storeSelector = '/customer/store-selector';
   static const home = '/home';
@@ -91,6 +92,10 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.entry,
     label: 'Customer entry',
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.marketplace,
+    label: 'Platform marketplace',
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.stores,

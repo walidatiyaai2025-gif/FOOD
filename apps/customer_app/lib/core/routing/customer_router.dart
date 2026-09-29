@@ -20,6 +20,7 @@ class CustomerAppRouter {
     required this.onAuthenticated,
     required this.onSessionExpired,
     required this.onEnterWholesale,
+    required this.onPlatformRegistered,
     this.b2bApi,
     this.storefrontApi,
     this.wholesaleApi,
@@ -37,6 +38,7 @@ class CustomerAppRouter {
   final CustomerAuthenticated onAuthenticated;
   final VoidCallback onSessionExpired;
   final ValueChanged<int?> onEnterWholesale;
+  final ValueChanged<String> onPlatformRegistered;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final requestedLocation = settings.name ?? CustomerRoutePaths.splash;
@@ -88,7 +90,7 @@ class CustomerAppRouter {
       );
     }
 
-    if (session.channel != requested.channel) {
+    if (session.channel != requested.channel && !session.platformWide) {
       final entitledRetailManager =
           requested.channel == CustomerChannel.b2b &&
           session.b2bRetailStoreId != null;
@@ -124,6 +126,8 @@ class CustomerAppRouter {
             storefrontApi: storefrontApi,
             wholesaleApi: wholesaleApi,
             enterWholesale: onEnterWholesale,
+            onAuthenticated: onAuthenticated,
+            onPlatformRegistered: onPlatformRegistered,
           );
         }
 
