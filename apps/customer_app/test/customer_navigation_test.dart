@@ -107,7 +107,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('تفاصيل الطلب'), findsOneWidget);
+    expect(find.text('تفاصيل طلب الجملة'), findsOneWidget);
     expect(find.text('/b2b/orders/101'), findsOneWidget);
   });
 
