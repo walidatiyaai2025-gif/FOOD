@@ -474,7 +474,7 @@ class B2cWorkspaceController extends Controller
             DB::table('inventories')->where('id', $source->id)->decrement('quantity', $quantity, ['updated_at' => now()]);
             DB::table('inventories')->where('id', $targetId)->increment('quantity', $quantity, ['updated_at' => now()]);
             $referenceId = (int) now()->format('YmdHis');
-            foreach ([[ (int) $source->id, 'transfer_out', -$quantity ], [ $targetId, 'transfer_in', $quantity ]] as [$inventoryId, $type, $movement]) {
+            foreach ([[(int) $source->id, 'transfer_out', -$quantity], [$targetId, 'transfer_in', $quantity]] as [$inventoryId, $type, $movement]) {
                 DB::table('stock_movements')->insert([
                     'inventory_id' => $inventoryId, 'store_id' => $storeId, 'user_id' => $user->id,
                     'type' => $type, 'quantity' => $movement, 'reference_type' => 'warehouse_transfer',
