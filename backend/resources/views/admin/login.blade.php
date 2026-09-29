@@ -83,17 +83,10 @@
     const form = document.querySelector('form[data-csrf-refresh-url]');
     if (!form) return;
 
-    window.addEventListener('pageshow', (event) => {
-        if (event.persisted) window.location.reload();
-    });
-
-    form.addEventListener('submit', async (event) => {
-        if (form.dataset.csrfRefreshing === '1' || !form.reportValidity()) return;
-        event.preventDefault();
-        form.dataset.csrfRefreshing = '1';
-
-        const submit = form.querySelector('button[type="submit"]');
-        if (submit) submit.disabled = true;
+    let refreshing = false;
+    const refreshToken = async () => {
+        if (refreshing) return;
+        refreshing = true;
 
         try {
             const response = await fetch(form.dataset.csrfRefreshUrl, {
@@ -101,14 +94,24 @@
                 headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
                 cache: 'no-store',
             });
-            if (response.ok) {
-                const payload = await response.json().catch(() => ({}));
-                const token = form.querySelector('input[name="_token"]');
-                if (token && payload.token) token.value = payload.token;
-            }
+            if (!response.ok) return;
+
+            const payload = await response.json().catch(() => ({}));
+            const token = form.querySelector('input[name="_token"]');
+            if (token && payload.token) token.value = payload.token;
+        } catch (_) {
+            // Keep the server-rendered token as the safe fallback.
         } finally {
-            HTMLFormElement.prototype.submit.call(form);
+            refreshing = false;
         }
+    };
+
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) refreshToken();
+    });
+    window.addEventListener('focus', refreshToken);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshToken();
     });
 })();
 </script>
