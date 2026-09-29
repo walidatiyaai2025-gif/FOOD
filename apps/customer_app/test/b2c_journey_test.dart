@@ -346,6 +346,9 @@ void main() {
       find.byKey(const ValueKey('b2c-address-line1')),
       'Bayan Block 1',
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('b2c-address-share-location')),
+    );
     await tester.tap(
       find.byKey(const ValueKey('b2c-address-share-location')),
     );
@@ -406,6 +409,9 @@ void main() {
       'Selected Map Street',
     );
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('b2c-address-choose-map')),
+    );
     await tester.tap(find.byKey(const ValueKey('b2c-address-choose-map')));
     await tester.pumpAndSettle();
 
