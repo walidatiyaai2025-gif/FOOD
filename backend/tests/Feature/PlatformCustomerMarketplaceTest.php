@@ -23,6 +23,9 @@ class PlatformCustomerMarketplaceTest extends TestCase
     public function test_guest_platform_home_exposes_principal_wholesale_catalog_and_retail_store_banners(): void
     {
         [$wholesaleStore, $retailStore, $wholesaleProduct] = $this->marketplaceFixture();
+        $wholesaleCategory = (int) DB::table('products')
+            ->where('id', $wholesaleProduct)
+            ->value('category_id');
 
         $this->getJson('/api/v1/platform/storefront')
             ->assertOk()
@@ -32,6 +35,10 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertJsonPath('products.data.0.id', $wholesaleProduct)
             ->assertJsonPath('categories.0.id', $wholesaleCategory)
             ->assertJsonPath('categories.0.slug', 'PLATFORM-CAT')
+            ->assertJsonPath('offers.0.name', 'Wholesale Launch Offer')
+            ->assertJsonPath('offers.0.value', 2.5)
+            ->assertJsonCount(1, 'offers')
+            ->assertJsonMissing(['name' => 'Expired Wholesale Offer'])
             ->assertJsonPath('retail_banners.0.id', $retailStore)
             ->assertJsonPath('retail_banners.0.store_id', $retailStore)
             ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/retail-home.jpg'))
@@ -198,6 +205,31 @@ class PlatformCustomerMarketplaceTest extends TestCase
                 'store_id' => $retailStore,
                 'product_id' => $retailProduct,
                 'price' => 15.000,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        ]);
+
+        DB::table('promotions')->insert([
+            [
+                'store_id' => $wholesaleStore,
+                'name' => 'Wholesale Launch Offer',
+                'type' => 'fixed',
+                'value' => 2.500,
+                'starts_at' => $now->copy()->subHour(),
+                'ends_at' => $now->copy()->addHour(),
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'store_id' => $wholesaleStore,
+                'name' => 'Expired Wholesale Offer',
+                'type' => 'fixed',
+                'value' => 1.000,
+                'starts_at' => $now->copy()->subDays(2),
+                'ends_at' => $now->copy()->subDay(),
                 'is_active' => true,
                 'created_at' => $now,
                 'updated_at' => $now,
