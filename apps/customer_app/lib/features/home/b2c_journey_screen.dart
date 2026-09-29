@@ -1161,18 +1161,21 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
+                    key: const ValueKey('b2c-address-label'),
                     controller: label,
                     decoration: InputDecoration(
                       labelText: context.tr('customer.addresses.label'),
                     ),
                   ),
                   TextField(
+                    key: const ValueKey('b2c-address-recipient'),
                     controller: recipient,
                     decoration: InputDecoration(
                       labelText: context.tr('customer.addresses.recipient'),
                     ),
                   ),
                   TextField(
+                    key: const ValueKey('b2c-address-phone'),
                     controller: phone,
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
@@ -1180,24 +1183,28 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                     ),
                   ),
                   TextField(
+                    key: const ValueKey('b2c-address-line1'),
                     controller: line1,
                     decoration: InputDecoration(
                       labelText: context.tr('customer.addresses.line1'),
                     ),
                   ),
                   TextField(
+                    key: const ValueKey('b2c-address-area'),
                     controller: area,
                     decoration: InputDecoration(
                       labelText: context.tr('customer.addresses.area'),
                     ),
                   ),
                   TextField(
+                    key: const ValueKey('b2c-address-city'),
                     controller: city,
                     decoration: InputDecoration(
                       labelText: context.tr('customer.addresses.city'),
                     ),
                   ),
                   TextField(
+                    key: const ValueKey('b2c-address-country-code'),
                     controller: countryCode,
                     textCapitalization: TextCapitalization.characters,
                     decoration: InputDecoration(
@@ -1206,12 +1213,14 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                     ),
                   ),
                   TextField(
+                    key: const ValueKey('b2c-address-landmark'),
                     controller: landmark,
                     decoration: InputDecoration(
                       labelText: context.tr('customer.addresses.landmark'),
                     ),
                   ),
                   TextField(
+                    key: const ValueKey('b2c-address-notes'),
                     controller: notes,
                     maxLines: 2,
                     decoration: InputDecoration(
