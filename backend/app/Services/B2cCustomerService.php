@@ -19,6 +19,14 @@ final class B2cCustomerService
                 ? null
                 : Customer::query()->where('user_id', $user->getKey())->where('type', 'b2c')->first();
 
+            if (! $legacy instanceof Customer && $user?->is_platform_customer) {
+                // The legacy customers table has a unique user_id and cannot hold
+                // a second B2C compatibility row for a platform-wide customer.
+                // Reuse the registered customer's existing legacy row; the
+                // authoritative B2C identity remains store-scoped below.
+                $legacy = Customer::query()->where('user_id', $user->getKey())->first();
+            }
+
             if (! $legacy instanceof Customer) {
                 $legacy = Customer::query()->create([
                     'user_id' => $user?->getKey(),
