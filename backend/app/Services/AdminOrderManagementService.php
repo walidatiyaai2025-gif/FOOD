@@ -325,6 +325,10 @@ final class AdminOrderManagementService
             $customer,
         );
         $customerUser = $customer->user_id === null ? null : User::query()->find((int) $customer->user_id);
+        $existingCouponCode = data_get($order->pricing_snapshot, 'coupon.code');
+        $couponCode = array_key_exists('coupon_code', $data)
+            ? (trim((string) $data['coupon_code']) === '' ? null : strtoupper(trim((string) $data['coupon_code'])))
+            : (is_string($existingCouponCode) && $existingCouponCode !== '' ? $existingCouponCode : null);
         $before = [
             'customer_id' => $order->customer_id,
             'b2b_customer_id' => $order->b2b_customer_id,
@@ -354,6 +358,7 @@ final class AdminOrderManagementService
             $addressId,
             $paymentMethod,
             $customerUser,
+            $couponCode,
             $before,
         ): Order {
             $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
@@ -386,7 +391,7 @@ final class AdminOrderManagementService
                 $customer,
                 $data['items'],
                 $customerUser,
-                null,
+                $couponCode,
                 $paymentMethod,
                 true,
             );
