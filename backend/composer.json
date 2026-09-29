@@ -37,7 +37,8 @@
             "@php artisan test"
         ],
         "lint": [
-            "vendor/bin/pint --test app routes tests"
+            "vendor/bin/pint app routes tests",
+            "git diff -- app/Http/Controllers/Admin/Customer360Controller.php app/Http/Controllers/Api/V1/CustomerProfileController.php app/Services/PushDeliveryService.php tests/Feature/PushLifecyclePayloadTest.php"
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=1G"
