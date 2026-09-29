@@ -124,6 +124,7 @@ class CustomerAppRouter {
             storefrontApi: storefrontApi,
             wholesaleApi: wholesaleApi,
             enterWholesale: onEnterWholesale,
+            onAuthenticated: onAuthenticated,
           );
         }
 
