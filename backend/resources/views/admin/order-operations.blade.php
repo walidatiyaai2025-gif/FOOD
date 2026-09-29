@@ -62,6 +62,32 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 
 @if($detail)
 <section class="detail-grid" style="margin-top:18px">
+<div class="foodex-card panel">
+<h2>{{ $isAr?'عنوان التوصيل':'Delivery address' }} · {{ $detail['number'] }}</h2>
+@if($detail['delivery_address'])
+@php($delivery=$detail['delivery_address'])
+<div class="timeline">
+<div class="timeline-item">
+<strong>{{ $delivery['formatted'] ?: ($isAr?'عنوان محفوظ للطلب':'Saved order address') }}</strong>
+@if(!empty($delivery['recipient_name']))<div>{{ $isAr?'المستلم':'Recipient' }}: {{ $delivery['recipient_name'] }}</div>@endif
+@if(!empty($delivery['delivery_phone']))<div>{{ $isAr?'الهاتف':'Phone' }}: {{ $delivery['delivery_phone'] }}</div>@endif
+@if(!empty($delivery['landmark']))<div>{{ $isAr?'علامة مميزة':'Landmark' }}: {{ $delivery['landmark'] }}</div>@endif
+@if(!empty($delivery['delivery_notes']))<div>{{ $isAr?'ملاحظات التوصيل':'Delivery notes' }}: {{ $delivery['delivery_notes'] }}</div>@endif
+@if(!empty($delivery['has_coordinates']))
+<div style="margin-top:10px">
+<small>{{ number_format((float)$delivery['latitude'],7,'.','') }}, {{ number_format((float)$delivery['longitude'],7,'.','') }}</small>
+<br>
+<a class="foodex-primary" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ urlencode((string)$delivery['latitude'].','.(string)$delivery['longitude']) }}">{{ $isAr?'فتح الموقع على الخريطة':'Open in map' }}</a>
+</div>
+@else
+<small>{{ $isAr?'لا توجد إحداثيات محفوظة لهذا الطلب.':'No coordinates were saved for this order.' }}</small>
+@endif
+</div>
+</div>
+@else
+<div class="foodex-empty-state">{{ $isAr?'لا توجد لقطة عنوان محفوظة لهذا الطلب القديم.':'No delivery snapshot is available for this legacy order.' }}</div>
+@endif
+</div>
 <div class="foodex-card panel"><h2>{{ $isAr?'سجل حالات الطلب':'Order status timeline' }} · {{ $detail['number'] }}</h2><div class="timeline">@forelse($detail['history'] as $entry)<div class="timeline-item"><strong>{{ $entry['from'] ?? '—' }} → {{ $entry['to'] }}</strong><div>{{ $entry['note'] }}</div><small>{{ optional($entry['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') }}</small></div>@empty<div class="foodex-empty-state">{{ $isAr?'لا يوجد سجل.':'No history.' }}</div>@endforelse</div></div>
 <div class="foodex-card panel"><h2>{{ $isAr?'سجل السائقين':'Driver assignment history' }}</h2><div class="timeline">@forelse($detail['assignments'] as $entry)<div class="timeline-item"><strong>{{ $entry['driver'] }}</strong><div>{{ $entry['status'] }}</div><small>{{ optional($entry['assigned_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') }} @if($entry['completed_at'])→ {{ optional($entry['completed_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') }}@endif</small></div>@empty<div class="foodex-empty-state">{{ $isAr?'لا توجد تعيينات.':'No assignments.' }}</div>@endforelse</div></div>
 </section>
