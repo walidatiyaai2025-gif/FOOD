@@ -93,6 +93,9 @@
                             <label><span>{{ $ar?'الحملات الإعلانية':'Advertising campaigns' }}</span>
                                 <span><input type="hidden" name="advertising_enabled" value="0"><input type="checkbox" name="advertising_enabled" value="1" @checked(old('advertising_enabled','1')==='1')> {{ $ar?'السماح للمتجر باستخدام الحملات الإعلانية':'Allow this store to use advertising campaigns' }}</span>
                             </label>
+                            <label><span>{{ $ar?'الإعلانات الحية':'Live ads' }}</span>
+                                <span><input type="hidden" name="live_ads_enabled" value="0"><input type="checkbox" name="live_ads_enabled" value="1" @checked(old('live_ads_enabled','1')==='1')> {{ $ar?'السماح للمتجر باستخدام الإعلانات الحية داخل تطبيق العميل':'Allow this store to use Customer App live ads' }}</span>
+                            </label>
                             <label><span>{{ $ar?'الكوبونات':'Coupons' }}</span>
                                 <span><input type="hidden" name="coupons_enabled" value="0"><input type="checkbox" name="coupons_enabled" value="1" @checked(old('coupons_enabled','1')==='1')> {{ $ar?'السماح للمتجر بإنشاء واستخدام الكوبونات':'Allow this store to create and use coupons' }}</span>
                             </label>
@@ -232,7 +235,7 @@
     syncManagerMode();
 
     if (@json($errors->any())) {
-        @php($hasStoreDetailErrors = $errors->has('code') || $errors->has('name') || $errors->has('logo') || $errors->has('price_tier_id') || $errors->has('default_customer_wholesale_price_tier_id') || $errors->has('is_active') || $errors->has('advertising_enabled') || $errors->has('coupons_enabled'))
+        @php($hasStoreDetailErrors = $errors->has('code') || $errors->has('name') || $errors->has('logo') || $errors->has('price_tier_id') || $errors->has('default_customer_wholesale_price_tier_id') || $errors->has('is_active') || $errors->has('advertising_enabled') || $errors->has('live_ads_enabled') || $errors->has('coupons_enabled'))
         const storeDetailErrors = @json($hasStoreDetailErrors);
         activate(storeDetailErrors ? 'store-details' : 'store-manager');
     }
