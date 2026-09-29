@@ -58,6 +58,7 @@ class AuthController extends Controller
                 'password' => Hash::make((string) $validated['password']),
                 'locale' => (string) ($validated['locale'] ?? 'ar'),
                 'is_active' => true,
+                'is_platform_customer' => true,
             ]);
 
             $customer = $customers->create([
