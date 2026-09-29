@@ -9,4 +9,6 @@ return [
     'mysql_client_binary' => env('FOODEX_MYSQL_CLIENT_BINARY', 'mysql'),
     'pg_dump_binary' => env('FOODEX_PG_DUMP_BINARY', 'pg_dump'),
     'pg_restore_binary' => env('FOODEX_PG_RESTORE_BINARY', 'pg_restore'),
+    // Temporary pilot convenience. Disable before public production rollout.
+    'mobile_trial_username_login' => (bool) env('FOODEX_MOBILE_TRIAL_USERNAME_LOGIN', true),
 ];
