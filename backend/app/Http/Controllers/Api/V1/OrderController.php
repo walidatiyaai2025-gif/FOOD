@@ -73,11 +73,7 @@ class OrderController extends Controller
 
             return response()->json([
                 'data' => collect($paginator->items())
-                    ->map(function ($order): array {
-                        abort_unless($order instanceof Order, 500);
-
-                        return $this->orderPayload($order);
-                    })
+                    ->map(fn (Order $order): array => $this->orderPayload($order))
                     ->values()
                     ->all(),
                 'meta' => [
@@ -128,7 +124,6 @@ class OrderController extends Controller
             $model = $this->platformCustomerOrders($user)
                 ->whereKey($order)
                 ->firstOrFail();
-            abort_unless($model instanceof Order, 404);
 
             $this->assertRequestedOrderContext($request, $model);
 
