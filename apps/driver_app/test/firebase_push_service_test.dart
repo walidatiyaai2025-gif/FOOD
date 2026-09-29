@@ -30,6 +30,30 @@ void main() {
     expect(revoked.accessRevoked, isTrue);
   });
 
+  test('device registry revokes authenticated driver push device', () async {
+    late http.Request captured;
+    final client = MockClient((request) async {
+      captured = request;
+      return http.Response('', 204);
+    });
+    final registry = DriverPushDeviceRegistry(
+      baseUrl: 'https://foodex.50sols.com',
+      client: client,
+    );
+
+    await registry.revoke(
+      accessToken: 'driver-token',
+      deviceId: 77,
+    );
+
+    expect(
+      captured.url.toString(),
+      'https://foodex.50sols.com/api/v1/push/devices/77',
+    );
+    expect(captured.method, 'DELETE');
+    expect(captured.headers['Authorization'], 'Bearer driver-token');
+  });
+
   test('device registry uses the authenticated FOODEX driver push contract', () async {
     late http.Request captured;
     final client = MockClient((request) async {
