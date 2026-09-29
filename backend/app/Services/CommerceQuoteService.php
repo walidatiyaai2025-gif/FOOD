@@ -436,7 +436,9 @@ final class CommerceQuoteService
 
             if (! $validQuantity) {
                 if ($strict) {
-                    abort(409, 'Quantity must meet the B2B minimum and ordering increment.');
+                    throw ValidationException::withMessages([
+                        'items' => ['Quantity must meet the B2B minimum and ordering increment.'],
+                    ]);
                 }
                 $isAvailable = false;
             }
