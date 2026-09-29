@@ -269,7 +269,12 @@ final class PushDeliveryService
             'visible_notification' => '1',
         ];
 
-        foreach ((array) $notification->data as $key => $value) {
+        $notificationData = $notification->getAttribute('data');
+        if (! is_array($notificationData)) {
+            return $data;
+        }
+
+        foreach ($notificationData as $key => $value) {
             $dataKey = (string) $key;
             if ($dataKey === '') {
                 continue;
