@@ -377,4 +377,57 @@ void main() {
     );
   });
 
+
+  testWidgets('marketplace header stays responsive and RTL at 390px', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final client = MockClient((request) async => http.Response(
+          jsonEncode({
+            'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
+            'hero': null,
+            'categories': const [],
+            'products': {'data': const []},
+            'retail_banners': const [],
+          }),
+          200,
+        ));
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('ar'),
+        overrides: const {},
+        child: MaterialApp(
+          locale: const Locale('ar'),
+          supportedLocales: const [Locale('ar'), Locale('en')],
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.guest(),
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      Directionality.of(
+        tester.element(find.byType(PlatformMarketplaceScreen)),
+      ),
+      TextDirection.rtl,
+    );
+    expect(find.byKey(const ValueKey('marketplace-cart')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('marketplace-notifications')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('marketplace-auth-menu')), findsOneWidget);
+  });
+
 }
