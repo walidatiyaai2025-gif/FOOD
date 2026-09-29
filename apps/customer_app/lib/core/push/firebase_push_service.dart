@@ -32,13 +32,18 @@ Future<void> customerFirebaseBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-Future<void> initializeFoodexLocalNotifications() async {
+Future<void> initializeFoodexLocalNotifications({
+  void Function(NotificationResponse)? onTap,
+}) async {
   const settings = InitializationSettings(
     android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     iOS: DarwinInitializationSettings(),
   );
 
-  await _customerLocalNotifications.initialize(settings);
+  await _customerLocalNotifications.initialize(
+    settings,
+    onDidReceiveNotificationResponse: onTap,
+  );
 
   if (Platform.isAndroid) {
     const channel = AndroidNotificationChannel(
@@ -288,7 +293,6 @@ class CustomerFirebasePushService {
       FirebaseMessaging.onBackgroundMessage(
         customerFirebaseBackgroundHandler,
       );
-      await initializeFoodexLocalNotifications();
 
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission(
@@ -306,10 +310,22 @@ class CustomerFirebasePushService {
         registry: registry,
         messaging: messaging,
       );
-
-      service._pendingRoute = routeForData(
-        (await messaging.getInitialMessage())?.data,
+      await initializeFoodexLocalNotifications(
+        onTap: (response) {
+          final route = response.payload;
+          if (route != null && route.isNotEmpty) {
+            service._routes.add(route);
+          }
+        },
       );
+
+      final initialMessage = await messaging.getInitialMessage();
+      final launchDetails =
+          await _customerLocalNotifications.getNotificationAppLaunchDetails();
+      service._pendingRoute = routeForData(initialMessage?.data) ??
+          (launchDetails?.didNotificationLaunchApp == true
+              ? launchDetails?.notificationResponse?.payload
+              : null);
 
       service._openedSubscription =
           FirebaseMessaging.onMessageOpenedApp.listen((message) {
