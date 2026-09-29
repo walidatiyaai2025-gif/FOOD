@@ -433,6 +433,9 @@ class _EvidenceAccountApi implements B2cAccountApi {
       {'id': addressId, ...values};
 
   @override
+  Future<Object?> setDefaultAddress(int addressId) async => {'id': addressId, 'is_default': true};
+
+  @override
   Future<void> removeAddress(int addressId) async {}
 
   @override
