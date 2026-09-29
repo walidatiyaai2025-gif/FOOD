@@ -208,6 +208,18 @@ class DriverAssignmentLifecycleTest extends TestCase
             ->assertOk()
             ->assertJsonCount(0, 'data');
 
+        $this->getJson("/api/v1/driver/assignments/{$firstId}")
+            ->assertNotFound();
+
+        $history = $this->getJson('/api/v1/driver/assignments?scope=all')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $firstId)
+            ->assertJsonPath('data.0.status', 'reassigned');
+        $history->assertJsonMissingPath('data.0.order.address');
+        $history->assertJsonMissingPath('data.0.order.customer');
+        $history->assertJsonMissingPath('data.0.order.navigation');
+
         Sanctum::actingAs($driverTwoUser);
         $this->getJson('/api/v1/driver/assignments?scope=active')
             ->assertOk()
