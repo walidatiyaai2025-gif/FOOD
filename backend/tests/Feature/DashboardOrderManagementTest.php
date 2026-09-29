@@ -466,7 +466,7 @@ class DashboardOrderManagementTest extends TestCase
         $catalog = (int) DB::table('catalogs')->insertGetId([
             'store_id' => $storeId,
             'channel' => $channel,
-            'code' => 'default',
+            'code' => 'cat-'.strtolower($sku),
             'name' => $sku.' Catalog',
             'is_active' => true,
             'is_migration_quarantine' => false,
