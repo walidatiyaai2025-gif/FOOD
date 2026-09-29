@@ -242,7 +242,7 @@ final class CouponManagementController extends Controller
             ->whereRaw('UPPER(code) = ?', [strtoupper(trim($code))]);
 
         if ($ignoreId !== null) {
-            $query->whereKeyNot($ignoreId);
+            $query->where('id', '<>', $ignoreId);
         }
 
         if ($query->exists()) {
