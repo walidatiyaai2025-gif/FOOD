@@ -91,7 +91,6 @@ final class CouponRedemptionService
             $discount = min($subtotal, (float) $coupon->discount_value);
         } elseif ($coupon->discount_type === 'free_shipping') {
             $discount = max(0, $deliveryTotal);
-            $finalDelivery = 0.0;
         } else {
             $this->invalid('Coupon discount type is not supported.');
         }
