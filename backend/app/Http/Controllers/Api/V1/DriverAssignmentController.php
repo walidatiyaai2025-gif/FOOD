@@ -144,7 +144,7 @@ class DriverAssignmentController extends Controller
         $previousDriverId = null;
         if ($activeAssignment !== null) {
             abort_if(
-                ! $request->boolean('replace_existing'),
+                !$request->boolean('replace_existing'),
                 409,
                 'Order already has an active driver assignment.',
             );
