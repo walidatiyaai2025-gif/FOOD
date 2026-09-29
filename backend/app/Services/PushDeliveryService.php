@@ -163,6 +163,12 @@ final class PushDeliveryService
                 'data' => [
                     'notification_id' => (string) $notification->id,
                     'type' => (string) $notification->type,
+                    'title' => $english
+                        ? (string) $notification->title_en
+                        : (string) $notification->title_ar,
+                    'body' => $english
+                        ? (string) $notification->body_en
+                        : (string) $notification->body_ar,
                     'image_url' => $imageUrl ?? '',
                     'visible_notification' => '1',
                 ],
