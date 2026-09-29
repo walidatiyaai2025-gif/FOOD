@@ -31,7 +31,11 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertJsonPath('store.is_platform_principal', true)
             ->assertJsonPath('products.data.0.id', $wholesaleProduct)
             ->assertJsonPath('retail_banners.0.id', $retailStore)
-            ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/retail-home.jpg'));
+            ->assertJsonPath('retail_banners.0.store_id', $retailStore)
+            ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/retail-home.jpg'))
+            ->assertJsonPath('retail_banners.1.id', $retailStore)
+            ->assertJsonPath('retail_banners.1.banner_url', url('/storage/banners/retail-second.jpg'))
+            ->assertJsonCount(2, 'retail_banners');
     }
 
     public function test_registered_customer_identity_materializes_per_store_and_routes_carts_by_purchase_store(): void
@@ -186,14 +190,26 @@ class PlatformCustomerMarketplaceTest extends TestCase
         ]);
 
         DB::table('banners')->insert([
-            'store_id' => $retailStore,
-            'title' => 'Retail Home Banner',
-            'image_path' => 'storage/banners/retail-home.jpg',
-            'target_url' => null,
-            'sort_order' => 1,
-            'is_active' => true,
-            'created_at' => $now,
-            'updated_at' => $now,
+            [
+                'store_id' => $retailStore,
+                'title' => 'Retail Home Banner',
+                'image_path' => 'storage/banners/retail-home.jpg',
+                'target_url' => null,
+                'sort_order' => 1,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'store_id' => $retailStore,
+                'title' => 'Retail Second Banner',
+                'image_path' => 'storage/banners/retail-second.jpg',
+                'target_url' => null,
+                'sort_order' => 2,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
         ]);
 
         return [$wholesaleStore, $retailStore, $wholesaleProduct, $retailProduct];
