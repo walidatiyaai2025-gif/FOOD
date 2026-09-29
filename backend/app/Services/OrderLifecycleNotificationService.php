@@ -53,22 +53,33 @@ final class OrderLifecycleNotificationService
             ],
         );
 
-        $assignment = $this->activeAssignment($order);
+        $assignment = $to === 'cancelled'
+            ? $this->latestAssignment($order)
+            : $this->activeAssignment($order);
         if ($assignment instanceof DriverAssignment) {
             $this->notifyDriverUser(
                 $order,
                 (int) $assignment->driver_id,
                 'order.status_changed',
                 'driver-'.$eventKey,
-                'تحديث الطلب '.$order->order_number,
-                'Order update '.$order->order_number,
-                'حالة الطلب الآن: '.$to,
-                'Order status is now: '.$to,
+                $to === 'cancelled'
+                    ? 'تم إلغاء الطلب '.$order->order_number
+                    : 'تحديث الطلب '.$order->order_number,
+                $to === 'cancelled'
+                    ? 'Order cancelled '.$order->order_number
+                    : 'Order update '.$order->order_number,
+                $to === 'cancelled'
+                    ? 'تم إلغاء الطلب ولم يعد متاحاً للتنفيذ.'
+                    : 'حالة الطلب الآن: '.$to,
+                $to === 'cancelled'
+                    ? 'The order was cancelled and is no longer actionable.'
+                    : 'Order status is now: '.$to,
                 [
                     'assignment_id' => (int) $assignment->getKey(),
                     'from_status' => $from,
                     'status' => $to,
                     'to_status' => $to,
+                    'access_revoked' => $to === 'cancelled',
                 ],
             );
         }
@@ -395,6 +406,14 @@ final class OrderLifecycleNotificationService
         return DriverAssignment::query()
             ->where('order_id', $order->getKey())
             ->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned'])
+            ->latest('id')
+            ->first();
+    }
+
+    private function latestAssignment(Order $order): ?DriverAssignment
+    {
+        return DriverAssignment::query()
+            ->where('order_id', $order->getKey())
             ->latest('id')
             ->first();
     }
