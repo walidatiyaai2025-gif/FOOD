@@ -135,7 +135,13 @@ final class CustomerDomainResolver
             }
         }
 
-        abort_unless($customer instanceof B2cCustomer, 404);
+        if (! $customer instanceof B2cCustomer) {
+            $customer = app(B2cCustomerService::class)->create($storeId, [
+                'name' => (string) $user->name,
+                'phone' => DB::table('b2b_customers')->where('user_id', $user->getKey())->value('phone'),
+                'email' => (string) $user->email,
+            ], $user);
+        }
 
         return $customer;
     }
