@@ -21,6 +21,8 @@ tags:
     description: Authenticated, idempotent order creation boundary.
   - name: Orders
     description: Authenticated customer order access.
+  - name: Customer Profile
+    description: Unified Platform Customer profile and delivery-address management.
   - name: B2B
     description: Wholesale customer operations. Platform Customer registration may provision consumer Wholesale eligibility; managed corporate/credit account approval remains administrative.
   - name: Drivers
@@ -1067,6 +1069,138 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
+  /profile/addresses:
+    get:
+      tags: [Customer Profile]
+      summary: List the authenticated Platform Customer delivery addresses
+      operationId: listCustomerAddresses
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Unified address book shared by authorized Wholesale and Retail customer contexts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CustomerAddress"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    post:
+      tags: [Customer Profile]
+      summary: Create a delivery address owned by the authenticated Platform Customer
+      operationId: createCustomerAddress
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerAddressWrite"
+      responses:
+        "201":
+          description: Address created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerAddress"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /profile/addresses/{address}:
+    get:
+      tags: [Customer Profile]
+      summary: Get one delivery address owned by the authenticated Platform Customer
+      operationId: getCustomerAddress
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AddressId"
+      responses:
+        "200":
+          description: Owned address detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerAddress"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Customer Profile]
+      summary: Update one delivery address owned by the authenticated Platform Customer
+      operationId: updateCustomerAddress
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AddressId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/CustomerAddressWrite"
+              minProperties: 1
+      responses:
+        "200":
+          description: Address updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerAddress"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Customer Profile]
+      summary: Soft-delete one delivery address owned by the authenticated Platform Customer
+      operationId: deleteCustomerAddress
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AddressId"
+      responses:
+        "204":
+          description: Address removed from the active address book
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /profile/addresses/{address}/default:
+    post:
+      tags: [Customer Profile]
+      summary: Set one owned delivery address as the single active default
+      operationId: setDefaultCustomerAddress
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AddressId"
+      responses:
+        "200":
+          description: Default address changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerAddress"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /driver/assignments:
     get:
       tags: [Drivers]
@@ -1552,6 +1686,13 @@ components:
     OrderId:
       in: path
       name: order
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    AddressId:
+      in: path
+      name: address
       required: true
       schema:
         type: integer
@@ -2389,6 +2530,171 @@ components:
               amount:
                 type: number
                 multipleOf: 0.001
+
+    CustomerAddress:
+      type: object
+      required:
+        [id, line1, city, country_code, location_source, is_default]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        label:
+          type: [string, "null"]
+          maxLength: 100
+        recipient_name:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_phone:
+          type: [string, "null"]
+          maxLength: 50
+        line1:
+          type: string
+          maxLength: 255
+        line2:
+          type: [string, "null"]
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        area:
+          type: [string, "null"]
+          maxLength: 120
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: Uppercase ISO-style two-letter code after normalization.
+        country:
+          type: [string, "null"]
+          maxLength: 120
+        governorate:
+          type: [string, "null"]
+          maxLength: 120
+        block:
+          type: [string, "null"]
+          maxLength: 120
+        street:
+          type: [string, "null"]
+          maxLength: 255
+        avenue:
+          type: [string, "null"]
+          maxLength: 120
+        building:
+          type: [string, "null"]
+          maxLength: 120
+        floor:
+          type: [string, "null"]
+          maxLength: 120
+        apartment:
+          type: [string, "null"]
+          maxLength: 120
+        landmark:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_notes:
+          type: [string, "null"]
+          maxLength: 1000
+        latitude:
+          type: [number, "null"]
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: [number, "null"]
+          minimum: -180
+          maximum: 180
+        location_accuracy_meters:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 100000
+        location_source:
+          type: string
+          enum: [manual, current_location, map_pin]
+        is_default:
+          type: boolean
+        created_at:
+          type: [string, "null"]
+          format: date-time
+        updated_at:
+          type: [string, "null"]
+          format: date-time
+
+    CustomerAddressWrite:
+      type: object
+      additionalProperties: false
+      properties:
+        label:
+          type: [string, "null"]
+          maxLength: 100
+        recipient_name:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_phone:
+          type: [string, "null"]
+          maxLength: 50
+        line1:
+          type: string
+          maxLength: 255
+        line2:
+          type: [string, "null"]
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        area:
+          type: [string, "null"]
+          maxLength: 120
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        country:
+          type: [string, "null"]
+          maxLength: 120
+        governorate:
+          type: [string, "null"]
+          maxLength: 120
+        block:
+          type: [string, "null"]
+          maxLength: 120
+        street:
+          type: [string, "null"]
+          maxLength: 255
+        avenue:
+          type: [string, "null"]
+          maxLength: 120
+        building:
+          type: [string, "null"]
+          maxLength: 120
+        floor:
+          type: [string, "null"]
+          maxLength: 120
+        apartment:
+          type: [string, "null"]
+          maxLength: 120
+        landmark:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_notes:
+          type: [string, "null"]
+          maxLength: 1000
+        latitude:
+          type: [number, "null"]
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: [number, "null"]
+          minimum: -180
+          maximum: 180
+        location_accuracy_meters:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 100000
+        location_source:
+          type: string
+          enum: [manual, current_location, map_pin]
+        is_default:
+          type: boolean
 
     DriverAssignment:
       type: object
