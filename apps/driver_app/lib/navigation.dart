@@ -49,11 +49,15 @@ class DriverNavigator {
         return _page(_homeFor(channel), settings);
       case DriverRoutes.b2cDeliveries:
       case DriverRoutes.b2bDeliveries:
+        final focusAssignmentId = settings.arguments is int
+            ? settings.arguments as int
+            : null;
         return _page(
           DriverJourneyPage(
             channel: channel,
             repository: repository,
             onSessionExpired: onSessionExpired,
+            focusAssignmentId: focusAssignmentId,
           ),
           settings,
         );
