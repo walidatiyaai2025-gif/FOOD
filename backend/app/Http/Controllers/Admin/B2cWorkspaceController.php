@@ -19,6 +19,7 @@ use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -145,6 +146,18 @@ class B2cWorkspaceController extends Controller
         $orders->transition($request, $order, $audit, $dashboardNotifier);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تحديث حالة الطلب.' : 'Order status updated.');
+    }
+
+    public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $user);
+        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'orders.manage', 'b2c');
+
+        return response()->json([
+            'data' => $orders->quote($request, 'b2c', $storeId),
+        ]);
     }
 
     public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
@@ -1000,8 +1013,10 @@ class B2cWorkspaceController extends Controller
                 'orders.subtotal',
                 'orders.discount_total',
                 'orders.delivery_total',
+                'orders.tax_total',
                 'orders.grand_total',
                 'orders.payment_method',
+                'orders.pricing_snapshot',
                 'orders.customer_note',
                 'orders.created_at as created',
             ])
@@ -1054,7 +1069,8 @@ class B2cWorkspaceController extends Controller
                 $invoice = DB::table('invoices')
                     ->where('order_id', $row->id)
                     ->orderByDesc('id')
-                    ->first(['invoice_number', 'status', 'total', 'currency']);
+                    ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
+                $pricingSnapshot = json_decode((string) ($row->pricing_snapshot ?? ''), true);
 
                 return [
                     '_id' => (int) $row->id,
@@ -1064,8 +1080,10 @@ class B2cWorkspaceController extends Controller
                     '_subtotal' => (float) $row->subtotal,
                     '_discount_total' => (float) $row->discount_total,
                     '_delivery_total' => (float) $row->delivery_total,
+                    '_tax_total' => (float) ($row->tax_total ?? 0),
                     '_grand_total' => (float) $row->grand_total,
                     '_payment_method' => $row->payment_method,
+                    '_coupon_code' => is_array($pricingSnapshot) ? data_get($pricingSnapshot, 'coupon.code') : null,
                     '_customer_note' => $row->customer_note,
                     '_assignment_id' => $activeAssignment === null ? null : (int) $activeAssignment->id,
                     '_driver_id' => $activeAssignment === null ? null : (int) $activeAssignment->driver_id,
@@ -1078,6 +1096,7 @@ class B2cWorkspaceController extends Controller
                     ],
                     '_history' => $history,
                     '_invoice' => $invoice === null ? null : [
+                        'id' => (int) $invoice->id,
                         'number' => $invoice->invoice_number,
                         'status' => $invoice->status,
                         'total' => (float) $invoice->total,

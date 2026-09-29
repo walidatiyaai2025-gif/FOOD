@@ -27,6 +27,67 @@ final class AdminOrderManagementService
         private readonly DashboardOperationalNotifier $notifier,
     ) {}
 
+    /** @return array<string, mixed> */
+    public function quote(Request $request, string $channel, int $storeId): array
+    {
+        $channel = strtolower($channel);
+        $data = $this->validated($request, $channel);
+        $warehouseId = $this->warehouseId($channel, $storeId, $data['warehouse_id'] ?? null);
+        [$customer] = $this->customer($channel, $storeId, (int) $data['customer_id']);
+        $customerId = (int) $customer->getKey();
+        $addressId = $this->addressId($channel, $customerId, $data['address_id'] ?? null);
+        $paymentMethod = $this->paymentMethod(
+            (string) ($data['payment_method'] ?? config('checkout.default_payment_method')),
+            $channel,
+            $customer,
+        );
+        $customerUser = $customer->user_id === null ? null : User::query()->find((int) $customer->user_id);
+        $couponCode = isset($data['coupon_code']) && trim((string) $data['coupon_code']) !== ''
+            ? strtoupper(trim((string) $data['coupon_code']))
+            : null;
+
+        $quote = $this->quotes->quote(
+            $channel,
+            $storeId,
+            $customer,
+            $data['items'],
+            $customerUser,
+            $couponCode,
+            $paymentMethod,
+            false,
+        );
+
+        if ($channel === 'b2b' && $warehouseId !== null) {
+            $quote['items'] = array_map(function (array $line) use ($warehouseId): array {
+                $available = (float) DB::table('inventories')
+                    ->where('warehouse_id', $warehouseId)
+                    ->where('product_id', (int) $line['product_id'])
+                    ->get(['quantity', 'reserved_quantity'])
+                    ->sum(static fn (object $row): float => max(
+                        0.0,
+                        (float) $row->quantity - (float) $row->reserved_quantity,
+                    ));
+
+                $line['available_quantity'] = round($available, 3);
+                $line['is_available'] = (bool) $line['is_available']
+                    && (float) $line['quantity'] <= $available + 0.0001;
+
+                return $line;
+            }, $quote['items']);
+
+            $quote['has_unavailable_items'] = collect($quote['items'])
+                ->contains(static fn (array $line): bool => ! (bool) $line['is_available']);
+        }
+
+        return [
+            ...$quote,
+            'warehouse_id' => $warehouseId,
+            'customer_id' => $customerId,
+            'address_id' => $addressId,
+            'payment_method' => $paymentMethod,
+        ];
+    }
+
     public function create(Request $request, User $actor, string $channel, int $storeId): Order
     {
         $channel = strtolower($channel);
@@ -233,6 +294,10 @@ final class AdminOrderManagementService
             $customer,
         );
         $customerUser = $customer->user_id === null ? null : User::query()->find((int) $customer->user_id);
+        $existingCouponCode = data_get($order->pricing_snapshot, 'coupon.code');
+        $couponCode = array_key_exists('coupon_code', $data)
+            ? (trim((string) $data['coupon_code']) === '' ? null : strtoupper(trim((string) $data['coupon_code'])))
+            : (is_string($existingCouponCode) && $existingCouponCode !== '' ? $existingCouponCode : null);
         $before = [
             'customer_id' => $order->customer_id,
             'b2b_customer_id' => $order->b2b_customer_id,
@@ -262,6 +327,7 @@ final class AdminOrderManagementService
             $addressId,
             $paymentMethod,
             $customerUser,
+            $couponCode,
             $before,
         ): Order {
             $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
@@ -294,7 +360,7 @@ final class AdminOrderManagementService
                 $customer,
                 $data['items'],
                 $customerUser,
-                null,
+                $couponCode,
                 $paymentMethod,
                 true,
             );

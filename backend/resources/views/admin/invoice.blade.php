@@ -31,6 +31,7 @@
                 <div class="muted">{{ $isAr ? 'طلب' : 'Order' }}: {{ $invoice['order_number'] }} · {{ $invoice['store_name'] }} · {{ strtoupper((string)$invoice['channel']) }}</div>
             </div>
             <div class="actions">
+                <button class="foodex-primary" type="button" onclick="window.print()">{{ $isAr?'طباعة':'Print' }}</button>
                 <a class="foodex-primary" href="{{ route('admin.invoices.download',['invoice'=>$model->id,'locale'=>'ar']) }}">PDF عربي</a>
                 <a class="foodex-primary" href="{{ route('admin.invoices.download',['invoice'=>$model->id,'locale'=>'en']) }}">English PDF</a>
             </div>
@@ -73,5 +74,8 @@
         @endif
     </section>
 </div>
+@if(request()->boolean('print'))
+<script>window.addEventListener('load',()=>window.print());</script>
+@endif
 </body>
 </html>
