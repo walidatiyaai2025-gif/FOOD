@@ -9,24 +9,49 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('platform_customers', function (Blueprint $table): void {
-            $table->string('origin_channel', 16)->nullable()->after('email')->index();
-            $table->foreignId('origin_store_id')
-                ->nullable()
-                ->after('origin_channel')
-                ->constrained('stores')
-                ->restrictOnDelete();
-            $table->string('registration_source', 40)->default('migration')->after('origin_store_id')->index();
-            $table->timestamp('registered_at')->nullable()->after('registration_source')->index();
-        });
+        if (! Schema::hasColumn('platform_customers', 'origin_channel')) {
+            Schema::table('platform_customers', function (Blueprint $table): void {
+                $table->string('origin_channel', 16)->nullable()->after('email')->index();
+            });
+        }
 
-        Schema::table('stores', function (Blueprint $table): void {
-            $table->foreignId('default_customer_wholesale_price_tier_id')
-                ->nullable()
-                ->after('store_type_id')
-                ->constrained('b2b_price_tiers')
-                ->nullOnDelete();
-        });
+        if (! Schema::hasColumn('platform_customers', 'origin_store_id')) {
+            Schema::table('platform_customers', function (Blueprint $table): void {
+                $table->foreignId('origin_store_id')
+                    ->nullable()
+                    ->after('origin_channel')
+                    ->constrained('stores')
+                    ->restrictOnDelete();
+            });
+        }
+
+        if (! Schema::hasColumn('platform_customers', 'registration_source')) {
+            Schema::table('platform_customers', function (Blueprint $table): void {
+                $table->string('registration_source', 40)
+                    ->default('migration')
+                    ->after('origin_store_id')
+                    ->index();
+            });
+        }
+
+        if (! Schema::hasColumn('platform_customers', 'registered_at')) {
+            Schema::table('platform_customers', function (Blueprint $table): void {
+                $table->timestamp('registered_at')
+                    ->nullable()
+                    ->after('registration_source')
+                    ->index();
+            });
+        }
+
+        if (! Schema::hasColumn('stores', 'default_customer_wholesale_price_tier_id')) {
+            Schema::table('stores', function (Blueprint $table): void {
+                $table->foreignId('default_customer_wholesale_price_tier_id')
+                    ->nullable()
+                    ->after('store_type_id')
+                    ->constrained('b2b_price_tiers')
+                    ->nullOnDelete();
+            });
+        }
 
         $standardTierId = DB::table('b2b_price_tiers')
             ->where('code', 'STANDARD')
@@ -55,9 +80,11 @@ return new class extends Migration
                             'updated_at' => now(),
                         ]);
 
-                    DB::table('users')
-                        ->where('id', $platform->user_id)
-                        ->update(['is_platform_customer' => true, 'updated_at' => now()]);
+                    if (Schema::hasColumn('users', 'is_platform_customer')) {
+                        DB::table('users')
+                            ->where('id', $platform->user_id)
+                            ->update(['is_platform_customer' => true, 'updated_at' => now()]);
+                    }
 
                     $b2bCustomer = DB::table('b2b_customers')
                         ->where('user_id', $platform->user_id)
@@ -82,12 +109,14 @@ return new class extends Migration
                     } else {
                         $b2bCustomerId = (int) $b2bCustomer->id;
 
-                        DB::table('b2b_customers')
-                            ->where('id', $b2bCustomerId)
-                            ->update([
-                                'user_id' => $b2bCustomer->user_id ?? (int) $platform->user_id,
-                                'updated_at' => now(),
-                            ]);
+                        if ($b2bCustomer->user_id === null) {
+                            DB::table('b2b_customers')
+                                ->where('id', $b2bCustomerId)
+                                ->update([
+                                    'user_id' => (int) $platform->user_id,
+                                    'updated_at' => now(),
+                                ]);
+                        }
                     }
 
                     $account = DB::table('b2b_accounts')
@@ -138,16 +167,27 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('stores', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('default_customer_wholesale_price_tier_id');
-        });
+        if (Schema::hasColumn('stores', 'default_customer_wholesale_price_tier_id')) {
+            Schema::table('stores', function (Blueprint $table): void {
+                $table->dropConstrainedForeignId('default_customer_wholesale_price_tier_id');
+            });
+        }
 
-        Schema::table('platform_customers', function (Blueprint $table): void {
-            $table->dropIndex(['origin_channel']);
-            $table->dropIndex(['registration_source']);
-            $table->dropIndex(['registered_at']);
-            $table->dropConstrainedForeignId('origin_store_id');
-            $table->dropColumn(['origin_channel', 'registration_source', 'registered_at']);
-        });
+        if (Schema::hasColumn('platform_customers', 'origin_store_id')) {
+            Schema::table('platform_customers', function (Blueprint $table): void {
+                $table->dropConstrainedForeignId('origin_store_id');
+            });
+        }
+
+        foreach (['origin_channel', 'registration_source', 'registered_at'] as $column) {
+            if (! Schema::hasColumn('platform_customers', $column)) {
+                continue;
+            }
+
+            Schema::table('platform_customers', function (Blueprint $table) use ($column): void {
+                $table->dropIndex([$column]);
+                $table->dropColumn($column);
+            });
+        }
     }
 };
