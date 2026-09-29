@@ -315,6 +315,7 @@ final class PlatformMarketplaceController extends Controller
                 'products.description',
                 'products.category_id',
                 'products.brand_id',
+                'store_products.store_id',
                 'store_products.price as base_wholesale_price',
                 DB::raw('COALESCE(b2b_price_rules.unit_price, store_products.price) as account_price'),
                 DB::raw('COALESCE(b2b_price_rules.unit_price, store_products.price) as unit_price'),
@@ -336,6 +337,7 @@ final class PlatformMarketplaceController extends Controller
             'products.description',
             'products.category_id',
             'products.brand_id',
+            'store_products.store_id',
             'store_products.price as base_wholesale_price',
             'store_products.price as account_price',
             'store_products.price as unit_price',
@@ -370,7 +372,7 @@ final class PlatformMarketplaceController extends Controller
             'case_size' => $row->case_size === null ? null : (float) $row->case_size,
             'pack_label' => $row->pack_label,
             'image_url' => $this->assetUrl($row->primary_image_path),
-            'store_id' => (int) $this->principalStore()->id,
+            'store_id' => (int) $row->store_id,
             'currency' => 'EGP',
         ];
     }
