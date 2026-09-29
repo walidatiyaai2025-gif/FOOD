@@ -2,6 +2,7 @@
     $isB2bOrder = $channel === 'b2b';
     $statusRoute = $isB2bOrder ? 'admin.b2b.orders.status' : 'admin.b2c.orders.status';
     $updateRoute = $isB2bOrder ? 'admin.b2b.orders.update' : 'admin.b2c.orders.update';
+    $quoteRoute = $isB2bOrder ? 'admin.b2b.orders.quote' : 'admin.b2c.orders.quote';
     $driverRoute = $isB2bOrder ? 'admin.b2b.drivers.assign' : 'admin.b2c.drivers.assign';
     $driverReassignRoute = $isB2bOrder ? 'admin.b2b.orders.driver.reassign' : 'admin.b2c.orders.driver.reassign';
     $driverUnassignRoute = $isB2bOrder ? 'admin.b2b.orders.driver.unassign' : 'admin.b2c.orders.driver.unassign';
@@ -16,7 +17,7 @@
     };
 @endphp
 
-<div style="display:grid;gap:8px;min-width:260px">
+<div id="order-{{ $row['_id'] }}" style="display:grid;gap:8px;min-width:260px">
     @if(count($statusTransitions))
     <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
         @csrf
@@ -99,13 +100,20 @@
             <div>
                 {{ app()->getLocale()==='ar'?'الإجمالي الفرعي':'Subtotal' }}: {{ number_format($row['_subtotal'],3) }} EGP ·
                 {{ app()->getLocale()==='ar'?'الخصم':'Discount' }}: {{ number_format($row['_discount_total'],3) }} EGP ·
-                {{ app()->getLocale()==='ar'?'التوصيل':'Delivery' }}: {{ number_format($row['_delivery_total'],3) }} EGP
+                {{ app()->getLocale()==='ar'?'التوصيل':'Delivery' }}: {{ number_format($row['_delivery_total'],3) }} EGP ·
+                {{ app()->getLocale()==='ar'?'الضريبة':'Tax' }}: {{ number_format($row['_tax_total'] ?? 0,3) }} EGP ·
+                <strong>{{ app()->getLocale()==='ar'?'الإجمالي النهائي':'Grand total' }}: {{ number_format($row['_grand_total'],3) }} EGP</strong>
             </div>
             @if($row['_payment'])
                 <div>{{ app()->getLocale()==='ar'?'الدفع':'Payment' }}: {{ $row['_payment']['provider'] }} · {{ $row['_payment']['status'] }} · {{ number_format($row['_payment']['amount'],3) }} {{ $row['_payment']['currency'] }}</div>
             @endif
             @if($row['_invoice'])
-                <div>{{ app()->getLocale()==='ar'?'الفاتورة':'Invoice' }}: {{ $row['_invoice']['number'] }} · {{ $row['_invoice']['status'] }} · {{ number_format($row['_invoice']['total'],3) }} {{ $row['_invoice']['currency'] }}</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <span>{{ app()->getLocale()==='ar'?'الفاتورة':'Invoice' }}: {{ $row['_invoice']['number'] }} · {{ $row['_invoice']['status'] }} · {{ number_format($row['_invoice']['total'],3) }} {{ $row['_invoice']['currency'] }}</span>
+                    <a class="foodex-primary" target="_blank" rel="noopener" href="{{ route('admin.invoices.show',['invoice'=>$row['_invoice']['id']]) }}">{{ app()->getLocale()==='ar'?'عرض':'View' }}</a>
+                    <a class="foodex-primary" href="{{ route('admin.invoices.download',['invoice'=>$row['_invoice']['id'],'locale'=>app()->getLocale()]) }}">PDF</a>
+                    <a class="foodex-primary" target="_blank" rel="noopener" href="{{ route('admin.invoices.show',['invoice'=>$row['_invoice']['id'],'print'=>1]) }}">{{ app()->getLocale()==='ar'?'طباعة':'Print' }}</a>
+                </div>
             @endif
             @if($row['_customer_note'])
                 <div>{{ app()->getLocale()==='ar'?'ملاحظة العميل':'Customer note' }}: {{ $row['_customer_note'] }}</div>
@@ -120,9 +128,29 @@
                     </ul>
                 </div>
             @endif
+            @if(!empty($row['_driver_history']))
+                <div>
+                    <strong>{{ app()->getLocale()==='ar'?'سجل السائق والملاحظات':'Driver timeline & notes' }}</strong>
+                    <ul style="margin:6px 0">
+                        @foreach($row['_driver_history'] as $entry)
+                            <li>
+                                {{ $entry['from'] ?? '—' }} → {{ $entry['to'] ?? '—' }}
+                                @if($entry['actor']) · {{ $entry['actor'] }}@endif
+                                @if($entry['created_at']) · {{ $entry['created_at'] }}@endif
+                                @if($entry['note']) · <strong>{{ $entry['note'] }}</strong>@endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             @if($row['status']==='pending')
-                <form method="post" action="{{ route($updateRoute,['order'=>$row['_id']]) }}" class="workspace-inline-form module-inline-form js-dashboard-order-form" style="margin-top:8px" data-order-channel="{{ $channel }}">
+                <form method="post"
+                      action="{{ route($updateRoute,['order'=>$row['_id']]) }}"
+                      class="workspace-inline-form module-inline-form js-dashboard-order-form"
+                      style="margin-top:8px"
+                      data-order-channel="{{ $channel }}"
+                      data-order-quote-url="{{ route($quoteRoute) }}">
                     @csrf
                     @method('patch')
                     @if($isB2bOrder)
@@ -156,8 +184,7 @@
                         @endforeach
                     </select>
 
-                    <input name="discount_total" type="number" min="0" step="0.001" value="{{ number_format($row['_discount_total'],3,'.','') }}" placeholder="{{ app()->getLocale()==='ar'?'الخصم':'Discount' }}">
-                    <input name="delivery_total" type="number" min="0" step="0.001" value="{{ number_format($row['_delivery_total'],3,'.','') }}" placeholder="{{ app()->getLocale()==='ar'?'التوصيل':'Delivery' }}">
+                    <input name="coupon_code" maxlength="80" autocomplete="off" value="{{ $row['_coupon_code'] ?? '' }}" placeholder="{{ app()->getLocale()==='ar'?'كود كوبون اختياري':'Optional coupon code' }}">
                     <input name="customer_note" maxlength="1000" value="{{ $row['_customer_note'] }}" placeholder="{{ app()->getLocale()==='ar'?'ملاحظة الطلب':'Order note' }}">
 
                     <div class="js-order-lines" style="display:grid;gap:8px;flex:1 1 100%">
@@ -186,8 +213,11 @@
                             </div>
                         @endforeach
                     </div>
+                    <div class="js-order-quote" role="status" aria-live="polite" style="flex:1 1 100%;padding:12px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface)">
+                        {{ app()->getLocale()==='ar'?'جاري تجهيز إعادة التسعير المعتمدة…':'Preparing authoritative reprice…' }}
+                    </div>
                     <button type="button" class="js-add-order-line">{{ app()->getLocale()==='ar'?'إضافة صنف':'Add item' }}</button>
-                    <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ تعديل الطلب':'Save order changes' }}</button>
+                    <button class="foodex-primary js-submit-order" type="submit" disabled>{{ app()->getLocale()==='ar'?'حفظ تعديل الطلب':'Save order changes' }}</button>
                 </form>
             @endif
         </div>

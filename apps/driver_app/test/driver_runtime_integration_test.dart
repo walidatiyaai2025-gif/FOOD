@@ -90,6 +90,32 @@ void main() {
                 'assignment_type': 'b2b',
                 'status': 'assigned',
                 'available_statuses': ['accepted'],
+                'order': {
+                  'number': 'B2B-55',
+                  'currency': 'EGP',
+                  'invoice': {
+                    'id': 77,
+                    'number': 'INV-B2B-55',
+                    'revision': 1,
+                    'status': 'issued',
+                    'currency': 'EGP',
+                    'subtotal': 50,
+                    'discount_total': 0,
+                    'delivery_total': 0,
+                    'tax_total': 0,
+                    'grand_total': 50,
+                    'payment_method': 'account_credit',
+                    'payment_status': 'pending',
+                    'items': [
+                      {
+                        'sku': 'CASE-1',
+                        'name': 'Wholesale case',
+                        'quantity': 5,
+                        'line_total': 50,
+                      }
+                    ],
+                  },
+                },
               }
             ],
           }),
@@ -118,6 +144,9 @@ void main() {
 
     final rows = await repo.list(DriverChannel.b2b);
     expect(rows.single.availableStatuses, ['accepted']);
+    expect(rows.single.invoice?.number, 'INV-B2B-55');
+    expect(rows.single.invoice?.grandTotal, 50);
+    expect(rows.single.invoice?.items.single.sku, 'CASE-1');
     await repo.transition(9, DriverChannel.b2b, 'accepted');
     expect(requests, [
       'GET /api/v1/driver/assignments?scope=active',

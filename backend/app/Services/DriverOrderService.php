@@ -105,6 +105,77 @@ final class DriverOrderService
             ->values()
             ->all();
 
+        $invoice = DB::table('invoices')
+            ->where('order_id', $order->getKey())
+            ->orderByDesc('revision')
+            ->orderByDesc('id')
+            ->first([
+                'id',
+                'invoice_number',
+                'revision',
+                'status',
+                'currency',
+                'subtotal',
+                'discount_total',
+                'delivery_total',
+                'tax_total',
+                'total',
+                'payment_method_snapshot',
+                'payment_status_snapshot',
+                'issued_at',
+            ]);
+
+        $invoiceItems = $invoice === null
+            ? []
+            : DB::table('invoice_items')
+                ->where('invoice_id', $invoice->id)
+                ->orderBy('id')
+                ->get([
+                    'sku_snapshot',
+                    'description',
+                    'quantity',
+                    'unit_price',
+                    'line_discount_total',
+                    'line_tax_total',
+                    'line_total',
+                    'currency',
+                ])
+                ->map(static fn (object $item): array => [
+                    'sku' => $item->sku_snapshot,
+                    'name' => (string) $item->description,
+                    'quantity' => (float) $item->quantity,
+                    'unit_price' => (float) $item->unit_price,
+                    'discount_total' => (float) ($item->line_discount_total ?? 0),
+                    'tax_total' => (float) ($item->line_tax_total ?? 0),
+                    'line_total' => (float) $item->line_total,
+                    'currency' => (string) ($item->currency ?: $order->currency),
+                ])
+                ->values()
+                ->all();
+
+        $driverHistory = DB::table('delivery_proofs')
+            ->leftJoin('users', 'users.id', '=', 'delivery_proofs.user_id')
+            ->where('driver_assignment_id', $assignment->getKey())
+            ->whereIn('proof_type', ['status_note', 'failure_note'])
+            ->orderByDesc('delivery_proofs.id')
+            ->limit(50)
+            ->get([
+                'delivery_proofs.from_status',
+                'delivery_proofs.to_status',
+                'delivery_proofs.note',
+                'delivery_proofs.captured_at',
+                'users.name as actor_name',
+            ])
+            ->map(static fn (object $event): array => [
+                'from_status' => $event->from_status,
+                'to_status' => $event->to_status,
+                'note' => $event->note,
+                'actor_name' => $event->actor_name,
+                'captured_at' => $event->captured_at === null ? null : (string) $event->captured_at,
+            ])
+            ->values()
+            ->all();
+
         return [
             'id' => (int) $assignment->getKey(),
             'driver_id' => (int) $assignment->driver_id,
@@ -152,6 +223,23 @@ final class DriverOrderService
                     'currency' => $payment->currency,
                 ],
                 'items' => $items,
+                'invoice' => $invoice === null ? null : [
+                    'id' => (int) $invoice->id,
+                    'number' => (string) $invoice->invoice_number,
+                    'revision' => (int) ($invoice->revision ?? 1),
+                    'status' => (string) $invoice->status,
+                    'currency' => (string) $invoice->currency,
+                    'subtotal' => (float) ($invoice->subtotal ?? 0),
+                    'discount_total' => (float) ($invoice->discount_total ?? 0),
+                    'delivery_total' => (float) ($invoice->delivery_total ?? 0),
+                    'tax_total' => (float) ($invoice->tax_total ?? 0),
+                    'grand_total' => (float) $invoice->total,
+                    'payment_method' => (string) ($payment->provider ?? $invoice->payment_method_snapshot ?? ''),
+                    'payment_status' => (string) ($payment->status ?? $invoice->payment_status_snapshot ?? ''),
+                    'issued_at' => $invoice->issued_at === null ? null : (string) $invoice->issued_at,
+                    'items' => $invoiceItems,
+                ],
+                'driver_history' => $driverHistory,
             ],
         ];
     }
@@ -175,6 +263,7 @@ final class DriverOrderService
             $targetStatus,
             $note,
             $request,
+            &$beforeAssignment,
             &$beforeOrder,
             &$afterOrder,
         ): DriverAssignment {
@@ -185,6 +274,7 @@ final class DriverOrderService
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            $beforeAssignment = (string) $locked->status;
             $order = Order::query()->whereKey($locked->order_id)->lockForUpdate()->firstOrFail();
             abort_unless(
                 (int) $order->store_id === (int) $locked->store_id
@@ -230,7 +320,10 @@ final class DriverOrderService
             if ($note !== null && trim($note) !== '') {
                 DB::table('delivery_proofs')->insert([
                     'driver_assignment_id' => $locked->getKey(),
+                    'user_id' => $actor->getKey(),
                     'proof_type' => $targetStatus === 'failed' ? 'failure_note' : 'status_note',
+                    'from_status' => $beforeAssignment,
+                    'to_status' => $targetStatus,
                     'file_path' => null,
                     'otp_hash' => null,
                     'note' => trim($note),
@@ -254,7 +347,13 @@ final class DriverOrderService
 
         $fresh = $updated->fresh();
         $order = Order::query()->findOrFail($fresh->order_id);
-        $this->notifier->deliveryChanged($order, (string) $fresh->status);
+        $this->notifier->deliveryChanged(
+            $order,
+            (string) $fresh->status,
+            $fresh,
+            $note,
+            $beforeAssignment,
+        );
 
         if ($beforeOrder !== null && $afterOrder !== null && $beforeOrder !== $afterOrder) {
             $this->notifier->orderStatusChanged($order, $beforeOrder, $afterOrder);

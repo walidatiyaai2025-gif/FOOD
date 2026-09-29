@@ -29,6 +29,7 @@ use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -136,6 +137,17 @@ class B2bWorkspaceController extends Controller
         $orders->transition($request, $order, $audit, $dashboardNotifier);
 
         return back()->with('status', $this->msg('تم تحديث حالة الطلب.', 'Order status updated.'));
+    }
+
+    public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $storeId = $this->principal->storeId();
+        $this->operationalScope->assertStore($actor, $storeId, 'orders.manage', 'b2b');
+
+        return response()->json([
+            'data' => $orders->quote($request, 'b2b', $storeId),
+        ]);
     }
 
     public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
@@ -899,6 +911,7 @@ class B2bWorkspaceController extends Controller
                 $total = (float) $row->total;
 
                 return [
+                    '_id' => (int) $row->id,
                     'invoice' => $row->invoice_number,
                     'company' => $row->company ?: '-',
                     'client' => $row->client,
@@ -907,12 +920,16 @@ class B2bWorkspaceController extends Controller
                     'paid' => $row->currency.' '.number_format($paid, 3),
                     'balance' => $row->currency.' '.number_format(max(0, $total - $paid), 3),
                     'due' => $row->due_at === null ? '-' : (string) $row->due_at,
+                    'actions' => [
+                        ['label' => $this->msg('تفاصيل', 'Details'), 'url' => route('admin.invoices.show', ['invoice' => $row->id])],
+                        ['label' => 'PDF', 'url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()])],
+                    ],
                 ];
             })
             ->all();
 
         return [
-            'columns' => ['invoice', 'company', 'client', 'status', 'amount', 'paid', 'balance', 'due'],
+            'columns' => ['invoice', 'company', 'client', 'status', 'amount', 'paid', 'balance', 'due', 'actions'],
             'rows' => $rows,
         ];
     }
@@ -1353,8 +1370,10 @@ class B2bWorkspaceController extends Controller
                 'orders.subtotal',
                 'orders.discount_total',
                 'orders.delivery_total',
+                'orders.tax_total',
                 'orders.grand_total',
                 'orders.payment_method',
+                'orders.pricing_snapshot',
                 'orders.customer_note',
                 'orders.created_at as created',
             ])
@@ -1404,10 +1423,36 @@ class B2bWorkspaceController extends Controller
                         'created_at' => (string) $entry->created_at,
                     ])->all();
 
+                $driverHistory = DB::table('delivery_proofs')
+                    ->join('driver_assignments', 'driver_assignments.id', '=', 'delivery_proofs.driver_assignment_id')
+                    ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+                    ->join('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('driver_assignments.order_id', $row->id)
+                    ->where('driver_assignments.store_id', $row->store_id)
+                    ->where('driver_assignments.assignment_type', 'b2b')
+                    ->whereIn('delivery_proofs.proof_type', ['status_note', 'failure_note'])
+                    ->orderByDesc('delivery_proofs.id')
+                    ->limit(50)
+                    ->get([
+                        'delivery_proofs.from_status',
+                        'delivery_proofs.to_status',
+                        'delivery_proofs.note',
+                        'delivery_proofs.captured_at',
+                        'users.name as actor_name',
+                    ])
+                    ->map(fn ($entry) => [
+                        'from' => $entry->from_status,
+                        'to' => $entry->to_status,
+                        'note' => $entry->note,
+                        'actor' => $entry->actor_name,
+                        'created_at' => $entry->captured_at === null ? null : (string) $entry->captured_at,
+                    ])->all();
+
                 $invoice = DB::table('invoices')
                     ->where('order_id', $row->id)
                     ->orderByDesc('id')
-                    ->first(['invoice_number', 'status', 'total', 'currency']);
+                    ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
+                $pricingSnapshot = json_decode((string) ($row->pricing_snapshot ?? ''), true);
 
                 return [
                     '_id' => (int) $row->id,
@@ -1418,8 +1463,10 @@ class B2bWorkspaceController extends Controller
                     '_subtotal' => (float) $row->subtotal,
                     '_discount_total' => (float) $row->discount_total,
                     '_delivery_total' => (float) $row->delivery_total,
+                    '_tax_total' => (float) ($row->tax_total ?? 0),
                     '_grand_total' => (float) $row->grand_total,
                     '_payment_method' => $row->payment_method,
+                    '_coupon_code' => is_array($pricingSnapshot) ? data_get($pricingSnapshot, 'coupon.code') : null,
                     '_customer_note' => $row->customer_note,
                     '_assignment_id' => $activeAssignment === null ? null : (int) $activeAssignment->id,
                     '_driver_id' => $activeAssignment === null ? null : (int) $activeAssignment->driver_id,
@@ -1431,7 +1478,9 @@ class B2bWorkspaceController extends Controller
                         'currency' => $payment->currency,
                     ],
                     '_history' => $history,
+                    '_driver_history' => $driverHistory,
                     '_invoice' => $invoice === null ? null : [
+                        'id' => (int) $invoice->id,
                         'number' => $invoice->invoice_number,
                         'status' => $invoice->status,
                         'total' => (float) $invoice->total,

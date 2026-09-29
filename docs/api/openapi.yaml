@@ -434,6 +434,35 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /quote:
+    post:
+      tags: [Checkout]
+      summary: Reprice the authenticated store cart using backend-authoritative commercial rules
+      operationId: quoteCart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteRequest"
+      responses:
+        "200":
+          description: Authoritative quote. Clients must treat all returned amounts as read-only.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /checkout:
     post:
       tags: [Checkout]
@@ -462,6 +491,103 @@ paths:
           $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/ValidationError"
+
+  /invoices:
+    get:
+      tags: [Invoices]
+      summary: List invoice documents owned by the authenticated Platform Customer
+      description: Returns only invoices belonging to the authenticated customer's Wholesale or Retail domain identities. Optional store and channel filters never broaden ownership.
+      operationId: listCustomerInvoices
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: channel
+          schema:
+            type: string
+            enum: [b2b, b2c]
+        - in: query
+          name: status
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Owned invoice document collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerInvoiceDocumentCollection"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /invoices/{invoice}:
+    get:
+      tags: [Invoices]
+      summary: Get an owned immutable invoice document
+      operationId: showCustomerInvoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/InvoiceId"
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: channel
+          schema:
+            type: string
+            enum: [b2b, b2c]
+      responses:
+        "200":
+          description: Owned invoice detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CustomerInvoiceDocument"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /invoices/{invoice}/download:
+    get:
+      tags: [Invoices]
+      summary: Download an owned invoice as a server-rendered PDF
+      operationId: downloadCustomerInvoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/InvoiceId"
+        - in: query
+          name: locale
+          schema:
+            type: string
+            enum: [ar, en]
+      responses:
+        "200":
+          description: Arabic RTL or English LTR invoice PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /orders:
     get:
@@ -1649,7 +1775,7 @@ components:
           multipleOf: 0.001
         currency:
           type: string
-          enum: [KWD]
+          enum: [EGP]
         image_url:
           type: [string, "null"]
           format: uri-reference
@@ -1740,7 +1866,7 @@ components:
           type: [string, "null"]
         currency:
           type: string
-          enum: [KWD]
+          enum: [EGP]
         items:
           type: array
           items:
@@ -1775,11 +1901,142 @@ components:
           exclusiveMinimum: 0
           multipleOf: 0.001
 
+    QuoteRequest:
+      type: object
+      additionalProperties: false
+      required: [store_id]
+      properties:
+        store_id:
+          type: integer
+          minimum: 1
+        coupon_code:
+          type: [string, "null"]
+          maxLength: 80
+        payment_method:
+          type: [string, "null"]
+          maxLength: 50
+
+    QuoteLine:
+      type: object
+      required:
+        [product_id, quantity, unit_price, line_total, is_available]
+      properties:
+        product_id:
+          type: integer
+        sku:
+          type: [string, "null"]
+        name:
+          type: [string, "null"]
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        base_unit_price:
+          type: [number, "null"]
+          multipleOf: 0.001
+        unit_price:
+          type: [number, "null"]
+          multipleOf: 0.001
+        line_total:
+          type: [number, "null"]
+          multipleOf: 0.001
+        is_available:
+          type: boolean
+        available_quantity:
+          type: [number, "null"]
+          minimum: 0
+        minimum_order_quantity:
+          type: [number, "null"]
+        ordering_increment:
+          type: [number, "null"]
+        pack_size:
+          type: [number, "null"]
+        case_size:
+          type: [number, "null"]
+        price_tier_id:
+          type: [integer, "null"]
+        price_tier_code:
+          type: [string, "null"]
+
+    CommerceQuote:
+      type: object
+      required:
+        [quote_id, quoted_at, store_id, channel, currency, items, subtotal, discount_total, delivery_total, tax_total, grand_total, pricing_source]
+      properties:
+        quote_id:
+          type: string
+          format: uuid
+        quoted_at:
+          type: string
+          format: date-time
+        store_id:
+          type: integer
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        currency:
+          type: string
+          enum: [EGP]
+        customer_context:
+          type: object
+          properties:
+            customer_id:
+              type: [integer, "null"]
+            b2b_account_id:
+              type: [integer, "null"]
+            price_tier_id:
+              type: [integer, "null"]
+            price_tier_code:
+              type: [string, "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuoteLine"
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        promotion_discount_total:
+          type: number
+          multipleOf: 0.001
+        coupon_discount_total:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        tax_rate:
+          type: number
+          minimum: 0
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        grand_total:
+          type: number
+          multipleOf: 0.001
+        has_unavailable_items:
+          type: boolean
+        pricing_source:
+          type: string
+          enum: [backend_authoritative_quote_v1]
+
+    QuoteResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/CommerceQuote"
+
     CheckoutRequest:
       type: object
       additionalProperties: false
-      required: [address_id]
+      required: [store_id, address_id]
       properties:
+        store_id:
+          type: integer
+          minimum: 1
         address_id:
           type: integer
           minimum: 1
@@ -1841,7 +2098,7 @@ components:
           type: string
         currency:
           type: string
-          enum: [KWD]
+          enum: [EGP]
         subtotal:
           type: number
           multipleOf: 0.001
@@ -1851,6 +2108,19 @@ components:
         delivery_total:
           type: number
           multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        quote_id:
+          type: [string, "null"]
+          format: uuid
+        quoted_at:
+          type: [string, "null"]
+          format: date-time
+        price_tier_id:
+          type: [integer, "null"]
+        price_tier_code:
+          type: [string, "null"]
         grand_total:
           type: number
           multipleOf: 0.001
@@ -1858,6 +2128,15 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/OrderItem"
+        invoice:
+          type: [object, "null"]
+          properties:
+            id:
+              type: integer
+            invoice_number:
+              type: string
+            status:
+              type: string
         created_at:
           type: string
           format: date-time
@@ -1895,7 +2174,7 @@ components:
               type: boolean
             currency:
               type: string
-              enum: [KWD]
+              enum: [EGP]
 
     B2bTopProduct:
       type: object
@@ -1920,7 +2199,7 @@ components:
           multipleOf: 0.001
         currency:
           type: string
-          enum: [KWD]
+          enum: [EGP]
 
     B2bTopProductCollection:
       type: object
@@ -1953,7 +2232,111 @@ components:
           multipleOf: 0.001
         currency:
           type: string
-          enum: [KWD]
+          enum: [EGP]
+
+    CustomerInvoiceItem:
+      type: object
+      required: [name, quantity, unit_price, discount_total, tax_total, line_total, currency]
+      properties:
+        product_id:
+          type: [integer, "null"]
+        sku:
+          type: [string, "null"]
+        name:
+          type: string
+        quantity:
+          type: number
+          multipleOf: 0.001
+        unit_price:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        line_total:
+          type: number
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [EGP]
+        price_tier_code:
+          type: [string, "null"]
+
+    CustomerInvoiceDocument:
+      type: object
+      required: [id, invoice_number, revision, status, order_id, store_id, channel, customer, currency, subtotal, discount_total, delivery_total, tax_total, grand_total]
+      properties:
+        id:
+          type: integer
+        invoice_number:
+          type: string
+        revision:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [issued, reissued, voided]
+        order_id:
+          type: [integer, "null"]
+        order_number:
+          type: [string, "null"]
+        store_id:
+          type: [integer, "null"]
+        store_name:
+          type: [string, "null"]
+        channel:
+          type: [string, "null"]
+          enum: [b2b, b2c, null]
+        customer:
+          type: object
+          properties:
+            name:
+              type: [string, "null"]
+            email:
+              type: [string, "null"]
+            phone:
+              type: [string, "null"]
+        currency:
+          type: string
+          enum: [EGP]
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        grand_total:
+          type: number
+          multipleOf: 0.001
+        payment_method:
+          type: [string, "null"]
+        payment_status:
+          type: [string, "null"]
+        price_tier_id:
+          type: [integer, "null"]
+        price_tier_code:
+          type: [string, "null"]
+        issued_at:
+          type: [string, "null"]
+          format: date-time
+        voided_at:
+          type: [string, "null"]
+          format: date-time
+        void_reason:
+          type: [string, "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerInvoiceItem"
 
     Invoice:
       type: object
@@ -1969,7 +2352,7 @@ components:
           type: string
         currency:
           type: string
-          enum: [KWD]
+          enum: [EGP]
         total:
           type: number
           multipleOf: 0.001
@@ -1986,7 +2369,7 @@ components:
       properties:
         currency:
           type: string
-          enum: [KWD]
+          enum: [EGP]
         balance:
           type: number
           multipleOf: 0.001
@@ -2045,7 +2428,7 @@ components:
               enum: [pending, confirmed, preparing, ready, out_for_delivery, delivered, failed, cancelled]
             currency:
               type: string
-              enum: [KWD]
+              enum: [EGP]
             subtotal:
               type: number
             discount_total:
@@ -2391,6 +2774,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/B2bProduct"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    CustomerInvoiceDocumentCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerInvoiceDocument"
         meta:
           $ref: "#/components/schemas/PaginationMeta"
 

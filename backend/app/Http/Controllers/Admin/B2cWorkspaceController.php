@@ -19,6 +19,7 @@ use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -34,6 +35,7 @@ class B2cWorkspaceController extends Controller
         'products' => 'catalog.view',
         'inventory' => 'inventory.view',
         'orders' => 'orders.view',
+        'finance' => 'finance.view',
         'customers' => 'customers.view',
         'promotions' => 'promotions.view',
         'drivers' => 'drivers.b2c.view',
@@ -77,6 +79,7 @@ class B2cWorkspaceController extends Controller
         $counts = [
             'products' => DB::table('store_products')->whereIn('store_id', $storeIds)->count(),
             'orders' => DB::table('orders')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
+            'finance' => DB::table('invoices')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
             'customers' => DB::table('b2c_customers')->whereIn('store_id', $storeIds)->count(),
             'inventory' => DB::table('inventories')->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')->whereIn('warehouses.store_id', $storeIds)->count(),
         ];
@@ -95,7 +98,7 @@ class B2cWorkspaceController extends Controller
                 $request->filled('q') ? $request->string('q')->toString() : null,
             )
             : null;
-        $moduleData = in_array($module, ['products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
+        $moduleData = in_array($module, ['products', 'inventory', 'orders', 'finance', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
             ? $this->moduleData($module, $storeIds, $user, $storeId, $supportAccess)
             : null;
         $visibleModules = array_values(array_filter(
@@ -143,6 +146,18 @@ class B2cWorkspaceController extends Controller
         $orders->transition($request, $order, $audit, $dashboardNotifier);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تحديث حالة الطلب.' : 'Order status updated.');
+    }
+
+    public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $user);
+        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'orders.manage', 'b2c');
+
+        return response()->json([
+            'data' => $orders->quote($request, 'b2c', $storeId),
+        ]);
     }
 
     public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
@@ -503,6 +518,7 @@ class B2cWorkspaceController extends Controller
             ],
             'inventory' => $this->inventoryModuleData($storeIds),
             'orders' => $this->orderModuleData($storeIds),
+            'finance' => $this->financeModuleData($storeIds),
             'customers' => $this->customerModuleData($storeIds),
             'promotions' => [
                 'actions' => [],
@@ -910,6 +926,59 @@ class B2cWorkspaceController extends Controller
         ];
     }
 
+    private function financeModuleData(array $storeIds): array
+    {
+        $rows = DB::table('invoices')
+            ->leftJoin('b2c_customers', 'b2c_customers.id', '=', 'invoices.b2c_customer_id')
+            ->leftJoin('orders', 'orders.id', '=', 'invoices.order_id')
+            ->leftJoin('stores', 'stores.id', '=', 'invoices.store_id')
+            ->whereIn('invoices.store_id', $storeIds)
+            ->where('invoices.channel', 'b2c')
+            ->orderByDesc('invoices.issued_at')
+            ->orderByDesc('invoices.id')
+            ->limit(150)
+            ->get([
+                'invoices.id',
+                'invoices.invoice_number',
+                'invoices.status',
+                'invoices.currency',
+                'invoices.total',
+                'invoices.issued_at',
+                'orders.order_number',
+                'b2c_customers.name as customer',
+                'stores.name as store',
+            ])
+            ->map(function ($row): array {
+                $paid = (float) DB::table('payments')
+                    ->where('invoice_id', $row->id)
+                    ->where('status', 'paid')
+                    ->sum('amount');
+
+                return [
+                    '_id' => (int) $row->id,
+                    'invoice' => $row->invoice_number,
+                    'order' => $row->order_number ?: '-',
+                    'customer' => $row->customer ?: '-',
+                    'store' => $row->store ?: '-',
+                    'status' => $row->status,
+                    'amount' => $row->currency.' '.number_format((float) $row->total, 3),
+                    'paid' => $row->currency.' '.number_format($paid, 3),
+                    'balance' => $row->currency.' '.number_format(max(0, (float) $row->total - $paid), 3),
+                    'created' => $row->issued_at === null ? '-' : (string) $row->issued_at,
+                    'actions' => [
+                        ['label' => $this->msg('تفاصيل', 'Details'), 'url' => route('admin.invoices.show', ['invoice' => $row->id])],
+                        ['label' => 'PDF', 'url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()])],
+                    ],
+                ];
+            })
+            ->all();
+
+        return [
+            'columns' => ['invoice', 'order', 'customer', 'store', 'status', 'amount', 'paid', 'balance', 'created', 'actions'],
+            'rows' => $rows,
+        ];
+    }
+
     private function orderModuleData(array $storeIds): array
     {
         $customers = DB::table('b2c_customers')
@@ -944,8 +1013,10 @@ class B2cWorkspaceController extends Controller
                 'orders.subtotal',
                 'orders.discount_total',
                 'orders.delivery_total',
+                'orders.tax_total',
                 'orders.grand_total',
                 'orders.payment_method',
+                'orders.pricing_snapshot',
                 'orders.customer_note',
                 'orders.created_at as created',
             ])
@@ -995,10 +1066,36 @@ class B2cWorkspaceController extends Controller
                         'created_at' => (string) $entry->created_at,
                     ])->all();
 
+                $driverHistory = DB::table('delivery_proofs')
+                    ->join('driver_assignments', 'driver_assignments.id', '=', 'delivery_proofs.driver_assignment_id')
+                    ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+                    ->join('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('driver_assignments.order_id', $row->id)
+                    ->where('driver_assignments.store_id', $row->store_id)
+                    ->where('driver_assignments.assignment_type', 'b2c')
+                    ->whereIn('delivery_proofs.proof_type', ['status_note', 'failure_note'])
+                    ->orderByDesc('delivery_proofs.id')
+                    ->limit(50)
+                    ->get([
+                        'delivery_proofs.from_status',
+                        'delivery_proofs.to_status',
+                        'delivery_proofs.note',
+                        'delivery_proofs.captured_at',
+                        'users.name as actor_name',
+                    ])
+                    ->map(fn ($entry) => [
+                        'from' => $entry->from_status,
+                        'to' => $entry->to_status,
+                        'note' => $entry->note,
+                        'actor' => $entry->actor_name,
+                        'created_at' => $entry->captured_at === null ? null : (string) $entry->captured_at,
+                    ])->all();
+
                 $invoice = DB::table('invoices')
                     ->where('order_id', $row->id)
                     ->orderByDesc('id')
-                    ->first(['invoice_number', 'status', 'total', 'currency']);
+                    ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
+                $pricingSnapshot = json_decode((string) ($row->pricing_snapshot ?? ''), true);
 
                 return [
                     '_id' => (int) $row->id,
@@ -1008,8 +1105,10 @@ class B2cWorkspaceController extends Controller
                     '_subtotal' => (float) $row->subtotal,
                     '_discount_total' => (float) $row->discount_total,
                     '_delivery_total' => (float) $row->delivery_total,
+                    '_tax_total' => (float) ($row->tax_total ?? 0),
                     '_grand_total' => (float) $row->grand_total,
                     '_payment_method' => $row->payment_method,
+                    '_coupon_code' => is_array($pricingSnapshot) ? data_get($pricingSnapshot, 'coupon.code') : null,
                     '_customer_note' => $row->customer_note,
                     '_assignment_id' => $activeAssignment === null ? null : (int) $activeAssignment->id,
                     '_driver_id' => $activeAssignment === null ? null : (int) $activeAssignment->driver_id,
@@ -1021,7 +1120,9 @@ class B2cWorkspaceController extends Controller
                         'currency' => $payment->currency,
                     ],
                     '_history' => $history,
+                    '_driver_history' => $driverHistory,
                     '_invoice' => $invoice === null ? null : [
+                        'id' => (int) $invoice->id,
                         'number' => $invoice->invoice_number,
                         'status' => $invoice->status,
                         'total' => (float) $invoice->total,

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\InvoiceService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderInventoryReservationService;
 use App\Services\PlatformCustomerService;
@@ -201,6 +202,19 @@ class OrderController extends Controller
 
             $locked->status = $targetStatus;
             $locked->save();
+
+            // A dashboard-created pending order remains editable until it is accepted.
+            // Confirmation is the commercial finalization point; customer checkout invoices
+            // are already issued atomically by CheckoutController and this call is idempotent.
+            if ($targetStatus === 'confirmed') {
+                app(InvoiceService::class)->issueForOrder($locked, $user);
+            } elseif ($targetStatus === 'cancelled') {
+                app(InvoiceService::class)->voidForOrder(
+                    $locked,
+                    $user,
+                    $note ?: 'order_cancelled',
+                );
+            }
 
             OrderStatusHistory::query()->create([
                 'order_id' => $locked->getKey(),

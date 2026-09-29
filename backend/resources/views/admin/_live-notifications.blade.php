@@ -89,7 +89,8 @@
 
     const itemHtml = (item) => {
         const date = item.published_at ? new Date(item.published_at).toLocaleString() : '';
-        return `<article class="foodex-live-item" data-notification-id="${item.id}" data-unread="${item.read ? 'false' : 'true'}">
+        const deepLink = item?.data?.deep_link ?? '';
+        return `<article class="foodex-live-item" data-notification-id="${item.id}" data-unread="${item.read ? 'false' : 'true'}" data-deep-link="${escapeHtml(deepLink)}">
             <strong>${escapeHtml(item.title)}</strong>
             <p>${escapeHtml(item.body)}</p>
             <time>${escapeHtml(date)}</time>
@@ -158,7 +159,17 @@
 
     list.addEventListener('click', async (event) => {
         const item = event.target.closest('[data-notification-id]');
-        if (!item || item.dataset.unread !== 'true') return;
+        if (!item) return;
+        const deepLink = item.dataset.deepLink || '';
+        const openDeepLink = () => {
+            if (deepLink.startsWith('/admin/')) window.location.assign(deepLink);
+        };
+
+        if (item.dataset.unread !== 'true') {
+            openDeepLink();
+            return;
+        }
+
         const url = root.dataset.readUrl.replace('__ID__', item.dataset.notificationId);
         const response = await fetch(url, {
             method:'POST',
@@ -168,6 +179,7 @@
             item.dataset.unread = 'false';
             const current = Number(count.textContent) || 0;
             setCount(current - 1);
+            openDeepLink();
         }
     });
 

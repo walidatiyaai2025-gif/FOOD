@@ -445,7 +445,7 @@
       @foreach($moduleData['rows'] as $row)<tr>@foreach($moduleData['columns'] as $column)<td>
         @if(in_array($column,['status','availability','active'],true) && is_bool($row[$column]))<span class="state {{ $row[$column]?'':'off' }}">{{ $row[$column]?(app()->getLocale()==='ar'?'نشط':'Active'):(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span>
         @elseif($column==='status')<span class="badge {{ $row[$column] }}">{{ $row[$column] }}</span>
-        @elseif($column==='actions' && $module==='reports')
+        @elseif($column==='actions' && in_array($module,['reports','finance'],true) && is_array($row['actions'] ?? null))
           <div class="links">@foreach($row['actions'] as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach</div>
         @elseif($column==='actions' && $module==='clients' && $user->hasPermission('b2b.accounts.manage'))
           @if(!empty($row['_retail_linked']))

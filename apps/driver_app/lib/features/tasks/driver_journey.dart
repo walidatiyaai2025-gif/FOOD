@@ -22,6 +22,40 @@ class DriverOrderItem {
   final double lineTotal;
 }
 
+class DriverInvoice {
+  const DriverInvoice({
+    required this.id,
+    required this.number,
+    required this.status,
+    required this.currency,
+    required this.grandTotal,
+    this.revision = 1,
+    this.subtotal = 0,
+    this.discountTotal = 0,
+    this.deliveryTotal = 0,
+    this.taxTotal = 0,
+    this.paymentMethod = '',
+    this.paymentStatus = '',
+    this.issuedAt = '',
+    this.items = const [],
+  });
+
+  final int id;
+  final String number;
+  final int revision;
+  final String status;
+  final String currency;
+  final double subtotal;
+  final double discountTotal;
+  final double deliveryTotal;
+  final double taxTotal;
+  final double grandTotal;
+  final String paymentMethod;
+  final String paymentStatus;
+  final String issuedAt;
+  final List<DriverOrderItem> items;
+}
+
 class DriverAssignment {
   const DriverAssignment({
     required this.id,
@@ -42,6 +76,7 @@ class DriverAssignment {
     this.customerNote = '',
     this.items = const [],
     this.availableStatuses = const [],
+    this.invoice,
   });
 
   final int id;
@@ -62,6 +97,7 @@ class DriverAssignment {
   final String customerNote;
   final List<DriverOrderItem> items;
   final List<String> availableStatuses;
+  final DriverInvoice? invoice;
 }
 
 abstract interface class DriverAssignmentRepository {
@@ -200,23 +236,24 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     DriverAssignment assignment,
     String status,
   ) async {
-    if (status != 'failed') {
-      await _transition(assignment, status);
-      return;
-    }
-
-    final controller = TextEditingController();
+    var noteValue = '';
     final note = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(context.tr('driver.failure.title')),
+        title: Text(
+          status == 'failed'
+              ? context.tr('driver.failure.title')
+              : context.tr('driver.action.confirm_title'),
+        ),
         content: TextField(
-          key: const Key('driver-failure-note'),
-          controller: controller,
+          key: Key('driver-status-note-$status'),
+          onChanged: (value) => noteValue = value,
           maxLength: 1000,
           maxLines: 3,
           decoration: InputDecoration(
-            labelText: context.tr('driver.failure.reason'),
+            labelText: status == 'failed'
+                ? context.tr('driver.failure.reason')
+                : context.tr('driver.action.note_optional'),
           ),
         ),
         actions: [
@@ -225,15 +262,120 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
             child: Text(context.tr('driver.dismiss')),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-            child: Text(context.tr('driver.failure.submit')),
+            key: Key('driver-status-confirm-$status'),
+            onPressed: () {
+              final value = noteValue.trim();
+              if (status == 'failed' && value.isEmpty) return;
+              Navigator.of(dialogContext).pop(value);
+            },
+            child: Text(
+              status == 'failed'
+                  ? context.tr('driver.failure.submit')
+                  : context.tr('driver.action.confirm'),
+            ),
           ),
         ],
       ),
     );
-    controller.dispose();
     if (note == null) return;
-    await _transition(assignment, status, note: note.trim());
+    await _transition(
+      assignment,
+      status,
+      note: note.trim().isEmpty ? null : note.trim(),
+    );
+  }
+
+  Future<void> _showInvoice(DriverAssignment assignment) async {
+    final invoice = assignment.invoice;
+    if (invoice == null) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('${context.tr('driver.invoice.title')} ${invoice.number}'),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            key: Key('driver-invoice-detail-${invoice.id}'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _DetailLine(
+                  label: context.tr('driver.invoice.status'),
+                  value: invoice.status,
+                ),
+                _DetailLine(
+                  label: context.tr('driver.invoice.revision'),
+                  value: invoice.revision.toString(),
+                ),
+                if (invoice.issuedAt.isNotEmpty)
+                  _DetailLine(
+                    label: context.tr('driver.invoice.issued_at'),
+                    value: invoice.issuedAt,
+                  ),
+                const Divider(height: 24),
+                ...invoice.items.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.sku.isEmpty
+                                ? item.name
+                                : '${item.sku} · ${item.name}',
+                          ),
+                        ),
+                        Text(
+                          '${item.quantity.toStringAsFixed(3)} · ${item.lineTotal.toStringAsFixed(3)} ${invoice.currency}',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(height: 24),
+                _DetailLine(
+                  label: context.tr('driver.invoice.subtotal'),
+                  value:
+                      '${invoice.subtotal.toStringAsFixed(3)} ${invoice.currency}',
+                ),
+                _DetailLine(
+                  label: context.tr('driver.invoice.discount'),
+                  value:
+                      '${invoice.discountTotal.toStringAsFixed(3)} ${invoice.currency}',
+                ),
+                _DetailLine(
+                  label: context.tr('driver.invoice.delivery'),
+                  value:
+                      '${invoice.deliveryTotal.toStringAsFixed(3)} ${invoice.currency}',
+                ),
+                _DetailLine(
+                  label: context.tr('driver.invoice.tax'),
+                  value:
+                      '${invoice.taxTotal.toStringAsFixed(3)} ${invoice.currency}',
+                ),
+                _DetailLine(
+                  label: context.tr('driver.invoice.total'),
+                  value:
+                      '${invoice.grandTotal.toStringAsFixed(3)} ${invoice.currency}',
+                ),
+                _DetailLine(
+                  label: context.tr('driver.invoice.payment'),
+                  value:
+                      '${invoice.paymentMethod} · ${invoice.paymentStatus}',
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.tr('driver.dismiss')),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showDetail(DriverAssignment assignment) async {
@@ -328,6 +470,17 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                       ? context.tr('driver.detail.unknown')
                       : '${assignment.paymentMethod} · ${assignment.paymentStatus}',
                 ),
+                if (assignment.invoice != null) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    key: Key('driver-open-invoice-${assignment.id}'),
+                    onPressed: () => _showInvoice(assignment),
+                    icon: const Icon(Icons.receipt_long_rounded),
+                    label: Text(
+                      '${context.tr('driver.invoice.open')} · ${assignment.invoice!.number}',
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 if (assignment.availableStatuses.isEmpty)
                   Text(context.tr('driver.action.none'))

@@ -11,6 +11,7 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\CommerceQuoteService;
 use App\Services\CustomerDomainResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -455,80 +456,41 @@ class GuestCartController extends Controller
 
     private function cartPayload(Cart $cart): array
     {
-        $rows = DB::table('cart_items')
-            ->join('products', 'products.id', '=', 'cart_items.product_id')
-            ->where('cart_items.cart_id', $cart->id)
-            ->orderBy('cart_items.id')
-            ->get([
-                'cart_items.id',
-                'cart_items.product_id',
-                'cart_items.quantity',
-                'cart_items.unit_price_snapshot',
-                'products.sku',
-                'products.name',
-                'products.category_id',
-                'products.brand_id',
-                'products.is_active',
-            ]);
+        // Cart review uses the same live quote engine as Checkout and Dashboard ordering.
+        $quote = app(CommerceQuoteService::class)->quoteCart(
+            $cart,
+            null,
+            null,
+            null,
+            false,
+        );
 
-        $subtotal = 0.0;
-        $hasUnavailableItems = false;
-
-        $items = $rows->map(function (object $row) use ($cart, &$subtotal, &$hasUnavailableItems): array {
-            $quantity = (float) $row->quantity;
-            $state = $this->productState((int) $cart->store_id, (int) $row->product_id, false);
-            $quantityAvailable = $state['available_quantity'] === null
-                || $quantity <= $state['available_quantity'];
-            $isAvailable = $state['is_available'] && $quantityAvailable;
-            $unitPrice = $isAvailable ? $state['price'] : null;
-
-            if ($isAvailable && (string) $cart->channel === 'b2b' && $cart->b2b_customer_id !== null) {
-                $customer = B2bCustomer::query()->find($cart->b2b_customer_id);
-                if ($customer instanceof B2bCustomer) {
-                    $pricing = app(B2bPriceResolver::class)->resolve($customer, (int) $cart->store_id, (int) $row->product_id);
-                    $isAvailable = $this->isValidB2bQuantity($quantity, $pricing);
-                    $unitPrice = $isAvailable ? $pricing['price'] : null;
-                }
-            }
-
-            $lineTotal = $unitPrice === null ? null : round($quantity * $unitPrice, 3);
-
-            if ($isAvailable && $unitPrice !== null) {
-                if ((float) $row->unit_price_snapshot !== $unitPrice) {
-                    DB::table('cart_items')
-                        ->where('id', $row->id)
-                        ->update([
-                            'unit_price_snapshot' => $unitPrice,
-                            'updated_at' => now(),
-                        ]);
-                }
-
-                $subtotal += (float) $lineTotal;
-            } else {
-                $hasUnavailableItems = true;
-            }
-
+        $currency = (string) $quote['currency'];
+        $items = collect($quote['items'])->map(static function (array $line) use ($currency): array {
             return [
-                'id' => (int) $row->id,
+                'id' => isset($line['cart_item_id']) ? (int) $line['cart_item_id'] : null,
                 'product' => [
-                    'id' => (int) $row->product_id,
-                    'sku' => $row->sku,
-                    'name' => $row->name,
-                    'category_id' => $row->category_id === null ? null : (int) $row->category_id,
-                    'brand_id' => $row->brand_id === null ? null : (int) $row->brand_id,
-                    'is_active' => (bool) $row->is_active,
-                    'price' => $state['price'],
-                    'currency' => 'EGP',
+                    'id' => (int) $line['product_id'],
+                    'sku' => $line['sku'],
+                    'name' => $line['name'],
+                    'category_id' => $line['category_id'],
+                    'brand_id' => $line['brand_id'],
+                    'is_active' => $line['sku'] !== null,
+                    'price' => $line['base_unit_price'],
+                    'currency' => $currency,
                 ],
-                'quantity' => $quantity,
-                'unit_price_snapshot' => $unitPrice,
-                'line_total' => $lineTotal,
-                'is_available' => $isAvailable,
-                'available_quantity' => $state['available_quantity'],
-                'minimum_order_quantity' => isset($pricing) ? (float) $pricing['minimum_quantity'] : null,
-                'ordering_increment' => isset($pricing) ? (float) $pricing['ordering_increment'] : null,
-                'pack_size' => isset($pricing) ? (float) $pricing['pack_size'] : null,
-                'pack_label' => isset($pricing) ? $pricing['pack_label'] : null,
+                'quantity' => (float) $line['quantity'],
+                'unit_price_snapshot' => $line['unit_price'],
+                'line_total' => $line['line_total'],
+                'is_available' => (bool) $line['is_available'],
+                'available_quantity' => $line['available_quantity'],
+                'minimum_order_quantity' => $line['minimum_order_quantity'],
+                'ordering_increment' => $line['ordering_increment'],
+                'pack_size' => $line['pack_size'],
+                'case_size' => $line['case_size'],
+                'pack_label' => $line['pack_label'],
+                'price_tier_id' => $line['price_tier_id'],
+                'price_tier_code' => $line['price_tier_code'],
             ];
         })->values()->all();
 
@@ -540,10 +502,21 @@ class GuestCartController extends Controller
             'b2c_customer_id' => $cart->b2c_customer_id === null ? null : (int) $cart->b2c_customer_id,
             'channel' => (string) $cart->channel,
             'guest_token' => $cart->guest_token,
-            'currency' => 'EGP',
+            'currency' => (string) $quote['currency'],
             'items' => $items,
-            'subtotal' => round($subtotal, 3),
-            'has_unavailable_items' => $hasUnavailableItems,
+            'subtotal' => (float) $quote['subtotal'],
+            'has_unavailable_items' => (bool) $quote['has_unavailable_items'],
+            'quote' => [
+                'quote_id' => $quote['quote_id'],
+                'quoted_at' => $quote['quoted_at'],
+                'promotion_discount_total' => (float) $quote['promotion_discount_total'],
+                'discount_total' => (float) $quote['discount_total'],
+                'delivery_total' => (float) $quote['delivery_total'],
+                'tax_rate' => (float) $quote['tax_rate'],
+                'tax_total' => (float) $quote['tax_total'],
+                'grand_total' => (float) $quote['grand_total'],
+                'pricing_source' => $quote['pricing_source'],
+            ],
         ];
     }
 }

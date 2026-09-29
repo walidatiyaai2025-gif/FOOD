@@ -32,6 +32,7 @@ class OpenApiContractTest extends TestCase
             '/products/{product}',
             '/cart',
             '/cart/items',
+            '/quote',
             '/checkout',
             '/orders',
             '/orders/{order}',
@@ -66,6 +67,9 @@ class OpenApiContractTest extends TestCase
             'Category',
             'Product',
             'Cart',
+            'QuoteRequest',
+            'CommerceQuote',
+            'QuoteResponse',
             'CheckoutRequest',
             'Order',
             'B2bProduct',
@@ -90,6 +94,16 @@ class OpenApiContractTest extends TestCase
                 "Missing OpenAPI schema: {$schema}",
             );
         }
+    }
+
+    public function test_quote_is_authenticated_and_backend_authoritative(): void
+    {
+        $quote = $this->pathBlock('/quote', '/checkout');
+
+        $this->assertStringContainsString('bearerAuth: []', $quote);
+        $this->assertStringContainsString('#/components/schemas/QuoteRequest', $quote);
+        $this->assertStringContainsString('#/components/schemas/QuoteResponse', $quote);
+        $this->assertStringContainsString('backend-authoritative commercial rules', $quote);
     }
 
     public function test_checkout_is_authenticated_and_idempotent(): void
