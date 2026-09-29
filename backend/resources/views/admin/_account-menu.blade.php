@@ -103,7 +103,7 @@
 
         document.addEventListener('click', close);
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' && !panel.hidden) {
                 close();
                 trigger.focus();
             }
