@@ -49,6 +49,16 @@ void main() {
     );
   });
 
+  test('customer app defaults to Marketplace Home for guest and authenticated launches', () {
+    expect(const FoodexCustomerApp().initialRoute, CustomerRoutePaths.marketplace);
+    expect(
+      const FoodexCustomerApp(
+        session: CustomerSession.authenticated(CustomerChannel.b2c),
+      ).initialRoute,
+      CustomerRoutePaths.marketplace,
+    );
+  });
+
   testWidgets('guest can resolve B2C catalog routes without authentication',
       (tester) async {
     await tester.pumpWidget(
