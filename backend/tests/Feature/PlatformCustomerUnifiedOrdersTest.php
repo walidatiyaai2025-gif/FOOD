@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Services\CustomerDomainResolver;
 use App\Services\PlatformCustomerService;
 use Database\Seeders\CoreReferenceSeeder;
