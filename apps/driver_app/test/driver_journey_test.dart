@@ -150,6 +150,37 @@ void main() {
     expect(find.textContaining('27.000 EGP'), findsWidgets);
   });
 
+  testWidgets('push-targeted assignment opens its detail after load', (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 21,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-21',
+        status: 'assigned',
+      ),
+      DriverAssignment(
+        id: 22,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-22',
+        status: 'assigned',
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2c,
+          repository: repo,
+          focusAssignmentId: 22,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('assignment-detail-22')), findsOneWidget);
+    expect(find.byKey(const Key('assignment-detail-21')), findsNothing);
+  });
+
   testWidgets('empty and offline states are explicit', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
