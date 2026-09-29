@@ -186,17 +186,16 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     final query = _searchController.text.trim().toLowerCase();
 
     return assignments.where((assignment) {
-      if (_statusFilter != null && assignment.status != _statusFilter) {
-        return false;
-      }
-      final matchesFilter = switch (_filter) {
-        DriverOrderFilter.active =>
-          !const ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned']
-              .contains(assignment.status),
-        DriverOrderFilter.completed => assignment.status == 'delivered',
-        DriverOrderFilter.failed => assignment.status == 'failed',
-        DriverOrderFilter.all => true,
-      };
+      final matchesFilter = _statusFilter != null
+          ? assignment.status == _statusFilter
+          : switch (_filter) {
+              DriverOrderFilter.active =>
+                !const ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned']
+                    .contains(assignment.status),
+              DriverOrderFilter.completed => assignment.status == 'delivered',
+              DriverOrderFilter.failed => assignment.status == 'failed',
+              DriverOrderFilter.all => true,
+            };
       if (!matchesFilter) return false;
       if (query.isEmpty) return true;
 
