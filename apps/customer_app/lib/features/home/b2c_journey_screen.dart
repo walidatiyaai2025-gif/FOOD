@@ -826,21 +826,147 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       key: const ValueKey('b2c-addresses-data'),
       children: rows.map((address) {
         final id = (address['id'] as num?)?.toInt();
+        final isDefault = address['is_default'] == true;
+        final hasCoordinates =
+            address['latitude'] is num && address['longitude'] is num;
+        final addressLine = [
+          address['building'],
+          address['street'] ?? address['line1'],
+          address['block'],
+          address['area'],
+          address['city'],
+          address['governorate'],
+        ]
+            .where(
+              (value) =>
+                  value != null && value.toString().trim().isNotEmpty,
+            )
+            .join(' · ');
+
         return Card(
-          child: ListTile(
-            leading: Icon(address['is_default'] == true ? Icons.home_rounded : Icons.location_on_outlined),
-            title: Text(address['label']?.toString() ?? context.tr('customer.addresses.address')),
-            subtitle: Text(
-              [address['line1'], address['area'], address['city']]
-                  .where((value) => value != null && value.toString().isNotEmpty)
-                  .join(' · '),
+          key: id == null ? null : ValueKey('b2c-address-$id'),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      isDefault
+                          ? Icons.home_rounded
+                          : Icons.location_on_outlined,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  address['label']?.toString() ??
+                                      context.tr(
+                                        'customer.addresses.address',
+                                      ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ),
+                              if (isDefault) ...[
+                                const SizedBox(width: 8),
+                                Chip(
+                                  label: Text(
+                                    context.tr(
+                                      'customer.addresses.default_badge',
+                                    ),
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ],
+                            ],
+                          ),
+                          if (addressLine.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(addressLine),
+                          ],
+                          if (address['landmark']?.toString().trim().isNotEmpty ==
+                              true) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '${context.tr('customer.addresses.landmark')}: '
+                              '${address['landmark']}',
+                            ),
+                          ],
+                          if (hasCoordinates) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.my_location_rounded,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    '${address['latitude']}, '
+                                    '${address['longitude']}',
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (id != null)
+                      PopupMenuButton<String>(
+                        key: ValueKey('b2c-address-menu-$id'),
+                        onSelected: (action) {
+                          if (action == 'edit') {
+                            _editAddress(address);
+                          } else if (action == 'default') {
+                            _setDefaultAddress(id);
+                          } else if (action == 'delete') {
+                            _removeAddress(id);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Text(
+                              context.tr('customer.addresses.edit'),
+                            ),
+                          ),
+                          if (!isDefault)
+                            PopupMenuItem(
+                              value: 'default',
+                              child: Text(
+                                context.tr(
+                                  'customer.addresses.set_default',
+                                ),
+                              ),
+                            ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text(
+                              context.tr('customer.addresses.delete'),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ],
             ),
-            trailing: id == null
-                ? null
-                : IconButton(
-                    onPressed: () => _removeAddress(id),
-                    icon: const Icon(Icons.delete_outline),
-                  ),
           ),
         );
       }).toList(growable: false),
