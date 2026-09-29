@@ -8,6 +8,9 @@ import '../../core/api/b2b_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/api/wholesale_commerce_api.dart';
+import '../../core/auth/customer_session.dart';
+import '../../core/localization/app_translations.dart';
+import '../../core/routing/customer_routes.dart';
 import 'storefront_design_system.dart';
 
 class WholesaleHomeDesignScreen extends StatefulWidget {
@@ -16,6 +19,7 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
     required this.api,
     required this.storefrontApi,
     required this.actionApi,
+    required this.session,
     super.key,
   });
 
@@ -23,6 +27,7 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
   final B2bApi? api;
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
+  final CustomerSession session;
 
   @override
   State<WholesaleHomeDesignScreen> createState() =>
@@ -36,10 +41,29 @@ class _WholesaleHomeDesignScreenState
   late Future<Map<String, dynamic>> future = _load();
 
   Future<Map<String, dynamic>> _load([String query = '']) async {
-    if (widget.api == null || storeId <= 0) {
+    if (storeId <= 0) {
+      final publicApi = widget.storefrontApi;
+      if (publicApi == null) {
+        return const {
+          'products': {'data': <Object>[]},
+          'storefront': <String, Object?>{},
+          'retail_banners': <Object>[],
+        };
+      }
+
+      final marketplace = await publicApi.platformHome(query: query);
+      return {
+        'products': marketplace['products'] ?? const {'data': <Object>[]},
+        'storefront': marketplace,
+        'retail_banners': marketplace['retail_banners'] ?? const <Object>[],
+      };
+    }
+
+    if (widget.api == null) {
       return const {
         'products': {'data': <Object>[]},
         'storefront': <String, Object?>{},
+        'retail_banners': <Object>[],
       };
     }
 
@@ -58,6 +82,7 @@ class _WholesaleHomeDesignScreenState
     return {
       'products': products,
       'storefront': storefront,
+      'retail_banners': const <Object>[],
     };
   }
 
