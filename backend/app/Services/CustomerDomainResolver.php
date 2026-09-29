@@ -136,6 +136,8 @@ final class CustomerDomainResolver
         }
 
         if (! $customer instanceof B2cCustomer) {
+            abort_unless((bool) $user->is_platform_customer, 404);
+
             $platformCustomer = DB::table('b2b_customers')
                 ->where('user_id', $user->getKey())
                 ->first(['phone']);
