@@ -31,7 +31,7 @@ class EngagementOperationsBrandingTest extends TestCase
             'install_id' => 'install-417',
             'target_channel' => 'all',
             'locale' => 'ar',
-        ])->assertOk()->assertJsonPath('data.app', 'customer');
+        ])->assertCreated()->assertJsonPath('data.app', 'customer');
 
         $this->assertDatabaseHas('push_device_tokens', [
             'user_id' => null,
