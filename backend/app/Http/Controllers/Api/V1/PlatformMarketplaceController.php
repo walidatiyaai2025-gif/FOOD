@@ -281,9 +281,15 @@ final class PlatformMarketplaceController extends Controller
     private function productQuery(int $storeId): Builder
     {
         $tierId = DB::table('b2b_price_tiers')
-            ->orderBy('priority')
-            ->orderBy('id')
+            ->where('code', 'STANDARD')
             ->value('id');
+
+        if ($tierId === null) {
+            $tierId = DB::table('b2b_price_tiers')
+                ->orderBy('priority')
+                ->orderBy('id')
+                ->value('id');
+        }
 
         $query = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
