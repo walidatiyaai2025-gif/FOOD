@@ -6,8 +6,11 @@ import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
 import 'package:foodex_driver_app/navigation.dart';
 
 class EmptyRepo implements DriverAssignmentRepository {
+  EmptyRepo([this.rows = const []]);
+  final List<DriverAssignment> rows;
+
   @override
-  Future<List<DriverAssignment>> list(DriverChannel channel) async => const [];
+  Future<List<DriverAssignment>> list(DriverChannel channel) async => rows;
 
   @override
   Future<void> transition(int id, DriverChannel channel, String status, {String? note}) async {}
@@ -71,4 +74,43 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('driver-route-denied')), findsOneWidget);
   });
+
+  testWidgets('home renders four live status cards and opens filtered deliveries',
+      (tester) async {
+    final repo = EmptyRepo(const [
+      DriverAssignment(id: 1, channel: DriverChannel.b2c, reference: 'A-1', status: 'accepted'),
+      DriverAssignment(id: 2, channel: DriverChannel.b2c, reference: 'P-1', status: 'picked_up'),
+      DriverAssignment(id: 3, channel: DriverChannel.b2c, reference: 'O-1', status: 'out_for_delivery'),
+      DriverAssignment(id: 4, channel: DriverChannel.b2c, reference: 'D-1', status: 'delivered'),
+      DriverAssignment(id: 5, channel: DriverChannel.b2c, reference: 'A-2', status: 'accepted'),
+    ]);
+
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => repo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-status-picked_up')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-status-out_for_delivery')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-status-delivered')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('driver-home-status-accepted')),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('driver-home-status-accepted')));
+    await tester.pumpAndSettle();
+    expect(find.text('A-1'), findsOneWidget);
+    expect(find.text('A-2'), findsOneWidget);
+    expect(find.text('P-1'), findsNothing);
+    expect(find.text('D-1'), findsNothing);
+  });
+
 }
