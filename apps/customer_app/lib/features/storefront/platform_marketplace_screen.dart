@@ -28,13 +28,22 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   late final http.Client _client = widget.client ?? http.Client();
   late Future<Map<String, dynamic>> _future = _load();
   final PageController _retailController = PageController(viewportFraction: .88);
+  final TextEditingController _searchController = TextEditingController();
   Timer? _retailTimer;
   int _retailIndex = 0;
   int _retailCount = -1;
 
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
-    return _get('$baseUrl/api/v1/platform/storefront');
+    final query = _searchController.text.trim();
+    final uri = Uri.parse('$baseUrl/api/v1/platform/storefront').replace(
+      queryParameters: query.isEmpty ? null : {'q': query},
+    );
+    return _get(uri.toString());
+  }
+
+  void _submitSearch(String _) {
+    setState(() => _future = _load());
   }
 
   void _startRetailAutoSlide(int count) {
@@ -57,6 +66,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   void dispose() {
     _retailTimer?.cancel();
     _retailController.dispose();
+    _searchController.dispose();
     if (widget.client == null) {
       _client.close();
     }
@@ -128,14 +138,79 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     Navigator.of(context).pushNamed('/retail/$id/home');
   }
 
-  void _openWholesaleProduct(int storeId, int productId) {
-    if (!widget.session.isAuthenticated) {
-      _showAuthRequired();
-      return;
+  Future<void> _openWholesaleProduct(int storeId, int productId) async {
+    if (productId <= 0) return;
+    try {
+      final product = await _get(
+        '${FoodexEnvironment.apiBaseUrl}/api/v1/platform/products/$productId',
+      );
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    product['name']?.toString() ?? '',
+                    key: const ValueKey('marketplace-wholesale-product-title'),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  if ((product['sku']?.toString() ?? '').isNotEmpty)
+                    Text('SKU: ${product['sku']}'),
+                  if ((product['barcode']?.toString() ?? '').isNotEmpty)
+                    Text('Barcode: ${product['barcode']}'),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${(product['unit_price'] ?? product['account_price'] ?? 0)} ${product['currency'] ?? 'EGP'}',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  if ((product['description']?.toString() ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(product['description'].toString()),
+                  ],
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    key: const ValueKey('marketplace-wholesale-buy'),
+                    onPressed: () {
+                      Navigator.pop(sheetContext);
+                      if (!widget.session.isAuthenticated) {
+                        _showAuthRequired();
+                        return;
+                      }
+                      Navigator.of(context).pushNamed(
+                        '/b2b/products/$productId?store_id=$storeId',
+                      );
+                    },
+                    icon: const Icon(Icons.shopping_cart_checkout_rounded),
+                    label: Text(
+                      widget.session.isAuthenticated
+                          ? context.tr('customer.action.add_cart')
+                          : context.tr('customer.action.login'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('customer.store.error.title'))),
+      );
     }
-    Navigator.of(context).pushNamed(
-      '/b2b/products/$productId?store_id=$storeId',
-    );
   }
 
   void _showAuthRequired() {
@@ -241,6 +316,28 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           authenticated: widget.session.isAuthenticated,
                           onRegister: _register,
                           onLogin: () => Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace'),
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                          child: TextField(
+                            key: const ValueKey('marketplace-search'),
+                            controller: _searchController,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: _submitSearch,
+                            decoration: InputDecoration(
+                              hintText: context.tr('customer.marketplace.search_hint'),
+                              prefixIcon: const Icon(Icons.search_rounded),
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _submitSearch('');
+                                },
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       if (retail.isNotEmpty)
