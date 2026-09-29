@@ -75,14 +75,13 @@ class DashboardDateRangeTest extends TestCase
         $this->assertStringContainsString('name="from"', $view);
         $this->assertStringContainsString('name="to"', $view);
         $this->assertStringContainsString("\$isAr?'المبيعات':'Sales'", $view);
-        $this->assertStringContainsString("value="{{ request('from') }}"", $view);
-        $this->assertStringContainsString("value="{{ request('to') }}"", $view);
+        $this->assertStringContainsString('value="{{ request(\'from\') }}"', $view);
+        $this->assertStringContainsString('value="{{ request(\'to\') }}"', $view);
         $this->assertStringNotContainsString('المبيعات اليومية', $view);
         $this->assertStringNotContainsString('Daily sales', $view);
         $this->assertStringNotContainsString('آخر 7 أيام', $view);
         $this->assertStringNotContainsString('Last 7 days', $view);
     }
-
 
     public function test_b2b_dashboard_accepts_ranges_longer_than_31_days_and_from_only_is_open_ended(): void
     {
