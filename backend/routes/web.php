@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\B2cWorkspaceController;
 use App\Http\Controllers\Admin\BusinessManagementController;
 use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\LookupManagementController;
+use App\Http\Controllers\Admin\MobileAppDownloadController;
 use App\Http\Controllers\Admin\MobileSettingsController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
@@ -178,6 +179,8 @@ Route::prefix('admin')
         Route::patch('/security/roles/{role}', [SecurityController::class, 'updateRole'])->name('security.roles.update');
         Route::post('/security/roles/{role}/clone', [SecurityController::class, 'cloneRole'])->name('security.roles.clone');
         Route::delete('/security/roles/{role}', [SecurityController::class, 'destroyRole'])->name('security.roles.destroy');
+        Route::get('/apps/customer/download', [MobileAppDownloadController::class, 'customer'])->name('mobile-apps.customer.download');
+        Route::get('/apps/driver/download', [MobileAppDownloadController::class, 'driver'])->name('mobile-apps.driver.download');
         Route::get('/settings/app-versions', [AppVersionController::class, 'index'])->name('app-versions.index');
         Route::post('/settings/app-versions', [AppVersionController::class, 'store'])->name('app-versions.store');
         Route::get('/settings/mobile', [MobileSettingsController::class, 'index'])->name('mobile-settings.index');
