@@ -9,6 +9,7 @@ Primary references:
 - `docs/architecture/SYSTEM_ARCHITECTURE.md`
 - `docs/architecture/ROLE_ARCHITECTURE.md`
 - `docs/architecture/MULTI_TENANT_ARCHITECTURE.md`
+- `docs/architecture/PLATFORM_CUSTOMER_COMMERCE.md`
 - `docs/architecture/ADMIN_SHELL.md`
 - `docs/api/openapi.yaml`
 
@@ -33,8 +34,8 @@ FOODEX is a complete usable product only when all of the following are true:
 3. One Customer Flutter binary serves B2C Guest, B2C Customer and approved B2B Customer.
 4. One Driver Flutter binary serves B2C_DRIVER and B2B_DRIVER with strict channel separation.
 5. All 46 approved design-reference screens are implemented as responsive RTL-first UI and connected to real backend behavior.
-6. B2C guest browsing works without login; checkout requires authentication.
-7. B2B has no public self-registration; authorized dashboard users create/approve B2B accounts.
+6. Guest browsing works across the main Wholesale storefront and Retail storefronts without login; customer-owned checkout/history/invoice operations require authentication.
+7. Customer App users register once as Platform Customers. Retail-origin customers automatically receive approved Wholesale purchasing eligibility while special managed corporate/credit B2B accounts retain their administrative approval lifecycle.
 8. Store-dependent data is server-side store scoped.
 9. Pricing, inventory, checkout, order transitions, driver assignment, reporting and permissions are backend authoritative.
 10. Critical mutations are authorized and auditable.
@@ -720,3 +721,70 @@ Only MT-01 is promoted to Ready after MT-00 merges. Downstream issues remain `st
 ### Release rule
 
 FOODEX must not be called Multi-Tenant ready, and no release may claim complete store isolation, until #247 passes against the migrated schema and real application routes.
+
+
+## 14. Wave K — Unified Platform Customer commerce, invoicing and driver operations (approved 2026-09-29)
+
+This wave is **authoritative and release-blocking** for the one-login cross-store Customer journey.
+
+Architecture authority:
+- `docs/architecture/PLATFORM_CUSTOMER_COMMERCE.md`
+
+Worker execution authority:
+- `docs/execution/PLATFORM_CUSTOMER_COMMERCE_EXECUTION_PLAN.md`
+
+### Business contract
+
+- One Customer App login/account works across the main Wholesale store and all Retail stores.
+- Registration origin is immutable and visible in authorized Dashboard Customer 360 views.
+- A customer registering from a Retail store is automatically eligible to buy from Wholesale through an active B2B customer/account with an approved default price tier.
+- Retail customer records remain separate and store scoped; entering another Retail store does not share tenant rows.
+- Orders, carts, pricing, invoices, drivers and notifications remain owned by the exact selected store/channel.
+- Customer App may aggregate that customer's own orders/invoices across stores; Dashboard users remain store/domain scoped.
+- Customer checkout and Dashboard multi-line order creation must use backend-authoritative pricing and issue a real invoice.
+- Drivers see only assigned order/invoice information, use backend-authoritative transitions, may add notes, and all operational changes surface as scoped live Dashboard notifications.
+
+### Atomic execution queue
+
+| Task | Issue | Exact branch | Dependencies | Acceptance focus |
+|---|---:|---|---|---|
+| PCX-00 Architecture/plan authority | #406 | `docs/406-platform-customer-commerce-plan` | none | Architecture + worker plan + reconciled source docs |
+| PCX-01 Customer identity/origin | #407 | `feat/407-platform-customer-origin` | #406 | immutable origin, Retail-origin B2C + automatic Wholesale account/tier |
+| PCX-02 Single login/store context | #408 | `feat/408-single-login-store-context` | #407 | one mobile session, per-store carts, unified own order history |
+| PCX-03 Pricing/quote authority | #409 | `feat/409-platform-customer-pricing-quotes` | #407 | one server quote engine, Retail store price vs Wholesale tier price, immutable snapshots |
+| PCX-04 Invoice domain | #410 | `feat/410-order-invoice-domain` | #409 | InvoiceService, customer/dashboard invoices, payment link, PDF, immutability |
+| PCX-05 Dashboard Customer 360 | #411 | `feat/411-dashboard-customer-360` | #407, #410 | registered-from badge, authorized cross-domain summary, orders/invoices |
+| PCX-06 Dashboard multi-line order | #412 | `feat/412-dashboard-multiline-order-invoice` | #409, #410 | 2+ product order builder, quote, issue/view/print invoice |
+| PCX-07 Driver + live operations | #413 | `feat/413-driver-invoice-status-notifications` | #410, #412 | driver invoice view, status/note, scoped live Dashboard events |
+| PCX-08 E2E release gate | #414 | `test/414-platform-customer-commerce-e2e` | #407-#413 | full Retail A -> Wholesale -> Retail B -> invoice -> driver -> notification journey |
+
+### Scheduler graph
+
+```text
+#406
+  |
+#407
+ | \
+ |  +--> #409 --> #410 --> #411
+ |                 \
+ +--> #408          +--> #412 --> #413
+          \              /
+           +----------> #414
+```
+
+After #407 merges, #408 and #409 may run in parallel. After #410 merges, #411 and #412 may run in parallel. #413 waits for #410 and #412. #414 waits for all implementation tasks.
+
+### Release gate
+
+Do not claim this customer journey complete until #414 proves:
+1. Retail A registration origin is stored and shown.
+2. The same account purchases from Retail A, Wholesale and Retail B without re-login.
+3. Each order/invoice appears only in the owning store Dashboard.
+4. Wholesale price tier and Retail store pricing are server authoritative.
+5. Dashboard creates a multi-product order and immediately produces its invoice.
+6. Customer App shows unified own orders/invoices with store/channel badges.
+7. Driver sees only assigned order/invoice, changes allowed status and adds notes.
+8. Correct Dashboard users receive scoped live events for order/invoice/payment/driver changes.
+9. Historical order/invoice pricing does not change after catalog/tier changes.
+10. Upgrade migrations preserve existing data and pass production-like MySQL acceptance.
+11. Dashboard, Customer APK and Driver APK are released at one synchronized product version.
