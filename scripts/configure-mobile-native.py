@@ -37,6 +37,18 @@ APP_ICON_FOREGROUND = BRAND_ROOT / 'app_icon_foreground_1024.png'
 SPLASH_IMAGE = BRAND_ROOT / 'splash_master.png'
 SPLASH_BACKGROUND = '#003223'
 SPLASH_ACCENT = '#92D853'
+
+
+def _select_brand_assets(app_name: str) -> None:
+    global APP_ICON, APP_ICON_FOREGROUND, SPLASH_IMAGE
+    if app_name == 'customer':
+        APP_ICON = BRAND_ROOT / 'customer_app_icon_1024.png'
+        # Reuse the validated full customer icon for Android adaptive/splash drawables.
+        # AAPT2 is unstable with the transparent package foreground PNG in drawable-nodpi.
+        APP_ICON_FOREGROUND = APP_ICON
+        SPLASH_IMAGE = BRAND_ROOT / 'customer_splash.png'
+
+
 GOOGLE_SERVICES_PLUGIN_VERSION = '4.4.4'
 
 
@@ -70,7 +82,6 @@ def _write_android_brand_resources(app: Path) -> None:
     drawable = res / 'drawable-nodpi'
     _copy(APP_ICON_FOREGROUND, drawable / 'foodex_launcher_foreground.png')
     _copy(APP_ICON_FOREGROUND, drawable / 'foodex_splash_icon.png')
-    _copy(SPLASH_IMAGE, drawable / 'foodex_splash_full.png')
 
     values = res / 'values'
     values.mkdir(parents=True, exist_ok=True)
@@ -101,8 +112,8 @@ def _write_android_brand_resources(app: Path) -> None:
         '    <item android:drawable="@color/foodex_splash_background" />\n'
         '    <item>\n'
         '        <bitmap\n'
-        '            android:gravity="fill"\n'
-        '            android:src="@drawable/foodex_splash_full" />\n'
+        '            android:gravity="center"\n'
+        '            android:src="@drawable/foodex_splash_icon" />\n'
         '    </item>\n'
         '</layer-list>\n'
     )
@@ -475,6 +486,7 @@ def main() -> None:
     parser.add_argument('--platform', choices=('all', 'android', 'ios'), default='all')
     args = parser.parse_args()
 
+    _select_brand_assets(args.app)
     _require_brand_assets()
     identity = IDENTITIES[args.app]
     if args.platform in ('all', 'android'):
