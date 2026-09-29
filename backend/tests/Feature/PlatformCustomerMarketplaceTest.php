@@ -30,6 +30,8 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertJsonPath('store.channel', 'b2b')
             ->assertJsonPath('store.is_platform_principal', true)
             ->assertJsonPath('products.data.0.id', $wholesaleProduct)
+            ->assertJsonPath('categories.0.id', $wholesaleCategory)
+            ->assertJsonPath('categories.0.slug', 'PLATFORM-CAT')
             ->assertJsonPath('retail_banners.0.id', $retailStore)
             ->assertJsonPath('retail_banners.0.store_id', $retailStore)
             ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/retail-home.jpg'))
@@ -145,9 +147,19 @@ class PlatformCustomerMarketplaceTest extends TestCase
             'updated_at' => $now,
         ]);
 
+        $wholesaleCategory = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $wholesaleCatalog,
+            'parent_id' => null,
+            'name' => 'Wholesale Category',
+            'slug' => 'PLATFORM-CAT',
+            'is_active' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
         $wholesaleProduct = (int) DB::table('products')->insertGetId([
             'catalog_id' => $wholesaleCatalog,
-            'category_id' => null,
+            'category_id' => $wholesaleCategory,
             'brand_id' => null,
             'unit_id' => $unitId,
             'sku' => 'W-PLATFORM-1',
