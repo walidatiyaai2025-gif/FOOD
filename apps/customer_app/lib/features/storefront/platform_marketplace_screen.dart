@@ -463,6 +463,14 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                                     itemBuilder: (_, index) {
                                       final offer = offers[index];
                                       final value = offer['value'];
+                                      final type = offer['type']?.toString();
+                                      final valueText = value == null
+                                          ? ''
+                                          : type == 'percentage'
+                                              ? '$value%'
+                                              : type == 'fixed'
+                                                  ? 'EGP $value'
+                                                  : '$value';
                                       return Container(
                                         constraints:
                                             const BoxConstraints(minWidth: 170),
@@ -486,9 +494,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                                                 fontWeight: FontWeight.w900,
                                               ),
                                             ),
-                                            if (value != null)
+                                            if (valueText.isNotEmpty)
                                               Text(
-                                                '${offer['type'] ?? ''} · $value',
+                                                valueText,
                                                 style: const TextStyle(
                                                   color: Color(0xFF6B3A8E),
                                                   fontSize: 11,
