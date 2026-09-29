@@ -15,13 +15,16 @@
     <main class="main foodex-admin-main">
         <div class="hero foodex-page-header">
             <div><h1>{{ __('reports.title') }}</h1><p class="muted">{{ __('reports.description') }}</p></div>
-            @if(auth()->user()->hasPermission('reports.export') || request('store_id') && auth()->user()->hasPermission('reports.export', (int) request('store_id')))
-            <div class="export">
-                @foreach(['xlsx','docx','pdf'] as $format)
-                    <a class="button secondary" href="{{ route('admin.reports.export', array_merge(request()->query(), ['report'=>$report,'format'=>$format])) }}">{{ strtoupper($format) }}</a>
-                @endforeach
+            <div class="foodex-header-actions">
+                @include('admin._live-notifications',['user'=>auth()->user()])
+                @if(auth()->user()->hasPermission('reports.export') || request('store_id') && auth()->user()->hasPermission('reports.export', (int) request('store_id')))
+                <div class="export">
+                    @foreach(['xlsx','docx','pdf'] as $format)
+                        <a class="button secondary" href="{{ route('admin.reports.export', array_merge(request()->query(), ['report'=>$report,'format'=>$format])) }}">{{ strtoupper($format) }}</a>
+                    @endforeach
+                </div>
+                @endif
             </div>
-            @endif
         </div>
 
         <div class="families">
