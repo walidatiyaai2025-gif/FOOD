@@ -75,6 +75,10 @@ class AdminNavigation
                 $this->module($user, $channels, 'b2b', 'finance', 'admin.b2b_workspace.modules.finance', 'finance.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2b', 'reports', 'admin.b2b_workspace.modules.reports', 'reports.view'),
             ]),
+            $this->group('applications', 'admin.nav_groups.applications', '▣', [
+                $this->routeItem($user, 'mobile_customer_download', 'admin.mobile_apps.customer_download', 'admin.mobile-apps.customer.download', 'platform.manage'),
+                $this->routeItem($user, 'mobile_driver_download', 'admin.mobile_apps.driver_download', 'admin.mobile-apps.driver.download', 'platform.manage'),
+            ]),
             $this->group('administration', 'admin.nav_groups.administration', '⚙', [
                 $this->routeItemOpen('profile', 'admin.profile', 'admin.profile.index'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'settings', 'admin.b2c_workspace.modules.settings', null),

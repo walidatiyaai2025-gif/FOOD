@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.28 - Version-locked dashboard APK downloads and admin account/header cleanup
+
+- Add a dedicated Applications section to the admin sidebar with direct Customer and Driver Android APK download links.
+- Resolve each APK from the installed FOODEX dashboard version so version X can only download assets published under release tag vX.
+- Publish Customer APK, Driver APK and BUILD_INFO.json as versioned GitHub Release assets from the trial distribution workflow.
+- Synchronize Dashboard, Customer app and Driver app version identity at 1.0.28.
+- Include the Firebase HTTP v1 notification object-serialization fix already merged after 1.0.27.
+- Move account settings, language switching and sign-out out of the sidebar footer into the avatar menu beside live notifications.
+
 ## 1.0.27 - Professional store selector and Driver active-assignment hardening
 
 - Ship the professional Customer multi-store selector v3 with the exact جملة / التجزئة tabs, live store-selector API data, responsive RTL/LTR behavior, backend logos/artwork fallbacks, and explicit loading/error/empty/closed-store states.
