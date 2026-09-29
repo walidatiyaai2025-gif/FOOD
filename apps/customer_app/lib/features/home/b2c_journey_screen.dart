@@ -1053,61 +1053,328 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
     }
   }
 
+  Future<void> _setDefaultAddress(int id) async {
+    try {
+      await widget.accountApi.setDefaultAddress(id);
+      _reload();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.tr('customer.error.action_failed')),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _removeAddress(int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr('customer.addresses.delete')),
+        content: Text(
+          context.tr('customer.addresses.delete_confirmation'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(context.tr('customer.action.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(context.tr('customer.addresses.delete')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     try {
       await widget.accountApi.removeAddress(id);
       _reload();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('customer.error.action_failed'))),
+          SnackBar(
+            content: Text(context.tr('customer.error.action_failed')),
+          ),
         );
       }
     }
   }
 
-  Future<void> _addAddress() async {
-    final line1 = TextEditingController();
-    final city = TextEditingController(text: 'Kuwait City');
-    final area = TextEditingController();
+  Future<void> _addAddress() => _editAddress();
+
+  Future<void> _editAddress([Map<String, dynamic>? existing]) async {
+    final label = TextEditingController(
+      text: existing?['label']?.toString() ?? '',
+    );
+    final recipient = TextEditingController(
+      text: existing?['recipient_name']?.toString() ?? '',
+    );
+    final phone = TextEditingController(
+      text: existing?['delivery_phone']?.toString() ?? '',
+    );
+    final line1 = TextEditingController(
+      text: existing?['line1']?.toString() ?? '',
+    );
+    final area = TextEditingController(
+      text: existing?['area']?.toString() ?? '',
+    );
+    final city = TextEditingController(
+      text: existing?['city']?.toString() ?? 'Kuwait City',
+    );
+    final countryCode = TextEditingController(
+      text: existing?['country_code']?.toString() ?? 'KW',
+    );
+    final landmark = TextEditingController(
+      text: existing?['landmark']?.toString() ?? '',
+    );
+    final notes = TextEditingController(
+      text: existing?['delivery_notes']?.toString() ?? '',
+    );
+
+    double? latitude = (existing?['latitude'] as num?)?.toDouble();
+    double? longitude = (existing?['longitude'] as num?)?.toDouble();
+    double? accuracy =
+        (existing?['location_accuracy_meters'] as num?)?.toDouble();
+    var locationSource =
+        existing?['location_source']?.toString() ?? 'manual';
+    var locating = false;
+    String? locationError;
+
     final accepted = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(context.tr('customer.addresses.add')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: line1, decoration: InputDecoration(labelText: context.tr('customer.addresses.line1'))),
-            TextField(controller: area, decoration: InputDecoration(labelText: context.tr('customer.addresses.area'))),
-            TextField(controller: city, decoration: InputDecoration(labelText: context.tr('customer.addresses.city'))),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(
+            existing == null
+                ? context.tr('customer.addresses.add')
+                : context.tr('customer.addresses.edit'),
+          ),
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: label,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.label'),
+                    ),
+                  ),
+                  TextField(
+                    controller: recipient,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.recipient'),
+                    ),
+                  ),
+                  TextField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.phone'),
+                    ),
+                  ),
+                  TextField(
+                    controller: line1,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.line1'),
+                    ),
+                  ),
+                  TextField(
+                    controller: area,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.area'),
+                    ),
+                  ),
+                  TextField(
+                    controller: city,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.city'),
+                    ),
+                  ),
+                  TextField(
+                    controller: countryCode,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      labelText:
+                          context.tr('customer.addresses.country_code'),
+                    ),
+                  ),
+                  TextField(
+                    controller: landmark,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.landmark'),
+                    ),
+                  ),
+                  TextField(
+                    controller: notes,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: context.tr('customer.addresses.notes'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    key: const ValueKey('b2c-address-share-location'),
+                    onPressed: locating
+                        ? null
+                        : () async {
+                            setDialogState(() {
+                              locating = true;
+                              locationError = null;
+                            });
+                            try {
+                              final point =
+                                  await widget.locationService.currentLocation();
+                              if (!dialogContext.mounted) return;
+                              setDialogState(() {
+                                latitude = point.latitude;
+                                longitude = point.longitude;
+                                accuracy = point.accuracyMeters;
+                                locationSource = 'current_location';
+                                locating = false;
+                              });
+                            } on CustomerLocationException catch (error) {
+                              if (!dialogContext.mounted) return;
+                              setDialogState(() {
+                                locationError = switch (error.code) {
+                                  'location_services_disabled' =>
+                                    'customer.addresses.location_services_disabled',
+                                  'location_permission_denied_forever' =>
+                                    'customer.addresses.location_permission_settings',
+                                  _ =>
+                                    'customer.addresses.location_permission_denied',
+                                };
+                                locating = false;
+                              });
+                            } catch (_) {
+                              if (!dialogContext.mounted) return;
+                              setDialogState(() {
+                                locationError =
+                                    'customer.addresses.location_failed';
+                                locating = false;
+                              });
+                            }
+                          },
+                    icon: locating
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.my_location_rounded),
+                    label: Text(
+                      context.tr('customer.addresses.share_location'),
+                    ),
+                  ),
+                  if (latitude != null && longitude != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '${context.tr('customer.addresses.location_saved')}: '
+                      '${latitude!.toStringAsFixed(7)}, '
+                      '${longitude!.toStringAsFixed(7)}',
+                      key: const ValueKey('b2c-address-location-preview'),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  if (locationError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      context.tr(locationError!),
+                      key: const ValueKey('b2c-address-location-error'),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(context.tr('customer.action.cancel')),
+            ),
+            FilledButton(
+              onPressed: locating
+                  ? null
+                  : () {
+                      if (line1.text.trim().isEmpty ||
+                          city.text.trim().isEmpty ||
+                          countryCode.text.trim().length != 2) {
+                        setDialogState(() {
+                          locationError =
+                              'customer.addresses.required_fields';
+                        });
+                        return;
+                      }
+                      Navigator.pop(dialogContext, true);
+                    },
+              child: Text(context.tr('customer.action.save')),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(context.tr('customer.action.cancel'))),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(context.tr('customer.action.save'))),
-        ],
       ),
     );
-    if (accepted == true && line1.text.trim().isNotEmpty && city.text.trim().isNotEmpty) {
+
+    if (accepted == true) {
+      final values = <String, dynamic>{
+        'label': label.text.trim().isEmpty ? null : label.text.trim(),
+        'recipient_name':
+            recipient.text.trim().isEmpty ? null : recipient.text.trim(),
+        'delivery_phone':
+            phone.text.trim().isEmpty ? null : phone.text.trim(),
+        'line1': line1.text.trim(),
+        'street': line1.text.trim(),
+        'city': city.text.trim(),
+        'area': area.text.trim().isEmpty ? null : area.text.trim(),
+        'country_code': countryCode.text.trim().toUpperCase(),
+        'landmark':
+            landmark.text.trim().isEmpty ? null : landmark.text.trim(),
+        'delivery_notes':
+            notes.text.trim().isEmpty ? null : notes.text.trim(),
+        'latitude': latitude,
+        'longitude': longitude,
+        'location_accuracy_meters': accuracy,
+        'location_source':
+            latitude == null || longitude == null ? 'manual' : locationSource,
+      };
+
       try {
-        await widget.accountApi.createAddress({
-          'line1': line1.text.trim(),
-          'city': city.text.trim(),
-          'area': area.text.trim().isEmpty ? null : area.text.trim(),
-          'country_code': 'KW',
-        });
+        final id = (existing?['id'] as num?)?.toInt();
+        if (id == null) {
+          await widget.accountApi.createAddress(values);
+        } else {
+          await widget.accountApi.updateAddress(id, values);
+        }
         _reload();
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.tr('customer.error.action_failed'))),
+            SnackBar(
+              content: Text(context.tr('customer.error.action_failed')),
+            ),
           );
         }
       }
     }
-    line1.dispose();
-    city.dispose();
-    area.dispose();
+
+    for (final controller in [
+      label,
+      recipient,
+      phone,
+      line1,
+      area,
+      city,
+      countryCode,
+      landmark,
+      notes,
+    ]) {
+      controller.dispose();
+    }
   }
 
   Future<void> _editProfile(Map<String, dynamic> profile) async {
