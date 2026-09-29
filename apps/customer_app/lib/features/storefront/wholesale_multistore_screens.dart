@@ -2180,146 +2180,163 @@ class _WholesaleOrderDetailsDesignScreenState
         child: Scaffold(
           backgroundColor: const Color(0xFFFBFAFD),
           body: SafeArea(
-            child: FutureBuilder<Object?>(
-              future: future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const FoodexLoading(
-                    key: ValueKey('b2b-order-detail-loading'),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return FoodexErrorState(
-                    key: const ValueKey('b2b-order-detail-error'),
-                    message: 'تعذر تحميل تفاصيل طلب الجملة.',
-                    onRetry: () => setState(() => future = _load()),
-                  );
-                }
-
-                final raw = snapshot.data;
-                final order = raw is Map
-                    ? Map<String, dynamic>.from(raw)
-                    : <String, dynamic>{};
-                if (order.isEmpty) {
-                  return const FoodexEmptyState(
-                    key: ValueKey('b2b-order-detail-empty'),
-                    title: 'الطلب غير متاح',
-                    subtitle: 'تعذر العثور على بيانات طلب الجملة.',
-                  );
-                }
-
-                final items = mapRows(order['items']);
-                final history = mapRows(
-                  order['status_history'] ??
-                      order['history'] ??
-                      order['timeline'],
-                );
-                final currency = order['currency']?.toString() ?? 'KWD';
-                final total = order['grand_total'] ?? order['total'];
-                final storeName =
-                    order['store_name']?.toString() ??
-                    (order['store'] is Map
-                        ? (order['store'] as Map)['name']?.toString()
-                        : null) ??
-                    '-';
-                final payment =
-                    paymentLabel(order['payment_method']?.toString() ?? '-');
-
-                return ListView(
-                  key: const ValueKey('b2b-order-detail'),
-                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          key: const ValueKey('b2b-order-back'),
-                          onPressed: () => Navigator.of(context)
-                              .pushReplacementNamed('/b2b/orders'),
-                          icon: const Icon(Icons.arrow_back_rounded),
-                        ),
-                        const Expanded(
-                          child: FoodexTopBar(title: 'تفاصيل طلب الجملة'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _OrderDetailCard(
-                      title: order['order_number']?.toString() ??
-                          '#' + orderId.toString(),
-                      rows: [
-                        ('الحالة', orderStatusLabel(order['status']?.toString() ?? '')),
-                        ('المتجر', storeName),
-                        ('الإجمالي', money(total, currency: currency)),
-                        ('الدفع', payment),
-                      ],
-                    ),
-                    if (items.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      const Text(
-                        'الأصناف',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        key: const ValueKey('b2b-order-back'),
+                        onPressed: () => Navigator.of(context)
+                            .pushReplacementNamed('/b2b/orders'),
+                        icon: const Icon(Icons.arrow_back_rounded),
                       ),
-                      const SizedBox(height: 8),
-                      ...items.map(
-                        (item) => _OrderDetailCard(
-                          title: item['name']?.toString() ??
-                              item['name_snapshot']?.toString() ??
-                              'منتج',
-                          rows: [
-                            ('الكمية', item['quantity']?.toString() ?? '-'),
-                            (
-                              'سعر الوحدة',
-                              money(
-                                item['unit_price'],
-                                currency: currency,
+                      const Expanded(
+                        child: FoodexTopBar(title: 'تفاصيل طلب الجملة'),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: FutureBuilder<Object?>(
+                    future: future,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const FoodexLoading(
+                          key: ValueKey('b2b-order-detail-loading'),
+                        );
+                      }
+                      if (snapshot.hasError) {
+                        return FoodexErrorState(
+                          key: const ValueKey('b2b-order-detail-error'),
+                          message: 'تعذر تحميل تفاصيل طلب الجملة.',
+                          onRetry: () => setState(() => future = _load()),
+                        );
+                      }
+
+                      final raw = snapshot.data;
+                      final order = raw is Map
+                          ? Map<String, dynamic>.from(raw)
+                          : <String, dynamic>{};
+                      if (order.isEmpty) {
+                        return const FoodexEmptyState(
+                          key: ValueKey('b2b-order-detail-empty'),
+                          title: 'الطلب غير متاح',
+                          subtitle: 'تعذر العثور على بيانات طلب الجملة.',
+                        );
+                      }
+
+                      final items = mapRows(order['items']);
+                      final history = mapRows(
+                        order['status_history'] ??
+                            order['history'] ??
+                            order['timeline'],
+                      );
+                      final currency = order['currency']?.toString() ?? 'KWD';
+                      final total = order['grand_total'] ?? order['total'];
+                      final storeName =
+                          order['store_name']?.toString() ??
+                          (order['store'] is Map
+                              ? (order['store'] as Map)['name']?.toString()
+                              : null) ??
+                          '-';
+                      final payment = paymentLabel(
+                        order['payment_method']?.toString() ?? '-',
+                      );
+
+                      return ListView(
+                        key: const ValueKey('b2b-order-detail'),
+                        padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+                        children: [
+                          _OrderDetailCard(
+                            title: order['order_number']?.toString() ??
+                                '#' + orderId.toString(),
+                            rows: [
+                              (
+                                'الحالة',
+                                orderStatusLabel(
+                                  order['status']?.toString() ?? '',
+                                ),
+                              ),
+                              ('المتجر', storeName),
+                              ('الإجمالي', money(total, currency: currency)),
+                              ('الدفع', payment),
+                            ],
+                          ),
+                          if (items.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            const Text(
+                              'الأصناف',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
-                            (
-                              'الإجمالي',
-                              money(
-                                item['line_total'],
-                                currency: currency,
+                            const SizedBox(height: 8),
+                            ...items.map(
+                              (item) => _OrderDetailCard(
+                                title: item['name']?.toString() ??
+                                    item['name_snapshot']?.toString() ??
+                                    'منتج',
+                                rows: [
+                                  (
+                                    'الكمية',
+                                    item['quantity']?.toString() ?? '-',
+                                  ),
+                                  (
+                                    'سعر الوحدة',
+                                    money(
+                                      item['unit_price'],
+                                      currency: currency,
+                                    ),
+                                  ),
+                                  (
+                                    'الإجمالي',
+                                    money(
+                                      item['line_total'],
+                                      currency: currency,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                    ],
-                    if (history.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      const Text(
-                        'تحديثات الطلب',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...history.map(
-                        (entry) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.timeline_rounded),
-                          title: Text(
-                            orderStatusLabel(
-                              entry['to_status']?.toString() ??
-                                  entry['status']?.toString() ??
-                                  '',
+                          if (history.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            const Text(
+                              'تحديثات الطلب',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                          ),
-                          subtitle: Text(
-                            entry['created_at']?.toString() ??
-                                entry['date']?.toString() ??
-                                '',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                );
-              },
+                            const SizedBox(height: 8),
+                            ...history.map(
+                              (entry) => ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.timeline_rounded),
+                                title: Text(
+                                  orderStatusLabel(
+                                    entry['to_status']?.toString() ??
+                                        entry['status']?.toString() ??
+                                        '',
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  entry['created_at']?.toString() ??
+                                      entry['date']?.toString() ??
+                                      '',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
