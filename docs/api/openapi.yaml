@@ -1102,7 +1102,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CustomerAddressWrite"
+              $ref: "#/components/schemas/CustomerAddressCreate"
       responses:
         "201":
           description: Address created
@@ -2618,6 +2618,12 @@ components:
         updated_at:
           type: [string, "null"]
           format: date-time
+
+    CustomerAddressCreate:
+      allOf:
+        - $ref: "#/components/schemas/CustomerAddressWrite"
+        - type: object
+          required: [line1, city, country_code]
 
     CustomerAddressWrite:
       type: object
