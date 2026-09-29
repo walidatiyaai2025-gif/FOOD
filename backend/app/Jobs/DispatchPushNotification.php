@@ -32,6 +32,6 @@ final class DispatchPushNotification implements ShouldQueue
             return;
         }
 
-        $push->dispatchNotification($notification);
+        $push->dispatchNotification($notification, true);
     }
 }
