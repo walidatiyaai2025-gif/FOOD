@@ -18,13 +18,6 @@ class PlatformMarketplaceRegistrationTest extends TestCase
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
 
-        DB::table('b2b_price_tiers')->insert([
-            'code' => 'STANDARD',
-            'name' => 'Standard',
-            'priority' => 10,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
     }
 
     public function test_guest_marketplace_exposes_main_wholesale_and_retail_banners(): void
