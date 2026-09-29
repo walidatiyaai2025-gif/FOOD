@@ -3,14 +3,64 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class CustomerGuestSession {
-  CustomerGuestSession({this.token});
-  String? token;
+  CustomerGuestSession({String? token}) : _legacyToken = token;
+
+  final Map<int, String> _storeTokens = <int, String>{};
+  String? _legacyToken;
+  int? _activeStoreId;
+
+  int? get activeStoreId => _activeStoreId;
+
+  String? get token {
+    final storeId = _activeStoreId;
+    if (storeId != null && _storeTokens.containsKey(storeId)) {
+      return _storeTokens[storeId];
+    }
+    return _legacyToken;
+  }
+
+  set token(String? value) {
+    final storeId = _activeStoreId;
+    if (storeId == null) {
+      _legacyToken = value;
+      return;
+    }
+    if (value == null || value.isEmpty) {
+      _storeTokens.remove(storeId);
+    } else {
+      _storeTokens[storeId] = value;
+    }
+  }
+
+  String? tokenForStore(int storeId) {
+    return _storeTokens[storeId] ?? _legacyToken;
+  }
+
+  void activateStore(int storeId) {
+    _activeStoreId = storeId;
+  }
+
+  void captureStoreToken(int storeId, String value) {
+    _activeStoreId = storeId;
+    _storeTokens[storeId] = value;
+    _legacyToken = null;
+  }
+
+  void clear() {
+    _storeTokens.clear();
+    _legacyToken = null;
+    _activeStoreId = null;
+  }
 }
 
 class CustomerLoginResult {
-  const CustomerLoginResult({required this.token});
+  const CustomerLoginResult({
+    required this.token,
+    this.platformCustomer = false,
+  });
 
   final String token;
+  final bool platformCustomer;
 }
 
 abstract interface class CustomerActionApi {
@@ -49,14 +99,51 @@ class HttpCustomerActionApi implements CustomerActionApi {
   final int? b2bRetailStoreId;
   final http.Client _client;
 
-  Map<String, String> get _headers => {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-        if (guestSession.token != null) 'X-Guest-Token': guestSession.token!,
-        if (b2bRetailStoreId != null)
-          'X-FOODEX-Retail-Store-ID': b2bRetailStoreId.toString(),
-      };
+  Map<String, String> get _headers => _headersForStore(null);
+
+  Map<String, String> _headersForStore(int? storeId) {
+    final guestToken = storeId == null
+        ? guestSession.token
+        : guestSession.tokenForStore(storeId);
+
+    return {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+      if (guestToken != null) 'X-Guest-Token': guestToken,
+      if (storeId != null) 'X-FOODEX-Store-ID': storeId.toString(),
+      if (b2bRetailStoreId != null)
+        'X-FOODEX-Retail-Store-ID': b2bRetailStoreId.toString(),
+    };
+  }
+
+  Future<CustomerLoginResult> credentialLogin({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/login'),
+      headers: _headers,
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'password': password,
+      }),
+    );
+    final body = _decode(response);
+    final value = body is Map ? body['token'] : null;
+    if (value is! String || value.isEmpty) {
+      throw const CustomerActionException('invalid_login_response');
+    }
+
+    final user = body is Map && body['user'] is Map
+        ? Map<String, dynamic>.from(body['user'] as Map)
+        : const <String, dynamic>{};
+
+    return CustomerLoginResult(
+      token: value,
+      platformCustomer: user['platform_customer'] == true,
+    );
+  }
 
   @override
   Future<CustomerLoginResult> login({
@@ -73,7 +160,14 @@ class HttpCustomerActionApi implements CustomerActionApi {
       throw const CustomerActionException('invalid_login_response');
     }
 
-    return CustomerLoginResult(token: value);
+    final user = body is Map && body['user'] is Map
+        ? Map<String, dynamic>.from(body['user'] as Map)
+        : const <String, dynamic>{};
+
+    return CustomerLoginResult(
+      token: value,
+      platformCustomer: user['platform_customer'] == true,
+    );
   }
 
   @override
@@ -95,7 +189,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
   }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/cart/items'),
-      headers: _headers,
+      headers: _headersForStore(storeId),
       body: jsonEncode({
         'store_id': storeId,
         'product_id': productId,
@@ -106,7 +200,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
     final value = _decode(response);
     final guestToken = response.headers['x-guest-token'];
     if (guestToken != null && guestToken.trim().isNotEmpty) {
-      guestSession.token = guestToken.trim();
+      guestSession.captureStoreToken(storeId, guestToken.trim());
     }
     return value;
   }
@@ -122,7 +216,10 @@ class HttpCustomerActionApi implements CustomerActionApi {
     _requireToken();
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/checkout'),
-      headers: {..._headers, 'Idempotency-Key': idempotencyKey},
+      headers: {
+        ..._headersForStore(storeId),
+        'Idempotency-Key': idempotencyKey,
+      },
       body: jsonEncode({
         'address_id': addressId,
         if (storeId != null) 'store_id': storeId,

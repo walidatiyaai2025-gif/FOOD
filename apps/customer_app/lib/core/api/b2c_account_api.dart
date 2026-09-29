@@ -36,20 +36,35 @@ class HttpB2cAccountApi implements B2cAccountApi {
   final CustomerGuestSession guestSession;
   final http.Client _client;
 
-  Map<String, String> get _headers => {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
-        if (guestSession.token != null) 'X-Guest-Token': guestSession.token!,
-      };
+  Map<String, String> get _headers => _headersForStore(null);
+
+  Map<String, String> _headersForStore(int? storeId) {
+    final guestToken = storeId == null
+        ? guestSession.token
+        : guestSession.tokenForStore(storeId);
+
+    return {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
+      if (guestToken != null) 'X-Guest-Token': guestToken,
+      if (storeId != null) 'X-FOODEX-Store-ID': storeId.toString(),
+      'X-FOODEX-Customer-Domain': 'b2c',
+    };
+  }
 
   @override
   Future<Object?> cart({int? storeId}) async {
     final uri = Uri.parse('$baseUrl/api/v1/cart').replace(
       queryParameters: storeId == null ? null : {'store': '$storeId'},
     );
-    final response = await _send(() => _client.get(uri, headers: _headers));
-    _captureGuestToken(response);
+    final response = await _send(
+      () => _client.get(uri, headers: _headersForStore(storeId)),
+    );
+    if (storeId != null) {
+      guestSession.activateStore(storeId);
+    }
+    _captureGuestToken(response, storeId: storeId);
     return _decode(response);
   }
 
@@ -229,9 +244,13 @@ class HttpB2cAccountApi implements B2cAccountApi {
     }
   }
 
-  void _captureGuestToken(http.Response response) {
+  void _captureGuestToken(http.Response response, {int? storeId}) {
     final value = response.headers['x-guest-token'];
-    if (value != null && value.trim().isNotEmpty) {
+    if (value == null || value.trim().isEmpty) return;
+
+    if (storeId != null) {
+      guestSession.captureStoreToken(storeId, value.trim());
+    } else {
       guestSession.token = value.trim();
     }
   }
