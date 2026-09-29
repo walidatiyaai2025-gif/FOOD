@@ -44,6 +44,8 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/auth/mobile-trial', [AuthController::class, 'mobileTrialLogin'])
         ->middleware('throttle:login');
 
+    Route::get('/marketplace', [StorefrontController::class, 'marketplace']);
+    Route::get('/wholesale/stores/{store}/storefront', [StorefrontController::class, 'showWholesalePublic']);
     Route::get('/stores', [GuestStoreController::class, 'index']);
     Route::get('/stores/{store}/categories', [GuestCatalogController::class, 'categories']);
     Route::get('/stores/{store}/products', [GuestCatalogController::class, 'products']);
