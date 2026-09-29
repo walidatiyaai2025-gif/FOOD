@@ -137,7 +137,7 @@
                 </div>
 
                 @forelse($stores as $store)
-                    <details class="foodex-card store-card store-accordion" data-store-accordion="{{ $store->id }}" @if($loop->first) open @endif>
+                    <details class="foodex-card store-card store-accordion" data-store-accordion="{{ $store->id }}" @if($loop->first) open="open" @endif>
                         <summary aria-label="{{ $ar?'فتح أو إغلاق بيانات المتجر':'Expand or collapse store details' }}">
                             <div class="store-accordion-summary-main">
                                 @if($store->logo_path)
