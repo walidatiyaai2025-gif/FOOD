@@ -239,8 +239,15 @@ final class PushDeliveryService
             }
 
             $errorCode = strtoupper((string) ($detail['errorCode'] ?? ''));
-            if (in_array($errorCode, ['UNREGISTERED', 'INVALID_ARGUMENT'], true)) {
+            if ($errorCode === 'UNREGISTERED') {
                 return true;
+            }
+
+            if ($errorCode === 'INVALID_ARGUMENT') {
+                $message = strtolower((string) data_get($body, 'error.message', ''));
+                if (str_contains($message, 'registration token')) {
+                    return true;
+                }
             }
         }
 
