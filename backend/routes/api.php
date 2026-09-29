@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\B2bFinanceController;
 use App\Http\Controllers\Api\V1\B2bPricingController;
 use App\Http\Controllers\Api\V1\B2bReportController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\CustomerInvoiceController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\GuestCartController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\V1\MobileRuntimeController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PlatformMarketplaceController;
 use App\Http\Controllers\Api\V1\PushDeviceController;
+use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
@@ -113,7 +115,12 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/profile/favorites/{product}', [CustomerProfileController::class, 'addFavorite']);
         Route::delete('/profile/favorites/{product}', [CustomerProfileController::class, 'removeFavorite']);
 
+        Route::post('/quote', QuoteController::class);
         Route::post('/checkout', CheckoutController::class);
+
+        Route::get('/invoices', [CustomerInvoiceController::class, 'index']);
+        Route::get('/invoices/{invoice}', [CustomerInvoiceController::class, 'show'])->whereNumber('invoice');
+        Route::get('/invoices/{invoice}/download', [CustomerInvoiceController::class, 'download'])->whereNumber('invoice');
 
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
