@@ -494,6 +494,9 @@ class _FakeAccountApi implements B2cAccountApi {
       {'id': addressId, ...values};
 
   @override
+  Future<Object?> setDefaultAddress(int addressId) async => {'id': addressId, 'is_default': true};
+
+  @override
   Future<void> removeAddress(int addressId) async {}
 
   @override
@@ -569,6 +572,9 @@ class _ErrorAccountApi implements B2cAccountApi {
     Map<String, dynamic> values,
   ) async =>
       _fail();
+
+  @override
+  Future<Object?> setDefaultAddress(int addressId) async => {'id': addressId, 'is_default': true};
 
   @override
   Future<void> removeAddress(int addressId) async => _fail();
