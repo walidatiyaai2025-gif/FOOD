@@ -227,7 +227,14 @@ final class NotificationController extends Controller
     /** @return Builder<Notification> */
     private function dashboardNotifications(User $user): Builder
     {
-        $storeIds = app(OperationalTenantScope::class)->allowedStoreIds($user, 'orders.view');
+        $storeIds = collect(['orders.view', 'finance.view', 'notifications.view'])
+            ->flatMap(fn (string $permission): array => app(OperationalTenantScope::class)
+                ->allowedStoreIds($user, $permission))
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
         $channels = DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->whereIn('stores.id', $storeIds)
