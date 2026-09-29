@@ -455,5 +455,4 @@ final class PromotionalNotificationCampaignController extends Controller
 
         return $images->store($file, 'campaigns', is_numeric($storeId) ? (int) $storeId : null);
     }
-
 }
