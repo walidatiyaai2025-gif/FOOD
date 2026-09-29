@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'core/auth/driver_session.dart';
 import 'core/localization/driver_translations.dart';
 import 'core/theme/foodex_theme.dart';
+import 'features/notifications/driver_notification_page.dart';
+import 'features/notifications/notification_feed.dart';
 import 'features/tasks/driver_journey.dart';
 
 export 'core/auth/driver_session.dart' show DriverChannel;
@@ -11,8 +13,10 @@ abstract final class DriverRoutes {
   static const root = '/';
   static const b2cHome = '/driver/b2c/home';
   static const b2cDeliveries = '/driver/b2c/deliveries';
+  static const b2cNotifications = '/driver/b2c/notifications';
   static const b2bHome = '/driver/b2b/home';
   static const b2bDeliveries = '/driver/b2b/deliveries';
+  static const b2bNotifications = '/driver/b2b/notifications';
 
   static bool belongsTo(String route, DriverChannel channel) {
     final prefix =
@@ -25,12 +29,14 @@ class DriverNavigator {
   const DriverNavigator(
     this.channel, {
     required this.repository,
+    this.notificationRepository,
     this.onSessionExpired,
     this.onLogout,
   });
 
   final DriverChannel channel;
   final DriverAssignmentRepository repository;
+  final DriverNotificationRepository? notificationRepository;
   final VoidCallback? onSessionExpired;
   final VoidCallback? onLogout;
 
@@ -61,6 +67,30 @@ class DriverNavigator {
           ),
           settings,
         );
+      case DriverRoutes.b2cNotifications:
+      case DriverRoutes.b2bNotifications:
+        final notifications = notificationRepository;
+        if (notifications == null) {
+          return _page(const _DriverRouteNotFound(), settings);
+        }
+        final deliveriesRoute = channel == DriverChannel.b2c
+            ? DriverRoutes.b2cDeliveries
+            : DriverRoutes.b2bDeliveries;
+        return _page(
+          Builder(
+            builder: (context) => DriverNotificationPage(
+              repository: notifications,
+              onSessionExpired: onSessionExpired,
+              onOpenAssignment: (assignmentId) {
+                Navigator.of(context).pushNamed(
+                  deliveriesRoute,
+                  arguments: assignmentId,
+                );
+              },
+            ),
+          ),
+          settings,
+        );
       default:
         return _page(const _DriverRouteNotFound(), settings);
     }
@@ -73,10 +103,14 @@ class DriverNavigator {
     final deliveries = channel == DriverChannel.b2c
         ? DriverRoutes.b2cDeliveries
         : DriverRoutes.b2bDeliveries;
+    final notifications = channel == DriverChannel.b2c
+        ? DriverRoutes.b2cNotifications
+        : DriverRoutes.b2bNotifications;
 
     return _DriverHomePage(
       routeName: route,
       deliveriesRoute: deliveries,
+      notificationsRoute: notifications,
       onLogout: onLogout,
     );
   }
@@ -90,11 +124,13 @@ class _DriverHomePage extends StatelessWidget {
   const _DriverHomePage({
     required this.routeName,
     required this.deliveriesRoute,
+    required this.notificationsRoute,
     this.onLogout,
   });
 
   final String routeName;
   final String deliveriesRoute;
+  final String notificationsRoute;
   final VoidCallback? onLogout;
 
   @override
@@ -181,6 +217,19 @@ class _DriverHomePage extends StatelessWidget {
                     ),
                     icon: const Icon(Icons.route_rounded),
                     label: Text(context.tr('driver.home.open_deliveries')),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    key: const Key('driver-open-notifications'),
+                    onPressed: () => Navigator.of(context).pushNamed(
+                      notificationsRoute,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white54),
+                    ),
+                    icon: const Icon(Icons.notifications_none_rounded),
+                    label: Text(context.tr('driver.notifications.title')),
                   ),
                 ],
               ),
