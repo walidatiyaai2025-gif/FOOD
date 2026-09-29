@@ -50,9 +50,10 @@ class AuthController extends Controller
             'phone' => ['required', 'string', 'max:40'],
             'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
             'locale' => ['nullable', 'string', 'in:ar,en'],
+            'store_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $user = $this->platformCustomers->register($validated);
+        $user = $this->platformCustomers->register($validated, 'customer_app');
 
         return response()->json([
             'token' => $user->createToken('foodex-platform-customer')->plainTextToken,
