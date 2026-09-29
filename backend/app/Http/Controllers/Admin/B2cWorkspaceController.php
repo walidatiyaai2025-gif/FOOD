@@ -19,6 +19,7 @@ use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -145,6 +146,18 @@ class B2cWorkspaceController extends Controller
         $orders->transition($request, $order, $audit, $dashboardNotifier);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تحديث حالة الطلب.' : 'Order status updated.');
+    }
+
+    public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $user);
+        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'orders.manage', 'b2c');
+
+        return response()->json([
+            'data' => $orders->quote($request, 'b2c', $storeId),
+        ]);
     }
 
     public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
