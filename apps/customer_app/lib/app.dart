@@ -213,7 +213,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   Future<void> _logout(CustomerActionApi actionApi) async {
     final service = widget.pushService;
     if (service != null) {
-      unawaited(service.revokeSession());
+      await service.revokeSession();
     }
 
     try {
