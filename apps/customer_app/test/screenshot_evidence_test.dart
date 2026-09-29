@@ -468,15 +468,18 @@ class _EvidenceActionApi implements CustomerActionApi {
   const _EvidenceActionApi();
 
   @override
-  Future<CustomerLoginResult> login({required String email, required String password}) async =>
+  Future<CustomerLoginResult> login({required String username}) async =>
       const CustomerLoginResult(token: 'evidence-token');
+
+  @override
+  Future<void> logout() async {}
 
   @override
   Future<Object?> addCartItem({required int storeId, required int productId, required double quantity}) async =>
       {'store_id': storeId, 'product_id': productId, 'quantity': quantity};
 
   @override
-  Future<Object?> checkout({required int addressId, String? paymentMethod, required String idempotencyKey}) async =>
+  Future<Object?> checkout({required int addressId, int? storeId, String? paymentMethod, String? couponCode, required String idempotencyKey}) async =>
       {'id': 101, 'status': 'confirmed'};
 }
 
