@@ -1511,12 +1511,6 @@ class _WholesaleCheckoutDesignScreenState
   }
 
   @override
-  void dispose() {
-    note.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
