@@ -914,10 +914,10 @@ class _RetailHomeBody extends StatelessWidget {
               ),
             ];
           }
-          if (type == 'categories') {
+          if (type == 'categories' || type == 'departments') {
             return [
               FoodexSectionHeader(
-                title: section['title_ar']?.toString() ?? 'التصنيفات',
+                title: section['title_ar']?.toString() ?? (type == 'departments' ? 'الأقسام' : 'التصنيفات'),
                 palette: palette,
               ),
               _CategoryRail(
