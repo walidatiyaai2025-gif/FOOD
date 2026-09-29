@@ -70,6 +70,7 @@ class AdminNavigation
             ]),
             $this->group('advertising', 'admin.nav_groups.advertising', '◉', [
                 $this->routeItemAdvertising($user, 'notification_campaigns', 'notifications.sidebar_campaigns', 'admin.notification-campaigns.index', 'notifications.view', 'advertising_enabled'),
+                $this->routeItemAdvertising($user, 'live_ads', 'live_ads.title', 'admin.live-ads.index', 'live_ads.view', 'live_ads_enabled'),
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
