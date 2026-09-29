@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.34 - Engagement, live advertising, operations and platform branding
+
+- Add image-capable notification testing and promotional campaign pushes with FOODEX brand fallback imagery.
+- Register Customer App push devices before login and keep anonymous installs eligible after logout.
+- Surface foreground and data-only/silent Customer pushes as visible local notifications.
+- Add store-scoped Live Ads administration with scheduling, duration, frequency, CTA, image upload and Customer App popup rendering.
+- Add Operations > Order Management with platform/store-safe filtering, exact status and driver visibility, driver reminder pushes, status changes and driver assignment actions.
+- Extend Retail and Wholesale storefront composition with configurable departments alongside categories, brands and existing managed banner/section layouts.
+- Apply the FOODEX Economical Group logo to dashboard, Customer App and Driver App branding surfaces.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.34.
+
 ## 1.0.33 - Explicit platform customer marketplace identity
 
 - Integrate the remaining #402 public platform marketplace work on top of the newer 1.0.32 wholesale-first Customer experience.
