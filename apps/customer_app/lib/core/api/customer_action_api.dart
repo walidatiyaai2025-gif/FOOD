@@ -117,6 +117,34 @@ class HttpCustomerActionApi implements CustomerActionApi {
     };
   }
 
+  Future<CustomerLoginResult> credentialLogin({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/login'),
+      headers: _headers,
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'password': password,
+      }),
+    );
+    final body = _decode(response);
+    final value = body is Map ? body['token'] : null;
+    if (value is! String || value.isEmpty) {
+      throw const CustomerActionException('invalid_login_response');
+    }
+
+    final user = body is Map && body['user'] is Map
+        ? Map<String, dynamic>.from(body['user'] as Map)
+        : const <String, dynamic>{};
+
+    return CustomerLoginResult(
+      token: value,
+      platformCustomer: user['platform_customer'] == true,
+    );
+  }
+
   @override
   Future<CustomerLoginResult> login({
     required String username,
