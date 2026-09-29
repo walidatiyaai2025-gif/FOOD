@@ -18,6 +18,7 @@
     .foodex-page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-6)}
     .foodex-page-header h1{margin:0;font-size:clamp(1.55rem,2.2vw,var(--foodex-text-2xl));line-height:var(--foodex-leading-tight);font-weight:var(--foodex-font-weight-bold)}
     .foodex-page-header p{margin:var(--foodex-space-1) 0 0;color:var(--foodex-muted)}
+    .foodex-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:var(--foodex-space-2);flex-wrap:wrap}
     .foodex-topbar{min-height:var(--foodex-header-height);background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border)}
     .foodex-search{min-height:var(--foodex-control-height);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}
     .foodex-subtitle{display:block;margin-top:2px;color:var(--foodex-muted);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-regular)}
@@ -92,6 +93,7 @@
         .foodex-admin-page{padding:var(--foodex-space-4)}
         .foodex-page-header{width:100%;align-items:stretch}
         .foodex-page-header>*{min-width:0}
+        .foodex-header-actions{justify-content:flex-start}
         .foodex-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:thin}
         .foodex-tabs a,.foodex-tab{flex:0 0 auto;white-space:nowrap}
         .foodex-premium-auto-form{grid-template-columns:minmax(0,1fr)}

@@ -184,6 +184,56 @@ jobs:
           fi
           python3 scripts/write-trial-bundle-manifest.py --version "$CURRENT_VERSION" --source-commit "$GITHUB_SHA" --run-number "$GITHUB_RUN_NUMBER" --api-base-url "$FOODEX_API_BASE_URL" --customer Release/FOODEX-Customer.apk --driver Release/FOODEX-Driver.apk --setup Release/FOODEX-Laravel-Setup.zip --customer-firebase "$customer_firebase" --driver-firebase "$driver_firebase" --output Release/BUILD_INFO.json
 
+      - name: Publish version-locked mobile APK assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="v$CURRENT_VERSION"
+          notes_file="$(mktemp)"
+          cat > "$notes_file" <<EOF
+          # FOODEX $CURRENT_VERSION
+
+          Dashboard, Customer APK and Driver APK are synchronized to the same FOODEX version.
+
+          Source commit: $GITHUB_SHA
+
+          - Dashboard: $CURRENT_VERSION
+          - Customer Android APK: $CURRENT_VERSION
+          - Driver Android APK: $CURRENT_VERSION
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f "$tag" "$GITHUB_SHA"
+          git push --force origin "refs/tags/$tag"
+
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "FOODEX $CURRENT_VERSION" \
+              --notes-file "$notes_file"
+          else
+            gh release create "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "FOODEX $CURRENT_VERSION" \
+              --notes-file "$notes_file"
+          fi
+
+          gh release upload "$tag" \
+            Release/FOODEX-Customer.apk \
+            Release/FOODEX-Driver.apk \
+            Release/BUILD_INFO.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+          assets="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          grep -Fx "FOODEX-Customer.apk" <<<"$assets"
+          grep -Fx "FOODEX-Driver.apk" <<<"$assets"
+          grep -Fx "BUILD_INFO.json" <<<"$assets"
+
       - name: Validate bundle files
         shell: bash
         run: |

@@ -18,10 +18,15 @@ return [
         'marketing' => 'التسويق والتواصل',
         'advertising' => 'الدعايا',
         'analytics' => 'التحليلات والتقارير',
+        'applications' => 'التطبيقات',
         'administration' => 'الإدارة',
     ],
     'nav_items' => [
         'notifications' => 'الإشعارات',
+    ],
+    'mobile_apps' => [
+        'customer_download' => 'تحميل تطبيق العميل APK',
+        'driver_download' => 'تحميل تطبيق السائق APK',
     ],
     'app_versions' => 'إصدارات التطبيقات',
     'system_update' => 'تحديث النظام',

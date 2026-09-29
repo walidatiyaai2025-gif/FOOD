@@ -1,6 +1,8 @@
 @php
-    $foodexCanManageNotifications = $user->hasPermission('notifications.manage');
+    $foodexNotificationUser = $user ?? auth()->user();
+    $foodexCanManageNotifications = $foodexNotificationUser?->hasPermission('notifications.manage') ?? false;
 @endphp
+<div class="foodex-header-utilities">
 <div class="foodex-live-notifications" data-foodex-live-notifications
      data-feed-url="{{ route('admin.notifications.live') }}"
      data-read-url="{{ route('admin.notifications.read', ['notification' => '__ID__']) }}"
@@ -30,8 +32,11 @@
     </section>
     <div class="foodex-live-toasts" data-live-toasts aria-live="polite" aria-atomic="false"></div>
 </div>
+@include('admin._account-menu',['user'=>$foodexNotificationUser])
+</div>
 
 <style>
+.foodex-header-utilities{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto}
 .foodex-live-notifications{position:relative;display:inline-flex;align-items:center}
 .foodex-live-bell{position:relative;width:var(--foodex-touch-target);height:var(--foodex-touch-target);display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:50%;background:var(--foodex-surface);color:var(--foodex-ink);cursor:pointer}
 .foodex-live-bell:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}

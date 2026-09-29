@@ -18,10 +18,15 @@ return [
         'marketing' => 'Marketing & Communications',
         'advertising' => 'Advertising',
         'analytics' => 'Analytics & Reports',
+        'applications' => 'Applications',
         'administration' => 'Administration',
     ],
     'nav_items' => [
         'notifications' => 'Notifications',
+    ],
+    'mobile_apps' => [
+        'customer_download' => 'Download Customer APK',
+        'driver_download' => 'Download Driver APK',
     ],
     'app_versions' => 'App Versions',
     'system_update' => 'System Update',

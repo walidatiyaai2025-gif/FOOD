@@ -33,7 +33,7 @@ $scopeLabels=['global'=>$ar?'عام للمنصة':'Platform global','b2b'=>$ar?'
 <div class="lookup-layout">
 <aside>@include('admin._sidebar',['navContext'=>'lookup_management'])</aside>
 <main>
-<div class="header"><div><h1>{{ $ar?'العلامات والوحدات':'Brands & Units' }}</h1><div class="muted">{{ $ar?'إدارة العلامات التجارية ووحدات القياس حسب صلاحية ونطاق المستخدم الحالي.':'Manage brands and units inside the current authorized business scope.' }}</div></div><a class="btn" href="{{ route('admin.index') }}">{{ $ar?'لوحة الإدارة':'Dashboard' }}</a></div>
+<div class="header foodex-page-header"><div><h1>{{ $ar?'العلامات والوحدات':'Brands & Units' }}</h1><div class="muted">{{ $ar?'إدارة العلامات التجارية ووحدات القياس حسب صلاحية ونطاق المستخدم الحالي.':'Manage brands and units inside the current authorized business scope.' }}</div></div><div class="foodex-header-actions">@include('admin._live-notifications',['user'=>auth()->user()])<a class="btn" href="{{ route('admin.index') }}">{{ $ar?'لوحة الإدارة':'Dashboard' }}</a></div></div>
 
 @if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
