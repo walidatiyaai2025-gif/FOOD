@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\DispatchPushNotification;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\B2cCustomerService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class OrderOperationsIsolationTest extends TestCase
@@ -147,6 +149,74 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('Open in map')
             ->assertSee('30.0444200')
             ->assertSee('31.2357120');
+    }
+
+    public function test_driver_reminder_is_actionable_persisted_and_queued(): void
+    {
+        Queue::fake();
+
+        $store = $this->store('OPS-REMINDER');
+        $admin = $this->storeAdmin($store, 'ops-reminder@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, [
+            'name' => 'Reminder Buyer',
+        ]);
+        $order = $this->order(
+            $store,
+            (int) $customer->legacy_customer_id,
+            (int) $customer->id,
+            'OPS-REMINDER-1001',
+        );
+
+        $driverUser = User::query()->create([
+            'name' => 'Reminder Driver',
+            'email' => 'ops-reminder-driver@example.test',
+            'password' => 'password',
+            'locale' => 'ar',
+            'is_active' => true,
+        ]);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $store,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $assignmentId = (int) DB::table('driver_assignments')->insertGetId([
+            'driver_id' => $driverId,
+            'order_id' => $order,
+            'store_id' => $store,
+            'assignment_type' => 'b2c',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post("/admin/operations/orders/{$order}/remind-driver")
+            ->assertRedirect();
+
+        $notification = DB::table('notifications')
+            ->where('user_id', $driverUser->id)
+            ->where('type', 'order.driver_reminder')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($notification);
+        $this->assertSame('both', $notification->channel);
+        $this->assertSame('driver', $notification->app);
+
+        $data = json_decode((string) $notification->data, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame($order, (int) $data['order_id']);
+        $this->assertSame($assignmentId, (int) $data['assignment_id']);
+        $this->assertFalse((bool) $data['access_revoked']);
+
+        Queue::assertPushed(
+            DispatchPushNotification::class,
+            fn (DispatchPushNotification $job): bool => $job->notificationId === (int) $notification->id,
+        );
     }
 
     public function test_retail_admin_cannot_operate_foreign_order_but_can_transition_own_order(): void
