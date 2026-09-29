@@ -85,7 +85,7 @@ return [
             'inventory.view', 'inventory.adjust', 'inventory.manage',
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
             'customers.view', 'customers.create', 'customers.edit', 'customers.delete', 'customers.manage',
-            'promotions.view', 'promotions.manage', 'reports.view', 'reports.export',
+            'promotions.view', 'promotions.manage', 'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage',
             'drivers.b2c.view', 'drivers.b2c.manage', 'notifications.view', 'notifications.manage',
             'coupons.view', 'coupons.manage', 'live_ads.view', 'live_ads.manage',
