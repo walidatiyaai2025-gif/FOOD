@@ -378,7 +378,9 @@ void main() {
   });
 
 
-  testWidgets('marketplace header stays responsive and RTL at 390px', (tester) async {
+  testWidgets(
+      'marketplace header stays responsive with scan and locale controls at 390px',
+      (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -386,6 +388,7 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
+    Locale? requestedLocale;
     final client = MockClient((request) async => http.Response(
           jsonEncode({
             'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
@@ -407,6 +410,7 @@ void main() {
           home: PlatformMarketplaceScreen(
             session: const CustomerSession.guest(),
             onPlatformRegistered: (_) {},
+            onLocaleChanged: (locale) => requestedLocale = locale,
             client: client,
           ),
         ),
@@ -422,12 +426,28 @@ void main() {
       ),
       TextDirection.rtl,
     );
+    expect(find.byKey(const ValueKey('marketplace-scan')), findsOneWidget);
+    expect(find.byKey(const ValueKey('marketplace-language')), findsOneWidget);
+    expect(find.text('AR'), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-cart')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('marketplace-notifications')),
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('marketplace-auth-menu')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('marketplace-scan')));
+    await tester.pump();
+    tester.testTextInput.enterText('123456789');
+    await tester.pump();
+    final search = tester.widget<TextField>(
+      find.byKey(const ValueKey('marketplace-search')),
+    );
+    expect(search.controller?.text, '123456789');
+
+    await tester.tap(find.byKey(const ValueKey('marketplace-language')));
+    await tester.pump();
+    expect(requestedLocale, const Locale('en'));
   });
 
 }
