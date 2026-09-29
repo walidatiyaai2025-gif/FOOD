@@ -41,8 +41,14 @@ final class NotificationAudience
         if ($isDashboardUser) {
             $apps[] = 'dashboard';
             foreach (['b2b', 'b2c'] as $dashboardChannel) {
-                $allowed = app(OperationalTenantScope::class)
-                    ->allowedStoreIds($user, 'notifications.view', $dashboardChannel);
+                $allowed = collect(['notifications.view', 'orders.view', 'finance.view'])
+                    ->flatMap(fn (string $permission): array => app(OperationalTenantScope::class)
+                        ->allowedStoreIds($user, $permission, $dashboardChannel))
+                    ->map(static fn ($id): int => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->all();
+
                 if ($allowed !== []) {
                     $channels[] = $dashboardChannel;
                     $dashboardStoreIds = array_merge($dashboardStoreIds, $allowed);
