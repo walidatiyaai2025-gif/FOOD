@@ -13,6 +13,7 @@ import 'core/auth/customer_session.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/localization/app_translations.dart';
 import 'core/location/customer_location_service.dart';
+import 'core/location/customer_map_pin_selector.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
@@ -35,6 +36,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.theme,
     this.pushService,
     this.locationService,
+    this.mapPinPicker,
   });
 
   final CustomerSession session;
@@ -51,6 +53,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final ThemeData? theme;
   final CustomerFirebasePushService? pushService;
   final CustomerLocationService? locationService;
+  final CustomerMapPinPicker? mapPinPicker;
 
   @override
   State<FoodexCustomerApp> createState() => _FoodexCustomerAppState();
@@ -280,6 +283,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       onPlatformRegistered: _onPlatformRegistered,
       locationService: widget.locationService ??
           const GeolocatorCustomerLocationService(),
+      mapPinPicker: widget.mapPinPicker ?? showCustomerMapPinSelector,
     );
 
     return MaterialApp(
