@@ -250,4 +250,82 @@ void main() {
     );
   });
 
+
+  testWidgets('guest wholesale buy keeps product and store context through login',
+      (tester) async {
+    final client = MockClient((request) async {
+      if (request.url.path == '/api/v1/platform/products/42') {
+        return http.Response(
+          jsonEncode({
+            'id': 42,
+            'name': 'Wholesale Rice',
+            'sku': 'W-RICE-42',
+            'unit_price': 12.5,
+            'currency': 'EGP',
+          }),
+          200,
+        );
+      }
+
+      return http.Response(
+        jsonEncode({
+          'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
+          'hero': null,
+          'products': {
+            'data': [
+              {
+                'id': 42,
+                'name': 'Wholesale Rice',
+                'unit_price': 12.5,
+                'currency': 'EGP',
+              }
+            ],
+          },
+          'retail_banners': const [],
+        }),
+        200,
+      );
+    });
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('en'),
+        overrides: const {},
+        child: MaterialApp(
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.guest(),
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => Scaffold(
+              body: Text(settings.name ?? '', key: const ValueKey('route-name')),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Wholesale Rice'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('marketplace-wholesale-buy')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Login'), findsWidgets);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Login'));
+    await tester.pumpAndSettle();
+
+    final routeText = tester.widget<Text>(
+      find.byKey(const ValueKey('route-name')),
+    );
+    final uri = Uri.parse(routeText.data!);
+    expect(uri.path, '/auth/checkout');
+    expect(
+      uri.queryParameters['next'],
+      '/b2b/products/42?store_id=70',
+    );
+  });
+
 }
