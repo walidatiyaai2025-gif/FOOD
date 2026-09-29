@@ -29,6 +29,7 @@ use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -136,6 +137,17 @@ class B2bWorkspaceController extends Controller
         $orders->transition($request, $order, $audit, $dashboardNotifier);
 
         return back()->with('status', $this->msg('تم تحديث حالة الطلب.', 'Order status updated.'));
+    }
+
+    public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $storeId = $this->principal->storeId();
+        $this->operationalScope->assertStore($actor, $storeId, 'orders.manage', 'b2b');
+
+        return response()->json([
+            'data' => $orders->quote($request, 'b2b', $storeId),
+        ]);
     }
 
     public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
