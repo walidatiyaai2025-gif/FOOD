@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AdminShellController;
 use App\Http\Controllers\Admin\AppVersionController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
+use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\BusinessManagementController;
 use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -71,6 +72,8 @@ Route::prefix('admin')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
+        Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
+        Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice')->name('invoices.show');
         Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])->whereNumber('invoice')->name('invoices.download');
         Route::post('/invoices/{invoice}/void-reissue', [InvoiceController::class, 'reissue'])->whereNumber('invoice')->name('invoices.reissue');
