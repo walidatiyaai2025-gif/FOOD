@@ -103,7 +103,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
     _splashTimer?.cancel();
     if (widget.definition.pattern != CustomerRoutePaths.splash) return;
     _splashTimer = Timer(const Duration(milliseconds: 1100), () {
-      if (mounted) Navigator.of(context).pushReplacementNamed(CustomerRoutePaths.entry);
+      if (mounted) Navigator.of(context).pushReplacementNamed(CustomerRoutePaths.marketplace);
     });
   }
 
