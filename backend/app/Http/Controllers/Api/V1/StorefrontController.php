@@ -15,6 +15,163 @@ use Illuminate\Validation\ValidationException;
 
 final class StorefrontController extends Controller
 {
+    public function marketplace(Request $request): JsonResponse
+    {
+        $wholesale = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->leftJoin('storefront_settings', 'storefront_settings.store_id', '=', 'stores.id')
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2B')
+            ->orderBy('stores.id')
+            ->first([
+                'stores.id',
+                'stores.code',
+                'stores.name',
+                'stores.logo_path',
+                'storefront_settings.theme_code',
+                'storefront_settings.header_address',
+            ]);
+
+        abort_if($wholesale === null, 404, 'Main Wholesale store is not configured.');
+
+        $retailStores = $this->retailStoreQuery($request)
+            ->orderByDesc('stores.created_at')
+            ->orderByDesc('stores.id')
+            ->get()
+            ->map(function (object $store): array {
+                $hero = DB::table('banners')
+                    ->where('store_id', $store->id)
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->first(['title', 'image_path']);
+
+                return [
+                    ...$this->retailStorePayload($store),
+                    'banner_title' => $hero?->title,
+                    'banner_image_url' => $this->assetUrl($hero?->image_path),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return response()->json([
+            'main_wholesale_store' => [
+                'id' => (int) $wholesale->id,
+                'code' => (string) $wholesale->code,
+                'name' => (string) $wholesale->name,
+                'logo_url' => $this->assetUrl($wholesale->logo_path),
+                'channel' => 'b2b',
+                'theme_code' => (string) ($wholesale->theme_code ?? 'wholesale_b2b'),
+                'address' => $wholesale->header_address,
+            ],
+            'retail_stores' => $retailStores,
+        ]);
+    }
+
+    public function showWholesalePublic(Request $request, int $store): JsonResponse
+    {
+        $storeRow = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $store)
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2B')
+            ->first([
+                'stores.id',
+                'stores.code',
+                'stores.name',
+                'stores.logo_path',
+            ]);
+
+        abort_if($storeRow === null, 404);
+
+        $settings = DB::table('storefront_settings')->where('store_id', $store)->first();
+        $banners = DB::table('banners')
+            ->where('store_id', $store)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (object $banner): array => [
+                'id' => (int) $banner->id,
+                'title' => (string) $banner->title,
+                'image_url' => $this->assetUrl($banner->image_path),
+                'sort_order' => (int) $banner->sort_order,
+            ])
+            ->values()
+            ->all();
+
+        $products = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->join('store_products', function ($join): void {
+                $join->on('store_products.product_id', '=', 'products.id')
+                    ->on('store_products.store_id', '=', 'catalogs.store_id');
+            })
+            ->where('catalogs.store_id', $store)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('products.is_active', true)
+            ->where('store_products.is_active', true)
+            ->whereNotNull('store_products.price')
+            ->orderBy('products.name')
+            ->limit(60)
+            ->get([
+                'products.id',
+                'products.sku',
+                'products.name',
+                'products.category_id',
+                'store_products.price',
+            ])
+            ->map(fn (object $product): array => [
+                'id' => (int) $product->id,
+                'sku' => (string) $product->sku,
+                'name' => (string) $product->name,
+                'category_id' => $product->category_id === null ? null : (int) $product->category_id,
+                'price' => (float) $product->price,
+                'currency' => 'EGP',
+                'image_url' => $this->assetUrl(
+                    DB::table('product_images')
+                        ->where('product_id', $product->id)
+                        ->orderByDesc('is_primary')
+                        ->orderBy('sort_order')
+                        ->orderBy('id')
+                        ->value('path'),
+                ),
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'store' => [
+                'id' => (int) $storeRow->id,
+                'code' => (string) $storeRow->code,
+                'name' => (string) $storeRow->name,
+                'logo_url' => $this->assetUrl($storeRow->logo_path),
+                'channel' => 'b2b',
+                'theme_code' => 'wholesale_b2b',
+                'is_active' => true,
+            ],
+            'theme' => [
+                'code' => (string) ($settings->theme_code ?? 'wholesale_b2b'),
+                'primary' => $settings->primary_color ?? '#5D2A91',
+                'primary_dark' => $settings->primary_dark_color ?? '#35195E',
+                'accent' => $settings->accent_color ?? '#B983F0',
+                'background' => $settings->background_color ?? '#FBFAFD',
+            ],
+            'branding' => [
+                'logo_url' => $this->assetUrl($storeRow->logo_path),
+                'address' => $settings->header_address ?? null,
+                'custom' => $this->decodedJson($settings->branding ?? null),
+            ],
+            'hero' => $banners[0] ?? null,
+            'banners' => $banners,
+            'products' => $products,
+            'guest_browsing' => true,
+            'checkout_requires_authentication' => true,
+        ]);
+    }
+
     public function selector(Request $request, CustomerDomainResolver $customers): JsonResponse
     {
         $user = $request->user();
