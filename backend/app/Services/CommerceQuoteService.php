@@ -187,7 +187,7 @@ final class CommerceQuoteService
         $normalizedCoupon = strtoupper(trim((string) $couponCode));
 
         if ($normalizedCoupon !== '') {
-            if (! ($customerUser instanceof User) || ! ($customer instanceof B2bCustomer || $customer instanceof B2cCustomer)) {
+            if ($customerUser === null || $customer === null) {
                 throw ValidationException::withMessages([
                     'coupon_code' => ['An authenticated customer is required to apply a coupon.'],
                 ]);
@@ -323,7 +323,6 @@ final class CommerceQuoteService
     }
 
     /**
-     * @param  B2bCustomer|B2cCustomer|null  $customer
      * @param  array{account:B2bAccount|null,tier:B2bPriceTier|null}  $b2bContext
      * @return array<string, mixed>
      */
