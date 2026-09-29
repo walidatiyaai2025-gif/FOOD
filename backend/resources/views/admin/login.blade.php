@@ -53,7 +53,7 @@
                 <div class="error foodex-state" role="alert">{{ $errors->first() }}</div>
             @endif
 
-            <form method="post" action="{{ route('admin.'.$channel.'.login.store') }}">
+            <form method="post" action="{{ route('admin.'.$channel.'.login.store') }}" data-csrf-refresh-url="{{ route('admin.csrf-token') }}">
                 @csrf
                 <input type="hidden" name="locale" value="{{ $locale }}">
                 <div class="field">
@@ -78,5 +78,42 @@
         </section>
     </main>
 </div>
+<script>
+(() => {
+    const form = document.querySelector('form[data-csrf-refresh-url]');
+    if (!form) return;
+
+    let refreshing = false;
+    const refreshToken = async () => {
+        if (refreshing) return;
+        refreshing = true;
+
+        try {
+            const response = await fetch(form.dataset.csrfRefreshUrl, {
+                credentials: 'same-origin',
+                headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+                cache: 'no-store',
+            });
+            if (!response.ok) return;
+
+            const payload = await response.json().catch(() => ({}));
+            const token = form.querySelector('input[name="_token"]');
+            if (token && payload.token) token.value = payload.token;
+        } catch (_) {
+            // Keep the server-rendered token as the safe fallback.
+        } finally {
+            refreshing = false;
+        }
+    };
+
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) refreshToken();
+    });
+    window.addEventListener('focus', refreshToken);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshToken();
+    });
+})();
+</script>
 </body>
 </html>

@@ -46,7 +46,7 @@
         .date-control input{border:0!important;outline:0!important;background:transparent!important;color:var(--foodex-ink);min-height:32px!important;box-shadow:none!important;padding:0!important;font-family:var(--foodex-font-en)}
         .date-control .foodex-filter-action{min-height:36px}
 
-        .kpis{direction:ltr;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-3)}
+        .kpis{direction:ltr;display:grid;grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr));gap:var(--foodex-space-3)}
         .kpi{min-width:0;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:var(--foodex-space-4);min-height:140px;box-shadow:var(--foodex-shadow-sm)}
         html[dir=rtl] .kpi{direction:rtl}
         .kpi-head{display:flex;align-items:center;gap:var(--foodex-space-3)}
@@ -127,12 +127,16 @@
         html[dir=ltr] .module-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
         html[dir=ltr] .module-layout aside{grid-column:1;direction:ltr;border-inline-start:0;border-inline-end:1px solid var(--foodex-border)}
         html[dir=ltr] .module-layout main{grid-column:2;direction:ltr}
-        .module-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-5)}
-        .module-card{position:relative;overflow:hidden;min-height:116px;padding:var(--foodex-space-5)!important}
+        .module-cards{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr));gap:12px;margin-bottom:var(--foodex-space-5)}
+        .module-card{position:relative;overflow:hidden;min-height:112px;padding:14px!important;display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:10px;align-items:center;background:linear-gradient(145deg,#fff,#fbfcfd)!important;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+        .module-card:hover{transform:translateY(-2px);box-shadow:var(--foodex-shadow)!important;border-color:#cfe5d6!important}
         .module-card:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--foodex-green)}
         .module-card:nth-child(2n):before{background:var(--foodex-orange)}
-        .module-card strong{font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-medium);color:var(--foodex-muted)}
-        .module-card p{font-family:var(--foodex-font-en);font-size:1.75rem;font-weight:var(--foodex-font-weight-bold);line-height:1.1;margin:var(--foodex-space-3) 0 0}
+        .module-card-copy{min-width:0}.module-card strong{display:block;font-size:11px;font-weight:var(--foodex-font-weight-bold);line-height:1.3;min-height:29px;color:var(--foodex-muted)}
+        .module-card p{font-family:var(--foodex-font-en);font-size:clamp(1.25rem,1.55vw,1.7rem);font-weight:var(--foodex-font-weight-bold);line-height:1.1;margin:8px 0 0;white-space:nowrap}
+        .module-card-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+        .module-card:nth-child(2n) .module-card-icon{background:var(--foodex-orange-soft);color:var(--foodex-orange)}
+        .module-card-icon .foodex-svg-icon{width:21px;height:21px}
         .module-panel{margin-top:var(--foodex-space-4);padding:var(--foodex-space-5)!important;box-shadow:var(--foodex-shadow)!important}
         .empty{color:var(--foodex-muted)}
         .module-toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-4)}
@@ -178,6 +182,8 @@
             .bottom .panel:nth-child(2){grid-column:1/-1;grid-row:1}
             .recent{grid-template-columns:82px minmax(90px,1fr) 44px 88px 92px 72px}
         }
+        @media(max-width:1279px){.module-cards{grid-template-columns:repeat(4,minmax(0,1fr))}}
+        @media(max-width:900px){.module-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:1023px){
             .dashboard-layout,html[dir=ltr] .dashboard-layout{grid-template-columns:1fr}
             .dashboard-sidebar,html[dir=ltr] .dashboard-sidebar{display:block;grid-column:1;grid-row:1;position:relative;min-height:auto;height:auto;max-height:320px;overflow:auto;border-inline:0;border-bottom:1px solid var(--foodex-border)}
@@ -190,6 +196,7 @@
             .module-layout,html[dir=ltr] .module-layout{grid-template-columns:1fr}.module-layout aside,html[dir=ltr] .module-layout aside{display:block;grid-column:1;grid-row:1;position:relative;height:auto;max-height:320px;overflow:auto;border-inline:0;border-bottom:1px solid var(--foodex-border)}.module-layout main,html[dir=ltr] .module-layout main{grid-column:1;grid-row:2;padding:var(--foodex-space-6)}
         }
         @media(max-width:620px){
+            .module-cards{grid-template-columns:1fr}
             .content{padding:var(--foodex-space-4)}
             .kpis{grid-template-columns:1fr}
             .headline{align-items:flex-start;flex-direction:column}
@@ -274,7 +281,7 @@
                     ['key'=>'products_sold','icon'=>'products','class'=>'orange','label'=>'products_sold'],
                 ];
             @endphp
-            <section class="kpis">
+            <section class="kpis" style="--foodex-card-columns:{{ min(8,max(1,count($kpis))) }}">
                 @foreach($kpis as $item)
                     @php $metric=$dashboard['kpis'][$item['key']]; $delta=$metric['delta']; @endphp
                     <article class="kpi">
@@ -420,7 +427,27 @@
         </div>
         @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
-        <div class="module-cards">@foreach($counts as $key=>$value)<div class="module-card foodex-card"><strong>{{ __('admin.b2c_workspace.modules.'.$key) }}</strong><p>{{ $value }}</p></div>@endforeach</div>
+        @php
+            $moduleMetricIcons = [
+                'products'=>'products',
+                'orders'=>'orders',
+                'incoming_orders'=>'delivery',
+                'finance'=>'revenue',
+                'customers'=>'customers',
+                'inventory'=>'inventory',
+            ];
+        @endphp
+        <div class="module-cards" style="--foodex-card-columns:{{ min(8,max(1,count($counts))) }}">
+            @foreach($counts as $key=>$value)
+                <div class="module-card foodex-card">
+                    <div class="module-card-copy">
+                        <strong>{{ __('admin.b2c_workspace.modules.'.$key) }}</strong>
+                        <p>{{ number_format($value) }}</p>
+                    </div>
+                    <span class="module-card-icon">@include('admin._premium-icon',['name'=>$moduleMetricIcons[$key] ?? 'reports'])</span>
+                </div>
+            @endforeach
+        </div>
         @if($moduleData)
         @php
             $labels = app()->getLocale()==='ar'

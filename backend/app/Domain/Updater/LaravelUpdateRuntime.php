@@ -2,6 +2,7 @@
 
 namespace App\Domain\Updater;
 
+use App\Services\SchedulerRuntime;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use JsonException;
@@ -10,6 +11,8 @@ use ZipArchive;
 
 final class LaravelUpdateRuntime implements UpdateRuntime
 {
+    public function __construct(private readonly SchedulerRuntime $scheduler) {}
+
     public function preflight(UpdatePackageManifest $manifest, string $packagePath): void
     {
         if (! class_exists(ZipArchive::class)) {
@@ -236,6 +239,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         }
 
         $this->ensurePublicStorageLink();
+        $this->scheduler->provisionCron();
     }
 
     public function healthCheck(): void

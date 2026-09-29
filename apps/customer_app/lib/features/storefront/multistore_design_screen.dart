@@ -28,6 +28,7 @@ bool shouldUseMultiStoreDesign(
     case CustomerRoutePaths.b2bCart:
     case CustomerRoutePaths.b2bCheckout:
     case CustomerRoutePaths.b2bOrders:
+    case CustomerRoutePaths.b2bOrderDetails:
       return true;
     case CustomerRoutePaths.home:
     case CustomerRoutePaths.productDetails:
@@ -46,6 +47,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
     required this.session,
     required this.onAuthenticated,
     required this.onPlatformRegistered,
+    required this.onLocaleChanged,
     required this.catalogApi,
     required this.accountApi,
     required this.actionApi,
@@ -61,6 +63,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
   final CustomerSession session;
   final CustomerAuthenticated onAuthenticated;
   final ValueChanged<String> onPlatformRegistered;
+  final ValueChanged<Locale> onLocaleChanged;
   final B2cCatalogApi catalogApi;
   final B2cAccountApi accountApi;
   final CustomerActionApi actionApi;
@@ -76,6 +79,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
         return PlatformMarketplaceScreen(
           session: session,
           onPlatformRegistered: onPlatformRegistered,
+          onLocaleChanged: onLocaleChanged,
         );
       case CustomerRoutePaths.stores:
       case CustomerRoutePaths.storeSelector:
@@ -128,6 +132,11 @@ class MultiStoreDesignScreen extends StatelessWidget {
         );
       case CustomerRoutePaths.b2bOrders:
         return WholesaleOrdersDesignScreen(api: b2bApi);
+      case CustomerRoutePaths.b2bOrderDetails:
+        return WholesaleOrderDetailsDesignScreen(
+          location: location,
+          api: b2bApi,
+        );
       default:
         return const SizedBox.shrink();
     }

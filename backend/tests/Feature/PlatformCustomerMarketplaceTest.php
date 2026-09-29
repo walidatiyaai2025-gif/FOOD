@@ -23,6 +23,9 @@ class PlatformCustomerMarketplaceTest extends TestCase
     public function test_guest_platform_home_exposes_principal_wholesale_catalog_and_retail_store_banners(): void
     {
         [$wholesaleStore, $retailStore, $wholesaleProduct] = $this->marketplaceFixture();
+        $wholesaleCategory = (int) DB::table('products')
+            ->where('id', $wholesaleProduct)
+            ->value('category_id');
 
         $this->getJson('/api/v1/platform/storefront')
             ->assertOk()
@@ -30,8 +33,21 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertJsonPath('store.channel', 'b2b')
             ->assertJsonPath('store.is_platform_principal', true)
             ->assertJsonPath('products.data.0.id', $wholesaleProduct)
+            ->assertJsonPath('categories.0.id', $wholesaleCategory)
+            ->assertJsonPath('categories.0.slug', 'PLATFORM-CAT')
+            ->assertJsonPath('offers.0.name', 'Wholesale Launch Offer')
+            ->assertJsonPath('offers.0.value', 2.5)
+            ->assertJsonCount(1, 'offers')
+            ->assertJsonMissing(['name' => 'Expired Wholesale Offer'])
             ->assertJsonPath('retail_banners.0.id', $retailStore)
-            ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/retail-home.jpg'));
+            ->assertJsonPath('retail_banners.0.store_id', $retailStore)
+            ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/retail-home.jpg'))
+            ->assertJsonPath('retail_banners.0.sort_order', 1)
+            ->assertJsonPath('retail_banners.1.id', $retailStore)
+            ->assertJsonPath('retail_banners.1.banner_url', url('/storage/banners/retail-second.jpg'))
+            ->assertJsonPath('retail_banners.1.sort_order', 2)
+            ->assertJsonCount(2, 'retail_banners')
+            ->assertJsonMissing(['title' => 'Retail Inactive Banner']);
     }
 
     public function test_registered_customer_identity_materializes_per_store_and_routes_carts_by_purchase_store(): void
@@ -141,9 +157,19 @@ class PlatformCustomerMarketplaceTest extends TestCase
             'updated_at' => $now,
         ]);
 
+        $wholesaleCategory = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $wholesaleCatalog,
+            'parent_id' => null,
+            'name' => 'Wholesale Category',
+            'slug' => 'PLATFORM-CAT',
+            'is_active' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
         $wholesaleProduct = (int) DB::table('products')->insertGetId([
             'catalog_id' => $wholesaleCatalog,
-            'category_id' => null,
+            'category_id' => $wholesaleCategory,
             'brand_id' => null,
             'unit_id' => $unitId,
             'sku' => 'W-PLATFORM-1',
@@ -185,15 +211,62 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ],
         ]);
 
+        DB::table('promotions')->insert([
+            [
+                'store_id' => $wholesaleStore,
+                'name' => 'Wholesale Launch Offer',
+                'type' => 'fixed',
+                'value' => 2.500,
+                'starts_at' => $now->copy()->subHour(),
+                'ends_at' => $now->copy()->addHour(),
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'store_id' => $wholesaleStore,
+                'name' => 'Expired Wholesale Offer',
+                'type' => 'fixed',
+                'value' => 1.000,
+                'starts_at' => $now->copy()->subDays(2),
+                'ends_at' => $now->copy()->subDay(),
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        ]);
+
         DB::table('banners')->insert([
-            'store_id' => $retailStore,
-            'title' => 'Retail Home Banner',
-            'image_path' => 'storage/banners/retail-home.jpg',
-            'target_url' => null,
-            'sort_order' => 1,
-            'is_active' => true,
-            'created_at' => $now,
-            'updated_at' => $now,
+            [
+                'store_id' => $retailStore,
+                'title' => 'Retail Home Banner',
+                'image_path' => 'storage/banners/retail-home.jpg',
+                'target_url' => null,
+                'sort_order' => 1,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'store_id' => $retailStore,
+                'title' => 'Retail Second Banner',
+                'image_path' => 'storage/banners/retail-second.jpg',
+                'target_url' => null,
+                'sort_order' => 2,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'store_id' => $retailStore,
+                'title' => 'Retail Inactive Banner',
+                'image_path' => 'storage/banners/retail-inactive.jpg',
+                'target_url' => null,
+                'sort_order' => 0,
+                'is_active' => false,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
         ]);
 
         return [$wholesaleStore, $retailStore, $wholesaleProduct, $retailProduct];

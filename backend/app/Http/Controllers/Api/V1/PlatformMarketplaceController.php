@@ -22,6 +22,8 @@ final class PlatformMarketplaceController extends Controller
             'hero' => $this->wholesaleBanners($storeId)[0] ?? null,
             'banners' => $this->wholesaleBanners($storeId),
             'sections' => $this->sections($storeId),
+            'categories' => $this->categories($storeId),
+            'offers' => $this->offers($storeId),
             'products' => [
                 'data' => $this->products($request, $storeId),
             ],
@@ -169,6 +171,31 @@ final class PlatformMarketplaceController extends Controller
     }
 
     /** @return list<array<string,mixed>> */
+    private function categories(int $storeId): array
+    {
+        return DB::table('categories')
+            ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('categories.is_active', true)
+            ->orderBy('categories.name')
+            ->get([
+                'categories.id',
+                'categories.name',
+                'categories.slug',
+            ])
+            ->map(static fn (object $category): array => [
+                'id' => (int) $category->id,
+                'name' => (string) $category->name,
+                'slug' => (string) $category->slug,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /** @return list<array<string,mixed>> */
     private function wholesaleBanners(int $storeId): array
     {
         return DB::table('banners')
@@ -191,15 +218,48 @@ final class PlatformMarketplaceController extends Controller
     }
 
     /** @return list<array<string,mixed>> */
+    private function offers(int $storeId): array
+    {
+        $now = now();
+
+        return DB::table('promotions')
+            ->where('store_id', $storeId)
+            ->where('is_active', true)
+            ->where(function (Builder $query) use ($now): void {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
+            })
+            ->where(function (Builder $query) use ($now): void {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
+            })
+            ->orderByRaw('ends_at is null desc')
+            ->orderBy('ends_at')
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get(['id', 'name', 'type', 'value', 'starts_at', 'ends_at'])
+            ->map(static fn (object $offer): array => [
+                'id' => (int) $offer->id,
+                'name' => (string) $offer->name,
+                'type' => (string) $offer->type,
+                'value' => $offer->value === null ? null : (float) $offer->value,
+                'starts_at' => $offer->starts_at === null ? null : (string) $offer->starts_at,
+                'ends_at' => $offer->ends_at === null ? null : (string) $offer->ends_at,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /** @return list<array<string,mixed>> */
     private function retailBanners(Request $request): array
     {
         $countryCode = strtoupper(trim((string) $request->query('country_code', '')));
         $city = trim((string) $request->query('city', ''));
         $area = trim((string) $request->query('area', ''));
 
-        $query = DB::table('stores')
+        $query = DB::table('banners')
+            ->join('stores', 'stores.id', '=', 'banners.store_id')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->leftJoin('storefront_settings', 'storefront_settings.store_id', '=', 'stores.id')
+            ->where('banners.is_active', true)
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2C');
 
@@ -227,28 +287,39 @@ final class PlatformMarketplaceController extends Controller
         }
 
         return $query
-            ->orderByDesc('stores.created_at')
-            ->orderByDesc('stores.id')
+            ->orderBy('banners.sort_order')
+            ->orderBy('banners.id')
             ->get([
-                'stores.id',
+                'banners.id as banner_id',
+                'banners.title',
+                'banners.image_path',
+                'banners.target_type',
+                'banners.target_id',
+                'banners.target_url',
+                'banners.sort_order',
+                'stores.id as store_id',
                 'stores.code',
                 'stores.name',
                 'stores.logo_path',
                 'storefront_settings.theme_code',
                 'storefront_settings.header_address',
-                DB::raw('(select image_path from banners where banners.store_id = stores.id and banners.is_active = 1 order by sort_order asc, id asc limit 1) as banner_path'),
-                DB::raw('(select title from banners where banners.store_id = stores.id and banners.is_active = 1 order by sort_order asc, id asc limit 1) as banner_title'),
             ])
-            ->map(fn (object $store): array => [
-                'id' => (int) $store->id,
-                'code' => (string) $store->code,
-                'name' => (string) $store->name,
-                'title' => $store->banner_title ?: $store->name,
-                'banner_url' => $this->assetUrl($store->banner_path ?: $store->logo_path),
-                'logo_url' => $this->assetUrl($store->logo_path),
-                'theme_code' => (string) ($store->theme_code ?? 'retail_grocery'),
-                'address' => $store->header_address,
+            ->map(fn (object $banner): array => [
+                'id' => (int) $banner->store_id,
+                'store_id' => (int) $banner->store_id,
+                'banner_id' => (int) $banner->banner_id,
+                'code' => (string) $banner->code,
+                'name' => (string) $banner->name,
+                'title' => (string) $banner->title,
+                'banner_url' => $this->assetUrl($banner->image_path),
+                'logo_url' => $this->assetUrl($banner->logo_path),
+                'theme_code' => (string) ($banner->theme_code ?? 'retail_grocery'),
+                'address' => $banner->header_address,
                 'channel' => 'b2c',
+                'target_type' => $banner->target_type,
+                'target_id' => $banner->target_id === null ? null : (int) $banner->target_id,
+                'target_url' => $banner->target_url,
+                'sort_order' => (int) $banner->sort_order,
             ])
             ->values()
             ->all();

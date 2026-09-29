@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -13,11 +14,13 @@ class PlatformMarketplaceScreen extends StatefulWidget {
     required this.onPlatformRegistered,
     super.key,
     this.client,
+    this.onLocaleChanged,
   });
 
   final CustomerSession session;
   final ValueChanged<String> onPlatformRegistered;
   final http.Client? client;
+  final ValueChanged<Locale>? onLocaleChanged;
 
   @override
   State<PlatformMarketplaceScreen> createState() => _PlatformMarketplaceScreenState();
@@ -26,26 +29,77 @@ class PlatformMarketplaceScreen extends StatefulWidget {
 class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   late final http.Client _client = widget.client ?? http.Client();
   late Future<Map<String, dynamic>> _future = _load();
+  final PageController _retailController = PageController(viewportFraction: .88);
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  Timer? _retailTimer;
+  int _retailIndex = 0;
+  int _retailCount = -1;
+  int? _selectedCategoryId;
+  String? _pendingAfterAuth;
 
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
-    final marketplace = await _get('$baseUrl/api/v1/marketplace');
-    final wholesale = marketplace['main_wholesale_store'] is Map
-        ? Map<String, dynamic>.from(marketplace['main_wholesale_store'] as Map)
-        : <String, dynamic>{};
-    final storeId = _int(wholesale['id']);
-    if (storeId <= 0) {
-      throw const _MarketplaceException('missing_wholesale_store');
-    }
-
-    final storefront = await _get(
-      '$baseUrl/api/v1/wholesale/stores/$storeId/storefront',
-    );
-
-    return {
-      ...marketplace,
-      'wholesale_storefront': storefront,
+    final query = _searchController.text.trim();
+    final params = <String, String>{
+      if (query.isNotEmpty) 'q': query,
+      if (_selectedCategoryId != null)
+        'category_id': _selectedCategoryId.toString(),
     };
+    final uri = Uri.parse('$baseUrl/api/v1/platform/storefront').replace(
+      queryParameters: params.isEmpty ? null : params,
+    );
+    return _get(uri.toString());
+  }
+
+  void _submitSearch(String _) {
+    setState(() {
+      _future = _load();
+    });
+  }
+
+  void _focusBarcodeSearch() {
+    _searchFocus.requestFocus();
+  }
+
+  void _toggleLocale() {
+    final current = Localizations.localeOf(context).languageCode;
+    widget.onLocaleChanged?.call(Locale(current == 'ar' ? 'en' : 'ar'));
+  }
+
+  void _selectCategory(int? categoryId) {
+    setState(() {
+      _selectedCategoryId = categoryId;
+      _future = _load();
+    });
+  }
+
+  void _startRetailAutoSlide(int count) {
+    if (_retailCount == count) return;
+    _retailCount = count;
+    _retailTimer?.cancel();
+    if (count <= 1) return;
+    _retailTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_retailController.hasClients) return;
+      _retailIndex = (_retailIndex + 1) % count;
+      _retailController.animateToPage(
+        _retailIndex,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _retailTimer?.cancel();
+    _retailController.dispose();
+    _searchController.dispose();
+    _searchFocus.dispose();
+    if (widget.client == null) {
+      _client.close();
+    }
+    super.dispose();
   }
 
   Future<Map<String, dynamic>> _get(String url) async {
@@ -95,10 +149,15 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
       widget.onPlatformRegistered(token);
       if (!mounted) return;
+      final pending = _pendingAfterAuth;
+      _pendingAfterAuth = null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('customer.marketplace.registration_success'))),
       );
       setState(() => _future = _load());
+      if (pending != null && pending.isNotEmpty) {
+        Navigator.of(context).pushNamed(pending);
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -113,17 +172,85 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     Navigator.of(context).pushNamed('/retail/$id/home');
   }
 
-  void _openWholesaleProduct(int storeId, int productId) {
-    if (!widget.session.isAuthenticated) {
-      _showAuthRequired();
-      return;
+  Future<void> _openWholesaleProduct(int storeId, int productId) async {
+    if (productId <= 0) return;
+    try {
+      final product = await _get(
+        '${FoodexEnvironment.apiBaseUrl}/api/v1/platform/products/$productId',
+      );
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    product['name']?.toString() ?? '',
+                    key: const ValueKey('marketplace-wholesale-product-title'),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  if ((product['sku']?.toString() ?? '').isNotEmpty)
+                    Text('SKU: ${product['sku']}'),
+                  if ((product['barcode']?.toString() ?? '').isNotEmpty)
+                    Text('Barcode: ${product['barcode']}'),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${(product['unit_price'] ?? product['account_price'] ?? 0)} ${product['currency'] ?? 'EGP'}',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  if ((product['description']?.toString() ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(product['description'].toString()),
+                  ],
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    key: const ValueKey('marketplace-wholesale-buy'),
+                    onPressed: () {
+                      Navigator.pop(sheetContext);
+                      if (!widget.session.isAuthenticated) {
+                        _showAuthRequired(
+                          next: '/b2b/products/$productId?store_id=$storeId',
+                        );
+                        return;
+                      }
+                      Navigator.of(context).pushNamed(
+                        '/b2b/products/$productId?store_id=$storeId',
+                      );
+                    },
+                    icon: const Icon(Icons.shopping_cart_checkout_rounded),
+                    label: Text(
+                      widget.session.isAuthenticated
+                          ? context.tr('customer.action.add_cart')
+                          : context.tr('customer.action.login'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('customer.store.error.title'))),
+      );
     }
-    Navigator.of(context).pushNamed(
-      '/b2b/products/$productId?store_id=$storeId',
-    );
   }
 
-  void _showAuthRequired() {
+  void _showAuthRequired({String? next}) {
+    _pendingAfterAuth = next;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -154,7 +281,13 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               OutlinedButton(
                 onPressed: () {
                   Navigator.pop(sheetContext);
-                  Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace');
+                  final target = next ?? '/marketplace';
+                  Navigator.of(context).pushNamed(
+                    Uri(
+                      path: '/auth/checkout',
+                      queryParameters: {'next': target},
+                    ).toString(),
+                  );
                 },
                 child: Text(context.tr('customer.action.login')),
               ),
@@ -197,18 +330,23 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               }
 
               final data = snapshot.data ?? const <String, dynamic>{};
-              final wholesale = data['main_wholesale_store'] is Map
-                  ? Map<String, dynamic>.from(data['main_wholesale_store'] as Map)
+              final wholesale = data['store'] is Map
+                  ? Map<String, dynamic>.from(data['store'] as Map)
                   : <String, dynamic>{};
-              final storefront = data['wholesale_storefront'] is Map
-                  ? Map<String, dynamic>.from(data['wholesale_storefront'] as Map)
+              final retail = _rows(data['retail_banners']);
+              final categories = _rows(data['categories']);
+              final offers = _rows(data['offers']);
+              final productEnvelope = data['products'] is Map
+                  ? Map<String, dynamic>.from(data['products'] as Map)
                   : <String, dynamic>{};
-              final retail = _rows(data['retail_stores']);
-              final products = _rows(storefront['products']);
-              final hero = storefront['hero'] is Map
-                  ? Map<String, dynamic>.from(storefront['hero'] as Map)
+              final products = _rows(productEnvelope['data']);
+              final hero = data['hero'] is Map
+                  ? Map<String, dynamic>.from(data['hero'] as Map)
                   : <String, dynamic>{};
               final storeId = _int(wholesale['id']);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _startRetailAutoSlide(retail.length);
+              });
 
               return LayoutBuilder(
                 builder: (context, constraints) {
@@ -220,29 +358,74 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     slivers: [
                       SliverToBoxAdapter(
                         child: _MarketplaceHeader(
-                          storeName: wholesale['name']?.toString() ?? 'FOODEX',
                           authenticated: widget.session.isAuthenticated,
                           onRegister: _register,
                           onLogin: () => Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace'),
+                          onScan: _focusBarcodeSearch,
+                          onLanguageToggle: _toggleLocale,
+                          localeCode: Localizations.localeOf(context).languageCode,
+                          onCart: () => Navigator.of(context).pushNamed('/cart'),
+                          onNotifications: () {
+                            if (widget.session.isAuthenticated) {
+                              Navigator.of(context).pushNamed('/notifications');
+                            } else {
+                              Navigator.of(context).pushNamed(
+                                Uri(
+                                  path: '/auth/checkout',
+                                  queryParameters: {'next': '/notifications'},
+                                ).toString(),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                          child: TextField(
+                            key: const ValueKey('marketplace-search'),
+                            controller: _searchController,
+                            focusNode: _searchFocus,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: _submitSearch,
+                            decoration: InputDecoration(
+                              hintText: context.tr('customer.marketplace.search_hint'),
+                              prefixIcon: const Icon(Icons.search_rounded),
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _submitSearch('');
+                                },
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       if (retail.isNotEmpty)
                         SliverToBoxAdapter(
                           child: SizedBox(
                             height: retailHeight,
-                            child: ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-                              scrollDirection: Axis.horizontal,
+                            child: PageView.builder(
+                              key: const ValueKey('marketplace-retail-carousel'),
+                              controller: _retailController,
                               itemCount: retail.length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 10),
+                              onPageChanged: (index) => _retailIndex = index,
+                              padEnds: false,
                               itemBuilder: (_, index) {
                                 final store = retail[index];
-                                return _RetailStoreBanner(
-                                  store: store,
-                                  width: (constraints.maxWidth * .72)
-                                      .clamp(240.0, 330.0)
-                                      .toDouble(),
-                                  onTap: () => _openRetail(store),
+                                return Padding(
+                                  padding: EdgeInsetsDirectional.only(
+                                    start: index == 0 ? 14 : 5,
+                                    end: 5,
+                                    top: 8,
+                                    bottom: 10,
+                                  ),
+                                  child: _RetailStoreBanner(
+                                    store: store,
+                                    width: double.infinity,
+                                    onTap: () => _openRetail(store),
+                                  ),
                                 );
                               },
                             ),
@@ -254,6 +437,128 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           imageUrl: hero['image_url']?.toString(),
                         ),
                       ),
+                      if (offers.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 2),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  context.tr('customer.home.offers'),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w900),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  height: 76,
+                                  child: ListView.separated(
+                                    key: const ValueKey(
+                                      'marketplace-wholesale-offers',
+                                    ),
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: offers.length,
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(width: 8),
+                                    itemBuilder: (_, index) {
+                                      final offer = offers[index];
+                                      final value = offer['value'];
+                                      final type = offer['type']?.toString();
+                                      final valueText = value == null
+                                          ? ''
+                                          : type == 'percentage'
+                                              ? '$value%'
+                                              : type == 'fixed'
+                                                  ? 'EGP $value'
+                                                  : '$value';
+                                      return Container(
+                                        constraints:
+                                            const BoxConstraints(minWidth: 170),
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF4ECFB),
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              offer['name']?.toString() ?? '',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                            if (valueText.isNotEmpty)
+                                              Text(
+                                                valueText,
+                                                style: const TextStyle(
+                                                  color: Color(0xFF6B3A8E),
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (categories.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            height: 54,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 7,
+                              ),
+                              children: [
+                                ChoiceChip(
+                                  key: const ValueKey('marketplace-category-all'),
+                                  label: Text(
+                                    context.tr('customer.marketplace.all_categories'),
+                                  ),
+                                  selected: _selectedCategoryId == null,
+                                  onSelected: (_) => _selectCategory(null),
+                                ),
+                                const SizedBox(width: 8),
+                                ...categories.map(
+                                  (category) => Padding(
+                                    padding: const EdgeInsetsDirectional.only(
+                                      end: 8,
+                                    ),
+                                    child: ChoiceChip(
+                                      key: ValueKey(
+                                        'marketplace-category-${category['id']}',
+                                      ),
+                                      label: Text(
+                                        category['name']?.toString() ?? '',
+                                      ),
+                                      selected: _selectedCategoryId ==
+                                          _int(category['id']),
+                                      onSelected: (_) => _selectCategory(
+                                        _int(category['id']),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
                         sliver: SliverToBoxAdapter(
@@ -323,54 +628,165 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
 class _MarketplaceHeader extends StatelessWidget {
   const _MarketplaceHeader({
-    required this.storeName,
     required this.authenticated,
     required this.onRegister,
     required this.onLogin,
+    required this.onScan,
+    required this.onLanguageToggle,
+    required this.localeCode,
+    required this.onCart,
+    required this.onNotifications,
   });
 
-  final String storeName;
   final bool authenticated;
   final VoidCallback onRegister;
   final VoidCallback onLogin;
+  final VoidCallback onScan;
+  final VoidCallback onLanguageToggle;
+  final String localeCode;
+  final VoidCallback onCart;
+  final VoidCallback onNotifications;
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              radius: 22,
-              backgroundColor: Color(0xFFE9F8EF),
-              child: Icon(Icons.storefront_rounded, color: Color(0xFF087347)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    storeName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 520;
+            return Row(
+              children: [
+                CircleAvatar(
+                  radius: compact ? 18 : 22,
+                  backgroundColor: const Color(0xFFE9F8EF),
+                  child: const Icon(
+                    Icons.storefront_rounded,
+                    color: Color(0xFF087347),
                   ),
-                  Text(
-                    context.tr('customer.marketplace.main_wholesale'),
-                    style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
+                ),
+                SizedBox(width: compact ? 6 : 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'FOODEX',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        context.tr('customer.marketplace.browse_guest'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF667085),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('marketplace-scan'),
+                  visualDensity:
+                      compact ? VisualDensity.compact : VisualDensity.standard,
+                  constraints: compact
+                      ? const BoxConstraints.tightFor(width: 38, height: 38)
+                      : null,
+                  padding: compact ? const EdgeInsets.all(6) : null,
+                  tooltip: context.tr('customer.marketplace.scan'),
+                  onPressed: onScan,
+                  icon: const Icon(Icons.qr_code_scanner_rounded),
+                ),
+                TextButton(
+                  key: const ValueKey('marketplace-language'),
+                  onPressed: onLanguageToggle,
+                  style: compact
+                      ? TextButton.styleFrom(
+                          minimumSize: const Size(38, 38),
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        )
+                      : null,
+                  child: Text(localeCode.toUpperCase()),
+                ),
+                IconButton(
+                  key: const ValueKey('marketplace-cart'),
+                  visualDensity:
+                      compact ? VisualDensity.compact : VisualDensity.standard,
+                  constraints: compact
+                      ? const BoxConstraints.tightFor(width: 38, height: 38)
+                      : null,
+                  padding: compact ? const EdgeInsets.all(6) : null,
+                  tooltip: context.tr('customer.nav.cart'),
+                  onPressed: onCart,
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                ),
+                IconButton(
+                  key: const ValueKey('marketplace-notifications'),
+                  visualDensity:
+                      compact ? VisualDensity.compact : VisualDensity.standard,
+                  constraints: compact
+                      ? const BoxConstraints.tightFor(width: 38, height: 38)
+                      : null,
+                  padding: compact ? const EdgeInsets.all(6) : null,
+                  tooltip: context.tr('customer.nav.notifications'),
+                  onPressed: onNotifications,
+                  icon: const Icon(Icons.notifications_none_rounded),
+                ),
+                if (authenticated)
+                  IconButton(
+                    key: const ValueKey('marketplace-profile'),
+                    onPressed: () =>
+                        Navigator.of(context).pushNamed('/profile'),
+                    icon: const Icon(Icons.person_outline_rounded),
+                  )
+                else if (compact)
+                  SizedBox(
+                    width: 38,
+                    height: 38,
+                    child: PopupMenuButton<String>(
+                      key: const ValueKey('marketplace-auth-menu'),
+                      padding: EdgeInsets.zero,
+                      iconSize: 22,
+                      icon: const Icon(Icons.account_circle_outlined),
+                      onSelected: (value) {
+                        if (value == 'login') {
+                          onLogin();
+                        } else {
+                          onRegister();
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'login',
+                          child: Text(context.tr('customer.action.login')),
+                        ),
+                        PopupMenuItem(
+                          value: 'register',
+                          child: Text(
+                            context.tr('customer.marketplace.register'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else ...[
+                  TextButton(
+                    onPressed: onLogin,
+                    child: Text(context.tr('customer.action.login')),
+                  ),
+                  FilledButton(
+                    onPressed: onRegister,
+                    child: Text(context.tr('customer.marketplace.register')),
                   ),
                 ],
-              ),
-            ),
-            if (!authenticated) ...[
-              TextButton(onPressed: onLogin, child: Text(context.tr('customer.action.login'))),
-              FilledButton(onPressed: onRegister, child: Text(context.tr('customer.marketplace.register'))),
-            ] else
-              IconButton(
-                onPressed: () => Navigator.of(context).pushNamed('/profile'),
-                icon: const Icon(Icons.person_outline_rounded),
-              ),
-          ],
+              ],
+            );
+          },
         ),
       );
 }
@@ -388,8 +804,9 @@ class _RetailStoreBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = store['banner_image_url']?.toString();
+    final image = store['banner_url']?.toString();
     final logo = store['logo_url']?.toString();
+    final address = store['address']?.toString().trim() ?? '';
     return SizedBox(
       width: width,
       child: Material(
@@ -431,18 +848,54 @@ class _RetailStoreBanner extends StatelessWidget {
                       const SizedBox(width: 9),
                     ],
                     Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            store['title']?.toString() ??
+                                store['name']?.toString() ??
+                                '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (address.isNotEmpty)
+                            Text(
+                              address,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                       child: Text(
-                        store['name']?.toString() ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        context.tr('customer.marketplace.shop_now'),
                         style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
+                          color: Color(0xFF087347),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
                         ),
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded, color: Colors.white),
                   ],
                 ),
               ),

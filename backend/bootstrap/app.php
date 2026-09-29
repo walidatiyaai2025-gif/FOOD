@@ -4,6 +4,7 @@ use App\Http\Middleware\CorrelationId;
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureManagementDashboardAccess;
 use App\Http\Middleware\ResolveTenantContext;
+use App\Http\Middleware\RunSchedulerHeartbeat;
 use App\Services\SystemInspectorRecorder;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(RunSchedulerHeartbeat::class);
         $middleware->api(prepend: [CorrelationId::class]);
 
         $middleware->alias([

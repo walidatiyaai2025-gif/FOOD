@@ -66,7 +66,7 @@ jobs:
             --output-dir dist/update \
             --release-notes "FOODEX $CURRENT_VERSION cumulative update"
 
-      - name: Verify package metadata
+      - name: Verify package metadata and recovery contract
         run: |
           python3 - <<'PY'
           import hashlib, json, pathlib, zipfile
@@ -79,9 +79,21 @@ jobs:
           assert manifest["minimum_current_version"] == os.environ["MINIMUM_VERSION"]
           assert manifest["requires_full_redeploy"] is False
           assert manifest["sha256"] == digest
+          mandatory = {
+              "backend/app/Domain/Installer/InstallerWorkflow.php",
+              "backend/app/Domain/Updater/LaravelUpdateRuntime.php",
+              "backend/app/Http/Middleware/RunSchedulerHeartbeat.php",
+              "backend/app/Services/SchedulerRuntime.php",
+              "backend/bootstrap/app.php",
+              "backend/config/foodex.php",
+              "backend/public/brand/foodex-economical-group.webp",
+              "backend/routes/console.php",
+          }
           with zipfile.ZipFile(package) as archive:
-              names = archive.namelist()
+              names = set(archive.namelist())
               assert "VERSION" in names
+              missing = sorted(mandatory - names)
+              assert not missing, f"Update bundle is missing recovery-critical files: {missing}"
               has_migrations = any(name.startswith("backend/database/migrations/") for name in names)
               assert manifest["contains_migrations"] is has_migrations
               assert not any(name.startswith(("apps/", "Release/", "docs/", ".github/")) for name in names)

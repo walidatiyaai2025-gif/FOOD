@@ -29,6 +29,20 @@ RUNTIME_EXACT = {
     "backend/composer.lock",
 }
 
+# Recovery-critical files are shipped in every incremental update, even when unchanged
+# from the selected cumulative base. This heals installations that previously received
+# an incomplete update package.
+RUNTIME_ALWAYS_INCLUDE = {
+    "backend/app/Domain/Installer/InstallerWorkflow.php",
+    "backend/app/Domain/Updater/LaravelUpdateRuntime.php",
+    "backend/app/Http/Middleware/RunSchedulerHeartbeat.php",
+    "backend/app/Services/SchedulerRuntime.php",
+    "backend/bootstrap/app.php",
+    "backend/config/foodex.php",
+    "backend/public/brand/foodex-economical-group.webp",
+    "backend/routes/console.php",
+}
+
 PROTECTED_PARTS = {".git", "storage", "vendor"}
 FIXED_ZIP_TIME = (2026, 9, 27, 0, 0, 0)
 
@@ -114,6 +128,7 @@ def changed_runtime_files(base: str) -> list[str]:
             selected.add(safe_path(path))
 
     selected.add("VERSION")
+    selected.update(RUNTIME_ALWAYS_INCLUDE)
     return sorted(selected)
 
 

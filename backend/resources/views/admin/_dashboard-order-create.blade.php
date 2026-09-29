@@ -32,7 +32,12 @@
         <select name="customer_id" class="js-order-customer" required>
             <option value="">{{ $isArOrder?'اختر العميل':'Select customer' }}</option>
             @foreach($moduleData['customers'] as $customer)
-                <option value="{{ $customer['id'] }}">{{ $customer['name'] }}</option>
+                <option value="{{ $customer['id'] }}"
+                    @if($isB2bOrder)
+                        data-price-tier-id="{{ $customer['price_tier_id'] ?? '' }}"
+                        data-platform-fallback="{{ !empty($customer['platform_fallback']) ? '1' : '0' }}"
+                    @endif
+                >{{ $customer['name'] }}</option>
             @endforeach
         </select>
 
@@ -60,6 +65,8 @@
                         <option value="{{ $product['id'] }}"
                             @if($isB2bOrder)
                                 data-warehouse-ids="{{ implode(',', $product['warehouse_ids'] ?? []) }}"
+                                data-price-tier-ids="{{ implode(',', $product['price_tier_ids'] ?? []) }}"
+                                data-fallback-price="{{ !empty($product['has_fallback_price']) ? '1' : '0' }}"
                             @else
                                 data-store-id="{{ $product['store_id'] }}"
                             @endif
@@ -119,20 +126,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const isB2b = form.dataset.orderChannel === 'b2b';
         const warehouse = form.querySelector('.js-order-warehouse')?.value || '';
         const store = form.querySelector('input[name="store_id"]')?.value || '';
-        const customer = form.querySelector('.js-order-customer')?.value || '';
+        const customerSelect = form.querySelector('.js-order-customer');
+        const customer = customerSelect?.value || '';
+        const customerOption = customerSelect?.selectedOptions?.[0];
+        const customerPriceTier = customerOption?.dataset.priceTierId || '';
+        const customerPlatformFallback = customerOption?.dataset.platformFallback === '1';
+        const productSelects = [...form.querySelectorAll('.js-order-product')];
+        const selectedProducts = productSelects.map((select) => select.value).filter(Boolean);
 
-        form.querySelectorAll('.js-order-product option[value]').forEach((option) => {
+        productSelects.forEach((select, selectIndex) => {
+            select.querySelectorAll('option[value]').forEach((option) => {
             if (!option.value) return;
             let visible = true;
             if (isB2b) {
                 const warehouseIds = (option.dataset.warehouseIds || '').split(',').filter(Boolean);
-                visible = warehouse !== '' && warehouseIds.includes(warehouse);
+                const priceTierIds = (option.dataset.priceTierIds || '').split(',').filter(Boolean);
+                const hasApprovedTierPrice = customerPriceTier !== '' && priceTierIds.includes(customerPriceTier);
+                const hasPlatformFallback = customerPlatformFallback && option.dataset.fallbackPrice === '1';
+                const pricingEligible = customer === '' || hasApprovedTierPrice || hasPlatformFallback;
+                visible = warehouse !== '' && warehouseIds.includes(warehouse) && pricingEligible;
             } else if (option.dataset.storeId) {
                 visible = !store || option.dataset.storeId === store;
             }
-            option.hidden = !visible;
-            option.disabled = !visible;
+            const selectedElsewhere = selectedProducts.some(
+                (value, index) => index !== selectIndex && value === option.value,
+            );
+            option.hidden = !visible || selectedElsewhere;
+            option.disabled = !visible || selectedElsewhere;
             if (!visible && option.selected) option.selected = false;
+            });
         });
 
         form.querySelectorAll('.js-order-address option[data-customer-id]').forEach((option) => {

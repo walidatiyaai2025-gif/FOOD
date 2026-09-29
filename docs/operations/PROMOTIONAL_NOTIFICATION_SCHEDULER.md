@@ -1,18 +1,21 @@
 # FOODEX Promotional Notification Scheduler
 
-FOODEX promotional campaigns are dispatched by the Laravel scheduler.
+FOODEX promotional campaigns are dispatched by Laravel Scheduler and use the same notification dispatcher as Send Now.
 
-## Production requirement
+## Self-managed production execution
 
-Run Laravel's scheduler once every minute from the operating system scheduler. The application itself decides which one-time or recurring campaigns are due.
+Manual cron setup is not a release requirement.
 
-Example cron entry when PHP and the FOODEX backend are available at their normal production paths:
+FOODEX provides two execution layers:
 
-```cron
-* * * * * cd /path/to/FOODEX/backend && php artisan schedule:run >> /dev/null 2>&1
-```
+1. **Managed cron (primary)** — first install and every system update automatically attempt to install/update one FOODEX-managed crontab entry that runs `php artisan schedule:run` every minute.
+2. **Application scheduler heartbeat (fallback)** — every installed FOODEX web/API runtime has a terminable, file-locked heartbeat. At most once per minute it runs `php artisan schedule:run` when hosting policy prevents crontab provisioning.
 
-Do not create one cron entry per campaign. The single Laravel scheduler entry handles all campaigns.
+The heartbeat runs the entire Laravel schedule, not only notification campaigns. Therefore future scheduling features inherit the same execution contract. It also retries managed-cron provisioning periodically, so an installation that receives the scheduler runtime through a later update repairs itself without an operator opening cPanel or creating a cron entry.
+
+The managed cron entry is idempotent and identified by `# FOODEX_MANAGED_SCHEDULER`; installer/update/heartbeat repair runs replace the FOODEX-managed entry rather than creating duplicates.
+
+Recovery-critical scheduler files and the canonical FOODEX brand image are force-included in every incremental update package. Release CI rejects an update ZIP if those files are absent.
 
 ## Campaign command
 
@@ -22,7 +25,7 @@ The scheduled command is:
 php artisan foodex:dispatch-scheduled-notifications
 ```
 
-It can be executed manually for controlled operational verification. Normal production operation should use `php artisan schedule:run`.
+It can still be executed manually for controlled diagnostics. Normal operation is owned by FOODEX through `schedule:run`.
 
 ## Execution semantics
 

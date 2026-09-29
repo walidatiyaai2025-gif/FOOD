@@ -281,7 +281,7 @@ class _EvidenceAssignments implements DriverAssignmentRepository {
       ];
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status, {String? note}) async {}
+  Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async {}
 }
 
 class _EmptyAssignments implements DriverAssignmentRepository {
@@ -291,7 +291,7 @@ class _EmptyAssignments implements DriverAssignmentRepository {
   Future<List<DriverAssignment>> list(DriverChannel channel) async => const [];
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status, {String? note}) async {}
+  Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async {}
 }
 
 class _OfflineAssignments implements DriverAssignmentRepository {
@@ -302,6 +302,6 @@ class _OfflineAssignments implements DriverAssignmentRepository {
       throw const DriverOfflineException();
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status, {String? note}) async =>
+  Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async =>
       throw const DriverOfflineException();
 }
