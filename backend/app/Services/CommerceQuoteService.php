@@ -93,7 +93,6 @@ final class CommerceQuoteService
     /**
      * Quote arbitrary server-authorized lines. Client-submitted prices are intentionally absent.
      *
-     * @param  B2bCustomer|B2cCustomer|null  $customer
      * @param  list<array{product_id:int|string,quantity:int|float|string,cart_item_id?:int|string}>  $items
      * @return array<string, mixed>
      */
@@ -188,7 +187,7 @@ final class CommerceQuoteService
         $normalizedCoupon = strtoupper(trim((string) $couponCode));
 
         if ($normalizedCoupon !== '') {
-            if (! $customerUser instanceof User || ! ($customer instanceof B2bCustomer || $customer instanceof B2cCustomer)) {
+            if (! ($customerUser instanceof User) || ! ($customer instanceof B2bCustomer || $customer instanceof B2cCustomer)) {
                 throw ValidationException::withMessages([
                     'coupon_code' => ['An authenticated customer is required to apply a coupon.'],
                 ]);
