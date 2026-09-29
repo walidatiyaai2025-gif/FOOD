@@ -49,6 +49,9 @@ Route::withoutMiddleware([
 Route::prefix('admin')
     ->name('admin.')
     ->group(function (): void {
+        Route::get('/csrf-token', [AdminLoginController::class, 'csrfToken'])
+            ->middleware('throttle:60,1')
+            ->name('csrf-token');
         Route::get('/b2b/login', [AdminLoginController::class, 'show'])
             ->defaults('channel', 'b2b')
             ->name('b2b.login');
