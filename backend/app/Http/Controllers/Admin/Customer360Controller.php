@@ -3,17 +3,21 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Address;
 use App\Models\PlatformCustomer;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use stdClass;
 
@@ -172,6 +176,11 @@ final class Customer360Controller extends Controller
             ])
             ->all();
 
+        $addresses = $this->addressQuery($customer)
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get();
+
         return view('admin.customer-360-show', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
@@ -183,7 +192,280 @@ final class Customer360Controller extends Controller
             'invoices' => $invoices,
             'retailStores' => $this->retailDomains($customer, $access),
             'wholesale' => $this->wholesaleInfo($customer, $access),
+            'addresses' => $addresses,
+            'canManageAddresses' => $this->canManageAddresses($actor, $customer, $access),
         ]);
+    }
+
+    public function storeAddress(
+        Request $request,
+        int $platformCustomer,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        $this->assertCanManageAddresses($actor, $customer, $access);
+        $validated = $request->validate($this->addressRules(false));
+
+        $address = DB::transaction(function () use ($customer, $validated): Address {
+            $this->addressQuery($customer)->lockForUpdate()->get();
+            $shouldDefault = (bool) ($validated['is_default'] ?? false)
+                || ! $this->addressQuery($customer)->exists();
+
+            if ($shouldDefault) {
+                $this->addressQuery($customer)
+                    ->update(['is_default' => false, 'updated_at' => now()]);
+            }
+
+            return Address::query()->create([
+                'customer_id' => (int) $customer->legacy_customer_id,
+                'platform_customer_id' => (int) $customer->getKey(),
+                'b2b_customer_id' => null,
+                'b2c_customer_id' => null,
+                ...$this->normalizedAddress($validated),
+                'is_default' => $shouldDefault,
+            ]);
+        }, 3);
+
+        $audit->record(
+            'customer360.address_created',
+            $actor,
+            $address,
+            null,
+            ['platform_customer_id' => (int) $customer->getKey()],
+            $request,
+        );
+
+        return $this->addressRedirect($customer, $this->msg('تمت إضافة العنوان.', 'Address added.'));
+    }
+
+    public function updateAddress(
+        Request $request,
+        int $platformCustomer,
+        int $address,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        $this->assertCanManageAddresses($actor, $customer, $access);
+        $validated = $request->validate($this->addressRules(true));
+        $model = $this->addressQuery($customer)->whereKey($address)->firstOrFail();
+        $before = $model->only([
+            'label', 'line1', 'city', 'area', 'country_code',
+            'latitude', 'longitude', 'is_default',
+        ]);
+
+        DB::transaction(function () use ($customer, $model, $validated): void {
+            $this->addressQuery($customer)->lockForUpdate()->get();
+            $locked = $this->addressQuery($customer)->whereKey($model->getKey())->firstOrFail();
+
+            if (($validated['is_default'] ?? false) === true) {
+                $this->addressQuery($customer)
+                    ->whereKeyNot($locked->getKey())
+                    ->update(['is_default' => false, 'updated_at' => now()]);
+            }
+
+            $locked->fill($this->normalizedAddress($validated));
+            if (array_key_exists('is_default', $validated)) {
+                $locked->is_default = (bool) $validated['is_default'];
+            }
+            $locked->save();
+
+            if (! $this->addressQuery($customer)->where('is_default', true)->exists()) {
+                $fallback = $this->addressQuery($customer)->orderBy('id')->first();
+                $fallback?->update(['is_default' => true]);
+            }
+        }, 3);
+
+        $model->refresh();
+        $audit->record(
+            'customer360.address_updated',
+            $actor,
+            $model,
+            $before,
+            $model->only([
+                'label', 'line1', 'city', 'area', 'country_code',
+                'latitude', 'longitude', 'is_default',
+            ]),
+            $request,
+        );
+
+        return $this->addressRedirect($customer, $this->msg('تم تحديث العنوان.', 'Address updated.'));
+    }
+
+    public function setDefaultAddress(
+        Request $request,
+        int $platformCustomer,
+        int $address,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        $this->assertCanManageAddresses($actor, $customer, $access);
+        $model = $this->addressQuery($customer)->whereKey($address)->firstOrFail();
+
+        DB::transaction(function () use ($customer, $model): void {
+            $this->addressQuery($customer)->lockForUpdate()->get();
+            $this->addressQuery($customer)
+                ->whereKeyNot($model->getKey())
+                ->update(['is_default' => false, 'updated_at' => now()]);
+            $this->addressQuery($customer)
+                ->whereKey($model->getKey())
+                ->update(['is_default' => true, 'updated_at' => now()]);
+        }, 3);
+
+        $model->refresh();
+        $audit->record(
+            'customer360.address_default_changed',
+            $actor,
+            $model,
+            null,
+            ['is_default' => true, 'platform_customer_id' => (int) $customer->getKey()],
+            $request,
+        );
+
+        return $this->addressRedirect($customer, $this->msg('تم تعيين العنوان الافتراضي.', 'Default address updated.'));
+    }
+
+    public function destroyAddress(
+        Request $request,
+        int $platformCustomer,
+        int $address,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        $this->assertCanManageAddresses($actor, $customer, $access);
+        $model = $this->addressQuery($customer)->whereKey($address)->firstOrFail();
+        $wasDefault = (bool) $model->is_default;
+
+        DB::transaction(function () use ($customer, $model, $wasDefault): void {
+            $this->addressQuery($customer)->lockForUpdate()->get();
+            $model->delete();
+
+            if ($wasDefault) {
+                $fallback = $this->addressQuery($customer)->orderBy('id')->first();
+                $fallback?->update(['is_default' => true]);
+            }
+        }, 3);
+
+        $audit->record(
+            'customer360.address_deleted',
+            $actor,
+            $model,
+            ['platform_customer_id' => (int) $customer->getKey()],
+            null,
+            $request,
+        );
+
+        return $this->addressRedirect($customer, $this->msg('تم حذف العنوان.', 'Address deleted.'));
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Builder<Address> */
+    private function addressQuery(PlatformCustomer $customer)
+    {
+        return Address::query()->where(function ($query) use ($customer): void {
+            $query->where('platform_customer_id', $customer->getKey())
+                ->orWhere(function ($legacy) use ($customer): void {
+                    $legacy->whereNull('platform_customer_id')
+                        ->where('customer_id', $customer->legacy_customer_id);
+                });
+        });
+    }
+
+    /** @return array<string, array<int, string>> */
+    private function addressRules(bool $partial): array
+    {
+        $required = $partial ? ['sometimes'] : ['required'];
+
+        return [
+            'label' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'recipient_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'delivery_phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'line1' => [...$required, 'string', 'max:255'],
+            'line2' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'city' => [...$required, 'string', 'max:120'],
+            'area' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'country_code' => [...$required, 'string', 'size:2'],
+            'country' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'governorate' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'block' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'street' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'avenue' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'building' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'floor' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'apartment' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'landmark' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'delivery_notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
+            'location_accuracy_meters' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100000'],
+            'location_source' => ['sometimes', Rule::in(['manual', 'current_location', 'map_pin'])],
+            'is_default' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function normalizedAddress(array $validated): array
+    {
+        $values = [];
+        foreach ([
+            'label', 'recipient_name', 'delivery_phone', 'line1', 'line2',
+            'city', 'area', 'country', 'governorate', 'block', 'street',
+            'avenue', 'building', 'floor', 'apartment', 'landmark',
+            'delivery_notes', 'latitude', 'longitude',
+            'location_accuracy_meters', 'location_source',
+        ] as $field) {
+            if (array_key_exists($field, $validated)) {
+                $values[$field] = $validated[$field];
+            }
+        }
+
+        if (array_key_exists('country_code', $validated)) {
+            $values['country_code'] = Str::upper((string) $validated['country_code']);
+        }
+        if (array_key_exists('line1', $values) && ! array_key_exists('street', $values)) {
+            $values['street'] = $values['line1'];
+        }
+
+        return $values;
+    }
+
+    private function canManageAddresses(User $actor, PlatformCustomer $customer, array $access): bool
+    {
+        if ($actor->hasRole('SUPER_ADMIN')) {
+            return true;
+        }
+
+        if ($access['mode'] === 'b2b') {
+            return $this->scope->allowedStoreIds($actor, 'b2b.accounts.manage', 'b2b') !== [];
+        }
+
+        $allowed = $this->scope->allowedStoreIds($actor, 'customers.manage', 'b2c');
+        if ($allowed === []) {
+            return false;
+        }
+
+        return DB::table('b2c_customers')
+            ->where('user_id', $customer->user_id)
+            ->whereIn('store_id', $allowed)
+            ->exists();
+    }
+
+    private function assertCanManageAddresses(User $actor, PlatformCustomer $customer, array $access): void
+    {
+        abort_unless($this->canManageAddresses($actor, $customer, $access), 403);
+    }
+
+    private function addressRedirect(PlatformCustomer $customer, string $message): RedirectResponse
+    {
+        return redirect(
+            route('admin.customer-360.show', ['platformCustomer' => $customer->getKey()]).'#addresses',
+        )->with('status', $message);
     }
 
     /** @param array{mode:string,b2b_store_ids:list<int>,b2c_store_ids:list<int>,origin_store_ids:list<int>} $access */
