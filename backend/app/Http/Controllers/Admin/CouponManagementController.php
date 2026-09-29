@@ -22,10 +22,15 @@ final class CouponManagementController extends Controller
 {
     private const TIMEZONE = 'Asia/Kuwait';
 
-    public function __construct(
-        private readonly AdminNavigation $navigation,
-        private readonly AuditLogger $audit,
-    ) {}
+    private readonly AdminNavigation $navigation;
+
+    private readonly AuditLogger $audit;
+
+    public function __construct(AdminNavigation $navigation, AuditLogger $audit)
+    {
+        $this->navigation = $navigation;
+        $this->audit = $audit;
+    }
 
     public function index(Request $request): View
     {
