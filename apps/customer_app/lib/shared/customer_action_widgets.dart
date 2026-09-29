@@ -207,11 +207,13 @@ class CheckoutAction extends StatefulWidget {
   const CheckoutAction({
     required this.api,
     required this.channel,
+    this.storeId,
     super.key,
   });
 
   final CustomerActionApi api;
   final CustomerChannel channel;
+  final int? storeId;
 
   @override
   State<CheckoutAction> createState() => _CheckoutActionState();
@@ -247,6 +249,7 @@ class _CheckoutActionState extends State<CheckoutAction> {
     try {
       final response = await widget.api.checkout(
         addressId: addressId,
+        storeId: widget.storeId,
         paymentMethod: _payment.text,
         couponCode: _coupon.text,
         idempotencyKey: 'foodex-${DateTime.now().microsecondsSinceEpoch}',
