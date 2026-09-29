@@ -11,4 +11,5 @@ return [
     'pg_restore_binary' => env('FOODEX_PG_RESTORE_BINARY', 'pg_restore'),
     // Temporary pilot convenience. Disable before public production rollout.
     'mobile_trial_username_login' => (bool) env('FOODEX_MOBILE_TRIAL_USERNAME_LOGIN', true),
+    'platform_wholesale_store_code' => env('FOODEX_PLATFORM_WHOLESALE_STORE_CODE', ''),
 ];
