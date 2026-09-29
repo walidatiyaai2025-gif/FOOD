@@ -39,6 +39,8 @@ Route::prefix('v1')->group(function (): void {
 
     Route::post('/auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:login');
+    Route::post('/auth/register', [AuthController::class, 'register'])
+        ->middleware('throttle:login');
     Route::post('/auth/mobile-trial', [AuthController::class, 'mobileTrialLogin'])
         ->middleware('throttle:login');
 
