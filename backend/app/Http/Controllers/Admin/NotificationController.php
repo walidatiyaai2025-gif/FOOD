@@ -137,6 +137,7 @@ final class NotificationController extends Controller
         $data = $this->validated($request);
         $this->assertScope($actor, $data);
         $imagePath = $this->storeImage($request, $images, $data['store_id'] ?? null);
+        unset($data['image']);
 
         try {
             $notification = Notification::query()->create([
@@ -172,6 +173,7 @@ final class NotificationController extends Controller
         $newImage = $request->hasFile('image')
             ? $this->storeImage($request, $images, $data['store_id'] ?? null)
             : null;
+        unset($data['image']);
 
         try {
             $notification->update([
