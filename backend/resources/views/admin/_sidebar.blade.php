@@ -27,7 +27,7 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-sidebar-shell{min-height:100%;display:flex;flex-direction:column;gap:10px}
 .foodex-sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .foodex-sidebar-brand{min-height:48px;display:flex;align-items:center;gap:9px;color:var(--foodex-green-dark);font-weight:800;text-decoration:none;white-space:nowrap;overflow:hidden}
-.foodex-sidebar-brand-mark{width:34px;height:34px;flex:0 0 34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,var(--foodex-green),var(--foodex-green-dark));color:#fff;font-family:var(--foodex-font-en);font-size:12px}
+.foodex-sidebar-brand-mark{width:42px;height:34px;flex:0 0 42px;border-radius:8px;display:grid;place-items:center;background:#fff;overflow:hidden;border:1px solid var(--foodex-border)}\n.foodex-sidebar-brand-mark img{width:100%;height:100%;object-fit:contain}
 .foodex-sidebar-toggle{width:40px;height:40px;flex:0 0 40px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-green-dark);cursor:pointer;font-size:18px}
 .foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
 .foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:44px;display:grid;grid-template-columns:24px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
@@ -59,7 +59,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
 
 <div class="foodex-sidebar-shell" data-foodex-brand="v1">
     <div class="foodex-sidebar-head">
-        <a class="foodex-sidebar-brand" href="{{ route('admin.index') }}"><span class="foodex-sidebar-brand-mark">FX</span><span>FOODEX</span></a>
+        <a class="foodex-sidebar-brand" href="{{ route('admin.index') }}"><span class="foodex-sidebar-brand-mark"><img src="{{ asset('brand/foodex-economical-group.webp') }}" alt="FOODEX Economical Group"></span><span>FOODEX</span></a>
         <button class="foodex-sidebar-toggle" type="button" aria-label="{{ __('admin.sidebar_toggle') }}" aria-expanded="false" data-foodex-sidebar-toggle>☰</button>
     </div>
 
