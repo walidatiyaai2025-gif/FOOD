@@ -328,4 +328,53 @@ void main() {
     );
   });
 
+
+  testWidgets('marketplace category chip filters wholesale API query', (tester) async {
+    final requests = <Uri>[];
+    final client = MockClient((request) async {
+      requests.add(request.url);
+      return http.Response(
+        jsonEncode({
+          'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
+          'hero': null,
+          'categories': [
+            {'id': 9, 'name': 'Beverages', 'slug': 'beverages'},
+          ],
+          'products': {'data': []},
+          'retail_banners': const [],
+        }),
+        200,
+      );
+    });
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('en'),
+        overrides: const {},
+        child: MaterialApp(
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.guest(),
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('marketplace-category-9')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('marketplace-category-9')));
+    await tester.pumpAndSettle();
+
+    expect(
+      requests.where((uri) => uri.path == '/api/v1/platform/storefront').last
+          .queryParameters['category_id'],
+      '9',
+    );
+  });
+
 }
