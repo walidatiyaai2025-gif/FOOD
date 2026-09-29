@@ -30,21 +30,8 @@ mobile_release_version="${customer_version%%+*}"
 [[ "$mobile_release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
 test "$release_version" = "$mobile_release_version"
-grep -Eq '^# FOODEX [0-9]+\.[0-9]+\.[0-9]+ Release Notes
-grep -Fq "VERSION and release notes identify the exact release being promoted. Evidence: #178" docs/release/RELEASE_CHECKLIST.md
-
-production_origin="https://foodex.50sols.com"
-grep -Fq "APP_URL=$production_origin" backend/.env.production.example
-grep -Fq "DB_DATABASE=solscool_foodex" backend/.env.production.example
-grep -Fq "DB_USERNAME=solscool_foodex" backend/.env.production.example
-grep -Fq "defaultValue: '$production_origin'" apps/customer_app/lib/core/config/foodex_environment.dart
-grep -Fq "defaultValue: '$production_origin'" apps/driver_app/lib/core/config/foodex_environment.dart
-! grep -R -Fq "foodex-validation.invalid" .github/workflows/customer-app-ci.yml .github/workflows/driver-app-ci.yml
-
-echo "Release identity $release_version is synchronized across repository and mobile artifacts."
-echo 'Release readiness evidence is structurally complete.'
- docs/release/RELEASE_NOTES.md
-grep -Eq "^## ${mobile_release_version//./\\.} - .+" CHANGELOG.md
+grep -Eq '^# FOODEX [0-9]+\.[0-9]+\.[0-9]+ Release Notes$' docs/release/RELEASE_NOTES.md
+grep -Fq "## $mobile_release_version -" CHANGELOG.md
 grep -Fq "VERSION and release notes identify the exact release being promoted. Evidence: #178" docs/release/RELEASE_CHECKLIST.md
 
 production_origin="https://foodex.50sols.com"
