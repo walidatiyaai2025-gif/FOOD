@@ -445,6 +445,7 @@ final class PromotionalNotificationCampaignController extends Controller
             'next_run_at' => $startsAt,
         ];
     }
+
     private function storeImage(Request $request, MarketingImageService $images, mixed $storeId): ?string
     {
         $file = $request->file('image');
