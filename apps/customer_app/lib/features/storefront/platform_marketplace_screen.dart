@@ -32,6 +32,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   Timer? _retailTimer;
   int _retailIndex = 0;
   int _retailCount = -1;
+  String? _pendingAfterAuth;
 
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
@@ -120,10 +121,15 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
       widget.onPlatformRegistered(token);
       if (!mounted) return;
+      final pending = _pendingAfterAuth;
+      _pendingAfterAuth = null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('customer.marketplace.registration_success'))),
       );
       setState(() => _future = _load());
+      if (pending != null && pending.isNotEmpty) {
+        Navigator.of(context).pushNamed(pending);
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -185,7 +191,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     onPressed: () {
                       Navigator.pop(sheetContext);
                       if (!widget.session.isAuthenticated) {
-                        _showAuthRequired();
+                        _showAuthRequired(
+                          next: '/b2b/products/$productId?store_id=$storeId',
+                        );
                         return;
                       }
                       Navigator.of(context).pushNamed(
@@ -213,7 +221,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     }
   }
 
-  void _showAuthRequired() {
+  void _showAuthRequired({String? next}) {
+    _pendingAfterAuth = next;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -244,7 +253,13 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               OutlinedButton(
                 onPressed: () {
                   Navigator.pop(sheetContext);
-                  Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace');
+                  final target = next ?? '/marketplace';
+                  Navigator.of(context).pushNamed(
+                    Uri(
+                      path: '/auth/checkout',
+                      queryParameters: {'next': target},
+                    ).toString(),
+                  );
                 },
                 child: Text(context.tr('customer.action.login')),
               ),
