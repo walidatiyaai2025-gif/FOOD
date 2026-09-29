@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 final class DashboardOperationalNotifier
 {
+    public function __construct(
+        private readonly OrderLifecycleNotificationService $lifecycle,
+    ) {}
+
     public function orderCreated(Order $order): void
     {
         $this->notifyOrderAudience(
@@ -25,6 +29,8 @@ final class DashboardOperationalNotifier
             'A new order was created for '.number_format((float) $order->grand_total, 3).' '.$order->currency,
             ['status' => (string) $order->status],
         );
+
+        $this->lifecycle->customerOrderCreated($order);
     }
 
     public function orderStatusChanged(Order $order, string $from, string $to): void
@@ -50,6 +56,8 @@ final class DashboardOperationalNotifier
             'Order status changed from '.$from.' to '.$to,
             ['from_status' => $from, 'to_status' => $to],
         );
+
+        $this->lifecycle->orderStatusChanged($order, $from, $to);
     }
 
     public function driverAssigned(
@@ -76,6 +84,8 @@ final class DashboardOperationalNotifier
                 'delivery_status' => (string) $assignment->status,
             ],
         );
+
+        $this->lifecycle->driverAssigned($order, $assignment, $previousDriverId);
     }
 
     public function deliveryChanged(
@@ -116,6 +126,20 @@ final class DashboardOperationalNotifier
                 'note' => $note,
             ],
         );
+
+        if ($assignment instanceof DriverAssignment) {
+            if ($status === 'unassigned') {
+                $this->lifecycle->driverUnassigned($order, $assignment, $note);
+            } else {
+                $this->lifecycle->deliveryStatusChanged(
+                    $order,
+                    $assignment,
+                    $fromStatus ?? 'unknown',
+                    $status,
+                    $note,
+                );
+            }
+        }
 
         if ($assignment instanceof DriverAssignment && $note !== null && trim($note) !== '') {
             $this->notifyOrderAudience(
