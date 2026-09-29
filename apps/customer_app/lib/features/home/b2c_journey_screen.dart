@@ -8,6 +8,7 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/location/customer_location_service.dart';
+import '../../core/location/customer_map_pin_selector.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../core/theme/foodex_theme.dart';
 import '../../shared/customer_action_widgets.dart';
@@ -23,6 +24,7 @@ class B2cJourneyScreen extends StatefulWidget {
     required this.onPlatformAuthenticated,
     required this.onSessionExpired,
     this.locationService = const GeolocatorCustomerLocationService(),
+    this.mapPinPicker = showCustomerMapPinSelector,
     super.key,
   });
 
@@ -35,6 +37,7 @@ class B2cJourneyScreen extends StatefulWidget {
   final ValueChanged<String> onPlatformAuthenticated;
   final VoidCallback onSessionExpired;
   final CustomerLocationService locationService;
+  final CustomerMapPinPicker mapPinPicker;
 
   @override
   State<B2cJourneyScreen> createState() => _B2cJourneyScreenState();
@@ -1313,6 +1316,33 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                         : const Icon(Icons.my_location_rounded),
                     label: Text(
                       context.tr('customer.addresses.share_location'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const ValueKey('b2c-address-choose-map'),
+                    onPressed: locating
+                        ? null
+                        : () async {
+                            final selected = await widget.mapPinPicker(
+                              dialogContext,
+                              initialLatitude: latitude,
+                              initialLongitude: longitude,
+                            );
+                            if (selected == null || !dialogContext.mounted) {
+                              return;
+                            }
+                            setDialogState(() {
+                              latitude = selected.latitude;
+                              longitude = selected.longitude;
+                              accuracy = null;
+                              locationSource = 'map_pin';
+                              locationError = null;
+                            });
+                          },
+                    icon: const Icon(Icons.map_outlined),
+                    label: Text(
+                      context.tr('customer.addresses.choose_map'),
                     ),
                   ),
                   if (latitude != null && longitude != null) ...[
