@@ -74,7 +74,7 @@ class DashboardDateRangeTest extends TestCase
         $this->assertIsString($view);
         $this->assertStringContainsString('name="from"', $view);
         $this->assertStringContainsString('name="to"', $view);
-        $this->assertStringContainsString("$isAr?'المبيعات':'Sales'", $view);
+        $this->assertStringContainsString("\$isAr?'المبيعات':'Sales'", $view);
         $this->assertStringContainsString("value="{{ request('from') }}"", $view);
         $this->assertStringContainsString("value="{{ request('to') }}"", $view);
         $this->assertStringNotContainsString('المبيعات اليومية', $view);
