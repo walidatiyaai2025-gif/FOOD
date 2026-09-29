@@ -197,6 +197,7 @@ class _WholesaleHomeDesignScreenState
                   );
                   break;
                 case 'categories':
+                case 'departments':
                   content.add(
                     FoodexSectionHeader(
                       title: sectionTitle,
@@ -795,6 +796,8 @@ String _defaultWholesaleSectionTitle(String type) {
       return 'إعادة الطلب';
     case 'brands':
       return 'العلامات التجارية';
+    case 'departments':
+      return 'الأقسام';
     default:
       return 'عروض الجملة';
   }
