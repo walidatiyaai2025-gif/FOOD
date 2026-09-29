@@ -108,7 +108,7 @@ final class CouponManagementController extends Controller
     {
         $actor = $this->authorizeCoupon($request, $coupon, 'coupons.manage');
         $before = $coupon->toArray();
-        $coupon->update(['is_active' => !(bool) $coupon->is_active]);
+        $coupon->update(['is_active' => $coupon->is_active ? false : true]);
         $this->audit->record('coupon.status_changed', $actor, $coupon, $before, $coupon->fresh()->toArray(), $request);
 
         return back()->with('status', __('coupons.status_updated'));
