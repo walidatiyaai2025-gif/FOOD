@@ -1384,6 +1384,7 @@ class B2bWorkspaceController extends Controller
                 'orders.tax_total',
                 'orders.grand_total',
                 'orders.payment_method',
+                'orders.pricing_snapshot',
                 'orders.customer_note',
                 'orders.created_at as created',
             ])
@@ -1437,6 +1438,7 @@ class B2bWorkspaceController extends Controller
                     ->where('order_id', $row->id)
                     ->orderByDesc('id')
                     ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
+                $pricingSnapshot = json_decode((string) ($row->pricing_snapshot ?? ''), true);
 
                 return [
                     '_id' => (int) $row->id,
@@ -1450,6 +1452,7 @@ class B2bWorkspaceController extends Controller
                     '_tax_total' => (float) ($row->tax_total ?? 0),
                     '_grand_total' => (float) $row->grand_total,
                     '_payment_method' => $row->payment_method,
+                    '_coupon_code' => is_array($pricingSnapshot) ? data_get($pricingSnapshot, 'coupon.code') : null,
                     '_customer_note' => $row->customer_note,
                     '_assignment_id' => $activeAssignment === null ? null : (int) $activeAssignment->id,
                     '_driver_id' => $activeAssignment === null ? null : (int) $activeAssignment->driver_id,
