@@ -15,12 +15,14 @@ class CustomerLoginAction extends StatefulWidget {
     required this.api,
     required this.onAuthenticated,
     required this.successRoute,
+    this.onPlatformAuthenticated,
     super.key,
   });
 
   final CustomerChannel channel;
   final CustomerActionApi api;
   final CustomerAuthenticated onAuthenticated;
+  final ValueChanged<String>? onPlatformAuthenticated;
   final String successRoute;
 
   @override
@@ -54,7 +56,11 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
         username: _username.text.trim(),
       );
       if (!mounted) return;
-      widget.onAuthenticated(widget.channel, result.token);
+      if (result.platformCustomer && widget.onPlatformAuthenticated != null) {
+        widget.onPlatformAuthenticated!(result.token);
+      } else {
+        widget.onAuthenticated(widget.channel, result.token);
+      }
       Navigator.of(context).pushReplacementNamed(widget.successRoute);
     } catch (_) {
       if (mounted) setState(() => _error = 'customer.error.action_failed');
