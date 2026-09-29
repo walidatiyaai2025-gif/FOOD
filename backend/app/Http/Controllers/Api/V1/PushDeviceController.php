@@ -16,39 +16,12 @@ final class PushDeviceController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
-            'platform' => ['required', 'in:android,ios'],
-            'environment' => ['required', 'in:development,staging,production'],
-            'token' => ['required', 'string', 'max:4096'],
-        ]);
+        return $this->upsert($request, $user);
+    }
 
-        $allowed = $data['app'] === 'driver'
-            ? DB::table('drivers')->where('user_id', $user->id)->exists()
-            : DB::table('customers')->where('user_id', $user->id)->exists();
-
-        abort_unless($allowed, 403);
-
-        $device = PushDeviceToken::query()->updateOrCreate(
-            ['token_hash' => hash('sha256', $data['token'])],
-            [
-                'user_id' => $user->id,
-                'app' => $data['app'],
-                'platform' => $data['platform'],
-                'environment' => $data['environment'],
-                'token_encrypted' => $data['token'],
-                'revoked_at' => null,
-            ],
-        );
-
-        return response()->json([
-            'data' => [
-                'id' => $device->id,
-                'app' => $device->app,
-                'platform' => $device->platform,
-                'environment' => $device->environment,
-            ],
-        ], $device->wasRecentlyCreated ? 201 : 200);
+    public function storeGuest(Request $request): JsonResponse
+    {
+        return $this->upsert($request, null);
     }
 
     public function destroy(Request $request, PushDeviceToken $device): JsonResponse
@@ -61,5 +34,77 @@ final class PushDeviceController extends Controller
         $device->update(['revoked_at' => now()]);
 
         return response()->json(['status' => 'revoked']);
+    }
+
+    private function upsert(Request $request, ?User $user): JsonResponse
+    {
+        $data = $request->validate([
+            'app' => ['required', 'in:customer,driver'],
+            'platform' => ['required', 'in:android,ios'],
+            'environment' => ['required', 'in:development,staging,production'],
+            'token' => ['required', 'string', 'max:4096'],
+            'install_id' => ['nullable', 'string', 'max:120'],
+            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
+            'target_channel' => ['nullable', 'in:all,b2b,b2c'],
+            'locale' => ['nullable', 'in:ar,en'],
+        ]);
+
+        if ($user === null) {
+            abort_unless($data['app'] === 'customer', 401);
+            abort_if(empty($data['install_id']), 422, 'install_id is required for anonymous Customer devices.');
+        } elseif ($data['app'] === 'driver') {
+            $allowed = DB::table('drivers')
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->exists();
+            abort_unless($allowed, 403);
+        } else {
+            $allowed = DB::table('platform_customers')->where('user_id', $user->id)->where('is_active', true)->exists()
+                || DB::table('customers')->where('user_id', $user->id)->exists()
+                || DB::table('b2b_customers')->where('user_id', $user->id)->exists()
+                || DB::table('b2c_customers')->where('user_id', $user->id)->exists();
+            abort_unless($allowed, 403);
+        }
+
+        $storeId = isset($data['store_id']) ? (int) $data['store_id'] : null;
+        $targetChannel = (string) ($data['target_channel'] ?? 'all');
+        if ($storeId !== null) {
+            $storeChannel = strtolower((string) DB::table('stores')
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->where('stores.id', $storeId)
+                ->where('stores.is_active', true)
+                ->value('store_types.code'));
+            abort_unless(in_array($storeChannel, ['b2b', 'b2c'], true), 404);
+            if ($targetChannel !== 'all') {
+                abort_unless($targetChannel === $storeChannel, 422);
+            }
+        }
+
+        $device = PushDeviceToken::query()->updateOrCreate(
+            ['token_hash' => hash('sha256', $data['token'])],
+            [
+                'user_id' => $user?->id,
+                'install_id' => $data['install_id'] ?? null,
+                'app' => $data['app'],
+                'platform' => $data['platform'],
+                'environment' => $data['environment'],
+                'store_id' => $storeId,
+                'target_channel' => $targetChannel,
+                'locale' => (string) ($data['locale'] ?? $user?->locale ?? 'ar'),
+                'token_encrypted' => $data['token'],
+                'revoked_at' => null,
+                'last_seen_at' => now(),
+            ],
+        );
+
+        return response()->json([
+            'data' => [
+                'id' => $device->id,
+                'app' => $device->app,
+                'platform' => $device->platform,
+                'environment' => $device->environment,
+                'anonymous' => $device->user_id === null,
+            ],
+        ], $device->wasRecentlyCreated ? 201 : 200);
     }
 }
