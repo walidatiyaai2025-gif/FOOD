@@ -482,24 +482,25 @@ final class AdminOrderManagementService
             $productIndexes = [];
 
             foreach ($items as $item) {
-                if (
-                    is_array($item)
-                    && isset($item['product_id'], $item['quantity'])
-                    && is_numeric($item['product_id'])
-                    && is_numeric($item['quantity'])
-                    && (float) $item['quantity'] > 0
-                ) {
-                    $productKey = (string) (int) $item['product_id'];
+                $productId = is_array($item) ? ($item['product_id'] ?? null) : null;
+                $quantity = is_array($item) ? ($item['quantity'] ?? null) : null;
 
-                    if (array_key_exists($productKey, $productIndexes)) {
-                        $index = $productIndexes[$productKey];
-                        $normalized[$index]['quantity'] = (float) $normalized[$index]['quantity'] + (float) $item['quantity'];
-                        continue;
-                    }
+                if (! is_numeric($productId) || ! is_numeric($quantity) || (float) $quantity <= 0) {
+                    $normalized[] = $item;
 
-                    $productIndexes[$productKey] = count($normalized);
+                    continue;
                 }
 
+                $productKey = (string) (int) $productId;
+
+                if (array_key_exists($productKey, $productIndexes)) {
+                    $index = $productIndexes[$productKey];
+                    $normalized[$index]['quantity'] = (float) $normalized[$index]['quantity'] + (float) $quantity;
+
+                    continue;
+                }
+
+                $productIndexes[$productKey] = count($normalized);
                 $normalized[] = $item;
             }
 
