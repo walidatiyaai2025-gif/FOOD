@@ -101,8 +101,13 @@ class OrderLifecycleNotificationTest extends TestCase
             'app' => 'driver',
             'type' => 'delivery.unassigned',
         ]);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $customerUser->id,
+            'app' => 'customer',
+            'type' => 'delivery.unassigned',
+        ]);
 
-        Queue::assertPushed(DispatchPushNotification::class, 7);
+        Queue::assertPushed(DispatchPushNotification::class, 8);
     }
 
     public function test_driver_delivery_status_does_not_duplicate_customer_push_when_order_status_also_changes(): void
