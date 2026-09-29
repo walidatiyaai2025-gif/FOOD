@@ -88,19 +88,9 @@ class CustomerAppRouter {
       );
     }
 
-    if (session.channel != requested.channel) {
-      final entitledRetailManager =
-          requested.channel == CustomerChannel.b2b &&
-          session.b2bRetailStoreId != null;
-      if (!entitledRetailManager) {
-        return definitionFor(
-          requested.channel == CustomerChannel.b2b
-              ? CustomerRoutePaths.b2bLogin
-              : CustomerRoutePaths.entry,
-        );
-      }
-    }
-
+    // A registered Customer account belongs to the FOODEX platform,
+    // not to one storefront. Store/channel ownership is resolved server-side
+    // from the selected store when cart and checkout operations run.
     return null;
   }
 
