@@ -8,6 +8,7 @@ import '../../core/api/b2b_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/api/wholesale_commerce_api.dart';
+import '../../core/engagement/live_ad_service.dart';
 import 'storefront_design_system.dart';
 
 class WholesaleHomeDesignScreen extends StatefulWidget {
@@ -32,8 +33,10 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
 class _WholesaleHomeDesignScreenState
     extends State<WholesaleHomeDesignScreen> {
   final search = TextEditingController();
+  final liveAds = CustomerLiveAdService();
   late final int storeId = wholesaleStoreId(widget.location);
   late Future<Map<String, dynamic>> future = _load();
+  bool _liveAdScheduled = false;
 
   Future<Map<String, dynamic>> _load([String query = '']) async {
     if (widget.api == null || storeId <= 0) {
@@ -93,6 +96,20 @@ class _WholesaleHomeDesignScreenState
                   ),
                 ),
               );
+            }
+
+            if (!_liveAdScheduled) {
+              _liveAdScheduled = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                liveAds
+                    .showForContext(
+                      context,
+                      channel: 'b2b',
+                      storeId: storeId > 0 ? storeId : null,
+                    )
+                    .catchError((_) {});
+              });
             }
 
             final payload = snapshot.data ?? const <String, dynamic>{};
