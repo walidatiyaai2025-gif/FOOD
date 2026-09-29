@@ -1424,7 +1424,12 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ..._objectCards(profile.profile),
-        _section(context.tr('customer.profile.addresses')),
+        _section(
+          context.tr('customer.profile.addresses'),
+          onTap: () => Navigator.of(context).pushNamed(
+            CustomerRoutePaths.addresses,
+          ),
+        ),
         ..._objectCards(profile.addresses),
         _section(
           context.tr('customer.profile.favorites'),
