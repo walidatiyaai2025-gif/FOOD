@@ -6,6 +6,7 @@ use App\Models\MarketingCoupon;
 use App\Models\MarketingCouponRedemption;
 use App\Models\Order;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class CouponRedemptionService
@@ -36,7 +37,7 @@ final class CouponRedemptionService
         }
 
         if ($channel === 'b2c') {
-            $enabled = \Illuminate\Support\Facades\DB::table('stores')
+            $enabled = DB::table('stores')
                 ->where('id', $storeId)
                 ->where('is_active', true)
                 ->where('coupons_enabled', true)
@@ -80,7 +81,6 @@ final class CouponRedemptionService
         }
 
         $discount = 0.0;
-        $finalDelivery = $deliveryTotal;
 
         if ($coupon->discount_type === 'percentage') {
             $discount = round($subtotal * ((float) $coupon->discount_value / 100), 3);
@@ -98,7 +98,7 @@ final class CouponRedemptionService
         return [
             'coupon' => $coupon,
             'discount_total' => round(max(0, $discount), 3),
-            'delivery_total' => round(max(0, $finalDelivery), 3),
+            'delivery_total' => round(max(0, $deliveryTotal), 3),
         ];
     }
 
