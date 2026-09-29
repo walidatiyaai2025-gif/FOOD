@@ -275,7 +275,7 @@ class _WholesaleHomeDesignScreenState
                         widget.session.isAuthenticated
                             ? CustomerRoutePaths.profile
                             : Uri(
-                                path: CustomerRoutePaths.register,
+                                path: CustomerRoutePaths.customerLogin,
                                 queryParameters: {
                                   'return': CustomerRoutePaths.b2bHome,
                                 },
