@@ -15,6 +15,7 @@ use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderInventoryReservationService;
+use App\Services\PlatformCustomerService;
 use App\Services\RetailWholesaleReplenishmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,14 +37,54 @@ class OrderController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        [$customer, $channel] = $this->customerContext($request);
-
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'status' => ['nullable', 'string', Rule::in(array_keys(self::TRANSITIONS))],
+            'store_id' => ['nullable', 'integer', 'min:1'],
+            'channel' => ['nullable', 'string', Rule::in(['b2b', 'b2c'])],
         ]);
 
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        if (
+            ! $request->is('api/v1/b2b/*')
+            && app(PlatformCustomerService::class)->isPlatformCustomer($user)
+        ) {
+            $query = $this->platformCustomerOrders($user)
+                ->when(
+                    isset($validated['status']),
+                    fn ($query) => $query->where('status', $validated['status']),
+                )
+                ->when(
+                    isset($validated['store_id']),
+                    fn ($query) => $query->where('store_id', (int) $validated['store_id']),
+                )
+                ->when(
+                    isset($validated['channel']),
+                    fn ($query) => $query->where('channel', (string) $validated['channel']),
+                );
+
+            $paginator = $query
+                ->latest('id')
+                ->paginate((int) ($validated['per_page'] ?? 20));
+
+            return response()->json([
+                'data' => collect($paginator->items())
+                    ->map(fn (Order $order): array => $this->orderPayload($order))
+                    ->values()
+                    ->all(),
+                'meta' => [
+                    'current_page' => $paginator->currentPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                    'scope' => 'platform_customer',
+                ],
+            ]);
+        }
+
+        [$customer, $channel] = $this->customerContext($request);
         $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
 
         $paginator = Order::query()
@@ -65,14 +106,30 @@ class OrderController extends Controller
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
+                'scope' => $channel,
             ],
         ]);
     }
 
     public function show(Request $request, int $order): JsonResponse
     {
-        [$customer, $channel] = $this->customerContext($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
+        if (
+            ! $request->is('api/v1/b2b/*')
+            && app(PlatformCustomerService::class)->isPlatformCustomer($user)
+        ) {
+            $model = $this->platformCustomerOrders($user)
+                ->whereKey($order)
+                ->firstOrFail();
+
+            $this->assertRequestedOrderContext($request, $model);
+
+            return response()->json($this->orderPayload($model));
+        }
+
+        [$customer, $channel] = $this->customerContext($request);
         $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
 
         $model = Order::query()
@@ -80,6 +137,8 @@ class OrderController extends Controller
             ->where($customerColumn, $customer->getKey())
             ->where('channel', $channel)
             ->firstOrFail();
+
+        $this->assertRequestedOrderContext($request, $model);
 
         return response()->json($this->orderPayload($model));
     }
@@ -184,6 +243,61 @@ class OrderController extends Controller
         return [$resolver->b2cFromRequest($user, $request), 'b2c'];
     }
 
+    private function platformCustomerOrders(User $user)
+    {
+        $b2bCustomerId = DB::table('b2b_customers')
+            ->where('user_id', $user->getKey())
+            ->value('id');
+
+        $b2cCustomerIds = DB::table('b2c_customers')
+            ->where('user_id', $user->getKey())
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
+        return Order::query()->where(function ($query) use ($b2bCustomerId, $b2cCustomerIds): void {
+            if ($b2bCustomerId !== null) {
+                $query->orWhere(function ($query) use ($b2bCustomerId): void {
+                    $query->where('channel', 'b2b')
+                        ->where('b2b_customer_id', (int) $b2bCustomerId);
+                });
+            }
+
+            if ($b2cCustomerIds !== []) {
+                $query->orWhere(function ($query) use ($b2cCustomerIds): void {
+                    $query->where('channel', 'b2c')
+                        ->whereIn('b2c_customer_id', $b2cCustomerIds);
+                });
+            }
+
+            if ($b2bCustomerId === null && $b2cCustomerIds === []) {
+                $query->whereRaw('1 = 0');
+            }
+        });
+    }
+
+    private function assertRequestedOrderContext(Request $request, Order $order): void
+    {
+        $requestedStoreId = $request->input('store_id')
+            ?? $request->query('store_id')
+            ?? $request->header('X-FOODEX-Store-ID');
+
+        if (is_numeric($requestedStoreId) && (int) $requestedStoreId > 0) {
+            abort_unless((int) $requestedStoreId === (int) $order->store_id, 404);
+        }
+
+        $requestedChannel = strtolower(trim((string) (
+            $request->input('channel')
+            ?? $request->query('channel')
+            ?? $request->header('X-FOODEX-Customer-Domain', '')
+        )));
+
+        if ($requestedChannel !== '') {
+            abort_unless(in_array($requestedChannel, ['b2b', 'b2c'], true), 404);
+            abort_unless($requestedChannel === strtolower((string) $order->channel), 404);
+        }
+    }
+
     private function canManageOrder(User $user, Order $order): bool
     {
         return in_array(
@@ -236,10 +350,22 @@ class OrderController extends Controller
             ->latest('id')
             ->first();
 
+        $store = DB::table('stores')
+            ->where('id', $order->store_id)
+            ->first(['id', 'code', 'name', 'logo_path']);
+
         return [
             'id' => (int) $order->getKey(),
             'order_number' => (string) $order->order_number,
             'store_id' => (int) $order->store_id,
+            'store' => $store === null ? null : [
+                'id' => (int) $store->id,
+                'code' => (string) $store->code,
+                'name' => (string) $store->name,
+                'logo_url' => $store->logo_path === null
+                    ? null
+                    : url('/'.ltrim((string) $store->logo_path, '/')),
+            ],
             'address_id' => $order->address_id === null ? null : (int) $order->address_id,
             'requested_delivery_date' => $order->requested_delivery_date,
             'channel' => (string) $order->channel,
