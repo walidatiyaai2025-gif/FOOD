@@ -368,8 +368,8 @@ void main() {
 
   testWidgets('location denial keeps manual address entry available', (tester) async {
     final accountApi = _FakeAccountApi();
-    const location = _FakeLocationService(
-      error: CustomerLocationException('location_permission_denied'),
+    final location = _FakeLocationService(
+      error: const CustomerLocationException('location_permission_denied'),
     );
 
     await tester.pumpWidget(
