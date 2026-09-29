@@ -50,6 +50,7 @@ def _select_brand_assets(app_name: str) -> None:
 
 
 GOOGLE_SERVICES_PLUGIN_VERSION = '4.4.4'
+ANDROID_DESUGAR_JDK_LIBS_VERSION = '2.1.4'
 
 
 def _require_brand_assets() -> None:
@@ -257,6 +258,1504 @@ def _configure_android_firebase(app_dir: Path, bundle_id: str) -> None:
             app_groovy.write_text(text)
     else:
         raise RuntimeError('Generated Android app build.gradle(.kts) was not found')
+
+
+
+def _enable_android_core_library_desugaring(app: Path) -> None:
+    app_kts = app / 'build.gradle.kts'
+    app_groovy = app / 'build.gradle'
+
+    if app_kts.exists():
+        text = app_kts.read_text()
+        if 'isCoreLibraryDesugaringEnabled = true' not in text:
+            text, count = re.subn(
+                r'(?m)^(\s*)compileOptions\s*\{\s*    app = app_dir / 'android' / 'app'
+    build_files = [app / 'build.gradle.kts', app / 'build.gradle']
+    for path in build_files:
+        if not path.exists():
+            continue
+        text = path.read_text()
+        text = re.sub(r'namespace\s*=\s*["\'][^"\']+["\']', f'namespace = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s*=\s*["\'][^"\']+["\']', f'applicationId = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s+["\'][^"\']+["\']', f'applicationId "{bundle_id}"', text)
+        path.write_text(text)
+
+    main_activities = list((app / 'src' / 'main').rglob('MainActivity.kt'))
+    if not main_activities:
+        raise RuntimeError('Generated Android MainActivity.kt was not found')
+    for path in main_activities:
+        text = path.read_text()
+        text = re.sub(r'^package\s+[^\s]+', f'package {bundle_id}', text, count=1, flags=re.M)
+        if 'NotificationChannel' not in text:
+            text = text.replace(
+                'import io.flutter.embedding.android.FlutterActivity',
+                'import android.app.NotificationChannel\n'
+                'import android.app.NotificationManager\n'
+                'import android.os.Build\n'
+                'import android.os.Bundle\n'
+                'import io.flutter.embedding.android.FlutterActivity',
+            )
+            text = re.sub(
+                r'class MainActivity\s*:\s*FlutterActivity\(\)\s*',
+                'class MainActivity : FlutterActivity() {\n'
+                '    override fun onCreate(savedInstanceState: Bundle?) {\n'
+                '        super.onCreate(savedInstanceState)\n'
+                '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {\n'
+                '            val channel = NotificationChannel(\n'
+                '                "foodex_updates",\n'
+                '                "FOODEX Updates",\n'
+                '                NotificationManager.IMPORTANCE_DEFAULT\n'
+                '            )\n'
+                '            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)\n'
+                '        }\n'
+                '    }\n'
+                '}\n',
+                text,
+            )
+        path.write_text(text)
+
+    _enable_android_core_library_desugaring(app)
+    _configure_android_firebase(app_dir, bundle_id)
+    _write_android_brand_resources(app)
+
+
+def _render_ios_app_icons(app_icon_set: Path) -> None:
+    contents_path = app_icon_set / 'Contents.json'
+    if not contents_path.exists():
+        raise RuntimeError('Generated iOS AppIcon Contents.json was not found')
+
+    contents = json.loads(contents_path.read_text())
+    sips = shutil.which('sips')
+    for image in contents.get('images', []):
+        filename = image.get('filename')
+        size = image.get('size')
+        scale = image.get('scale')
+        if not filename or not size or not scale:
+            continue
+        points = float(size.split('x', 1)[0])
+        multiplier = float(scale.rstrip('x'))
+        pixels = int(round(points * multiplier))
+        destination = app_icon_set / filename
+        if sips:
+            subprocess.run(
+                [sips, '-z', str(pixels), str(pixels), str(APP_ICON), '--out', str(destination)],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        else:
+            # Linux validation jobs do not compile iOS. The macOS iOS job reruns
+            # this script and creates exact-size files via sips before xcodebuild.
+            _copy(APP_ICON, destination)
+
+
+def _write_ios_splash(ios: Path) -> None:
+    assets = ios / 'Runner' / 'Assets.xcassets'
+    splash_set = assets / 'FoodexSplash.imageset'
+    splash_set.mkdir(parents=True, exist_ok=True)
+    _copy(SPLASH_IMAGE, splash_set / 'FoodexSplash.png')
+    (splash_set / 'Contents.json').write_text(
+        json.dumps(
+            {
+                'images': [
+                    {
+                        'filename': 'FoodexSplash.png',
+                        'idiom': 'universal',
+                        'scale': '1x',
+                    }
+                ],
+                'info': {'author': 'xcode', 'version': 1},
+            },
+            indent=2,
+        )
+        + '\n'
+    )
+
+    storyboard = ios / 'Runner' / 'Base.lproj' / 'LaunchScreen.storyboard'
+    if not storyboard.exists():
+        raise RuntimeError('Generated iOS LaunchScreen.storyboard was not found')
+
+    tree = ET.parse(storyboard)
+    root = tree.getroot()
+    image_view = next((node for node in root.iter('imageView') if node.get('image')), None)
+    if image_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen image view was not found')
+    image_view.set('image', 'FoodexSplash')
+    image_view.set('contentMode', 'scaleAspectFill')
+    image_view.set('clipsSubviews', 'YES')
+
+    parent_view = None
+    for view in root.iter('view'):
+        subviews = view.find('subviews')
+        if subviews is not None and image_view in list(subviews):
+            parent_view = view
+            break
+    if parent_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen root view was not found')
+
+    view_id = parent_view.get('id')
+    image_id = image_view.get('id')
+    constraints = parent_view.find('constraints')
+    if constraints is None:
+        constraints = ET.SubElement(parent_view, 'constraints')
+    for constraint in list(constraints):
+        if image_id in (constraint.get('firstItem'), constraint.get('secondItem')):
+            constraints.remove(constraint)
+    edges = (
+        ('leading', 'leading', 'Fdx-LD-001'),
+        ('trailing', 'trailing', 'Fdx-TR-002'),
+        ('top', 'top', 'Fdx-TP-003'),
+        ('bottom', 'bottom', 'Fdx-BT-004'),
+    )
+    for first, second, identifier in edges:
+        ET.SubElement(
+            constraints,
+            'constraint',
+            {
+                'firstItem': image_id,
+                'firstAttribute': first,
+                'secondItem': view_id,
+                'secondAttribute': second,
+                'id': identifier,
+            },
+        )
+
+    background = next(
+        (node for node in parent_view.findall('color') if node.get('key') == 'backgroundColor'),
+        None,
+    )
+    if background is None:
+        background = ET.SubElement(parent_view, 'color', {'key': 'backgroundColor'})
+    background.attrib.update(
+        {
+            'red': '0.0',
+            'green': '0.1960784314',
+            'blue': '0.1372549020',
+            'alpha': '1',
+            'colorSpace': 'custom',
+            'customColorSpace': 'sRGB',
+        }
+    )
+
+    resources = root.find('resources')
+    if resources is None:
+        resources = ET.SubElement(root, 'resources')
+    for resource in list(resources.findall('image')):
+        if resource.get('name') == 'LaunchImage':
+            resources.remove(resource)
+    if not any(resource.get('name') == 'FoodexSplash' for resource in resources.findall('image')):
+        ET.SubElement(
+            resources,
+            'image',
+            {'name': 'FoodexSplash', 'width': '432', 'height': '936'},
+        )
+
+    ET.indent(tree, space='    ')
+    tree.write(storyboard, encoding='utf-8', xml_declaration=True)
+
+
+def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
+    ios = app_dir / 'ios'
+    pbxproj = ios / 'Runner.xcodeproj' / 'project.pbxproj'
+    if not pbxproj.exists():
+        raise RuntimeError('Generated iOS project.pbxproj was not found')
+    text = pbxproj.read_text()
+
+    def bundle_replacement(match: re.Match[str]) -> str:
+        original = match.group(1)
+        suffix = '.RunnerTests' if original.endswith('.RunnerTests') else ''
+        return f'PRODUCT_BUNDLE_IDENTIFIER = {bundle_id}{suffix};'
+
+    text = re.sub(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);', bundle_replacement, text)
+    if 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' not in text:
+        text = text.replace(
+            'CODE_SIGN_STYLE = Automatic;',
+            'CODE_SIGN_STYLE = Automatic;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;',
+        )
+    pbxproj.write_text(text)
+
+    info = ios / 'Runner' / 'Info.plist'
+    with info.open('rb') as stream:
+        plist = plistlib.load(stream)
+    plist['CFBundleDisplayName'] = label
+    with info.open('wb') as stream:
+        plistlib.dump(plist, stream, sort_keys=False)
+
+    entitlements = ios / 'Runner' / 'Runner.entitlements'
+    with entitlements.open('wb') as stream:
+        plistlib.dump({'aps-environment': 'production'}, stream, sort_keys=False)
+
+    _render_ios_app_icons(ios / 'Runner' / 'Assets.xcassets' / 'AppIcon.appiconset')
+    _write_ios_splash(ios)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--app', required=True, choices=sorted(IDENTITIES))
+    parser.add_argument('--app-dir', required=True, type=Path)
+    parser.add_argument('--platform', choices=('all', 'android', 'ios'), default='all')
+    args = parser.parse_args()
+
+    _select_brand_assets(args.app)
+    _require_brand_assets()
+    identity = IDENTITIES[args.app]
+    if args.platform in ('all', 'android'):
+        patch_android(args.app_dir, identity['bundle_id'])
+    if args.platform in ('all', 'ios'):
+        patch_ios(args.app_dir, identity['bundle_id'], identity['label'])
+    print(f"{args.app}: {identity['bundle_id']} + FOODEX native branding")
+
+
+if __name__ == '__main__':
+    main()
+,
+                r'\1compileOptions {\n\1    isCoreLibraryDesugaringEnabled = true',
+                text,
+                count=1,
+            )
+            if count != 1:
+                raise RuntimeError('Generated Android Kotlin compileOptions block was not found')
+        dependency = (
+            'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:'
+            f'{ANDROID_DESUGAR_JDK_LIBS_VERSION}")'
+        )
+        if 'coreLibraryDesugaring(' not in text:
+            if re.search(r'(?m)^dependencies\s*\{\s*    app = app_dir / 'android' / 'app'
+    build_files = [app / 'build.gradle.kts', app / 'build.gradle']
+    for path in build_files:
+        if not path.exists():
+            continue
+        text = path.read_text()
+        text = re.sub(r'namespace\s*=\s*["\'][^"\']+["\']', f'namespace = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s*=\s*["\'][^"\']+["\']', f'applicationId = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s+["\'][^"\']+["\']', f'applicationId "{bundle_id}"', text)
+        path.write_text(text)
+
+    main_activities = list((app / 'src' / 'main').rglob('MainActivity.kt'))
+    if not main_activities:
+        raise RuntimeError('Generated Android MainActivity.kt was not found')
+    for path in main_activities:
+        text = path.read_text()
+        text = re.sub(r'^package\s+[^\s]+', f'package {bundle_id}', text, count=1, flags=re.M)
+        if 'NotificationChannel' not in text:
+            text = text.replace(
+                'import io.flutter.embedding.android.FlutterActivity',
+                'import android.app.NotificationChannel\n'
+                'import android.app.NotificationManager\n'
+                'import android.os.Build\n'
+                'import android.os.Bundle\n'
+                'import io.flutter.embedding.android.FlutterActivity',
+            )
+            text = re.sub(
+                r'class MainActivity\s*:\s*FlutterActivity\(\)\s*',
+                'class MainActivity : FlutterActivity() {\n'
+                '    override fun onCreate(savedInstanceState: Bundle?) {\n'
+                '        super.onCreate(savedInstanceState)\n'
+                '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {\n'
+                '            val channel = NotificationChannel(\n'
+                '                "foodex_updates",\n'
+                '                "FOODEX Updates",\n'
+                '                NotificationManager.IMPORTANCE_DEFAULT\n'
+                '            )\n'
+                '            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)\n'
+                '        }\n'
+                '    }\n'
+                '}\n',
+                text,
+            )
+        path.write_text(text)
+
+    _configure_android_firebase(app_dir, bundle_id)
+    _write_android_brand_resources(app)
+
+
+def _render_ios_app_icons(app_icon_set: Path) -> None:
+    contents_path = app_icon_set / 'Contents.json'
+    if not contents_path.exists():
+        raise RuntimeError('Generated iOS AppIcon Contents.json was not found')
+
+    contents = json.loads(contents_path.read_text())
+    sips = shutil.which('sips')
+    for image in contents.get('images', []):
+        filename = image.get('filename')
+        size = image.get('size')
+        scale = image.get('scale')
+        if not filename or not size or not scale:
+            continue
+        points = float(size.split('x', 1)[0])
+        multiplier = float(scale.rstrip('x'))
+        pixels = int(round(points * multiplier))
+        destination = app_icon_set / filename
+        if sips:
+            subprocess.run(
+                [sips, '-z', str(pixels), str(pixels), str(APP_ICON), '--out', str(destination)],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        else:
+            # Linux validation jobs do not compile iOS. The macOS iOS job reruns
+            # this script and creates exact-size files via sips before xcodebuild.
+            _copy(APP_ICON, destination)
+
+
+def _write_ios_splash(ios: Path) -> None:
+    assets = ios / 'Runner' / 'Assets.xcassets'
+    splash_set = assets / 'FoodexSplash.imageset'
+    splash_set.mkdir(parents=True, exist_ok=True)
+    _copy(SPLASH_IMAGE, splash_set / 'FoodexSplash.png')
+    (splash_set / 'Contents.json').write_text(
+        json.dumps(
+            {
+                'images': [
+                    {
+                        'filename': 'FoodexSplash.png',
+                        'idiom': 'universal',
+                        'scale': '1x',
+                    }
+                ],
+                'info': {'author': 'xcode', 'version': 1},
+            },
+            indent=2,
+        )
+        + '\n'
+    )
+
+    storyboard = ios / 'Runner' / 'Base.lproj' / 'LaunchScreen.storyboard'
+    if not storyboard.exists():
+        raise RuntimeError('Generated iOS LaunchScreen.storyboard was not found')
+
+    tree = ET.parse(storyboard)
+    root = tree.getroot()
+    image_view = next((node for node in root.iter('imageView') if node.get('image')), None)
+    if image_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen image view was not found')
+    image_view.set('image', 'FoodexSplash')
+    image_view.set('contentMode', 'scaleAspectFill')
+    image_view.set('clipsSubviews', 'YES')
+
+    parent_view = None
+    for view in root.iter('view'):
+        subviews = view.find('subviews')
+        if subviews is not None and image_view in list(subviews):
+            parent_view = view
+            break
+    if parent_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen root view was not found')
+
+    view_id = parent_view.get('id')
+    image_id = image_view.get('id')
+    constraints = parent_view.find('constraints')
+    if constraints is None:
+        constraints = ET.SubElement(parent_view, 'constraints')
+    for constraint in list(constraints):
+        if image_id in (constraint.get('firstItem'), constraint.get('secondItem')):
+            constraints.remove(constraint)
+    edges = (
+        ('leading', 'leading', 'Fdx-LD-001'),
+        ('trailing', 'trailing', 'Fdx-TR-002'),
+        ('top', 'top', 'Fdx-TP-003'),
+        ('bottom', 'bottom', 'Fdx-BT-004'),
+    )
+    for first, second, identifier in edges:
+        ET.SubElement(
+            constraints,
+            'constraint',
+            {
+                'firstItem': image_id,
+                'firstAttribute': first,
+                'secondItem': view_id,
+                'secondAttribute': second,
+                'id': identifier,
+            },
+        )
+
+    background = next(
+        (node for node in parent_view.findall('color') if node.get('key') == 'backgroundColor'),
+        None,
+    )
+    if background is None:
+        background = ET.SubElement(parent_view, 'color', {'key': 'backgroundColor'})
+    background.attrib.update(
+        {
+            'red': '0.0',
+            'green': '0.1960784314',
+            'blue': '0.1372549020',
+            'alpha': '1',
+            'colorSpace': 'custom',
+            'customColorSpace': 'sRGB',
+        }
+    )
+
+    resources = root.find('resources')
+    if resources is None:
+        resources = ET.SubElement(root, 'resources')
+    for resource in list(resources.findall('image')):
+        if resource.get('name') == 'LaunchImage':
+            resources.remove(resource)
+    if not any(resource.get('name') == 'FoodexSplash' for resource in resources.findall('image')):
+        ET.SubElement(
+            resources,
+            'image',
+            {'name': 'FoodexSplash', 'width': '432', 'height': '936'},
+        )
+
+    ET.indent(tree, space='    ')
+    tree.write(storyboard, encoding='utf-8', xml_declaration=True)
+
+
+def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
+    ios = app_dir / 'ios'
+    pbxproj = ios / 'Runner.xcodeproj' / 'project.pbxproj'
+    if not pbxproj.exists():
+        raise RuntimeError('Generated iOS project.pbxproj was not found')
+    text = pbxproj.read_text()
+
+    def bundle_replacement(match: re.Match[str]) -> str:
+        original = match.group(1)
+        suffix = '.RunnerTests' if original.endswith('.RunnerTests') else ''
+        return f'PRODUCT_BUNDLE_IDENTIFIER = {bundle_id}{suffix};'
+
+    text = re.sub(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);', bundle_replacement, text)
+    if 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' not in text:
+        text = text.replace(
+            'CODE_SIGN_STYLE = Automatic;',
+            'CODE_SIGN_STYLE = Automatic;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;',
+        )
+    pbxproj.write_text(text)
+
+    info = ios / 'Runner' / 'Info.plist'
+    with info.open('rb') as stream:
+        plist = plistlib.load(stream)
+    plist['CFBundleDisplayName'] = label
+    with info.open('wb') as stream:
+        plistlib.dump(plist, stream, sort_keys=False)
+
+    entitlements = ios / 'Runner' / 'Runner.entitlements'
+    with entitlements.open('wb') as stream:
+        plistlib.dump({'aps-environment': 'production'}, stream, sort_keys=False)
+
+    _render_ios_app_icons(ios / 'Runner' / 'Assets.xcassets' / 'AppIcon.appiconset')
+    _write_ios_splash(ios)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--app', required=True, choices=sorted(IDENTITIES))
+    parser.add_argument('--app-dir', required=True, type=Path)
+    parser.add_argument('--platform', choices=('all', 'android', 'ios'), default='all')
+    args = parser.parse_args()
+
+    _select_brand_assets(args.app)
+    _require_brand_assets()
+    identity = IDENTITIES[args.app]
+    if args.platform in ('all', 'android'):
+        patch_android(args.app_dir, identity['bundle_id'])
+    if args.platform in ('all', 'ios'):
+        patch_ios(args.app_dir, identity['bundle_id'], identity['label'])
+    print(f"{args.app}: {identity['bundle_id']} + FOODEX native branding")
+
+
+if __name__ == '__main__':
+    main()
+, text):
+                text, count = re.subn(
+                    r'(?m)^(dependencies\s*\{\s*)    app = app_dir / 'android' / 'app'
+    build_files = [app / 'build.gradle.kts', app / 'build.gradle']
+    for path in build_files:
+        if not path.exists():
+            continue
+        text = path.read_text()
+        text = re.sub(r'namespace\s*=\s*["\'][^"\']+["\']', f'namespace = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s*=\s*["\'][^"\']+["\']', f'applicationId = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s+["\'][^"\']+["\']', f'applicationId "{bundle_id}"', text)
+        path.write_text(text)
+
+    main_activities = list((app / 'src' / 'main').rglob('MainActivity.kt'))
+    if not main_activities:
+        raise RuntimeError('Generated Android MainActivity.kt was not found')
+    for path in main_activities:
+        text = path.read_text()
+        text = re.sub(r'^package\s+[^\s]+', f'package {bundle_id}', text, count=1, flags=re.M)
+        if 'NotificationChannel' not in text:
+            text = text.replace(
+                'import io.flutter.embedding.android.FlutterActivity',
+                'import android.app.NotificationChannel\n'
+                'import android.app.NotificationManager\n'
+                'import android.os.Build\n'
+                'import android.os.Bundle\n'
+                'import io.flutter.embedding.android.FlutterActivity',
+            )
+            text = re.sub(
+                r'class MainActivity\s*:\s*FlutterActivity\(\)\s*',
+                'class MainActivity : FlutterActivity() {\n'
+                '    override fun onCreate(savedInstanceState: Bundle?) {\n'
+                '        super.onCreate(savedInstanceState)\n'
+                '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {\n'
+                '            val channel = NotificationChannel(\n'
+                '                "foodex_updates",\n'
+                '                "FOODEX Updates",\n'
+                '                NotificationManager.IMPORTANCE_DEFAULT\n'
+                '            )\n'
+                '            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)\n'
+                '        }\n'
+                '    }\n'
+                '}\n',
+                text,
+            )
+        path.write_text(text)
+
+    _configure_android_firebase(app_dir, bundle_id)
+    _write_android_brand_resources(app)
+
+
+def _render_ios_app_icons(app_icon_set: Path) -> None:
+    contents_path = app_icon_set / 'Contents.json'
+    if not contents_path.exists():
+        raise RuntimeError('Generated iOS AppIcon Contents.json was not found')
+
+    contents = json.loads(contents_path.read_text())
+    sips = shutil.which('sips')
+    for image in contents.get('images', []):
+        filename = image.get('filename')
+        size = image.get('size')
+        scale = image.get('scale')
+        if not filename or not size or not scale:
+            continue
+        points = float(size.split('x', 1)[0])
+        multiplier = float(scale.rstrip('x'))
+        pixels = int(round(points * multiplier))
+        destination = app_icon_set / filename
+        if sips:
+            subprocess.run(
+                [sips, '-z', str(pixels), str(pixels), str(APP_ICON), '--out', str(destination)],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        else:
+            # Linux validation jobs do not compile iOS. The macOS iOS job reruns
+            # this script and creates exact-size files via sips before xcodebuild.
+            _copy(APP_ICON, destination)
+
+
+def _write_ios_splash(ios: Path) -> None:
+    assets = ios / 'Runner' / 'Assets.xcassets'
+    splash_set = assets / 'FoodexSplash.imageset'
+    splash_set.mkdir(parents=True, exist_ok=True)
+    _copy(SPLASH_IMAGE, splash_set / 'FoodexSplash.png')
+    (splash_set / 'Contents.json').write_text(
+        json.dumps(
+            {
+                'images': [
+                    {
+                        'filename': 'FoodexSplash.png',
+                        'idiom': 'universal',
+                        'scale': '1x',
+                    }
+                ],
+                'info': {'author': 'xcode', 'version': 1},
+            },
+            indent=2,
+        )
+        + '\n'
+    )
+
+    storyboard = ios / 'Runner' / 'Base.lproj' / 'LaunchScreen.storyboard'
+    if not storyboard.exists():
+        raise RuntimeError('Generated iOS LaunchScreen.storyboard was not found')
+
+    tree = ET.parse(storyboard)
+    root = tree.getroot()
+    image_view = next((node for node in root.iter('imageView') if node.get('image')), None)
+    if image_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen image view was not found')
+    image_view.set('image', 'FoodexSplash')
+    image_view.set('contentMode', 'scaleAspectFill')
+    image_view.set('clipsSubviews', 'YES')
+
+    parent_view = None
+    for view in root.iter('view'):
+        subviews = view.find('subviews')
+        if subviews is not None and image_view in list(subviews):
+            parent_view = view
+            break
+    if parent_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen root view was not found')
+
+    view_id = parent_view.get('id')
+    image_id = image_view.get('id')
+    constraints = parent_view.find('constraints')
+    if constraints is None:
+        constraints = ET.SubElement(parent_view, 'constraints')
+    for constraint in list(constraints):
+        if image_id in (constraint.get('firstItem'), constraint.get('secondItem')):
+            constraints.remove(constraint)
+    edges = (
+        ('leading', 'leading', 'Fdx-LD-001'),
+        ('trailing', 'trailing', 'Fdx-TR-002'),
+        ('top', 'top', 'Fdx-TP-003'),
+        ('bottom', 'bottom', 'Fdx-BT-004'),
+    )
+    for first, second, identifier in edges:
+        ET.SubElement(
+            constraints,
+            'constraint',
+            {
+                'firstItem': image_id,
+                'firstAttribute': first,
+                'secondItem': view_id,
+                'secondAttribute': second,
+                'id': identifier,
+            },
+        )
+
+    background = next(
+        (node for node in parent_view.findall('color') if node.get('key') == 'backgroundColor'),
+        None,
+    )
+    if background is None:
+        background = ET.SubElement(parent_view, 'color', {'key': 'backgroundColor'})
+    background.attrib.update(
+        {
+            'red': '0.0',
+            'green': '0.1960784314',
+            'blue': '0.1372549020',
+            'alpha': '1',
+            'colorSpace': 'custom',
+            'customColorSpace': 'sRGB',
+        }
+    )
+
+    resources = root.find('resources')
+    if resources is None:
+        resources = ET.SubElement(root, 'resources')
+    for resource in list(resources.findall('image')):
+        if resource.get('name') == 'LaunchImage':
+            resources.remove(resource)
+    if not any(resource.get('name') == 'FoodexSplash' for resource in resources.findall('image')):
+        ET.SubElement(
+            resources,
+            'image',
+            {'name': 'FoodexSplash', 'width': '432', 'height': '936'},
+        )
+
+    ET.indent(tree, space='    ')
+    tree.write(storyboard, encoding='utf-8', xml_declaration=True)
+
+
+def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
+    ios = app_dir / 'ios'
+    pbxproj = ios / 'Runner.xcodeproj' / 'project.pbxproj'
+    if not pbxproj.exists():
+        raise RuntimeError('Generated iOS project.pbxproj was not found')
+    text = pbxproj.read_text()
+
+    def bundle_replacement(match: re.Match[str]) -> str:
+        original = match.group(1)
+        suffix = '.RunnerTests' if original.endswith('.RunnerTests') else ''
+        return f'PRODUCT_BUNDLE_IDENTIFIER = {bundle_id}{suffix};'
+
+    text = re.sub(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);', bundle_replacement, text)
+    if 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' not in text:
+        text = text.replace(
+            'CODE_SIGN_STYLE = Automatic;',
+            'CODE_SIGN_STYLE = Automatic;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;',
+        )
+    pbxproj.write_text(text)
+
+    info = ios / 'Runner' / 'Info.plist'
+    with info.open('rb') as stream:
+        plist = plistlib.load(stream)
+    plist['CFBundleDisplayName'] = label
+    with info.open('wb') as stream:
+        plistlib.dump(plist, stream, sort_keys=False)
+
+    entitlements = ios / 'Runner' / 'Runner.entitlements'
+    with entitlements.open('wb') as stream:
+        plistlib.dump({'aps-environment': 'production'}, stream, sort_keys=False)
+
+    _render_ios_app_icons(ios / 'Runner' / 'Assets.xcassets' / 'AppIcon.appiconset')
+    _write_ios_splash(ios)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--app', required=True, choices=sorted(IDENTITIES))
+    parser.add_argument('--app-dir', required=True, type=Path)
+    parser.add_argument('--platform', choices=('all', 'android', 'ios'), default='all')
+    args = parser.parse_args()
+
+    _select_brand_assets(args.app)
+    _require_brand_assets()
+    identity = IDENTITIES[args.app]
+    if args.platform in ('all', 'android'):
+        patch_android(args.app_dir, identity['bundle_id'])
+    if args.platform in ('all', 'ios'):
+        patch_ios(args.app_dir, identity['bundle_id'], identity['label'])
+    print(f"{args.app}: {identity['bundle_id']} + FOODEX native branding")
+
+
+if __name__ == '__main__':
+    main()
+,
+                    r'\1\n    ' + dependency,
+                    text,
+                    count=1,
+                )
+                if count != 1:
+                    raise RuntimeError('Generated Android Kotlin dependencies block was not patchable')
+            else:
+                text = text.rstrip() + '\n\ndependencies {\n    ' + dependency + '\n}\n'
+        app_kts.write_text(text)
+        return
+
+    if app_groovy.exists():
+        text = app_groovy.read_text()
+        if 'coreLibraryDesugaringEnabled true' not in text:
+            text, count = re.subn(
+                r'(?m)^(\s*)compileOptions\s*\{\s*    app = app_dir / 'android' / 'app'
+    build_files = [app / 'build.gradle.kts', app / 'build.gradle']
+    for path in build_files:
+        if not path.exists():
+            continue
+        text = path.read_text()
+        text = re.sub(r'namespace\s*=\s*["\'][^"\']+["\']', f'namespace = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s*=\s*["\'][^"\']+["\']', f'applicationId = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s+["\'][^"\']+["\']', f'applicationId "{bundle_id}"', text)
+        path.write_text(text)
+
+    main_activities = list((app / 'src' / 'main').rglob('MainActivity.kt'))
+    if not main_activities:
+        raise RuntimeError('Generated Android MainActivity.kt was not found')
+    for path in main_activities:
+        text = path.read_text()
+        text = re.sub(r'^package\s+[^\s]+', f'package {bundle_id}', text, count=1, flags=re.M)
+        if 'NotificationChannel' not in text:
+            text = text.replace(
+                'import io.flutter.embedding.android.FlutterActivity',
+                'import android.app.NotificationChannel\n'
+                'import android.app.NotificationManager\n'
+                'import android.os.Build\n'
+                'import android.os.Bundle\n'
+                'import io.flutter.embedding.android.FlutterActivity',
+            )
+            text = re.sub(
+                r'class MainActivity\s*:\s*FlutterActivity\(\)\s*',
+                'class MainActivity : FlutterActivity() {\n'
+                '    override fun onCreate(savedInstanceState: Bundle?) {\n'
+                '        super.onCreate(savedInstanceState)\n'
+                '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {\n'
+                '            val channel = NotificationChannel(\n'
+                '                "foodex_updates",\n'
+                '                "FOODEX Updates",\n'
+                '                NotificationManager.IMPORTANCE_DEFAULT\n'
+                '            )\n'
+                '            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)\n'
+                '        }\n'
+                '    }\n'
+                '}\n',
+                text,
+            )
+        path.write_text(text)
+
+    _configure_android_firebase(app_dir, bundle_id)
+    _write_android_brand_resources(app)
+
+
+def _render_ios_app_icons(app_icon_set: Path) -> None:
+    contents_path = app_icon_set / 'Contents.json'
+    if not contents_path.exists():
+        raise RuntimeError('Generated iOS AppIcon Contents.json was not found')
+
+    contents = json.loads(contents_path.read_text())
+    sips = shutil.which('sips')
+    for image in contents.get('images', []):
+        filename = image.get('filename')
+        size = image.get('size')
+        scale = image.get('scale')
+        if not filename or not size or not scale:
+            continue
+        points = float(size.split('x', 1)[0])
+        multiplier = float(scale.rstrip('x'))
+        pixels = int(round(points * multiplier))
+        destination = app_icon_set / filename
+        if sips:
+            subprocess.run(
+                [sips, '-z', str(pixels), str(pixels), str(APP_ICON), '--out', str(destination)],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        else:
+            # Linux validation jobs do not compile iOS. The macOS iOS job reruns
+            # this script and creates exact-size files via sips before xcodebuild.
+            _copy(APP_ICON, destination)
+
+
+def _write_ios_splash(ios: Path) -> None:
+    assets = ios / 'Runner' / 'Assets.xcassets'
+    splash_set = assets / 'FoodexSplash.imageset'
+    splash_set.mkdir(parents=True, exist_ok=True)
+    _copy(SPLASH_IMAGE, splash_set / 'FoodexSplash.png')
+    (splash_set / 'Contents.json').write_text(
+        json.dumps(
+            {
+                'images': [
+                    {
+                        'filename': 'FoodexSplash.png',
+                        'idiom': 'universal',
+                        'scale': '1x',
+                    }
+                ],
+                'info': {'author': 'xcode', 'version': 1},
+            },
+            indent=2,
+        )
+        + '\n'
+    )
+
+    storyboard = ios / 'Runner' / 'Base.lproj' / 'LaunchScreen.storyboard'
+    if not storyboard.exists():
+        raise RuntimeError('Generated iOS LaunchScreen.storyboard was not found')
+
+    tree = ET.parse(storyboard)
+    root = tree.getroot()
+    image_view = next((node for node in root.iter('imageView') if node.get('image')), None)
+    if image_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen image view was not found')
+    image_view.set('image', 'FoodexSplash')
+    image_view.set('contentMode', 'scaleAspectFill')
+    image_view.set('clipsSubviews', 'YES')
+
+    parent_view = None
+    for view in root.iter('view'):
+        subviews = view.find('subviews')
+        if subviews is not None and image_view in list(subviews):
+            parent_view = view
+            break
+    if parent_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen root view was not found')
+
+    view_id = parent_view.get('id')
+    image_id = image_view.get('id')
+    constraints = parent_view.find('constraints')
+    if constraints is None:
+        constraints = ET.SubElement(parent_view, 'constraints')
+    for constraint in list(constraints):
+        if image_id in (constraint.get('firstItem'), constraint.get('secondItem')):
+            constraints.remove(constraint)
+    edges = (
+        ('leading', 'leading', 'Fdx-LD-001'),
+        ('trailing', 'trailing', 'Fdx-TR-002'),
+        ('top', 'top', 'Fdx-TP-003'),
+        ('bottom', 'bottom', 'Fdx-BT-004'),
+    )
+    for first, second, identifier in edges:
+        ET.SubElement(
+            constraints,
+            'constraint',
+            {
+                'firstItem': image_id,
+                'firstAttribute': first,
+                'secondItem': view_id,
+                'secondAttribute': second,
+                'id': identifier,
+            },
+        )
+
+    background = next(
+        (node for node in parent_view.findall('color') if node.get('key') == 'backgroundColor'),
+        None,
+    )
+    if background is None:
+        background = ET.SubElement(parent_view, 'color', {'key': 'backgroundColor'})
+    background.attrib.update(
+        {
+            'red': '0.0',
+            'green': '0.1960784314',
+            'blue': '0.1372549020',
+            'alpha': '1',
+            'colorSpace': 'custom',
+            'customColorSpace': 'sRGB',
+        }
+    )
+
+    resources = root.find('resources')
+    if resources is None:
+        resources = ET.SubElement(root, 'resources')
+    for resource in list(resources.findall('image')):
+        if resource.get('name') == 'LaunchImage':
+            resources.remove(resource)
+    if not any(resource.get('name') == 'FoodexSplash' for resource in resources.findall('image')):
+        ET.SubElement(
+            resources,
+            'image',
+            {'name': 'FoodexSplash', 'width': '432', 'height': '936'},
+        )
+
+    ET.indent(tree, space='    ')
+    tree.write(storyboard, encoding='utf-8', xml_declaration=True)
+
+
+def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
+    ios = app_dir / 'ios'
+    pbxproj = ios / 'Runner.xcodeproj' / 'project.pbxproj'
+    if not pbxproj.exists():
+        raise RuntimeError('Generated iOS project.pbxproj was not found')
+    text = pbxproj.read_text()
+
+    def bundle_replacement(match: re.Match[str]) -> str:
+        original = match.group(1)
+        suffix = '.RunnerTests' if original.endswith('.RunnerTests') else ''
+        return f'PRODUCT_BUNDLE_IDENTIFIER = {bundle_id}{suffix};'
+
+    text = re.sub(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);', bundle_replacement, text)
+    if 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' not in text:
+        text = text.replace(
+            'CODE_SIGN_STYLE = Automatic;',
+            'CODE_SIGN_STYLE = Automatic;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;',
+        )
+    pbxproj.write_text(text)
+
+    info = ios / 'Runner' / 'Info.plist'
+    with info.open('rb') as stream:
+        plist = plistlib.load(stream)
+    plist['CFBundleDisplayName'] = label
+    with info.open('wb') as stream:
+        plistlib.dump(plist, stream, sort_keys=False)
+
+    entitlements = ios / 'Runner' / 'Runner.entitlements'
+    with entitlements.open('wb') as stream:
+        plistlib.dump({'aps-environment': 'production'}, stream, sort_keys=False)
+
+    _render_ios_app_icons(ios / 'Runner' / 'Assets.xcassets' / 'AppIcon.appiconset')
+    _write_ios_splash(ios)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--app', required=True, choices=sorted(IDENTITIES))
+    parser.add_argument('--app-dir', required=True, type=Path)
+    parser.add_argument('--platform', choices=('all', 'android', 'ios'), default='all')
+    args = parser.parse_args()
+
+    _select_brand_assets(args.app)
+    _require_brand_assets()
+    identity = IDENTITIES[args.app]
+    if args.platform in ('all', 'android'):
+        patch_android(args.app_dir, identity['bundle_id'])
+    if args.platform in ('all', 'ios'):
+        patch_ios(args.app_dir, identity['bundle_id'], identity['label'])
+    print(f"{args.app}: {identity['bundle_id']} + FOODEX native branding")
+
+
+if __name__ == '__main__':
+    main()
+,
+                r'\1compileOptions {\n\1    coreLibraryDesugaringEnabled true',
+                text,
+                count=1,
+            )
+            if count != 1:
+                raise RuntimeError('Generated Android Groovy compileOptions block was not found')
+        dependency = (
+            "coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:"
+            f"{ANDROID_DESUGAR_JDK_LIBS_VERSION}'"
+        )
+        if 'coreLibraryDesugaring ' not in text:
+            if re.search(r'(?m)^dependencies\s*\{\s*    app = app_dir / 'android' / 'app'
+    build_files = [app / 'build.gradle.kts', app / 'build.gradle']
+    for path in build_files:
+        if not path.exists():
+            continue
+        text = path.read_text()
+        text = re.sub(r'namespace\s*=\s*["\'][^"\']+["\']', f'namespace = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s*=\s*["\'][^"\']+["\']', f'applicationId = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s+["\'][^"\']+["\']', f'applicationId "{bundle_id}"', text)
+        path.write_text(text)
+
+    main_activities = list((app / 'src' / 'main').rglob('MainActivity.kt'))
+    if not main_activities:
+        raise RuntimeError('Generated Android MainActivity.kt was not found')
+    for path in main_activities:
+        text = path.read_text()
+        text = re.sub(r'^package\s+[^\s]+', f'package {bundle_id}', text, count=1, flags=re.M)
+        if 'NotificationChannel' not in text:
+            text = text.replace(
+                'import io.flutter.embedding.android.FlutterActivity',
+                'import android.app.NotificationChannel\n'
+                'import android.app.NotificationManager\n'
+                'import android.os.Build\n'
+                'import android.os.Bundle\n'
+                'import io.flutter.embedding.android.FlutterActivity',
+            )
+            text = re.sub(
+                r'class MainActivity\s*:\s*FlutterActivity\(\)\s*',
+                'class MainActivity : FlutterActivity() {\n'
+                '    override fun onCreate(savedInstanceState: Bundle?) {\n'
+                '        super.onCreate(savedInstanceState)\n'
+                '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {\n'
+                '            val channel = NotificationChannel(\n'
+                '                "foodex_updates",\n'
+                '                "FOODEX Updates",\n'
+                '                NotificationManager.IMPORTANCE_DEFAULT\n'
+                '            )\n'
+                '            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)\n'
+                '        }\n'
+                '    }\n'
+                '}\n',
+                text,
+            )
+        path.write_text(text)
+
+    _configure_android_firebase(app_dir, bundle_id)
+    _write_android_brand_resources(app)
+
+
+def _render_ios_app_icons(app_icon_set: Path) -> None:
+    contents_path = app_icon_set / 'Contents.json'
+    if not contents_path.exists():
+        raise RuntimeError('Generated iOS AppIcon Contents.json was not found')
+
+    contents = json.loads(contents_path.read_text())
+    sips = shutil.which('sips')
+    for image in contents.get('images', []):
+        filename = image.get('filename')
+        size = image.get('size')
+        scale = image.get('scale')
+        if not filename or not size or not scale:
+            continue
+        points = float(size.split('x', 1)[0])
+        multiplier = float(scale.rstrip('x'))
+        pixels = int(round(points * multiplier))
+        destination = app_icon_set / filename
+        if sips:
+            subprocess.run(
+                [sips, '-z', str(pixels), str(pixels), str(APP_ICON), '--out', str(destination)],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        else:
+            # Linux validation jobs do not compile iOS. The macOS iOS job reruns
+            # this script and creates exact-size files via sips before xcodebuild.
+            _copy(APP_ICON, destination)
+
+
+def _write_ios_splash(ios: Path) -> None:
+    assets = ios / 'Runner' / 'Assets.xcassets'
+    splash_set = assets / 'FoodexSplash.imageset'
+    splash_set.mkdir(parents=True, exist_ok=True)
+    _copy(SPLASH_IMAGE, splash_set / 'FoodexSplash.png')
+    (splash_set / 'Contents.json').write_text(
+        json.dumps(
+            {
+                'images': [
+                    {
+                        'filename': 'FoodexSplash.png',
+                        'idiom': 'universal',
+                        'scale': '1x',
+                    }
+                ],
+                'info': {'author': 'xcode', 'version': 1},
+            },
+            indent=2,
+        )
+        + '\n'
+    )
+
+    storyboard = ios / 'Runner' / 'Base.lproj' / 'LaunchScreen.storyboard'
+    if not storyboard.exists():
+        raise RuntimeError('Generated iOS LaunchScreen.storyboard was not found')
+
+    tree = ET.parse(storyboard)
+    root = tree.getroot()
+    image_view = next((node for node in root.iter('imageView') if node.get('image')), None)
+    if image_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen image view was not found')
+    image_view.set('image', 'FoodexSplash')
+    image_view.set('contentMode', 'scaleAspectFill')
+    image_view.set('clipsSubviews', 'YES')
+
+    parent_view = None
+    for view in root.iter('view'):
+        subviews = view.find('subviews')
+        if subviews is not None and image_view in list(subviews):
+            parent_view = view
+            break
+    if parent_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen root view was not found')
+
+    view_id = parent_view.get('id')
+    image_id = image_view.get('id')
+    constraints = parent_view.find('constraints')
+    if constraints is None:
+        constraints = ET.SubElement(parent_view, 'constraints')
+    for constraint in list(constraints):
+        if image_id in (constraint.get('firstItem'), constraint.get('secondItem')):
+            constraints.remove(constraint)
+    edges = (
+        ('leading', 'leading', 'Fdx-LD-001'),
+        ('trailing', 'trailing', 'Fdx-TR-002'),
+        ('top', 'top', 'Fdx-TP-003'),
+        ('bottom', 'bottom', 'Fdx-BT-004'),
+    )
+    for first, second, identifier in edges:
+        ET.SubElement(
+            constraints,
+            'constraint',
+            {
+                'firstItem': image_id,
+                'firstAttribute': first,
+                'secondItem': view_id,
+                'secondAttribute': second,
+                'id': identifier,
+            },
+        )
+
+    background = next(
+        (node for node in parent_view.findall('color') if node.get('key') == 'backgroundColor'),
+        None,
+    )
+    if background is None:
+        background = ET.SubElement(parent_view, 'color', {'key': 'backgroundColor'})
+    background.attrib.update(
+        {
+            'red': '0.0',
+            'green': '0.1960784314',
+            'blue': '0.1372549020',
+            'alpha': '1',
+            'colorSpace': 'custom',
+            'customColorSpace': 'sRGB',
+        }
+    )
+
+    resources = root.find('resources')
+    if resources is None:
+        resources = ET.SubElement(root, 'resources')
+    for resource in list(resources.findall('image')):
+        if resource.get('name') == 'LaunchImage':
+            resources.remove(resource)
+    if not any(resource.get('name') == 'FoodexSplash' for resource in resources.findall('image')):
+        ET.SubElement(
+            resources,
+            'image',
+            {'name': 'FoodexSplash', 'width': '432', 'height': '936'},
+        )
+
+    ET.indent(tree, space='    ')
+    tree.write(storyboard, encoding='utf-8', xml_declaration=True)
+
+
+def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
+    ios = app_dir / 'ios'
+    pbxproj = ios / 'Runner.xcodeproj' / 'project.pbxproj'
+    if not pbxproj.exists():
+        raise RuntimeError('Generated iOS project.pbxproj was not found')
+    text = pbxproj.read_text()
+
+    def bundle_replacement(match: re.Match[str]) -> str:
+        original = match.group(1)
+        suffix = '.RunnerTests' if original.endswith('.RunnerTests') else ''
+        return f'PRODUCT_BUNDLE_IDENTIFIER = {bundle_id}{suffix};'
+
+    text = re.sub(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);', bundle_replacement, text)
+    if 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' not in text:
+        text = text.replace(
+            'CODE_SIGN_STYLE = Automatic;',
+            'CODE_SIGN_STYLE = Automatic;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;',
+        )
+    pbxproj.write_text(text)
+
+    info = ios / 'Runner' / 'Info.plist'
+    with info.open('rb') as stream:
+        plist = plistlib.load(stream)
+    plist['CFBundleDisplayName'] = label
+    with info.open('wb') as stream:
+        plistlib.dump(plist, stream, sort_keys=False)
+
+    entitlements = ios / 'Runner' / 'Runner.entitlements'
+    with entitlements.open('wb') as stream:
+        plistlib.dump({'aps-environment': 'production'}, stream, sort_keys=False)
+
+    _render_ios_app_icons(ios / 'Runner' / 'Assets.xcassets' / 'AppIcon.appiconset')
+    _write_ios_splash(ios)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--app', required=True, choices=sorted(IDENTITIES))
+    parser.add_argument('--app-dir', required=True, type=Path)
+    parser.add_argument('--platform', choices=('all', 'android', 'ios'), default='all')
+    args = parser.parse_args()
+
+    _select_brand_assets(args.app)
+    _require_brand_assets()
+    identity = IDENTITIES[args.app]
+    if args.platform in ('all', 'android'):
+        patch_android(args.app_dir, identity['bundle_id'])
+    if args.platform in ('all', 'ios'):
+        patch_ios(args.app_dir, identity['bundle_id'], identity['label'])
+    print(f"{args.app}: {identity['bundle_id']} + FOODEX native branding")
+
+
+if __name__ == '__main__':
+    main()
+, text):
+                text, count = re.subn(
+                    r'(?m)^(dependencies\s*\{\s*)    app = app_dir / 'android' / 'app'
+    build_files = [app / 'build.gradle.kts', app / 'build.gradle']
+    for path in build_files:
+        if not path.exists():
+            continue
+        text = path.read_text()
+        text = re.sub(r'namespace\s*=\s*["\'][^"\']+["\']', f'namespace = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s*=\s*["\'][^"\']+["\']', f'applicationId = "{bundle_id}"', text)
+        text = re.sub(r'applicationId\s+["\'][^"\']+["\']', f'applicationId "{bundle_id}"', text)
+        path.write_text(text)
+
+    main_activities = list((app / 'src' / 'main').rglob('MainActivity.kt'))
+    if not main_activities:
+        raise RuntimeError('Generated Android MainActivity.kt was not found')
+    for path in main_activities:
+        text = path.read_text()
+        text = re.sub(r'^package\s+[^\s]+', f'package {bundle_id}', text, count=1, flags=re.M)
+        if 'NotificationChannel' not in text:
+            text = text.replace(
+                'import io.flutter.embedding.android.FlutterActivity',
+                'import android.app.NotificationChannel\n'
+                'import android.app.NotificationManager\n'
+                'import android.os.Build\n'
+                'import android.os.Bundle\n'
+                'import io.flutter.embedding.android.FlutterActivity',
+            )
+            text = re.sub(
+                r'class MainActivity\s*:\s*FlutterActivity\(\)\s*',
+                'class MainActivity : FlutterActivity() {\n'
+                '    override fun onCreate(savedInstanceState: Bundle?) {\n'
+                '        super.onCreate(savedInstanceState)\n'
+                '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {\n'
+                '            val channel = NotificationChannel(\n'
+                '                "foodex_updates",\n'
+                '                "FOODEX Updates",\n'
+                '                NotificationManager.IMPORTANCE_DEFAULT\n'
+                '            )\n'
+                '            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)\n'
+                '        }\n'
+                '    }\n'
+                '}\n',
+                text,
+            )
+        path.write_text(text)
+
+    _configure_android_firebase(app_dir, bundle_id)
+    _write_android_brand_resources(app)
+
+
+def _render_ios_app_icons(app_icon_set: Path) -> None:
+    contents_path = app_icon_set / 'Contents.json'
+    if not contents_path.exists():
+        raise RuntimeError('Generated iOS AppIcon Contents.json was not found')
+
+    contents = json.loads(contents_path.read_text())
+    sips = shutil.which('sips')
+    for image in contents.get('images', []):
+        filename = image.get('filename')
+        size = image.get('size')
+        scale = image.get('scale')
+        if not filename or not size or not scale:
+            continue
+        points = float(size.split('x', 1)[0])
+        multiplier = float(scale.rstrip('x'))
+        pixels = int(round(points * multiplier))
+        destination = app_icon_set / filename
+        if sips:
+            subprocess.run(
+                [sips, '-z', str(pixels), str(pixels), str(APP_ICON), '--out', str(destination)],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        else:
+            # Linux validation jobs do not compile iOS. The macOS iOS job reruns
+            # this script and creates exact-size files via sips before xcodebuild.
+            _copy(APP_ICON, destination)
+
+
+def _write_ios_splash(ios: Path) -> None:
+    assets = ios / 'Runner' / 'Assets.xcassets'
+    splash_set = assets / 'FoodexSplash.imageset'
+    splash_set.mkdir(parents=True, exist_ok=True)
+    _copy(SPLASH_IMAGE, splash_set / 'FoodexSplash.png')
+    (splash_set / 'Contents.json').write_text(
+        json.dumps(
+            {
+                'images': [
+                    {
+                        'filename': 'FoodexSplash.png',
+                        'idiom': 'universal',
+                        'scale': '1x',
+                    }
+                ],
+                'info': {'author': 'xcode', 'version': 1},
+            },
+            indent=2,
+        )
+        + '\n'
+    )
+
+    storyboard = ios / 'Runner' / 'Base.lproj' / 'LaunchScreen.storyboard'
+    if not storyboard.exists():
+        raise RuntimeError('Generated iOS LaunchScreen.storyboard was not found')
+
+    tree = ET.parse(storyboard)
+    root = tree.getroot()
+    image_view = next((node for node in root.iter('imageView') if node.get('image')), None)
+    if image_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen image view was not found')
+    image_view.set('image', 'FoodexSplash')
+    image_view.set('contentMode', 'scaleAspectFill')
+    image_view.set('clipsSubviews', 'YES')
+
+    parent_view = None
+    for view in root.iter('view'):
+        subviews = view.find('subviews')
+        if subviews is not None and image_view in list(subviews):
+            parent_view = view
+            break
+    if parent_view is None:
+        raise RuntimeError('Generated iOS LaunchScreen root view was not found')
+
+    view_id = parent_view.get('id')
+    image_id = image_view.get('id')
+    constraints = parent_view.find('constraints')
+    if constraints is None:
+        constraints = ET.SubElement(parent_view, 'constraints')
+    for constraint in list(constraints):
+        if image_id in (constraint.get('firstItem'), constraint.get('secondItem')):
+            constraints.remove(constraint)
+    edges = (
+        ('leading', 'leading', 'Fdx-LD-001'),
+        ('trailing', 'trailing', 'Fdx-TR-002'),
+        ('top', 'top', 'Fdx-TP-003'),
+        ('bottom', 'bottom', 'Fdx-BT-004'),
+    )
+    for first, second, identifier in edges:
+        ET.SubElement(
+            constraints,
+            'constraint',
+            {
+                'firstItem': image_id,
+                'firstAttribute': first,
+                'secondItem': view_id,
+                'secondAttribute': second,
+                'id': identifier,
+            },
+        )
+
+    background = next(
+        (node for node in parent_view.findall('color') if node.get('key') == 'backgroundColor'),
+        None,
+    )
+    if background is None:
+        background = ET.SubElement(parent_view, 'color', {'key': 'backgroundColor'})
+    background.attrib.update(
+        {
+            'red': '0.0',
+            'green': '0.1960784314',
+            'blue': '0.1372549020',
+            'alpha': '1',
+            'colorSpace': 'custom',
+            'customColorSpace': 'sRGB',
+        }
+    )
+
+    resources = root.find('resources')
+    if resources is None:
+        resources = ET.SubElement(root, 'resources')
+    for resource in list(resources.findall('image')):
+        if resource.get('name') == 'LaunchImage':
+            resources.remove(resource)
+    if not any(resource.get('name') == 'FoodexSplash' for resource in resources.findall('image')):
+        ET.SubElement(
+            resources,
+            'image',
+            {'name': 'FoodexSplash', 'width': '432', 'height': '936'},
+        )
+
+    ET.indent(tree, space='    ')
+    tree.write(storyboard, encoding='utf-8', xml_declaration=True)
+
+
+def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
+    ios = app_dir / 'ios'
+    pbxproj = ios / 'Runner.xcodeproj' / 'project.pbxproj'
+    if not pbxproj.exists():
+        raise RuntimeError('Generated iOS project.pbxproj was not found')
+    text = pbxproj.read_text()
+
+    def bundle_replacement(match: re.Match[str]) -> str:
+        original = match.group(1)
+        suffix = '.RunnerTests' if original.endswith('.RunnerTests') else ''
+        return f'PRODUCT_BUNDLE_IDENTIFIER = {bundle_id}{suffix};'
+
+    text = re.sub(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);', bundle_replacement, text)
+    if 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' not in text:
+        text = text.replace(
+            'CODE_SIGN_STYLE = Automatic;',
+            'CODE_SIGN_STYLE = Automatic;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;',
+        )
+    pbxproj.write_text(text)
+
+    info = ios / 'Runner' / 'Info.plist'
+    with info.open('rb') as stream:
+        plist = plistlib.load(stream)
+    plist['CFBundleDisplayName'] = label
+    with info.open('wb') as stream:
+        plistlib.dump(plist, stream, sort_keys=False)
+
+    entitlements = ios / 'Runner' / 'Runner.entitlements'
+    with entitlements.open('wb') as stream:
+        plistlib.dump({'aps-environment': 'production'}, stream, sort_keys=False)
+
+    _render_ios_app_icons(ios / 'Runner' / 'Assets.xcassets' / 'AppIcon.appiconset')
+    _write_ios_splash(ios)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--app', required=True, choices=sorted(IDENTITIES))
+    parser.add_argument('--app-dir', required=True, type=Path)
+    parser.add_argument('--platform', choices=('all', 'android', 'ios'), default='all')
+    args = parser.parse_args()
+
+    _select_brand_assets(args.app)
+    _require_brand_assets()
+    identity = IDENTITIES[args.app]
+    if args.platform in ('all', 'android'):
+        patch_android(args.app_dir, identity['bundle_id'])
+    if args.platform in ('all', 'ios'):
+        patch_ios(args.app_dir, identity['bundle_id'], identity['label'])
+    print(f"{args.app}: {identity['bundle_id']} + FOODEX native branding")
+
+
+if __name__ == '__main__':
+    main()
+,
+                    r'\1\n    ' + dependency,
+                    text,
+                    count=1,
+                )
+                if count != 1:
+                    raise RuntimeError('Generated Android Groovy dependencies block was not patchable')
+            else:
+                text = text.rstrip() + '\n\ndependencies {\n    ' + dependency + '\n}\n'
+        app_groovy.write_text(text)
+        return
+
+    raise RuntimeError('Generated Android app build.gradle(.kts) was not found')
+
 
 
 def patch_android(app_dir: Path, bundle_id: str) -> None:
