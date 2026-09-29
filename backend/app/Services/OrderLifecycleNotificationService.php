@@ -138,11 +138,13 @@ final class OrderLifecycleNotificationService
         DriverAssignment $assignment,
         ?string $reason = null,
     ): void {
+        $eventKey = 'driver-unassigned:'.$assignment->getKey().':'.(string) $assignment->updated_at;
+
         $this->notifyDriverUser(
             $order,
             (int) $assignment->driver_id,
             'delivery.unassigned',
-            'driver-unassigned:'.$assignment->getKey().':'.(string) $assignment->updated_at,
+            $eventKey,
             'تم سحب الطلب '.$order->order_number,
             'Order removed '.$order->order_number,
             'لم يعد هذا الطلب معيناً لك.',
@@ -152,6 +154,21 @@ final class OrderLifecycleNotificationService
                 'delivery_status' => 'unassigned',
                 'reason' => $reason,
                 'access_revoked' => true,
+            ],
+        );
+
+        $this->notifyCustomer(
+            $order,
+            'delivery.unassigned',
+            'customer-'.$eventKey,
+            'تحديث سائق الطلب '.$order->order_number,
+            'Driver update '.$order->order_number,
+            'تم إلغاء إسناد السائق الحالي للطلب وسيتم إشعارك عند تعيين سائق جديد.',
+            'The current driver assignment was removed. You will be notified when a new driver is assigned.',
+            [
+                'assignment_id' => (int) $assignment->getKey(),
+                'delivery_status' => 'unassigned',
+                'reason' => $reason,
             ],
         );
     }
