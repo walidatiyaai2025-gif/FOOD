@@ -227,6 +227,18 @@ class DriverInvoiceNotificationTest extends TestCase
         $this->assertSame(1, $visibleToA);
         $this->assertSame(0, $visibleToB);
 
+        $this->actingAs($adminA)
+            ->getJson('/admin/notifications/live')
+            ->assertOk()
+            ->assertJsonPath('data.0.type', 'order.created')
+            ->assertJsonPath('data.0.data.store_id', $storeA)
+            ->assertJsonPath('data.0.data.channel', 'b2c');
+
+        $this->actingAs($adminB)
+            ->getJson('/admin/notifications/live')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
         $invoice = Invoice::query()->create([
             'order_id' => $order->id,
             'store_id' => $storeA,
