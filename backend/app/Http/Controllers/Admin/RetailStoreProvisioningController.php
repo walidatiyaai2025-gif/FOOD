@@ -42,7 +42,8 @@ final class RetailStoreProvisioningController extends Controller
                     ->orWhere('stores.code', 'like', "%{$search}%");
             }))
             ->with(['storeRoleAssignments.user', 'storeRoleAssignments.role'])
-            ->orderBy('stores.name')
+            ->orderByDesc('stores.created_at')
+            ->orderByDesc('stores.id')
             ->paginate(25)
             ->withQueryString();
 
