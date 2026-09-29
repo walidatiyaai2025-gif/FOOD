@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/driver_session.dart';
 import '../../core/localization/driver_translations.dart';
+import '../../core/navigation/driver_navigation.dart';
 import '../../core/theme/foodex_theme.dart';
 
 enum DriverLoadState { loading, ready, empty, error, offline }
@@ -69,6 +70,8 @@ class DriverAssignment {
     this.customerName = '',
     this.customerPhone = '',
     this.address = '',
+    this.navigationLatitude,
+    this.navigationLongitude,
     this.currency = 'KWD',
     this.grandTotal = 0,
     this.paymentMethod = '',
@@ -90,7 +93,12 @@ class DriverAssignment {
   final String customerName;
   final String customerPhone;
   final String address;
+  final double? navigationLatitude;
+  final double? navigationLongitude;
   final String currency;
+
+  bool get hasNavigation =>
+      navigationLatitude != null && navigationLongitude != null;
   final double grandTotal;
   final String paymentMethod;
   final String paymentStatus;
@@ -118,12 +126,14 @@ class DriverJourneyPage extends StatefulWidget {
     required this.repository,
     this.onSessionExpired,
     this.focusAssignmentId,
+    this.navigationLauncher = launchDriverNavigation,
   });
 
   final DriverChannel channel;
   final DriverAssignmentRepository repository;
   final VoidCallback? onSessionExpired;
   final int? focusAssignmentId;
+  final DriverNavigationLauncher navigationLauncher;
 
   @override
   State<DriverJourneyPage> createState() => _DriverJourneyPageState();
@@ -446,6 +456,31 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                     label: context.tr('driver.detail.address'),
                     value: assignment.address,
                   ),
+                if (assignment.hasNavigation) ...[
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    key: Key(
+                      'driver-navigate-' + assignment.id.toString(),
+                    ),
+                    onPressed: () async {
+                      final launched = await widget.navigationLauncher(
+                        assignment.navigationLatitude!,
+                        assignment.navigationLongitude!,
+                      );
+                      if (!launched && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              context.tr('driver.navigation.unavailable'),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.navigation_rounded),
+                    label: Text(context.tr('driver.navigation.open')),
+                  ),
+                ],
                 if (assignment.customerNote.isNotEmpty)
                   _DetailLine(
                     label: context.tr('driver.detail.note'),
