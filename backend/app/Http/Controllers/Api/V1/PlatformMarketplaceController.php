@@ -23,6 +23,7 @@ final class PlatformMarketplaceController extends Controller
             'banners' => $this->wholesaleBanners($storeId),
             'sections' => $this->sections($storeId),
             'categories' => $this->categories($storeId),
+            'offers' => $this->offers($storeId),
             'products' => [
                 'data' => $this->products($request, $storeId),
             ],
@@ -211,6 +212,37 @@ final class PlatformMarketplaceController extends Controller
                 'target_id' => $banner->target_id === null ? null : (int) $banner->target_id,
                 'target_url' => $banner->target_url,
                 'sort_order' => (int) $banner->sort_order,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function offers(int $storeId): array
+    {
+        $now = now();
+
+        return DB::table('promotions')
+            ->where('store_id', $storeId)
+            ->where('is_active', true)
+            ->where(function (Builder $query) use ($now): void {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
+            })
+            ->where(function (Builder $query) use ($now): void {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
+            })
+            ->orderByRaw('ends_at is null desc')
+            ->orderBy('ends_at')
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get(['id', 'name', 'type', 'value', 'starts_at', 'ends_at'])
+            ->map(static fn (object $offer): array => [
+                'id' => (int) $offer->id,
+                'name' => (string) $offer->name,
+                'type' => (string) $offer->type,
+                'value' => $offer->value === null ? null : (float) $offer->value,
+                'starts_at' => $offer->starts_at === null ? null : (string) $offer->starts_at,
+                'ends_at' => $offer->ends_at === null ? null : (string) $offer->ends_at,
             ])
             ->values()
             ->all();
