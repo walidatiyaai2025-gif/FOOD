@@ -94,6 +94,61 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('Detail Driver');
     }
 
+    public function test_order_detail_shows_immutable_delivery_address_and_map_action(): void
+    {
+        $store = $this->store('OPS-DELIVERY-SNAPSHOT');
+        $admin = $this->storeAdmin($store, 'ops-delivery-snapshot@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Snapshot Buyer']);
+        $order = $this->order(
+            $store,
+            (int) $customer->legacy_customer_id,
+            (int) $customer->id,
+            'OPS-SNAPSHOT-1001',
+        );
+
+        DB::table('orders')->where('id', $order)->update([
+            'delivery_address_snapshot' => json_encode([
+                'version' => 1,
+                'address_id' => 55,
+                'label' => 'Home',
+                'recipient_name' => 'Snapshot Buyer',
+                'delivery_phone' => '+201000000555',
+                'line1' => 'Immutable Street 5',
+                'line2' => null,
+                'city' => 'Cairo',
+                'area' => 'Nasr City',
+                'country_code' => 'EG',
+                'country' => 'Egypt',
+                'governorate' => 'Cairo',
+                'block' => null,
+                'street' => 'Immutable Street 5',
+                'avenue' => null,
+                'building' => '10',
+                'floor' => '3',
+                'apartment' => '8',
+                'landmark' => 'Snapshot landmark',
+                'delivery_notes' => 'Snapshot note',
+                'latitude' => 30.04442,
+                'longitude' => 31.235712,
+                'location_accuracy_meters' => 5.0,
+                'location_source' => 'map_pin',
+            ], JSON_THROW_ON_ERROR),
+            'delivery_latitude' => 30.0444200,
+            'delivery_longitude' => 31.2357120,
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?order='.$order)
+            ->assertOk()
+            ->assertSee('Delivery address')
+            ->assertSee('Immutable Street 5')
+            ->assertSee('Snapshot landmark')
+            ->assertSee('Open in map')
+            ->assertSee('30.0444200')
+            ->assertSee('31.2357120');
+    }
+
     public function test_retail_admin_cannot_operate_foreign_order_but_can_transition_own_order(): void
     {
         $mine = $this->store('OPS-ACTION-MINE');
