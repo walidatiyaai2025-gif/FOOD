@@ -248,6 +248,7 @@ final class PlatformMarketplaceController extends Controller
             ])
             ->map(fn (object $banner): array => [
                 'id' => (int) $banner->store_id,
+                'store_id' => (int) $banner->store_id,
                 'banner_id' => (int) $banner->banner_id,
                 'code' => (string) $banner->code,
                 'name' => (string) $banner->name,
