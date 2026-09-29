@@ -163,20 +163,47 @@ final class PushDeliveryService
                     ? $notification->body_en
                     : $notification->body_ar,
                 'image_url' => $imageUrl,
-                'data' => [
-                    'notification_id' => (string) $notification->id,
-                    'type' => (string) $notification->type,
-                    'title' => $english
-                        ? (string) $notification->title_en
-                        : (string) $notification->title_ar,
-                    'body' => $english
-                        ? (string) $notification->body_en
-                        : (string) $notification->body_ar,
-                    'image_url' => $imageUrl,
-                    'visible_notification' => '1',
-                ],
+                'data' => $this->pushData($notification, $english, $imageUrl),
             ]);
         }
+    }
+
+    /** @return array<string, string> */
+    private function pushData(Notification $notification, bool $english, string $imageUrl): array
+    {
+        $data = [
+            'notification_id' => (string) $notification->id,
+            'type' => (string) $notification->type,
+            'title' => $english
+                ? (string) $notification->title_en
+                : (string) $notification->title_ar,
+            'body' => $english
+                ? (string) $notification->body_en
+                : (string) $notification->body_ar,
+            'image_url' => $imageUrl,
+            'visible_notification' => '1',
+        ];
+
+        foreach ((array) $notification->data as $key => $value) {
+            if (! is_string($key) || $key === '') {
+                continue;
+            }
+
+            if ($value === null) {
+                $data[$key] = '';
+            } elseif (is_bool($value)) {
+                $data[$key] = $value ? '1' : '0';
+            } elseif (is_scalar($value)) {
+                $data[$key] = (string) $value;
+            } else {
+                $encoded = json_encode($value);
+                if (is_string($encoded)) {
+                    $data[$key] = $encoded;
+                }
+            }
+        }
+
+        return $data;
     }
 
     private function anonymousDeviceMatches(PushDeviceToken $device, Notification $notification): bool
