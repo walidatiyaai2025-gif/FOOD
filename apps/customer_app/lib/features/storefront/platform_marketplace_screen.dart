@@ -32,19 +32,32 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   Timer? _retailTimer;
   int _retailIndex = 0;
   int _retailCount = -1;
+  int? _selectedCategoryId;
   String? _pendingAfterAuth;
 
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
     final query = _searchController.text.trim();
+    final params = <String, String>{
+      if (query.isNotEmpty) 'q': query,
+      if (_selectedCategoryId != null)
+        'category_id': _selectedCategoryId.toString(),
+    };
     final uri = Uri.parse('$baseUrl/api/v1/platform/storefront').replace(
-      queryParameters: query.isEmpty ? null : {'q': query},
+      queryParameters: params.isEmpty ? null : params,
     );
     return _get(uri.toString());
   }
 
   void _submitSearch(String _) {
     setState(() => _future = _load());
+  }
+
+  void _selectCategory(int? categoryId) {
+    setState(() {
+      _selectedCategoryId = categoryId;
+      _future = _load();
+    });
   }
 
   void _startRetailAutoSlide(int count) {
@@ -306,6 +319,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   ? Map<String, dynamic>.from(data['store'] as Map)
                   : <String, dynamic>{};
               final retail = _rows(data['retail_banners']);
+              final categories = _rows(data['categories']);
               final productEnvelope = data['products'] is Map
                   ? Map<String, dynamic>.from(data['products'] as Map)
                   : <String, dynamic>{};
@@ -403,6 +417,50 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           imageUrl: hero['image_url']?.toString(),
                         ),
                       ),
+                      if (categories.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            height: 54,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 7,
+                              ),
+                              children: [
+                                ChoiceChip(
+                                  key: const ValueKey('marketplace-category-all'),
+                                  label: Text(
+                                    context.tr('customer.marketplace.all_categories'),
+                                  ),
+                                  selected: _selectedCategoryId == null,
+                                  onSelected: (_) => _selectCategory(null),
+                                ),
+                                const SizedBox(width: 8),
+                                ...categories.map(
+                                  (category) => Padding(
+                                    padding: const EdgeInsetsDirectional.only(
+                                      end: 8,
+                                    ),
+                                    child: ChoiceChip(
+                                      key: ValueKey(
+                                        'marketplace-category-${category['id']}',
+                                      ),
+                                      label: Text(
+                                        category['name']?.toString() ?? '',
+                                      ),
+                                      selected: _selectedCategoryId ==
+                                          _int(category['id']),
+                                      onSelected: (_) => _selectCategory(
+                                        _int(category['id']),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
                         sliver: SliverToBoxAdapter(
