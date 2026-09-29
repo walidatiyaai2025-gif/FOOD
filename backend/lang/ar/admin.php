@@ -16,6 +16,7 @@ return [
         'accounts' => 'العملاء والحسابات',
         'stores' => 'المتاجر والقنوات',
         'marketing' => 'التسويق والتواصل',
+        'advertising' => 'الدعايا',
         'analytics' => 'التحليلات والتقارير',
         'administration' => 'الإدارة',
     ],
