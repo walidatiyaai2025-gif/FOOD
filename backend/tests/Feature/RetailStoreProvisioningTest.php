@@ -30,12 +30,14 @@ class RetailStoreProvisioningTest extends TestCase
     {
         $admin = $this->userWithRole('SUPER_ADMIN', 'owner@example.test');
         $tierId = $this->priceTierId();
+        $customerTierId = (int) DB::table('b2b_price_tiers')->where('code', 'WHOLESALE')->value('id');
 
         $response = $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
             'code' => 'SHOP-A',
             'name' => 'Shop A',
             'logo' => UploadedFile::fake()->image('shop-a.png', 256, 256),
             'price_tier_id' => $tierId,
+            'default_customer_wholesale_price_tier_id' => $customerTierId,
             'is_active' => '1',
             'manager_mode' => 'new',
             'manager_name' => 'Shop A Manager',
@@ -49,6 +51,10 @@ class RetailStoreProvisioningTest extends TestCase
         $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
 
         $this->assertDatabaseHas('user_store_roles', ['user_id' => $manager->id, 'store_id' => $storeId, 'role_id' => $roleId]);
+        $this->assertDatabaseHas('stores', [
+            'id' => $storeId,
+            'default_customer_wholesale_price_tier_id' => $customerTierId,
+        ]);
         $link = DB::table('retail_wholesale_accounts')->where('retail_store_id', $storeId)->first();
         $this->assertNotNull($link);
         $this->assertDatabaseHas('b2b_customers', [
