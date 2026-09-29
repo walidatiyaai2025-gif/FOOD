@@ -189,11 +189,12 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('driver-login-submit')));
     await tester.pumpAndSettle();
-    expect(find.text('/driver/b2c/home'), findsOneWidget);
+    expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
+    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
 
     await tester.tap(find.byKey(const Key('driver-open-deliveries')));
     await tester.pumpAndSettle();
     expect(find.text('#41'), findsOneWidget);
-    expect(find.text('/driver/b2b/home'), findsNothing);
+    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 }
