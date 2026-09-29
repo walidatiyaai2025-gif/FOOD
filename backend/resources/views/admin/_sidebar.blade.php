@@ -34,13 +34,12 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-nav-group[open]{border-color:var(--foodex-border);background:#fbfcfd}.foodex-nav-group[open] summary{color:var(--foodex-green-dark)}.foodex-nav-group[open] .foodex-nav-chevron{transform:rotate(180deg)}
 .foodex-nav-children{display:grid;gap:3px;padding:0 7px 7px}.foodex-nav-link{min-height:44px;display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;color:var(--foodex-ink);text-decoration:none}.foodex-nav-link:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-nav-link.active{background:var(--foodex-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.14)}
 .foodex-nav-label{display:block;min-width:0}.foodex-nav-label strong{display:block;font-size:.86rem;line-height:1.2}.foodex-nav-label small{display:block;color:var(--foodex-muted);font-size:.67rem;margin-top:2px}.foodex-nav-link.active small{color:rgba(255,255,255,.8)}
-.foodex-sidebar-footer{margin-top:auto;padding-top:10px;border-top:1px solid var(--foodex-border);display:grid;gap:7px}.foodex-sidebar-account,.foodex-sidebar-language,.foodex-sidebar-logout{min-height:44px;display:grid;grid-template-columns:24px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;border:1px solid var(--foodex-border);background:#fff;color:var(--foodex-ink);text-decoration:none;font:inherit;text-align:start;cursor:pointer}.foodex-sidebar-account:hover,.foodex-sidebar-language:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-sidebar-logout{color:#b42318;background:#fff8f7;border-color:#fecaca}
 aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
 aside.foodex-sidebar-collapsed .foodex-sidebar-search,
 aside.foodex-sidebar-collapsed .foodex-nav-label,
 aside.foodex-sidebar-collapsed .foodex-nav-chevron,
-aside.foodex-sidebar-collapsed .foodex-nav-group>summary span:nth-child(2),
-aside.foodex-sidebar-collapsed .foodex-sidebar-footer span:last-child{display:none!important}
+aside.foodex-sidebar-collapsed .foodex-nav-group>summary span:nth-child(2)
+
 aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:center;flex-wrap:wrap}
 aside.foodex-sidebar-collapsed .foodex-sidebar-brand{justify-content:center;width:100%}
 aside.foodex-sidebar-collapsed .foodex-sidebar-toggle{width:100%}
@@ -49,9 +48,6 @@ aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:1
 aside.foodex-sidebar-collapsed .foodex-nav-group:not([open]) .foodex-nav-children{display:none}
 aside.foodex-sidebar-collapsed .foodex-nav-group[open] .foodex-nav-children{padding:3px 0}
 aside.foodex-sidebar-collapsed .foodex-nav-link{grid-template-columns:1fr;place-items:center;padding:7px}
-aside.foodex-sidebar-collapsed .foodex-sidebar-account,
-aside.foodex-sidebar-collapsed .foodex-sidebar-language,
-aside.foodex-sidebar-collapsed .foodex-sidebar-logout{grid-template-columns:1fr;place-items:center;padding:7px}
 .foodex-admin-layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:minmax(0,1fr) 82px}
 html[dir=ltr] .foodex-admin-layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:82px minmax(0,1fr)}
 .layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:minmax(0,1fr) 82px}
@@ -93,13 +89,6 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
         @endforeach
     </nav>
 
-    <div class="foodex-sidebar-footer">
-        <a class="foodex-sidebar-account {{ ($navContext??'')==='profile'?'active':'' }}" href="{{ route('admin.profile.index') }}">
-            @include('admin._premium-icon',['name'=>'customers'])<span>{{ $user->name ?? __('admin.profile') }}</span>
-        </a>
-        <form method="post" action="{{ route('admin.profile.locale') }}">@csrf @method('PATCH')<input type="hidden" name="locale" value="{{ $ar?'en':'ar' }}"><button class="foodex-sidebar-language" type="submit">@include('admin._premium-icon',['name'=>'globe'])<span>{{ $ar?'English':'العربية' }}</span></button></form>
-        <form method="post" action="{{ route('admin.logout') }}">@csrf<button class="foodex-sidebar-logout" type="submit"><span aria-hidden="true">↪</span><span>{{ __('admin.logout') }}</span></button></form>
-    </div>
 </div>
 
 <script>
