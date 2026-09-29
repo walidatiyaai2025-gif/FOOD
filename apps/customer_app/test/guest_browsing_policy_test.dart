@@ -9,6 +9,7 @@ void main() {
         );
 
     for (final publicRoute in <String>[
+      CustomerRoutePaths.marketplace,
       CustomerRoutePaths.stores,
       CustomerRoutePaths.home,
       CustomerRoutePaths.offers,

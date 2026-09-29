@@ -3,40 +3,29 @@ enum CustomerChannel { b2c, b2b }
 class CustomerSession {
   const CustomerSession.guest()
       : isAuthenticated = false,
-        isPlatformCustomer = false,
         channel = null,
         accessToken = null,
-        b2bRetailStoreId = null;
+        b2bRetailStoreId = null,
+        platformWide = false;
 
   const CustomerSession.authenticated(
     this.channel, {
     this.accessToken,
     this.b2bRetailStoreId,
-  })  : isAuthenticated = true,
-        isPlatformCustomer = false;
-
-  const CustomerSession.platformCustomer({
-    required this.accessToken,
-  })  : isAuthenticated = true,
-        isPlatformCustomer = true,
-        channel = null,
-        b2bRetailStoreId = null;
+    this.platformWide = false,
+  }) : isAuthenticated = true;
 
   final bool isAuthenticated;
-  final bool isPlatformCustomer;
   final CustomerChannel? channel;
   final String? accessToken;
   final int? b2bRetailStoreId;
+  final bool platformWide;
 
-  CustomerSession asB2bRetailContext(int? retailStoreId) {
-    if (isPlatformCustomer) {
-      return CustomerSession.platformCustomer(accessToken: accessToken);
-    }
-
-    return CustomerSession.authenticated(
-      channel ?? CustomerChannel.b2c,
-      accessToken: accessToken,
-      b2bRetailStoreId: retailStoreId,
-    );
-  }
+  CustomerSession asB2bRetailContext(int? retailStoreId) =>
+      CustomerSession.authenticated(
+        channel ?? CustomerChannel.b2c,
+        accessToken: accessToken,
+        b2bRetailStoreId: retailStoreId,
+        platformWide: platformWide,
+      );
 }

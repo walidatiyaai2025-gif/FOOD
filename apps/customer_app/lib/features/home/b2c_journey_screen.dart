@@ -19,7 +19,6 @@ class B2cJourneyScreen extends StatefulWidget {
     required this.catalogApi,
     required this.accountApi,
     required this.onAuthenticated,
-    required this.onPlatformRegistered,
     required this.onSessionExpired,
     super.key,
   });
@@ -30,7 +29,6 @@ class B2cJourneyScreen extends StatefulWidget {
   final B2cCatalogApi catalogApi;
   final B2cAccountApi accountApi;
   final CustomerAuthenticated onAuthenticated;
-  final PlatformCustomerRegistered onPlatformRegistered;
   final VoidCallback onSessionExpired;
 
   @override
@@ -105,7 +103,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
     _splashTimer?.cancel();
     if (widget.definition.pattern != CustomerRoutePaths.splash) return;
     _splashTimer = Timer(const Duration(milliseconds: 1100), () {
-      if (mounted) Navigator.of(context).pushReplacementNamed(CustomerRoutePaths.b2bHome);
+      if (mounted) Navigator.of(context).pushReplacementNamed(CustomerRoutePaths.marketplace);
     });
   }
 
@@ -329,7 +327,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
             _button(
               context,
               context.tr('customer.action.guest'),
-              CustomerRoutePaths.b2bHome,
+              CustomerRoutePaths.stores,
             ),
             _button(
               context,
@@ -444,68 +442,15 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           ],
         );
       case CustomerRoutePaths.checkoutAuth:
-        final checkoutRoute = _withStore(CustomerRoutePaths.checkoutAddressPayment);
-        final registrationRoute = Uri(
-          path: CustomerRoutePaths.register,
-          queryParameters: {'return': checkoutRoute},
-        ).toString();
         return (
           context.tr('customer.checkout_login.title'),
           context.tr('customer.checkout_login.subtitle'),
           [
-            CustomerPasswordLoginAction(
+            CustomerLoginAction(
+              channel: CustomerChannel.b2c,
               api: widget.actionApi,
-              onAuthenticated: widget.onPlatformRegistered,
-              successRoute: checkoutRoute,
-            ),
-            const SizedBox(height: 14),
-            OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).pushNamed(registrationRoute),
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: Text(context.tr('customer.action.register')),
-            ),
-          ],
-        );
-      case CustomerRoutePaths.customerLogin:
-        final loginReturn = Uri.parse(widget.location).queryParameters['return'];
-        final loginSuccessRoute = loginReturn != null && loginReturn.startsWith('/')
-            ? loginReturn
-            : CustomerRoutePaths.b2bHome;
-        return (
-          context.tr('customer.login.title'),
-          context.tr('customer.login.subtitle'),
-          [
-            CustomerPasswordLoginAction(
-              api: widget.actionApi,
-              onAuthenticated: widget.onPlatformRegistered,
-              successRoute: loginSuccessRoute,
-            ),
-            const SizedBox(height: 14),
-            OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).pushReplacementNamed(
-                Uri(
-                  path: CustomerRoutePaths.register,
-                  queryParameters: {'return': loginSuccessRoute},
-                ).toString(),
-              ),
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: Text(context.tr('customer.action.register')),
-            ),
-          ],
-        );
-      case CustomerRoutePaths.register:
-        final requestedReturn = Uri.parse(widget.location).queryParameters['return'];
-        final successRoute = requestedReturn != null && requestedReturn.startsWith('/')
-            ? requestedReturn
-            : CustomerRoutePaths.b2bHome;
-        return (
-          context.tr('customer.register.title'),
-          context.tr('customer.register.subtitle'),
-          [
-            CustomerRegistrationAction(
-              api: widget.actionApi,
-              onRegistered: widget.onPlatformRegistered,
-              successRoute: successRoute,
+              onAuthenticated: widget.onAuthenticated,
+              successRoute: _withStore(CustomerRoutePaths.checkoutAddressPayment),
             ),
           ],
         );

@@ -13,28 +13,8 @@ class CustomerLoginResult {
   final String token;
 }
 
-class CustomerRegistrationResult {
-  const CustomerRegistrationResult({required this.token});
-
-  final String token;
-}
-
 abstract interface class CustomerActionApi {
   Future<CustomerLoginResult> login({required String username});
-
-  Future<CustomerLoginResult> loginWithPassword({
-    required String email,
-    required String password,
-  });
-
-  Future<CustomerRegistrationResult> register({
-    required String name,
-    required String email,
-    required String phone,
-    required String password,
-    required String passwordConfirmation,
-    String locale = 'ar',
-  });
 
   Future<void> logout();
 
@@ -94,58 +74,6 @@ class HttpCustomerActionApi implements CustomerActionApi {
     }
 
     return CustomerLoginResult(token: value);
-  }
-
-  @override
-  Future<CustomerLoginResult> loginWithPassword({
-    required String email,
-    required String password,
-  }) async {
-    final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/auth/login'),
-      headers: _headers,
-      body: jsonEncode({
-        'email': email.trim().toLowerCase(),
-        'password': password,
-      }),
-    );
-    final body = _decode(response);
-    final value = body is Map ? body['token'] : null;
-    if (value is! String || value.isEmpty) {
-      throw const CustomerActionException('invalid_login_response');
-    }
-
-    return CustomerLoginResult(token: value);
-  }
-
-  @override
-  Future<CustomerRegistrationResult> register({
-    required String name,
-    required String email,
-    required String phone,
-    required String password,
-    required String passwordConfirmation,
-    String locale = 'ar',
-  }) async {
-    final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/auth/register'),
-      headers: _headers,
-      body: jsonEncode({
-        'name': name.trim(),
-        'email': email.trim().toLowerCase(),
-        'phone': phone.trim(),
-        'password': password,
-        'password_confirmation': passwordConfirmation,
-        'locale': locale,
-      }),
-    );
-    final body = _decode(response);
-    final value = body is Map ? body['token'] : null;
-    if (value is! String || value.isEmpty) {
-      throw const CustomerActionException('invalid_registration_response');
-    }
-
-    return CustomerRegistrationResult(token: value);
   }
 
   @override

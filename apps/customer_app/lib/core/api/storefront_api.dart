@@ -20,10 +20,6 @@ abstract class StorefrontApi {
     bool support = false,
   });
 
-  Future<Map<String, dynamic>> platformHome({String? query});
-
-  Future<Map<String, dynamic>> platformProduct(int productId);
-
   Future<Map<String, dynamic>> retailHome(int storeId);
 
   Future<Map<String, dynamic>> wholesaleHome(int storeId);
@@ -84,21 +80,6 @@ class HttpStorefrontApi implements StorefrontApi {
 
     return _asMap(await _get('/api/v1/store-selector', query: params));
   }
-
-  @override
-  Future<Map<String, dynamic>> platformHome({String? query}) async =>
-      _asMap(
-        await _get(
-          '/api/v1/platform/storefront',
-          query: {
-            if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
-          },
-        ),
-      );
-
-  @override
-  Future<Map<String, dynamic>> platformProduct(int productId) async =>
-      _asMap(await _get('/api/v1/platform/products/$productId'));
 
   @override
   Future<Map<String, dynamic>> retailHome(int storeId) async =>

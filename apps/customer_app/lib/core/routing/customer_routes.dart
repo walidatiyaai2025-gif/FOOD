@@ -3,6 +3,7 @@ import '../auth/customer_session.dart';
 abstract final class CustomerRoutePaths {
   static const splash = '/splash';
   static const entry = '/entry';
+  static const marketplace = '/marketplace';
   static const stores = '/stores';
   static const storeSelector = '/customer/store-selector';
   static const home = '/home';
@@ -19,8 +20,6 @@ abstract final class CustomerRoutePaths {
   static const settings = '/profile/settings';
   static const cart = '/cart';
   static const checkoutAuth = '/auth/checkout';
-  static const customerLogin = '/auth/login';
-  static const register = '/auth/register';
   static const checkoutAddressPayment = '/checkout/address-payment';
   static const orderTracking = '/orders/:id/track';
   static const profile = '/profile';
@@ -93,6 +92,10 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.entry,
     label: 'Customer entry',
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.marketplace,
+    label: 'Platform marketplace',
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.stores,
@@ -180,14 +183,6 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     channel: CustomerChannel.b2c,
   ),
   CustomerRouteDefinition(
-    pattern: CustomerRoutePaths.customerLogin,
-    label: 'Platform customer login',
-  ),
-  CustomerRouteDefinition(
-    pattern: CustomerRoutePaths.register,
-    label: 'Platform customer registration',
-  ),
-  CustomerRouteDefinition(
     pattern: CustomerRoutePaths.checkoutAddressPayment,
     label: 'B2C checkout',
     channel: CustomerChannel.b2c,
@@ -212,8 +207,9 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bHome,
-    label: 'Platform wholesale storefront',
+    label: 'B2B wholesale storefront',
     channel: CustomerChannel.b2b,
+    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bDashboard,
@@ -241,8 +237,9 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bProductDetails,
-    label: 'Wholesale product details',
+    label: 'B2B product details',
     channel: CustomerChannel.b2b,
+    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bInvoices,

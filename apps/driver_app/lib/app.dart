@@ -55,7 +55,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   StreamSubscription<void>? _pushOpenSubscription;
   StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
 
-  static const _appVersion = '1.0.31';
+  static const _appVersion = '1.0.32';
 
   String get _baseUrl =>
       widget.apiBaseUrl ??

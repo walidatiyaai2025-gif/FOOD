@@ -324,12 +324,6 @@ class _FakeWholesaleStorefrontApi implements StorefrontApi {
       const {};
 
   @override
-  Future<Map<String, dynamic>> platformHome({String? query}) async => const {};
-
-  @override
-  Future<Map<String, dynamic>> platformProduct(int productId) async => const {};
-
-  @override
   Future<Map<String, dynamic>> retailHome(int storeId) async => const {};
 
   @override
@@ -404,24 +398,6 @@ class _FakeCustomerActionApi implements CustomerActionApi {
     required String username,
   }) async =>
       const CustomerLoginResult(token: 'test-token');
-
-  @override
-  Future<CustomerLoginResult> loginWithPassword({
-    required String email,
-    required String password,
-  }) async =>
-      const CustomerLoginResult(token: 'test-token');
-
-  @override
-  Future<CustomerRegistrationResult> register({
-    required String name,
-    required String email,
-    required String phone,
-    required String password,
-    required String passwordConfirmation,
-    String locale = 'ar',
-  }) async =>
-      const CustomerRegistrationResult(token: 'test-token');
 
   @override
   Future<void> logout() async {}

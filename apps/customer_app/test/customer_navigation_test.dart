@@ -14,6 +14,7 @@ void main() {
       containsAll(<String>{
         '/splash',
         '/entry',
+        '/marketplace',
         '/stores',
         '/home',
         '/offers',
@@ -108,7 +109,7 @@ void main() {
     expect(find.text('/b2b/orders/101'), findsOneWidget);
   });
 
-  testWidgets('authenticated B2C session cannot enter protected B2B partition',
+  testWidgets('legacy B2C session cannot enter protected B2B partition',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
@@ -120,5 +121,22 @@ void main() {
 
     expect(find.text('دخول عميل الأعمال'), findsOneWidget);
     expect(find.text('/b2b/login'), findsOneWidget);
+  });
+
+  testWidgets('platform-wide customer can enter retail and wholesale protected routes',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(
+        session: CustomerSession.authenticated(
+          CustomerChannel.b2b,
+          accessToken: 'token',
+          platformWide: true,
+        ),
+        initialRoute: '/profile',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('حسابي'), findsWidgets);
   });
 }

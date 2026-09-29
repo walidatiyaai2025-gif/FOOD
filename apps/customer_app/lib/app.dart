@@ -64,7 +64,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   Timer? _versionFooterTimer;
   bool _showVersionFooter = false;
 
-  static const _appVersion = '1.0.31';
+  static const _appVersion = '1.0.32';
 
   @override
   void initState() {
@@ -163,7 +163,11 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
 
   void _onPlatformRegistered(String token) {
     setState(() {
-      _session = CustomerSession.platformCustomer(accessToken: token);
+      _session = CustomerSession.authenticated(
+        CustomerChannel.b2b,
+        accessToken: token,
+        platformWide: true,
+      );
     });
     _bindPushSession();
   }
@@ -200,7 +204,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       _session = const CustomerSession.guest();
     });
     _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      CustomerRoutePaths.b2bHome,
+      CustomerRoutePaths.entry,
       (route) => false,
     );
   }
@@ -262,9 +266,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       storefrontApi: storefrontApi,
       wholesaleApi: wholesaleCommerceApi,
       onAuthenticated: _onAuthenticated,
-      onPlatformRegistered: _onPlatformRegistered,
       onSessionExpired: _onSessionExpired,
       onEnterWholesale: _enterWholesale,
+      onPlatformRegistered: _onPlatformRegistered,
     );
 
     return MaterialApp(
