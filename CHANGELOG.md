@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.35 - Order operations detail stability
+
+- Fix HTTP 500 when opening Order Management details for orders with driver assignment history.
+- Cast driver assignment `assigned_at` and `completed_at` timestamps to datetimes before timezone formatting.
+- Add regression coverage for an order detail containing completed driver assignment timestamps.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.35.
+
 ## 1.0.34 - Engagement, live advertising, operations and platform branding
 
 - Add image-capable notification testing and promotional campaign pushes with FOODEX brand fallback imagery.

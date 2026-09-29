@@ -12,4 +12,9 @@ class DriverAssignment extends Model
     protected $table = 'driver_assignments';
 
     protected $guarded = [];
+
+    protected $casts = [
+        'assigned_at' => 'datetime',
+        'completed_at' => 'datetime',
+    ];
 }
