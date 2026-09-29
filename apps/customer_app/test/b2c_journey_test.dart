@@ -453,6 +453,9 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('b2c-address-add')));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('b2c-address-share-location')),
+    );
     await tester.tap(
       find.byKey(const ValueKey('b2c-address-share-location')),
     );
