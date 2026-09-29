@@ -31,6 +31,11 @@ jobs:
             "release/1.0.21-update"
             "ci/cleanup-obsolete-branches-20260928"
             "ci/363-cleanup-obsolete-branches"
+            "feat/379-mobile-professional-store-selector-v3"
+            "fix/365-fcm-driver-order-management"
+            "release/1.0.23-update"
+            "release/1.0.25-update"
+            "release/221-generated-trial-bundle"
           )
           for branch in "${branches[@]}"; do
             if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
@@ -46,7 +51,18 @@ jobs:
         run: |
           set -euo pipefail
           failed=0
-          for branch in             "feat/multistore-storefront-design-v2-20260928"             "feat/multistore-storefront-v2"             "fix/undefined-push-driver-assignment-management"             "release/1.0.21-update"             "ci/cleanup-obsolete-branches-20260928"             "ci/363-cleanup-obsolete-branches"; do
+          for branch in \
+            "feat/multistore-storefront-design-v2-20260928" \
+            "feat/multistore-storefront-v2" \
+            "fix/undefined-push-driver-assignment-management" \
+            "release/1.0.21-update" \
+            "ci/cleanup-obsolete-branches-20260928" \
+            "ci/363-cleanup-obsolete-branches" \
+            "feat/379-mobile-professional-store-selector-v3" \
+            "fix/365-fcm-driver-order-management" \
+            "release/1.0.23-update" \
+            "release/1.0.25-update" \
+            "release/221-generated-trial-bundle"; do
             if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
               echo "::error::Branch still exists: $branch"
               failed=1
