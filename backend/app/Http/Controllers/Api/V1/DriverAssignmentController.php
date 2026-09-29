@@ -140,6 +140,7 @@ class DriverAssignmentController extends Controller
             ->latest('id')
             ->first();
 
+        $previousDriverId = null;
         if ($activeAssignment !== null) {
             abort_if(
                 ! $request->boolean('replace_existing'),
@@ -152,6 +153,7 @@ class DriverAssignmentController extends Controller
                 'Order is already assigned to this driver.',
             );
 
+            $previousDriverId = (int) $activeAssignment->driver_id;
             $before = $activeAssignment->toArray();
             $activeAssignment->forceFill([
                 'status' => 'unassigned',
@@ -193,7 +195,7 @@ class DriverAssignmentController extends Controller
             $assignment->toArray(),
             $request,
         );
-        $dashboardNotifier->deliveryChanged($order, 'assigned');
+        $dashboardNotifier->driverAssigned($order, $assignment, $previousDriverId);
 
         return response()->json(['data' => $assignment], 201);
     }
@@ -243,7 +245,13 @@ class DriverAssignmentController extends Controller
             ],
             $request,
         );
-        $dashboardNotifier->deliveryChanged($orderModel, 'unassigned');
+        $dashboardNotifier->deliveryChanged(
+            $orderModel,
+            'unassigned',
+            $assignment->fresh(),
+            trim((string) $request->input('reason', 'manual_unassign')),
+            (string) ($before['status'] ?? 'assigned'),
+        );
 
         return response()->json(['data' => $assignment->fresh()]);
     }

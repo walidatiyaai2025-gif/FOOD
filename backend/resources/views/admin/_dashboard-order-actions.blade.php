@@ -17,7 +17,7 @@
     };
 @endphp
 
-<div style="display:grid;gap:8px;min-width:260px">
+<div id="order-{{ $row['_id'] }}" style="display:grid;gap:8px;min-width:260px">
     @if(count($statusTransitions))
     <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
         @csrf
@@ -124,6 +124,21 @@
                     <ul style="margin:6px 0">
                         @foreach($row['_history'] as $entry)
                             <li>{{ $entry['from'] ?? '—' }} → {{ $entry['to'] }} · {{ $entry['created_at'] }}@if($entry['note']) · {{ $entry['note'] }}@endif</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            @if(!empty($row['_driver_history']))
+                <div>
+                    <strong>{{ app()->getLocale()==='ar'?'سجل السائق والملاحظات':'Driver timeline & notes' }}</strong>
+                    <ul style="margin:6px 0">
+                        @foreach($row['_driver_history'] as $entry)
+                            <li>
+                                {{ $entry['from'] ?? '—' }} → {{ $entry['to'] ?? '—' }}
+                                @if($entry['actor']) · {{ $entry['actor'] }}@endif
+                                @if($entry['created_at']) · {{ $entry['created_at'] }}@endif
+                                @if($entry['note']) · <strong>{{ $entry['note'] }}</strong>@endif
+                            </li>
                         @endforeach
                     </ul>
                 </div>

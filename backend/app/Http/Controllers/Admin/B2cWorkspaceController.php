@@ -1066,6 +1066,31 @@ class B2cWorkspaceController extends Controller
                         'created_at' => (string) $entry->created_at,
                     ])->all();
 
+                $driverHistory = DB::table('delivery_proofs')
+                    ->join('driver_assignments', 'driver_assignments.id', '=', 'delivery_proofs.driver_assignment_id')
+                    ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+                    ->join('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('driver_assignments.order_id', $row->id)
+                    ->where('driver_assignments.store_id', $row->store_id)
+                    ->where('driver_assignments.assignment_type', 'b2c')
+                    ->whereIn('delivery_proofs.proof_type', ['status_note', 'failure_note'])
+                    ->orderByDesc('delivery_proofs.id')
+                    ->limit(50)
+                    ->get([
+                        'delivery_proofs.from_status',
+                        'delivery_proofs.to_status',
+                        'delivery_proofs.note',
+                        'delivery_proofs.captured_at',
+                        'users.name as actor_name',
+                    ])
+                    ->map(fn ($entry) => [
+                        'from' => $entry->from_status,
+                        'to' => $entry->to_status,
+                        'note' => $entry->note,
+                        'actor' => $entry->actor_name,
+                        'created_at' => $entry->captured_at === null ? null : (string) $entry->captured_at,
+                    ])->all();
+
                 $invoice = DB::table('invoices')
                     ->where('order_id', $row->id)
                     ->orderByDesc('id')
@@ -1095,6 +1120,7 @@ class B2cWorkspaceController extends Controller
                         'currency' => $payment->currency,
                     ],
                     '_history' => $history,
+                    '_driver_history' => $driverHistory,
                     '_invoice' => $invoice === null ? null : [
                         'id' => (int) $invoice->id,
                         'number' => $invoice->invoice_number,

@@ -15,6 +15,7 @@ final class NotificationAudience
 
         $apps = [];
         $channels = [];
+        $dashboardStoreIds = [];
 
         if (is_string($customerType)) {
             $apps[] = 'customer';
@@ -26,11 +27,41 @@ final class NotificationAudience
             $channels[] = strtolower($driverType);
         }
 
+        $dashboardRoles = array_values((array) config('admin.dashboard_roles', []));
+        $isDashboardUser = $user->roles()
+            ->where('roles.is_active', true)
+            ->whereIn('roles.code', $dashboardRoles)
+            ->exists()
+            || $user->storeRoleAssignments()
+                ->whereHas('role', fn (Builder $roles) => $roles
+                    ->where('is_active', true)
+                    ->whereIn('code', $dashboardRoles))
+                ->exists();
+
+        if ($isDashboardUser) {
+            $apps[] = 'dashboard';
+            foreach (['b2b', 'b2c'] as $dashboardChannel) {
+                $allowed = collect(['notifications.view', 'orders.view', 'finance.view'])
+                    ->flatMap(fn (string $permission): array => app(OperationalTenantScope::class)
+                        ->allowedStoreIds($user, $permission, $dashboardChannel))
+                    ->map(static fn ($id): int => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                if ($allowed !== []) {
+                    $channels[] = $dashboardChannel;
+                    $dashboardStoreIds = array_merge($dashboardStoreIds, $allowed);
+                }
+            }
+        }
+
         $storeIds = collect(DB::table('user_store_roles')
             ->where('user_id', $user->id)
             ->pluck('store_id'))
             ->merge(DB::table('b2c_customers')->where('user_id', $user->id)->pluck('store_id'))
             ->merge(DB::table('drivers')->where('user_id', $user->id)->whereNotNull('store_id')->pluck('store_id'))
+            ->merge($dashboardStoreIds)
             ->merge(
                 DB::table('orders')
                     ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
