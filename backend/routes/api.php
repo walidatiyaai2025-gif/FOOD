@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\MobileRuntimeController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\PlatformMarketplaceController;
 use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
 use App\Http\Controllers\Api\V1\SecurityController;
@@ -45,6 +46,8 @@ Route::prefix('v1')->group(function (): void {
         ->middleware('throttle:login');
 
     Route::get('/marketplace', [StorefrontController::class, 'marketplace']);
+    Route::get('/platform/storefront', [PlatformMarketplaceController::class, 'home']);
+    Route::get('/platform/products/{product}', [PlatformMarketplaceController::class, 'product'])->whereNumber('product');
     Route::get('/wholesale/stores/{store}/storefront', [StorefrontController::class, 'showWholesalePublic']);
     Route::get('/stores', [GuestStoreController::class, 'index']);
     Route::get('/stores/{store}/categories', [GuestCatalogController::class, 'categories']);

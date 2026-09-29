@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.33 - Explicit platform customer marketplace identity
+
+- Integrate the remaining #402 public platform marketplace work on top of the newer 1.0.32 wholesale-first Customer experience.
+- Add an explicit `platform_customers` identity table while preserving the existing platform-user compatibility flag.
+- Backfill platform identities for existing 1.0.32 registered customers during upgrade.
+- Add public platform storefront and product endpoints with configurable principal Wholesale store resolution.
+- Materialize B2B/B2C customer projections from one platform identity and keep store/channel order routing isolated.
+- Allow registered platform customers to fall back to safe base Wholesale pricing when no explicit tier rule exists.
+- Keep Dashboard, Customer and Driver release identities synchronized at 1.0.33.
+
 ## 1.0.32 - Wholesale-first Customer marketplace and platform registration
 
 - Open the Customer app into the platform main Wholesale storefront after splash without requiring sign-in.
