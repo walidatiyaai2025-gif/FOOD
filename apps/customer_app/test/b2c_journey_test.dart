@@ -289,6 +289,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(api.notificationRead, isTrue);
+    expect(find.byKey(const ValueKey('b2c-order-data')), findsOneWidget);
+    expect(find.text('FOODEX-101'), findsWidgets);
   });
 
   testWidgets('B2C orders and favorites use authenticated account data', (tester) async {
@@ -664,6 +666,11 @@ class _FakeAccountApi implements B2cAccountApi {
             'id': 4,
             'title': locale == 'en' ? 'Order update' : 'تحديث الطلب',
             'body': locale == 'en' ? 'On the way' : 'في الطريق',
+            'data': {
+              'order_id': 101,
+              'channel': 'b2c',
+              'status': 'out_for_delivery',
+            },
             'read_at': notificationRead ? '2026-09-26T12:00:00Z' : null,
           },
         ],
