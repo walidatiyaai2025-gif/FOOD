@@ -803,6 +803,12 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       children: rows.map((notification) {
         final id = (notification['id'] as num?)?.toInt();
         final unread = notification['read_at'] == null;
+        final notificationData = notification['data'] is Map
+            ? Map<String, dynamic>.from(notification['data'] as Map)
+            : const <String, dynamic>{};
+        final orderId =
+            int.tryParse((notificationData['order_id'] ?? '').toString());
+
         return Card(
           child: ListTile(
             leading: Icon(
@@ -814,7 +820,16 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
               style: TextStyle(fontWeight: unread ? FontWeight.w700 : FontWeight.w400),
             ),
             subtitle: Text(notification['body']?.toString() ?? ''),
-            onTap: id == null || !unread ? null : () => _markNotification(id),
+            trailing: orderId != null && orderId > 0
+                ? const Icon(Icons.chevron_right_rounded)
+                : null,
+            onTap: id == null
+                ? null
+                : () => _openNotification(
+                      id,
+                      unread: unread,
+                      data: notificationData,
+                    ),
           ),
         );
       }).toList(growable: false),
@@ -1041,9 +1056,28 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
     }
   }
 
-  Future<void> _markNotification(int id) async {
+  Future<void> _openNotification(
+    int id, {
+    required bool unread,
+    required Map<String, dynamic> data,
+  }) async {
     try {
-      await widget.accountApi.markNotificationRead(id);
+      if (unread) {
+        await widget.accountApi.markNotificationRead(id);
+      }
+
+      if (!mounted) return;
+
+      final orderId = int.tryParse((data['order_id'] ?? '').toString());
+      if (orderId != null && orderId > 0) {
+        final channel = (data['channel'] ?? '').toString().toLowerCase();
+        final route = channel == 'b2b'
+            ? '/b2b/orders/$orderId'
+            : '/orders/$orderId/track';
+        Navigator.of(context).pushNamed(route);
+        return;
+      }
+
       _reload();
     } catch (_) {
       if (mounted) {
