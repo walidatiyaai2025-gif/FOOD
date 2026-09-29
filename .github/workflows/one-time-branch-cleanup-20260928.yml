@@ -1,4 +1,4 @@
-name: FOODEX One-Time Branch Cleanup 2026-09-29
+name: FOODEX One-Time Branch Cleanup 2026-09-30
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   cleanup:
-    name: Delete obsolete completed branches
+    name: Delete completed or superseded branches
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
@@ -25,7 +25,12 @@ jobs:
         run: |
           set -euo pipefail
           branches=(
-            "feat/undefined-engagement-ops-branding"
+            "chore/refresh-trial-bundle-1.0.34"
+            "feat/retail-incoming-wholesale-orders"
+            "feat/438-driver-status-cards"
+            "fix/order-operations-null-dates"
+            "fix/439-b2b-order-tracking-route"
+            "fix/462-self-healing-update-runtime"
           )
           for branch in "${branches[@]}"; do
             if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
@@ -36,12 +41,18 @@ jobs:
             fi
           done
 
-      - name: Verify cleanup
+      - name: Verify cleanup and protected keep-set
         shell: bash
         run: |
           set -euo pipefail
           failed=0
-          for branch in "feat/undefined-engagement-ops-branding"; do
+          for branch in \
+            "chore/refresh-trial-bundle-1.0.34" \
+            "feat/retail-incoming-wholesale-orders" \
+            "feat/438-driver-status-cards" \
+            "fix/order-operations-null-dates" \
+            "fix/439-b2b-order-tracking-route" \
+            "fix/462-self-healing-update-runtime"; do
             if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
               echo "::error::Branch still exists: $branch"
               failed=1
@@ -49,5 +60,19 @@ jobs:
               echo "Confirmed deleted: $branch"
             fi
           done
-          git ls-remote --exit-code --heads origin refs/heads/main >/dev/null
+
+          for branch in \
+            "main" \
+            "feat/436-customer-address-location-driver-navigation" \
+            "feat/436-fresh-integration" \
+            "feat/437-marketplace-camera-scanner" \
+            "release/221-generated-trial-bundle"; do
+            if ! git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
+              echo "::error::Required branch missing: $branch"
+              failed=1
+            else
+              echo "Confirmed retained: $branch"
+            fi
+          done
+
           test "$failed" -eq 0
