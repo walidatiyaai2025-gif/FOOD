@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class CustomerProfileController extends Controller
@@ -138,6 +139,7 @@ class CustomerProfileController extends Controller
     {
         [$user, $customer, $channel] = $this->addressContext($request);
         $validated = $request->validate($this->addressRules(false));
+        $this->assertLocationSemantics($validated);
         $service = app(CustomerAddressService::class);
 
         $address = DB::transaction(function () use (
@@ -190,6 +192,7 @@ class CustomerProfileController extends Controller
         $validated = $request->validate($this->addressRules(true));
 
         $existing = $service->findOwned($user, $address, $customer, $channel);
+        $this->assertLocationSemantics($validated, $existing);
         $before = $this->addressPayload($existing);
 
         $model = DB::transaction(function () use (
@@ -553,6 +556,43 @@ class CustomerProfileController extends Controller
             'location_source' => ['sometimes', Rule::in(['manual', 'current_location', 'map_pin'])],
             'is_default' => ['sometimes', 'boolean'],
         ];
+    }
+
+    /**
+     * Current-location and map-pin addresses must never claim a geographic
+     * source without a complete coordinate pair. On PATCH, validate the final
+     * state after applying the submitted values to the existing address.
+     *
+     * @param array<string, mixed> $validated
+     */
+    private function assertLocationSemantics(array $validated, ?Address $existing = null): void
+    {
+        $source = array_key_exists('location_source', $validated)
+            ? (string) $validated['location_source']
+            : (string) ($existing?->location_source ?: 'manual');
+
+        $latitude = array_key_exists('latitude', $validated)
+            ? $validated['latitude']
+            : $existing?->latitude;
+        $longitude = array_key_exists('longitude', $validated)
+            ? $validated['longitude']
+            : $existing?->longitude;
+
+        if (in_array($source, ['current_location', 'map_pin'], true)
+            && ($latitude === null || $longitude === null)) {
+            throw ValidationException::withMessages([
+                'latitude' => ['Latitude and longitude are required for the selected location source.'],
+                'longitude' => ['Latitude and longitude are required for the selected location source.'],
+            ]);
+        }
+
+        if (array_key_exists('location_accuracy_meters', $validated)
+            && $validated['location_accuracy_meters'] !== null
+            && ($latitude === null || $longitude === null)) {
+            throw ValidationException::withMessages([
+                'location_accuracy_meters' => ['Location accuracy requires a saved coordinate pair.'],
+            ]);
+        }
     }
 
     private function normalizedAddressValues(array $validated): array
