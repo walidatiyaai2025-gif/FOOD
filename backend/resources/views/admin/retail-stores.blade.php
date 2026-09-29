@@ -69,8 +69,14 @@
                                 </select>
                                 <small class="foodex-file-help">{{ $ar?'هذه الشريحة ستُطبق تلقائيًا عندما يطلب متجر التجزئة من متجر الجملة الرئيسي.':'This tier is applied automatically when the Retail store purchases from the main Wholesale operation.' }}</small>
                             </label>
-                            <label class="wide"><span>{{ $ar?'حالة المتجر':'Store status' }}</span>
+                            <label><span>{{ $ar?'حالة المتجر':'Store status' }}</span>
                                 <span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active','1')==='1')> {{ $ar?'نشط ومتاح للإدارة':'Active and manageable' }}</span>
+                            </label>
+                            <label><span>{{ $ar?'الحملات الإعلانية':'Advertising campaigns' }}</span>
+                                <span><input type="hidden" name="advertising_enabled" value="0"><input type="checkbox" name="advertising_enabled" value="1" @checked(old('advertising_enabled','1')==='1')> {{ $ar?'السماح للمتجر باستخدام الحملات الإعلانية':'Allow this store to use advertising campaigns' }}</span>
+                            </label>
+                            <label><span>{{ $ar?'الكوبونات':'Coupons' }}</span>
+                                <span><input type="hidden" name="coupons_enabled" value="0"><input type="checkbox" name="coupons_enabled" value="1" @checked(old('coupons_enabled','1')==='1')> {{ $ar?'السماح للمتجر بإنشاء واستخدام الكوبونات':'Allow this store to create and use coupons' }}</span>
                             </label>
                         </div>
                         <div class="foodex-step-actions">
@@ -201,7 +207,7 @@
     syncManagerMode();
 
     if (@json($errors->any())) {
-        @php($hasStoreDetailErrors = $errors->has('code') || $errors->has('name') || $errors->has('logo') || $errors->has('price_tier_id') || $errors->has('is_active'))
+        @php($hasStoreDetailErrors = $errors->has('code') || $errors->has('name') || $errors->has('logo') || $errors->has('price_tier_id') || $errors->has('is_active') || $errors->has('advertising_enabled') || $errors->has('coupons_enabled'))
         const storeDetailErrors = @json($hasStoreDetailErrors);
         activate(storeDetailErrors ? 'store-details' : 'store-manager');
     }
