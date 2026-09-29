@@ -28,21 +28,19 @@ class CustomerLoginAction extends StatefulWidget {
 }
 
 class _CustomerLoginActionState extends State<CustomerLoginAction> {
-  final _email = TextEditingController();
-  final _password = TextEditingController();
+  final _username = TextEditingController();
   bool _busy = false;
   String? _error;
 
   @override
   void dispose() {
-    _email.dispose();
-    _password.dispose();
+    _username.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (_email.text.trim().isEmpty || _password.text.isEmpty) {
-      setState(() => _error = 'customer.validation.credentials');
+    if (_username.text.trim().isEmpty) {
+      setState(() => _error = 'customer.validation.username');
       return;
     }
 
@@ -53,8 +51,7 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
 
     try {
       final result = await widget.api.login(
-        email: _email.text.trim(),
-        password: _password.text,
+        username: _username.text.trim(),
       );
       if (!mounted) return;
       widget.onAuthenticated(widget.channel, result.token);
@@ -71,17 +68,13 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
-            key: const ValueKey('customer-login-email'),
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(labelText: context.tr('customer.login.email')),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            key: const ValueKey('customer-login-password'),
-            controller: _password,
-            obscureText: true,
-            decoration: InputDecoration(labelText: context.tr('customer.login.password')),
+            key: const ValueKey('customer-login-username'),
+            controller: _username,
+            textInputAction: TextInputAction.done,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(labelText: context.tr('customer.login.username')),
+            onSubmitted: (_) => _submit(),
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
@@ -227,6 +220,7 @@ class CheckoutAction extends StatefulWidget {
 class _CheckoutActionState extends State<CheckoutAction> {
   final _address = TextEditingController();
   final _payment = TextEditingController();
+  final _coupon = TextEditingController();
   bool _busy = false;
   String? _error;
 
@@ -234,6 +228,7 @@ class _CheckoutActionState extends State<CheckoutAction> {
   void dispose() {
     _address.dispose();
     _payment.dispose();
+    _coupon.dispose();
     super.dispose();
   }
 
@@ -253,6 +248,7 @@ class _CheckoutActionState extends State<CheckoutAction> {
       final response = await widget.api.checkout(
         addressId: addressId,
         paymentMethod: _payment.text,
+        couponCode: _coupon.text,
         idempotencyKey: 'foodex-${DateTime.now().microsecondsSinceEpoch}',
       );
       if (!mounted) return;
@@ -287,6 +283,13 @@ class _CheckoutActionState extends State<CheckoutAction> {
             key: const ValueKey('customer-checkout-payment'),
             controller: _payment,
             decoration: InputDecoration(labelText: context.tr('customer.checkout.payment')),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            key: const ValueKey('customer-checkout-coupon'),
+            controller: _coupon,
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(labelText: context.tr('customer.checkout.coupon')),
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
