@@ -472,6 +472,24 @@ class _EvidenceActionApi implements CustomerActionApi {
       const CustomerLoginResult(token: 'evidence-token');
 
   @override
+  Future<CustomerLoginResult> loginWithPassword({
+    required String email,
+    required String password,
+  }) async =>
+      const CustomerLoginResult(token: 'evidence-token');
+
+  @override
+  Future<CustomerRegistrationResult> register({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+    required String passwordConfirmation,
+    String locale = 'ar',
+  }) async =>
+      const CustomerRegistrationResult(token: 'evidence-token');
+
+  @override
   Future<void> logout() async {}
 
   @override
@@ -523,6 +541,29 @@ class _EvidenceStorefrontApi implements StorefrontApi {
           'retail_context_ids': [7],
           'direct_b2b': false,
         },
+      };
+
+  @override
+  Future<Map<String, dynamic>> platformHome({String? query}) async => {
+        'store': {'id': 70, 'name': 'FOODEX Wholesale'},
+        'theme': {'primary': '#5D2A91', 'primary_dark': '#35195E'},
+        'branding': const <String, Object?>{},
+        'products': const {'data': <Object>[]},
+        'retail_banners': const <Object>[],
+        'sections': const <Object>[],
+      };
+
+  @override
+  Future<Map<String, dynamic>> platformProduct(int productId) async => {
+        'id': productId,
+        'store_id': 70,
+        'name': 'Wholesale product',
+        'sku': 'W-$productId',
+        'account_price': 10,
+        'minimum_order_quantity': 1,
+        'ordering_increment': 1,
+        'pack_size': 1,
+        'currency': 'EGP',
       };
 
   @override
