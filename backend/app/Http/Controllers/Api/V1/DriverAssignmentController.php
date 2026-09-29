@@ -35,7 +35,7 @@ class DriverAssignmentController extends Controller
             );
 
         match ($scope) {
-            'active' => $query->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned']),
+            'active' => $query->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned']),
             'completed' => $query->where('status', 'delivered'),
             'failed' => $query->where('status', 'failed'),
             default => null,

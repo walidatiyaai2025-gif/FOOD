@@ -76,7 +76,9 @@ void main() {
       () async {
     final requests = <String>[];
     final client = MockClient((request) async {
-      requests.add('${request.method} ${request.url.path}');
+      requests.add(
+        '${request.method} ${request.url.path}${request.url.hasQuery ? '?${request.url.query}' : ''}',
+      );
       if (request.method == 'GET') {
         return http.Response(
           jsonEncode({
@@ -117,7 +119,7 @@ void main() {
     expect(rows.single.availableStatuses, ['accepted']);
     await repo.transition(9, DriverChannel.b2b, 'accepted');
     expect(requests, [
-      'GET /api/v1/driver/assignments',
+      'GET /api/v1/driver/assignments?scope=active',
       'POST /api/v1/driver/assignments/9/status',
     ]);
   });
