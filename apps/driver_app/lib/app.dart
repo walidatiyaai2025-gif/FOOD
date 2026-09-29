@@ -10,10 +10,14 @@ import 'core/localization/driver_translations.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/auth/driver_login.dart';
+import 'features/notifications/notification_feed.dart';
 import 'features/tasks/driver_journey.dart';
 import 'navigation.dart';
 
 typedef DriverAssignmentRepositoryFactory = DriverAssignmentRepository Function(
+  DriverSession session,
+);
+typedef DriverNotificationRepositoryFactory = DriverNotificationRepository Function(
   DriverSession session,
 );
 
@@ -27,6 +31,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.apiBaseUrl,
     this.authRepository,
     this.assignmentRepositoryFactory,
+    this.notificationRepositoryFactory,
     this.initialSession,
     this.theme,
     this.pushService,
@@ -39,6 +44,7 @@ class FoodexDriverApp extends StatefulWidget {
   final String? apiBaseUrl;
   final DriverAuthRepository? authRepository;
   final DriverAssignmentRepositoryFactory? assignmentRepositoryFactory;
+  final DriverNotificationRepositoryFactory? notificationRepositoryFactory;
   final DriverSession? initialSession;
   final ThemeData? theme;
   final DriverFirebasePushService? pushService;
@@ -100,6 +106,16 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     if (factory != null) return factory(session);
     if (_baseUrl.isEmpty) return null;
     return HttpDriverAssignmentRepository(_baseUrl, session.token);
+  }
+
+  DriverNotificationRepository? _notificationRepository(DriverSession session) {
+    final factory = widget.notificationRepositoryFactory;
+    if (factory != null) return factory(session);
+    if (_baseUrl.isEmpty) return null;
+    return HttpDriverNotificationRepository(
+      baseUrl: _baseUrl,
+      token: session.token,
+    );
   }
 
   Future<void> _loadRemoteTranslations() async {
@@ -198,11 +214,14 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     final authRepository = _authRepository();
     final assignments =
         session == null ? null : _assignmentRepository(session);
+    final notifications =
+        session == null ? null : _notificationRepository(session);
     final navigator = session == null || assignments == null
         ? null
         : DriverNavigator(
             session.channel,
             repository: assignments,
+            notificationRepository: notifications,
             onSessionExpired: _sessionExpired,
             onLogout: () {
               _logout();
