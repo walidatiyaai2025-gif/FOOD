@@ -150,6 +150,17 @@ class B2bWorkspaceController extends Controller
         ]);
     }
 
+    public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $storeId = $this->principal->storeId();
+        $this->operationalScope->assertStore($actor, $storeId, 'orders.manage', 'b2b');
+
+        return response()->json([
+            'data' => $orders->quote($request, 'b2b', $storeId),
+        ]);
+    }
+
     public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
     {
         $actor = $this->actor($request);
