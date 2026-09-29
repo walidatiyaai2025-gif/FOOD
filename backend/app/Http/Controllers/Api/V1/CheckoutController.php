@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Domain\Pricing\B2bPriceResolver;
 use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\MarketingCoupon;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
-use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CommerceQuoteService;
 use App\Services\CouponRedemptionService;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
@@ -28,8 +28,12 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
-    public function __invoke(Request $request, AuditLogger $auditLogger, DashboardOperationalNotifier $dashboardNotifier): JsonResponse
-    {
+    public function __invoke(
+        Request $request,
+        AuditLogger $auditLogger,
+        DashboardOperationalNotifier $dashboardNotifier,
+        CommerceQuoteService $quotes,
+    ): JsonResponse {
         $validated = $request->validate([
             'store_id' => ['required', 'integer', 'min:1'],
             'address_id' => ['required', 'integer', 'min:1'],
@@ -64,15 +68,15 @@ class CheckoutController extends Controller
             ? strtoupper(trim((string) $validated['coupon_code']))
             : null;
 
-        $b2bAccount = null;
         $allowedMethods = array_values((array) config('checkout.payment_methods', ['cash_on_delivery']));
         if ($channel === 'b2b') {
             abort_unless($customer instanceof B2bCustomer, 500);
-            $b2bAccount = B2bAccount::query()
+            $account = B2bAccount::query()
                 ->where('b2b_customer_id', $customer->getKey())
                 ->where('status', 'active')
                 ->firstOrFail();
-            if ((float) $b2bAccount->credit_limit > 0 && ! in_array('account_credit', $allowedMethods, true)) {
+
+            if ((float) $account->credit_limit > 0 && ! in_array('account_credit', $allowedMethods, true)) {
                 $allowedMethods[] = 'account_credit';
             }
         }
@@ -108,13 +112,13 @@ class CheckoutController extends Controller
             $channel,
             $paymentMethod,
             $requestedDeliveryDate,
-            $b2bAccount,
             $note,
             $idempotencyKey,
             $requestHash,
             $couponCode,
             $auditLogger,
             $request,
+            $quotes,
         ): array {
             $existing = Order::query()
                 ->where($customerColumn, $customer->getKey())
@@ -141,133 +145,81 @@ class CheckoutController extends Controller
 
             abort_unless($cart instanceof Cart, 409, 'No authenticated cart exists for this store.');
 
-            $cartItems = CartItem::query()
+            $lockedItems = CartItem::query()
                 ->where('cart_id', $cart->getKey())
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->get();
 
-            abort_if($cartItems->isEmpty(), 409, 'The cart is empty.');
+            abort_if($lockedItems->isEmpty(), 409, 'The cart is empty.');
 
-            $lineSnapshots = [];
-            $subtotal = 0.0;
+            // This is the authoritative reprice point. No submitted or stale cart price is trusted.
+            $quote = $quotes->quoteCart(
+                $cart,
+                $user,
+                $couponCode,
+                $paymentMethod,
+                true,
+            );
+
+            $currency = (string) $quote['currency'];
+            $lineSnapshots = array_map(
+                fn (array $line): array => $quotes->orderLineSnapshot($line, $currency),
+                $quote['items'],
+            );
+            $headerSnapshot = $quotes->orderHeaderSnapshot($quote);
+
+            // Lock and allocate inventory only after the final quote so stock and price are
+            // both revalidated inside the same checkout transaction.
             $reservations = [];
-
-            foreach ($cartItems as $cartItem) {
-                $product = Product::query()
-                    ->forStore($storeId)
-                    ->whereKey($cartItem->product_id)
-                    ->where('products.is_active', true)
-                    ->first();
-
-                $storeProduct = DB::table('store_products')
-                    ->where('store_id', $storeId)
-                    ->where('product_id', $cartItem->product_id)
-                    ->where('is_active', true)
-                    ->whereNotNull('price')
-                    ->first();
-
-                abort_unless(
-                    $product instanceof Product && $storeProduct !== null,
-                    409,
-                    'A cart item is no longer available.',
-                );
-
-                $quantity = (float) $cartItem->quantity;
-                $unitPrice = (float) $storeProduct->price;
-                if ($channel === 'b2b') {
-                    abort_unless($customer instanceof B2bCustomer, 500);
-                    $pricing = app(B2bPriceResolver::class)->resolve($customer, $storeId, (int) $cartItem->product_id);
-                    $minimum = (float) $pricing['minimum_quantity'];
-                    $increment = max(0.001, (float) $pricing['ordering_increment']);
-                    $steps = ($quantity - $minimum) / $increment;
-                    abort_if(
-                        $quantity + 0.0001 < $minimum || abs($steps - round($steps)) >= 0.0001,
-                        409,
-                        'Quantity must meet the B2B minimum and ordering increment.',
-                    );
-                    $unitPrice = $pricing['price'];
-                }
-                $lineTotal = round($quantity * $unitPrice, 3);
-
+            foreach ($lineSnapshots as $snapshot) {
                 $inventoryRows = DB::table('inventories')
                     ->select('inventories.id', 'inventories.quantity', 'inventories.reserved_quantity')
                     ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
                     ->where('warehouses.store_id', $storeId)
                     ->where('warehouses.is_active', true)
-                    ->where('inventories.product_id', $cartItem->product_id)
+                    ->where('inventories.product_id', $snapshot['product_id'])
                     ->orderBy('inventories.id')
                     ->lockForUpdate()
                     ->get();
 
-                if ($inventoryRows->isNotEmpty()) {
-                    $available = (float) $inventoryRows->sum(
-                        static fn (object $row): float => max(
-                            0.0,
-                            (float) $row->quantity - (float) $row->reserved_quantity,
-                        ),
-                    );
-
-                    abort_if($quantity > $available, 409, 'A cart item does not have enough stock.');
-
-                    $remaining = $quantity;
-                    foreach ($inventoryRows as $inventoryRow) {
-                        $rowAvailable = max(
-                            0.0,
-                            (float) $inventoryRow->quantity - (float) $inventoryRow->reserved_quantity,
-                        );
-                        $reserve = min($remaining, $rowAvailable);
-
-                        if ($reserve > 0) {
-                            $reservations[] = [
-                                'inventory_id' => (int) $inventoryRow->id,
-                                'quantity' => $reserve,
-                            ];
-                            $remaining -= $reserve;
-                        }
-
-                        if ($remaining <= 0) {
-                            break;
-                        }
-                    }
+                if ($inventoryRows->isEmpty()) {
+                    continue;
                 }
 
-                $lineSnapshots[] = [
-                    'product_id' => (int) $product->getKey(),
-                    'sku_snapshot' => (string) $product->sku,
-                    'name_snapshot' => (string) $product->name,
-                    'quantity' => $quantity,
-                    'quantity_conversion_factor' => $channel === 'b2b' ? (float) ($pricing['pack_size'] ?? 1) : 1,
-                    'unit_price' => $unitPrice,
-                    'line_total' => $lineTotal,
-                ];
-                $subtotal += $lineTotal;
-            }
-
-            $deliveryTotal = round((float) config('checkout.delivery_fee', 0), 3);
-            $discountTotal = 0.0;
-            $coupon = null;
-
-            if ($couponCode !== null) {
-                $quote = app(CouponRedemptionService::class)->quote(
-                    $couponCode,
-                    $channel,
-                    $storeId,
-                    (int) $customer->getKey(),
-                    $user,
-                    round($subtotal, 3),
-                    $deliveryTotal,
+                $available = (float) $inventoryRows->sum(
+                    static fn (object $row): float => max(
+                        0.0,
+                        (float) $row->quantity - (float) $row->reserved_quantity,
+                    ),
                 );
-                $coupon = $quote['coupon'];
-                $discountTotal = (float) $quote['discount_total'];
-                $deliveryTotal = (float) $quote['delivery_total'];
-            }
 
-            $grandTotal = round(max(0, $subtotal + $deliveryTotal - $discountTotal), 3);
+                abort_if(
+                    (float) $snapshot['quantity'] > $available + 0.0001,
+                    409,
+                    'A cart item does not have enough stock.',
+                );
 
-            if ($channel === 'b2b' && $paymentMethod === 'account_credit') {
-                abort_unless($b2bAccount instanceof B2bAccount, 403, 'An active B2B account is required.');
-                abort_if((float) $b2bAccount->credit_limit < $grandTotal, 409, 'The order exceeds the available B2B credit limit.');
+                $remaining = (float) $snapshot['quantity'];
+                foreach ($inventoryRows as $inventoryRow) {
+                    $rowAvailable = max(
+                        0.0,
+                        (float) $inventoryRow->quantity - (float) $inventoryRow->reserved_quantity,
+                    );
+                    $reserve = min($remaining, $rowAvailable);
+
+                    if ($reserve > 0) {
+                        $reservations[] = [
+                            'inventory_id' => (int) $inventoryRow->id,
+                            'quantity' => $reserve,
+                        ];
+                        $remaining -= $reserve;
+                    }
+
+                    if ($remaining <= 0.0001) {
+                        break;
+                    }
+                }
             }
 
             $order = Order::query()->create([
@@ -279,11 +231,18 @@ class CheckoutController extends Controller
                 'order_number' => 'FDX-'.now()->format('Ymd').'-'.Str::upper(Str::random(10)),
                 'channel' => $channel,
                 'status' => 'pending',
-                'currency' => 'EGP',
-                'subtotal' => round($subtotal, 3),
-                'discount_total' => $discountTotal,
-                'delivery_total' => $deliveryTotal,
-                'grand_total' => $grandTotal,
+                'currency' => $headerSnapshot['currency'],
+                'subtotal' => $headerSnapshot['subtotal'],
+                'discount_total' => $headerSnapshot['discount_total'],
+                'delivery_total' => $headerSnapshot['delivery_total'],
+                'tax_total' => $headerSnapshot['tax_total'],
+                'grand_total' => $headerSnapshot['grand_total'],
+                'quote_id' => $headerSnapshot['quote_id'],
+                'quoted_at' => $headerSnapshot['quoted_at'],
+                'b2b_account_id_snapshot' => $headerSnapshot['b2b_account_id_snapshot'],
+                'price_tier_id_snapshot' => $headerSnapshot['price_tier_id_snapshot'],
+                'price_tier_code_snapshot' => $headerSnapshot['price_tier_code_snapshot'],
+                'pricing_snapshot' => $headerSnapshot['pricing_snapshot'],
                 'checkout_idempotency_key' => $idempotencyKey,
                 'checkout_request_hash' => $requestHash,
                 'payment_method' => $paymentMethod,
@@ -320,21 +279,26 @@ class CheckoutController extends Controller
                 'provider' => $paymentMethod,
                 'provider_reference' => null,
                 'status' => 'pending',
-                'amount' => $grandTotal,
-                'currency' => 'EGP',
+                'amount' => (float) $quote['grand_total'],
+                'currency' => $currency,
                 'metadata' => [
                     'method' => $paymentMethod,
+                    'quote_id' => $quote['quote_id'],
                 ],
             ]);
 
-            if ($coupon !== null) {
-                app(CouponRedemptionService::class)->redeem(
-                    $coupon,
-                    $user,
-                    $order,
-                    $subtotal + $deliveryTotal,
-                    $discountTotal,
-                );
+            $couponId = $quote['coupon']['id'] ?? null;
+            if ($couponId !== null) {
+                $coupon = MarketingCoupon::query()->find((int) $couponId);
+                if ($coupon instanceof MarketingCoupon) {
+                    app(CouponRedemptionService::class)->redeem(
+                        $coupon,
+                        $user,
+                        $order,
+                        (float) $quote['subtotal'] + (float) $quote['delivery_total'],
+                        (float) $quote['coupon_discount_total'],
+                    );
+                }
             }
 
             OrderStatusHistory::query()->create([
@@ -357,10 +321,12 @@ class CheckoutController extends Controller
                     'order_number' => $order->order_number,
                     'store_id' => $storeId,
                     'channel' => $channel,
-                    'grand_total' => $grandTotal,
+                    'quote_id' => $quote['quote_id'],
+                    'grand_total' => $quote['grand_total'],
+                    'tax_total' => $quote['tax_total'],
                     'payment_method' => $paymentMethod,
                     'coupon_code' => $couponCode,
-                    'discount_total' => $discountTotal,
+                    'discount_total' => $quote['discount_total'],
                 ],
                 $request,
             );
@@ -393,8 +359,18 @@ class CheckoutController extends Controller
                 'name' => (string) $item->name_snapshot,
                 'quantity' => (float) $item->quantity,
                 'quantity_conversion_factor' => (float) ($item->quantity_conversion_factor ?? 1),
+                'base_unit_price' => $item->base_unit_price_snapshot === null ? null : (float) $item->base_unit_price_snapshot,
                 'unit_price' => (float) $item->unit_price,
+                'discount_total' => (float) ($item->line_discount_total ?? 0),
+                'tax_total' => (float) ($item->line_tax_total ?? 0),
                 'line_total' => (float) $item->line_total,
+                'currency' => (string) ($item->currency ?? $order->currency),
+                'price_tier_id' => $item->price_tier_id_snapshot === null ? null : (int) $item->price_tier_id_snapshot,
+                'price_tier_code' => $item->price_tier_code_snapshot,
+                'minimum_quantity' => $item->minimum_quantity_snapshot === null ? null : (float) $item->minimum_quantity_snapshot,
+                'ordering_increment' => $item->ordering_increment_snapshot === null ? null : (float) $item->ordering_increment_snapshot,
+                'pack_size' => $item->pack_size_snapshot === null ? null : (float) $item->pack_size_snapshot,
+                'case_size' => $item->case_size_snapshot === null ? null : (float) $item->case_size_snapshot,
             ])
             ->values()
             ->all();
@@ -412,11 +388,16 @@ class CheckoutController extends Controller
             'requested_delivery_date' => $order->requested_delivery_date,
             'channel' => (string) $order->channel,
             'status' => (string) $order->status,
+            'quote_id' => $order->quote_id,
+            'quoted_at' => $order->quoted_at?->toAtomString(),
             'currency' => (string) $order->currency,
             'subtotal' => (float) $order->subtotal,
             'discount_total' => (float) $order->discount_total,
             'delivery_total' => (float) $order->delivery_total,
+            'tax_total' => (float) ($order->tax_total ?? 0),
             'grand_total' => (float) $order->grand_total,
+            'price_tier_id' => $order->price_tier_id_snapshot === null ? null : (int) $order->price_tier_id_snapshot,
+            'price_tier_code' => $order->price_tier_code_snapshot,
             'payment_method' => $order->payment_method,
             'items' => $items,
             'payment' => $payment instanceof Payment ? [
