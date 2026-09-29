@@ -30,6 +30,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   final PageController _retailController = PageController(viewportFraction: .88);
   Timer? _retailTimer;
   int _retailIndex = 0;
+  int _retailCount = -1;
 
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
@@ -37,6 +38,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   }
 
   void _startRetailAutoSlide(int count) {
+    if (_retailCount == count) return;
+    _retailCount = count;
     _retailTimer?.cancel();
     if (count <= 1) return;
     _retailTimer = Timer.periodic(const Duration(seconds: 5), (_) {
