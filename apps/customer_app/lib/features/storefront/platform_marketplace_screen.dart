@@ -53,7 +53,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   }
 
   void _submitSearch(String _) {
-    setState(() => _future = _load());
+    setState(() {
+      _future = _load();
+    });
   }
 
   void _focusBarcodeSearch() {
