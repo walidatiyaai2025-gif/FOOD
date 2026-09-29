@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/b2b_api.dart';
+import '../../core/api/b2c_account_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/localization/app_translations.dart';
@@ -15,12 +16,14 @@ class B2bJourneyScreen extends StatelessWidget {
     required this.onAuthenticated,
     required this.onPlatformAuthenticated,
     this.api,
+    this.accountApi,
     super.key,
   });
 
   final CustomerRouteDefinition definition;
   final String location;
   final B2bApi? api;
+  final B2cAccountApi? accountApi;
   final CustomerActionApi actionApi;
   final CustomerAuthenticated onAuthenticated;
   final ValueChanged<String> onPlatformAuthenticated;
@@ -201,6 +204,7 @@ class B2bJourneyScreen extends StatelessWidget {
             CheckoutAction(
               api: actionApi,
               channel: CustomerChannel.b2b,
+              accountApi: accountApi,
             ),
           ],
         );
