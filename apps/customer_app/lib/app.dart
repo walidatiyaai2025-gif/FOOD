@@ -61,12 +61,22 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<String>? _pushRouteSubscription;
   StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
+  Timer? _versionFooterTimer;
+  bool _showVersionFooter = false;
+
+  static const _appVersion = '1.0.27';
 
   @override
   void initState() {
     super.initState();
     _translations = Map<String, String>.from(widget.translationOverrides);
     _session = widget.session;
+    _showVersionFooter = widget.initialRoute != CustomerRoutePaths.splash;
+    if (!_showVersionFooter) {
+      _versionFooterTimer = Timer(const Duration(milliseconds: 1150), () {
+        if (mounted) setState(() => _showVersionFooter = true);
+      });
+    }
     _loadRemoteTranslations();
     _configurePush();
   }
@@ -166,8 +176,31 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     });
   }
 
+  Future<void> _logout(CustomerActionApi actionApi) async {
+    final service = widget.pushService;
+    if (service != null) {
+      unawaited(service.revokeSession());
+    }
+
+    try {
+      await actionApi.logout();
+    } catch (_) {
+      // Local sign-out remains authoritative for the pilot app experience.
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _session = const CustomerSession.guest();
+    });
+    _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+      CustomerRoutePaths.entry,
+      (route) => false,
+    );
+  }
+
   @override
   void dispose() {
+    _versionFooterTimer?.cancel();
     unawaited(_pushRouteSubscription?.cancel());
     unawaited(_pushAlertSubscription?.cancel());
     super.dispose();
@@ -242,7 +275,56 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       builder: (context, child) => AppTranslations(
         locale: widget.locale,
         overrides: _translations,
-        child: child ?? const SizedBox.shrink(),
+        child: Builder(
+          builder: (translatedContext) => Column(
+            children: [
+              Expanded(child: child ?? const SizedBox.shrink()),
+              if (_showVersionFooter)
+                DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    border: Border(
+                      top: BorderSide(color: Color(0xFFE3E8EF)),
+                    ),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: SizedBox(
+                      height: 42,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          children: [
+                            Text(
+                              '${translatedContext.tr('customer.version')} $_appVersion',
+                              key: const ValueKey('customer-app-version-footer'),
+                              style: Theme.of(translatedContext)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: FoodexBrand.muted,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const Spacer(),
+                            if (_session.isAuthenticated)
+                              TextButton.icon(
+                                key: const ValueKey('customer-logout'),
+                                onPressed: () => _logout(actionApi),
+                                icon: const Icon(Icons.logout_rounded, size: 18),
+                                label: Text(
+                                  translatedContext.tr('customer.logout'),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
       initialRoute: widget.initialRoute,
       onGenerateInitialRoutes: (routeName) => [
