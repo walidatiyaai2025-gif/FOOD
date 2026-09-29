@@ -267,8 +267,6 @@ class MobilePushSettingsTest extends TestCase
                 'private_key' => $pem,
                 'token_uri' => 'https://oauth2.googleapis.com/token',
             ], JSON_THROW_ON_ERROR),
-            'default_sound' => 'default',
-            'default_channel' => 'foodex_default',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $this->actingAs($admin)->post('/admin/settings/mobile/push/test-connection', [
@@ -310,9 +308,16 @@ class MobilePushSettingsTest extends TestCase
         Http::assertSent(fn ($request): bool => $request->url() === 'https://oauth2.googleapis.com/token'
             && ($request['grant_type'] ?? null) === 'urn:ietf:params:oauth:grant-type:jwt-bearer'
         );
-        Http::assertSent(fn ($request): bool => str_contains($request->url(), 'fcm.googleapis.com/v1/projects/foodex-prod/messages:send')
-            && $request->hasHeader('Authorization', 'Bearer service-account-access-token')
-        );
+        Http::assertSent(function ($request): bool {
+            if (! str_contains($request->url(), 'fcm.googleapis.com/v1/projects/foodex-prod/messages:send')
+                || ! $request->hasHeader('Authorization', 'Bearer service-account-access-token')) {
+                return false;
+            }
+
+            $body = json_decode($request->body());
+
+            return is_object($body?->message?->android?->notification);
+        });
     }
 
     public function test_non_privileged_admin_is_denied(): void
