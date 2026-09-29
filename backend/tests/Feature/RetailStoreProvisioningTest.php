@@ -174,6 +174,28 @@ class RetailStoreProvisioningTest extends TestCase
             ->assertSee('Retail Store Provisioning');
     }
 
+    public function test_retail_store_list_is_newest_first_and_newest_accordion_is_open(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'accordion-owner@example.test');
+        $older = $this->retailStore('OLDER');
+        $newer = $this->retailStore('NEWER');
+
+        DB::table('stores')->where('id', $older)->update(['created_at' => now()->subDay()]);
+        DB::table('stores')->where('id', $newer)->update(['created_at' => now()]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.retail-stores.index'));
+
+        $response
+            ->assertOk()
+            ->assertSeeInOrder(['Test NEWER', 'Test OLDER'])
+            ->assertSee('store-accordion-body', false);
+
+        $html = (string) $response->getContent();
+        $this->assertMatchesRegularExpression('/data-store-accordion="'.$newer.'"\\s+open="open"/', $html);
+        $this->assertDoesNotMatchRegularExpression('/data-store-accordion="'.$older.'"\\s+open="open"/', $html);
+    }
+
     public function test_non_super_admin_cannot_provision_retail_store(): void
     {
         $b2b = $this->userWithRole('B2B_ADMIN', 'b2b@example.test');

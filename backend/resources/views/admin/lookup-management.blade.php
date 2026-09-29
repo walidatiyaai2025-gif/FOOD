@@ -17,18 +17,23 @@ html[dir=ltr] .lookup-layout main{grid-column:2;direction:ltr}
 .toolbar,.form-grid,.inline-form{display:flex;flex-wrap:wrap;gap:10px;align-items:end}.form-grid label,.inline-form label{display:grid;gap:5px;font-size:12px;font-weight:700}
 input,select{border:1px solid var(--foodex-border);border-radius:9px;padding:9px;background:#fff;font:inherit;min-width:130px}.wide{min-width:210px}
 .btn{border:1px solid var(--foodex-border);background:#fff;border-radius:9px;padding:9px 12px;text-decoration:none;color:inherit;cursor:pointer;font:inherit}.btn.primary,.tab.active{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green)}.btn.danger{color:var(--foodex-red)}
-.tabs{display:flex;gap:8px;margin-bottom:16px}.tab{padding:9px 14px;border:1px solid var(--foodex-border);border-radius:10px;text-decoration:none;color:inherit;background:#fff}
+.lookup-tab-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}.tabs{display:flex;gap:8px;margin:0}.tab{padding:9px 14px;border:1px solid var(--foodex-border);border-radius:10px;text-decoration:none;color:inherit;background:#fff}
 .notice{padding:10px 12px;border-radius:10px;margin-bottom:12px}.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.err{background:#fff1f0;color:var(--foodex-red)}
 .table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:1040px}.table th,.table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.table th{background:var(--foodex-background)}
 .badge{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:11px;background:#eef2f6}.badge.on{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.off{background:#f2f4f7;color:#667085}
 .actions{display:flex;gap:6px;flex-wrap:wrap}.brand-thumb{width:56px;height:56px;object-fit:contain;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;padding:4px;box-sizing:border-box}.image-help{font-size:11px;color:var(--foodex-muted);max-width:240px}.support{font-size:11px;color:var(--foodex-muted);display:flex!important;align-items:center;grid-auto-flow:column}.support input{min-width:auto}
+.lookup-add-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 16px;font-weight:800;box-shadow:0 8px 20px rgba(16,120,64,.14)}
+.lookup-modal[hidden]{display:none}.lookup-modal{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px}.lookup-modal-backdrop{position:absolute;inset:0;background:rgba(16,24,40,.52);backdrop-filter:blur(3px)}.lookup-modal-dialog{position:relative;z-index:1;width:min(820px,100%);max-height:min(86vh,820px);display:flex;flex-direction:column;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:20px;box-shadow:0 24px 70px rgba(16,24,40,.24);overflow:hidden}.lookup-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 22px;border-bottom:1px solid var(--foodex-border);background:linear-gradient(180deg,var(--foodex-green-soft),#fff)}.lookup-modal-header h2{margin:0 0 5px;font-size:22px}.lookup-modal-header p{margin:0;color:var(--foodex-muted);font-size:13px}.lookup-modal-close{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;font-size:24px;line-height:1;cursor:pointer}.lookup-modal-body{padding:22px;overflow:auto}.lookup-modal .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}.lookup-modal .form-grid label{font-size:13px}.lookup-modal .form-grid input,.lookup-modal .form-grid select{width:100%;min-width:0;box-sizing:border-box}.lookup-modal .support{grid-column:1/-1;justify-content:flex-start}.lookup-modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--foodex-border);background:#fbfcfd}.lookup-modal-actions .btn{min-width:110px}.lookup-modal-open{overflow:hidden}
 @media(max-width:1023px){.lookup-layout{grid-template-columns:1fr}.lookup-layout aside,.lookup-layout main,html[dir=ltr] .lookup-layout aside,html[dir=ltr] .lookup-layout main{grid-column:1}.lookup-layout aside{grid-row:1}.lookup-layout main{grid-row:2}}
+@media(max-width:720px){.lookup-layout main{padding:var(--foodex-space-4)}.lookup-tab-row{align-items:stretch}.tabs{width:100%;overflow:auto}.lookup-add-btn{width:100%;justify-content:center}.lookup-modal{padding:10px}.lookup-modal-dialog{max-height:92vh;border-radius:16px}.lookup-modal-header,.lookup-modal-body,.lookup-modal-actions{padding:16px}.lookup-modal .form-grid{grid-template-columns:1fr}.lookup-modal .support{grid-column:auto}}
 </style>
 </head>
 <body>
 @php
 $ar=app()->getLocale()==='ar';
 $scopeLabels=['global'=>$ar?'عام للمنصة':'Platform global','b2b'=>$ar?'الجملة B2B':'Wholesale / B2B','store'=>$ar?'متجر تجزئة':'Retail store'];
+$createLabel=$type==='brands'?($ar?'إضافة علامة تجارية جديدة':'Add new brand'):($ar?'إضافة وحدة قياس جديدة':'Add new unit');
+$createDescription=$type==='brands'?($ar?'أدخل بيانات العلامة وصورتها وحدد نطاق استخدامها.':'Enter brand details, image, and business scope.'):($ar?'أدخل بيانات وحدة القياس وحدد نطاق استخدامها.':'Enter unit details and business scope.');
 @endphp
 <div class="lookup-layout">
 <aside>@include('admin._sidebar',['navContext'=>'lookup_management'])</aside>
@@ -39,10 +44,15 @@ $scopeLabels=['global'=>$ar?'عام للمنصة':'Platform global','b2b'=>$ar?'
 @if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 @if($isSuperAdmin)<div class="notice">{{ $ar?'تنبيه: تعديل بيانات نطاق متجر تجزئة يتطلب تفعيل «الدعم الصريح» داخل نفس الإجراء. هذا يحافظ على عزل المتاجر ويسجل عملية الدعم.':'Note: Retail store-scoped changes require Explicit support access on the same action. This preserves tenant isolation and audits the support operation.' }}</div>@endif
 
+<div class="lookup-tab-row">
 <nav class="tabs">
 <a class="tab {{ $type==='brands'?'active':'' }}" href="{{ route('admin.lookups.index',['type'=>'brands']) }}">{{ $ar?'العلامات التجارية':'Brands' }}</a>
 <a class="tab {{ $type==='units'?'active':'' }}" href="{{ route('admin.lookups.index',['type'=>'units']) }}">{{ $ar?'وحدات القياس':'Units of Measure' }}</a>
 </nav>
+@if($manageableScopes!==[])
+<button class="btn primary lookup-add-btn" type="button" data-lookup-modal-open>＋ {{ $createLabel }}</button>
+@endif
+</div>
 
 <section class="card">
 <form class="toolbar" method="get" action="{{ route('admin.lookups.index') }}">
@@ -56,25 +66,49 @@ $scopeLabels=['global'=>$ar?'عام للمنصة':'Platform global','b2b'=>$ar?'
 </section>
 
 @if($manageableScopes!==[])
-<section class="card">
-<h2>{{ $ar?'إضافة قيمة جديدة':'Add lookup value' }}</h2>
-<form class="form-grid" method="post" enctype="multipart/form-data" action="{{ route('admin.lookups.store',$type) }}">@csrf
-@if($isSuperAdmin)
-<label>{{ $ar?'النطاق':'Scope' }}<select name="scope" required>@foreach($manageableScopes as $scope)<option value="{{ $scope }}">{{ $scopeLabels[$scope] }}</option>@endforeach</select></label>
-@if($stores->isNotEmpty())<label>{{ $ar?'المتجر عند اختيار Retail':'Store for Retail scope' }}<select name="store_id"><option value="">—</option>@foreach($stores as $store)<option value="{{ $store->id }}">{{ $store->name }}</option>@endforeach</select></label>@endif
-@elseif($isB2bAdmin)
-<input type="hidden" name="scope" value="b2b">
-@elseif($isRetailScoped)
-<input type="hidden" name="scope" value="store"><input type="hidden" name="store_id" value="{{ $currentStoreId }}">
-@endif
-<label>{{ $ar?'الاسم بالعربية':'Arabic name' }}<input name="name_ar" placeholder="مثال: قطعة" required></label>
-<label>{{ $ar?'الاسم بالإنجليزية':'English name' }}<input name="name_en" placeholder="e.g. Piece" required></label>
-@if($type==='brands')<label>{{ $ar?'المعرّف النصي':'Slug' }}<input name="slug" placeholder="{{ $ar?'مثال: coca-cola':'e.g. coca-cola' }}"></label><label>{{ $ar?'صورة العلامة':'Brand image' }}<input type="file" name="brand_image" accept="image/jpeg,image/png,image/webp" required><span class="image-help">{{ $ar?'يفضل 512×512 بكسل. المسموح 256×256 إلى 2048×2048، JPG/PNG/WebP، حتى 2MB.':'Recommended 512×512 px. Allowed 256×256 to 2048×2048, JPG/PNG/WebP, max 2 MB.' }}</span></label>@else<label>{{ $ar?'الكود':'Code' }}<input name="code" placeholder="{{ $ar?'مثال: PCS':'e.g. PCS' }}" required></label><label>{{ $ar?'المنازل العشرية':'Decimal places' }}<input type="number" name="decimal_places" min="0" max="6" value="0" placeholder="0" required></label>@endif
-<label><span>{{ $ar?'الحالة':'Status' }}</span><span><input type="checkbox" name="is_active" value="1" checked style="min-width:auto"> {{ $ar?'نشط':'Active' }}</span></label>
-@if($isSuperAdmin)<label class="support"><input type="checkbox" name="support_access" value="1"> {{ $ar?'دخول دعم صريح عند إدارة نطاق متجر':'Explicit support access for store-scoped changes' }}</label>@endif
-<button class="btn primary">{{ $ar?'إضافة':'Add' }}</button>
-</form>
-</section>
+<div class="lookup-modal" data-lookup-modal data-auto-open="{{ old('_lookup_create')==='1'?'1':'0' }}" hidden>
+    <div class="lookup-modal-backdrop" data-lookup-modal-close></div>
+    <section class="lookup-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="lookup-create-title" tabindex="-1">
+        <header class="lookup-modal-header">
+            <div>
+                <h2 id="lookup-create-title">{{ $createLabel }}</h2>
+                <p>{{ $createDescription }}</p>
+            </div>
+            <button class="lookup-modal-close" type="button" aria-label="{{ $ar?'إغلاق':'Close' }}" data-lookup-modal-close>×</button>
+        </header>
+        <form method="post" enctype="multipart/form-data" action="{{ route('admin.lookups.store',$type) }}">
+            @csrf
+            <input type="hidden" name="_lookup_create" value="1">
+            <div class="lookup-modal-body">
+                <div class="form-grid">
+                    @if($isSuperAdmin)
+                    <label>{{ $ar?'النطاق':'Scope' }}<select name="scope" required>@foreach($manageableScopes as $scope)<option value="{{ $scope }}" @selected(old('scope')===$scope)>{{ $scopeLabels[$scope] }}</option>@endforeach</select></label>
+                    @if($stores->isNotEmpty())<label>{{ $ar?'المتجر عند اختيار Retail':'Store for Retail scope' }}<select name="store_id"><option value="">—</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)old('store_id')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select></label>@endif
+                    @elseif($isB2bAdmin)
+                    <input type="hidden" name="scope" value="b2b">
+                    @elseif($isRetailScoped)
+                    <input type="hidden" name="scope" value="store"><input type="hidden" name="store_id" value="{{ $currentStoreId }}">
+                    @endif
+                    <label>{{ $ar?'الاسم بالعربية':'Arabic name' }}<input name="name_ar" value="{{ old('name_ar') }}" placeholder="{{ $type==='brands'?($ar?'مثال: كوكاكولا':'e.g. Coca-Cola'):($ar?'مثال: قطعة':'e.g. Piece') }}" required></label>
+                    <label>{{ $ar?'الاسم بالإنجليزية':'English name' }}<input name="name_en" value="{{ old('name_en') }}" placeholder="{{ $type==='brands'?'e.g. Coca-Cola':'e.g. Piece' }}" required></label>
+                    @if($type==='brands')
+                    <label>{{ $ar?'المعرّف النصي':'Slug' }}<input name="slug" value="{{ old('slug') }}" placeholder="{{ $ar?'مثال: coca-cola':'e.g. coca-cola' }}"></label>
+                    <label>{{ $ar?'صورة العلامة':'Brand image' }}<input type="file" name="brand_image" accept="image/jpeg,image/png,image/webp" required><span class="image-help">{{ $ar?'يفضل 512×512 بكسل. المسموح 256×256 إلى 2048×2048، JPG/PNG/WebP، حتى 2MB.':'Recommended 512×512 px. Allowed 256×256 to 2048×2048, JPG/PNG/WebP, max 2 MB.' }}</span></label>
+                    @else
+                    <label>{{ $ar?'الكود':'Code' }}<input name="code" value="{{ old('code') }}" placeholder="{{ $ar?'مثال: PCS':'e.g. PCS' }}" required></label>
+                    <label>{{ $ar?'المنازل العشرية':'Decimal places' }}<input type="number" name="decimal_places" min="0" max="6" value="{{ old('decimal_places',0) }}" placeholder="0" required></label>
+                    @endif
+                    <label><span>{{ $ar?'الحالة':'Status' }}</span><span><input type="checkbox" name="is_active" value="1" @checked(old('is_active','1')==='1') style="min-width:auto"> {{ $ar?'نشط':'Active' }}</span></label>
+                    @if($isSuperAdmin)<label class="support"><input type="checkbox" name="support_access" value="1" @checked(old('support_access'))> {{ $ar?'دخول دعم صريح عند إدارة نطاق متجر':'Explicit support access for store-scoped changes' }}</label>@endif
+                </div>
+            </div>
+            <footer class="lookup-modal-actions">
+                <button class="btn" type="button" data-lookup-modal-close>{{ $ar?'إلغاء':'Cancel' }}</button>
+                <button class="btn primary" type="submit">＋ {{ $createLabel }}</button>
+            </footer>
+        </form>
+    </section>
+</div>
 @endif
 
 <section class="card table-wrap">
@@ -120,4 +154,35 @@ $scopeLabels=['global'=>$ar?'عام للمنصة':'Platform global','b2b'=>$ar?'
 <div>{{ $records->links() }}</div>
 </section>
 </main></div>
+<script>
+(() => {
+    const modal = document.querySelector('[data-lookup-modal]');
+    const opener = document.querySelector('[data-lookup-modal-open]');
+    if (!modal || !opener) return;
+
+    const dialog = modal.querySelector('.lookup-modal-dialog');
+    let previousFocus = null;
+
+    const openModal = () => {
+        previousFocus = document.activeElement;
+        modal.hidden = false;
+        document.documentElement.classList.add('lookup-modal-open');
+        requestAnimationFrame(() => dialog?.focus());
+    };
+
+    const closeModal = () => {
+        modal.hidden = true;
+        document.documentElement.classList.remove('lookup-modal-open');
+        if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    };
+
+    opener.addEventListener('click', openModal);
+    modal.querySelectorAll('[data-lookup-modal-close]').forEach((control) => control.addEventListener('click', closeModal));
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.hidden) closeModal();
+    });
+
+    if (modal.dataset.autoOpen === '1') openModal();
+})();
+</script>
 </body></html>
