@@ -41,6 +41,12 @@ void main() {
         reference: 'B2B-1',
         status: 'assigned',
       ),
+      DriverAssignment(
+        id: 3,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-OLD',
+        status: 'reassigned',
+      ),
     ]);
     await tester.pumpWidget(
       MaterialApp(
@@ -53,6 +59,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('B2C-1'), findsOneWidget);
     expect(find.text('B2B-1'), findsNothing);
+    expect(find.text('B2C-OLD'), findsNothing);
   });
 
   testWidgets('detail action uses backend supplied status and channel boundary',
