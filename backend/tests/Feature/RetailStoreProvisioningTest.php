@@ -187,8 +187,8 @@ class RetailStoreProvisioningTest extends TestCase
             ->get(route('admin.retail-stores.index'))
             ->assertOk()
             ->assertSeeInOrder(['Test NEWER', 'Test OLDER'])
-            ->assertSee('data-store-accordion="'.$newer.'" open', false)
-            ->assertDontSee('data-store-accordion="'.$older.'" open', false)
+            ->assertSee('data-store-accordion="'.$newer.'" open="open"', false)
+            ->assertDontSee('data-store-accordion="'.$older.'" open="open"', false)
             ->assertSee('store-accordion-body', false);
     }
 
