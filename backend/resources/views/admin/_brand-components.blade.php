@@ -419,7 +419,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const request = args[0];
             const options = args[1] || {};
             const requestUrl = typeof request === 'string' ? request : request?.url;
-            if (options.headers?.['X-FOODEX-INSPECTOR'] || requestUrl === inspectorUrl) return nativeFetch(...args);
+            const requestHeaders = new Headers(options.headers || (request instanceof Request ? request.headers : undefined));
+            const backgroundRequest = requestHeaders.get('X-FOODEX-BACKGROUND') === '1';
+            if (requestHeaders.get('X-FOODEX-INSPECTOR') === '1' || requestUrl === inspectorUrl) return nativeFetch(...args);
             let sameOriginRequest = true;
             try {
                 sameOriginRequest = !requestUrl || new URL(requestUrl, location.href).origin === location.origin;
@@ -441,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
                     } catch (_) {}
-                    if (sameOriginRequest) {
+                    if (sameOriginRequest && !backgroundRequest) {
                         reportInspector({
                             source:'fetch', severity:response.status >= 500 ? 'error' : 'warning',
                             message:responseMessage || ('HTTP '+response.status+' '+response.statusText),
@@ -457,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return response;
             } catch (error) {
-                if (sameOriginRequest) {
+                if (sameOriginRequest && !backgroundRequest) {
                     reportInspector({
                         source:'fetch', severity:'error',
                         message:error?.message || 'Fetch request failed',
