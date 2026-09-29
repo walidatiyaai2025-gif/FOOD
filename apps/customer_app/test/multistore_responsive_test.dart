@@ -170,6 +170,20 @@ class _ResponsiveStorefrontApi implements StorefrontApi {
       };
 
   @override
+  Future<Map<String, dynamic>> platformHome({String? query}) async => {
+        'store': {'id': 70, 'name': 'Wholesale'},
+        'theme': const <String, Object?>{},
+        'branding': const <String, Object?>{},
+        'products': const {'data': <Object>[]},
+        'retail_banners': const <Object>[],
+        'sections': const <Object>[],
+      };
+
+  @override
+  Future<Map<String, dynamic>> platformProduct(int productId) async =>
+      {'id': productId, 'store_id': 70};
+
+  @override
   Future<Map<String, dynamic>> retailHome(int storeId) async => {
         'store': {
           'id': storeId,
