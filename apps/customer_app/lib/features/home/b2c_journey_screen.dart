@@ -478,6 +478,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
               api: widget.actionApi,
               channel: CustomerChannel.b2c,
               storeId: _storeId,
+              accountApi: widget.accountApi,
             ),
           ],
         );
