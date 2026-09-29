@@ -525,6 +525,10 @@ def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
     with info.open('rb') as stream:
         plist = plistlib.load(stream)
     plist['CFBundleDisplayName'] = label
+    if bundle_id.endswith('.customer'):
+        plist['NSCameraUsageDescription'] = (
+            'Scan product barcodes and QR codes for marketplace search.'
+        )
     with info.open('wb') as stream:
         plistlib.dump(plist, stream, sort_keys=False)
 
