@@ -152,6 +152,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('تأكيد الطلب'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('تأكيد الطلب'));
     await tester.pumpAndSettle();
 
@@ -177,6 +182,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('تأكيد الطلب'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('تأكيد الطلب'));
     await tester.pumpAndSettle();
 
