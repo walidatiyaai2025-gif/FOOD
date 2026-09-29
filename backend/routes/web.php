@@ -76,6 +76,10 @@ Route::prefix('admin')
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
+        Route::post('/customer-360/{platformCustomer}/addresses', [Customer360Controller::class, 'storeAddress'])->whereNumber('platformCustomer')->name('customer-360.addresses.store');
+        Route::patch('/customer-360/{platformCustomer}/addresses/{address}', [Customer360Controller::class, 'updateAddress'])->whereNumber('platformCustomer')->whereNumber('address')->name('customer-360.addresses.update');
+        Route::post('/customer-360/{platformCustomer}/addresses/{address}/default', [Customer360Controller::class, 'setDefaultAddress'])->whereNumber('platformCustomer')->whereNumber('address')->name('customer-360.addresses.default');
+        Route::delete('/customer-360/{platformCustomer}/addresses/{address}', [Customer360Controller::class, 'destroyAddress'])->whereNumber('platformCustomer')->whereNumber('address')->name('customer-360.addresses.destroy');
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice')->name('invoices.show');
         Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])->whereNumber('invoice')->name('invoices.download');
         Route::post('/invoices/{invoice}/void-reissue', [InvoiceController::class, 'reissue'])->whereNumber('invoice')->name('invoices.reissue');
