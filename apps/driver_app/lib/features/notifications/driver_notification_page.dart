@@ -158,8 +158,7 @@ class _DriverNotificationPageState extends State<DriverNotificationPage> {
 
                             return Card(
                               key: Key(
-                                'driver-notification-' +
-                                    notification.id.toString(),
+                                'driver-notification-${notification.id}',
                               ),
                               margin: const EdgeInsets.only(bottom: 10),
                               child: ListTile(
