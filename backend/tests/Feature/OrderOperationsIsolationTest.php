@@ -47,6 +47,53 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('Order status timeline');
     }
 
+    public function test_order_detail_renders_driver_assignment_timestamps_without_500(): void
+    {
+        $store = $this->store('OPS-DETAIL-DRIVER');
+        $admin = $this->storeAdmin($store, 'ops-detail-driver@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Detail Buyer']);
+        $order = $this->order(
+            $store,
+            (int) $customer->legacy_customer_id,
+            (int) $customer->id,
+            'OPS-DETAIL-1001',
+        );
+
+        $driverUser = User::query()->create([
+            'name' => 'Detail Driver',
+            'email' => 'ops-detail-driver-user@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $store,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('driver_assignments')->insert([
+            'driver_id' => $driverId,
+            'order_id' => $order,
+            'store_id' => $store,
+            'assignment_type' => 'b2c',
+            'status' => 'delivered',
+            'assigned_at' => now()->subMinutes(10),
+            'completed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?order='.$order)
+            ->assertOk()
+            ->assertSee('Driver assignment history')
+            ->assertSee('Detail Driver');
+    }
+
     public function test_retail_admin_cannot_operate_foreign_order_but_can_transition_own_order(): void
     {
         $mine = $this->store('OPS-ACTION-MINE');
