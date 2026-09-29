@@ -2,16 +2,15 @@
 
 namespace App\Services;
 
-use App\Domain\Pricing\B2bPriceResolver;
 use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
+use App\Models\MarketingCoupon;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
-use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 final class AdminOrderManagementService
 {
     public function __construct(
-        private readonly B2bPriceResolver $b2bPricing,
+        private readonly CommerceQuoteService $quotes,
         private readonly OrderInventoryReservationService $reservations,
         private readonly AuditLogger $audit,
         private readonly DashboardOperationalNotifier $notifier,
@@ -29,13 +28,21 @@ final class AdminOrderManagementService
 
     public function create(Request $request, User $actor, string $channel, int $storeId): Order
     {
+        $channel = strtolower($channel);
         $data = $this->validated($request, $channel);
         $warehouseId = $this->warehouseId($channel, $storeId, $data['warehouse_id'] ?? null);
-        [$customerId, $legacyCustomerId] = $this->customerIds($channel, $storeId, (int) $data['customer_id']);
+        [$customer, $legacyCustomerId] = $this->customer($channel, $storeId, (int) $data['customer_id']);
+        $customerId = (int) $customer->getKey();
         $addressId = $this->addressId($channel, $customerId, $data['address_id'] ?? null);
-        $lines = $this->lineSnapshots($channel, $storeId, $customerId, $data['items']);
-        $totals = $this->totals($lines, (float) ($data['discount_total'] ?? 0), (float) ($data['delivery_total'] ?? 0));
-        $paymentMethod = $this->paymentMethod((string) ($data['payment_method'] ?? config('checkout.default_payment_method')));
+        $paymentMethod = $this->paymentMethod(
+            (string) ($data['payment_method'] ?? config('checkout.default_payment_method')),
+            $channel,
+            $customer,
+        );
+        $customerUser = $customer->user_id === null ? null : User::query()->find((int) $customer->user_id);
+        $couponCode = isset($data['coupon_code']) && trim((string) $data['coupon_code']) !== ''
+            ? strtoupper(trim((string) $data['coupon_code']))
+            : null;
 
         $order = DB::transaction(function () use (
             $data,
@@ -43,14 +50,33 @@ final class AdminOrderManagementService
             $channel,
             $storeId,
             $warehouseId,
+            $customer,
             $customerId,
             $legacyCustomerId,
             $addressId,
-            $lines,
-            $totals,
             $paymentMethod,
+            $customerUser,
+            $couponCode,
             $request,
         ): Order {
+            // Dashboard-submitted prices/discount/delivery values are never authoritative.
+            $quote = $this->quotes->quote(
+                $channel,
+                $storeId,
+                $customer,
+                $data['items'],
+                $customerUser,
+                $couponCode,
+                $paymentMethod,
+                true,
+            );
+
+            $currency = (string) $quote['currency'];
+            $lines = array_map(
+                fn (array $line): array => $this->quotes->orderLineSnapshot($line, $currency),
+                $quote['items'],
+            );
+            $header = $this->quotes->orderHeaderSnapshot($quote);
             $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
 
             $order = Order::query()->create([
@@ -62,11 +88,18 @@ final class AdminOrderManagementService
                 'order_number' => 'FDX-'.strtoupper($channel).'-'.now()->format('Ymd').'-'.Str::upper(Str::random(8)),
                 'channel' => $channel,
                 'status' => 'pending',
-                'currency' => 'EGP',
-                'subtotal' => $totals['subtotal'],
-                'discount_total' => $totals['discount_total'],
-                'delivery_total' => $totals['delivery_total'],
-                'grand_total' => $totals['grand_total'],
+                'currency' => $header['currency'],
+                'subtotal' => $header['subtotal'],
+                'discount_total' => $header['discount_total'],
+                'delivery_total' => $header['delivery_total'],
+                'tax_total' => $header['tax_total'],
+                'grand_total' => $header['grand_total'],
+                'quote_id' => $header['quote_id'],
+                'quoted_at' => $header['quoted_at'],
+                'b2b_account_id_snapshot' => $header['b2b_account_id_snapshot'],
+                'price_tier_id_snapshot' => $header['price_tier_id_snapshot'],
+                'price_tier_code_snapshot' => $header['price_tier_code_snapshot'],
+                'pricing_snapshot' => $header['pricing_snapshot'],
                 'payment_method' => $paymentMethod,
                 'customer_note' => $data['customer_note'] ?? null,
             ]);
@@ -94,10 +127,28 @@ final class AdminOrderManagementService
                 'provider' => $paymentMethod,
                 'provider_reference' => null,
                 'status' => 'pending',
-                'amount' => $totals['grand_total'],
-                'currency' => 'EGP',
-                'metadata' => ['method' => $paymentMethod, 'source' => 'dashboard'],
+                'amount' => $header['grand_total'],
+                'currency' => $currency,
+                'metadata' => [
+                    'method' => $paymentMethod,
+                    'source' => 'dashboard',
+                    'quote_id' => $header['quote_id'],
+                ],
             ]);
+
+            $couponId = $quote['coupon']['id'] ?? null;
+            if ($couponId !== null && $customerUser instanceof User) {
+                $coupon = MarketingCoupon::query()->find((int) $couponId);
+                if ($coupon instanceof MarketingCoupon) {
+                    app(CouponRedemptionService::class)->redeem(
+                        $coupon,
+                        $customerUser,
+                        $order,
+                        (float) $quote['subtotal'] + (float) $quote['delivery_total'],
+                        (float) $quote['coupon_discount_total'],
+                    );
+                }
+            }
 
             OrderStatusHistory::query()->create([
                 'order_id' => $order->getKey(),
@@ -118,7 +169,13 @@ final class AdminOrderManagementService
                     'warehouse_id' => $warehouseId,
                     'channel' => $channel,
                     'customer_id' => $customerId,
-                    'grand_total' => $totals['grand_total'],
+                    'quote_id' => $header['quote_id'],
+                    'grand_total' => $header['grand_total'],
+                    'tax_total' => $header['tax_total'],
+                    'client_pricing_ignored' => [
+                        'discount_total' => $data['discount_total'] ?? null,
+                        'delivery_total' => $data['delivery_total'] ?? null,
+                    ],
                     'items' => collect($lines)->map(fn (array $line): array => [
                         'product_id' => $line['product_id'],
                         'quantity' => $line['quantity'],
@@ -154,20 +211,26 @@ final class AdminOrderManagementService
             ]);
         }
 
-        [$customerId, $legacyCustomerId] = $this->customerIds($channel, $storeId, (int) $data['customer_id']);
+        [$customer, $legacyCustomerId] = $this->customer($channel, $storeId, (int) $data['customer_id']);
+        $customerId = (int) $customer->getKey();
         $addressId = $this->addressId($channel, $customerId, $data['address_id'] ?? null);
-        $lines = $this->lineSnapshots($channel, $storeId, $customerId, $data['items']);
-        $totals = $this->totals($lines, (float) ($data['discount_total'] ?? 0), (float) ($data['delivery_total'] ?? 0));
-        $paymentMethod = $this->paymentMethod((string) ($data['payment_method'] ?? config('checkout.default_payment_method')));
+        $paymentMethod = $this->paymentMethod(
+            (string) ($data['payment_method'] ?? config('checkout.default_payment_method')),
+            $channel,
+            $customer,
+        );
+        $customerUser = $customer->user_id === null ? null : User::query()->find((int) $customer->user_id);
         $before = [
             'customer_id' => $order->customer_id,
             'b2b_customer_id' => $order->b2b_customer_id,
             'b2c_customer_id' => $order->b2c_customer_id,
             'address_id' => $order->address_id,
             'warehouse_id' => $order->warehouse_id,
+            'quote_id' => $order->quote_id,
             'subtotal' => (float) $order->subtotal,
             'discount_total' => (float) $order->discount_total,
             'delivery_total' => (float) $order->delivery_total,
+            'tax_total' => (float) ($order->tax_total ?? 0),
             'grand_total' => (float) $order->grand_total,
             'payment_method' => $order->payment_method,
         ];
@@ -180,12 +243,12 @@ final class AdminOrderManagementService
             $channel,
             $storeId,
             $warehouseId,
+            $customer,
             $customerId,
             $legacyCustomerId,
             $addressId,
-            $lines,
-            $totals,
             $paymentMethod,
+            $customerUser,
             $before,
         ): Order {
             $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
@@ -196,7 +259,27 @@ final class AdminOrderManagementService
                 ]);
             }
 
+            // Release this order's own reservations before repricing availability.
+            // Any failure rolls this transaction back and restores the original reservation state.
             $this->reservations->release($locked, $actor, 'dashboard_order_edited');
+
+            $quote = $this->quotes->quote(
+                $channel,
+                $storeId,
+                $customer,
+                $data['items'],
+                $customerUser,
+                null,
+                $paymentMethod,
+                true,
+            );
+
+            $currency = (string) $quote['currency'];
+            $lines = array_map(
+                fn (array $line): array => $this->quotes->orderLineSnapshot($line, $currency),
+                $quote['items'],
+            );
+            $header = $this->quotes->orderHeaderSnapshot($quote);
 
             OrderItem::query()->where('order_id', $locked->getKey())->delete();
 
@@ -206,10 +289,18 @@ final class AdminOrderManagementService
                 'b2c_customer_id' => $channel === 'b2c' ? $customerId : null,
                 'warehouse_id' => $warehouseId,
                 'address_id' => $addressId,
-                'subtotal' => $totals['subtotal'],
-                'discount_total' => $totals['discount_total'],
-                'delivery_total' => $totals['delivery_total'],
-                'grand_total' => $totals['grand_total'],
+                'currency' => $header['currency'],
+                'subtotal' => $header['subtotal'],
+                'discount_total' => $header['discount_total'],
+                'delivery_total' => $header['delivery_total'],
+                'tax_total' => $header['tax_total'],
+                'grand_total' => $header['grand_total'],
+                'quote_id' => $header['quote_id'],
+                'quoted_at' => $header['quoted_at'],
+                'b2b_account_id_snapshot' => $header['b2b_account_id_snapshot'],
+                'price_tier_id_snapshot' => $header['price_tier_id_snapshot'],
+                'price_tier_code_snapshot' => $header['price_tier_code_snapshot'],
+                'pricing_snapshot' => $header['pricing_snapshot'],
                 'payment_method' => $paymentMethod,
                 'customer_note' => $data['customer_note'] ?? null,
             ]);
@@ -236,9 +327,13 @@ final class AdminOrderManagementService
             if ($payment instanceof Payment) {
                 $payment->update([
                     'provider' => $paymentMethod,
-                    'amount' => $totals['grand_total'],
-                    'currency' => 'EGP',
-                    'metadata' => ['method' => $paymentMethod, 'source' => 'dashboard'],
+                    'amount' => $header['grand_total'],
+                    'currency' => $currency,
+                    'metadata' => [
+                        'method' => $paymentMethod,
+                        'source' => 'dashboard',
+                        'quote_id' => $header['quote_id'],
+                    ],
                 ]);
             } else {
                 Payment::query()->create([
@@ -247,9 +342,13 @@ final class AdminOrderManagementService
                     'provider' => $paymentMethod,
                     'provider_reference' => null,
                     'status' => 'pending',
-                    'amount' => $totals['grand_total'],
-                    'currency' => 'EGP',
-                    'metadata' => ['method' => $paymentMethod, 'source' => 'dashboard'],
+                    'amount' => $header['grand_total'],
+                    'currency' => $currency,
+                    'metadata' => [
+                        'method' => $paymentMethod,
+                        'source' => 'dashboard',
+                        'quote_id' => $header['quote_id'],
+                    ],
                 ]);
             }
 
@@ -263,7 +362,13 @@ final class AdminOrderManagementService
                     'warehouse_id' => $warehouseId,
                     'channel' => $channel,
                     'customer_id' => $customerId,
-                    'grand_total' => $totals['grand_total'],
+                    'quote_id' => $header['quote_id'],
+                    'grand_total' => $header['grand_total'],
+                    'tax_total' => $header['tax_total'],
+                    'client_pricing_ignored' => [
+                        'discount_total' => $data['discount_total'] ?? null,
+                        'delivery_total' => $data['delivery_total'] ?? null,
+                    ],
                     'items' => collect($lines)->map(fn (array $line): array => [
                         'product_id' => $line['product_id'],
                         'quantity' => $line['quantity'],
@@ -286,8 +391,10 @@ final class AdminOrderManagementService
             'customer_id' => ['required', 'integer', 'min:1'],
             'address_id' => ['nullable', 'integer', 'min:1'],
             'payment_method' => ['required', 'string', 'max:50'],
+            // Accepted for backward-compatible forms but deliberately ignored by pricing authority.
             'discount_total' => ['nullable', 'numeric', 'min:0'],
             'delivery_total' => ['nullable', 'numeric', 'min:0'],
+            'coupon_code' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/'],
             'customer_note' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1', 'max:100'],
             'items.*.product_id' => ['required', 'integer', 'min:1', 'distinct'],
@@ -316,8 +423,10 @@ final class AdminOrderManagementService
         return (int) $warehouse->id;
     }
 
-    /** @return array{0: int, 1: int} domain customer id, legacy customer id */
-    private function customerIds(string $channel, int $storeId, int $customerId): array
+    /**
+     * @return array{0:B2bCustomer|B2cCustomer,1:int}
+     */
+    private function customer(string $channel, int $storeId, int $customerId): array
     {
         if ($channel === 'b2b') {
             $customer = B2bCustomer::query()->findOrFail($customerId);
@@ -328,7 +437,7 @@ final class AdminOrderManagementService
             abort_unless($approved, 422, 'An active B2B account is required.');
             abort_unless($customer->legacy_customer_id !== null, 409, 'B2B customer legacy identity is not reconciled.');
 
-            return [(int) $customer->getKey(), (int) $customer->legacy_customer_id];
+            return [$customer, (int) $customer->legacy_customer_id];
         }
 
         $customer = B2cCustomer::query()
@@ -337,7 +446,7 @@ final class AdminOrderManagementService
             ->firstOrFail();
         abort_unless($customer->legacy_customer_id !== null, 409, 'B2C customer legacy identity is not reconciled.');
 
-        return [(int) $customer->getKey(), (int) $customer->legacy_customer_id];
+        return [$customer, (int) $customer->legacy_customer_id];
     }
 
     private function addressId(string $channel, int $customerId, mixed $addressId): ?int
@@ -355,91 +464,26 @@ final class AdminOrderManagementService
         return (int) $address->getKey();
     }
 
-    /**
-     * @param  list<array{product_id: int|string, quantity: int|float|string}>  $items
-     * @return list<array{product_id: int, sku_snapshot: string, name_snapshot: string, quantity: float, unit_price: float, line_total: float}>
-     */
-    private function lineSnapshots(string $channel, int $storeId, int $customerId, array $items): array
-    {
-        $lines = [];
+    private function paymentMethod(
+        string $paymentMethod,
+        string $channel,
+        B2bCustomer|B2cCustomer $customer,
+    ): string {
+        $allowed = array_values((array) config('checkout.payment_methods', ['cash_on_delivery']));
 
-        foreach ($items as $item) {
-            $productId = (int) $item['product_id'];
-            $quantity = round((float) $item['quantity'], 3);
-
-            $product = Product::query()
-                ->forStore($storeId)
-                ->whereKey($productId)
-                ->where('products.is_active', true)
-                ->firstOrFail();
-
-            $catalogChannel = DB::table('catalogs')
-                ->where('id', (int) $product->catalog_id)
-                ->value('channel');
-            abort_unless(strtolower((string) $catalogChannel) === $channel, 404);
-
-            $storeProduct = DB::table('store_products')
-                ->where('store_id', $storeId)
-                ->where('product_id', $productId)
-                ->where('is_active', true)
-                ->whereNotNull('price')
+        if ($channel === 'b2b' && $customer instanceof B2bCustomer) {
+            $account = B2bAccount::query()
+                ->where('b2b_customer_id', $customer->getKey())
+                ->where('status', 'active')
                 ->first();
 
-            abort_unless($storeProduct !== null, 422, 'The selected product is not active for this store.');
-
-            $unitPrice = (float) $storeProduct->price;
-
-            if ($channel === 'b2b') {
-                $customer = B2bCustomer::query()->findOrFail($customerId);
-                $pricing = $this->b2bPricing->resolve($customer, $storeId, $productId);
-                if ($quantity < $pricing['minimum_quantity']) {
-                    throw ValidationException::withMessages([
-                        'items' => ['A B2B item is below its minimum purchase quantity.'],
-                    ]);
-                }
-                $unitPrice = $pricing['price'];
+            if ($account instanceof B2bAccount
+                && (float) $account->credit_limit > 0
+                && ! in_array('account_credit', $allowed, true)) {
+                $allowed[] = 'account_credit';
             }
-
-            $lines[] = [
-                'product_id' => $productId,
-                'sku_snapshot' => (string) $product->sku,
-                'name_snapshot' => (string) $product->name,
-                'quantity' => $quantity,
-                'unit_price' => round($unitPrice, 3),
-                'line_total' => round($quantity * $unitPrice, 3),
-            ];
         }
 
-        return $lines;
-    }
-
-    /**
-     * @param  list<array{line_total: float}>  $lines
-     * @return array{subtotal: float, discount_total: float, delivery_total: float, grand_total: float}
-     */
-    private function totals(array $lines, float $discountTotal, float $deliveryTotal): array
-    {
-        $subtotal = round((float) collect($lines)->sum('line_total'), 3);
-        $discountTotal = round(max(0.0, $discountTotal), 3);
-        $deliveryTotal = round(max(0.0, $deliveryTotal), 3);
-
-        if ($discountTotal > $subtotal + $deliveryTotal) {
-            throw ValidationException::withMessages([
-                'discount_total' => ['Discount cannot exceed the order amount.'],
-            ]);
-        }
-
-        return [
-            'subtotal' => $subtotal,
-            'discount_total' => $discountTotal,
-            'delivery_total' => $deliveryTotal,
-            'grand_total' => round($subtotal + $deliveryTotal - $discountTotal, 3),
-        ];
-    }
-
-    private function paymentMethod(string $paymentMethod): string
-    {
-        $allowed = array_values((array) config('checkout.payment_methods', ['cash_on_delivery']));
         if (! in_array($paymentMethod, $allowed, true)) {
             throw ValidationException::withMessages([
                 'payment_method' => ['The selected payment method is not configured.'],
