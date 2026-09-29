@@ -315,6 +315,30 @@ def _enable_android_core_library_desugaring(app: Path) -> None:
     raise RuntimeError('Generated Android app build.gradle(.kts) was not found')
 
 
+def _configure_android_foreground_location(app: Path) -> None:
+    manifest = app / 'src' / 'main' / 'AndroidManifest.xml'
+    if not manifest.exists():
+        raise RuntimeError('Generated Android main manifest was not found')
+
+    text = manifest.read_text()
+    permissions = (
+        'android.permission.ACCESS_COARSE_LOCATION',
+        'android.permission.ACCESS_FINE_LOCATION',
+    )
+    for permission in permissions:
+        if permission in text:
+            continue
+        marker = '<application'
+        if marker not in text:
+            raise RuntimeError('Generated Android application manifest node was not found')
+        text = text.replace(
+            marker,
+            f'<uses-permission android:name="{permission}" />\n    {marker}',
+            1,
+        )
+    manifest.write_text(text)
+
+
 def patch_android(app_dir: Path, bundle_id: str) -> None:
     app = app_dir / 'android' / 'app'
     build_files = [app / 'build.gradle.kts', app / 'build.gradle']
@@ -363,6 +387,8 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
 
     _enable_android_core_library_desugaring(app)
     _configure_android_firebase(app_dir, bundle_id)
+    if bundle_id == IDENTITIES['customer']['bundle_id']:
+        _configure_android_foreground_location(app)
     _write_android_brand_resources(app)
 
 
@@ -525,6 +551,11 @@ def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
     with info.open('rb') as stream:
         plist = plistlib.load(stream)
     plist['CFBundleDisplayName'] = label
+    if bundle_id == IDENTITIES['customer']['bundle_id']:
+        plist['NSLocationWhenInUseUsageDescription'] = (
+            'FOODEX uses your location only when you choose Share my location '
+            'to save an accurate delivery address.'
+        )
     with info.open('wb') as stream:
         plistlib.dump(plist, stream, sort_keys=False)
 
