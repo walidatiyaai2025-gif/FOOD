@@ -109,6 +109,22 @@ class DashboardCustomer360Test extends TestCase
             ->assertSee('Add new address');
 
         $this->actingAs($admin)
+            ->from(route('admin.customer-360.show', ['platformCustomer' => $platform->id]).'#addresses')
+            ->post(route('admin.customer-360.addresses.store', ['platformCustomer' => $platform->id]), [
+                'label' => 'Invalid pin',
+                'line1' => 'Street without coordinates',
+                'city' => 'Cairo',
+                'country_code' => 'EG',
+                'location_source' => 'map_pin',
+            ])
+            ->assertSessionHasErrors(['latitude', 'longitude']);
+
+        $this->assertDatabaseMissing('addresses', [
+            'platform_customer_id' => $platform->id,
+            'label' => 'Invalid pin',
+        ]);
+
+        $this->actingAs($admin)
             ->post(route('admin.customer-360.addresses.store', ['platformCustomer' => $platform->id]), [
                 'label' => 'Home',
                 'recipient_name' => 'Address Customer',
