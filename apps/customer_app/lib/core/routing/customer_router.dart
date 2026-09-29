@@ -7,6 +7,7 @@ import '../api/customer_action_api.dart';
 import '../api/storefront_api.dart';
 import '../api/wholesale_commerce_api.dart';
 import '../auth/customer_session.dart';
+import '../location/customer_location_service.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
 import '../../features/home/b2c_journey_screen.dart';
 import '../../features/storefront/multistore_design_screen.dart';
@@ -26,12 +27,14 @@ class CustomerAppRouter {
     this.wholesaleApi,
     required this.b2cCatalogApi,
     required this.b2cAccountApi,
+    required this.locationService,
   });
 
   final CustomerSession session;
   final B2bApi? b2bApi;
   final B2cCatalogApi b2cCatalogApi;
   final B2cAccountApi b2cAccountApi;
+  final CustomerLocationService locationService;
   final CustomerActionApi actionApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
@@ -170,6 +173,7 @@ class CustomerAppRouter {
                 onAuthenticated: onAuthenticated,
                 onPlatformAuthenticated: onPlatformRegistered,
                 onSessionExpired: onSessionExpired,
+                locationService: locationService,
               );
       },
     );
