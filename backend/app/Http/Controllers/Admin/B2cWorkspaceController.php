@@ -34,6 +34,7 @@ class B2cWorkspaceController extends Controller
         'products' => 'catalog.view',
         'inventory' => 'inventory.view',
         'orders' => 'orders.view',
+        'finance' => 'finance.view',
         'customers' => 'customers.view',
         'promotions' => 'promotions.view',
         'drivers' => 'drivers.b2c.view',
@@ -77,6 +78,7 @@ class B2cWorkspaceController extends Controller
         $counts = [
             'products' => DB::table('store_products')->whereIn('store_id', $storeIds)->count(),
             'orders' => DB::table('orders')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
+            'finance' => DB::table('invoices')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
             'customers' => DB::table('b2c_customers')->whereIn('store_id', $storeIds)->count(),
             'inventory' => DB::table('inventories')->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')->whereIn('warehouses.store_id', $storeIds)->count(),
         ];
@@ -95,7 +97,7 @@ class B2cWorkspaceController extends Controller
                 $request->filled('q') ? $request->string('q')->toString() : null,
             )
             : null;
-        $moduleData = in_array($module, ['products', 'inventory', 'orders', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
+        $moduleData = in_array($module, ['products', 'inventory', 'orders', 'finance', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
             ? $this->moduleData($module, $storeIds, $user, $storeId, $supportAccess)
             : null;
         $visibleModules = array_values(array_filter(
@@ -503,6 +505,7 @@ class B2cWorkspaceController extends Controller
             ],
             'inventory' => $this->inventoryModuleData($storeIds),
             'orders' => $this->orderModuleData($storeIds),
+            'finance' => $this->financeModuleData($storeIds),
             'customers' => $this->customerModuleData($storeIds),
             'promotions' => [
                 'actions' => [],
@@ -907,6 +910,59 @@ class B2cWorkspaceController extends Controller
                         'actions' => [],
                     ];
                 })->all(),
+        ];
+    }
+
+    private function financeModuleData(array $storeIds): array
+    {
+        $rows = DB::table('invoices')
+            ->leftJoin('b2c_customers', 'b2c_customers.id', '=', 'invoices.b2c_customer_id')
+            ->leftJoin('orders', 'orders.id', '=', 'invoices.order_id')
+            ->leftJoin('stores', 'stores.id', '=', 'invoices.store_id')
+            ->whereIn('invoices.store_id', $storeIds)
+            ->where('invoices.channel', 'b2c')
+            ->orderByDesc('invoices.issued_at')
+            ->orderByDesc('invoices.id')
+            ->limit(150)
+            ->get([
+                'invoices.id',
+                'invoices.invoice_number',
+                'invoices.status',
+                'invoices.currency',
+                'invoices.total',
+                'invoices.issued_at',
+                'orders.order_number',
+                'b2c_customers.name as customer',
+                'stores.name as store',
+            ])
+            ->map(function ($row): array {
+                $paid = (float) DB::table('payments')
+                    ->where('invoice_id', $row->id)
+                    ->where('status', 'paid')
+                    ->sum('amount');
+
+                return [
+                    '_id' => (int) $row->id,
+                    'invoice' => $row->invoice_number,
+                    'order' => $row->order_number ?: '-',
+                    'customer' => $row->customer ?: '-',
+                    'store' => $row->store ?: '-',
+                    'status' => $row->status,
+                    'amount' => $row->currency.' '.number_format((float) $row->total, 3),
+                    'paid' => $row->currency.' '.number_format($paid, 3),
+                    'balance' => $row->currency.' '.number_format(max(0, (float) $row->total - $paid), 3),
+                    'created' => $row->issued_at === null ? '-' : (string) $row->issued_at,
+                    'actions' => [
+                        ['label' => $this->msg('تفاصيل', 'Details'), 'url' => route('admin.invoices.show', ['invoice' => $row->id])],
+                        ['label' => 'PDF', 'url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()])],
+                    ],
+                ];
+            })
+            ->all();
+
+        return [
+            'columns' => ['invoice', 'order', 'customer', 'store', 'status', 'amount', 'paid', 'balance', 'created', 'actions'],
+            'rows' => $rows,
         ];
     }
 
