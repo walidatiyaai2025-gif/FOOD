@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\CredentialAuthenticator;
+use App\Services\PlatformCustomerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly CredentialAuthenticator $credentials) {}
+    public function __construct(
+        private readonly CredentialAuthenticator $credentials,
+        private readonly PlatformCustomerService $platformCustomers,
+    ) {}
 
     public function login(Request $request): JsonResponse
     {
@@ -36,6 +40,26 @@ class AuthController extends Controller
             'token_type' => 'Bearer',
             'user' => $this->identity($user),
         ]);
+    }
+
+    public function register(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:40'],
+            'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
+            'locale' => ['nullable', 'string', 'in:ar,en'],
+        ]);
+
+        $user = $this->platformCustomers->register($validated);
+
+        return response()->json([
+            'token' => $user->createToken('foodex-platform-customer')->plainTextToken,
+            'token_type' => 'Bearer',
+            'platform_customer' => true,
+            'user' => $this->identity($user),
+        ], 201);
     }
 
     public function mobileTrialLogin(Request $request): JsonResponse
@@ -139,6 +163,7 @@ class AuthController extends Controller
             'locale' => (string) $user->locale,
             'roles' => $roles,
             'store_ids' => $storeIds,
+            'platform_customer' => $this->platformCustomers->isPlatformCustomer($user),
         ];
     }
 }
