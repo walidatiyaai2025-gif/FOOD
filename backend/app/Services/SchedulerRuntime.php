@@ -59,7 +59,7 @@ final class SchedulerRuntime
         }
 
         $directory = storage_path('app/system');
-        if (! is_dir($directory) && ! @mkdir($directory, 0750, true) && ! is_dir($directory)) {
+        if (is_dir($directory) === false && @mkdir($directory, 0750, true) === false && is_dir($directory) === false) {
             return;
         }
 
@@ -132,7 +132,7 @@ final class SchedulerRuntime
         return null;
     }
 
-    /** @param array<int, string> $command */
+    /** @param  array<int, string>  $command */
     private function runProcess(array $command): int
     {
         [$exitCode] = $this->runProcessWithOutput($command);
@@ -141,8 +141,8 @@ final class SchedulerRuntime
     }
 
     /**
-     * @param array<int, string> $command
-     * @return array{0:int,1:string,2:string}
+     * @param  array<int, string>  $command
+     * @return array{0: int, 1: string, 2: string}
      */
     private function runProcessWithOutput(array $command): array
     {
