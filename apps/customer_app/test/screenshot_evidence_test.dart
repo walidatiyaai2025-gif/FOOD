@@ -661,6 +661,7 @@ class _EvidenceWholesaleCommerceApi implements WholesaleCommerceApi {
     required String paymentMethod,
     String? requestedDeliveryDate,
     String? note,
+    String? couponCode,
     required String idempotencyKey,
   }) async => {
         'id': 990,
