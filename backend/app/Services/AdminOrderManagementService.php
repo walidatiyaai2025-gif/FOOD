@@ -481,6 +481,38 @@ final class AdminOrderManagementService
     /** @return array<string, mixed> */
     private function validated(Request $request, string $channel): array
     {
+        $items = $request->input('items');
+
+        if (is_array($items)) {
+            $normalized = [];
+            $productIndexes = [];
+
+            foreach ($items as $item) {
+                $productId = is_array($item) ? ($item['product_id'] ?? null) : null;
+                $quantity = is_array($item) ? ($item['quantity'] ?? null) : null;
+
+                if (! is_numeric($productId) || ! is_numeric($quantity) || (float) $quantity <= 0) {
+                    $normalized[] = $item;
+
+                    continue;
+                }
+
+                $productKey = (string) (int) $productId;
+
+                if (array_key_exists($productKey, $productIndexes)) {
+                    $index = $productIndexes[$productKey];
+                    $normalized[$index]['quantity'] = (float) $normalized[$index]['quantity'] + (float) $quantity;
+
+                    continue;
+                }
+
+                $productIndexes[$productKey] = count($normalized);
+                $normalized[] = $item;
+            }
+
+            $request->merge(['items' => array_values($normalized)]);
+        }
+
         return $request->validate([
             'warehouse_id' => $channel === 'b2b'
                 ? ['required', 'integer', 'exists:warehouses,id']
