@@ -81,7 +81,7 @@ class _MarketplaceBarcodeScannerPageState
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: .66),
+                    color: Colors.black.withOpacity(.66),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
