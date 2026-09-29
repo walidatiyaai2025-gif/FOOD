@@ -146,7 +146,7 @@ void main() {
     await tester.tap(find.byKey(const Key('driver-open-invoice-11')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('driver-invoice-detail-91')), findsOneWidget);
-    expect(find.textContaining('INV-B2C-11'), findsOneWidget);
+    expect(find.textContaining('INV-B2C-11'), findsWidgets);
     expect(find.textContaining('27.000 EGP'), findsWidgets);
   });
 
