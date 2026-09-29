@@ -204,20 +204,6 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PerPage"
-        - in: query
-          name: status
-          schema:
-            type: string
-        - in: query
-          name: store_id
-          schema:
-            type: integer
-            minimum: 1
-        - in: query
-          name: channel
-          schema:
-            type: string
-            enum: [b2b, b2c]
       responses:
         "200":
           description: Store collection
@@ -488,6 +474,20 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PerPage"
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: channel
+          schema:
+            type: string
+            enum: [b2b, b2c]
       responses:
         "200":
           description: Authenticated order collection
