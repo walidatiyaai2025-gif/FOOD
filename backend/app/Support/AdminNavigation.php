@@ -69,7 +69,7 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'content', 'admin.b2c_workspace.modules.content', 'promotions.view'),
             ]),
             $this->group('advertising', 'admin.nav_groups.advertising', '◉', [
-                $this->routeItemAdvertising($user, 'notification_campaigns', 'notifications.campaigns', 'admin.notification-campaigns.index', 'notifications.view', 'advertising_enabled'),
+                $this->routeItemAdvertising($user, 'notification_campaigns', 'notifications.sidebar_campaigns', 'admin.notification-campaigns.index', 'notifications.view', 'advertising_enabled'),
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
