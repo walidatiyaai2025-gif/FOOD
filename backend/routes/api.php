@@ -37,6 +37,8 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/mobile/runtime', MobileRuntimeController::class);
     Route::get('/translations/{locale}', TranslationController::class)->whereIn('locale', ['ar', 'en']);
 
+    Route::post('/auth/register', [AuthController::class, 'register'])
+        ->middleware('throttle:login');
     Route::post('/auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:login');
     Route::post('/auth/mobile-trial', [AuthController::class, 'mobileTrialLogin'])
