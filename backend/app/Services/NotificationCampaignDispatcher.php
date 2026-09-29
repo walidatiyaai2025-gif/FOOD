@@ -104,6 +104,7 @@ final class NotificationCampaignDispatcher
                     'title_en' => $campaign->title_en,
                     'body_ar' => $campaign->body_ar,
                     'body_en' => $campaign->body_en,
+                    'image_path' => $campaign->image_path,
                     'audience' => $campaign->audience,
                     'app' => $campaign->app,
                     'target_channel' => $campaign->target_channel,
