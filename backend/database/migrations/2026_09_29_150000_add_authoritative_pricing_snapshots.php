@@ -90,7 +90,6 @@ return new class extends Migration {
         }
 
         $itemColumns = array_values(array_filter([
-            'quantity_conversion_factor',
             'base_unit_price_snapshot',
             'line_discount_total',
             'line_tax_total',
