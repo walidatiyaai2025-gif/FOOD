@@ -235,23 +235,28 @@ final class RetailWholesaleReplenishmentService
 
     private function receivingWarehouseId(int $storeId, string $storeCode): int
     {
-        $code = 'RECV-'.strtoupper($storeCode);
-        $warehouse = DB::table('warehouses')->where('code', $code)->first(['id', 'store_id']);
+        $warehouse = DB::table('warehouses')
+            ->where('store_id', $storeId)
+            ->where('is_active', true)
+            ->orderByRaw("CASE
+                WHEN UPPER(code) IN ('MAIN', 'PRIMARY') THEN 0
+                WHEN UPPER(code) LIKE 'MAIN-%' OR UPPER(code) LIKE '%-MAIN' THEN 1
+                WHEN LOWER(name) LIKE '%main%' OR name LIKE '%رئيس%' THEN 2
+                ELSE 3
+            END")
+            ->orderBy('id')
+            ->first(['id']);
 
         if ($warehouse !== null) {
-            abort_unless(
-                (int) $warehouse->store_id === $storeId,
-                409,
-                'Retail receiving warehouse code belongs to another store.',
-            );
-
             return (int) $warehouse->id;
         }
+
+        $code = 'MAIN-'.strtoupper($storeCode);
 
         return (int) DB::table('warehouses')->insertGetId([
             'store_id' => $storeId,
             'code' => $code,
-            'name' => 'Wholesale Receiving',
+            'name' => 'Main Warehouse',
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
