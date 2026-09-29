@@ -33,6 +33,16 @@ class DriverAssignmentLifecycleTest extends TestCase
         $created = $this->postJson('/api/v1/admin/deliveries/assign', ['driver_id' => $driver->id, 'order_id' => $order->id])->assertCreated()->assertJsonPath('data.assignment_type', 'b2c');
 
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.created']);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $driverUser->id,
+            'app' => 'driver',
+            'type' => 'delivery.assigned',
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => (int) DB::table('customers')->where('id', $order->customer_id)->value('user_id'),
+            'app' => 'customer',
+            'type' => 'delivery.assigned',
+        ]);
         Sanctum::actingAs($driverUser);
         $id = $created->json('data.id');
         $this->getJson('/api/v1/driver/assignments')
@@ -66,6 +76,28 @@ class DriverAssignmentLifecycleTest extends TestCase
             }
         }
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.status_changed']);
+        $customerUserId = (int) DB::table('customers')
+            ->where('id', $order->customer_id)
+            ->value('user_id');
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $customerUserId,
+            'app' => 'customer',
+            'type' => 'order.status_changed',
+        ]);
+        $deliveredNotification = DB::table('notifications')
+            ->where('user_id', $customerUserId)
+            ->where('app', 'customer')
+            ->where('type', 'order.status_changed')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($deliveredNotification);
+        $deliveredData = json_decode(
+            (string) $deliveredNotification->data,
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+        $this->assertSame('delivered', $deliveredData['status']);
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'delivered']);
         $this->assertDatabaseHas('delivery_proofs', [
             'driver_assignment_id' => $id,
