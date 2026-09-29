@@ -64,6 +64,61 @@ final class AdminOrderManagementService
         ];
     }
 
+    /** @return array<string, mixed> */
+    public function quote(Request $request, string $channel, int $storeId): array
+    {
+        $channel = strtolower($channel);
+        $data = $this->validated($request, $channel);
+        $warehouseId = $this->warehouseId($channel, $storeId, $data['warehouse_id'] ?? null);
+        [$customer] = $this->customer($channel, $storeId, (int) $data['customer_id']);
+        $paymentMethod = $this->paymentMethod(
+            (string) ($data['payment_method'] ?? config('checkout.default_payment_method')),
+            $channel,
+            $customer,
+        );
+        $customerUser = $customer->user_id === null ? null : User::query()->find((int) $customer->user_id);
+        $couponCode = isset($data['coupon_code']) && trim((string) $data['coupon_code']) !== ''
+            ? strtoupper(trim((string) $data['coupon_code']))
+            : null;
+
+        $quote = $this->quotes->quote(
+            $channel,
+            $storeId,
+            $customer,
+            $data['items'],
+            $customerUser,
+            $couponCode,
+            $paymentMethod,
+            false,
+        );
+
+        if ($channel !== 'b2b' || $warehouseId === null) {
+            return $quote;
+        }
+
+        $quote['items'] = array_map(function (array $line) use ($warehouseId): array {
+            $available = (float) DB::table('inventories')
+                ->where('warehouse_id', $warehouseId)
+                ->where('product_id', (int) $line['product_id'])
+                ->get(['quantity', 'reserved_quantity'])
+                ->sum(static fn (object $row): float => max(
+                    0.0,
+                    (float) $row->quantity - (float) $row->reserved_quantity,
+                ));
+
+            $line['available_quantity'] = round($available, 3);
+            $line['is_available'] = (bool) $line['is_available']
+                && (float) $line['quantity'] <= $available + 0.0001;
+
+            return $line;
+        }, $quote['items']);
+
+        $quote['has_unavailable_items'] = collect($quote['items'])
+            ->contains(static fn (array $line): bool => ! (bool) $line['is_available']);
+
+        return $quote;
+    }
+
     public function create(Request $request, User $actor, string $channel, int $storeId): Order
     {
         $channel = strtolower($channel);
