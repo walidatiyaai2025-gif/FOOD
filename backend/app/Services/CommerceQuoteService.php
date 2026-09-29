@@ -141,8 +141,8 @@ final class CommerceQuoteService
         $hasUnavailableItems = false;
 
         foreach ($items as $item) {
-            $productId = (int) ($item['product_id'] ?? 0);
-            $quantity = round((float) ($item['quantity'] ?? 0), 3);
+            $productId = (int) $item['product_id'];
+            $quantity = round((float) $item['quantity'], 3);
 
             if ($productId <= 0 || $quantity <= 0) {
                 if ($strict) {
