@@ -537,8 +537,8 @@ class B2cWorkspaceController extends Controller
                     ->whereIn('drivers.store_id', $storeIds)
                     ->where('drivers.is_active', true)
                     ->orderBy('users.name')
-                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.email'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'name' => $row->name, 'email' => $row->email])
+                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.username', 'users.email'])
+                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'name' => $row->name, 'username' => $row->username, 'email' => $row->email])
                     ->all(),
                 'orders' => DB::table('orders')
                     ->whereIn('orders.store_id', $storeIds)
