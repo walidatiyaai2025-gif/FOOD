@@ -21,6 +21,8 @@ Evidence convention:
 - [x] Post-update health check passes for application, database and writable storage in automated acceptance.
 - [x] Rollback restores files and database for the tested failure path; #128 keeps maintenance enabled when rollback itself cannot complete safely.
 - [x] Correlation IDs and structured server error logs are covered by merged production-readiness/backend validation without exposing sensitive details.
+- [x] Incremental updates force-include the autonomous scheduler runtime, installer/updater cron hooks and canonical FOODEX brand asset; release CI fails when any recovery-critical file is missing. Evidence: #462.
+- [x] Scheduled features do not depend on operator-created cron entries: managed cron is auto-provisioned when permitted and the application heartbeat remains the restricted-host fallback. Evidence: #451 and #462.
 
 ## API, authorization and security
 

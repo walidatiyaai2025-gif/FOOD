@@ -10,6 +10,8 @@ final class SchedulerRuntime
 {
     private const CRON_MARKER = '# FOODEX_MANAGED_SCHEDULER';
 
+    private const CRON_REPAIR_INTERVAL_SECONDS = 3600;
+
     public function provisionCron(): bool
     {
         if (app()->environment('testing') || (bool) config('foodex.scheduler_auto_provision', true) === false) {
@@ -84,6 +86,10 @@ final class SchedulerRuntime
             fwrite($handle, (string) time());
             fflush($handle);
 
+            // Existing installations self-heal the managed cron after an update.
+            // Restricted hosts keep working through this heartbeat even if cron cannot be provisioned.
+            $this->repairManagedCronIfDue($directory);
+
             // Keep the currently production-critical campaign dispatcher guaranteed even if a host/CLI
             // has an unusual scheduler bootstrap, then run the full Laravel schedule for all features.
             Artisan::call('foodex:dispatch-scheduled-notifications');
@@ -92,6 +98,40 @@ final class SchedulerRuntime
             Log::warning('FOODEX scheduler heartbeat failed.', [
                 'exception' => $exception::class,
             ]);
+        } finally {
+            @flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
+    private function repairManagedCronIfDue(string $directory): void
+    {
+        if ((bool) config('foodex.scheduler_auto_provision', true) === false || app()->environment('testing')) {
+            return;
+        }
+
+        $path = $directory.'/scheduler-cron-repair.lock';
+        $handle = @fopen($path, 'c+');
+        if (is_resource($handle) === false) {
+            return;
+        }
+
+        try {
+            if (@flock($handle, LOCK_EX | LOCK_NB) === false) {
+                return;
+            }
+
+            $lastAttempt = (int) trim((string) stream_get_contents($handle));
+            if ($lastAttempt > 0 && (time() - $lastAttempt) < self::CRON_REPAIR_INTERVAL_SECONDS) {
+                return;
+            }
+
+            rewind($handle);
+            ftruncate($handle, 0);
+            fwrite($handle, (string) time());
+            fflush($handle);
+
+            $this->provisionCron();
         } finally {
             @flock($handle, LOCK_UN);
             fclose($handle);
