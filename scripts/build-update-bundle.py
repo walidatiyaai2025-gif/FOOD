@@ -30,6 +30,13 @@ RUNTIME_EXACT = {
 }
 
 RUNTIME_ALWAYS_INCLUDE = {
+    "backend/app/Services/SchedulerRuntime.php",
+    "backend/app/Http/Middleware/RunSchedulerHeartbeat.php",
+    "backend/app/Domain/Installer/InstallerWorkflow.php",
+    "backend/app/Domain/Updater/LaravelUpdateRuntime.php",
+    "backend/bootstrap/app.php",
+    "backend/config/foodex.php",
+    "backend/routes/console.php",
     "backend/public/brand/foodex-economical-group.webp",
 }
 

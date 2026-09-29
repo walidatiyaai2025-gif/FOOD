@@ -82,6 +82,18 @@ jobs:
           with zipfile.ZipFile(package) as archive:
               names = archive.namelist()
               assert "VERSION" in names
+              required_runtime = {
+                  "backend/app/Services/SchedulerRuntime.php",
+                  "backend/app/Http/Middleware/RunSchedulerHeartbeat.php",
+                  "backend/app/Domain/Installer/InstallerWorkflow.php",
+                  "backend/app/Domain/Updater/LaravelUpdateRuntime.php",
+                  "backend/bootstrap/app.php",
+                  "backend/config/foodex.php",
+                  "backend/routes/console.php",
+                  "backend/public/brand/foodex-economical-group.webp",
+              }
+              missing = sorted(required_runtime.difference(names))
+              assert not missing, f"Mandatory self-healing runtime files missing from update: {missing}"
               has_migrations = any(name.startswith("backend/database/migrations/") for name in names)
               assert manifest["contains_migrations"] is has_migrations
               assert not any(name.startswith(("apps/", "Release/", "docs/", ".github/")) for name in names)

@@ -21,6 +21,8 @@ Evidence convention:
 - [x] Post-update health check passes for application, database and writable storage in automated acceptance.
 - [x] Rollback restores files and database for the tested failure path; #128 keeps maintenance enabled when rollback itself cannot complete safely.
 - [x] Correlation IDs and structured server error logs are covered by merged production-readiness/backend validation without exposing sensitive details.
+- [x] Every incremental update bundle carries the scheduler runtime, installer/update scheduler hooks, and canonical critical brand asset so existing installations self-heal without manual cron or asset repair.
+- [x] Scheduled features are release-gated on autonomous execution: managed cron when permitted plus application heartbeat fallback on restricted hosting.
 
 ## API, authorization and security
 
