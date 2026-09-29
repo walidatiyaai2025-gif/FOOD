@@ -35,9 +35,12 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertJsonPath('retail_banners.0.id', $retailStore)
             ->assertJsonPath('retail_banners.0.store_id', $retailStore)
             ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/retail-home.jpg'))
+            ->assertJsonPath('retail_banners.0.sort_order', 1)
             ->assertJsonPath('retail_banners.1.id', $retailStore)
             ->assertJsonPath('retail_banners.1.banner_url', url('/storage/banners/retail-second.jpg'))
-            ->assertJsonCount(2, 'retail_banners');
+            ->assertJsonPath('retail_banners.1.sort_order', 2)
+            ->assertJsonCount(2, 'retail_banners')
+            ->assertJsonMissing(['title' => 'Retail Inactive Banner']);
     }
 
     public function test_registered_customer_identity_materializes_per_store_and_routes_carts_by_purchase_store(): void
@@ -219,6 +222,16 @@ class PlatformCustomerMarketplaceTest extends TestCase
                 'target_url' => null,
                 'sort_order' => 2,
                 'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'store_id' => $retailStore,
+                'title' => 'Retail Inactive Banner',
+                'image_path' => 'storage/banners/retail-inactive.jpg',
+                'target_url' => null,
+                'sort_order' => 0,
+                'is_active' => false,
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
