@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\MobileRuntimeController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\PlatformMarketplaceController;
 use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
 use App\Http\Controllers\Api\V1\SecurityController;
@@ -44,6 +45,8 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/auth/mobile-trial', [AuthController::class, 'mobileTrialLogin'])
         ->middleware('throttle:login');
 
+    Route::get('/platform/storefront', [PlatformMarketplaceController::class, 'home']);
+    Route::get('/platform/products/{product}', [PlatformMarketplaceController::class, 'product'])->whereNumber('product');
     Route::get('/stores', [GuestStoreController::class, 'index']);
     Route::get('/stores/{store}/categories', [GuestCatalogController::class, 'categories']);
     Route::get('/stores/{store}/products', [GuestCatalogController::class, 'products']);
