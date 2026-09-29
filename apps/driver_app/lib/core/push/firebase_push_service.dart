@@ -4,11 +4,72 @@ import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/foodex_environment.dart';
 
 const driverBundleId = 'com.fiftysolution.foodex.driver';
+const _driverPushChannelId = 'foodex_driver_high_priority';
+const _driverPushChannelName = 'FOODEX Driver';
+const _driverPushChannelDescription = 'FOODEX driver order and delivery alerts.';
+
+final FlutterLocalNotificationsPlugin _driverLocalNotifications =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> initializeDriverLocalNotifications() async {
+  const settings = InitializationSettings(
+    android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    iOS: DarwinInitializationSettings(),
+  );
+  await _driverLocalNotifications.initialize(settings);
+
+  if (Platform.isAndroid) {
+    const channel = AndroidNotificationChannel(
+      _driverPushChannelId,
+      _driverPushChannelName,
+      description: _driverPushChannelDescription,
+      importance: Importance.high,
+    );
+    await _driverLocalNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+  }
+}
+
+Future<void> showDriverLocalNotification(RemoteMessage message) async {
+  final title = message.notification?.title ??
+      message.data['title']?.toString() ??
+      'FOODEX Driver';
+  final body = message.notification?.body ??
+      message.data['body']?.toString() ??
+      '';
+
+  const details = NotificationDetails(
+    android: AndroidNotificationDetails(
+      _driverPushChannelId,
+      _driverPushChannelName,
+      channelDescription: _driverPushChannelDescription,
+      importance: Importance.high,
+      priority: Priority.high,
+      visibility: NotificationVisibility.public,
+    ),
+    iOS: DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    ),
+  );
+
+  await _driverLocalNotifications.show(
+    message.messageId?.hashCode ??
+        DateTime.now().millisecondsSinceEpoch.remainder(2147483647),
+    title,
+    body,
+    details,
+  );
+}
 
 class DriverPushAlert {
   const DriverPushAlert({required this.title, required this.body});
@@ -111,6 +172,7 @@ class DriverFirebasePushService {
       } else {
         await Firebase.initializeApp();
       }
+      await initializeDriverLocalNotifications();
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission(alert: true, badge: true, sound: true);
       await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
@@ -123,9 +185,16 @@ class DriverFirebasePushService {
         service._opens.add(DriverFirebasePushService.openForData(message.data));
       });
       service._foregroundSubscription = FirebaseMessaging.onMessage.listen((message) {
-        final notification = message.notification;
-        if (notification == null) return;
-        service._alerts.add(DriverPushAlert(title: notification.title ?? 'FOODEX Driver', body: notification.body ?? ''));
+        if (Platform.isAndroid) {
+          showDriverLocalNotification(message);
+        }
+        final title = message.notification?.title ??
+            message.data['title']?.toString() ??
+            'FOODEX Driver';
+        final body = message.notification?.body ??
+            message.data['body']?.toString() ??
+            '';
+        service._alerts.add(DriverPushAlert(title: title, body: body));
       });
       return service;
     } catch (_) {
