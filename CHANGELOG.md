@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.31 - Open-ended B2B sales dashboard range
+
+- Rename the wholesale dashboard chart from Daily sales / المبيعات اليومية to Sales / المبيعات.
+- Remove the 31-day B2B dashboard date-range ceiling.
+- Make From and To optional: no dates shows all available wholesale sales, From-only runs through today, To-only includes all available sales up to that date, and both dates apply the exact range.
+- Keep the query restricted to the authoritative B2B principal scope and add regression coverage.
+- Keep Dashboard, Customer and Driver release identities synchronized at 1.0.31.
+
 ## 1.0.30 - Retail store accordion and lookup creation UX
 
 - Show existing Retail stores as a single-open accordion ordered from newest to oldest, with the latest-created store expanded by default.
