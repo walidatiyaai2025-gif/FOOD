@@ -192,6 +192,42 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
         })
         .toList(growable: false);
 
+    final invoiceMap = order['invoice'] is Map
+        ? Map<String, dynamic>.from(order['invoice'] as Map)
+        : null;
+    final invoiceItems = (invoiceMap?['items'] as List? ?? const [])
+        .whereType<Map>()
+        .map((raw) {
+          final item = Map<String, dynamic>.from(raw);
+          return DriverOrderItem(
+            name: (item['name'] ?? '').toString(),
+            sku: (item['sku'] ?? '').toString(),
+            quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
+            lineTotal: (item['line_total'] as num?)?.toDouble() ?? 0,
+          );
+        })
+        .toList(growable: false);
+    final invoice = invoiceMap == null
+        ? null
+        : DriverInvoice(
+            id: (invoiceMap['id'] as num?)?.toInt() ?? 0,
+            number: (invoiceMap['number'] ?? '').toString(),
+            revision: (invoiceMap['revision'] as num?)?.toInt() ?? 1,
+            status: (invoiceMap['status'] ?? '').toString(),
+            currency: (invoiceMap['currency'] ?? order['currency'] ?? 'KWD').toString(),
+            subtotal: (invoiceMap['subtotal'] as num?)?.toDouble() ?? 0,
+            discountTotal:
+                (invoiceMap['discount_total'] as num?)?.toDouble() ?? 0,
+            deliveryTotal:
+                (invoiceMap['delivery_total'] as num?)?.toDouble() ?? 0,
+            taxTotal: (invoiceMap['tax_total'] as num?)?.toDouble() ?? 0,
+            grandTotal: (invoiceMap['grand_total'] as num?)?.toDouble() ?? 0,
+            paymentMethod: (invoiceMap['payment_method'] ?? '').toString(),
+            paymentStatus: (invoiceMap['payment_status'] ?? '').toString(),
+            issuedAt: (invoiceMap['issued_at'] ?? '').toString(),
+            items: invoiceItems,
+          );
+
     return DriverAssignment(
       id: (map['id'] as num).toInt(),
       orderId: (map['order_id'] as num?)?.toInt() ?? 0,
@@ -210,6 +246,7 @@ class HttpDriverAssignmentRepository implements DriverAssignmentRepository {
       paymentStatus: (payment['status'] ?? '').toString(),
       customerNote: (order['customer_note'] ?? '').toString(),
       items: items,
+      invoice: invoice,
       availableStatuses: (map['available_statuses'] as List? ?? const [])
           .map((status) => status.toString())
           .toList(growable: false),
