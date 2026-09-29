@@ -227,6 +227,16 @@
         const storeDetailErrors = @json($hasStoreDetailErrors);
         activate(storeDetailErrors ? 'store-details' : 'store-manager');
     }
+
+    const accordions = [...document.querySelectorAll('[data-store-accordion]')];
+    accordions.forEach((accordion) => {
+        accordion.addEventListener('toggle', () => {
+            if (!accordion.open) return;
+            accordions.forEach((other) => {
+                if (other !== accordion) other.open = false;
+            });
+        });
+    });
 })();
 </script>
 </body></html>
