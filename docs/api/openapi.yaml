@@ -204,6 +204,20 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PerPage"
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: channel
+          schema:
+            type: string
+            enum: [b2b, b2c]
       responses:
         "200":
           description: Store collection
@@ -466,7 +480,8 @@ paths:
   /orders:
     get:
       tags: [Orders]
-      summary: List authenticated customer orders
+      summary: List authenticated customer orders across the Platform Customer's Wholesale and Retail stores
+      description: Platform Customers receive one unified order history across their own store domains. Legacy non-platform customers retain their existing channel scope.
       operationId: listOrders
       security:
         - bearerAuth: []
@@ -486,12 +501,23 @@ paths:
   /orders/{order}:
     get:
       tags: [Orders]
-      summary: Get an authorized order
+      summary: Get an authorized customer order
+      description: Platform Customers may open only an order owned by one of their own Wholesale or Retail domain profiles. Optional store/channel context must match the order.
       operationId: showOrder
       security:
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/OrderId"
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: channel
+          schema:
+            type: string
+            enum: [b2b, b2c]
       responses:
         "200":
           description: Authorized order detail
@@ -1789,7 +1815,7 @@ components:
     Order:
       type: object
       required:
-        [id, order_number, store_id, channel, status, currency, subtotal, grand_total, items, created_at]
+        [id, order_number, store_id, store, channel, status, currency, subtotal, grand_total, items, created_at]
       properties:
         id:
           type: integer
@@ -1797,6 +1823,17 @@ components:
           type: string
         store_id:
           type: integer
+        store:
+          type: [object, "null"]
+          properties:
+            id:
+              type: integer
+            code:
+              type: string
+            name:
+              type: string
+            logo_url:
+              type: [string, "null"]
         channel:
           type: string
           enum: [b2c, b2b]
