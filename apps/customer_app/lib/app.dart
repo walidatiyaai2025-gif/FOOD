@@ -56,6 +56,7 @@ class FoodexCustomerApp extends StatefulWidget {
 class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   late Map<String, String> _translations;
   late CustomerSession _session;
+  late Locale _locale;
   final CustomerGuestSession _guestSession = CustomerGuestSession();
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -71,6 +72,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     super.initState();
     _translations = Map<String, String>.from(widget.translationOverrides);
     _session = widget.session;
+    _locale = widget.locale;
     _showVersionFooter = widget.initialRoute != CustomerRoutePaths.splash;
     if (!_showVersionFooter) {
       _versionFooterTimer = Timer(const Duration(milliseconds: 1150), () {
@@ -86,6 +88,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.locale != widget.locale ||
         oldWidget.translationOverrides != widget.translationOverrides) {
+      _locale = widget.locale;
       _translations = Map<String, String>.from(widget.translationOverrides);
       _loadRemoteTranslations();
     }
@@ -110,8 +113,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       }
 
       final remote = fetcher != null
-          ? await fetcher(widget.locale.languageCode)
-          : await fetchTranslationBundle(baseUrl, widget.locale.languageCode);
+          ? await fetcher(_locale.languageCode)
+          : await fetchTranslationBundle(baseUrl, _locale.languageCode);
 
       if (!mounted || remote.isEmpty) {
         return;
@@ -123,6 +126,15 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     } catch (_) {
       // Bundled translations remain the fallback when remote loading fails.
     }
+  }
+
+  void _changeLocale(Locale locale) {
+    if (_locale.languageCode == locale.languageCode) return;
+    setState(() {
+      _locale = locale;
+      _translations = Map<String, String>.from(widget.translationOverrides);
+    });
+    _loadRemoteTranslations();
   }
 
   void _configurePush() {
@@ -275,6 +287,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       onSessionExpired: _onSessionExpired,
       onEnterWholesale: _enterWholesale,
       onPlatformRegistered: _onPlatformRegistered,
+      onLocaleChanged: _changeLocale,
     );
 
     return MaterialApp(
@@ -283,7 +296,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       debugShowCheckedModeBanner: false,
       title: 'FOODEX Customer',
       theme: widget.theme ?? FoodexTheme.light(),
-      locale: widget.locale,
+      locale: _locale,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -291,7 +304,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       ],
       supportedLocales: const [Locale('ar'), Locale('en')],
       builder: (context, child) => AppTranslations(
-        locale: widget.locale,
+        locale: _locale,
         overrides: _translations,
         child: Builder(
           builder: (translatedContext) => Stack(
