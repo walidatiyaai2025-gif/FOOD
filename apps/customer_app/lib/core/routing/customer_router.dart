@@ -160,6 +160,7 @@ class CustomerAppRouter {
                 definition: definition,
                 location: requestedLocation,
                 api: b2bApi,
+                accountApi: b2cAccountApi,
                 actionApi: actionApi,
                 onAuthenticated: onAuthenticated,
                 onPlatformAuthenticated: onPlatformRegistered,
