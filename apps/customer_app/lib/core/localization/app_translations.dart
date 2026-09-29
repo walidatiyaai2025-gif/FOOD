@@ -34,6 +34,7 @@ class AppTranslations extends InheritedWidget {
     'customer.marketplace.main_wholesale': 'متجر المنصة الرئيسي · الجملة',
     'customer.marketplace.wholesale_products': 'منتجات متجر الجملة',
     'customer.marketplace.search_hint': 'ابحث بالاسم أو SKU أو الباركود',
+    'customer.marketplace.shop_now': 'تسوق الآن',
     'customer.marketplace.all_categories': 'كل التصنيفات',
     'customer.marketplace.browse_guest': 'تصفح المنتجات كضيف وسجل حسابك عند الشراء',
     'customer.marketplace.register': 'إنشاء حساب',
