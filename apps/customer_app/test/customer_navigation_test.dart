@@ -67,7 +67,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('تسجيل الدخول'), findsWidgets);
-    expect(find.text('/auth/checkout'), findsOneWidget);
+    expect(find.textContaining('/auth/checkout'), findsOneWidget);
+    expect(find.textContaining('next='), findsOneWidget);
   });
 
   testWidgets('guest B2B protected route redirects to the unified Customer login',
