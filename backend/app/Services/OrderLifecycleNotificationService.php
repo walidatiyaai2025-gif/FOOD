@@ -359,6 +359,12 @@ final class OrderLifecycleNotificationService
                     'channel' => strtolower((string) $order->channel),
                     'status' => (string) $order->status,
                     'event_key' => $eventKey,
+                    'event_at' => now()->toAtomString(),
+                    'order_updated_at' => $order->updated_at?->toAtomString(),
+                    'state_version' => hash(
+                        'sha256',
+                        $eventKey.'|'.(string) $order->updated_at,
+                    ),
                     'route' => $app === 'customer' ? 'order' : 'assignment',
                     ...$extraData,
                 ],
