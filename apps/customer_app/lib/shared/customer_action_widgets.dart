@@ -433,6 +433,7 @@ class _CheckoutActionState extends State<CheckoutAction> {
           children: [
             DropdownButtonFormField<int>(
               key: const ValueKey('customer-checkout-address-selector'),
+              isExpanded: true,
               initialValue: _selectedAddressId,
               decoration: InputDecoration(
                 labelText: context.tr('customer.checkout.address'),
