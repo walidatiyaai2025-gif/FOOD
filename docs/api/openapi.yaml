@@ -22,7 +22,7 @@ tags:
   - name: Orders
     description: Authenticated customer order access.
   - name: B2B
-    description: Approved wholesale customer operations; public self-registration is forbidden.
+    description: Wholesale customer operations. Platform Customer registration may provision consumer Wholesale eligibility; managed corporate/credit account approval remains administrative.
   - name: Drivers
     description: Driver-role-scoped assignment operations.
   - name: Notifications
@@ -119,6 +119,29 @@ paths:
                       type: string
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register one Platform Customer identity from the current Wholesale or Retail store
+      operationId: registerPlatformCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformCustomerRegistrationRequest"
+      responses:
+        "201":
+          description: Platform Customer account created with automatic Wholesale purchasing eligibility
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformCustomerRegistrationResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /auth/login:
     post:
@@ -1445,6 +1468,54 @@ components:
         version:
           type: string
 
+    PlatformCustomerRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email, phone, password, password_confirmation]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 40
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 255
+        password_confirmation:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 255
+        locale:
+          type: string
+          enum: [ar, en]
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+          description: Exact active storefront where registration originated. Retail creates that store's B2C profile immediately. Omit for the main Wholesale storefront.
+
+    PlatformCustomerRegistrationResponse:
+      type: object
+      required: [token, token_type, platform_customer, user]
+      properties:
+        token:
+          type: string
+        token_type:
+          type: string
+          const: Bearer
+        platform_customer:
+          type: boolean
+          const: true
+        user:
+          $ref: "#/components/schemas/UserIdentity"
+
     LoginRequest:
       type: object
       additionalProperties: false
@@ -1471,12 +1542,14 @@ components:
 
     UserIdentity:
       type: object
-      required: [id, name, email, roles]
+      required: [id, name, email, roles, store_ids, platform_customer]
       properties:
         id:
           type: integer
         name:
           type: string
+        username:
+          type: [string, "null"]
         email:
           type: string
           format: email
@@ -1493,6 +1566,8 @@ components:
           uniqueItems: true
           items:
             type: integer
+        platform_customer:
+          type: boolean
 
     Store:
       type: object

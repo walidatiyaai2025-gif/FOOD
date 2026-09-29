@@ -59,10 +59,20 @@ final class RetailStoreProvisioningController extends Controller
             ])
             ->keyBy('retail_store_id');
 
-        $stores->getCollection()->transform(function (Store $store) use ($priceTierByStore): Store {
+        $priceTiers = DB::table('b2b_price_tiers')
+            ->orderBy('priority')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+        $priceTierById = $priceTiers->keyBy('id');
+
+        $stores->getCollection()->transform(function (Store $store) use ($priceTierByStore, $priceTierById): Store {
             $tier = $priceTierByStore->get($store->id);
             $store->setAttribute('wholesale_price_tier_id', $tier?->price_tier_id === null ? null : (int) $tier->price_tier_id);
             $store->setAttribute('wholesale_price_tier_name', $tier?->price_tier_name);
+
+            $customerTierId = $store->default_customer_wholesale_price_tier_id;
+            $customerTier = $customerTierId === null ? null : $priceTierById->get((int) $customerTierId);
+            $store->setAttribute('customer_wholesale_price_tier_name', $customerTier?->name);
 
             return $store;
         });
@@ -75,7 +85,7 @@ final class RetailStoreProvisioningController extends Controller
             'search' => $search,
             'storeRoles' => Role::query()->where('is_active', true)->where('scope', 'store')->orderBy('name')->get(),
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'email']),
-            'priceTiers' => DB::table('b2b_price_tiers')->orderBy('priority')->orderBy('name')->get(['id', 'code', 'name']),
+            'priceTiers' => $priceTiers,
         ]);
     }
 
@@ -87,6 +97,7 @@ final class RetailStoreProvisioningController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],
+            'default_customer_wholesale_price_tier_id' => ['nullable', 'integer', 'exists:b2b_price_tiers,id'],
             'is_active' => ['nullable', 'boolean'],
             'advertising_enabled' => ['nullable', 'boolean'],
             'coupons_enabled' => ['nullable', 'boolean'],
@@ -103,6 +114,7 @@ final class RetailStoreProvisioningController extends Controller
 
             $store = Store::query()->create([
                 'store_type_id' => $storeTypeId,
+                'default_customer_wholesale_price_tier_id' => $data['default_customer_wholesale_price_tier_id'] ?? null,
                 'code' => strtoupper($data['code']),
                 'name' => $data['name'],
                 'logo_path' => null,
@@ -130,6 +142,7 @@ final class RetailStoreProvisioningController extends Controller
                 'manager_user_id' => $manager->id,
                 'manager_role' => $role->code,
                 'price_tier_id' => (int) $data['price_tier_id'],
+                'default_customer_wholesale_price_tier_id' => $store->default_customer_wholesale_price_tier_id,
                 'logo_path' => $store->logo_path,
                 'is_active' => $store->is_active,
                 'advertising_enabled' => $store->advertising_enabled,
@@ -152,16 +165,26 @@ final class RetailStoreProvisioningController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],
+            'default_customer_wholesale_price_tier_id' => ['nullable', 'integer', 'exists:b2b_price_tiers,id'],
             'is_active' => ['nullable', 'boolean'],
             'advertising_enabled' => ['nullable', 'boolean'],
             'coupons_enabled' => ['nullable', 'boolean'],
         ]);
-        $before = $store->only(['code', 'name', 'logo_path', 'is_active', 'advertising_enabled', 'coupons_enabled']);
+        $before = $store->only([
+            'code',
+            'name',
+            'logo_path',
+            'default_customer_wholesale_price_tier_id',
+            'is_active',
+            'advertising_enabled',
+            'coupons_enabled',
+        ]);
 
         $oldLogo = $store->logo_path;
         $updates = [
             'code' => strtoupper($data['code']),
             'name' => $data['name'],
+            'default_customer_wholesale_price_tier_id' => $data['default_customer_wholesale_price_tier_id'] ?? null,
             'is_active' => $request->boolean('is_active'),
             'advertising_enabled' => $request->boolean('advertising_enabled'),
             'coupons_enabled' => $request->boolean('coupons_enabled'),
@@ -177,7 +200,15 @@ final class RetailStoreProvisioningController extends Controller
         }
         $this->wholesaleAccounts->syncForStore($store, (int) $data['price_tier_id']);
 
-        $after = $store->only(['code', 'name', 'logo_path', 'is_active', 'advertising_enabled', 'coupons_enabled']);
+        $after = $store->only([
+            'code',
+            'name',
+            'logo_path',
+            'default_customer_wholesale_price_tier_id',
+            'is_active',
+            'advertising_enabled',
+            'coupons_enabled',
+        ]);
         $after['price_tier_id'] = (int) $data['price_tier_id'];
         $this->audit->record('retail_store.updated', $actor, $store, $before, $after, $request);
 

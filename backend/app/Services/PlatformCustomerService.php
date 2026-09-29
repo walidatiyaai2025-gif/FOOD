@@ -11,27 +11,24 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 final class PlatformCustomerService
 {
-    /** @param array{name:string,email:string,phone:string,password:string,locale?:string} $data */
-    public function register(array $data): User
+    /** @param array{name:string,email:string,phone:string,password:string,locale?:string,store_id?:int|null} $data */
+    public function register(array $data, string $registrationSource = 'customer_app'): User
     {
-        return DB::transaction(function () use ($data): User {
+        $origin = $this->resolveRegistrationOrigin(
+            isset($data['store_id']) ? (int) $data['store_id'] : null,
+        );
+        $registrationSource = $this->normalizeRegistrationSource($registrationSource);
+        $tierId = $this->resolveInitialWholesaleTierId($origin['channel'], $origin['store_id']);
+
+        return DB::transaction(function () use ($data, $origin, $registrationSource, $tierId): User {
             $email = strtolower(trim((string) $data['email']));
             if (User::query()->whereRaw('LOWER(email) = ?', [$email])->exists()) {
                 throw ValidationException::withMessages([
                     'email' => ['This email address is already registered.'],
-                ]);
-            }
-
-            $tierId = DB::table('b2b_price_tiers')
-                ->where('code', 'STANDARD')
-                ->value('id');
-
-            if ($tierId === null) {
-                throw ValidationException::withMessages([
-                    'registration' => ['The default customer price tier is not configured.'],
                 ]);
             }
 
@@ -54,32 +51,24 @@ final class PlatformCustomerService
                 'email' => $email,
             ]);
 
-            PlatformCustomer::query()->create([
+            $platform = PlatformCustomer::query()->create([
                 'user_id' => $user->getKey(),
                 'legacy_customer_id' => $legacy->getKey(),
                 'name' => $user->name,
                 'phone' => trim((string) $data['phone']),
                 'email' => $email,
+                'origin_channel' => $origin['channel'],
+                'origin_store_id' => $origin['store_id'],
+                'registration_source' => $registrationSource,
+                'registered_at' => now(),
                 'is_active' => true,
             ]);
 
-            $customer = B2bCustomer::query()->create([
-                'legacy_customer_id' => $legacy->getKey(),
-                'user_id' => $user->getKey(),
-                'name' => $user->name,
-                'phone' => trim((string) $data['phone']),
-                'email' => $email,
-            ]);
+            $this->ensureWholesaleAccount($user, $platform, $tierId);
 
-            B2bAccount::query()->create([
-                'customer_id' => $legacy->getKey(),
-                'b2b_customer_id' => $customer->getKey(),
-                'price_tier_id' => (int) $tierId,
-                'company_name' => $user->name,
-                'status' => 'active',
-                'tax_number' => null,
-                'credit_limit' => 0,
-            ]);
+            if ($origin['channel'] === 'b2c' && $origin['store_id'] !== null) {
+                $this->materializeB2c($user, $origin['store_id']);
+            }
 
             return $user;
         });
@@ -101,33 +90,12 @@ final class PlatformCustomerService
         }
 
         return DB::transaction(function () use ($user, $platform): B2bCustomer {
-            $customer = B2bCustomer::query()->firstOrCreate(
-                ['user_id' => $user->getKey()],
-                [
-                    'legacy_customer_id' => $platform->legacy_customer_id,
-                    'name' => $platform->name,
-                    'phone' => $platform->phone,
-                    'email' => $platform->email,
-                ],
+            $tierId = $this->resolveInitialWholesaleTierId(
+                (string) ($platform->origin_channel ?: 'unknown'),
+                $platform->origin_store_id === null ? null : (int) $platform->origin_store_id,
             );
 
-            $tierId = DB::table('b2b_price_tiers')
-                ->where('code', 'STANDARD')
-                ->value('id');
-
-            B2bAccount::query()->firstOrCreate(
-                ['b2b_customer_id' => $customer->getKey()],
-                [
-                    'customer_id' => $platform->legacy_customer_id,
-                    'price_tier_id' => $tierId === null ? null : (int) $tierId,
-                    'company_name' => $platform->name,
-                    'status' => 'active',
-                    'tax_number' => null,
-                    'credit_limit' => 0,
-                ],
-            );
-
-            return $customer->refresh();
+            return $this->ensureWholesaleAccount($user, $platform, $tierId);
         });
     }
 
@@ -165,5 +133,174 @@ final class PlatformCustomerService
     {
         return (bool) $user->is_platform_customer
             || $this->forUser($user) instanceof PlatformCustomer;
+    }
+
+    /**
+     * @return array{channel:string,store_id:?int}
+     */
+    private function resolveRegistrationOrigin(?int $storeId): array
+    {
+        if ($storeId === null) {
+            return [
+                'channel' => 'b2b',
+                'store_id' => $this->mainWholesaleStoreId(),
+            ];
+        }
+
+        $store = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('stores.is_active', true)
+            ->first([
+                'stores.id',
+                'stores.code',
+                'store_types.code as store_type_code',
+            ]);
+
+        if ($store === null) {
+            throw ValidationException::withMessages([
+                'store_id' => ['The selected registration store is unavailable.'],
+            ]);
+        }
+
+        $channel = strtolower((string) $store->store_type_code);
+        if (! in_array($channel, ['b2b', 'b2c'], true)) {
+            throw ValidationException::withMessages([
+                'store_id' => ['The selected registration store does not support customer commerce.'],
+            ]);
+        }
+
+        if ($channel === 'b2b') {
+            $principalStoreId = $this->mainWholesaleStoreId();
+            if ($principalStoreId !== null && $principalStoreId !== (int) $store->id) {
+                throw ValidationException::withMessages([
+                    'store_id' => ['Customer registration is allowed only from the main Wholesale store.'],
+                ]);
+            }
+        }
+
+        return [
+            'channel' => $channel,
+            'store_id' => (int) $store->id,
+        ];
+    }
+
+    private function resolveInitialWholesaleTierId(string $originChannel, ?int $originStoreId): int
+    {
+        if ($originChannel === 'b2c' && $originStoreId !== null) {
+            $configuredTierId = DB::table('stores')
+                ->where('id', $originStoreId)
+                ->value('default_customer_wholesale_price_tier_id');
+
+            if ($configuredTierId !== null) {
+                $tierExists = DB::table('b2b_price_tiers')
+                    ->where('id', $configuredTierId)
+                    ->exists();
+
+                if ($tierExists) {
+                    return (int) $configuredTierId;
+                }
+            }
+        }
+
+        $tierId = DB::table('b2b_price_tiers')
+            ->where('code', 'STANDARD')
+            ->value('id');
+
+        if ($tierId === null) {
+            throw ValidationException::withMessages([
+                'registration' => ['The default customer price tier is not configured.'],
+            ]);
+        }
+
+        return (int) $tierId;
+    }
+
+    private function ensureWholesaleAccount(
+        User $user,
+        PlatformCustomer $platform,
+        int $preferredTierId,
+    ): B2bCustomer {
+        $customer = B2bCustomer::query()->firstOrCreate(
+            ['user_id' => $user->getKey()],
+            [
+                'legacy_customer_id' => $platform->legacy_customer_id,
+                'name' => $platform->name,
+                'phone' => $platform->phone,
+                'email' => $platform->email,
+            ],
+        );
+
+        $account = B2bAccount::query()
+            ->where('b2b_customer_id', $customer->getKey())
+            ->orWhere('customer_id', $platform->legacy_customer_id)
+            ->first();
+
+        if (! $account instanceof B2bAccount) {
+            $account = new B2bAccount([
+                'customer_id' => $platform->legacy_customer_id,
+                'b2b_customer_id' => $customer->getKey(),
+                'price_tier_id' => $preferredTierId,
+                'company_name' => $platform->name,
+                'status' => 'active',
+                'tax_number' => null,
+                'credit_limit' => 0,
+            ]);
+        } else {
+            if (
+                $account->b2b_customer_id !== null
+                && (int) $account->b2b_customer_id !== (int) $customer->getKey()
+            ) {
+                abort(409, 'Wholesale account compatibility mapping conflicts with the Platform Customer.');
+            }
+
+            $account->b2b_customer_id = $customer->getKey();
+            $account->customer_id = $platform->legacy_customer_id;
+            $account->company_name = $account->company_name ?: $platform->name;
+            $account->status = 'active';
+
+            if ($account->price_tier_id === null) {
+                $account->price_tier_id = $preferredTierId;
+            }
+        }
+
+        $account->save();
+
+        return $customer->refresh();
+    }
+
+    private function mainWholesaleStoreId(): ?int
+    {
+        $configuredCode = trim((string) config('foodex.platform_wholesale_store_code', ''));
+
+        $query = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2B');
+
+        if ($configuredCode !== '') {
+            $configuredId = (clone $query)
+                ->where('stores.code', $configuredCode)
+                ->value('stores.id');
+
+            if ($configuredId !== null) {
+                return (int) $configuredId;
+            }
+        }
+
+        $id = $query->orderBy('stores.id')->value('stores.id');
+
+        return $id === null ? null : (int) $id;
+    }
+
+    private function normalizeRegistrationSource(string $source): string
+    {
+        $source = strtolower(trim($source));
+
+        if (! in_array($source, ['customer_app', 'dashboard', 'import', 'migration'], true)) {
+            throw new InvalidArgumentException('Unsupported Platform Customer registration source.');
+        }
+
+        return $source;
     }
 }

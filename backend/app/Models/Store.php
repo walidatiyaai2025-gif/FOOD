@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\StoreAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Store extends Model
@@ -20,6 +21,11 @@ class Store extends Model
             'advertising_enabled' => 'boolean',
             'coupons_enabled' => 'boolean',
         ];
+    }
+
+    public function defaultCustomerWholesalePriceTier(): BelongsTo
+    {
+        return $this->belongsTo(B2bPriceTier::class, 'default_customer_wholesale_price_tier_id');
     }
 
     /** @return HasMany<UserStoreRole, $this> */
