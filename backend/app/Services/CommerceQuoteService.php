@@ -152,6 +152,7 @@ final class CommerceQuoteService
                 }
 
                 $hasUnavailableItems = true;
+
                 continue;
             }
 
