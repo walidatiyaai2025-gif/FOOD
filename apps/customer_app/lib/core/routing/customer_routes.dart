@@ -19,6 +19,7 @@ abstract final class CustomerRoutePaths {
   static const settings = '/profile/settings';
   static const cart = '/cart';
   static const checkoutAuth = '/auth/checkout';
+  static const customerLogin = '/auth/login';
   static const register = '/auth/register';
   static const checkoutAddressPayment = '/checkout/address-payment';
   static const orderTracking = '/orders/:id/track';
@@ -177,6 +178,10 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     pattern: CustomerRoutePaths.checkoutAuth,
     label: 'B2C checkout login',
     channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.customerLogin,
+    label: 'Platform customer login',
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.register,
