@@ -160,18 +160,6 @@ class B2cWorkspaceController extends Controller
         ]);
     }
 
-    public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
-    {
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-        $storeId = $this->workspaceStoreId($request, $user);
-        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'orders.manage', 'b2c');
-
-        return response()->json([
-            'data' => $orders->quote($request, 'b2c', $storeId),
-        ]);
-    }
-
     public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
     {
         $user = $request->user();
