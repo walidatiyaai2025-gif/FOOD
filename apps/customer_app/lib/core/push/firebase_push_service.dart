@@ -255,6 +255,7 @@ class CustomerFirebasePushService {
   StreamSubscription<RemoteMessage>? _openedSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   String? _accessToken;
+  int? _deviceId;
   String? _pendingRoute;
 
   Stream<String> get routes => _routes.stream;
@@ -388,6 +389,7 @@ class CustomerFirebasePushService {
   }
 
   Future<void> bindGuest() async {
+    _deviceId = null;
     final messaging = _messaging;
     if (messaging == null) return;
 
@@ -418,7 +420,7 @@ class CustomerFirebasePushService {
 
     final token = await messaging.getToken();
     if (token != null && token.isNotEmpty) {
-      await registry.register(
+      _deviceId = await registry.register(
         accessToken: accessToken,
         firebaseToken: token,
       );
@@ -432,7 +434,7 @@ class CustomerFirebasePushService {
         return;
       }
 
-      await registry.register(
+      _deviceId = await registry.register(
         accessToken: currentToken,
         firebaseToken: newToken,
       );
@@ -440,7 +442,25 @@ class CustomerFirebasePushService {
   }
 
   Future<void> revokeSession() async {
+    final accessToken = _accessToken;
+    final deviceId = _deviceId;
     _accessToken = null;
+    _deviceId = null;
+
+    await _tokenSubscription?.cancel();
+    _tokenSubscription = null;
+
+    if (accessToken != null && accessToken.isNotEmpty && deviceId != null) {
+      try {
+        await registry.revoke(
+          accessToken: accessToken,
+          deviceId: deviceId,
+        );
+      } catch (_) {
+        // Local logout must continue even if device revocation is unavailable.
+      }
+    }
+
     await bindGuest();
   }
 
