@@ -38,7 +38,7 @@ aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
 aside.foodex-sidebar-collapsed .foodex-sidebar-search,
 aside.foodex-sidebar-collapsed .foodex-nav-label,
 aside.foodex-sidebar-collapsed .foodex-nav-chevron,
-aside.foodex-sidebar-collapsed .foodex-nav-group>summary span:nth-child(2)
+aside.foodex-sidebar-collapsed .foodex-nav-group>summary span:nth-child(2){display:none!important}
 
 aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:center;flex-wrap:wrap}
 aside.foodex-sidebar-collapsed .foodex-sidebar-brand{justify-content:center;width:100%}
