@@ -35,6 +35,30 @@ void main() {
     expect(body['token'], 'fcm-token');
   });
 
+  test('device registry revokes authenticated customer push device', () async {
+    late http.Request captured;
+    final client = MockClient((request) async {
+      captured = request;
+      return http.Response('', 204);
+    });
+    final registry = CustomerPushDeviceRegistry(
+      baseUrl: 'https://foodex.50sols.com',
+      client: client,
+    );
+
+    await registry.revoke(
+      accessToken: 'access-token',
+      deviceId: 42,
+    );
+
+    expect(
+      captured.url.toString(),
+      'https://foodex.50sols.com/api/v1/push/devices/42',
+    );
+    expect(captured.method, 'DELETE');
+    expect(captured.headers['Authorization'], 'Bearer access-token');
+  });
+
   test('guest registry uses anonymous customer push endpoint', () async {
     late http.Request captured;
     final client = MockClient((request) async {
