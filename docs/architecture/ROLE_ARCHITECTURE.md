@@ -29,13 +29,19 @@ Rules:
 
 ## Customer identities and business records
 
-Authentication identity may remain in shared `users`, but customer business records are separate:
+Customer App commerce uses one shared authentication identity in `users` plus one `platform_customers` identity record. Business records remain separate and store/channel owned.
 
-- **B2C Guest** browses without authentication.
-- **B2C Customer** authenticates for checkout, favorites/addresses and order history; the business customer record lives in the store-scoped `b2c_customers` domain/table.
-- **B2B Customer** has no public self-registration; authorized wholesale dashboard users create/approve the account and the business record lives in the independent `b2b_customers` domain/table.
+- **B2C Guest** browses Wholesale and Retail storefronts without authentication.
+- **Platform Customer** registers once from Wholesale or an exact Retail storefront and uses the same login across the platform.
+- A Retail-origin Platform Customer immediately gets the source store's scoped `b2c_customer` and automatically receives an active Wholesale `b2b_customer + b2b_account` with the approved default price tier.
+- Additional Retail `b2c_customers` materialize only per exact store as the same Platform Customer later performs authenticated commerce there.
+- **Managed corporate/credit B2B accounts** remain an administrative Wholesale lifecycle; automatic Platform Customer Wholesale eligibility must not bypass special approval/credit policy.
+- Registration origin is immutable provenance and is visible in authorized Dashboard Customer 360 views.
+- One customer login never grants Dashboard/admin permissions.
 
-A shared `customers.type` table is transitional and must not remain the final multi-tenant persistence model.
+A shared `customers.type` table is transitional compatibility only and must not become the authority for multi-tenant business ownership.
+
+The detailed authority is `docs/architecture/PLATFORM_CUSTOMER_COMMERCE.md`.
 
 ## Authorization invariant
 
