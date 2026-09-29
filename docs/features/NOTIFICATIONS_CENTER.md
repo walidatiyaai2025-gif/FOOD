@@ -14,3 +14,30 @@ Audience checks combine user target, Customer/Driver app identity and B2C/B2B ch
 
 ## Localization
 The Notifications Center labels live in `lang/ar/notifications.php` and `lang/en/notifications.php`. `TranslationCatalog` registers the group, so those strings appear in the existing Translation Center alongside Admin, Customer and Driver strings.
+
+
+## Platform Customer commerce operational events — Wave K
+
+Wave K (#406 / issues #407-#414) extends the existing Notifications Center and live Dashboard transport. It must **reuse** this subsystem rather than create another notification store.
+
+Minimum live Dashboard events:
+- order created;
+- invoice issued;
+- invoice reissued/revised;
+- invoice voided;
+- relevant payment status change;
+- driver assigned/reassigned;
+- driver accepted;
+- picked up;
+- out for delivery;
+- delivered;
+- failed;
+- driver note added.
+
+Every event must carry authoritative store/channel context and only enough identifiers for authorized deep links (order/invoice/assignment). Audience resolution remains server-side:
+- Retail event -> that exact Retail store's authorized Dashboard users.
+- Wholesale event -> authorized Wholesale users.
+- SUPER_ADMIN visibility follows explicit platform permissions.
+- Reconnect/retry must suppress duplicate logical events/unread rows.
+
+Arabic and English copy are mandatory. Event payloads must never expose another tenant's customer/order/invoice data.
