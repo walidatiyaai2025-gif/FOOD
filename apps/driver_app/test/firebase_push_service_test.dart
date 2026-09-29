@@ -11,6 +11,20 @@ void main() {
     expect(config.isConfigured, isFalse);
   });
 
+  test('driver local notification payload restores safe assignment routing', () {
+    final open = DriverFirebasePushService.openForPayload(jsonEncode({
+      'assignment_id': '42',
+      'order_id': '99',
+      'access_revoked': '0',
+    }));
+
+    expect(open, isNotNull);
+    expect(open!.assignmentId, 42);
+    expect(open.orderId, 99);
+    expect(open.accessRevoked, isFalse);
+    expect(DriverFirebasePushService.openForPayload('{invalid'), isNull);
+  });
+
   test('driver push data preserves assignment routing and revocation state', () {
     final open = DriverFirebasePushService.openForData({
       'assignment_id': '42',
