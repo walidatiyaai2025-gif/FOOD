@@ -460,7 +460,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                   const SizedBox(height: 10),
                   FilledButton.icon(
                     key: Key(
-                      'driver-navigate-' + assignment.id.toString(),
+                      'driver-navigate-${assignment.id}',
                     ),
                     onPressed: () async {
                       final launched = await widget.navigationLauncher(
