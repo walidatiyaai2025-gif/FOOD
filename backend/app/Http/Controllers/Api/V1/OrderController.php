@@ -17,6 +17,7 @@ use App\Services\OperationalTenantScope;
 use App\Services\OrderInventoryReservationService;
 use App\Services\PlatformCustomerService;
 use App\Services\RetailWholesaleReplenishmentService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -243,7 +244,7 @@ class OrderController extends Controller
         return [$resolver->b2cFromRequest($user, $request), 'b2c'];
     }
 
-    private function platformCustomerOrders(User $user)
+    private function platformCustomerOrders(User $user): Builder
     {
         $b2bCustomerId = DB::table('b2b_customers')
             ->where('user_id', $user->getKey())
