@@ -16,6 +16,18 @@ class DriverPushAlert {
   final String body;
 }
 
+class DriverPushOpen {
+  const DriverPushOpen({
+    this.assignmentId,
+    this.orderId,
+    this.accessRevoked = false,
+  });
+
+  final int? assignmentId;
+  final int? orderId;
+  final bool accessRevoked;
+}
+
 class DriverFirebaseConfig {
   const DriverFirebaseConfig({required this.apiKey, required this.appId, required this.messagingSenderId, required this.projectId});
   final String apiKey;
@@ -76,16 +88,17 @@ class DriverFirebasePushService {
   DriverFirebasePushService._({required this.registry, required FirebaseMessaging? messaging}) : _messaging = messaging;
   final DriverPushDeviceRegistry registry;
   final FirebaseMessaging? _messaging;
-  final StreamController<void> _opens = StreamController<void>.broadcast();
+  final StreamController<DriverPushOpen> _opens =
+      StreamController<DriverPushOpen>.broadcast();
   final StreamController<DriverPushAlert> _alerts = StreamController<DriverPushAlert>.broadcast();
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   String? _accessToken;
   int? _deviceId;
-  bool _hasPendingOpen = false;
+  DriverPushOpen? _pendingOpen;
 
-  Stream<void> get opens => _opens.stream;
+  Stream<DriverPushOpen> get opens => _opens.stream;
   Stream<DriverPushAlert> get alerts => _alerts.stream;
   bool get enabled => _messaging != null;
 
@@ -102,8 +115,13 @@ class DriverFirebasePushService {
       await messaging.requestPermission(alert: true, badge: true, sound: true);
       await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
       final service = DriverFirebasePushService._(registry: registry, messaging: messaging);
-      service._hasPendingOpen = await messaging.getInitialMessage() != null;
-      service._openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen((_) { service._opens.add(null); });
+      final initialMessage = await messaging.getInitialMessage();
+      service._pendingOpen = initialMessage == null
+          ? null
+          : DriverFirebasePushService.openForData(initialMessage.data);
+      service._openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        service._opens.add(DriverFirebasePushService.openForData(message.data));
+      });
       service._foregroundSubscription = FirebaseMessaging.onMessage.listen((message) {
         final notification = message.notification;
         if (notification == null) return;
@@ -115,7 +133,28 @@ class DriverFirebasePushService {
     }
   }
 
-  bool takePendingOpen() { final value = _hasPendingOpen; _hasPendingOpen = false; return value; }
+  static DriverPushOpen openForData(Map<String, dynamic>? data) {
+    if (data == null || data.isEmpty) return const DriverPushOpen();
+
+    final assignmentId =
+        int.tryParse((data['assignment_id'] ?? '').toString());
+    final orderId = int.tryParse((data['order_id'] ?? '').toString());
+    final revoked = const {'1', 'true', 'yes'}
+        .contains((data['access_revoked'] ?? '').toString().toLowerCase());
+
+    return DriverPushOpen(
+      assignmentId:
+          assignmentId != null && assignmentId > 0 ? assignmentId : null,
+      orderId: orderId != null && orderId > 0 ? orderId : null,
+      accessRevoked: revoked,
+    );
+  }
+
+  DriverPushOpen? takePendingOpen() {
+    final value = _pendingOpen;
+    _pendingOpen = null;
+    return value;
+  }
 
   Future<void> bindSession(String accessToken) async {
     _accessToken = accessToken;
