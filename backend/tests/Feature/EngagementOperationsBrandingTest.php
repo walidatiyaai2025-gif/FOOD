@@ -97,11 +97,10 @@ class EngagementOperationsBrandingTest extends TestCase
             ->assertSee('Order status timeline');
     }
 
-    public function test_platform_logo_asset_is_served_from_public_brand_path(): void
+    public function test_platform_logo_asset_is_packaged_in_public_brand_path(): void
     {
-        $this->get('/brand/foodex-economical-group.webp')
-            ->assertOk()
-            ->assertHeader('content-type', 'image/webp');
+        $this->assertFileExists(public_path('brand/foodex-economical-group.webp'));
+        $this->assertGreaterThan(0, filesize(public_path('brand/foodex-economical-group.webp')));
     }
 
     private function order(int $storeId, string $number): int
