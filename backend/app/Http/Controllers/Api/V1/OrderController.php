@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
+use App\Models\DriverAssignment;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
@@ -196,6 +197,39 @@ class OrderController extends Controller
 
             if ($targetStatus === 'cancelled') {
                 app(OrderInventoryReservationService::class)->release($locked, $user);
+
+                $activeAssignment = DriverAssignment::query()
+                    ->where('order_id', $locked->getKey())
+                    ->whereNotIn('status', [
+                        'delivered',
+                        'failed',
+                        'cancelled',
+                        'unassigned',
+                        'reassigned',
+                    ])
+                    ->latest('id')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($activeAssignment instanceof DriverAssignment) {
+                    $assignmentBefore = $activeAssignment->toArray();
+                    $activeAssignment->forceFill([
+                        'status' => 'cancelled',
+                        'completed_at' => now(),
+                    ])->save();
+
+                    $auditLogger->record(
+                        'delivery.assignment.cancelled',
+                        $user,
+                        $activeAssignment,
+                        $assignmentBefore,
+                        [
+                            ...$activeAssignment->fresh()->toArray(),
+                            'reason' => 'order_cancelled',
+                        ],
+                        $request,
+                    );
+                }
             } elseif ($targetStatus === 'delivered') {
                 app(OrderInventoryReservationService::class)->consume($locked, $user);
                 app(RetailWholesaleReplenishmentService::class)->receive($locked, $user);
