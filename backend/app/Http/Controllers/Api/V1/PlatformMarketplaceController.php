@@ -197,13 +197,11 @@ final class PlatformMarketplaceController extends Controller
         $city = trim((string) $request->query('city', ''));
         $area = trim((string) $request->query('area', ''));
 
-        $query = DB::table('stores')
+        $query = DB::table('banners')
+            ->join('stores', 'stores.id', '=', 'banners.store_id')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->leftJoin('storefront_settings', 'storefront_settings.store_id', '=', 'stores.id')
-            ->leftJoin('banners', function ($join): void {
-                $join->on('banners.store_id', '=', 'stores.id')
-                    ->where('banners.is_active', true);
-            })
+            ->where('banners.is_active', true)
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2C');
 
@@ -233,40 +231,36 @@ final class PlatformMarketplaceController extends Controller
         return $query
             ->orderBy('banners.sort_order')
             ->orderBy('banners.id')
-            ->orderByDesc('stores.created_at')
-            ->orderByDesc('stores.id')
             ->get([
+                'banners.id as banner_id',
+                'banners.title',
+                'banners.image_path',
+                'banners.target_type',
+                'banners.target_id',
+                'banners.target_url',
+                'banners.sort_order',
                 'stores.id as store_id',
                 'stores.code',
                 'stores.name',
                 'stores.logo_path',
                 'storefront_settings.theme_code',
                 'storefront_settings.header_address',
-                'banners.id as banner_id',
-                'banners.title as banner_title',
-                'banners.image_path as banner_path',
-                'banners.target_type',
-                'banners.target_id',
-                'banners.target_url',
-                'banners.sort_order',
             ])
-            ->map(fn (object $store): array => [
-                // Keep id as StoreId for the mobile route contract.
-                'id' => (int) $store->store_id,
-                'store_id' => (int) $store->store_id,
-                'banner_id' => $store->banner_id === null ? null : (int) $store->banner_id,
-                'code' => (string) $store->code,
-                'name' => (string) $store->name,
-                'title' => $store->banner_title ?: $store->name,
-                'banner_url' => $this->assetUrl($store->banner_path ?: $store->logo_path),
-                'logo_url' => $this->assetUrl($store->logo_path),
-                'theme_code' => (string) ($store->theme_code ?? 'retail_grocery'),
-                'address' => $store->header_address,
-                'target_type' => $store->target_type,
-                'target_id' => $store->target_id === null ? null : (int) $store->target_id,
-                'target_url' => $store->target_url,
-                'sort_order' => (int) ($store->sort_order ?? 0),
+            ->map(fn (object $banner): array => [
+                'id' => (int) $banner->store_id,
+                'banner_id' => (int) $banner->banner_id,
+                'code' => (string) $banner->code,
+                'name' => (string) $banner->name,
+                'title' => (string) $banner->title,
+                'banner_url' => $this->assetUrl($banner->image_path),
+                'logo_url' => $this->assetUrl($banner->logo_path),
+                'theme_code' => (string) ($banner->theme_code ?? 'retail_grocery'),
+                'address' => $banner->header_address,
                 'channel' => 'b2c',
+                'target_type' => $banner->target_type,
+                'target_id' => $banner->target_id === null ? null : (int) $banner->target_id,
+                'target_url' => $banner->target_url,
+                'sort_order' => (int) $banner->sort_order,
             ])
             ->values()
             ->all();
