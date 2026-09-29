@@ -43,14 +43,24 @@ final class PushDeliveryService
         PushDeviceToken $device,
         array $payload,
         bool $isTest = false,
+        ?int $notificationId = null,
     ): PushDeliveryLog {
+        $attempt = $notificationId === null
+            ? 1
+            : PushDeliveryLog::query()
+                ->where('notification_id', $notificationId)
+                ->where('device_id', $device->id)
+                ->count() + 1;
+
         $log = PushDeliveryLog::query()->create([
+            'notification_id' => $notificationId,
             'user_id' => $device->user_id,
             'device_id' => $device->id,
             'app' => $device->app,
             'platform' => $device->platform,
             'environment' => $device->environment,
             'status' => 'sending',
+            'attempt' => $attempt,
             'is_test' => $isTest,
         ]);
 
@@ -61,6 +71,7 @@ final class PushDeliveryService
 
             $body = $response->json();
             $successful = $response->successful();
+            $invalidToken = ! $successful && $this->isInvalidDeviceToken($body);
 
             $log->update([
                 'status' => $successful ? 'sent' : 'failed',
@@ -70,11 +81,15 @@ final class PushDeliveryService
                     : null,
                 'error_code' => $successful
                     ? null
-                    : 'provider_http_'.$response->status(),
+                    : ($invalidToken ? 'invalid_device_token' : 'provider_http_'.$response->status()),
                 'error_message' => $successful
                     ? null
                     : $this->safeError($body),
             ]);
+
+            if ($invalidToken && $device->revoked_at === null) {
+                $device->forceFill(['revoked_at' => now()])->save();
+            }
         } catch (Throwable $exception) {
             $log->update([
                 'status' => 'failed',
@@ -91,6 +106,8 @@ final class PushDeliveryService
         if (! in_array($notification->channel, ['push', 'both'], true)) {
             return;
         }
+
+        $transientFailure = false;
 
         $devices = PushDeviceToken::query()
             ->whereNull('revoked_at')
@@ -137,12 +154,14 @@ final class PushDeliveryService
 
             if ($provider === null) {
                 PushDeliveryLog::query()->create([
+                    'notification_id' => $notification->id,
                     'user_id' => $device->user_id,
                     'device_id' => $device->id,
                     'app' => $device->app,
                     'platform' => $device->platform,
                     'environment' => $device->environment,
                     'status' => 'skipped',
+                    'attempt' => 1,
                     'error_code' => 'provider_not_configured',
                     'error_message' => 'No enabled provider configuration exists for this device.',
                 ]);
@@ -155,7 +174,16 @@ final class PushDeliveryService
                 : (string) $device->locale;
             $english = $deviceLocale === 'en';
 
-            $this->send($provider, $device, [
+            $alreadySent = PushDeliveryLog::query()
+                ->where('notification_id', $notification->id)
+                ->where('device_id', $device->id)
+                ->where('status', 'sent')
+                ->exists();
+            if ($alreadySent) {
+                continue;
+            }
+
+            $log = $this->send($provider, $device, [
                 'title' => $english
                     ? $notification->title_en
                     : $notification->title_ar,
@@ -164,8 +192,56 @@ final class PushDeliveryService
                     : $notification->body_ar,
                 'image_url' => $imageUrl,
                 'data' => $this->pushData($notification, $english, $imageUrl),
-            ]);
+            ], false, (int) $notification->id);
+
+            if ($this->isTransientFailure($log)) {
+                $transientFailure = true;
+            }
         }
+
+        if ($transientFailure) {
+            throw new \RuntimeException('One or more push deliveries failed transiently and will be retried.');
+        }
+    }
+
+    private function isTransientFailure(PushDeliveryLog $log): bool
+    {
+        if ($log->status !== 'failed' || $log->error_code === 'invalid_device_token') {
+            return false;
+        }
+
+        $code = $log->response_code === null ? null : (int) $log->response_code;
+        if ($code === null) {
+            return $log->error_code !== ValidationException::class
+                && $log->error_code !== 'ValidationException';
+        }
+
+        return $code === 429 || $code >= 500;
+    }
+
+    private function isInvalidDeviceToken(mixed $body): bool
+    {
+        if (! is_array($body)) {
+            return false;
+        }
+
+        $status = strtoupper((string) data_get($body, 'error.status', ''));
+        if ($status === 'UNREGISTERED') {
+            return true;
+        }
+
+        foreach ((array) data_get($body, 'error.details', []) as $detail) {
+            if (! is_array($detail)) {
+                continue;
+            }
+
+            $errorCode = strtoupper((string) ($detail['errorCode'] ?? ''));
+            if (in_array($errorCode, ['UNREGISTERED', 'INVALID_ARGUMENT'], true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return array<string, string> */
