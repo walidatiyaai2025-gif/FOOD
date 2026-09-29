@@ -45,6 +45,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
     required this.location,
     required this.session,
     required this.onAuthenticated,
+    required this.onPlatformRegistered,
     required this.catalogApi,
     required this.accountApi,
     required this.actionApi,
@@ -59,6 +60,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
   final String location;
   final CustomerSession session;
   final CustomerAuthenticated onAuthenticated;
+  final ValueChanged<String> onPlatformRegistered;
   final B2cCatalogApi catalogApi;
   final B2cAccountApi accountApi;
   final CustomerActionApi actionApi;
@@ -73,7 +75,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
       case CustomerRoutePaths.marketplace:
         return PlatformMarketplaceScreen(
           session: session,
-          onAuthenticated: onAuthenticated,
+          onPlatformRegistered: onPlatformRegistered,
         );
       case CustomerRoutePaths.stores:
       case CustomerRoutePaths.storeSelector:
