@@ -333,6 +333,8 @@ class _WholesaleHeader extends StatelessWidget {
   const _WholesaleHeader({
     required this.title,
     required this.onCart,
+    required this.onAccount,
+    required this.authenticated,
     required this.palette,
     this.logoUrl,
     this.address,
@@ -342,6 +344,8 @@ class _WholesaleHeader extends StatelessWidget {
   final String? logoUrl;
   final String? address;
   final VoidCallback onCart;
+  final VoidCallback onAccount;
+  final bool authenticated;
   final FoodexPalette palette;
 
   @override
@@ -409,7 +413,12 @@ class _WholesaleHeader extends StatelessWidget {
                 ],
               ),
             ),
-            const _RoundHeaderIcon(icon: Icons.notifications_none_rounded),
+            _RoundHeaderIcon(
+              icon: authenticated
+                  ? Icons.person_rounded
+                  : Icons.person_add_alt_1_rounded,
+              onTap: onAccount,
+            ),
             const SizedBox(width: 8),
             _RoundHeaderIcon(
               icon: Icons.shopping_cart_outlined,
@@ -441,6 +450,172 @@ class _RoundHeaderIcon extends StatelessWidget {
             height: 44,
             child: Icon(icon, color: Colors.white),
           ),
+        ),
+      );
+}
+
+class _RetailStoreBannerStrip extends StatelessWidget {
+  const _RetailStoreBannerStrip({
+    required this.stores,
+    required this.palette,
+  });
+
+  final List<Map<String, dynamic>> stores;
+  final FoodexPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final height = (MediaQuery.sizeOf(context).height * .20)
+        .clamp(118.0, 176.0)
+        .toDouble();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('customer.marketplace.retail_stores'),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            context.tr('customer.marketplace.retail_hint'),
+            style: TextStyle(
+              color: palette.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: height,
+            child: ListView.separated(
+              key: const ValueKey('platform-retail-banner-strip'),
+              scrollDirection: Axis.horizontal,
+              itemCount: stores.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final store = stores[index];
+                final id = intValue(store['id']);
+                final image = store['banner_url']?.toString();
+                final logo = store['logo_url']?.toString();
+                return SizedBox(
+                  width: (MediaQuery.sizeOf(context).width * .76)
+                      .clamp(250.0, 420.0)
+                      .toDouble(),
+                  child: Material(
+                    color: palette.soft,
+                    borderRadius: BorderRadius.circular(18),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      key: ValueKey('platform-retail-banner-$id'),
+                      onTap: id <= 0
+                          ? null
+                          : () => Navigator.of(context)
+                              .pushNamed('/retail/$id/home'),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (image != null && image.trim().isNotEmpty)
+                            Image.network(
+                              image,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  _RetailBannerFallback(
+                                name: store['name']?.toString() ?? '',
+                                logoUrl: logo,
+                                palette: palette,
+                              ),
+                            )
+                          else
+                            _RetailBannerFallback(
+                              name: store['name']?.toString() ?? '',
+                              logoUrl: logo,
+                              palette: palette,
+                            ),
+                          const DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Color(0xB3000000),
+                                ],
+                              ),
+                            ),
+                          ),
+                          PositionedDirectional(
+                            start: 14,
+                            end: 14,
+                            bottom: 12,
+                            child: Text(
+                              store['title']?.toString() ??
+                                  store['name']?.toString() ??
+                                  '',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RetailBannerFallback extends StatelessWidget {
+  const _RetailBannerFallback({
+    required this.name,
+    required this.logoUrl,
+    required this.palette,
+  });
+
+  final String name;
+  final String? logoUrl;
+  final FoodexPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [palette.primary, palette.primaryDark],
+          ),
+        ),
+        child: Center(
+          child: logoUrl != null && logoUrl!.trim().isNotEmpty
+              ? Image.network(
+                  logoUrl!,
+                  width: 76,
+                  height: 76,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.storefront_rounded,
+                    color: Colors.white,
+                    size: 54,
+                  ),
+                )
+              : const Icon(
+                  Icons.storefront_rounded,
+                  color: Colors.white,
+                  size: 54,
+                ),
         ),
       );
 }
