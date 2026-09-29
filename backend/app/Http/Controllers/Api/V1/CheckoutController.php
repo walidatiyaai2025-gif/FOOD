@@ -21,6 +21,7 @@ use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\InvoiceService;
+use App\Services\OrderDeliveryAddressSnapshotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -228,6 +229,7 @@ class CheckoutController extends Controller
                 'customer_id' => $legacyCustomerId,
                 $customerColumn => $customer->getKey(),
                 'address_id' => $address->getKey(),
+                ...app(OrderDeliveryAddressSnapshotService::class)->attributes($address),
                 'requested_delivery_date' => $requestedDeliveryDate,
                 'order_number' => 'FDX-'.now()->format('Ymd').'-'.Str::upper(Str::random(10)),
                 'channel' => $channel,
@@ -396,6 +398,7 @@ class CheckoutController extends Controller
             'order_number' => (string) $order->order_number,
             'store_id' => (int) $order->store_id,
             'address_id' => $order->address_id === null ? null : (int) $order->address_id,
+            'delivery_address' => app(OrderDeliveryAddressSnapshotService::class)->payload($order),
             'requested_delivery_date' => $order->requested_delivery_date,
             'channel' => (string) $order->channel,
             'status' => (string) $order->status,
