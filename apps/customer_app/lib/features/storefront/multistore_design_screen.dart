@@ -8,8 +8,10 @@ import '../../core/api/storefront_api.dart';
 import '../../core/api/wholesale_commerce_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../shared/customer_action_widgets.dart';
 import 'retail_multistore_screens.dart';
 import 'professional_store_selector_screen.dart';
+import 'platform_marketplace_screen.dart';
 import 'wholesale_multistore_screens.dart';
 
 bool shouldUseMultiStoreDesign(
@@ -17,6 +19,7 @@ bool shouldUseMultiStoreDesign(
   String location,
 ) {
   switch (definition.pattern) {
+    case CustomerRoutePaths.marketplace:
     case CustomerRoutePaths.stores:
     case CustomerRoutePaths.storeSelector:
     case CustomerRoutePaths.retailHome:
@@ -41,6 +44,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
     required this.definition,
     required this.location,
     required this.session,
+    required this.onAuthenticated,
     required this.catalogApi,
     required this.accountApi,
     required this.actionApi,
@@ -54,6 +58,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
   final CustomerRouteDefinition definition;
   final String location;
   final CustomerSession session;
+  final CustomerAuthenticated onAuthenticated;
   final B2cCatalogApi catalogApi;
   final B2cAccountApi accountApi;
   final CustomerActionApi actionApi;
@@ -65,6 +70,11 @@ class MultiStoreDesignScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (definition.pattern) {
+      case CustomerRoutePaths.marketplace:
+        return PlatformMarketplaceScreen(
+          session: session,
+          onAuthenticated: onAuthenticated,
+        );
       case CustomerRoutePaths.stores:
       case CustomerRoutePaths.storeSelector:
         return ProfessionalStoreSelectorScreen(
