@@ -6,6 +6,7 @@ return [
     'navigation' => 'Navigation',
     'overview' => 'Overview',
     'logout' => 'Sign out',
+    'customer_360' => 'Customer 360',
     'profile' => 'My Profile',
     'sidebar_search' => 'Search navigation',
     'sidebar_toggle' => 'Toggle navigation',
