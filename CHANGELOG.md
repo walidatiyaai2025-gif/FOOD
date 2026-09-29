@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.29 - Advertising center, coupons and mobile trial login
+
+- Add the Advertising / الدعايا admin section with promotional campaigns and tenant-scoped coupon management.
+- Add complete Wholesale vs Retail coupon isolation, redemption rules, audit history and checkout application.
+- Add per-retail-store feature switches for advertising campaigns and coupons.
+- Add temporary username-only mobile trial login for Customer and Driver apps behind the dedicated feature flag, plus logout.
+- Show synchronized 1.0.29 version identity in Dashboard, Customer and Driver so the main trial-distribution workflow can publish the deployable changes.
+
 ## 1.0.28 - Version-locked dashboard APK downloads and admin account/header cleanup
 
 - Add a dedicated Applications section to the admin sidebar with direct Customer and Driver Android APK download links.
