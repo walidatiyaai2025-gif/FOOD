@@ -944,10 +944,12 @@ class _WholesaleBottomNav extends StatelessWidget {
   const _WholesaleBottomNav({
     required this.storeId,
     required this.palette,
+    required this.authenticated,
   });
 
   final int storeId;
   final FoodexPalette palette;
+  final bool authenticated;
 
   @override
   Widget build(BuildContext context) => NavigationBar(
@@ -955,15 +957,27 @@ class _WholesaleBottomNav extends StatelessWidget {
         indicatorColor: palette.soft,
         onDestinationSelected: (index) {
           if (index == 1) {
-            Navigator.of(context).pushNamed(
-              '/b2b/products?store_id=' + storeId.toString(),
-            );
+            Navigator.of(context).pushNamed(CustomerRoutePaths.b2bHome);
           } else if (index == 2) {
+            final target = '/b2b/cart?store=' + storeId.toString();
             Navigator.of(context).pushNamed(
-              '/b2b/cart?store=' + storeId.toString(),
+              authenticated
+                  ? target
+                  : Uri(
+                      path: CustomerRoutePaths.register,
+                      queryParameters: {'return': target},
+                    ).toString(),
             );
           } else if (index == 3) {
-            Navigator.of(context).pushNamed('/b2b/orders');
+            const target = CustomerRoutePaths.b2bOrders;
+            Navigator.of(context).pushNamed(
+              authenticated
+                  ? target
+                  : Uri(
+                      path: CustomerRoutePaths.register,
+                      queryParameters: {'return': target},
+                    ).toString(),
+            );
           }
         },
         destinations: const [
