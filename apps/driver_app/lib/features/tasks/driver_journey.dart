@@ -236,7 +236,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     DriverAssignment assignment,
     String status,
   ) async {
-    final controller = TextEditingController();
+    var noteValue = '';
     final note = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -247,7 +247,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
         ),
         content: TextField(
           key: Key('driver-status-note-$status'),
-          controller: controller,
+          onChanged: (value) => noteValue = value,
           maxLength: 1000,
           maxLines: 3,
           decoration: InputDecoration(
@@ -264,7 +264,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
           FilledButton(
             key: Key('driver-status-confirm-$status'),
             onPressed: () {
-              final value = controller.text.trim();
+              final value = noteValue.trim();
               if (status == 'failed' && value.isEmpty) return;
               Navigator.of(dialogContext).pop(value);
             },
@@ -277,7 +277,6 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
         ],
       ),
     );
-    controller.dispose();
     if (note == null) return;
     await _transition(
       assignment,
