@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.27 - Professional store selector and Driver active-assignment hardening
+
+- Ship the professional Customer multi-store selector v3 with the exact جملة / التجزئة tabs, live store-selector API data, responsive RTL/LTR behavior, backend logos/artwork fallbacks, and explicit loading/error/empty/closed-store states.
+- Keep Retail and Wholesale selection context isolated and route the selected store/receiving-store context into the existing tenant-safe mobile flows.
+- Make the Driver app request `scope=active` explicitly instead of loading assignment history by default.
+- Treat `reassigned` assignment rows as historical in both the Driver API active scope and the Driver UI active filter, alongside delivered, failed, cancelled and unassigned rows.
+- Add backend, HTTP integration and widget regression coverage for active-assignment visibility.
+- Preserve the Firebase service-account OAuth2 push flow and full dispatcher assign/unassign/reassign controls already present on main.
+
+
 ## 1.0.26 - Dynamic Wholesale storefront and synchronized mobile builds
 
 - Add a dedicated B2B/Wholesale Storefront Builder to the Wholesale admin workspace.
