@@ -55,15 +55,17 @@ class DriverNavigator {
         return _page(_homeFor(channel), settings);
       case DriverRoutes.b2cDeliveries:
       case DriverRoutes.b2bDeliveries:
-        final focusAssignmentId = settings.arguments is int
-            ? settings.arguments as int
-            : null;
+        final focusAssignmentId =
+            settings.arguments is int ? settings.arguments as int : null;
+        final initialAssignmentStatus =
+            settings.arguments is String ? settings.arguments as String : null;
         return _page(
           DriverJourneyPage(
             channel: channel,
             repository: repository,
             onSessionExpired: onSessionExpired,
             focusAssignmentId: focusAssignmentId,
+            initialAssignmentStatus: initialAssignmentStatus,
           ),
           settings,
         );
@@ -111,6 +113,9 @@ class DriverNavigator {
       routeName: route,
       deliveriesRoute: deliveries,
       notificationsRoute: notifications,
+      channel: channel,
+      repository: repository,
+      onSessionExpired: onSessionExpired,
       onLogout: onLogout,
     );
   }
@@ -120,18 +125,83 @@ class DriverNavigator {
   }
 }
 
-class _DriverHomePage extends StatelessWidget {
+class _DriverHomePage extends StatefulWidget {
   const _DriverHomePage({
     required this.routeName,
     required this.deliveriesRoute,
     required this.notificationsRoute,
+    required this.channel,
+    required this.repository,
+    this.onSessionExpired,
     this.onLogout,
   });
 
   final String routeName;
   final String deliveriesRoute;
   final String notificationsRoute;
+  final DriverChannel channel;
+  final DriverAssignmentRepository repository;
+  final VoidCallback? onSessionExpired;
   final VoidCallback? onLogout;
+
+  @override
+  State<_DriverHomePage> createState() => _DriverHomePageState();
+}
+
+class _DriverHomePageState extends State<_DriverHomePage> {
+  bool _loading = true;
+  bool _loadFailed = false;
+  List<DriverAssignment> _assignments = const [];
+
+  static const _statuses = [
+    ('accepted', Icons.verified_rounded),
+    ('picked_up', Icons.inventory_2_rounded),
+    ('out_for_delivery', Icons.local_shipping_rounded),
+    ('delivered', Icons.task_alt_rounded),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSummary();
+  }
+
+  Future<void> _loadSummary() async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _loadFailed = false;
+      });
+    }
+    try {
+      final rows = await widget.repository.list(widget.channel);
+      if (!mounted) return;
+      setState(() {
+        _assignments = rows.where((row) => row.channel == widget.channel).toList(growable: false);
+        _loading = false;
+      });
+    } on DriverSessionExpiredException {
+      widget.onSessionExpired?.call();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadFailed = true;
+        });
+      }
+    }
+  }
+
+  int _count(String status) =>
+      _assignments.where((assignment) => assignment.status == status).length;
+
+  Future<void> _openStatus(String status) async {
+    await Navigator.of(context).pushNamed(
+      widget.deliveriesRoute,
+      arguments: status,
+    );
+    if (mounted) await _loadSummary();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,174 +209,239 @@ class _DriverHomePage extends StatelessWidget {
       appBar: AppBar(
         title: Text(context.tr('driver.app.title')),
         actions: [
-          if (onLogout != null)
+          IconButton(
+            key: const Key('driver-home-refresh'),
+            onPressed: _loading ? null : _loadSummary,
+            tooltip: context.tr('driver.refresh'),
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+          if (widget.onLogout != null)
             IconButton(
               key: const Key('driver-logout'),
-              onPressed: onLogout,
+              onPressed: widget.onLogout,
               tooltip: context.tr('driver.logout'),
               icon: const Icon(Icons.logout),
             ),
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: AlignmentDirectional.topStart,
-                  end: AlignmentDirectional.bottomEnd,
-                  colors: [FoodexBrand.greenDark, FoodexBrand.green],
-                ),
-                borderRadius: BorderRadius.circular(26),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x24165D2D),
-                    blurRadius: 24,
-                    offset: Offset(0, 12),
+        child: RefreshIndicator(
+          onRefresh: _loadSummary,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+            children: [
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: AlignmentDirectional.topStart,
+                    end: AlignmentDirectional.bottomEnd,
+                    colors: [FoodexBrand.greenDark, FoodexBrand.green],
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.white24,
-                        foregroundColor: Colors.white,
-                        child: Icon(Icons.local_shipping_rounded),
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'FOODEX DRIVER',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: .8,
+                  borderRadius: BorderRadius.circular(26),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x24165D2D),
+                      blurRadius: 24,
+                      offset: Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.white24,
+                          foregroundColor: Colors.white,
+                          child: Icon(Icons.local_shipping_rounded),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'FOODEX DRIVER',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: .8,
+                            ),
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    Text(
+                      context.tr('driver.home.title'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  Text(
-                    context.tr('driver.home.title'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      context.tr('driver.home.subtitle'),
+                      style: const TextStyle(color: Color(0xFFE3F5E9)),
+                    ),
+                    const SizedBox(height: 18),
+                    FilledButton.icon(
+                      key: const Key('driver-open-deliveries'),
+                      onPressed: () => Navigator.of(context).pushNamed(widget.deliveriesRoute),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: FoodexBrand.greenDark,
+                      ),
+                      icon: const Icon(Icons.route_rounded),
+                      label: Text(context.tr('driver.home.open_deliveries')),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      key: const Key('driver-open-notifications'),
+                      onPressed: () => Navigator.of(context).pushNamed(
+                        widget.notificationsRoute,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white54),
+                      ),
+                      icon: const Icon(Icons.notifications_none_rounded),
+                      label: Text(context.tr('driver.notifications.title')),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                context.tr('driver.home.status_summary'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    context.tr('driver.home.subtitle'),
-                    style: const TextStyle(color: Color(0xFFE3F5E9)),
-                  ),
-                  const SizedBox(height: 18),
-                  FilledButton.icon(
-                    key: const Key('driver-open-deliveries'),
-                    onPressed: () => Navigator.of(context).pushNamed(deliveriesRoute),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: FoodexBrand.greenDark,
-                    ),
-                    icon: const Icon(Icons.route_rounded),
-                    label: Text(context.tr('driver.home.open_deliveries')),
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    key: const Key('driver-open-notifications'),
-                    onPressed: () => Navigator.of(context).pushNamed(
-                      notificationsRoute,
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white54),
-                    ),
-                    icon: const Icon(Icons.notifications_none_rounded),
-                    label: Text(context.tr('driver.notifications.title')),
-                  ),
-                ],
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _DriverHomeMetric(
-                    icon: Icons.verified_rounded,
-                    label: context.tr('driver.home.ready'),
-                    value: '✓',
-                    tone: FoodexBrand.greenSoft,
-                    foreground: FoodexBrand.greenDark,
+              const SizedBox(height: 10),
+              if (_loadFailed)
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.cloud_off_rounded),
+                    title: Text(context.tr('driver.error')),
+                    trailing: TextButton(
+                      onPressed: _loadSummary,
+                      child: Text(context.tr('driver.retry')),
+                    ),
+                  ),
+                )
+              else
+                SingleChildScrollView(
+                  key: const Key('driver-home-status-cards'),
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < _statuses.length; i++) ...[
+                        SizedBox(
+                          width: 150,
+                          child: _DriverStatusCard(
+                            key: Key('driver-home-status-${_statuses[i].$1}'),
+                            icon: _statuses[i].$2,
+                            label: context.tr('driver.status.${_statuses[i].$1}'),
+                            value: _loading ? null : _count(_statuses[i].$1),
+                            onTap: _loading ? null : () => _openStatus(_statuses[i].$1),
+                          ),
+                        ),
+                        if (i != _statuses.length - 1) const SizedBox(width: 10),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _DriverHomeMetric(
-                    icon: Icons.hub_rounded,
-                    label: context.tr('driver.home.channel'),
-                    value: routeName.contains('/b2b/') ? 'B2B' : 'Retail',
-                    tone: FoodexBrand.orangeSoft,
-                    foreground: FoodexBrand.orange,
+              const SizedBox(height: 12),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.hub_rounded),
+                  title: Text(context.tr('driver.home.channel')),
+                  subtitle: Text(
+                    widget.routeName,
+                    key: const Key('driver-route'),
+                  ),
+                  trailing: Text(
+                    widget.routeName.contains('/b2b/') ? 'B2B' : 'Retail',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.shield_outlined),
-                title: Text(context.tr('driver.app.title')),
-                subtitle: Text(routeName, key: const Key('driver-route')),
-                trailing: const Icon(Icons.lock_outline_rounded),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _DriverHomeMetric extends StatelessWidget {
-  const _DriverHomeMetric({
+class _DriverStatusCard extends StatelessWidget {
+  const _DriverStatusCard({
+    super.key,
     required this.icon,
     required this.label,
     required this.value,
-    required this.tone,
-    required this.foreground,
+    required this.onTap,
   });
 
   final IconData icon;
   final String label;
-  final String value;
-  final Color tone;
-  final Color foreground;
+  final int? value;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Container(
-        constraints: const BoxConstraints(minHeight: 122),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: tone,
+  Widget build(BuildContext context) => Material(
+        color: FoodexBrand.surface,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: foreground.withAlpha(31)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: foreground),
-            const SizedBox(height: 18),
-            Text(value, style: TextStyle(color: foreground, fontSize: 22, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 3),
-            Text(label, maxLines: 2, overflow: TextOverflow.ellipsis),
-          ],
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 128),
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: FoodexBrand.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: FoodexBrand.greenSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: FoodexBrand.greenDark, size: 21),
+                ),
+                const SizedBox(height: 16),
+                if (value == null)
+                  const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                  )
+                else
+                  Text(
+                    value.toString(),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
         ),
       );
 }
