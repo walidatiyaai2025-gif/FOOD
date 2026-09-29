@@ -344,5 +344,4 @@ final class NotificationController extends Controller
             ? $value
             : url('/'.ltrim($value, '/'));
     }
-
 }
