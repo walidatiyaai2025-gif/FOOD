@@ -488,53 +488,101 @@ class _MarketplaceHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              radius: 22,
-              backgroundColor: Color(0xFFE9F8EF),
-              child: Icon(Icons.storefront_rounded, color: Color(0xFF087347)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'FOODEX',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 520;
+            return Row(
+              children: [
+                const CircleAvatar(
+                  radius: 22,
+                  backgroundColor: Color(0xFFE9F8EF),
+                  child: Icon(
+                    Icons.storefront_rounded,
+                    color: Color(0xFF087347),
                   ),
-                  Text(
-                    context.tr('customer.marketplace.browse_guest'),
-                    style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'FOODEX',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        context.tr('customer.marketplace.browse_guest'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF667085),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('marketplace-cart'),
+                  tooltip: context.tr('customer.nav.cart'),
+                  onPressed: onCart,
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                ),
+                IconButton(
+                  key: const ValueKey('marketplace-notifications'),
+                  tooltip: context.tr('customer.nav.notifications'),
+                  onPressed: onNotifications,
+                  icon: const Icon(Icons.notifications_none_rounded),
+                ),
+                if (authenticated)
+                  IconButton(
+                    key: const ValueKey('marketplace-profile'),
+                    onPressed: () =>
+                        Navigator.of(context).pushNamed('/profile'),
+                    icon: const Icon(Icons.person_outline_rounded),
+                  )
+                else if (compact)
+                  PopupMenuButton<String>(
+                    key: const ValueKey('marketplace-auth-menu'),
+                    icon: const Icon(Icons.account_circle_outlined),
+                    onSelected: (value) {
+                      if (value == 'login') {
+                        onLogin();
+                      } else {
+                        onRegister();
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: 'login',
+                        child: Text(context.tr('customer.action.login')),
+                      ),
+                      PopupMenuItem(
+                        value: 'register',
+                        child: Text(
+                          context.tr('customer.marketplace.register'),
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  TextButton(
+                    onPressed: onLogin,
+                    child: Text(context.tr('customer.action.login')),
+                  ),
+                  FilledButton(
+                    onPressed: onRegister,
+                    child: Text(context.tr('customer.marketplace.register')),
                   ),
                 ],
-              ),
-            ),
-            IconButton(
-              key: const ValueKey('marketplace-cart'),
-              tooltip: context.tr('customer.nav.cart'),
-              onPressed: onCart,
-              icon: const Icon(Icons.shopping_cart_outlined),
-            ),
-            IconButton(
-              key: const ValueKey('marketplace-notifications'),
-              tooltip: context.tr('customer.nav.notifications'),
-              onPressed: onNotifications,
-              icon: const Icon(Icons.notifications_none_rounded),
-            ),
-            if (!authenticated) ...[
-              TextButton(onPressed: onLogin, child: Text(context.tr('customer.action.login'))),
-              FilledButton(onPressed: onRegister, child: Text(context.tr('customer.marketplace.register'))),
-            ] else
-              IconButton(
-                key: const ValueKey('marketplace-profile'),
-                onPressed: () => Navigator.of(context).pushNamed('/profile'),
-                icon: const Icon(Icons.person_outline_rounded),
-              ),
-          ],
+              ],
+            );
+          },
         ),
       );
 }
