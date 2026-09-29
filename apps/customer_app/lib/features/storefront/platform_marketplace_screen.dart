@@ -333,6 +333,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   : <String, dynamic>{};
               final retail = _rows(data['retail_banners']);
               final categories = _rows(data['categories']);
+              final offers = _rows(data['offers']);
               final productEnvelope = data['products'] is Map
                   ? Map<String, dynamic>.from(data['products'] as Map)
                   : <String, dynamic>{};
@@ -434,6 +435,76 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           imageUrl: hero['image_url']?.toString(),
                         ),
                       ),
+                      if (offers.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 2),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  context.tr('customer.home.offers'),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w900),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  height: 76,
+                                  child: ListView.separated(
+                                    key: const ValueKey(
+                                      'marketplace-wholesale-offers',
+                                    ),
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: offers.length,
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(width: 8),
+                                    itemBuilder: (_, index) {
+                                      final offer = offers[index];
+                                      final value = offer['value'];
+                                      return Container(
+                                        constraints:
+                                            const BoxConstraints(minWidth: 170),
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF4ECFB),
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              offer['name']?.toString() ?? '',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                            if (value != null)
+                                              Text(
+                                                '${offer['type'] ?? ''} · $value',
+                                                style: const TextStyle(
+                                                  color: Color(0xFF6B3A8E),
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       if (categories.isNotEmpty)
                         SliverToBoxAdapter(
                           child: SizedBox(
