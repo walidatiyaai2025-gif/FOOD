@@ -287,37 +287,13 @@ class _BrandMark extends StatelessWidget {
   const _BrandMark();
 
   @override
-  Widget build(BuildContext context) => const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: Color(0xFF078A43),
-            child: Icon(Icons.shopping_bag_rounded, color: Colors.white),
-          ),
-          SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'FOODEX',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: .6,
-                ),
-              ),
-              Text(
-                'MULTI STORE',
-                style: TextStyle(
-                  fontSize: 9,
-                  letterSpacing: 2,
-                  color: Color(0xFF6B7785),
-                ),
-              ),
-            ],
-          ),
-        ],
+  Widget build(BuildContext context) => Center(
+        child: Image.asset(
+          'assets/branding/foodex-economical-group.webp',
+          height: 72,
+          fit: BoxFit.contain,
+          semanticLabel: 'FOODEX Economical Group',
+        ),
       );
 }
 
