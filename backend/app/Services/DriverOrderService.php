@@ -233,6 +233,34 @@ final class DriverOrderService
         ];
     }
 
+    /** @return array<string, mixed> */
+    public function historyPayload(DriverAssignment $assignment): array
+    {
+        $order = Order::query()->findOrFail($assignment->order_id);
+        abort_unless(
+            (int) $order->store_id === (int) $assignment->store_id
+                && strtolower((string) $order->channel) === strtolower((string) $assignment->assignment_type),
+            404,
+        );
+
+        return [
+            'id' => (int) $assignment->getKey(),
+            'driver_id' => (int) $assignment->driver_id,
+            'order_id' => (int) $order->getKey(),
+            'store_id' => (int) $order->store_id,
+            'assignment_type' => strtolower((string) $assignment->assignment_type),
+            'status' => (string) $assignment->status,
+            'assigned_at' => $assignment->assigned_at,
+            'completed_at' => $assignment->completed_at,
+            'available_statuses' => [],
+            'order' => [
+                'number' => (string) $order->order_number,
+                'status' => (string) $order->status,
+                'created_at' => $order->created_at,
+            ],
+        ];
+    }
+
     public function transition(
         DriverAssignment $assignment,
         Driver $driver,
