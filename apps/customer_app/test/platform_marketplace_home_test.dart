@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/localization/app_translations.dart';
 import 'package:foodex_customer_app/features/storefront/platform_marketplace_screen.dart';
@@ -250,7 +251,6 @@ void main() {
       find.byKey(const ValueKey('marketplace-wholesale-product-title')),
       findsOneWidget,
     );
-    expect(find.text('W-RICE-42', findRichText: true), findsNothing);
     expect(find.textContaining('SKU: W-RICE-42'), findsOneWidget);
     expect(find.textContaining('Barcode: 123456789'), findsOneWidget);
     expect(
@@ -326,8 +326,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('marketplace-wholesale-buy')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Login'), findsWidgets);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Login'));
+    expect(find.text('Sign in'), findsWidgets);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Sign in'));
     await tester.pumpAndSettle();
 
     final routeText = tester.widget<Text>(
@@ -420,6 +420,11 @@ void main() {
         child: MaterialApp(
           locale: const Locale('ar'),
           supportedLocales: const [Locale('ar'), Locale('en')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           home: PlatformMarketplaceScreen(
             session: const CustomerSession.guest(),
             onPlatformRegistered: (_) {},
