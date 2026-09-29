@@ -274,6 +274,113 @@ class OrderOperationsIsolationTest extends TestCase
         );
     }
 
+    public function test_dashboard_cancellation_revokes_driver_and_notifies_customer_and_driver(): void
+    {
+        Queue::fake();
+
+        $store = $this->store('OPS-CANCEL-PUSH');
+        $admin = $this->storeAdmin($store, 'ops-cancel-push-admin@example.test');
+        $customerUser = User::query()->create([
+            'name' => 'Cancelled Buyer',
+            'email' => 'ops-cancel-push@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $customer = app(B2cCustomerService::class)->create(
+            $store,
+            [
+                'name' => 'Cancelled Buyer',
+                'email' => $customerUser->email,
+            ],
+            $customerUser,
+        );
+        $order = $this->order(
+            $store,
+            (int) $customer->legacy_customer_id,
+            (int) $customer->id,
+            'OPS-CANCEL-PUSH-1001',
+        );
+
+        $driverUser = User::query()->create([
+            'name' => 'Cancelled Driver',
+            'email' => 'ops-cancel-driver@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $store,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $assignmentId = (int) DB::table('driver_assignments')->insertGetId([
+            'driver_id' => $driverId,
+            'order_id' => $order,
+            'store_id' => $store,
+            'assignment_type' => 'b2c',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post("/admin/operations/orders/{$order}/status", [
+                'status' => 'cancelled',
+                'note' => 'Cancelled by operations',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('driver_assignments', [
+            'id' => $assignmentId,
+            'status' => 'cancelled',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'delivery.assignment.cancelled',
+            'auditable_id' => $assignmentId,
+        ]);
+
+        $customerNotification = DB::table('notifications')
+            ->where('user_id', $customerUser->id)
+            ->where('app', 'customer')
+            ->where('type', 'order.status_changed')
+            ->latest('id')
+            ->first();
+        $driverNotification = DB::table('notifications')
+            ->where('user_id', $driverUser->id)
+            ->where('app', 'driver')
+            ->where('type', 'order.status_changed')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($customerNotification);
+        $this->assertNotNull($driverNotification);
+
+        $customerData = json_decode(
+            (string) $customerNotification->data,
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+        $driverData = json_decode(
+            (string) $driverNotification->data,
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        $this->assertSame('cancelled', $customerData['status']);
+        $this->assertSame($assignmentId, (int) $driverData['assignment_id']);
+        $this->assertTrue((bool) $driverData['access_revoked']);
+        $this->assertArrayHasKey('event_at', $driverData);
+        $this->assertArrayHasKey('state_version', $driverData);
+    }
+
     public function test_retail_admin_cannot_operate_foreign_order_but_can_transition_own_order(): void
     {
         $mine = $this->store('OPS-ACTION-MINE');
