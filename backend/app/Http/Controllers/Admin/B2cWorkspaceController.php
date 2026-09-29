@@ -34,6 +34,7 @@ class B2cWorkspaceController extends Controller
         'dashboard' => null,
         'products' => 'catalog.view',
         'inventory' => 'inventory.view',
+        'incoming_orders' => 'orders.view',
         'orders' => 'orders.view',
         'finance' => 'finance.view',
         'customers' => 'customers.view',
@@ -79,6 +80,7 @@ class B2cWorkspaceController extends Controller
         $counts = [
             'products' => DB::table('store_products')->whereIn('store_id', $storeIds)->count(),
             'orders' => DB::table('orders')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
+            'incoming_orders' => DB::table('orders')->where('channel', 'b2b')->whereIn('b2b_customer_id', DB::table('retail_wholesale_accounts')->where('retail_store_id', $storeId)->select('b2b_customer_id'))->count(),
             'finance' => DB::table('invoices')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
             'customers' => DB::table('b2c_customers')->whereIn('store_id', $storeIds)->count(),
             'inventory' => DB::table('inventories')->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')->whereIn('warehouses.store_id', $storeIds)->count(),
@@ -98,7 +100,7 @@ class B2cWorkspaceController extends Controller
                 $request->filled('q') ? $request->string('q')->toString() : null,
             )
             : null;
-        $moduleData = in_array($module, ['products', 'inventory', 'orders', 'finance', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
+        $moduleData = in_array($module, ['products', 'inventory', 'incoming_orders', 'orders', 'finance', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
             ? $this->moduleData($module, $storeIds, $user, $storeId, $supportAccess)
             : null;
         $visibleModules = array_values(array_filter(
@@ -431,6 +433,63 @@ class B2cWorkspaceController extends Controller
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تعديل المخزون.' : 'Inventory adjusted.');
     }
 
+    public function transferInventory(Request $request, AuditLogger $audit): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $user);
+        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'inventory.manage', 'b2c');
+
+        $data = $request->validate([
+            'inventory_id' => ['required', 'integer', 'exists:inventories,id'],
+            'target_warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
+            'quantity' => ['required', 'numeric', 'gt:0'],
+        ]);
+
+        DB::transaction(function () use ($data, $storeId, $user, $audit, $request): void {
+            $source = DB::table('inventories')
+                ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+                ->where('inventories.id', $data['inventory_id'])
+                ->where('warehouses.store_id', $storeId)
+                ->lockForUpdate()
+                ->first(['inventories.id', 'inventories.product_id', 'inventories.warehouse_id', 'inventories.quantity', 'inventories.reserved_quantity']);
+            abort_unless($source !== null, 404);
+            abort_unless((int) $source->warehouse_id !== (int) $data['target_warehouse_id'], 422, 'Target warehouse must be different.');
+            abort_unless(DB::table('warehouses')->where('id', $data['target_warehouse_id'])->where('store_id', $storeId)->where('is_active', true)->exists(), 404);
+
+            $quantity = (float) $data['quantity'];
+            $available = (float) $source->quantity - (float) $source->reserved_quantity;
+            abort_if($quantity > $available + 0.0001, 422, 'Transfer quantity exceeds available stock.');
+
+            $target = DB::table('inventories')->where('warehouse_id', $data['target_warehouse_id'])->where('product_id', $source->product_id)->lockForUpdate()->first(['id']);
+            if ($target === null) {
+                $targetId = (int) DB::table('inventories')->insertGetId([
+                    'warehouse_id' => $data['target_warehouse_id'], 'product_id' => $source->product_id,
+                    'quantity' => 0, 'reserved_quantity' => 0, 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            } else {
+                $targetId = (int) $target->id;
+            }
+
+            DB::table('inventories')->where('id', $source->id)->decrement('quantity', $quantity, ['updated_at' => now()]);
+            DB::table('inventories')->where('id', $targetId)->increment('quantity', $quantity, ['updated_at' => now()]);
+            $referenceId = (int) now()->format('YmdHis');
+            foreach ([[(int) $source->id, 'transfer_out', -$quantity], [$targetId, 'transfer_in', $quantity]] as [$inventoryId, $type, $movement]) {
+                DB::table('stock_movements')->insert([
+                    'inventory_id' => $inventoryId, 'store_id' => $storeId, 'user_id' => $user->id,
+                    'type' => $type, 'quantity' => $movement, 'reference_type' => 'warehouse_transfer',
+                    'reference_id' => $referenceId, 'reason' => 'Retail warehouse transfer', 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+            $audit->record('b2c.inventory.transferred', $user, null, null, [
+                'store_id' => $storeId, 'source_inventory_id' => (int) $source->id,
+                'target_inventory_id' => $targetId, 'target_warehouse_id' => (int) $data['target_warehouse_id'], 'quantity' => $quantity,
+            ], $request);
+        }, 3);
+
+        return back()->with('status', $this->msg('تم نقل المخزون إلى المخزن المحدد.', 'Inventory transferred to the selected warehouse.'));
+    }
+
     public function saveSetting(Request $request, AuditLogger $audit): RedirectResponse
     {
         $user = $request->user();
@@ -517,6 +576,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'inventory' => $this->inventoryModuleData($storeIds),
+            'incoming_orders' => $this->incomingWholesaleOrderModuleData($selectedStoreId, $scopeParams),
             'orders' => $this->orderModuleData($storeIds),
             'finance' => $this->financeModuleData($storeIds),
             'customers' => $this->customerModuleData($storeIds),
@@ -749,6 +809,68 @@ class B2cWorkspaceController extends Controller
     }
 
     /** @param list<int> $storeIds */
+    /** @param array<string, int> $scopeParams */
+    private function incomingWholesaleOrderModuleData(int $storeId, array $scopeParams): array
+    {
+        $customerId = DB::table('retail_wholesale_accounts')
+            ->where('retail_store_id', $storeId)
+            ->value('b2b_customer_id');
+
+        if ($customerId === null) {
+            return ['actions' => [], 'columns' => ['number', 'status', 'amount', 'created', 'received', 'warehouse', 'tracking', 'actions'], 'rows' => []];
+        }
+
+        $rows = DB::table('orders')
+            ->where('channel', 'b2b')
+            ->where('b2b_customer_id', $customerId)
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get(['id', 'order_number', 'status', 'currency', 'grand_total', 'created_at'])
+            ->map(function ($row) use ($storeId, $scopeParams): array {
+                $replenishment = DB::table('retail_replenishments')
+                    ->where('retail_store_id', $storeId)
+                    ->where('source_order_id', $row->id)
+                    ->first(['id', 'received_at']);
+                $warehouse = null;
+                if ($replenishment !== null) {
+                    $warehouse = DB::table('stock_movements')
+                        ->join('inventories', 'inventories.id', '=', 'stock_movements.inventory_id')
+                        ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+                        ->where('stock_movements.store_id', $storeId)
+                        ->where('stock_movements.reference_type', 'retail_replenishment')
+                        ->where('stock_movements.reference_id', $replenishment->id)
+                        ->value('warehouses.name');
+                }
+                $tracking = DB::table('order_status_history')
+                    ->where('order_id', $row->id)
+                    ->orderBy('id')
+                    ->get(['to_status', 'created_at'])
+                    ->map(fn ($h) => $h->to_status.' · '.$h->created_at)
+                    ->implode(' | ');
+
+                return [
+                    '_id' => (int) $row->id,
+                    'number' => $row->order_number,
+                    'status' => $row->status,
+                    'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
+                    'created' => (string) $row->created_at,
+                    'received' => $replenishment?->received_at === null ? '-' : (string) $replenishment->received_at,
+                    'warehouse' => $warehouse ?: '-',
+                    'tracking' => $tracking !== '' ? $tracking : $this->msg('لم تسجل حركة حالة بعد', 'No status movement recorded yet'),
+                    'actions' => $replenishment === null ? [] : [[
+                        'label' => $this->msg('إدارة المخزون المستلم', 'Manage received inventory'),
+                        'url' => route('admin.b2c.module', array_merge(['module' => 'inventory'], $scopeParams)),
+                    ]],
+                ];
+            })->all();
+
+        return [
+            'actions' => [],
+            'columns' => ['number', 'status', 'amount', 'created', 'received', 'warehouse', 'tracking', 'actions'],
+            'rows' => $rows,
+        ];
+    }
+
     private function inventoryModuleData(array $storeIds): array
     {
         return [
