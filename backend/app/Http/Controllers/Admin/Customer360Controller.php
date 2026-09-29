@@ -11,6 +11,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -476,6 +477,6 @@ final class Customer360Controller extends Controller
 
     private function msg(string $ar, string $en): string
     {
-        return app()->getLocale() === 'ar' ? $ar : $en;
+        return App::getLocale() === 'ar' ? $ar : $en;
     }
 }
