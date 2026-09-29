@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\OperationalTenantScope;
+use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\PushDeliveryService;
 use App\Support\AdminNavigation;
 use Illuminate\Http\RedirectResponse;
@@ -331,6 +332,7 @@ final class OrderOperationsController extends Controller
     private function detail(Order $order): array
     {
         $row = $this->row($order);
+        $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
         $history = OrderStatusHistory::query()
             ->where('order_id', $order->getKey())
@@ -365,6 +367,7 @@ final class OrderOperationsController extends Controller
 
         return [
             ...$row,
+            'delivery_address' => $deliveryAddress,
             'history' => $history,
             'assignments' => $assignments,
         ];
