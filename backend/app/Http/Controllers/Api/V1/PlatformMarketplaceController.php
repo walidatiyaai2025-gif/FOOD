@@ -22,6 +22,7 @@ final class PlatformMarketplaceController extends Controller
             'hero' => $this->wholesaleBanners($storeId)[0] ?? null,
             'banners' => $this->wholesaleBanners($storeId),
             'sections' => $this->sections($storeId),
+            'categories' => $this->categories($storeId),
             'products' => [
                 'data' => $this->products($request, $storeId),
             ],
@@ -163,6 +164,31 @@ final class PlatformMarketplaceController extends Controller
                 'config' => is_string($section->config)
                     ? (json_decode($section->config, true) ?: [])
                     : ((array) ($section->config ?? [])),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function categories(int $storeId): array
+    {
+        return DB::table('categories')
+            ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('categories.is_active', true)
+            ->orderBy('categories.name')
+            ->get([
+                'categories.id',
+                'categories.name',
+                'categories.slug',
+            ])
+            ->map(static fn (object $category): array => [
+                'id' => (int) $category->id,
+                'name' => (string) $category->name,
+                'slug' => (string) $category->slug,
             ])
             ->values()
             ->all();
