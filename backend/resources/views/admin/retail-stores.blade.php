@@ -10,13 +10,23 @@
 .store-head h2,.store-card h3{margin:0}.store-head p{margin:6px 0 0;color:var(--foodex-muted)}
 .store-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--foodex-space-4)}
 .store-form-grid label{display:grid;gap:7px;font-weight:700}.store-form-grid .wide{grid-column:1/-1}
-.store-card{padding:var(--foodex-space-5);display:grid;gap:var(--foodex-space-4)}
-.store-card-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.store-card{padding:0;overflow:hidden}
+.store-card-top{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap}
+.store-accordion{border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm);margin-top:12px}
+.store-accordion summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;user-select:none;transition:background .18s ease}
+.store-accordion summary::-webkit-details-marker{display:none}
+.store-accordion summary:hover{background:var(--foodex-green-soft)}
+.store-accordion[open] summary{background:linear-gradient(180deg,var(--foodex-green-soft),#fff)}
+.store-accordion-summary-main{display:flex;align-items:center;gap:12px;min-width:0}
+.store-accordion-summary-text{min-width:0}
+.store-accordion-chevron{width:34px;height:34px;border-radius:999px;display:grid;place-items:center;border:1px solid var(--foodex-border);background:#fff;color:var(--foodex-green-dark);font-size:18px;font-weight:900;transition:transform .18s ease}
+.store-accordion[open] .store-accordion-chevron{transform:rotate(180deg)}
+.store-accordion-body{padding:var(--foodex-space-5);display:grid;gap:var(--foodex-space-4);border-top:1px solid var(--foodex-border)}
 .store-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.store-assignments{display:grid;gap:8px}
 .store-assignment{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:#fbfcfd;flex-wrap:wrap}
 .store-inline-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.store-search{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
 .manager-mode-panel{padding:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}.store-logo{width:64px;height:64px;border-radius:14px;object-fit:cover;border:1px solid var(--foodex-border);background:#fff}.store-logo-placeholder{width:64px;height:64px;border-radius:14px;display:grid;place-items:center;border:1px dashed var(--foodex-border);background:#f8fafc;font-size:28px}
-@media(max-width:720px){.store-panel,.store-card{padding:var(--foodex-space-4)}}
+@media(max-width:720px){.store-panel{padding:var(--foodex-space-4)}.store-accordion summary{padding:14px}.store-accordion-body{padding:var(--foodex-space-4)}.store-logo,.store-logo-placeholder{width:52px;height:52px}.store-accordion-chevron{width:30px;height:30px}}
 </style>
 </head>
 <body>
@@ -127,23 +137,27 @@
                 </div>
 
                 @forelse($stores as $store)
-                    <article class="foodex-card store-card">
-                        <div class="store-card-top">
-                            <div style="display:flex;align-items:center;gap:12px">
+                    <details class="foodex-card store-card store-accordion" data-store-accordion="{{ $store->id }}" @if($loop->first) open @endif>
+                        <summary aria-label="{{ $ar?'فتح أو إغلاق بيانات المتجر':'Expand or collapse store details' }}">
+                            <div class="store-accordion-summary-main">
                                 @if($store->logo_path)
                                     <img class="store-logo" src="{{ asset(ltrim($store->logo_path,'/')) }}" alt="{{ $store->name }}">
                                 @else
                                     <span class="store-logo-placeholder" aria-label="{{ $ar?'لا يوجد شعار':'No logo' }}">🏪</span>
                                 @endif
-                                <div>
+                                <div class="store-accordion-summary-text">
                                     <div class="store-meta"><h3>{{ $store->name }}</h3><span class="badge">{{ $store->code }}</span><span class="badge {{ $store->is_active?'active':'' }}">{{ $store->is_active?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div>
                                     <small class="foodex-file-help">{{ $ar?'شريحة الجملة':'Wholesale tier' }}: <strong>{{ $store->wholesale_price_tier_name ?: ($ar?'غير محددة':'Not assigned') }}</strong></small>
                                 </div>
                             </div>
-                            <form method="post" action="{{ route('admin.retail-stores.inspect',$store) }}">@csrf
-                                <button class="foodex-action-secondary button secondary" type="submit" @disabled(!$store->is_active)>⌕ {{ $ar?'إدارة / فحص المتجر':'Manage / Inspect Store' }}</button>
-                            </form>
-                        </div>
+                            <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
+                        </summary>
+                        <div class="store-accordion-body">
+                            <div class="store-card-top">
+                                <form method="post" action="{{ route('admin.retail-stores.inspect',$store) }}">@csrf
+                                    <button class="foodex-action-secondary button secondary" type="submit" @disabled(!$store->is_active)>⌕ {{ $ar?'إدارة / فحص المتجر':'Manage / Inspect Store' }}</button>
+                                </form>
+                            </div>
 
                         <form method="post" action="{{ route('admin.retail-stores.update',$store) }}" enctype="multipart/form-data" class="store-form-grid">
                             @csrf @method('patch')
@@ -177,7 +191,8 @@
                             <label>{{ $ar?'الدور داخل المتجر':'Store role' }}<select name="role_id" required><option value="">{{ $ar?'اختر الدور':'Select role' }}</option>@foreach($storeRoles as $role)<option value="{{ $role->id }}">{{ $role->name }} ({{ $role->code }})</option>@endforeach</select></label>
                             <button class="foodex-action-secondary button secondary" type="submit">＋ {{ $ar?'إسناد الدور':'Assign role' }}</button>
                         </form>
-                    </article>
+                        </div>
+                    </details>
                 @empty
                     <div class="foodex-empty-state">{{ $ar?'لا توجد متاجر مطابقة.':'No matching retail stores.' }}</div>
                 @endforelse
