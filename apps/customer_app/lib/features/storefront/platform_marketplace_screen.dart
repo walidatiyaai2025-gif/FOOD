@@ -6,18 +6,17 @@ import 'package:http/http.dart' as http;
 import '../../core/auth/customer_session.dart';
 import '../../core/config/foodex_environment.dart';
 import '../../core/localization/app_translations.dart';
-import '../../shared/customer_action_widgets.dart';
 
 class PlatformMarketplaceScreen extends StatefulWidget {
   const PlatformMarketplaceScreen({
     required this.session,
-    required this.onAuthenticated,
+    required this.onPlatformRegistered,
     super.key,
     this.client,
   });
 
   final CustomerSession session;
-  final CustomerAuthenticated onAuthenticated;
+  final ValueChanged<String> onPlatformRegistered;
   final http.Client? client;
 
   @override
@@ -94,7 +93,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
         throw const _MarketplaceException('missing_token');
       }
 
-      widget.onAuthenticated(CustomerChannel.b2b, token);
+      widget.onPlatformRegistered(token);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('customer.marketplace.registration_success'))),
