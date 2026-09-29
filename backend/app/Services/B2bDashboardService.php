@@ -14,7 +14,7 @@ final class B2bDashboardService
     /** @param list<int> $storeIds */
     public function build(User $user, array $storeIds, ?string $fromDate = null, ?string $toDate = null): array
     {
-        [$rangeFrom, $rangeTo] = $this->range($fromDate, $toDate);
+        [$rangeFrom, $rangeTo] = $this->range($storeIds, $fromDate, $toDate);
         [$from] = $this->utcBounds($rangeFrom);
         [, $to] = $this->utcBounds($rangeTo);
 
@@ -322,21 +322,37 @@ final class B2bDashboardService
         return array_slice($alerts, 0, 4);
     }
 
-    /** @return array{0:CarbonImmutable,1:CarbonImmutable} */
-    private function range(?string $fromDate, ?string $toDate): array
+    /**
+     * @param  list<int>  $storeIds
+     * @return array{0:CarbonImmutable,1:CarbonImmutable}
+     */
+    private function range(array $storeIds, ?string $fromDate, ?string $toDate): array
     {
         $today = CarbonImmutable::now(self::TIMEZONE)->startOfDay();
+        $to = CarbonImmutable::parse($toDate ?: $today->toDateString(), self::TIMEZONE)->startOfDay();
 
-        if ($fromDate !== null && $toDate === null) {
-            $from = CarbonImmutable::parse($fromDate, self::TIMEZONE)->startOfDay();
-
-            return [$from, $from];
+        if ($fromDate !== null) {
+            return [
+                CarbonImmutable::parse($fromDate, self::TIMEZONE)->startOfDay(),
+                $to,
+            ];
         }
 
-        $to = CarbonImmutable::parse($toDate ?: $today->toDateString(), self::TIMEZONE)->startOfDay();
-        $from = CarbonImmutable::parse($fromDate ?: $to->subDays(6)->toDateString(), self::TIMEZONE)->startOfDay();
+        $firstOrderAt = DB::table('orders')
+            ->whereIn('store_id', $storeIds)
+            ->where('channel', 'b2b')
+            ->whereNotNull('b2b_customer_id')
+            ->when(
+                $toDate !== null,
+                fn (Builder $query) => $query->where('created_at', '<=', $to->endOfDay()->utc()->toDateTimeString()),
+            )
+            ->min('created_at');
 
-        return [$from, $to];
+        $from = $firstOrderAt === null
+            ? $to
+            : CarbonImmutable::parse((string) $firstOrderAt, 'UTC')->setTimezone(self::TIMEZONE)->startOfDay();
+
+        return [$from->lte($to) ? $from : $to, $to];
     }
 
     private function delta(float|int $current, float|int $previous): ?float
