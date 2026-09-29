@@ -660,6 +660,7 @@ class _RetailStoreBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final image = store['banner_url']?.toString();
     final logo = store['logo_url']?.toString();
+    final address = store['address']?.toString().trim() ?? '';
     return SizedBox(
       width: width,
       child: Material(
@@ -701,20 +702,54 @@ class _RetailStoreBanner extends StatelessWidget {
                       const SizedBox(width: 9),
                     ],
                     Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            store['title']?.toString() ??
+                                store['name']?.toString() ??
+                                '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (address.isNotEmpty)
+                            Text(
+                              address,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                       child: Text(
-                        store['title']?.toString() ??
-                            store['name']?.toString() ??
-                            '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        context.tr('customer.marketplace.shop_now'),
                         style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
+                          color: Color(0xFF087347),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
                         ),
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded, color: Colors.white),
                   ],
                 ),
               ),
