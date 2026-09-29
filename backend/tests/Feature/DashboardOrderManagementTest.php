@@ -311,6 +311,143 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertSame(1, DB::table('orders')->where('store_id', $store)->where('channel', 'b2b')->count());
     }
 
+    public function test_retail_dashboard_quote_and_multiline_invoice_are_authoritative(): void
+    {
+        $store = $this->store('B2C', 'ORDER-MULTI-RETAIL');
+        [$productA] = $this->product($store, 'b2c', 'MULTI-RETAIL-A', 4.500, 20);
+        [$productB] = $this->product($store, 'b2c', 'MULTI-RETAIL-B', 2.000, 20);
+        $admin = $this->storeAdmin($store, 'multi-retail@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, [
+            'name' => 'Multi Retail Buyer',
+            'email' => 'multi-retail-buyer@example.test',
+        ]);
+        $payload = [
+            'store_id' => $store,
+            'customer_id' => $customer->id,
+            'payment_method' => 'cash_on_delivery',
+            'items' => [
+                ['product_id' => $productA, 'quantity' => 2],
+                ['product_id' => $productB, 'quantity' => 3],
+            ],
+        ];
+
+        $quoteResponse = $this->actingAs($admin)->postJson('/admin/b2c/orders/quote', $payload)->assertOk();
+        $quote = $quoteResponse->json('data');
+        $this->assertSame('backend_authoritative_quote_v1', $quote['pricing_source']);
+        $this->assertFalse((bool) $quote['has_unavailable_items']);
+        $this->assertSame(15.0, (float) $quote['subtotal']);
+        $this->assertCount(2, $quote['items']);
+
+        $this->actingAs($admin)->post('/admin/b2c/orders', $payload)->assertRedirect();
+
+        $order = DB::table('orders')->where('store_id', $store)->where('channel', 'b2c')->first();
+        $this->assertNotNull($order);
+        $this->assertSame(2, DB::table('order_items')->where('order_id', $order->id)->count());
+        $this->assertSame(15.0, (float) $order->subtotal);
+
+        $this->actingAs($admin)->post('/admin/b2c/orders/'.$order->id.'/status', [
+            'store_id' => $store,
+            'status' => 'confirmed',
+            'note' => 'Confirm multi-line Retail order',
+        ])->assertRedirect();
+
+        $invoice = DB::table('invoices')->where('order_id', $order->id)->where('status', 'issued')->first();
+        $this->assertNotNull($invoice);
+        $this->assertSame((float) $order->grand_total, (float) $invoice->total);
+        $this->assertSame(2, DB::table('invoice_items')->where('invoice_id', $invoice->id)->count());
+
+        $this->actingAs($admin)
+            ->get('/admin/b2c/orders?store_id='.$store)
+            ->assertOk()
+            ->assertSee($invoice->invoice_number)
+            ->assertSee('Print');
+    }
+
+    public function test_wholesale_dashboard_quote_uses_selected_warehouse_and_tier_for_multiple_lines(): void
+    {
+        $store = app(WholesalePrincipal::class)->storeId();
+        [$productA, $inventoryA] = $this->product($store, 'b2b', 'MULTI-B2B-A', 12, 20);
+        [$productB] = $this->product($store, 'b2b', 'MULTI-B2B-B', 20, 20);
+        $warehouse = (int) DB::table('inventories')
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->where('inventories.id', $inventoryA)
+            ->value('warehouses.id');
+        DB::table('inventories')->insert([
+            'warehouse_id' => $warehouse,
+            'product_id' => $productB,
+            'quantity' => 20,
+            'reserved_quantity' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $tier = (int) DB::table('b2b_price_tiers')->insertGetId([
+            'code' => 'MULTI-GOLD',
+            'name' => 'Multi Gold',
+            'priority' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        foreach ([[$productA, 7.500, 2], [$productB, 11.000, 3]] as [$product, $price, $minimum]) {
+            DB::table('b2b_price_rules')->insert([
+                'price_tier_id' => $tier,
+                'store_id' => $store,
+                'product_id' => $product,
+                'unit_price' => $price,
+                'minimum_quantity' => $minimum,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $customer = app(B2bCustomerService::class)->create([
+            'name' => 'Multi Wholesale Buyer',
+            'email' => 'multi-wholesale@example.test',
+        ]);
+        B2bAccount::query()->create([
+            'customer_id' => $customer->legacy_customer_id,
+            'b2b_customer_id' => $customer->id,
+            'price_tier_id' => $tier,
+            'company_name' => 'Multi Wholesale Co',
+            'status' => 'active',
+        ]);
+        $admin = $this->globalAdmin('B2B_ADMIN', 'multi-b2b-admin@example.test');
+        $payload = [
+            'warehouse_id' => $warehouse,
+            'customer_id' => $customer->id,
+            'payment_method' => 'cash_on_delivery',
+            'items' => [
+                ['product_id' => $productA, 'quantity' => 2],
+                ['product_id' => $productB, 'quantity' => 3],
+            ],
+        ];
+
+        $quoteResponse = $this->actingAs($admin)->postJson('/admin/b2b/orders/quote', $payload)->assertOk();
+        $quote = $quoteResponse->json('data');
+        $this->assertFalse((bool) $quote['has_unavailable_items']);
+        $this->assertSame('MULTI-GOLD', $quote['customer_context']['price_tier_code']);
+        $this->assertSame(48.0, (float) $quote['subtotal']);
+        $this->assertCount(2, $quote['items']);
+        $this->assertSame(20.0, (float) $quote['items'][1]['available_quantity']);
+
+        $this->actingAs($admin)->post('/admin/b2b/orders', $payload)->assertRedirect();
+        $order = DB::table('orders')->where('store_id', $store)->where('channel', 'b2b')->latest('id')->first();
+        $this->assertNotNull($order);
+        $this->assertSame(2, DB::table('order_items')->where('order_id', $order->id)->count());
+
+        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
+            'status' => 'confirmed',
+            'note' => 'Confirm multi-line Wholesale order',
+        ])->assertRedirect();
+
+        $invoice = DB::table('invoices')->where('order_id', $order->id)->first();
+        $this->assertNotNull($invoice);
+        $this->assertSame('MULTI-GOLD', $invoice->price_tier_code_snapshot);
+        $this->assertSame((float) $order->grand_total, (float) $invoice->total);
+        $this->assertSame(2, DB::table('invoice_items')->where('invoice_id', $invoice->id)->count());
+    }
+
     private function store(string $type, string $code): int
     {
         return (int) DB::table('stores')->insertGetId([
