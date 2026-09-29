@@ -37,7 +37,7 @@ class FakeAssignments implements DriverAssignmentRepository {
       ];
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status, {String? note}) async {}
+  Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async {}
 }
 
 void main() {
@@ -162,7 +162,7 @@ void main() {
     expect(rows.single.invoice?.items.single.sku, 'CASE-1');
     await repo.transition(9, DriverChannel.b2b, 'accepted');
     expect(requests, [
-      'GET /api/v1/driver/assignments?scope=active',
+      'GET /api/v1/driver/assignments?scope=all',
       'POST /api/v1/driver/assignments/9/status',
     ]);
   });
