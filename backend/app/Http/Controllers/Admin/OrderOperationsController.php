@@ -57,8 +57,8 @@ final class OrderOperationsController extends Controller
         ]);
 
         $selectedStoreId = isset($data['store_id']) ? (int) $data['store_id'] : null;
-        if ($selectedStoreId !== null) {
-            abort_unless(in_array($selectedStoreId, $storeIds, true), 404);
+        if ($selectedStoreId !== null && ! collect($storeIds)->containsStrict($selectedStoreId)) {
+            abort(404);
         }
 
         $orders = Order::query()
@@ -302,13 +302,16 @@ final class OrderOperationsController extends Controller
             ->first(['status', 'provider']);
 
         $store = DB::table('stores')->where('id', $order->store_id)->first(['name', 'code']);
+        $storeLabel = $store === null
+            ? '#'.$order->store_id
+            : ($store->name ?? $store->code ?? '#'.$order->store_id);
 
         return [
             'id' => (int) $order->getKey(),
             'number' => (string) $order->order_number,
             'channel' => strtolower((string) $order->channel),
             'store_id' => (int) $order->store_id,
-            'store' => $store?->name ?? $store?->code ?? '#'.$order->store_id,
+            'store' => $storeLabel,
             'customer' => $customerName ?? '-',
             'status' => (string) $order->status,
             'total' => (float) $order->grand_total,
