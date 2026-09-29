@@ -41,6 +41,56 @@ class AdminResponsiveLayoutTest extends TestCase
         $this->assertStringNotContainsString('@media(max-width:860px)', $view);
     }
 
+    public function test_b2b_and_b2c_metric_cards_support_up_to_eight_in_one_wide_row_with_icons(): void
+    {
+        $b2b = file_get_contents(resource_path('views/admin/b2b-workspace.blade.php'));
+        $b2c = file_get_contents(resource_path('views/admin/b2c-workspace.blade.php'));
+
+        $this->assertIsString($b2b);
+        $this->assertIsString($b2c);
+
+        $this->assertStringContainsString(
+            'grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr))',
+            $b2b,
+        );
+        $this->assertStringContainsString(
+            'style="--foodex-card-columns:{{ min(8,max(1,count($counts))) }}"',
+            $b2b,
+        );
+        $this->assertStringContainsString('metric-card-icon', $b2b);
+        $this->assertStringContainsString("'warehouses'=>'inventory'", $b2b);
+        $this->assertStringContainsString("'drivers'=>'delivery'", $b2b);
+        $this->assertStringContainsString("'finance'=>'revenue'", $b2b);
+
+        $this->assertStringContainsString(
+            'grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr))',
+            $b2c,
+        );
+        $this->assertStringContainsString(
+            'style="--foodex-card-columns:{{ min(8,max(1,count($counts))) }}"',
+            $b2c,
+        );
+        $this->assertStringContainsString('module-card-icon', $b2c);
+        $this->assertStringContainsString("'incoming_orders'=>'delivery'", $b2c);
+        $this->assertStringContainsString("'customers'=>'customers'", $b2c);
+        $this->assertStringContainsString("'inventory'=>'inventory'", $b2c);
+
+        $this->assertStringContainsString(
+            '@media(max-width:1279px){.cards{grid-template-columns:repeat(4,minmax(0,1fr))}',
+            $b2b,
+        );
+        $this->assertStringContainsString(
+            '@media(max-width:1279px){.module-cards{grid-template-columns:repeat(4,minmax(0,1fr))}}',
+            $b2c,
+        );
+        $this->assertStringContainsString(
+            '@media(max-width:900px){.module-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+            $b2c,
+        );
+        $this->assertStringContainsString('.cards{grid-template-columns:1fr}', $b2b);
+        $this->assertStringContainsString('.module-cards{grid-template-columns:1fr}', $b2c);
+    }
+
     public function test_independent_admin_pages_use_shared_sidebar_width_and_tablet_breakpoint(): void
     {
         foreach ([
