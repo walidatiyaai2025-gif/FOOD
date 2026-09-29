@@ -32,6 +32,7 @@ class AppTranslations extends InheritedWidget {
     'customer.entry.subtitle': 'تصفح كضيف أو سجل الدخول لإتمام الطلب',
     'customer.marketplace.main_wholesale': 'متجر المنصة الرئيسي · الجملة',
     'customer.marketplace.wholesale_products': 'منتجات متجر الجملة',
+    'customer.marketplace.search_hint': 'ابحث بالاسم أو SKU أو الباركود',
     'customer.marketplace.browse_guest': 'تصفح المنتجات كضيف وسجل حسابك عند الشراء',
     'customer.marketplace.register': 'إنشاء حساب',
     'customer.marketplace.register_title': 'إنشاء حساب عميل',
