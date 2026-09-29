@@ -37,6 +37,14 @@ void main() {
             'channel': 'b2b',
           },
           'hero': null,
+          'offers': [
+            {
+              'id': 3,
+              'name': 'Wholesale Launch Offer',
+              'type': 'fixed',
+              'value': 2.5,
+            },
+          ],
           'products': {
             'data': [
               {
@@ -99,6 +107,11 @@ void main() {
     expect(requests, hasLength(1));
     expect(requests.single.path, '/api/v1/platform/storefront');
     expect(find.text('FOODEX'), findsOneWidget);
+    expect(find.text('Wholesale Launch Offer'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('marketplace-wholesale-offers')),
+      findsOneWidget,
+    );
     expect(find.text('Retail Seven Offer'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('marketplace-retail-carousel')),
