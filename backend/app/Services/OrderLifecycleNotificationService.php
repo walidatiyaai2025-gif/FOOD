@@ -163,6 +163,13 @@ final class OrderLifecycleNotificationService
         string $to,
         ?string $note = null,
     ): void {
+        // These assignment transitions also change the authoritative order status.
+        // orderStatusChanged() emits the customer-visible push for them, so avoid
+        // showing the customer two notifications for one logical state change.
+        if (in_array($to, ['out_for_delivery', 'delivered', 'failed'], true)) {
+            return;
+        }
+
         $eventKey = 'delivery-status:'.$assignment->getKey().':'.$from.':'.$to.':'.(string) $assignment->updated_at;
 
         $copy = match ($to) {
