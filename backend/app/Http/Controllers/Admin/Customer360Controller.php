@@ -461,8 +461,8 @@ final class Customer360Controller extends Controller
         return ['channel' => 'unknown', 'label' => $this->msg('مصدر قديم / غير معروف', 'Legacy / unknown source'), 'exact' => false];
     }
 
-    /** @return \Illuminate\Support\Collection<int,object> */
-    private function originStores(array $access)
+    /** @return Collection<int, object> */
+    private function originStores(array $access): Collection
     {
         if ($access['origin_store_ids'] === []) {
             return collect();
