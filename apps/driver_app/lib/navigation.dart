@@ -53,6 +53,9 @@ class DriverNavigator {
           DriverJourneyPage(
             channel: channel,
             repository: repository,
+            initialStatusFilter: settings.arguments is String
+                ? settings.arguments as String
+                : null,
             onSessionExpired: onSessionExpired,
           ),
           settings,
@@ -73,6 +76,9 @@ class DriverNavigator {
     return _DriverHomePage(
       routeName: route,
       deliveriesRoute: deliveries,
+      channel: channel,
+      repository: repository,
+      onSessionExpired: onSessionExpired,
       onLogout: onLogout,
     );
   }
@@ -82,27 +88,102 @@ class DriverNavigator {
   }
 }
 
-class _DriverHomePage extends StatelessWidget {
+class _DriverHomePage extends StatefulWidget {
   const _DriverHomePage({
     required this.routeName,
     required this.deliveriesRoute,
+    required this.channel,
+    required this.repository,
+    this.onSessionExpired,
     this.onLogout,
   });
 
   final String routeName;
   final String deliveriesRoute;
+  final DriverChannel channel;
+  final DriverAssignmentRepository repository;
+  final VoidCallback? onSessionExpired;
   final VoidCallback? onLogout;
 
   @override
+  State<_DriverHomePage> createState() => _DriverHomePageState();
+}
+
+class _DriverHomePageState extends State<_DriverHomePage> {
+  bool _loading = true;
+  bool _loadFailed = false;
+  List<DriverAssignment> _assignments = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCounts();
+  }
+
+  Future<void> _loadCounts() async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _loadFailed = false;
+      });
+    }
+    try {
+      final rows = await widget.repository.list(widget.channel);
+      if (!mounted) return;
+      setState(() {
+        _assignments = rows
+            .where((row) => row.channel == widget.channel)
+            .toList(growable: false);
+        _loading = false;
+      });
+    } on DriverSessionExpiredException {
+      widget.onSessionExpired?.call();
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadFailed = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadFailed = true;
+        });
+      }
+    }
+  }
+
+  int _count(String status) =>
+      _assignments.where((assignment) => assignment.status == status).length;
+
+  void _openStatus(String status) {
+    Navigator.of(context).pushNamed(widget.deliveriesRoute, arguments: status);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final metrics = [
+      ('accepted', Icons.task_alt_rounded, FoodexBrand.greenSoft, FoodexBrand.greenDark),
+      ('picked_up', Icons.inventory_2_rounded, FoodexBrand.orangeSoft, FoodexBrand.orange),
+      ('out_for_delivery', Icons.local_shipping_rounded, FoodexBrand.surfaceMuted, FoodexBrand.greenDark),
+      ('delivered', Icons.verified_rounded, FoodexBrand.greenSoft, FoodexBrand.greenDark),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: Text(context.tr('driver.app.title')),
         actions: [
-          if (onLogout != null)
+          IconButton(
+            key: const Key('driver-home-refresh'),
+            onPressed: _loading ? null : _loadCounts,
+            tooltip: context.tr('driver.refresh'),
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+          if (widget.onLogout != null)
             IconButton(
               key: const Key('driver-logout'),
-              onPressed: onLogout,
+              onPressed: widget.onLogout,
               tooltip: context.tr('driver.logout'),
               icon: const Icon(Icons.logout),
             ),
@@ -170,7 +251,7 @@ class _DriverHomePage extends StatelessWidget {
                   const SizedBox(height: 18),
                   FilledButton.icon(
                     key: const Key('driver-open-deliveries'),
-                    onPressed: () => Navigator.of(context).pushNamed(deliveriesRoute),
+                    onPressed: () => Navigator.of(context).pushNamed(widget.deliveriesRoute),
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: FoodexBrand.greenDark,
@@ -182,35 +263,49 @@ class _DriverHomePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _DriverHomeMetric(
-                    icon: Icons.verified_rounded,
-                    label: context.tr('driver.home.ready'),
-                    value: '✓',
-                    tone: FoodexBrand.greenSoft,
-                    foreground: FoodexBrand.greenDark,
+            if (_loadFailed)
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.error_outline_rounded),
+                  title: Text(context.tr('driver.error')),
+                  trailing: TextButton(
+                    onPressed: _loadCounts,
+                    child: Text(context.tr('driver.retry')),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _DriverHomeMetric(
-                    icon: Icons.hub_rounded,
-                    label: context.tr('driver.home.channel'),
-                    value: routeName.contains('/b2b/') ? 'B2B' : 'Retail',
-                    tone: FoodexBrand.orangeSoft,
-                    foreground: FoodexBrand.orange,
-                  ),
-                ),
-              ],
-            ),
+              )
+            else
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final itemWidth = (constraints.maxWidth - 24) / 4;
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var index = 0; index < metrics.length; index++) ...[
+                        if (index > 0) const SizedBox(width: 8),
+                        SizedBox(
+                          width: itemWidth,
+                          child: _DriverHomeMetric(
+                            key: Key('driver-home-status-${metrics[index].$1}'),
+                            icon: metrics[index].$2,
+                            label: context.tr('driver.status.${metrics[index].$1}'),
+                            value: _loading ? '…' : _count(metrics[index].$1).toString(),
+                            tone: metrics[index].$3,
+                            foreground: metrics[index].$4,
+                            onTap: _loading ? null : () => _openStatus(metrics[index].$1),
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
             const SizedBox(height: 12),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.shield_outlined),
                 title: Text(context.tr('driver.app.title')),
-                subtitle: Text(routeName, key: const Key('driver-route')),
+                subtitle: Text(widget.routeName, key: const Key('driver-route')),
                 trailing: const Icon(Icons.lock_outline_rounded),
               ),
             ),
@@ -223,11 +318,13 @@ class _DriverHomePage extends StatelessWidget {
 
 class _DriverHomeMetric extends StatelessWidget {
   const _DriverHomeMetric({
+    super.key,
     required this.icon,
     required this.label,
     required this.value,
     required this.tone,
     required this.foreground,
+    this.onTap,
   });
 
   final IconData icon;
@@ -235,25 +332,37 @@ class _DriverHomeMetric extends StatelessWidget {
   final String value;
   final Color tone;
   final Color foreground;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Container(
-        constraints: const BoxConstraints(minHeight: 122),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: tone,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: foreground.withAlpha(31)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: foreground),
-            const SizedBox(height: 18),
-            Text(value, style: TextStyle(color: foreground, fontSize: 22, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 3),
-            Text(label, maxLines: 2, overflow: TextOverflow.ellipsis),
-          ],
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 122),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: tone,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: foreground.withAlpha(31)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: foreground),
+              const SizedBox(height: 18),
+              Text(
+                value,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(label, maxLines: 2, overflow: TextOverflow.ellipsis),
+            ],
+          ),
         ),
       );
 }
