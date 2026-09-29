@@ -31,6 +31,7 @@
                 <p>{{ $ar?'يجمع أخطاء الخادم والراوت وJavaScript وطلبات Fetch، ويصدر تقريرًا واحدًا قابلًا للتنزيل والمشاركة.':'Captures server, route, JavaScript and Fetch failures and exports one shareable diagnostic report.' }}</p>
             </div>
             <div class="inspector-actions">
+                @include('admin._live-notifications',['user'=>auth()->user()])
                 <a class="foodex-action-primary" href="{{ route('admin.inspector.export') }}">⇩ {{ $ar?'تنزيل التقرير':'Download report' }}</a>
                 <form method="post" action="{{ route('admin.inspector.storage-link') }}">@csrf
                     <button class="foodex-action-secondary button secondary" type="submit">↻ {{ $ar?'فحص/إصلاح رابط الصور':'Check / repair image link' }}</button>

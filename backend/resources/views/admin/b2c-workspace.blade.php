@@ -233,7 +233,6 @@
                 @endif
             </form>
             <div class="top-actions">
-                <form method="post" action="{{ route('admin.profile.locale') }}" style="margin:0">@csrf @method('PATCH')<input type="hidden" name="locale" value="{{ app()->getLocale()==='ar'?'en':'ar' }}"><button class="language" type="submit" style="border:0;background:transparent;color:inherit;cursor:pointer">@include('admin._premium-icon',['name'=>'globe']) {{ app()->getLocale()==='ar' ? 'English' : 'العربية' }}</button></form>
                 @include('admin._live-notifications')
             </div>
         </header>
@@ -417,6 +416,7 @@
                 </form>
                 @endif
             </div>
+            @include('admin._live-notifications')
         </div>
         @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif

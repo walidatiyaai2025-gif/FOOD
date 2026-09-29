@@ -32,7 +32,10 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
             <div class="muted">{{ __('notifications.campaigns_description') }}</div>
             <div class="muted">{{ __('notifications.timezone_note') }}</div>
         </div>
-        <a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a>
+        <div class="foodex-header-actions">
+            @include('admin._live-notifications',['user'=>auth()->user()])
+            <a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a>
+        </div>
     </div>
 
     @if(session('status'))<div class="flash" role="status">{{ session('status') }}</div>@endif
