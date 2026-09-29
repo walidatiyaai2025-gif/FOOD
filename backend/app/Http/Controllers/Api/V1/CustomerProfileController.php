@@ -657,11 +657,6 @@ class CustomerProfileController extends Controller
             ->all();
     }
 
-    private function customerColumn(string $channel): string
-    {
-        return $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
-    }
-
     private function favoriteProductPayload(Product $product): array
     {
         return [
