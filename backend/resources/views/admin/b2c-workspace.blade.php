@@ -416,6 +416,7 @@
                 </form>
                 @endif
             </div>
+            @include('admin._live-notifications')
         </div>
         @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
