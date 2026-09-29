@@ -101,7 +101,10 @@ final class PushDeliveryService
         return $log->fresh();
     }
 
-    public function dispatchNotification(Notification $notification): void
+    public function dispatchNotification(
+        Notification $notification,
+        bool $throwOnTransient = false,
+    ): void
     {
         if (! in_array($notification->channel, ['push', 'both'], true)) {
             return;
@@ -199,7 +202,7 @@ final class PushDeliveryService
             }
         }
 
-        if ($transientFailure) {
+        if ($transientFailure && $throwOnTransient) {
             throw new \RuntimeException('One or more push deliveries failed transiently and will be retried.');
         }
     }
