@@ -72,8 +72,8 @@ void main() {
   ];
 
   for (final locale in const [Locale('ar'), Locale('en')]) {
+    final localeCode = locale.languageCode;
     for (final item in cases) {
-      final localeCode = locale.languageCode;
       final path = item.path.replaceAll('__ar.png', '__$localeCode.png');
       testWidgets('capture $path', (tester) async {
         tester.view.physicalSize = const Size(430, 932);
