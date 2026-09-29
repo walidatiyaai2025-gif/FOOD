@@ -130,7 +130,6 @@ class CustomerAppRouter {
             storefrontApi: storefrontApi,
             wholesaleApi: wholesaleApi,
             enterWholesale: onEnterWholesale,
-            onPlatformRegistered: onPlatformRegistered,
           );
         }
 
