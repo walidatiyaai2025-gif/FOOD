@@ -19,6 +19,7 @@ class B2cJourneyScreen extends StatefulWidget {
     required this.catalogApi,
     required this.accountApi,
     required this.onAuthenticated,
+    required this.onPlatformAuthenticated,
     required this.onSessionExpired,
     super.key,
   });
@@ -29,6 +30,7 @@ class B2cJourneyScreen extends StatefulWidget {
   final B2cCatalogApi catalogApi;
   final B2cAccountApi accountApi;
   final CustomerAuthenticated onAuthenticated;
+  final ValueChanged<String> onPlatformAuthenticated;
   final VoidCallback onSessionExpired;
 
   @override
@@ -450,6 +452,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
               channel: CustomerChannel.b2c,
               api: widget.actionApi,
               onAuthenticated: widget.onAuthenticated,
+              onPlatformAuthenticated: widget.onPlatformAuthenticated,
               successRoute: _withStore(CustomerRoutePaths.checkoutAddressPayment),
             ),
           ],
