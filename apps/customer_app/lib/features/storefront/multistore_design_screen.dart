@@ -81,6 +81,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
           catalogApi: catalogApi,
           storefrontApi: storefrontApi,
           actionApi: actionApi,
+          session: session,
         );
       case CustomerRoutePaths.productDetails:
       case CustomerRoutePaths.retailProductDetails:
@@ -100,7 +101,9 @@ class MultiStoreDesignScreen extends StatelessWidget {
         return WholesaleProductDetailsDesignScreen(
           location: location,
           api: b2bApi,
+          storefrontApi: storefrontApi,
           actionApi: actionApi,
+          session: session,
         );
       case CustomerRoutePaths.b2bCart:
         return WholesaleCartDesignScreen(
