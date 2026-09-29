@@ -146,6 +146,7 @@ class DriverJourneyPage extends StatefulWidget {
     required this.repository,
     this.onSessionExpired,
     this.focusAssignmentId,
+    this.initialAssignmentStatus,
     this.navigationLauncher = launchDriverNavigation,
   });
 
@@ -153,6 +154,7 @@ class DriverJourneyPage extends StatefulWidget {
   final DriverAssignmentRepository repository;
   final VoidCallback? onSessionExpired;
   final int? focusAssignmentId;
+  final String? initialAssignmentStatus;
   final DriverNavigationLauncher navigationLauncher;
 
   @override
@@ -163,6 +165,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
   DriverLoadState state = DriverLoadState.loading;
   List<DriverAssignment> assignments = const [];
   DriverOrderFilter _filter = DriverOrderFilter.active;
+  String? _statusFilter;
   final TextEditingController _searchController = TextEditingController();
   final Set<int> _transitioning = <int>{};
   String? _actionError;
@@ -171,6 +174,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
   @override
   void initState() {
     super.initState();
+    _statusFilter = widget.initialAssignmentStatus;
     _searchController.addListener(_refresh);
     _load();
   }
