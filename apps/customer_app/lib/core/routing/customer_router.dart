@@ -23,6 +23,7 @@ class CustomerAppRouter {
     required this.onSessionExpired,
     required this.onEnterWholesale,
     required this.onPlatformRegistered,
+    required this.onLocaleChanged,
     this.b2bApi,
     this.storefrontApi,
     this.wholesaleApi,
@@ -45,6 +46,7 @@ class CustomerAppRouter {
   final VoidCallback onSessionExpired;
   final ValueChanged<int?> onEnterWholesale;
   final ValueChanged<String> onPlatformRegistered;
+  final ValueChanged<Locale> onLocaleChanged;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final requestedLocation = settings.name ?? CustomerRoutePaths.splash;
@@ -155,6 +157,7 @@ class CustomerAppRouter {
             enterWholesale: onEnterWholesale,
             onAuthenticated: onAuthenticated,
             onPlatformRegistered: onPlatformRegistered,
+            onLocaleChanged: onLocaleChanged,
           );
         }
 
