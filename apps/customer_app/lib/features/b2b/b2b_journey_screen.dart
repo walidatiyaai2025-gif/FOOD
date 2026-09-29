@@ -34,7 +34,8 @@ class B2bJourneyScreen extends StatelessWidget {
     final hasRemoteState = api != null && _endpoint() != null;
     final keepLocalActions =
         definition.pattern == CustomerRoutePaths.b2bProductDetails ||
-        definition.pattern == CustomerRoutePaths.b2bCart;
+        definition.pattern == CustomerRoutePaths.b2bCart ||
+        definition.pattern == CustomerRoutePaths.b2bProfile;
 
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('b2b.app.title'))),
