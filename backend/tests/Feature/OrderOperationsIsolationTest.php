@@ -219,6 +219,61 @@ class OrderOperationsIsolationTest extends TestCase
         );
     }
 
+    public function test_dashboard_status_transition_notifies_the_order_customer(): void
+    {
+        Queue::fake();
+
+        $store = $this->store('OPS-CUSTOMER-PUSH');
+        $admin = $this->storeAdmin($store, 'ops-customer-push-admin@example.test');
+        $customerUser = User::query()->create([
+            'name' => 'Push Buyer',
+            'email' => 'ops-customer-push@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $customer = app(B2cCustomerService::class)->create(
+            $store,
+            [
+                'name' => 'Push Buyer',
+                'email' => $customerUser->email,
+            ],
+            $customerUser,
+        );
+        $order = $this->order(
+            $store,
+            (int) $customer->legacy_customer_id,
+            (int) $customer->id,
+            'OPS-CUSTOMER-PUSH-1001',
+        );
+
+        $this->actingAs($admin)
+            ->post("/admin/operations/orders/{$order}/status", [
+                'status' => 'confirmed',
+                'note' => 'Confirmed by dashboard',
+            ])
+            ->assertRedirect();
+
+        $notification = DB::table('notifications')
+            ->where('user_id', $customerUser->id)
+            ->where('app', 'customer')
+            ->where('type', 'order.status_changed')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($notification);
+        $this->assertSame('both', $notification->channel);
+        $data = json_decode((string) $notification->data, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame($order, (int) $data['order_id']);
+        $this->assertSame('confirmed', $data['status']);
+        $this->assertSame('pending', $data['from_status']);
+
+        Queue::assertPushed(
+            DispatchPushNotification::class,
+            fn (DispatchPushNotification $job): bool => $job->notificationId === (int) $notification->id,
+        );
+    }
+
     public function test_retail_admin_cannot_operate_foreign_order_but_can_transition_own_order(): void
     {
         $mine = $this->store('OPS-ACTION-MINE');
