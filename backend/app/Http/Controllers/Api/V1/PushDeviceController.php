@@ -80,6 +80,10 @@ final class PushDeviceController extends Controller
             }
         }
 
+        $locale = isset($data['locale'])
+            ? (string) $data['locale']
+            : ($user instanceof User ? (string) $user->locale : 'ar');
+
         $device = PushDeviceToken::query()->updateOrCreate(
             ['token_hash' => hash('sha256', $data['token'])],
             [
@@ -90,7 +94,7 @@ final class PushDeviceController extends Controller
                 'environment' => $data['environment'],
                 'store_id' => $storeId,
                 'target_channel' => $targetChannel,
-                'locale' => (string) ($data['locale'] ?? $user?->locale ?? 'ar'),
+                'locale' => $locale,
                 'token_encrypted' => $data['token'],
                 'revoked_at' => null,
                 'last_seen_at' => now(),
