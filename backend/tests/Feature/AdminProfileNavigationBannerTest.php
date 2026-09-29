@@ -72,6 +72,23 @@ class AdminProfileNavigationBannerTest extends TestCase
         $this->assertSame('en', $admin->refresh()->locale);
     }
 
+    public function test_account_controls_render_in_header_and_not_sidebar_footer(): void
+    {
+        $admin = $this->globalUser('SUPER_ADMIN', 'header-account@example.test');
+
+        $this->actingAs($admin)
+            ->get(route('admin.mobile-settings.index'))
+            ->assertOk()
+            ->assertSee('data-foodex-live-notifications', false)
+            ->assertSee('data-foodex-account-menu', false)
+            ->assertSee('data-foodex-account-trigger', false)
+            ->assertSee('Account settings')
+            ->assertDontSee('foodex-sidebar-footer', false)
+            ->assertDontSee('foodex-sidebar-account', false)
+            ->assertDontSee('foodex-sidebar-language', false)
+            ->assertDontSee('foodex-sidebar-logout', false);
+    }
+
     public function test_retail_banner_upload_replace_and_delete_persist_real_files(): void
     {
         Storage::fake('public');
