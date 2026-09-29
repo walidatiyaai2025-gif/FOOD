@@ -5,6 +5,7 @@ import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/location/customer_location_service.dart';
+import 'package:foodex_customer_app/core/location/customer_map_pin_selector.dart';
 
 void main() {
   testWidgets('B2C guest product detail renders authoritative API data in RTL', (tester) async {
@@ -366,6 +367,61 @@ void main() {
       accountApi.lastCreatedAddress?['location_source'],
       'current_location',
     );
+  });
+
+  testWidgets('My Addresses can choose and save a corrected map pin',
+      (tester) async {
+    final accountApi = _FakeAccountApi();
+    var pickerCalls = 0;
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: const CustomerSession.authenticated(
+          CustomerChannel.b2c,
+          accessToken: 'token',
+          platformWide: true,
+        ),
+        initialRoute: '/profile/addresses',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: accountApi,
+        mapPinPicker: (
+          context, {
+          initialLatitude,
+          initialLongitude,
+        }) async {
+          pickerCalls++;
+          return const CustomerMapPinSelection(
+            latitude: 29.3419000,
+            longitude: 48.0301000,
+          );
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('b2c-address-add')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('b2c-address-line1')),
+      'Selected Map Street',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('b2c-address-choose-map')));
+    await tester.pumpAndSettle();
+
+    expect(pickerCalls, 1);
+    expect(
+      find.byKey(const ValueKey('b2c-address-location-preview')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('حفظ'));
+    await tester.pumpAndSettle();
+
+    expect(accountApi.lastCreatedAddress?['latitude'], 29.3419);
+    expect(accountApi.lastCreatedAddress?['longitude'], 48.0301);
+    expect(accountApi.lastCreatedAddress?['location_accuracy_meters'], isNull);
+    expect(accountApi.lastCreatedAddress?['location_source'], 'map_pin');
   });
 
   testWidgets('location denial keeps manual address entry available', (tester) async {
