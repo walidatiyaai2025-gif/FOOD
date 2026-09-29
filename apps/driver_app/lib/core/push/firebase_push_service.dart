@@ -17,12 +17,17 @@ const _driverPushChannelDescription = 'FOODEX driver order and delivery alerts.'
 final FlutterLocalNotificationsPlugin _driverLocalNotifications =
     FlutterLocalNotificationsPlugin();
 
-Future<void> initializeDriverLocalNotifications() async {
+Future<void> initializeDriverLocalNotifications({
+  void Function(NotificationResponse)? onTap,
+}) async {
   const settings = InitializationSettings(
     android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     iOS: DarwinInitializationSettings(),
   );
-  await _driverLocalNotifications.initialize(settings);
+  await _driverLocalNotifications.initialize(
+    settings,
+    onDidReceiveNotificationResponse: onTap,
+  );
 
   if (Platform.isAndroid) {
     const channel = AndroidNotificationChannel(
@@ -68,6 +73,7 @@ Future<void> showDriverLocalNotification(RemoteMessage message) async {
     title,
     body,
     details,
+    payload: jsonEncode(message.data),
   );
 }
 
@@ -172,15 +178,26 @@ class DriverFirebasePushService {
       } else {
         await Firebase.initializeApp();
       }
-      await initializeDriverLocalNotifications();
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission(alert: true, badge: true, sound: true);
       await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
       final service = DriverFirebasePushService._(registry: registry, messaging: messaging);
+      await initializeDriverLocalNotifications(
+        onTap: (response) {
+          final open = DriverFirebasePushService.openForPayload(response.payload);
+          if (open != null) service._opens.add(open);
+        },
+      );
       final initialMessage = await messaging.getInitialMessage();
-      service._pendingOpen = initialMessage == null
-          ? null
-          : DriverFirebasePushService.openForData(initialMessage.data);
+      final launchDetails =
+          await _driverLocalNotifications.getNotificationAppLaunchDetails();
+      service._pendingOpen = initialMessage != null
+          ? DriverFirebasePushService.openForData(initialMessage.data)
+          : DriverFirebasePushService.openForPayload(
+              launchDetails?.didNotificationLaunchApp == true
+                  ? launchDetails?.notificationResponse?.payload
+                  : null,
+            );
       service._openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen((message) {
         service._opens.add(DriverFirebasePushService.openForData(message.data));
       });
@@ -199,6 +216,18 @@ class DriverFirebasePushService {
       return service;
     } catch (_) {
       return DriverFirebasePushService._(registry: registry, messaging: null);
+    }
+  }
+
+  static DriverPushOpen? openForPayload(String? payload) {
+    if (payload == null || payload.trim().isEmpty) return null;
+
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is! Map) return null;
+      return openForData(Map<String, dynamic>.from(decoded));
+    } catch (_) {
+      return null;
     }
   }
 
