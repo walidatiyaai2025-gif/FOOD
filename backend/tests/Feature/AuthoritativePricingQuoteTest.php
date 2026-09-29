@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Address;
+use App\Models\Order;
 use App\Models\User;
 use App\Services\CustomerDomainResolver;
 use App\Services\PlatformCustomerService;
@@ -144,9 +145,16 @@ class AuthoritativePricingQuoteTest extends TestCase
             'customer_id' => $legacyId,
             'b2c_customer_id' => $b2c->id,
             'label' => 'Home',
+            'recipient_name' => 'Live Reprice Customer',
+            'delivery_phone' => '+201111111111',
             'line1' => 'Street 1',
             'city' => 'Cairo',
             'country_code' => 'EG',
+            'landmark' => 'Original landmark',
+            'delivery_notes' => 'Original delivery note',
+            'latitude' => 30.0444200,
+            'longitude' => 31.2357120,
+            'location_source' => 'map_pin',
             'is_default' => true,
         ]);
 
@@ -181,6 +189,30 @@ class AuthoritativePricingQuoteTest extends TestCase
         $orderId = (int) $checkout->json('id');
         $quoteId = (string) $checkout->json('quote_id');
         $this->assertNotSame('', $quoteId);
+
+        $order = Order::query()->findOrFail($orderId);
+        $this->assertSame('Street 1', $order->delivery_address_snapshot['line1']);
+        $this->assertSame('Original landmark', $order->delivery_address_snapshot['landmark']);
+        $this->assertSame(30.04442, (float) $order->delivery_latitude);
+        $this->assertSame(31.235712, (float) $order->delivery_longitude);
+        $checkout
+            ->assertJsonPath('delivery_address.line1', 'Street 1')
+            ->assertJsonPath('delivery_address.landmark', 'Original landmark')
+            ->assertJsonPath('delivery_address.has_coordinates', true);
+
+        $address->update([
+            'line1' => 'Changed after checkout',
+            'landmark' => 'Changed landmark',
+            'latitude' => 29.0000000,
+            'longitude' => 30.0000000,
+        ]);
+        $address->delete();
+
+        $order->refresh();
+        $this->assertSame('Street 1', $order->delivery_address_snapshot['line1']);
+        $this->assertSame('Original landmark', $order->delivery_address_snapshot['landmark']);
+        $this->assertSame(30.04442, (float) $order->delivery_latitude);
+        $this->assertSame(31.235712, (float) $order->delivery_longitude);
 
         DB::table('store_products')
             ->where('store_id', $this->retailA)
