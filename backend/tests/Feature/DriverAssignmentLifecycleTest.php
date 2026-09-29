@@ -128,6 +128,8 @@ class DriverAssignmentLifecycleTest extends TestCase
         ]);
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.unassigned']);
 
+        DB::table('driver_assignments')->where('id', $firstId)->update(['status' => 'reassigned']);
+
         Sanctum::actingAs($driverOneUser);
         $this->getJson('/api/v1/driver/assignments?scope=active')
             ->assertOk()
