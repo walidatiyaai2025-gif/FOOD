@@ -169,6 +169,9 @@ final class PromotionalNotificationCampaignController extends Controller
 
         $hasGlobal = $actor->hasPermission('notifications.manage');
         $hasStoreScope = $actor->storeRoleAssignments()
+            ->whereHas('store', fn ($query) => $query
+                ->where('stores.is_active', true)
+                ->where('stores.advertising_enabled', true))
             ->whereHas('role', fn ($query) => $query
                 ->where('roles.is_active', true)
                 ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', 'notifications.manage')))
@@ -221,6 +224,9 @@ final class PromotionalNotificationCampaignController extends Controller
         if ($actor->hasRole('SUPER_ADMIN')) {
             if ($storeId !== null) {
                 app(OperationalTenantScope::class)->assertStore($actor, $storeId, 'notifications.manage', $target === 'all' ? null : $target);
+                if ($target === 'b2c') {
+                    abort_unless(DB::table('stores')->where('id', $storeId)->where('advertising_enabled', true)->exists(), 403);
+                }
             }
 
             return;
@@ -328,7 +334,16 @@ final class PromotionalNotificationCampaignController extends Controller
     /** @return list<int> */
     private function allowedB2cStoreIds(User $actor): array
     {
-        return app(OperationalTenantScope::class)->allowedStoreIds($actor, 'notifications.manage', 'b2c');
+        $ids = app(OperationalTenantScope::class)->allowedStoreIds($actor, 'notifications.manage', 'b2c');
+
+        return DB::table('stores')
+            ->whereIn('id', $ids)
+            ->where('is_active', true)
+            ->where('advertising_enabled', true)
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
     }
 
     /** @return list<array{id: int, name: string, channel: string}> */
@@ -343,6 +358,7 @@ final class PromotionalNotificationCampaignController extends Controller
         return DB::table('stores')
             ->whereIn('id', $ids)
             ->where('is_active', true)
+            ->when($channel === 'b2c', fn ($query) => $query->where('advertising_enabled', true))
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn ($store): array => [
