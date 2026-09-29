@@ -124,6 +124,16 @@ class CustomerProfileController extends Controller
         return response()->json(['data' => $addresses]);
     }
 
+    public function showAddress(Request $request, int $address): JsonResponse
+    {
+        [$user, $customer, $channel] = $this->addressContext($request);
+
+        $model = app(CustomerAddressService::class)
+            ->findOwned($user, $address, $customer, $channel);
+
+        return response()->json($this->addressPayload($model));
+    }
+
     public function storeAddress(Request $request, AuditLogger $auditLogger): JsonResponse
     {
         [$user, $customer, $channel] = $this->addressContext($request);
@@ -587,10 +597,6 @@ class CustomerProfileController extends Controller
             && $values['line1'] !== null
         ) {
             $values['street'] = $values['line1'];
-        }
-
-        if (! array_key_exists('location_source', $values)) {
-            $values['location_source'] = 'manual';
         }
 
         return $values;
