@@ -46,3 +46,7 @@
 أي تغيير سيتم نشره يجب أن يصاحبه رفع `VERSION`، مثال `1.0.0 -> 1.0.1`. بعد الدمج إلى `main` يقوم Workflow ببناء نسخة جديدة وينشرها في فرع التوليد. يتم دمج فرع التوليد بعد CI.
 
 للموقع المركب بالفعل استخدم الملفات داخل `Updates/` وفق التعليمات هناك. إذا كان التغيير يضيف/يغير Composer dependencies فسيتم إيقاف Dashboard ZIP عمدًا، ويكون المطلوب Full Laravel redeploy باستخدام Setup ZIP الجديد.
+
+## Refresh 1.0.34
+
+تمت إعادة توليد حزمة FOODEX 1.0.34 من أحدث `main` بعد اكتمال بوابة Platform Customer Commerce E2E، لضمان تطابق APKs وLaravel Setup وBUILD_INFO مع آخر كود مدموج.
