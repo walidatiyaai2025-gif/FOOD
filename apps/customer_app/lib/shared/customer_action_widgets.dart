@@ -100,6 +100,120 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
       );
 }
 
+class CustomerPasswordLoginAction extends StatefulWidget {
+  const CustomerPasswordLoginAction({
+    required this.api,
+    required this.onAuthenticated,
+    required this.successRoute,
+    super.key,
+  });
+
+  final CustomerActionApi api;
+  final PlatformCustomerRegistered onAuthenticated;
+  final String successRoute;
+
+  @override
+  State<CustomerPasswordLoginAction> createState() =>
+      _CustomerPasswordLoginActionState();
+}
+
+class _CustomerPasswordLoginActionState
+    extends State<CustomerPasswordLoginAction> {
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_email.text.trim().isEmpty || _password.text.isEmpty) {
+      setState(() => _error = 'customer.validation.credentials');
+      return;
+    }
+
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      final result = await widget.api.loginWithPassword(
+        email: _email.text,
+        password: _password.text,
+      );
+      if (!mounted) return;
+      widget.onAuthenticated(result.token);
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        widget.successRoute,
+        (route) => false,
+      );
+    } catch (_) {
+      if (mounted) setState(() => _error = 'customer.error.login_failed');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AutofillGroup(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              key: const ValueKey('customer-password-login-email'),
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.email],
+              decoration: InputDecoration(
+                labelText: context.tr('customer.login.email'),
+                prefixIcon: const Icon(Icons.email_outlined),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              key: const ValueKey('customer-password-login-password'),
+              controller: _password,
+              obscureText: true,
+              textInputAction: TextInputAction.done,
+              autofillHints: const [AutofillHints.password],
+              decoration: InputDecoration(
+                labelText: context.tr('customer.login.password'),
+                prefixIcon: const Icon(Icons.lock_outline_rounded),
+              ),
+              onSubmitted: (_) => _submit(),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                context.tr(_error!),
+                key: const ValueKey('customer-password-login-error'),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              key: const ValueKey('customer-password-login-submit'),
+              onPressed: _busy ? null : _submit,
+              icon: const Icon(Icons.login_rounded),
+              label: _busy
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(context.tr('customer.action.login')),
+            ),
+          ],
+        ),
+      );
+}
+
 class CustomerRegistrationAction extends StatefulWidget {
   const CustomerRegistrationAction({
     required this.api,
