@@ -465,7 +465,8 @@ class GuestCartController extends Controller
             false,
         );
 
-        $items = collect($quote['items'])->map(static function (array $line): array {
+        $currency = (string) $quote['currency'];
+        $items = collect($quote['items'])->map(static function (array $line) use ($currency): array {
             return [
                 'id' => isset($line['cart_item_id']) ? (int) $line['cart_item_id'] : null,
                 'product' => [
@@ -476,7 +477,7 @@ class GuestCartController extends Controller
                     'brand_id' => $line['brand_id'],
                     'is_active' => $line['sku'] !== null,
                     'price' => $line['base_unit_price'],
-                    'currency' => $line['currency'] ?? null,
+                    'currency' => $currency,
                 ],
                 'quantity' => (float) $line['quantity'],
                 'unit_price_snapshot' => $line['unit_price'],
