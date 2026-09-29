@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 final class PlatformCustomerService
 {
-    /** @param array{name:string,email:string,phone?:?string,password:string,locale?:string} $data */
+    /** @param array{name:string,email:string,phone:string,password:string,locale?:string} $data */
     public function register(array $data): User
     {
         return DB::transaction(function () use ($data): User {
@@ -22,6 +22,16 @@ final class PlatformCustomerService
             if (User::query()->whereRaw('LOWER(email) = ?', [$email])->exists()) {
                 throw ValidationException::withMessages([
                     'email' => ['This email address is already registered.'],
+                ]);
+            }
+
+            $tierId = DB::table('b2b_price_tiers')
+                ->where('code', 'STANDARD')
+                ->value('id');
+
+            if ($tierId === null) {
+                throw ValidationException::withMessages([
+                    'registration' => ['The default customer price tier is not configured.'],
                 ]);
             }
 
@@ -33,13 +43,14 @@ final class PlatformCustomerService
                     ? (string) ($data['locale'] ?? 'ar')
                     : 'ar',
                 'is_active' => true,
+                'is_platform_customer' => true,
             ]);
 
             $legacy = Customer::query()->create([
                 'user_id' => $user->getKey(),
                 'type' => 'platform',
                 'name' => $user->name,
-                'phone' => $data['phone'] ?? null,
+                'phone' => trim((string) $data['phone']),
                 'email' => $email,
             ]);
 
@@ -47,9 +58,27 @@ final class PlatformCustomerService
                 'user_id' => $user->getKey(),
                 'legacy_customer_id' => $legacy->getKey(),
                 'name' => $user->name,
-                'phone' => $data['phone'] ?? null,
+                'phone' => trim((string) $data['phone']),
                 'email' => $email,
                 'is_active' => true,
+            ]);
+
+            $customer = B2bCustomer::query()->create([
+                'legacy_customer_id' => $legacy->getKey(),
+                'user_id' => $user->getKey(),
+                'name' => $user->name,
+                'phone' => trim((string) $data['phone']),
+                'email' => $email,
+            ]);
+
+            B2bAccount::query()->create([
+                'customer_id' => $legacy->getKey(),
+                'b2b_customer_id' => $customer->getKey(),
+                'price_tier_id' => (int) $tierId,
+                'company_name' => $user->name,
+                'status' => 'active',
+                'tax_number' => null,
+                'credit_limit' => 0,
             ]);
 
             return $user;
@@ -83,8 +112,7 @@ final class PlatformCustomerService
             );
 
             $tierId = DB::table('b2b_price_tiers')
-                ->orderBy('priority')
-                ->orderBy('id')
+                ->where('code', 'STANDARD')
                 ->value('id');
 
             B2bAccount::query()->firstOrCreate(
@@ -135,6 +163,7 @@ final class PlatformCustomerService
 
     public function isPlatformCustomer(User $user): bool
     {
-        return $this->forUser($user) instanceof PlatformCustomer;
+        return (bool) $user->is_platform_customer
+            || $this->forUser($user) instanceof PlatformCustomer;
     }
 }
