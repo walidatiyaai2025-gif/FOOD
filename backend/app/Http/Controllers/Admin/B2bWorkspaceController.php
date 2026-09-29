@@ -899,6 +899,7 @@ class B2bWorkspaceController extends Controller
                 $total = (float) $row->total;
 
                 return [
+                    '_id' => (int) $row->id,
                     'invoice' => $row->invoice_number,
                     'company' => $row->company ?: '-',
                     'client' => $row->client,
@@ -907,12 +908,16 @@ class B2bWorkspaceController extends Controller
                     'paid' => $row->currency.' '.number_format($paid, 3),
                     'balance' => $row->currency.' '.number_format(max(0, $total - $paid), 3),
                     'due' => $row->due_at === null ? '-' : (string) $row->due_at,
+                    'actions' => [
+                        ['label' => $this->msg('تفاصيل', 'Details'), 'url' => route('admin.invoices.show', ['invoice' => $row->id])],
+                        ['label' => 'PDF', 'url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()])],
+                    ],
                 ];
             })
             ->all();
 
         return [
-            'columns' => ['invoice', 'company', 'client', 'status', 'amount', 'paid', 'balance', 'due'],
+            'columns' => ['invoice', 'company', 'client', 'status', 'amount', 'paid', 'balance', 'due', 'actions'],
             'rows' => $rows,
         ];
     }

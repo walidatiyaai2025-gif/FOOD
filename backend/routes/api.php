@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\B2bFinanceController;
 use App\Http\Controllers\Api\V1\B2bPricingController;
 use App\Http\Controllers\Api\V1\B2bReportController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\CustomerInvoiceController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\GuestCartController;
@@ -113,6 +114,10 @@ Route::prefix('v1')->group(function (): void {
 
         Route::post('/quote', QuoteController::class);
         Route::post('/checkout', CheckoutController::class);
+
+        Route::get('/invoices', [CustomerInvoiceController::class, 'index']);
+        Route::get('/invoices/{invoice}', [CustomerInvoiceController::class, 'show'])->whereNumber('invoice');
+        Route::get('/invoices/{invoice}/download', [CustomerInvoiceController::class, 'download'])->whereNumber('invoice');
 
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);

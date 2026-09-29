@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
 use App\Http\Controllers\Admin\BusinessManagementController;
 use App\Http\Controllers\Admin\CatalogManagementController;
+use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LookupManagementController;
 use App\Http\Controllers\Admin\MobileAppDownloadController;
 use App\Http\Controllers\Admin\MobileSettingsController;
@@ -70,6 +71,9 @@ Route::prefix('admin')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
+        Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice')->name('invoices.show');
+        Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])->whereNumber('invoice')->name('invoices.download');
+        Route::post('/invoices/{invoice}/void-reissue', [InvoiceController::class, 'reissue'])->whereNumber('invoice')->name('invoices.reissue');
         Route::patch('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('profile.password');
         Route::patch('/profile/locale', [AdminProfileController::class, 'updateLocale'])->name('profile.locale');
         Route::get('/b2b/dashboard', [B2bWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2b.dashboard');

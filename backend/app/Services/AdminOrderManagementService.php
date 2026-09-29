@@ -6,6 +6,7 @@ use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
+use App\Models\Invoice;
 use App\Models\MarketingCoupon;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -205,6 +206,18 @@ final class AdminOrderManagementService
             ]);
         }
 
+        if (
+            $order->commercial_locked_at !== null
+            || Invoice::query()
+                ->where('order_id', $order->getKey())
+                ->whereIn('status', ['issued', 'reissued'])
+                ->exists()
+        ) {
+            throw ValidationException::withMessages([
+                'order' => ['Issued commercial snapshots are immutable. Void/reissue the invoice or create a replacement order.'],
+            ]);
+        }
+
         if (Payment::query()->where('order_id', $order->getKey())->where('status', 'paid')->exists()) {
             throw ValidationException::withMessages([
                 'order' => ['A paid order cannot be edited.'],
@@ -256,6 +269,18 @@ final class AdminOrderManagementService
             if ((string) $locked->status !== 'pending') {
                 throw ValidationException::withMessages([
                     'order' => ['Only pending orders can be edited.'],
+                ]);
+            }
+
+            if (
+                $locked->commercial_locked_at !== null
+                || Invoice::query()
+                    ->where('order_id', $locked->getKey())
+                    ->whereIn('status', ['issued', 'reissued'])
+                    ->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'order' => ['Issued commercial snapshots are immutable. Void/reissue the invoice or create a replacement order.'],
                 ]);
             }
 

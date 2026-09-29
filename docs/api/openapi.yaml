@@ -492,6 +492,103 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /invoices:
+    get:
+      tags: [Invoices]
+      summary: List invoice documents owned by the authenticated Platform Customer
+      description: Returns only invoices belonging to the authenticated customer's Wholesale or Retail domain identities. Optional store and channel filters never broaden ownership.
+      operationId: listCustomerInvoices
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: channel
+          schema:
+            type: string
+            enum: [b2b, b2c]
+        - in: query
+          name: status
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Owned invoice document collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerInvoiceDocumentCollection"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /invoices/{invoice}:
+    get:
+      tags: [Invoices]
+      summary: Get an owned immutable invoice document
+      operationId: showCustomerInvoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/InvoiceId"
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: channel
+          schema:
+            type: string
+            enum: [b2b, b2c]
+      responses:
+        "200":
+          description: Owned invoice detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CustomerInvoiceDocument"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /invoices/{invoice}/download:
+    get:
+      tags: [Invoices]
+      summary: Download an owned invoice as a server-rendered PDF
+      operationId: downloadCustomerInvoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/InvoiceId"
+        - in: query
+          name: locale
+          schema:
+            type: string
+            enum: [ar, en]
+      responses:
+        "200":
+          description: Arabic RTL or English LTR invoice PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /orders:
     get:
       tags: [Orders]
@@ -2031,6 +2128,15 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/OrderItem"
+        invoice:
+          type: [object, "null"]
+          properties:
+            id:
+              type: integer
+            invoice_number:
+              type: string
+            status:
+              type: string
         created_at:
           type: string
           format: date-time
@@ -2127,6 +2233,110 @@ components:
         currency:
           type: string
           enum: [EGP]
+
+    CustomerInvoiceItem:
+      type: object
+      required: [name, quantity, unit_price, discount_total, tax_total, line_total, currency]
+      properties:
+        product_id:
+          type: [integer, "null"]
+        sku:
+          type: [string, "null"]
+        name:
+          type: string
+        quantity:
+          type: number
+          multipleOf: 0.001
+        unit_price:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        line_total:
+          type: number
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [EGP]
+        price_tier_code:
+          type: [string, "null"]
+
+    CustomerInvoiceDocument:
+      type: object
+      required: [id, invoice_number, revision, status, order_id, store_id, channel, customer, currency, subtotal, discount_total, delivery_total, tax_total, grand_total]
+      properties:
+        id:
+          type: integer
+        invoice_number:
+          type: string
+        revision:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [issued, reissued, voided]
+        order_id:
+          type: [integer, "null"]
+        order_number:
+          type: [string, "null"]
+        store_id:
+          type: [integer, "null"]
+        store_name:
+          type: [string, "null"]
+        channel:
+          type: [string, "null"]
+          enum: [b2b, b2c, null]
+        customer:
+          type: object
+          properties:
+            name:
+              type: [string, "null"]
+            email:
+              type: [string, "null"]
+            phone:
+              type: [string, "null"]
+        currency:
+          type: string
+          enum: [EGP]
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        grand_total:
+          type: number
+          multipleOf: 0.001
+        payment_method:
+          type: [string, "null"]
+        payment_status:
+          type: [string, "null"]
+        price_tier_id:
+          type: [integer, "null"]
+        price_tier_code:
+          type: [string, "null"]
+        issued_at:
+          type: [string, "null"]
+          format: date-time
+        voided_at:
+          type: [string, "null"]
+          format: date-time
+        void_reason:
+          type: [string, "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerInvoiceItem"
 
     Invoice:
       type: object
@@ -2564,6 +2774,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/B2bProduct"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    CustomerInvoiceDocumentCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerInvoiceDocument"
         meta:
           $ref: "#/components/schemas/PaginationMeta"
 

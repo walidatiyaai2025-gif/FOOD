@@ -20,6 +20,7 @@ use App\Services\CommerceQuoteService;
 use App\Services\CouponRedemptionService;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\InvoiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +34,7 @@ class CheckoutController extends Controller
         AuditLogger $auditLogger,
         DashboardOperationalNotifier $dashboardNotifier,
         CommerceQuoteService $quotes,
+        InvoiceService $invoices,
     ): JsonResponse {
         $validated = $request->validate([
             'store_id' => ['required', 'integer', 'min:1'],
@@ -119,6 +121,7 @@ class CheckoutController extends Controller
             $auditLogger,
             $request,
             $quotes,
+            $invoices,
         ): array {
             $existing = Order::query()
                 ->where($customerColumn, $customer->getKey())
@@ -287,6 +290,10 @@ class CheckoutController extends Controller
                 ],
             ]);
 
+            // Invoice issuance is part of the same checkout transaction. It snapshots the
+            // already-authoritative order/order-item pricing and links the payment.
+            $invoices->issueForOrder($order, $user);
+
             $couponId = $quote['coupon']['id'] ?? null;
             if ($couponId !== null) {
                 $coupon = MarketingCoupon::query()->find((int) $couponId);
@@ -379,6 +386,12 @@ class CheckoutController extends Controller
             ->where('order_id', $order->getKey())
             ->latest('id')
             ->first();
+        $invoice = DB::table('invoices')
+            ->where('order_id', $order->getKey())
+            ->whereIn('status', ['issued', 'reissued'])
+            ->orderByDesc('revision')
+            ->orderByDesc('id')
+            ->first(['id', 'invoice_number', 'status']);
 
         return [
             'id' => (int) $order->getKey(),
@@ -407,6 +420,11 @@ class CheckoutController extends Controller
                 'amount' => (float) $payment->amount,
                 'currency' => (string) $payment->currency,
             ] : null,
+            'invoice' => $invoice === null ? null : [
+                'id' => (int) $invoice->id,
+                'invoice_number' => (string) $invoice->invoice_number,
+                'status' => (string) $invoice->status,
+            ],
             'created_at' => $order->created_at?->toAtomString(),
         ];
     }

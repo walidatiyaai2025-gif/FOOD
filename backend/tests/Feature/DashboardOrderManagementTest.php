@@ -119,6 +119,96 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertDatabaseCount('orders', 0);
     }
 
+    public function test_retail_invoice_dashboard_is_store_scoped_and_supports_controlled_reissue(): void
+    {
+        $storeA = $this->store('B2C', 'INVOICE-STORE-A');
+        $storeB = $this->store('B2C', 'INVOICE-STORE-B');
+        [$product] = $this->product($storeA, 'b2c', 'INVOICE-A-SKU', 3.750, 10);
+        $adminA = $this->storeAdmin($storeA, 'invoice-admin-a@example.test');
+        $adminB = $this->storeAdmin($storeB, 'invoice-admin-b@example.test');
+        $customer = app(B2cCustomerService::class)->create($storeA, [
+            'name' => 'Invoice Buyer',
+            'email' => 'invoice-buyer@example.test',
+        ]);
+
+        $this->actingAs($adminA)->post('/admin/b2c/orders', [
+            'store_id' => $storeA,
+            'customer_id' => $customer->id,
+            'payment_method' => 'cash_on_delivery',
+            'items' => [['product_id' => $product, 'quantity' => 2]],
+        ])->assertRedirect();
+
+        $order = DB::table('orders')->where('store_id', $storeA)->where('channel', 'b2c')->first();
+        $this->assertNotNull($order);
+
+        $this->actingAs($adminA)->post('/admin/b2c/orders/'.$order->id.'/status', [
+            'store_id' => $storeA,
+            'status' => 'confirmed',
+            'note' => 'Approved',
+        ])->assertRedirect();
+
+        $invoice = DB::table('invoices')->where('order_id', $order->id)->where('status', 'issued')->first();
+        $this->assertNotNull($invoice);
+
+        $this->actingAs($adminA)
+            ->get('/admin/b2c/finance?store_id='.$storeA)
+            ->assertOk()
+            ->assertSee($invoice->invoice_number);
+
+        $this->actingAs($adminA)
+            ->get('/admin/invoices/'.$invoice->id)
+            ->assertOk()
+            ->assertSee($invoice->invoice_number);
+
+        $this->actingAs($adminA)
+            ->get('/admin/invoices/'.$invoice->id.'/download?locale=ar')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $this->actingAs($adminB)
+            ->get('/admin/invoices/'.$invoice->id)
+            ->assertNotFound();
+
+        $this->actingAs($adminA)
+            ->post('/admin/invoices/'.$invoice->id.'/void-reissue', [
+                'reason' => 'Controlled invoice correction',
+            ])
+            ->assertRedirect();
+
+        $replacement = DB::table('invoices')
+            ->where('order_id', $order->id)
+            ->where('status', 'reissued')
+            ->orderByDesc('revision')
+            ->first();
+        $this->assertNotNull($replacement);
+        $this->assertSame(2, (int) $replacement->revision);
+        $this->assertSame((int) $invoice->id, (int) $replacement->revision_of_invoice_id);
+        $this->assertDatabaseHas('invoices', [
+            'id' => $invoice->id,
+            'status' => 'voided',
+            'void_reason' => 'Controlled invoice correction',
+        ]);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'invoice_id' => $replacement->id,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'invoice.voided',
+            'auditable_id' => $invoice->id,
+        ]);
+
+        $this->actingAs($adminA)->post('/admin/b2c/orders/'.$order->id.'/status', [
+            'store_id' => $storeA,
+            'status' => 'cancelled',
+            'note' => 'Customer cancelled after confirmation',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('invoices', [
+            'id' => $replacement->id,
+            'status' => 'voided',
+        ]);
+    }
+
     public function test_b2b_dashboard_order_uses_approved_customer_tier_price_and_minimum_quantity(): void
     {
         $store = app(WholesalePrincipal::class)->storeId();
@@ -184,6 +274,32 @@ class DashboardOrderManagementTest extends TestCase
             'line_total' => 36.250,
         ]);
         $this->assertSame(5.0, (float) DB::table('inventories')->where('id', $inventory)->value('reserved_quantity'));
+        $this->assertDatabaseMissing('invoices', ['order_id' => $order->id]);
+
+        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
+            'status' => 'confirmed',
+            'note' => 'Commercially approved',
+        ])->assertRedirect();
+
+        $invoice = DB::table('invoices')->where('order_id', $order->id)->first();
+        $this->assertNotNull($invoice);
+        $this->assertSame('b2b', $invoice->channel);
+        $this->assertSame('ORDER-GOLD', $invoice->price_tier_code_snapshot);
+        $this->assertSame(36.25, (float) $invoice->total);
+        $this->assertDatabaseHas('invoice_items', [
+            'invoice_id' => $invoice->id,
+            'product_id' => $product,
+            'quantity' => 5,
+            'unit_price' => 7.250,
+            'price_tier_code_snapshot' => 'ORDER-GOLD',
+        ]);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'invoice_id' => $invoice->id,
+        ]);
+
+        DB::table('b2b_price_rules')->where('price_tier_id', $tier)->where('product_id', $product)->update(['unit_price' => 99.999]);
+        $this->assertSame(7.25, (float) DB::table('invoice_items')->where('invoice_id', $invoice->id)->value('unit_price'));
 
         $this->actingAs($admin)->post('/admin/b2b/orders', [
             'warehouse_id' => $warehouse,

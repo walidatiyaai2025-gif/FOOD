@@ -163,7 +163,8 @@ class CheckoutDomainTest extends TestCase
             ->assertJsonPath('subtotal', 2.5)
             ->assertJsonPath('grand_total', 2.5)
             ->assertJsonPath('payment.provider', 'cash_on_delivery')
-            ->assertJsonPath('payment.status', 'pending');
+            ->assertJsonPath('payment.status', 'pending')
+            ->assertJsonPath('invoice.status', 'issued');
 
         $orderId = (int) $response->json('id');
 
@@ -180,8 +181,28 @@ class CheckoutDomainTest extends TestCase
             'quantity' => 2,
             'unit_price' => 1.250,
         ]);
+        $invoiceId = (int) DB::table('invoices')->where('order_id', $orderId)->value('id');
+        $this->assertGreaterThan(0, $invoiceId);
+        $this->assertDatabaseHas('invoices', [
+            'id' => $invoiceId,
+            'order_id' => $orderId,
+            'store_id' => $this->storeId,
+            'b2c_customer_id' => $this->domainCustomer->id,
+            'channel' => 'b2c',
+            'status' => 'issued',
+            'subtotal' => 2.500,
+            'total' => 2.500,
+        ]);
+        $this->assertDatabaseHas('invoice_items', [
+            'invoice_id' => $invoiceId,
+            'product_id' => $this->productId,
+            'quantity' => 2,
+            'unit_price' => 1.250,
+            'line_total' => 2.500,
+        ]);
         $this->assertDatabaseHas('payments', [
             'order_id' => $orderId,
+            'invoice_id' => $invoiceId,
             'provider' => 'cash_on_delivery',
             'status' => 'pending',
             'amount' => 2.500,
@@ -211,6 +232,75 @@ class CheckoutDomainTest extends TestCase
             'auditable_type' => 'App\\Models\\Order',
             'auditable_id' => $orderId,
         ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'invoice.issued',
+            'auditable_type' => 'App\\Models\\Invoice',
+            'auditable_id' => $invoiceId,
+        ]);
+    }
+
+    public function test_customer_invoice_is_snapshot_owned_and_downloads_in_arabic_and_english(): void
+    {
+        $this->addCartItem(2);
+
+        $checkout = $this->withHeader('Idempotency-Key', 'checkout-key-invoice-001')
+            ->postJson('/api/v1/checkout', [
+                'store_id' => $this->storeId,
+                'address_id' => $this->address->id,
+                'payment_method' => 'cash_on_delivery',
+            ])
+            ->assertCreated();
+
+        $invoiceId = (int) $checkout->json('invoice.id');
+        $this->assertGreaterThan(0, $invoiceId);
+
+        DB::table('store_products')
+            ->where('store_id', $this->storeId)
+            ->where('product_id', $this->productId)
+            ->update(['price' => 99.999]);
+
+        $this->getJson('/api/v1/invoices')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $invoiceId);
+
+        $this->getJson('/api/v1/invoices/'.$invoiceId)
+            ->assertOk()
+            ->assertJsonPath('data.grand_total', 2.5)
+            ->assertJsonPath('data.items.0.unit_price', 1.25)
+            ->assertJsonPath('data.items.0.line_total', 2.5);
+
+        $this->get('/api/v1/invoices/'.$invoiceId.'/download?locale=ar')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertSee('%PDF', false);
+        $this->get('/api/v1/invoices/'.$invoiceId.'/download?locale=en')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertSee('%PDF', false);
+
+        $otherUser = User::query()->create([
+            'name' => 'Foreign Invoice Customer',
+            'email' => 'foreign-invoice@example.test',
+            'password' => 'secret-password',
+            'is_active' => true,
+        ]);
+        $otherLegacy = Customer::query()->create([
+            'user_id' => $otherUser->id,
+            'type' => 'b2c',
+            'name' => 'Foreign Invoice Customer',
+            'email' => $otherUser->email,
+        ]);
+        B2cCustomer::query()->create([
+            'legacy_customer_id' => $otherLegacy->id,
+            'store_id' => $this->storeId,
+            'user_id' => $otherUser->id,
+            'name' => 'Foreign Invoice Customer',
+            'email' => $otherUser->email,
+        ]);
+
+        Sanctum::actingAs($otherUser);
+        $this->getJson('/api/v1/invoices/'.$invoiceId)->assertNotFound();
+        $this->get('/api/v1/invoices/'.$invoiceId.'/download?locale=en')->assertNotFound();
     }
 
     public function test_checkout_idempotency_replays_same_order_and_rejects_changed_payload(): void
@@ -236,6 +326,7 @@ class CheckoutDomainTest extends TestCase
 
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseCount('invoices', 1);
 
         $this->withHeader('Idempotency-Key', 'checkout-key-000002')
             ->postJson('/api/v1/checkout', [
