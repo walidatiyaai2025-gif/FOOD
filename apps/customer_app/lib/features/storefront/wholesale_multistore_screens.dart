@@ -1079,7 +1079,7 @@ class _WholesaleProductDetailsDesignScreenState
         backgroundColor: Colors.white,
         body: SafeArea(
           child: FutureBuilder<Object?>(
-            future: widget.api != null
+            future: widget.api != null && !widget.session.isPlatformCustomer
                 ? widget.api!.get(endpoint)
                 : (widget.storefrontApi != null
                     ? widget.storefrontApi!.platformProduct(productId)
