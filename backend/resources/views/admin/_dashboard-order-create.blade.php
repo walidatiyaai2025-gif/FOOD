@@ -120,8 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const warehouse = form.querySelector('.js-order-warehouse')?.value || '';
         const store = form.querySelector('input[name="store_id"]')?.value || '';
         const customer = form.querySelector('.js-order-customer')?.value || '';
+        const productSelects = [...form.querySelectorAll('.js-order-product')];
+        const selectedProducts = productSelects.map((select) => select.value).filter(Boolean);
 
-        form.querySelectorAll('.js-order-product option[value]').forEach((option) => {
+        productSelects.forEach((select, selectIndex) => {
+            select.querySelectorAll('option[value]').forEach((option) => {
             if (!option.value) return;
             let visible = true;
             if (isB2b) {
@@ -130,9 +133,13 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (option.dataset.storeId) {
                 visible = !store || option.dataset.storeId === store;
             }
-            option.hidden = !visible;
-            option.disabled = !visible;
+            const selectedElsewhere = selectedProducts.some(
+                (value, index) => index !== selectIndex && value === option.value,
+            );
+            option.hidden = !visible || selectedElsewhere;
+            option.disabled = !visible || selectedElsewhere;
             if (!visible && option.selected) option.selected = false;
+            });
         });
 
         form.querySelectorAll('.js-order-address option[data-customer-id]').forEach((option) => {
