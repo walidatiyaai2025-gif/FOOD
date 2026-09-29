@@ -21,7 +21,7 @@ class FoodexCustomerApp extends StatefulWidget {
   const FoodexCustomerApp({
     super.key,
     this.session = const CustomerSession.guest(),
-    this.initialRoute = CustomerRoutePaths.splash,
+    this.initialRoute = CustomerRoutePaths.marketplace,
     this.b2bApi,
     this.b2cCatalogApi,
     this.b2cAccountApi,
