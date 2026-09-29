@@ -198,6 +198,7 @@ final class CouponManagementController extends Controller
 
         if ($channel === 'b2b') {
             abort_unless($actor->hasRole('SUPER_ADMIN') || ($actor->hasRole('B2B_ADMIN') && $actor->hasPermission('coupons.manage')), 403);
+
             return ['b2b', null, 'b2b'];
         }
 
