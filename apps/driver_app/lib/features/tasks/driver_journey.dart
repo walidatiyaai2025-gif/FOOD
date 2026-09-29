@@ -117,11 +117,13 @@ class DriverJourneyPage extends StatefulWidget {
     required this.channel,
     required this.repository,
     this.onSessionExpired,
+    this.focusAssignmentId,
   });
 
   final DriverChannel channel;
   final DriverAssignmentRepository repository;
   final VoidCallback? onSessionExpired;
+  final int? focusAssignmentId;
 
   @override
   State<DriverJourneyPage> createState() => _DriverJourneyPageState();
@@ -134,6 +136,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
   final TextEditingController _searchController = TextEditingController();
   final Set<int> _transitioning = <int>{};
   String? _actionError;
+  bool _didFocusInitialAssignment = false;
 
   @override
   void initState() {
@@ -166,6 +169,23 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
         assignments = filtered;
         state = filtered.isEmpty ? DriverLoadState.empty : DriverLoadState.ready;
       });
+
+      final focusId = widget.focusAssignmentId;
+      if (!_didFocusInitialAssignment && focusId != null) {
+        _didFocusInitialAssignment = true;
+        DriverAssignment? match;
+        for (final row in filtered) {
+          if (row.id == focusId) {
+            match = row;
+            break;
+          }
+        }
+        if (match != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _showDetail(match);
+          });
+        }
+      }
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
       if (mounted && widget.onSessionExpired == null) {
