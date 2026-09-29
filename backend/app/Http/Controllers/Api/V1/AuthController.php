@@ -136,7 +136,7 @@ class AuthController extends Controller
         return response()->json($this->identity($user));
     }
 
-    /** @return array{id:int,name:string,username:?string,email:string,locale:string,roles:list<string>,store_ids:list<int>} */
+    /** @return array{id:int,name:string,username:?string,email:string,locale:string,roles:list<string>,store_ids:list<int>,platform_customer:bool} */
     private function identity(User $user): array
     {
         $roles = $user->roles()
