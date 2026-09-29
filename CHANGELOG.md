@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.32 - Wholesale-first Customer marketplace and platform registration
+
+- Open the Customer app into the platform main Wholesale storefront after splash without requiring sign-in.
+- Show Retail stores as a compact horizontal banner strip capped at roughly 20% of the viewport; tapping a banner opens that Retail storefront.
+- Add public guest-safe marketplace and Wholesale storefront browsing APIs.
+- Add Customer self-registration with one platform account and an active STANDARD Wholesale account.
+- Materialize Retail customer records lazily per selected Retail store while preserving tenant isolation.
+- Route carts and orders by the actual selected store/channel, not by a separate app registration.
+- Keep checkout, order history and profile actions authenticated while allowing guest browsing.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.32.
+
 ## 1.0.31 - Open-ended B2B sales dashboard range
 
 - Rename the wholesale dashboard chart from Daily sales / المبيعات اليومية to Sales / المبيعات.
