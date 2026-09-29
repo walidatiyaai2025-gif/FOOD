@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use App\Models\Notification;
+use App\Models\PushDeliveryLog;
 use App\Models\PushDeviceToken;
 use App\Models\PushProviderSetting;
 use App\Models\User;
@@ -63,9 +64,11 @@ class PushLifecyclePayloadTest extends TestCase
     {
         [, $device, $notification] = $this->fixture('retry');
 
-        Http::fakeSequence('fcm.googleapis.com/*')
-            ->push(['error' => ['message' => 'temporary unavailable']], 503)
-            ->push(['name' => 'projects/foodex-push-test/messages/retry-2'], 200);
+        Http::fake([
+            'fcm.googleapis.com/*' => Http::sequence()
+                ->push(['error' => ['message' => 'temporary unavailable']], 503)
+                ->push(['name' => 'projects/foodex-push-test/messages/retry-2'], 200),
+        ]);
 
         try {
             app(PushDeliveryService::class)->dispatchNotification($notification, true);
@@ -95,7 +98,10 @@ class PushLifecyclePayloadTest extends TestCase
 
         $this->assertSame(
             2,
-            PushDeliveryServiceTestProbe::deliveryCount($notification->id, $device->id),
+            PushDeliveryLog::query()
+                ->where('notification_id', $notification->id)
+                ->where('device_id', $device->id)
+                ->count(),
         );
     }
 
@@ -206,13 +212,3 @@ class PushLifecyclePayloadTest extends TestCase
     }
 }
 
-final class PushDeliveryServiceTestProbe
-{
-    public static function deliveryCount(int $notificationId, int $deviceId): int
-    {
-        return \App\Models\PushDeliveryLog::query()
-            ->where('notification_id', $notificationId)
-            ->where('device_id', $deviceId)
-            ->count();
-    }
-}
