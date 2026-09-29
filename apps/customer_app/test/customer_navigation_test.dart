@@ -155,7 +155,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('لوحة أعمال الجملة'), findsOneWidget);
+    expect(find.text('لوحة الأعمال'), findsOneWidget);
     expect(find.text('/b2b/dashboard'), findsOneWidget);
   });
 }
