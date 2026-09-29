@@ -344,6 +344,7 @@ class _ResponsiveWholesaleApi implements WholesaleCommerceApi {
     required String paymentMethod,
     String? requestedDeliveryDate,
     String? note,
+    String? couponCode,
     required String idempotencyKey,
   }) async =>
       {'id': 1, 'status': 'pending'};
