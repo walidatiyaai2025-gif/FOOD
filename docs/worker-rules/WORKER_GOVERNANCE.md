@@ -14,3 +14,18 @@
 - Product feature development remains blocked until bootstrap readiness is YES.
 
 High-risk shared files include auth config, central routing, core migrations, root package files, app bootstrap, central permission definitions and OpenAPI.
+
+
+## Scheduled execution contract
+
+Any FOODEX feature that exposes scheduling is incomplete unless its execution path is delivered with it.
+
+Required for every scheduled feature:
+- the Laravel Scheduler owns due-work execution;
+- first install automatically provisions the operating-system scheduler when the host permits it;
+- every system update re-validates/re-provisions scheduler execution;
+- the application-level scheduler heartbeat remains enabled as the restricted-host fallback;
+- scheduling must have health/operational evidence and regression coverage;
+- workers must not ship a UI/database schedule that requires an operator to add cron manually.
+
+This is a platform invariant, not a per-feature optional task.

@@ -27,3 +27,8 @@ the deployed version, and inspect server logs before explicitly running
 Regression coverage in `UpdateManagerTest` injects file and database restore failures.
 These unit-level runtime substitutes verify orchestration; #124 still requires real
 PostgreSQL/Redis backup/restore and production-like deployment evidence.
+
+
+## Scheduler continuity
+
+Every successful update cache-rebuild phase re-runs FOODEX scheduler provisioning. The updater therefore repairs or refreshes the single managed scheduler entry automatically after path/PHP changes. Restricted hosts remain covered by the application scheduler heartbeat; update installation must never introduce a new manual cron prerequisite.

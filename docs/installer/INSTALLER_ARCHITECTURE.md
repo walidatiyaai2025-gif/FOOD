@@ -40,3 +40,8 @@ The health step verifies:
 A successful finish is idempotent enough to recover from an interrupted final request: it creates or updates the prepared Super Admin, attaches `SUPER_ADMIN`, persists the current `VERSION` in `system_versions`, hardens `APP_ENV`/`APP_DEBUG`, emits `installer.completed` through the shared audit foundation, and only then writes `storage/app/system/installed.lock`.
 
 Once the lock exists, all `/install` GET/POST routes return 404. Installer progress is removed and the browser is redirected to `/admin`, where the normal Management Dashboard authentication boundary remains authoritative.
+
+
+## Scheduler provisioning
+
+Scheduling is part of installation completion. Before the install lock is written, FOODEX automatically attempts to provision the single managed Laravel scheduler cron entry. Failure to modify host crontab does not make the product depend on manual intervention: the installed application-level scheduler heartbeat remains active and runs the Laravel schedule at most once per minute under a filesystem lock.

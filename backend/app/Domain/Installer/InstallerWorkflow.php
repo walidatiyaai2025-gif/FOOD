@@ -4,6 +4,7 @@ namespace App\Domain\Installer;
 
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\SchedulerRuntime;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -18,6 +19,7 @@ final class InstallerWorkflow
         private readonly InstallerEnvironment $environment,
         private readonly InstallState $state,
         private readonly AuditLogger $auditLogger,
+        private readonly SchedulerRuntime $scheduler,
     ) {}
 
     /**
@@ -323,6 +325,10 @@ final class InstallerWorkflow
             'APP_ENV' => 'production',
             'APP_DEBUG' => 'false',
         ]);
+
+        // Scheduling is a platform responsibility: provision cron automatically when the host allows it.
+        // The runtime heartbeat remains active as a no-manual-setup fallback on restricted hosting.
+        $this->scheduler->provisionCron();
 
         $this->state->writeLock($version);
         $this->state->clearProgress();
