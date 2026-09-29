@@ -3,6 +3,15 @@
     $reassignRoute = $isB2bAssignmentManager ? 'admin.b2b.orders.driver.reassign' : 'admin.b2c.orders.driver.reassign';
     $unassignRoute = $isB2bAssignmentManager ? 'admin.b2b.orders.driver.unassign' : 'admin.b2c.orders.driver.unassign';
     $activeStatuses = ['assigned','accepted','picked_up','out_for_delivery'];
+    $proofReasonLabels = [
+        'customer_no_answer' => app()->getLocale()==='ar' ? 'العميل لا يرد' : 'Customer did not answer',
+        'wrong_address' => app()->getLocale()==='ar' ? 'العنوان غير صحيح' : 'Wrong address',
+        'customer_refused' => app()->getLocale()==='ar' ? 'العميل رفض الاستلام' : 'Customer refused delivery',
+        'customer_absent' => app()->getLocale()==='ar' ? 'العميل غير موجود' : 'Customer not available',
+        'payment_issue' => app()->getLocale()==='ar' ? 'مشكلة في الدفع' : 'Payment issue',
+        'order_issue' => app()->getLocale()==='ar' ? 'مشكلة في الطلب' : 'Order issue',
+        'other' => app()->getLocale()==='ar' ? 'سبب آخر' : 'Other reason',
+    ];
 @endphp
 
 @if(!empty($moduleData['assignments_list']))
@@ -21,6 +30,7 @@
                     <th>{{ app()->getLocale()==='ar'?'السائق':'Driver' }}</th>
                     <th>{{ app()->getLocale()==='ar'?'الحالة':'Status' }}</th>
                     <th>{{ app()->getLocale()==='ar'?'وقت التعيين':'Assigned at' }}</th>
+                    <th>{{ app()->getLocale()==='ar'?'إثبات التسليم':'Delivery proof' }}</th>
                     <th>{{ app()->getLocale()==='ar'?'الإدارة':'Management' }}</th>
                 </tr>
             </thead>
@@ -31,6 +41,35 @@
                     <td>{{ $assignment['driver'] }}</td>
                     <td><span class="badge {{ $assignment['status'] }}">{{ $assignment['status'] }}</span></td>
                     <td>{{ $assignment['assigned_at'] }}</td>
+                    <td style="min-width:210px">
+                        @if(!empty($assignment['proof']))
+                            @if(!empty($assignment['proof']['file_path']))
+                                <a
+                                    class="btn"
+                                    href="{{ asset('storage/'.$assignment['proof']['file_path']) }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                >
+                                    {{ app()->getLocale()==='ar'?'فتح صورة الإثبات':'Open proof image' }}
+                                </a>
+                            @endif
+                            @if(!empty($assignment['proof']['reason_code']))
+                                <div style="margin-top:6px;font-weight:700">
+                                    {{ $proofReasonLabels[$assignment['proof']['reason_code']] ?? $assignment['proof']['reason_code'] }}
+                                </div>
+                            @endif
+                            @if(!empty($assignment['proof']['note']))
+                                <div class="muted" style="margin-top:4px;white-space:normal">
+                                    {{ $assignment['proof']['note'] }}
+                                </div>
+                            @endif
+                            @if(!empty($assignment['proof']['captured_at']))
+                                <small class="muted">{{ $assignment['proof']['captured_at'] }}</small>
+                            @endif
+                        @else
+                            <span class="muted">{{ app()->getLocale()==='ar'?'لا يوجد إثبات':'No proof' }}</span>
+                        @endif
+                    </td>
                     <td>
                         @if(in_array($assignment['status'],$activeStatuses,true))
                         <div style="display:grid;gap:7px;min-width:260px">

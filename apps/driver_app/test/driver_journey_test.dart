@@ -11,6 +11,7 @@ class FakeRepo implements DriverAssignmentRepository {
   int? transitionedId;
   String? transitionedStatus;
   DriverChannel? transitionedChannel;
+  String? transitionedFailureReason;
 
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async {
@@ -19,10 +20,11 @@ class FakeRepo implements DriverAssignmentRepository {
   }
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status, {String? note}) async {
+  Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async {
     transitionedId = id;
     transitionedChannel = channel;
     transitionedStatus = status;
+    transitionedFailureReason = failureReason;
   }
 }
 
@@ -150,6 +152,97 @@ void main() {
     expect(find.textContaining('27.000 EGP'), findsWidgets);
   });
 
+  testWidgets('exact status filter renders only selected status and payment is localized',
+      (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 21,
+        channel: DriverChannel.b2c,
+        reference: 'OUT-21',
+        status: 'out_for_delivery',
+        paymentMethod: 'cash_on_delivery',
+        paymentStatus: 'pending',
+      ),
+      DriverAssignment(
+        id: 22,
+        channel: DriverChannel.b2c,
+        reference: 'DONE-22',
+        status: 'delivered',
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2c,
+          repository: repo,
+          initialAssignmentStatus: 'out_for_delivery',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-exact-status-filter')), findsOneWidget);
+    expect(find.text('OUT-21'), findsOneWidget);
+    expect(find.text('DONE-22'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('assignment-21')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('الدفع عند الاستلام'), findsWidgets);
+    expect(find.textContaining('بانتظار الدفع'), findsWidgets);
+    expect(find.textContaining('cash_on_delivery'), findsNothing);
+  });
+
+  testWidgets('failed delivery requires a reason and exposes optional proof controls',
+      (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 31,
+        channel: DriverChannel.b2c,
+        reference: 'FAIL-31',
+        status: 'out_for_delivery',
+        availableStatuses: ['failed'],
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2c,
+          repository: repo,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('assignment-31')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('assignment-status-31-failed')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-proof-camera')), findsOneWidget);
+    expect(find.byKey(const Key('driver-proof-gallery')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('driver-status-confirm-failed')));
+    await tester.pump();
+    expect(repo.transitionedStatus, isNull);
+
+    await tester.tap(find.byKey(const Key('driver-failure-reason')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Customer did not answer').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('driver-status-note-failed')),
+      'Called twice',
+    );
+    await tester.tap(find.byKey(const Key('driver-status-confirm-failed')));
+    await tester.pumpAndSettle();
+    expect(repo.transitionedStatus, 'failed');
+    expect(repo.transitionedFailureReason, 'customer_no_answer');
+  });
+
   testWidgets('empty and offline states are explicit', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -193,4 +286,36 @@ void main() {
       TextDirection.rtl,
     );
   });
+
+  testWidgets('delivered action exposes proof image controls', (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 21,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-21',
+        status: 'out_for_delivery',
+        availableStatuses: ['delivered', 'failed'],
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2c,
+          repository: repo,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('assignment-21')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('assignment-status-21-delivered')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-status-note-delivered')), findsOneWidget);
+    expect(find.byKey(const Key('driver-proof-camera')), findsOneWidget);
+    expect(find.byKey(const Key('driver-proof-gallery')), findsOneWidget);
+    expect(find.byKey(const Key('driver-status-confirm-delivered')), findsOneWidget);
+  });
+
 }
