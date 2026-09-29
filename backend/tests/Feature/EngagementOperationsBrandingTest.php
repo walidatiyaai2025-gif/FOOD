@@ -37,7 +37,7 @@ class EngagementOperationsBrandingTest extends TestCase
             'user_id' => null,
             'app' => 'customer',
             'install_id' => 'install-417',
-            'is_active' => 1,
+            'revoked_at' => null,
         ]);
     }
 
