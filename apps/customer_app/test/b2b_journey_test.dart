@@ -395,10 +395,12 @@ class _FakeCustomerActionApi implements CustomerActionApi {
 
   @override
   Future<CustomerLoginResult> login({
-    required String email,
-    required String password,
+    required String username,
   }) async =>
       const CustomerLoginResult(token: 'test-token');
+
+  @override
+  Future<void> logout() async {}
 
   @override
   Future<Object?> addCartItem({
@@ -414,7 +416,9 @@ class _FakeCustomerActionApi implements CustomerActionApi {
   @override
   Future<Object?> checkout({
     required int addressId,
+    int? storeId,
     String? paymentMethod,
+    String? couponCode,
     required String idempotencyKey,
   }) async =>
       {'id': 1};
