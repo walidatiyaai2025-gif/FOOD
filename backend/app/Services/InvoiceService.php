@@ -16,11 +16,14 @@ use TCPDF;
 
 final class InvoiceService
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly DashboardOperationalNotifier $notifier,
+    ) {}
 
     public function issueForOrder(Order $order, ?User $actor = null): Invoice
     {
-        return DB::transaction(function () use ($order, $actor): Invoice {
+        $result = DB::transaction(function () use ($order, $actor): Invoice {
             $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
 
             $existing = Invoice::query()
@@ -164,6 +167,14 @@ final class InvoiceService
 
             return $invoice->fresh();
         }, 3);
+
+        $this->notifier->invoiceChanged(
+            $order->fresh(),
+            $result,
+            (string) $result->status,
+        );
+
+        return $result;
     }
 
     public function void(Invoice $invoice, User $actor, string $reason): Invoice
@@ -173,7 +184,7 @@ final class InvoiceService
             throw ValidationException::withMessages(['reason' => ['A void reason is required.']]);
         }
 
-        return DB::transaction(function () use ($invoice, $actor, $reason): Invoice {
+        $result = DB::transaction(function () use ($invoice, $actor, $reason): Invoice {
             $locked = Invoice::query()->whereKey($invoice->getKey())->lockForUpdate()->firstOrFail();
 
             if (! in_array((string) $locked->status, ['issued', 'reissued'], true)) {
@@ -196,6 +207,15 @@ final class InvoiceService
 
             return $locked->fresh();
         }, 3);
+
+        if ((string) $result->status === 'voided' && $result->order_id !== null) {
+            $order = Order::query()->find((int) $result->order_id);
+            if ($order instanceof Order) {
+                $this->notifier->invoiceChanged($order, $result, 'voided');
+            }
+        }
+
+        return $result;
     }
 
     public function voidForOrder(Order $order, User $actor, string $reason): ?Invoice
