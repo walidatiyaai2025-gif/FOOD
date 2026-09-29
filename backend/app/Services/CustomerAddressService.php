@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Address;
+use App\Models\B2bCustomer;
+use App\Models\B2cCustomer;
+use App\Models\PlatformCustomer;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+
+final class CustomerAddressService
+{
+    public function platformCustomer(User $user): ?PlatformCustomer
+    {
+        return app(PlatformCustomerService::class)->forUser($user);
+    }
+
+    /**
+     * @return Builder<Address>
+     */
+    public function queryFor(
+        User $user,
+        B2bCustomer|B2cCustomer|null $domainCustomer = null,
+        ?string $channel = null,
+    ): Builder {
+        $platformCustomer = $this->platformCustomer($user);
+
+        if ($platformCustomer instanceof PlatformCustomer) {
+            return Address::query()
+                ->where('platform_customer_id', $platformCustomer->getKey());
+        }
+
+        abort_unless(
+            $domainCustomer instanceof B2bCustomer || $domainCustomer instanceof B2cCustomer,
+            403,
+            'Customer profile is required.',
+        );
+        abort_unless(in_array($channel, ['b2b', 'b2c'], true), 403);
+
+        return Address::query()
+            ->where(
+                $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id',
+                $domainCustomer->getKey(),
+            );
+    }
+
+    /**
+     * @return array<string, int|null>
+     */
+    public function ownerAttributes(
+        User $user,
+        B2bCustomer|B2cCustomer|null $domainCustomer = null,
+        ?string $channel = null,
+    ): array {
+        $platformCustomer = $this->platformCustomer($user);
+
+        if ($platformCustomer instanceof PlatformCustomer) {
+            return [
+                'customer_id' => (int) $platformCustomer->legacy_customer_id,
+                'platform_customer_id' => (int) $platformCustomer->getKey(),
+                'b2b_customer_id' => null,
+                'b2c_customer_id' => null,
+            ];
+        }
+
+        abort_unless(
+            $domainCustomer instanceof B2bCustomer || $domainCustomer instanceof B2cCustomer,
+            403,
+            'Customer profile is required.',
+        );
+        abort_unless(in_array($channel, ['b2b', 'b2c'], true), 403);
+
+        return [
+            'customer_id' => app(CustomerDomainResolver::class)->legacyId($domainCustomer),
+            'platform_customer_id' => null,
+            'b2b_customer_id' => $channel === 'b2b' ? (int) $domainCustomer->getKey() : null,
+            'b2c_customer_id' => $channel === 'b2c' ? (int) $domainCustomer->getKey() : null,
+        ];
+    }
+
+    public function findOwned(
+        User $user,
+        int $addressId,
+        B2bCustomer|B2cCustomer|null $domainCustomer = null,
+        ?string $channel = null,
+    ): Address {
+        return $this->queryFor($user, $domainCustomer, $channel)
+            ->whereKey($addressId)
+            ->firstOrFail();
+    }
+}
