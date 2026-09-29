@@ -797,12 +797,14 @@ class _WholesaleProductGrid extends StatelessWidget {
     required this.storeId,
     required this.actionApi,
     required this.palette,
+    required this.authenticated,
   });
 
   final List<Map<String, dynamic>> rows;
   final int storeId;
   final CustomerActionApi actionApi;
   final FoodexPalette palette;
+  final bool authenticated;
 
   @override
   Widget build(BuildContext context) {
@@ -833,18 +835,17 @@ class _WholesaleProductGrid extends StatelessWidget {
           row['minimum_order_quantity'] ?? row['minimum_quantity'],
           1,
         );
+        final detailRoute = '/b2b/products/' +
+            id.toString() +
+            '?store_id=' +
+            storeId.toString();
 
         return Material(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
-            onTap: () => Navigator.of(context).pushNamed(
-              '/b2b/products/' +
-                  id.toString() +
-                  '?store_id=' +
-                  storeId.toString(),
-            ),
+            onTap: () => Navigator.of(context).pushNamed(detailRoute),
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -899,19 +900,26 @@ class _WholesaleProductGrid extends StatelessWidget {
                         padding:
                             const EdgeInsets.symmetric(horizontal: 8),
                       ),
-                      onPressed: () async {
-                        try {
-                          await actionApi.addCartItem(
-                            storeId: storeId,
-                            productId: id,
-                            quantity: minimum,
-                          );
-                        } catch (error) {
-                          if (context.mounted) {
-                            await showOperationalError(context, error);
-                          }
-                        }
-                      },
+                      onPressed: authenticated
+                          ? () async {
+                              try {
+                                await actionApi.addCartItem(
+                                  storeId: storeId,
+                                  productId: id,
+                                  quantity: minimum,
+                                );
+                              } catch (error) {
+                                if (context.mounted) {
+                                  await showOperationalError(context, error);
+                                }
+                              }
+                            }
+                          : () => Navigator.of(context).pushNamed(
+                                Uri(
+                                  path: CustomerRoutePaths.register,
+                                  queryParameters: {'return': detailRoute},
+                                ).toString(),
+                              ),
                       icon: const Icon(
                         Icons.add_shopping_cart_rounded,
                         size: 16,
