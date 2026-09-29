@@ -37,6 +37,7 @@ class DriverInvoiceNotificationTest extends TestCase
             'email' => 'driver-invoice-buyer@example.test',
             'phone' => '50000001',
         ]);
+        $productId = $this->product($storeId, 'DRV-SKU');
         $order = Order::query()->create([
             'store_id' => $storeId,
             'customer_id' => $customer->legacy_customer_id,
@@ -54,7 +55,7 @@ class DriverInvoiceNotificationTest extends TestCase
         ]);
         DB::table('order_items')->insert([
             'order_id' => $order->id,
-            'product_id' => null,
+            'product_id' => $productId,
             'sku_snapshot' => 'DRV-SKU',
             'name_snapshot' => 'Driver item',
             'quantity' => 2,
@@ -91,7 +92,7 @@ class DriverInvoiceNotificationTest extends TestCase
         ]);
         DB::table('invoice_items')->insert([
             'invoice_id' => $invoiceId,
-            'product_id' => null,
+            'product_id' => $productId,
             'sku_snapshot' => 'DRV-SKU',
             'description' => 'Driver item',
             'quantity' => 2,
@@ -330,6 +331,42 @@ class DriverInvoiceNotificationTest extends TestCase
             'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
             'code' => $code,
             'name' => $code,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function product(int $storeId, string $sku): int
+    {
+        $catalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $storeId,
+            'channel' => 'b2c',
+            'code' => 'cat-'.strtolower($sku),
+            'name' => $sku.' Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $unitId = (int) DB::table('units')->insertGetId([
+            'scope' => 'global',
+            'scope_key' => 'global',
+            'code' => 'EA-'.$sku,
+            'name' => 'Each',
+            'name_ar' => 'قطعة',
+            'name_en' => 'Each',
+            'decimal_places' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalogId,
+            'unit_id' => $unitId,
+            'sku' => $sku,
+            'name' => $sku,
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
