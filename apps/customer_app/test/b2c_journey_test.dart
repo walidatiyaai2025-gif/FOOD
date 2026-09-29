@@ -240,7 +240,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('b2c-sign-in-recovery')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('customer-login-email')), findsOneWidget);
+    expect(find.byKey(const ValueKey('customer-login-username')), findsOneWidget);
     expect(find.byKey(const ValueKey('customer-login-submit')), findsOneWidget);
   });
 
