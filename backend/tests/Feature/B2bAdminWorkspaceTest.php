@@ -37,6 +37,25 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($user)->get('/admin/b2b/stores')->assertNotFound();
     }
 
+    public function test_b2b_dashboard_accepts_open_date_ranges_beyond_31_days(): void
+    {
+        $admin = $this->user('B2B_ADMIN', 'ar');
+        $to = now('Asia/Kuwait')->startOfDay();
+        $from = $to->copy()->subDays(45);
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/dashboard?from='.$from->toDateString().'&to='.$to->toDateString())
+            ->assertOk()
+            ->assertSee('المبيعات')
+            ->assertDontSee('المبيعات اليومية')
+            ->assertSee('name="from"', false)
+            ->assertSee('name="to"', false);
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/dashboard?to='.$to->toDateString())
+            ->assertOk();
+    }
+
     public function test_core_b2b_screens_use_the_single_principal_and_warehouses(): void
     {
         $store = app(WholesalePrincipal::class)->storeId();

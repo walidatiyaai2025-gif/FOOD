@@ -1494,7 +1494,7 @@ class B2bWorkspaceController extends Controller
     {
         $data = $request->validate([
             'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
             'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
@@ -1509,11 +1509,11 @@ class B2bWorkspaceController extends Controller
             $fromDay = CarbonImmutable::parse($from, 'Asia/Kuwait')->startOfDay();
             $toDay = CarbonImmutable::parse($to, 'Asia/Kuwait')->startOfDay();
 
-            if ($fromDay->diffInDays($toDay) > 30) {
+            if ($toDay->lt($fromDay)) {
                 throw ValidationException::withMessages([
                     'to' => [$this->msg(
-                        'الفترة القصوى للوحة التحكم هي 31 يومًا.',
-                        'The dashboard date range can be at most 31 days.',
+                        'تاريخ «إلى» يجب أن يكون مساويًا لتاريخ «من» أو بعده.',
+                        'The To date must be the same as or later than the From date.',
                     )],
                 ]);
             }

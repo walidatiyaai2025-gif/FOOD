@@ -180,10 +180,10 @@
         <div class="b2b-ref-middle">
             <article class="b2b-ref-card b2b-ref-panel">
                 <div class="b2b-ref-panel-head">
-                    <h2>{{ $isAr?'المبيعات اليومية':'Daily sales' }}</h2>
+                    <h2>{{ $isAr?'المبيعات':'Sales' }}</h2>
                     <form class="b2b-date-range" method="get" action="{{ route('admin.b2b.module',['module'=>'dashboard']) }}">
-                        <label>{{ $isAr?'من':'From' }}<input type="date" name="from" value="{{ $dashboard['selected_from'] }}" required></label>
-                        <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ $dashboard['selected_to'] }}" required></label>
+                        <label>{{ $isAr?'من':'From' }}<input type="date" name="from" value="{{ request('from') }}"></label>
+                        <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ request('to') }}"></label>
                         <button class="foodex-filter-action" type="submit">{{ $isAr?'تطبيق':'Apply' }}</button>
                     </form>
                 </div>
