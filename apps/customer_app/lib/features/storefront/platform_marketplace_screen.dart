@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -26,26 +27,37 @@ class PlatformMarketplaceScreen extends StatefulWidget {
 class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   late final http.Client _client = widget.client ?? http.Client();
   late Future<Map<String, dynamic>> _future = _load();
+  final PageController _retailController = PageController(viewportFraction: .88);
+  Timer? _retailTimer;
+  int _retailIndex = 0;
 
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
-    final marketplace = await _get('$baseUrl/api/v1/marketplace');
-    final wholesale = marketplace['main_wholesale_store'] is Map
-        ? Map<String, dynamic>.from(marketplace['main_wholesale_store'] as Map)
-        : <String, dynamic>{};
-    final storeId = _int(wholesale['id']);
-    if (storeId <= 0) {
-      throw const _MarketplaceException('missing_wholesale_store');
+    return _get('$baseUrl/api/v1/platform/storefront');
+  }
+
+  void _startRetailAutoSlide(int count) {
+    _retailTimer?.cancel();
+    if (count <= 1) return;
+    _retailTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_retailController.hasClients) return;
+      _retailIndex = (_retailIndex + 1) % count;
+      _retailController.animateToPage(
+        _retailIndex,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _retailTimer?.cancel();
+    _retailController.dispose();
+    if (widget.client == null) {
+      _client.close();
     }
-
-    final storefront = await _get(
-      '$baseUrl/api/v1/wholesale/stores/$storeId/storefront',
-    );
-
-    return {
-      ...marketplace,
-      'wholesale_storefront': storefront,
-    };
+    super.dispose();
   }
 
   Future<Map<String, dynamic>> _get(String url) async {
@@ -197,18 +209,21 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               }
 
               final data = snapshot.data ?? const <String, dynamic>{};
-              final wholesale = data['main_wholesale_store'] is Map
-                  ? Map<String, dynamic>.from(data['main_wholesale_store'] as Map)
+              final wholesale = data['store'] is Map
+                  ? Map<String, dynamic>.from(data['store'] as Map)
                   : <String, dynamic>{};
-              final storefront = data['wholesale_storefront'] is Map
-                  ? Map<String, dynamic>.from(data['wholesale_storefront'] as Map)
+              final retail = _rows(data['retail_banners']);
+              final productEnvelope = data['products'] is Map
+                  ? Map<String, dynamic>.from(data['products'] as Map)
                   : <String, dynamic>{};
-              final retail = _rows(data['retail_stores']);
-              final products = _rows(storefront['products']);
-              final hero = storefront['hero'] is Map
-                  ? Map<String, dynamic>.from(storefront['hero'] as Map)
+              final products = _rows(productEnvelope['data']);
+              final hero = data['hero'] is Map
+                  ? Map<String, dynamic>.from(data['hero'] as Map)
                   : <String, dynamic>{};
               final storeId = _int(wholesale['id']);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _startRetailAutoSlide(retail.length);
+              });
 
               return LayoutBuilder(
                 builder: (context, constraints) {
@@ -220,7 +235,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     slivers: [
                       SliverToBoxAdapter(
                         child: _MarketplaceHeader(
-                          storeName: wholesale['name']?.toString() ?? 'FOODEX',
                           authenticated: widget.session.isAuthenticated,
                           onRegister: _register,
                           onLogin: () => Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace'),
@@ -230,19 +244,26 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                         SliverToBoxAdapter(
                           child: SizedBox(
                             height: retailHeight,
-                            child: ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-                              scrollDirection: Axis.horizontal,
+                            child: PageView.builder(
+                              key: const ValueKey('marketplace-retail-carousel'),
+                              controller: _retailController,
                               itemCount: retail.length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 10),
+                              onPageChanged: (index) => _retailIndex = index,
+                              padEnds: false,
                               itemBuilder: (_, index) {
                                 final store = retail[index];
-                                return _RetailStoreBanner(
-                                  store: store,
-                                  width: (constraints.maxWidth * .72)
-                                      .clamp(240.0, 330.0)
-                                      .toDouble(),
-                                  onTap: () => _openRetail(store),
+                                return Padding(
+                                  padding: EdgeInsetsDirectional.only(
+                                    start: index == 0 ? 14 : 5,
+                                    end: 5,
+                                    top: 8,
+                                    bottom: 10,
+                                  ),
+                                  child: _RetailStoreBanner(
+                                    store: store,
+                                    width: double.infinity,
+                                    onTap: () => _openRetail(store),
+                                  ),
                                 );
                               },
                             ),
@@ -323,13 +344,11 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
 class _MarketplaceHeader extends StatelessWidget {
   const _MarketplaceHeader({
-    required this.storeName,
     required this.authenticated,
     required this.onRegister,
     required this.onLogin,
   });
 
-  final String storeName;
   final bool authenticated;
   final VoidCallback onRegister;
   final VoidCallback onLogin;
@@ -350,13 +369,13 @@ class _MarketplaceHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    storeName,
+                    'FOODEX',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                   ),
                   Text(
-                    context.tr('customer.marketplace.main_wholesale'),
+                    context.tr('customer.marketplace.browse_guest'),
                     style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
                   ),
                 ],
@@ -388,7 +407,7 @@ class _RetailStoreBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = store['banner_image_url']?.toString();
+    final image = store['banner_url']?.toString();
     final logo = store['logo_url']?.toString();
     return SizedBox(
       width: width,
@@ -432,7 +451,9 @@ class _RetailStoreBanner extends StatelessWidget {
                     ],
                     Expanded(
                       child: Text(
-                        store['name']?.toString() ?? '',
+                        store['title']?.toString() ??
+                            store['name']?.toString() ??
+                            '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
