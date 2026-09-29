@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/auth/driver_session.dart';
 import '../../core/localization/driver_translations.dart';
@@ -79,6 +80,9 @@ class DriverAssignment {
     this.customerNote = '',
     this.items = const [],
     this.availableStatuses = const [],
+    this.assignedAt = '',
+    this.completedAt = '',
+    this.createdAt = '',
     this.invoice,
   });
 
@@ -105,6 +109,9 @@ class DriverAssignment {
   final String customerNote;
   final List<DriverOrderItem> items;
   final List<String> availableStatuses;
+  final String assignedAt;
+  final String completedAt;
+  final String createdAt;
   final DriverInvoice? invoice;
 }
 
@@ -116,6 +123,19 @@ abstract interface class DriverAssignmentRepository {
     DriverChannel channel,
     String status, {
     String? note,
+    String? failureReason,
+  });
+}
+
+abstract interface class DriverProofAssignmentRepository
+    implements DriverAssignmentRepository {
+  Future<void> transitionWithProof(
+    int id,
+    DriverChannel channel,
+    String status,
+    String proofImagePath, {
+    String? note,
+    String? failureReason,
   });
 }
 
@@ -213,7 +233,9 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     final query = _searchController.text.trim().toLowerCase();
 
     return assignments.where((assignment) {
-      final matchesFilter = switch (_filter) {
+      final matchesFilter = _statusFilter != null
+          ? assignment.status == _statusFilter
+          : switch (_filter) {
         DriverOrderFilter.active =>
           !const ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned']
               .contains(assignment.status),
@@ -238,6 +260,8 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     DriverAssignment assignment,
     String status, {
     String? note,
+    String? proofImagePath,
+    String? failureReason,
   }) async {
     if (_transitioning.contains(assignment.id)) return;
     setState(() {
@@ -245,12 +269,26 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
       _actionError = null;
     });
     try {
-      await widget.repository.transition(
-        assignment.id,
-        widget.channel,
-        status,
-        note: note,
-      );
+      final repository = widget.repository;
+      if (proofImagePath != null &&
+          repository is DriverProofAssignmentRepository) {
+        await repository.transitionWithProof(
+          assignment.id,
+          widget.channel,
+          status,
+          proofImagePath,
+          note: note,
+          failureReason: failureReason,
+        );
+      } else {
+        await repository.transition(
+          assignment.id,
+          widget.channel,
+          status,
+          note: note,
+          failureReason: failureReason,
+        );
+      }
       await _load();
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
@@ -268,52 +306,191 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     String status,
   ) async {
     var noteValue = '';
-    final note = await showDialog<String>(
+    String? proofImagePath;
+    String? failureReason;
+    final picker = ImagePicker();
+    const failureReasons = [
+      'customer_no_answer',
+      'wrong_address',
+      'customer_refused',
+      'customer_absent',
+      'payment_issue',
+      'order_issue',
+      'other',
+    ];
+
+    final result = await showDialog<
+        ({String note, String? proofImagePath, String? failureReason})>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          status == 'failed'
-              ? context.tr('driver.failure.title')
-              : context.tr('driver.action.confirm_title'),
-        ),
-        content: TextField(
-          key: Key('driver-status-note-$status'),
-          onChanged: (value) => noteValue = value,
-          maxLength: 1000,
-          maxLines: 3,
-          decoration: InputDecoration(
-            labelText: status == 'failed'
-                ? context.tr('driver.failure.reason')
-                : context.tr('driver.action.note_optional'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(
+            status == 'failed'
+                ? context.tr('driver.failure.title')
+                : context.tr('driver.action.confirm_title'),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(context.tr('driver.dismiss')),
-          ),
-          FilledButton(
-            key: Key('driver-status-confirm-$status'),
-            onPressed: () {
-              final value = noteValue.trim();
-              if (status == 'failed' && value.isEmpty) return;
-              Navigator.of(dialogContext).pop(value);
-            },
-            child: Text(
-              status == 'failed'
-                  ? context.tr('driver.failure.submit')
-                  : context.tr('driver.action.confirm'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (status == 'failed') ...[
+                  DropdownButtonFormField<String>(
+                    key: const Key('driver-failure-reason'),
+                    initialValue: failureReason,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: context.tr('driver.failure.reason'),
+                    ),
+                    items: failureReasons
+                        .map(
+                          (reason) => DropdownMenuItem(
+                            value: reason,
+                            child: Text(
+                              context.tr('driver.failure.reason.$reason'),
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) =>
+                        setDialogState(() => failureReason = value),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                TextField(
+                  key: Key('driver-status-note-$status'),
+                  onChanged: (value) => noteValue = value,
+                  maxLength: 1000,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: status == 'failed'
+                        ? context.tr('driver.failure.note_optional')
+                        : context.tr('driver.action.note_optional'),
+                  ),
+                ),
+                if (status == 'delivered' || status == 'failed') ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const Key('driver-proof-camera'),
+                          onPressed: () async {
+                            final image = await picker.pickImage(
+                              source: ImageSource.camera,
+                              imageQuality: 82,
+                              maxWidth: 1600,
+                            );
+                            if (image != null) {
+                              setDialogState(() => proofImagePath = image.path);
+                            }
+                          },
+                          icon: const Icon(Icons.photo_camera_rounded),
+                          label: Text(context.tr('driver.proof.camera')),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const Key('driver-proof-gallery'),
+                          onPressed: () async {
+                            final image = await picker.pickImage(
+                              source: ImageSource.gallery,
+                              imageQuality: 82,
+                              maxWidth: 1600,
+                            );
+                            if (image != null) {
+                              setDialogState(() => proofImagePath = image.path);
+                            }
+                          },
+                          icon: const Icon(Icons.photo_library_rounded),
+                          label: Text(context.tr('driver.proof.gallery')),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (proofImagePath != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle_rounded, size: 18),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            context.tr('driver.proof.attached'),
+                            key: const Key('driver-proof-attached'),
+                          ),
+                        ),
+                        IconButton(
+                          key: const Key('driver-proof-remove'),
+                          onPressed: () =>
+                              setDialogState(() => proofImagePath = null),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ],
             ),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(context.tr('driver.dismiss')),
+            ),
+            FilledButton(
+              key: Key('driver-status-confirm-$status'),
+              onPressed: () {
+                final value = noteValue.trim();
+                if (status == 'failed') {
+                  if (failureReason == null) return;
+                  if (failureReason == 'other' && value.isEmpty) return;
+                }
+                Navigator.of(dialogContext).pop((
+                  note: value,
+                  proofImagePath: proofImagePath,
+                  failureReason: failureReason,
+                ));
+              },
+              child: Text(
+                status == 'failed'
+                    ? context.tr('driver.failure.submit')
+                    : context.tr('driver.action.confirm'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
-    if (note == null) return;
+    if (result == null) return;
     await _transition(
       assignment,
       status,
-      note: note.trim().isEmpty ? null : note.trim(),
+      note: result.note.isEmpty ? null : result.note,
+      proofImagePath: result.proofImagePath,
+      failureReason: result.failureReason,
     );
+  }
+
+  String _paymentMethodLabel(String value) {
+    if (value.trim().isEmpty) return context.tr('driver.detail.unknown');
+    final key = 'driver.payment_method.${value.toLowerCase()}';
+    final translated = context.tr(key);
+    return translated == key ? value : translated;
+  }
+
+  String _paymentStatusLabel(String value) {
+    if (value.trim().isEmpty) return context.tr('driver.detail.unknown');
+    final key = 'driver.payment_status.${value.toLowerCase()}';
+    final translated = context.tr(key);
+    return translated == key ? value : translated;
+  }
+
+  String _invoiceStatusLabel(String value) {
+    if (value.trim().isEmpty) return context.tr('driver.detail.unknown');
+    final key = 'driver.invoice_status.${value.toLowerCase()}';
+    final translated = context.tr(key);
+    return translated == key ? value : translated;
   }
 
   Future<void> _showInvoice(DriverAssignment assignment) async {
@@ -333,7 +510,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
               children: [
                 _DetailLine(
                   label: context.tr('driver.invoice.status'),
-                  value: invoice.status,
+                  value: _invoiceStatusLabel(invoice.status),
                 ),
                 _DetailLine(
                   label: context.tr('driver.invoice.revision'),
@@ -393,7 +570,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                 _DetailLine(
                   label: context.tr('driver.invoice.payment'),
                   value:
-                      '${invoice.paymentMethod} · ${invoice.paymentStatus}',
+                      '${_paymentMethodLabel(invoice.paymentMethod)} · ${_paymentStatusLabel(invoice.paymentStatus)}',
                 ),
               ],
             ),
@@ -524,7 +701,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                   label: context.tr('driver.detail.payment'),
                   value: assignment.paymentMethod.isEmpty
                       ? context.tr('driver.detail.unknown')
-                      : '${assignment.paymentMethod} · ${assignment.paymentStatus}',
+                      : '${_paymentMethodLabel(assignment.paymentMethod)} · ${_paymentStatusLabel(assignment.paymentStatus)}',
                 ),
                 if (assignment.invoice != null) ...[
                   const SizedBox(height: 10),
@@ -633,33 +810,44 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SegmentedButton<DriverOrderFilter>(
-                      segments: [
-                        ButtonSegment(
-                          value: DriverOrderFilter.active,
-                          label: Text(context.tr('driver.filter.active')),
-                        ),
-                        ButtonSegment(
-                          value: DriverOrderFilter.completed,
-                          label: Text(context.tr('driver.filter.completed')),
-                        ),
-                        ButtonSegment(
-                          value: DriverOrderFilter.failed,
-                          label: Text(context.tr('driver.filter.failed')),
-                        ),
-                        ButtonSegment(
-                          value: DriverOrderFilter.all,
-                          label: Text(context.tr('driver.filter.all')),
-                        ),
-                      ],
-                      selected: {_filter},
-                      onSelectionChanged: (value) {
-                        setState(() => _filter = value.first);
-                      },
+                  if (_statusFilter != null)
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: InputChip(
+                        key: const Key('driver-exact-status-filter'),
+                        avatar: const Icon(Icons.filter_alt_rounded, size: 18),
+                        label: Text(context.tr('driver.status.$_statusFilter')),
+                        onDeleted: () => setState(() => _statusFilter = null),
+                      ),
+                    )
+                  else
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SegmentedButton<DriverOrderFilter>(
+                        segments: [
+                          ButtonSegment(
+                            value: DriverOrderFilter.active,
+                            label: Text(context.tr('driver.filter.active')),
+                          ),
+                          ButtonSegment(
+                            value: DriverOrderFilter.completed,
+                            label: Text(context.tr('driver.filter.completed')),
+                          ),
+                          ButtonSegment(
+                            value: DriverOrderFilter.failed,
+                            label: Text(context.tr('driver.filter.failed')),
+                          ),
+                          ButtonSegment(
+                            value: DriverOrderFilter.all,
+                            label: Text(context.tr('driver.filter.all')),
+                          ),
+                        ],
+                        selected: {_filter},
+                        onSelectionChanged: (value) {
+                          setState(() => _filter = value.first);
+                        },
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -743,12 +931,34 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     if (assignment.customerName.isNotEmpty)
-                                      Text(assignment.customerName),
+                                      Text(
+                                        assignment.customerName,
+                                        style: const TextStyle(fontWeight: FontWeight.w700),
+                                      ),
+                                    if (assignment.customerPhone.isNotEmpty)
+                                      Text(assignment.customerPhone),
+                                    if (assignment.storeName.isNotEmpty)
+                                      Text(assignment.storeName),
                                     if (assignment.address.isNotEmpty)
                                       Text(
                                         assignment.address,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
+                                      ),
+                                    if (assignment.paymentMethod.isNotEmpty)
+                                      Text(
+                                        '${_paymentMethodLabel(assignment.paymentMethod)} · ${_paymentStatusLabel(assignment.paymentStatus)}',
+                                      ),
+                                    if ((assignment.completedAt.isNotEmpty ||
+                                        assignment.assignedAt.isNotEmpty ||
+                                        assignment.createdAt.isNotEmpty))
+                                      Text(
+                                        assignment.completedAt.isNotEmpty
+                                            ? assignment.completedAt
+                                            : (assignment.assignedAt.isNotEmpty
+                                                ? assignment.assignedAt
+                                                : assignment.createdAt),
+                                        style: Theme.of(context).textTheme.bodySmall,
                                       ),
                                     const SizedBox(height: 8),
                                     Align(
