@@ -44,6 +44,25 @@ class _StatusRepo implements DriverAssignmentRepository {
   }) async {}
 }
 
+class ChannelRecordingRepo implements DriverAssignmentRepository {
+  DriverChannel? requestedChannel;
+
+  @override
+  Future<List<DriverAssignment>> list(DriverChannel channel) async {
+    requestedChannel = channel;
+    return const [];
+  }
+
+  @override
+  Future<void> transition(
+    int id,
+    DriverChannel channel,
+    String status, {
+    String? note,
+    String? failureReason,
+  }) async {}
+}
+
 class EmptyRepo implements DriverAssignmentRepository {
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async => const [];
@@ -63,28 +82,32 @@ DriverSession session(DriverChannel channel) => DriverSession(
 void main() {
   testWidgets('B2C driver starts inside the backend-derived B2C partition',
       (tester) async {
+    final repo = ChannelRecordingRepo();
     await tester.pumpWidget(
       FoodexDriverApp(
         initialSession: session(DriverChannel.b2c),
-        assignmentRepositoryFactory: (_) => EmptyRepo(),
+        assignmentRepositoryFactory: (_) => repo,
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text(DriverRoutes.b2cHome), findsOneWidget);
-    expect(find.text(DriverRoutes.b2bHome), findsNothing);
+    expect(repo.requestedChannel, DriverChannel.b2c);
+    expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
+    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 
   testWidgets('B2B driver starts inside the backend-derived B2B partition',
       (tester) async {
+    final repo = ChannelRecordingRepo();
     await tester.pumpWidget(
       FoodexDriverApp(
         initialSession: session(DriverChannel.b2b),
-        assignmentRepositoryFactory: (_) => EmptyRepo(),
+        assignmentRepositoryFactory: (_) => repo,
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text(DriverRoutes.b2bHome), findsOneWidget);
-    expect(find.text(DriverRoutes.b2cHome), findsNothing);
+    expect(repo.requestedChannel, DriverChannel.b2b);
+    expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
+    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 
   testWidgets('driver home shows four status cards and opens an exact filtered list',
