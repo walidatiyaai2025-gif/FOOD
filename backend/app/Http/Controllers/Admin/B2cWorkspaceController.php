@@ -1013,6 +1013,7 @@ class B2cWorkspaceController extends Controller
                 'orders.subtotal',
                 'orders.discount_total',
                 'orders.delivery_total',
+                'orders.tax_total',
                 'orders.grand_total',
                 'orders.payment_method',
                 'orders.customer_note',
@@ -1067,7 +1068,7 @@ class B2cWorkspaceController extends Controller
                 $invoice = DB::table('invoices')
                     ->where('order_id', $row->id)
                     ->orderByDesc('id')
-                    ->first(['invoice_number', 'status', 'total', 'currency']);
+                    ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
 
                 return [
                     '_id' => (int) $row->id,
@@ -1077,6 +1078,7 @@ class B2cWorkspaceController extends Controller
                     '_subtotal' => (float) $row->subtotal,
                     '_discount_total' => (float) $row->discount_total,
                     '_delivery_total' => (float) $row->delivery_total,
+                    '_tax_total' => (float) ($row->tax_total ?? 0),
                     '_grand_total' => (float) $row->grand_total,
                     '_payment_method' => $row->payment_method,
                     '_customer_note' => $row->customer_note,
@@ -1091,6 +1093,7 @@ class B2cWorkspaceController extends Controller
                     ],
                     '_history' => $history,
                     '_invoice' => $invoice === null ? null : [
+                        'id' => (int) $invoice->id,
                         'number' => $invoice->invoice_number,
                         'status' => $invoice->status,
                         'total' => (float) $invoice->total,
