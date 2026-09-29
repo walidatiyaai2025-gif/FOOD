@@ -189,7 +189,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   Future<void> _logout() async {
     final session = _session;
     final service = widget.pushService;
-    if (service != null) unawaited(service.revokeSession());
+    if (service != null) await service.revokeSession();
     if (mounted) setState(() => _session = null);
     if (session == null) return;
     final repository = _authRepository();
