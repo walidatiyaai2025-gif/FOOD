@@ -180,6 +180,7 @@ class AdvertisingCouponsAndMobileTrialTest extends TestCase
             'name' => $code,
             'is_active' => true,
             'advertising_enabled' => $advertising,
+            'live_ads_enabled' => $advertising,
             'coupons_enabled' => $coupons,
             'created_at' => now(),
             'updated_at' => now(),
