@@ -43,7 +43,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
 
     <section class="panel">
         <h2>{{ __('notifications.create_campaign') }}</h2>
-        <form method="post" action="{{ route('admin.notification-campaigns.store') }}" class="js-campaign-form">
+        <form method="post" action="{{ route('admin.notification-campaigns.store') }}" class="js-campaign-form" enctype="multipart/form-data">
             @csrf
             <div class="grid">
                 <div><label>{{ __('notifications.campaign_name') }}</label><input name="name" value="{{ old('name') }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: عرض نهاية الأسبوع':'e.g. Weekend promotion' }}" required></div>
@@ -69,6 +69,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <div class="full preview">
                     <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="نص الإشعار بالعربية"></textarea></div>
                     <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="Notification body in English"></textarea></div>
+                            <div><label>{{ app()->getLocale()==='ar'?'صورة الحملة':'Campaign image' }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp"></div>
                 </div>
 
                 <div><label>{{ __('notifications.schedule_kind') }}</label><select name="schedule_kind" class="js-schedule-kind"><option value="once">{{ __('notifications.once') }}</option><option value="recurring">{{ __('notifications.recurring') }}</option></select></div>
@@ -117,7 +118,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
             @if(!in_array($campaign->status,['completed','cancelled'],true))
             <details>
                 <summary style="cursor:pointer;font-weight:800">{{ __('notifications.save') }}</summary>
-                <form method="post" action="{{ route('admin.notification-campaigns.update',$campaign) }}" class="js-campaign-form" style="margin-top:12px">
+                <form method="post" action="{{ route('admin.notification-campaigns.update',$campaign) }}" class="js-campaign-form" enctype="multipart/form-data" style="margin-top:12px">
                     @csrf @method('PATCH')
                     <div class="grid">
                         <div><label>{{ __('notifications.campaign_name') }}</label><input name="name" value="{{ $campaign->name }}" required></div>
@@ -139,6 +140,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                         <div class="full preview">
                             <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="نص الإشعار بالعربية">{{ $campaign->body_ar }}</textarea></div>
                             <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="Notification body in English">{{ $campaign->body_en }}</textarea></div>
+                            <div><label>{{ app()->getLocale()==='ar'?'صورة الحملة':'Campaign image' }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp">@if($campaign->image_path)<div style="margin-top:8px"><img src="{{ url('/'.ltrim($campaign->image_path,'/')) }}" alt="" style="max-height:120px;border-radius:12px"></div>@endif</div>
                         </div>
                         <div><label>{{ __('notifications.schedule_kind') }}</label><select name="schedule_kind" class="js-schedule-kind"><option value="once" @selected($campaign->schedule_kind==='once')>{{ __('notifications.once') }}</option><option value="recurring" @selected($campaign->schedule_kind==='recurring')>{{ __('notifications.recurring') }}</option></select></div>
                         <div><label>{{ __('notifications.starts_at') }}</label><input name="starts_at" type="datetime-local" value="{{ $campaign->starts_at?->timezone('Asia/Kuwait')->format('Y-m-d\TH:i') }}" required></div>

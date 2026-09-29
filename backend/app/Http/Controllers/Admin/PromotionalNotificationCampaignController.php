@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\NotificationCampaign;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\MarketingImageService;
 use App\Services\NotificationCampaignDispatcher;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
@@ -14,10 +15,12 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 final class PromotionalNotificationCampaignController extends Controller
 {
@@ -58,40 +61,54 @@ final class PromotionalNotificationCampaignController extends Controller
         ]);
     }
 
-    public function store(Request $request, AuditLogger $audit): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        AuditLogger $audit,
+        MarketingImageService $images,
+    ): RedirectResponse {
         $actor = $this->authorizeAccess($request);
         $data = $this->validated($request);
         $this->assertScope($actor, $data);
         $this->assertAudienceAppCompatibility($data);
         $this->assertTargetUserScope($data);
         $schedule = $this->scheduleData($data);
+        $imagePath = $this->storeImage($request, $images, $data['store_id'] ?? null);
 
-        $campaign = NotificationCampaign::query()->create([
-            'name' => $data['name'],
-            'type' => 'promotion',
-            'title_ar' => $data['title_ar'],
-            'title_en' => $data['title_en'],
-            'body_ar' => $data['body_ar'],
-            'body_en' => $data['body_en'],
-            'audience' => $data['audience'],
-            'app' => $data['app'],
-            'target_channel' => $data['target_channel'],
-            'delivery_channel' => $data['delivery_channel'],
-            'user_id' => $data['audience'] === 'user' ? ($data['user_id'] ?? null) : null,
-            'store_id' => $data['store_id'] ?? null,
-            'created_by' => $actor->id,
-            ...$schedule,
-            'status' => $request->boolean('activate') ? 'active' : 'draft',
-        ]);
+        try {
+            $campaign = NotificationCampaign::query()->create([
+                'name' => $data['name'],
+                'type' => 'promotion',
+                'title_ar' => $data['title_ar'],
+                'title_en' => $data['title_en'],
+                'body_ar' => $data['body_ar'],
+                'body_en' => $data['body_en'],
+                'image_path' => $imagePath,
+                'audience' => $data['audience'],
+                'app' => $data['app'],
+                'target_channel' => $data['target_channel'],
+                'delivery_channel' => $data['delivery_channel'],
+                'user_id' => $data['audience'] === 'user' ? ($data['user_id'] ?? null) : null,
+                'store_id' => $data['store_id'] ?? null,
+                'created_by' => $actor->id,
+                ...$schedule,
+                'status' => $request->boolean('activate') ? 'active' : 'draft',
+            ]);
+        } catch (Throwable $exception) {
+            $images->delete($imagePath);
+            throw $exception;
+        }
 
         $audit->record('notification_campaign.created', $actor, $campaign, null, $campaign->toArray(), $request);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم حفظ الحملة الإعلانية.' : 'Promotional campaign saved.');
     }
 
-    public function update(Request $request, NotificationCampaign $campaign, AuditLogger $audit): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        NotificationCampaign $campaign,
+        AuditLogger $audit,
+        MarketingImageService $images,
+    ): RedirectResponse {
         $actor = $this->authorizeCampaign($request, $campaign);
         abort_if(in_array($campaign->status, ['completed', 'cancelled'], true), 409);
         $data = $this->validated($request);
@@ -99,21 +116,34 @@ final class PromotionalNotificationCampaignController extends Controller
         $this->assertAudienceAppCompatibility($data);
         $this->assertTargetUserScope($data);
         $before = $campaign->toArray();
+        $newImage = $request->hasFile('image')
+            ? $this->storeImage($request, $images, $data['store_id'] ?? null)
+            : null;
 
-        $campaign->update([
-            'name' => $data['name'],
-            'title_ar' => $data['title_ar'],
-            'title_en' => $data['title_en'],
-            'body_ar' => $data['body_ar'],
-            'body_en' => $data['body_en'],
-            'audience' => $data['audience'],
-            'app' => $data['app'],
-            'target_channel' => $data['target_channel'],
-            'delivery_channel' => $data['delivery_channel'],
-            'user_id' => $data['audience'] === 'user' ? ($data['user_id'] ?? null) : null,
-            'store_id' => $data['store_id'] ?? null,
-            ...$this->scheduleData($data),
-        ]);
+        try {
+            $campaign->update([
+                'name' => $data['name'],
+                'title_ar' => $data['title_ar'],
+                'title_en' => $data['title_en'],
+                'body_ar' => $data['body_ar'],
+                'body_en' => $data['body_en'],
+                ...($newImage !== null ? ['image_path' => $newImage] : []),
+                'audience' => $data['audience'],
+                'app' => $data['app'],
+                'target_channel' => $data['target_channel'],
+                'delivery_channel' => $data['delivery_channel'],
+                'user_id' => $data['audience'] === 'user' ? ($data['user_id'] ?? null) : null,
+                'store_id' => $data['store_id'] ?? null,
+                ...$this->scheduleData($data),
+            ]);
+        } catch (Throwable $exception) {
+            $images->delete($newImage);
+            throw $exception;
+        }
+
+        if ($newImage !== null) {
+            $images->delete($before['image_path'] ?? null);
+        }
 
         $audit->record('notification_campaign.updated', $actor, $campaign, $before, $campaign->fresh()->toArray(), $request);
 
@@ -378,6 +408,7 @@ final class PromotionalNotificationCampaignController extends Controller
             'title_en' => ['required', 'string', 'max:255'],
             'body_ar' => ['required', 'string', 'max:5000'],
             'body_en' => ['required', 'string', 'max:5000'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144'],
             'audience' => ['required', Rule::in(['all', 'customer', 'driver', 'user'])],
             'app' => ['required', Rule::in(['all', 'customer', 'driver'])],
             'target_channel' => ['required', Rule::in(['all', 'b2b', 'b2c'])],
@@ -413,5 +444,15 @@ final class PromotionalNotificationCampaignController extends Controller
             'max_runs' => isset($data['max_runs']) ? (int) $data['max_runs'] : null,
             'next_run_at' => $startsAt,
         ];
+    }
+
+    private function storeImage(Request $request, MarketingImageService $images, mixed $storeId): ?string
+    {
+        $file = $request->file('image');
+        if (! $file instanceof UploadedFile) {
+            return null;
+        }
+
+        return $images->store($file, 'campaigns', is_numeric($storeId) ? (int) $storeId : null);
     }
 }

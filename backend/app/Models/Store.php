@@ -19,6 +19,7 @@ class Store extends Model
         return [
             'is_active' => 'boolean',
             'advertising_enabled' => 'boolean',
+            'live_ads_enabled' => 'boolean',
             'coupons_enabled' => 'boolean',
         ];
     }

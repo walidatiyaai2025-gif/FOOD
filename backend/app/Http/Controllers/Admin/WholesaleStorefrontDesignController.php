@@ -24,6 +24,7 @@ final class WholesaleStorefrontDesignController extends Controller
         'hero',
         'banner_slider',
         'categories',
+        'departments',
         'offers',
         'featured_products',
         'best_sellers',

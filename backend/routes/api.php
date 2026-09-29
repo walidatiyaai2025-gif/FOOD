@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InventoryController;
+use App\Http\Controllers\Api\V1\LiveAdController;
 use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\MobileRuntimeController;
 use App\Http\Controllers\Api\V1\OrderController;
@@ -58,6 +59,8 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/stores/{store}/banners', [GuestCatalogController::class, 'banners']);
     Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show']);
     Route::get('/products/{product}', [GuestCatalogController::class, 'product']);
+    Route::get('/live-ads', [LiveAdController::class, 'index']);
+    Route::post('/push/devices/guest', [PushDeviceController::class, 'storeGuest']);
 
     Route::get('/cart', [GuestCartController::class, 'show']);
     Route::post('/cart/items', [GuestCartController::class, 'addItem']);

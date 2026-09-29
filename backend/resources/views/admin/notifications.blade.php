@@ -35,12 +35,13 @@
 
     <section class="panel">
         <h2>{{ __('notifications.create') }}</h2>
-        <form method="post" action="{{ route('admin.notifications.store') }}">@csrf
+        <form method="post" action="{{ route('admin.notifications.store') }}" enctype="multipart/form-data">@csrf
             <div class="grid">
                 <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" placeholder="عنوان الإشعار بالعربية" required></div>
                 <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" placeholder="Notification title in English" required></div>
                 <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="نص الإشعار بالعربية"></textarea></div>
                 <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="Notification body in English"></textarea></div>
+                <div class="full"><label>{{ app()->getLocale()==='ar'?'صورة الإشعار':'Notification image' }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp"><small>{{ app()->getLocale()==='ar'?'اختياري — PNG/JPG/WebP حتى 6MB.':'Optional — PNG/JPG/WebP up to 6MB.' }}</small></div>
                 <div><label>{{ __('notifications.type') }}</label><input name="type" value="general" placeholder="{{ app()->getLocale()==='ar'?'مثال: عام':'e.g. general' }}" required></div>
                 <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','user'] as $value)<option value="{{ $value }}">{{ __('notifications.audience_options.'.$value) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver'] as $value)<option value="{{ $value }}">{{ __('notifications.app_options.'.$value) }}</option>@endforeach</select></div>
@@ -67,12 +68,13 @@
                 <div dir="ltr"><small>{{ __('notifications.preview_en') }}</small><strong>{{ $notification->title_en }}</strong><p>{{ $notification->body_en }}</p></div>
             </div>
 
-            <form method="post" action="{{ route('admin.notifications.update',$notification) }}">@csrf @method('PATCH')
+            <form method="post" action="{{ route('admin.notifications.update',$notification) }}" enctype="multipart/form-data">@csrf @method('PATCH')
                 <div class="grid">
                     <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" value="{{ $notification->title_ar }}" required></div>
                     <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" value="{{ $notification->title_en }}" required></div>
                     <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" dir="rtl" required placeholder="نص الإشعار بالعربية">{{ $notification->body_ar }}</textarea></div>
                     <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" dir="ltr" required placeholder="Notification body in English">{{ $notification->body_en }}</textarea></div>
+                    <div class="full"><label>{{ app()->getLocale()==='ar'?'صورة الإشعار':'Notification image' }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp">@if($notification->image_path)<div style="margin-top:8px"><img src="{{ url('/'.ltrim($notification->image_path,'/')) }}" alt="" style="max-height:120px;border-radius:12px"></div>@endif</div>
                     <div><label>{{ __('notifications.type') }}</label><input name="type" value="{{ $notification->type }}" required></div>
                     <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','user'] as $value)<option value="{{ $value }}" @selected($notification->audience===$value)>{{ __('notifications.audience_options.'.$value) }}</option>@endforeach</select></div>
                     <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver'] as $value)<option value="{{ $value }}" @selected($notification->app===$value)>{{ __('notifications.app_options.'.$value) }}</option>@endforeach</select></div>

@@ -111,15 +111,20 @@ final class PushDeliveryService
                 fn ($query) => $query->where('user_id', $notification->user_id),
             )
             ->with('user:id,locale')
-            ->limit(500)
+            ->limit(2000)
             ->get();
 
         $audience = app(NotificationAudience::class);
+        $imageUrl = $this->notificationImageUrl($notification);
 
         foreach ($devices as $device) {
             $deviceUser = $device->user;
-            if (! $deviceUser instanceof User
-                || ! $audience->apply(Notification::query(), $deviceUser)->whereKey($notification->id)->exists()) {
+
+            if ($deviceUser instanceof User) {
+                if (! $audience->apply(Notification::query(), $deviceUser)->whereKey($notification->id)->exists()) {
+                    continue;
+                }
+            } elseif (! $this->anonymousDeviceMatches($device, $notification)) {
                 continue;
             }
 
@@ -145,8 +150,10 @@ final class PushDeliveryService
                 continue;
             }
 
-            $user = $deviceUser;
-            $english = $user->locale === 'en';
+            $deviceLocale = $deviceUser instanceof User
+                ? (string) $deviceUser->locale
+                : (string) $device->locale;
+            $english = $deviceLocale === 'en';
 
             $this->send($provider, $device, [
                 'title' => $english
@@ -155,12 +162,59 @@ final class PushDeliveryService
                 'body' => $english
                     ? $notification->body_en
                     : $notification->body_ar,
+                'image_url' => $imageUrl,
                 'data' => [
                     'notification_id' => (string) $notification->id,
                     'type' => (string) $notification->type,
+                    'title' => $english
+                        ? (string) $notification->title_en
+                        : (string) $notification->title_ar,
+                    'body' => $english
+                        ? (string) $notification->body_en
+                        : (string) $notification->body_ar,
+                    'image_url' => $imageUrl,
+                    'visible_notification' => '1',
                 ],
             ]);
         }
+    }
+
+    private function anonymousDeviceMatches(PushDeviceToken $device, Notification $notification): bool
+    {
+        if ($device->app !== 'customer' || ! in_array($notification->audience, ['all', 'customer'], true)) {
+            return false;
+        }
+
+        if (! in_array($notification->app, ['all', 'customer'], true)) {
+            return false;
+        }
+
+        if ($notification->target_channel !== 'all'
+            && $device->target_channel !== 'all'
+            && $device->target_channel !== $notification->target_channel) {
+            return false;
+        }
+
+        if ($notification->store_id !== null
+            && (int) $notification->store_id !== (int) ($device->store_id ?? 0)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function notificationImageUrl(Notification $notification): string
+    {
+        $path = $notification->image_path;
+        if (is_string($path) && trim($path) !== '') {
+            $value = trim($path);
+
+            return str_starts_with($value, 'http://') || str_starts_with($value, 'https://')
+                ? $value
+                : url('/'.ltrim($value, '/'));
+        }
+
+        return url('/brand/foodex-economical-group.webp');
     }
 
     /**
@@ -211,6 +265,10 @@ final class PushDeliveryService
         array $payload,
         array $credentials,
     ): Response {
+        $imageUrl = isset($payload['image_url']) && is_string($payload['image_url']) && trim($payload['image_url']) !== ''
+            ? trim($payload['image_url'])
+            : null;
+
         return Http::acceptJson()
             ->withToken($this->accessToken($provider, $credentials))
             ->timeout(10)
@@ -221,25 +279,37 @@ final class PushDeliveryService
                 [
                     'message' => [
                         'token' => $device->plainToken(),
-                        'notification' => [
+                        'notification' => array_filter([
                             'title' => $payload['title'] ?? '',
                             'body' => $payload['body'] ?? '',
-                        ],
+                            'image' => $imageUrl,
+                        ]),
                         'data' => $payload['data'] ?? [],
                         'android' => [
+                            'priority' => 'high',
                             'notification' => (object) array_filter([
-                                'sound' => $provider->default_sound,
+                                'sound' => $provider->default_sound ?? 'default',
                                 'channel_id' => $provider->default_channel,
                                 'icon' => $provider->default_icon,
+                                'image' => $imageUrl,
+                                'visibility' => 'PUBLIC',
                             ]),
                         ],
                         'apns' => [
+                            'headers' => [
+                                'apns-priority' => '10',
+                            ],
                             'payload' => [
                                 'aps' => (object) array_filter([
                                     'sound' => $provider->default_sound ?? 'default',
                                     'category' => $provider->default_category,
+                                    'content-available' => 1,
+                                    'mutable-content' => $imageUrl === null ? null : 1,
                                 ]),
                             ],
+                            'fcm_options' => (object) array_filter([
+                                'image' => $imageUrl,
+                            ]),
                         ],
                     ],
                 ],

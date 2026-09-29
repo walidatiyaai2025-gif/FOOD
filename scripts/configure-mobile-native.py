@@ -50,6 +50,7 @@ def _select_brand_assets(app_name: str) -> None:
 
 
 GOOGLE_SERVICES_PLUGIN_VERSION = '4.4.4'
+ANDROID_DESUGAR_JDK_LIBS_VERSION = '2.1.4'
 
 
 def _require_brand_assets() -> None:
@@ -259,6 +260,61 @@ def _configure_android_firebase(app_dir: Path, bundle_id: str) -> None:
         raise RuntimeError('Generated Android app build.gradle(.kts) was not found')
 
 
+def _enable_android_core_library_desugaring(app: Path) -> None:
+    app_kts = app / 'build.gradle.kts'
+    app_groovy = app / 'build.gradle'
+
+    if app_kts.exists():
+        text = app_kts.read_text()
+        if 'isCoreLibraryDesugaringEnabled = true' not in text:
+            marker = '    compileOptions {\n'
+            if marker not in text:
+                raise RuntimeError('Generated Android Kotlin compileOptions block was not found')
+            text = text.replace(
+                marker,
+                marker + '        isCoreLibraryDesugaringEnabled = true\n',
+                1,
+            )
+        dependency = (
+            'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:'
+            f'{ANDROID_DESUGAR_JDK_LIBS_VERSION}")'
+        )
+        if 'coreLibraryDesugaring(' not in text:
+            marker = 'dependencies {\n'
+            if marker in text:
+                text = text.replace(marker, marker + '    ' + dependency + '\n', 1)
+            else:
+                text = text.rstrip() + '\n\ndependencies {\n    ' + dependency + '\n}\n'
+        app_kts.write_text(text)
+        return
+
+    if app_groovy.exists():
+        text = app_groovy.read_text()
+        if 'coreLibraryDesugaringEnabled true' not in text:
+            marker = '    compileOptions {\n'
+            if marker not in text:
+                raise RuntimeError('Generated Android Groovy compileOptions block was not found')
+            text = text.replace(
+                marker,
+                marker + '        coreLibraryDesugaringEnabled true\n',
+                1,
+            )
+        dependency = (
+            "coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:"
+            f"{ANDROID_DESUGAR_JDK_LIBS_VERSION}'"
+        )
+        if 'coreLibraryDesugaring ' not in text:
+            marker = 'dependencies {\n'
+            if marker in text:
+                text = text.replace(marker, marker + '    ' + dependency + '\n', 1)
+            else:
+                text = text.rstrip() + '\n\ndependencies {\n    ' + dependency + '\n}\n'
+        app_groovy.write_text(text)
+        return
+
+    raise RuntimeError('Generated Android app build.gradle(.kts) was not found')
+
+
 def patch_android(app_dir: Path, bundle_id: str) -> None:
     app = app_dir / 'android' / 'app'
     build_files = [app / 'build.gradle.kts', app / 'build.gradle']
@@ -305,6 +361,7 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
             )
         path.write_text(text)
 
+    _enable_android_core_library_desugaring(app)
     _configure_android_firebase(app_dir, bundle_id)
     _write_android_brand_resources(app)
 

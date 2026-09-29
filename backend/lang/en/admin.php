@@ -37,6 +37,7 @@ return [
     'catalog_management' => 'Catalog & Categories Management',
     'lookup_management' => 'Brands & Units',
     'business_management' => 'Operations & Data Management',
+    'order_management' => 'Order Management',
     'retail_store_provisioning' => 'Retail Stores / Provisioning',
     'shell_ready' => 'Management shell is ready',
     'shell_description' => 'This is the shared routing and layout layer. Product, order and reporting screens are implemented in their own issues without creating separate admin applications.',
@@ -167,6 +168,6 @@ return [
             'delivered'=>'Delivered','completed'=>'Completed','cancelled'=>'Cancelled','refunded'=>'Refunded',
         ],
     ],
-    'b2c_workspace' => ['title'=>'Retail Management','assigned_scope'=>'Authorized store scope','authoritative'=>'Data and operations remain server-authoritative and permission scoped','empty_hint'=>'Available records appear here; empty states remain explicit when no records exist.','modules'=>['dashboard'=>'Dashboard','products'=>'Products','inventory'=>'Inventory','orders'=>'Orders','customers'=>'Customers','promotions'=>'Promotions','drivers'=>'Drivers & Delivery','storefront'=>'Storefront Preview','content'=>'Content & Banners','finance'=>'Finance & Invoices','reports'=>'Reports','settings'=>'Settings']],
+    'b2c_workspace' => ['title'=>'Retail Management','assigned_scope'=>'Authorized store scope','authoritative'=>'Data and operations remain server-authoritative and permission scoped','empty_hint'=>'Available records appear here; empty states remain explicit when no records exist.','modules'=>['dashboard'=>'Dashboard','products'=>'Products','inventory'=>'Inventory','orders'=>'Orders','customers'=>'Customers','promotions'=>'Promotions','drivers'=>'Drivers & Delivery','storefront'=>'Storefront Preview','content'=>'Content & Banners','reports'=>'Reports','settings'=>'Settings']],
     'b2b_workspace' => ['title'=>'B2B Wholesale Management','authoritative'=>'Data and operations remain server-authoritative, permission scoped, and B2B-channel restricted','empty_hint'=>'Available records appear here; empty states remain explicit when no records exist.','modules'=>['dashboard'=>'Dashboard','warehouses'=>'Warehouses','clients'=>'B2B Clients','products'=>'Wholesale Catalog','inventory'=>'Warehouses & Inventory','orders'=>'Orders','drivers'=>'Drivers & Delivery','pricing'=>'Pricing & Approvals','finance'=>'Finance & Invoices','reports'=>'Reports','storefront'=>'Wholesale Storefront','settings'=>'Wholesale Settings']],
 ];

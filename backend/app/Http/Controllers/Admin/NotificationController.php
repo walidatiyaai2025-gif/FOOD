@@ -7,6 +7,7 @@ use App\Models\Notification;
 use App\Models\NotificationRead;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\MarketingImageService;
 use App\Services\OperationalTenantScope;
 use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
@@ -14,8 +15,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 final class NotificationController extends Controller
 {
@@ -72,6 +75,7 @@ final class NotificationController extends Controller
                 'type' => $notification->type,
                 'title' => $locale === 'en' ? $notification->title_en : $notification->title_ar,
                 'body' => $locale === 'en' ? $notification->body_en : $notification->body_ar,
+                'image_url' => $this->assetUrl($notification->image_path),
                 'data' => $notification->data,
                 'read' => in_array($notification->id, $readIds, true),
                 'published_at' => optional($notification->published_at)->toAtomString(),
@@ -124,40 +128,69 @@ final class NotificationController extends Controller
         return response()->noContent();
     }
 
-    public function store(Request $request, AuditLogger $audit): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        AuditLogger $audit,
+        MarketingImageService $images,
+    ): RedirectResponse {
         $actor = $this->authorizeManage($request);
         $data = $this->validated($request);
         $this->assertScope($actor, $data);
+        $imagePath = $this->storeImage($request, $images, $data['store_id'] ?? null);
+        unset($data['image']);
 
-        $notification = Notification::query()->create([
-            ...$data,
-            'title' => $data['title_ar'],
-            'body' => $data['body_ar'],
-            'user_id' => $data['audience'] === 'user' ? ($data['user_id'] ?? null) : null,
-            'created_by' => $actor->id,
-            'status' => 'draft',
-            'published_at' => null,
-        ]);
+        try {
+            $notification = Notification::query()->create([
+                ...$data,
+                'image_path' => $imagePath,
+                'title' => $data['title_ar'],
+                'body' => $data['body_ar'],
+                'user_id' => $data['audience'] === 'user' ? ($data['user_id'] ?? null) : null,
+                'created_by' => $actor->id,
+                'status' => 'draft',
+                'published_at' => null,
+            ]);
+        } catch (Throwable $exception) {
+            $images->delete($imagePath);
+            throw $exception;
+        }
 
         $audit->record('notification.created', $actor, $notification, null, $notification->toArray(), $request);
 
         return back()->with('status', __('notifications.created'));
     }
 
-    public function update(Request $request, Notification $notification, AuditLogger $audit): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        Notification $notification,
+        AuditLogger $audit,
+        MarketingImageService $images,
+    ): RedirectResponse {
         $actor = $this->authorizeManage($request);
         $data = $this->validated($request);
         $this->assertScope($actor, $data);
         $before = $notification->toArray();
+        $newImage = $request->hasFile('image')
+            ? $this->storeImage($request, $images, $data['store_id'] ?? null)
+            : null;
+        unset($data['image']);
 
-        $notification->update([
-            ...$data,
-            'title' => $data['title_ar'],
-            'body' => $data['body_ar'],
-            'user_id' => $data['audience'] === 'user' ? ($data['user_id'] ?? null) : null,
-        ]);
+        try {
+            $notification->update([
+                ...$data,
+                ...($newImage !== null ? ['image_path' => $newImage] : []),
+                'title' => $data['title_ar'],
+                'body' => $data['body_ar'],
+                'user_id' => $data['audience'] === 'user' ? ($data['user_id'] ?? null) : null,
+            ]);
+        } catch (Throwable $exception) {
+            $images->delete($newImage);
+            throw $exception;
+        }
+
+        if ($newImage !== null) {
+            $images->delete($before['image_path'] ?? null);
+        }
 
         $audit->record('notification.updated', $actor, $notification, $before, $notification->fresh()->toArray(), $request);
 
@@ -175,12 +208,18 @@ final class NotificationController extends Controller
         return back()->with('status', __('notifications.published'));
     }
 
-    public function destroy(Request $request, Notification $notification, AuditLogger $audit): RedirectResponse
-    {
+    public function destroy(
+        Request $request,
+        Notification $notification,
+        AuditLogger $audit,
+        MarketingImageService $images,
+    ): RedirectResponse {
         $actor = $this->authorizeManage($request);
         $before = $notification->toArray();
+        $imagePath = $notification->image_path;
         $audit->record('notification.deleted', $actor, $notification, $before, null, $request);
         $notification->delete();
+        $images->delete($imagePath);
 
         return back()->with('status', __('notifications.deleted'));
     }
@@ -272,6 +311,7 @@ final class NotificationController extends Controller
             'title_en' => ['required', 'string', 'max:255'],
             'body_ar' => ['required', 'string', 'max:5000'],
             'body_en' => ['required', 'string', 'max:5000'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144'],
             'type' => ['required', 'string', 'max:64'],
             'audience' => ['required', 'in:all,customer,driver,user'],
             'app' => ['required', 'in:all,customer,driver,dashboard'],
@@ -280,5 +320,28 @@ final class NotificationController extends Controller
             'user_id' => ['nullable', 'required_if:audience,user', 'integer', 'exists:users,id'],
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
         ]);
+    }
+
+    private function storeImage(Request $request, MarketingImageService $images, mixed $storeId): ?string
+    {
+        $file = $request->file('image');
+        if (! $file instanceof UploadedFile) {
+            return null;
+        }
+
+        return $images->store($file, 'notifications', is_numeric($storeId) ? (int) $storeId : null);
+    }
+
+    private function assetUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $value = trim($path);
+
+        return str_starts_with($value, 'http://') || str_starts_with($value, 'https://')
+            ? $value
+            : url('/'.ltrim($value, '/'));
     }
 }

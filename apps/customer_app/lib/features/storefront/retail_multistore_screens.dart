@@ -7,6 +7,7 @@ import '../../core/api/b2c_catalog_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
+import '../../core/engagement/live_ad_service.dart';
 import 'storefront_design_system.dart';
 
 typedef WholesaleContextCallback = void Function(int? retailStoreId);
@@ -286,37 +287,13 @@ class _BrandMark extends StatelessWidget {
   const _BrandMark();
 
   @override
-  Widget build(BuildContext context) => const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: Color(0xFF078A43),
-            child: Icon(Icons.shopping_bag_rounded, color: Colors.white),
-          ),
-          SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'FOODEX',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: .6,
-                ),
-              ),
-              Text(
-                'MULTI STORE',
-                style: TextStyle(
-                  fontSize: 9,
-                  letterSpacing: 2,
-                  color: Color(0xFF6B7785),
-                ),
-              ),
-            ],
-          ),
-        ],
+  Widget build(BuildContext context) => Center(
+        child: Image.asset(
+          'assets/branding/foodex-economical-group.webp',
+          height: 72,
+          fit: BoxFit.contain,
+          semanticLabel: 'FOODEX Economical Group',
+        ),
       );
 }
 
@@ -633,6 +610,8 @@ class _RetailStorefrontDesignScreenState
   late final int storeId = retailStoreId(widget.location);
   late Future<_RetailHomeData> future = _load();
   final search = TextEditingController();
+  final liveAds = CustomerLiveAdService();
+  bool _liveAdScheduled = false;
 
   Future<_RetailHomeData> _load() async {
     final values = await Future.wait<Object?>([
@@ -680,6 +659,20 @@ class _RetailStorefrontDesignScreenState
                 ),
               ),
             );
+          }
+
+          if (!_liveAdScheduled) {
+            _liveAdScheduled = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              liveAds
+                  .showForContext(
+                    context,
+                    channel: 'b2c',
+                    storeId: storeId,
+                  )
+                  .catchError((_) {});
+            });
           }
 
           final data = snapshot.data!;
@@ -921,10 +914,10 @@ class _RetailHomeBody extends StatelessWidget {
               ),
             ];
           }
-          if (type == 'categories') {
+          if (type == 'categories' || type == 'departments') {
             return [
               FoodexSectionHeader(
-                title: section['title_ar']?.toString() ?? 'التصنيفات',
+                title: section['title_ar']?.toString() ?? (type == 'departments' ? 'الأقسام' : 'التصنيفات'),
                 palette: palette,
               ),
               _CategoryRail(

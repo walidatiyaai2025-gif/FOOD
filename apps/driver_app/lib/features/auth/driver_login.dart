@@ -216,11 +216,11 @@ class _DriverBrandHeader extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 82,
-          height: 82,
+          constraints: const BoxConstraints(maxWidth: 330),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(22),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x2A003223),
@@ -229,49 +229,21 @@ class _DriverBrandHeader extends StatelessWidget {
               ),
             ],
           ),
-          child: const Stack(
-            alignment: Alignment.center,
-            children: [
-              Text(
-                'FX',
-                style: TextStyle(
-                  color: FoodexBrand.greenDark,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -.8,
-                ),
-              ),
-              Positioned(
-                right: 10,
-                bottom: 10,
-                child: Icon(
-                  Icons.local_shipping_rounded,
-                  color: FoodexBrand.orange,
-                  size: 21,
-                ),
-              ),
-            ],
+          child: Image.asset(
+            'assets/branding/foodex-economical-group.webp',
+            height: 96,
+            fit: BoxFit.contain,
+            semanticLabel: 'FOODEX Economical Group',
           ),
         ),
-        const SizedBox(height: 14),
-        const Text(
-          'FOODEX',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 12),
         Text(
           context.tr('driver.app.title'),
           textAlign: TextAlign.center,
           style: const TextStyle(
-            color: Color(0xFFE8F7ED),
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],

@@ -54,6 +54,8 @@ return [
         'notifications.manage' => 'Manage notification content and targeting',
         'coupons.view' => 'View coupon administration',
         'coupons.manage' => 'Create, edit, activate and retire coupons',
+        'live_ads.view' => 'View live advertising administration',
+        'live_ads.manage' => 'Create, edit, schedule and retire live ads',
         'drivers.b2b.view' => 'View B2B drivers and delivery operations',
         'drivers.b2b.manage' => 'Manage B2B drivers and delivery operations',
         'drivers.b2c.view' => 'View Retail drivers and delivery operations',
@@ -74,7 +76,7 @@ return [
             'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage',
             'drivers.b2b.view', 'drivers.b2b.manage', 'notifications.view', 'notifications.manage',
-            'coupons.view', 'coupons.manage',
+            'coupons.view', 'coupons.manage', 'live_ads.view', 'live_ads.manage',
         ],
         'B2C_STORE_ADMIN' => [
             'stores.view',
@@ -86,7 +88,7 @@ return [
             'promotions.view', 'promotions.manage', 'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage',
             'drivers.b2c.view', 'drivers.b2c.manage', 'notifications.view', 'notifications.manage',
-            'coupons.view', 'coupons.manage',
+            'coupons.view', 'coupons.manage', 'live_ads.view', 'live_ads.manage',
         ],
         // Global operational roles are wholesale-only. Retail counterparts are store-only.
         'OPERATIONS' => [
