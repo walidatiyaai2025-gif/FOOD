@@ -4,6 +4,7 @@ import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
+import 'package:foodex_customer_app/core/location/customer_location_service.dart';
 
 void main() {
   testWidgets('B2C guest product detail renders authoritative API data in RTL', (tester) async {
@@ -308,6 +309,134 @@ void main() {
     expect(find.byKey(const ValueKey('b2c-orders-data')), findsOneWidget);
     expect(find.text('FOODEX-101'), findsOneWidget);
   });
+  testWidgets('My Addresses saves shared foreground location only after user action', (tester) async {
+    final accountApi = _FakeAccountApi();
+    final location = _FakeLocationService(
+      point: CustomerLocationPoint(
+        latitude: 29.375859,
+        longitude: 47.977405,
+        accuracyMeters: 6.5,
+      ),
+    );
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: const CustomerSession.authenticated(
+          CustomerChannel.b2c,
+          accessToken: 'token',
+          platformWide: true,
+        ),
+        initialRoute: '/profile/addresses',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: accountApi,
+        locationService: location,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(location.requests, 0);
+    await tester.tap(find.byKey(const ValueKey('b2c-address-add')));
+    await tester.pumpAndSettle();
+    expect(location.requests, 0);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('b2c-address-line1')),
+      'Bayan Block 1',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('b2c-address-share-location')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(location.requests, 1);
+    expect(
+      find.byKey(const ValueKey('b2c-address-location-preview')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('حفظ'));
+    await tester.pumpAndSettle();
+
+    expect(accountApi.lastCreatedAddress?['latitude'], 29.375859);
+    expect(accountApi.lastCreatedAddress?['longitude'], 47.977405);
+    expect(accountApi.lastCreatedAddress?['location_accuracy_meters'], 6.5);
+    expect(
+      accountApi.lastCreatedAddress?['location_source'],
+      'current_location',
+    );
+  });
+
+  testWidgets('location denial keeps manual address entry available', (tester) async {
+    final accountApi = _FakeAccountApi();
+    const location = _FakeLocationService(
+      error: CustomerLocationException('location_permission_denied'),
+    );
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: const CustomerSession.authenticated(
+          CustomerChannel.b2c,
+          accessToken: 'token',
+          platformWide: true,
+        ),
+        initialRoute: '/profile/addresses',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: accountApi,
+        locationService: location,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('b2c-address-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('b2c-address-share-location')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('b2c-address-location-error')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('b2c-address-line1')),
+      'Manual Street 9',
+    );
+    await tester.tap(find.text('حفظ'));
+    await tester.pumpAndSettle();
+
+    expect(accountApi.lastCreatedAddress?['line1'], 'Manual Street 9');
+    expect(accountApi.lastCreatedAddress?['latitude'], isNull);
+    expect(accountApi.lastCreatedAddress?['longitude'], isNull);
+    expect(accountApi.lastCreatedAddress?['location_source'], 'manual');
+  });
+
+  testWidgets('My Addresses can set another address as default', (tester) async {
+    final accountApi = _FakeAccountApi();
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: const CustomerSession.authenticated(
+          CustomerChannel.b2c,
+          accessToken: 'token',
+          platformWide: true,
+        ),
+        initialRoute: '/profile/addresses',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: accountApi,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('b2c-address-menu-9')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('تعيين كعنوان افتراضي'));
+    await tester.pumpAndSettle();
+
+    expect(accountApi.defaultAddressId, 9);
+  });
+
 }
 
 class _FakeCatalogApi implements B2cCatalogApi {
@@ -391,6 +520,8 @@ class _FakeAccountApi implements B2cAccountApi {
   int cartReads = 0;
   bool notificationRead = false;
   int? removedFavoriteId;
+  int? defaultAddressId;
+  Map<String, dynamic>? lastCreatedAddress;
 
   @override
   Future<Object?> cart({int? storeId}) async {
@@ -475,16 +606,25 @@ class _FakeAccountApi implements B2cAccountApi {
             'city': 'Kuwait City',
             'area': 'Bayan',
             'country_code': 'KW',
-            'is_default': true,
+            'is_default': defaultAddressId == null || defaultAddressId == 8,
+          },
+          {
+            'id': 9,
+            'label': 'Office',
+            'line1': 'Street 9',
+            'city': 'Kuwait City',
+            'area': 'Sharq',
+            'country_code': 'KW',
+            'is_default': defaultAddressId == 9,
           },
         ],
       };
 
   @override
-  Future<Object?> createAddress(Map<String, dynamic> values) async => {
-        'id': 9,
-        ...values,
-      };
+  Future<Object?> createAddress(Map<String, dynamic> values) async {
+    lastCreatedAddress = Map<String, dynamic>.from(values);
+    return {'id': 10, ...values};
+  }
 
   @override
   Future<Object?> updateAddress(
@@ -494,7 +634,10 @@ class _FakeAccountApi implements B2cAccountApi {
       {'id': addressId, ...values};
 
   @override
-  Future<Object?> setDefaultAddress(int addressId) async => {'id': addressId, 'is_default': true};
+  Future<Object?> setDefaultAddress(int addressId) async {
+    defaultAddressId = addressId;
+    return {'id': addressId, 'is_default': true};
+  }
 
   @override
   Future<void> removeAddress(int addressId) async {}
@@ -529,6 +672,21 @@ class _FakeAccountApi implements B2cAccountApi {
   @override
   Future<void> markNotificationRead(int notificationId) async {
     notificationRead = true;
+  }
+}
+
+class _FakeLocationService implements CustomerLocationService {
+  _FakeLocationService({this.point, this.error});
+
+  final CustomerLocationPoint? point;
+  final CustomerLocationException? error;
+  int requests = 0;
+
+  @override
+  Future<CustomerLocationPoint> currentLocation() async {
+    requests++;
+    if (error != null) throw error!;
+    return point!;
   }
 }
 
@@ -574,7 +732,7 @@ class _ErrorAccountApi implements B2cAccountApi {
       _fail();
 
   @override
-  Future<Object?> setDefaultAddress(int addressId) async => {'id': addressId, 'is_default': true};
+  Future<Object?> setDefaultAddress(int addressId) async => _fail();
 
   @override
   Future<void> removeAddress(int addressId) async => _fail();
