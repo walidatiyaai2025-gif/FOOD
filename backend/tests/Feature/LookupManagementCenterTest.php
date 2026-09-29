@@ -347,6 +347,24 @@ class LookupManagementCenterTest extends TestCase
             ->assertSee((string) $brand->image_path);
     }
 
+    public function test_lookup_create_uses_type_specific_modal_instead_of_inline_generic_form(): void
+    {
+        $admin = $this->globalRole('SUPER_ADMIN', 'lookup-modal@example.test', 'ar');
+
+        $this->actingAs($admin)->get('/admin/lookups?type=brands')
+            ->assertOk()
+            ->assertSee('إضافة علامة تجارية جديدة')
+            ->assertSee('data-lookup-modal-open', false)
+            ->assertSee('role="dialog"', false)
+            ->assertSee('data-lookup-modal', false)
+            ->assertDontSee('إضافة قيمة جديدة');
+
+        $this->actingAs($admin)->get('/admin/lookups?type=units')
+            ->assertOk()
+            ->assertSee('إضافة وحدة قياس جديدة')
+            ->assertSee('data-lookup-modal-open', false);
+    }
+
     public function test_lookup_center_renders_arabic_rtl_and_english_ltr(): void
     {
         $ar = $this->globalRole('SUPER_ADMIN', 'lookup-ar@example.test', 'ar');
