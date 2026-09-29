@@ -14,6 +14,20 @@ void main() {
     final requests = <Uri>[];
     final client = MockClient((request) async {
       requests.add(request.url);
+      if (request.url.path == '/api/v1/platform/products/42') {
+        return http.Response(
+          jsonEncode({
+            'id': 42,
+            'name': 'Wholesale Rice',
+            'sku': 'W-RICE-42',
+            'barcode': '123456789',
+            'unit_price': 12.5,
+            'currency': 'EGP',
+            'description': 'Bulk rice for wholesale customers',
+          }),
+          200,
+        );
+      }
       return http.Response(
         jsonEncode({
           'store': {
@@ -147,4 +161,93 @@ void main() {
 
     expect(find.text('Retail Eight Offer'), findsOneWidget);
   });
+
+  testWidgets('guest can search wholesale catalog and inspect product before login',
+      (tester) async {
+    final requests = <Uri>[];
+    final client = MockClient((request) async {
+      requests.add(request.url);
+      if (request.url.path == '/api/v1/platform/products/42') {
+        return http.Response(
+          jsonEncode({
+            'id': 42,
+            'name': 'Wholesale Rice',
+            'sku': 'W-RICE-42',
+            'barcode': '123456789',
+            'unit_price': 12.5,
+            'currency': 'EGP',
+            'description': 'Bulk rice for wholesale customers',
+          }),
+          200,
+        );
+      }
+
+      return http.Response(
+        jsonEncode({
+          'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
+          'hero': null,
+          'products': {
+            'data': [
+              {
+                'id': 42,
+                'name': 'Wholesale Rice',
+                'unit_price': 12.5,
+                'currency': 'EGP',
+              }
+            ],
+          },
+          'retail_banners': const [],
+        }),
+        200,
+      );
+    });
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('en'),
+        overrides: const {},
+        child: MaterialApp(
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.guest(),
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('marketplace-search')),
+      'W-RICE-42',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(
+      requests.where((uri) => uri.path == '/api/v1/platform/storefront').last
+          .queryParameters['q'],
+      'W-RICE-42',
+    );
+
+    await tester.tap(find.text('Wholesale Rice'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('marketplace-wholesale-product-title')),
+      findsOneWidget,
+    );
+    expect(find.text('W-RICE-42', findRichText: true), findsNothing);
+    expect(find.textContaining('SKU: W-RICE-42'), findsOneWidget);
+    expect(find.textContaining('Barcode: 123456789'), findsOneWidget);
+    expect(
+      requests.any((uri) => uri.path == '/api/v1/platform/products/42'),
+      isTrue,
+    );
+    expect(
+      find.byKey(const ValueKey('marketplace-wholesale-buy')),
+      findsOneWidget,
+    );
+  });
+
 }
