@@ -417,7 +417,7 @@ final class Customer360Controller extends Controller
      * Keep Dashboard-created geographic addresses subject to the same
      * invariants as customer self-service addresses.
      *
-     * @param array<string, mixed> $validated
+     * @param  array<string, mixed>  $validated
      */
     private function assertLocationSemantics(array $validated, ?Address $existing = null): void
     {

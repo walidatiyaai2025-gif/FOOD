@@ -104,8 +104,7 @@ final class PushDeliveryService
     public function dispatchNotification(
         Notification $notification,
         bool $throwOnTransient = false,
-    ): void
-    {
+    ): void {
         if (! in_array($notification->channel, ['push', 'both'], true)) {
             return;
         }
@@ -271,20 +270,21 @@ final class PushDeliveryService
         ];
 
         foreach ((array) $notification->data as $key => $value) {
-            if (! is_string($key) || $key === '') {
+            $dataKey = (string) $key;
+            if ($dataKey === '') {
                 continue;
             }
 
             if ($value === null) {
-                $data[$key] = '';
+                $data[$dataKey] = '';
             } elseif (is_bool($value)) {
-                $data[$key] = $value ? '1' : '0';
+                $data[$dataKey] = $value ? '1' : '0';
             } elseif (is_scalar($value)) {
-                $data[$key] = (string) $value;
+                $data[$dataKey] = (string) $value;
             } else {
                 $encoded = json_encode($value);
                 if (is_string($encoded)) {
-                    $data[$key] = $encoded;
+                    $data[$dataKey] = $encoded;
                 }
             }
         }

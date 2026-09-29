@@ -396,15 +396,11 @@ final class OrderLifecycleNotificationService
             }
         }
 
-        if ($order->customer_id !== null) {
-            $id = DB::table('customers')
-                ->where('id', $order->customer_id)
-                ->value('user_id');
+        $id = DB::table('customers')
+            ->where('id', $order->customer_id)
+            ->value('user_id');
 
-            return $id === null ? null : (int) $id;
-        }
-
-        return null;
+        return $id === null ? null : (int) $id;
     }
 
     private function activeAssignment(Order $order): ?DriverAssignment

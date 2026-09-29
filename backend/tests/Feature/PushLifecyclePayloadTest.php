@@ -211,4 +211,3 @@ class PushLifecyclePayloadTest extends TestCase
         return [$user, $device, $notification];
     }
 }
-

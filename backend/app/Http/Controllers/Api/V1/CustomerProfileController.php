@@ -563,7 +563,7 @@ class CustomerProfileController extends Controller
      * source without a complete coordinate pair. On PATCH, validate the final
      * state after applying the submitted values to the existing address.
      *
-     * @param array<string, mixed> $validated
+     * @param  array<string, mixed>  $validated
      */
     private function assertLocationSemantics(array $validated, ?Address $existing = null): void
     {
