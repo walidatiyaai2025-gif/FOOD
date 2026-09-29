@@ -125,7 +125,7 @@ class _CustomerMapPinSelectorState extends State<_CustomerMapPinSelector> {
                     bottom: 10,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .92),
+                        color: Colors.white.withAlpha(235),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Padding(
