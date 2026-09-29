@@ -119,7 +119,9 @@ final class OrderOperationsController extends Controller
 
         return view('admin.order-operations', [
             'actor' => $actor,
-            'navigation' => $this->navigation->sidebar($actor),
+            'user' => $actor,
+            'navGroups' => $this->navigation->groupsFor($actor),
+            'navContext' => 'order_operations',
             'orders' => $orders,
             'rows' => $rows,
             'stores' => $stores,

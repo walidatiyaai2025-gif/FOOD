@@ -57,8 +57,8 @@ class CustomerLiveAdService {
     );
 
     for (final ad in ads) {
-      if (!context.mounted) return;
       if (!await _shouldShow(ad)) continue;
+      if (!context.mounted) return;
 
       await showDialog<void>(
         context: context,

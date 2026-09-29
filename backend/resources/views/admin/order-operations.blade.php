@@ -67,6 +67,6 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 </section>
 @endif
 </main>
-<aside class="sidebar">@include('admin._sidebar',['navigation'=>$navigation])</aside>
+<aside class="sidebar">@include('admin._sidebar')</aside>
 </div>
 </body></html>

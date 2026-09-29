@@ -7,8 +7,8 @@ use App\Models\Notification;
 use App\Models\NotificationRead;
 use App\Models\User;
 use App\Services\AuditLogger;
-use App\Services\OperationalTenantScope;
 use App\Services\MarketingImageService;
+use App\Services\OperationalTenantScope;
 use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -314,6 +314,7 @@ final class NotificationController extends Controller
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
         ]);
     }
+
     private function storeImage(Request $request, MarketingImageService $images, mixed $storeId): ?string
     {
         $file = $request->file('image');

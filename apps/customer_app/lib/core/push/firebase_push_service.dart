@@ -255,7 +255,6 @@ class CustomerFirebasePushService {
   StreamSubscription<RemoteMessage>? _openedSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   String? _accessToken;
-  int? _deviceId;
   String? _pendingRoute;
 
   Stream<String> get routes => _routes.stream;
@@ -394,18 +393,21 @@ class CustomerFirebasePushService {
 
     final token = await messaging.getToken();
     if (token != null && token.isNotEmpty) {
-      _deviceId = await registry.registerGuest(firebaseToken: token);
+      await registry.registerGuest(firebaseToken: token);
     }
 
     await _tokenSubscription?.cancel();
     _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
       final currentAccessToken = _accessToken;
-      _deviceId = currentAccessToken == null || currentAccessToken.isEmpty
-          ? await registry.registerGuest(firebaseToken: newToken)
-          : await registry.register(
-              accessToken: currentAccessToken,
-              firebaseToken: newToken,
-            );
+      if (currentAccessToken == null || currentAccessToken.isEmpty) {
+        await registry.registerGuest(firebaseToken: newToken);
+        return;
+      }
+
+      await registry.register(
+        accessToken: currentAccessToken,
+        firebaseToken: newToken,
+      );
     });
   }
 
@@ -416,7 +418,7 @@ class CustomerFirebasePushService {
 
     final token = await messaging.getToken();
     if (token != null && token.isNotEmpty) {
-      _deviceId = await registry.register(
+      await registry.register(
         accessToken: accessToken,
         firebaseToken: token,
       );
@@ -426,11 +428,11 @@ class CustomerFirebasePushService {
     _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
       final currentToken = _accessToken;
       if (currentToken == null || currentToken.isEmpty) {
-        _deviceId = await registry.registerGuest(firebaseToken: newToken);
+        await registry.registerGuest(firebaseToken: newToken);
         return;
       }
 
-      _deviceId = await registry.register(
+      await registry.register(
         accessToken: currentToken,
         firebaseToken: newToken,
       );
