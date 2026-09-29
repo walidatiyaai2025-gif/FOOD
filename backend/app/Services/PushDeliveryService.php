@@ -150,7 +150,10 @@ final class PushDeliveryService
                 continue;
             }
 
-            $english = ($deviceUser?->locale ?? $device->locale) === 'en';
+            $deviceLocale = $deviceUser instanceof User
+                ? (string) $deviceUser->locale
+                : (string) $device->locale;
+            $english = $deviceLocale === 'en';
 
             $this->send($provider, $device, [
                 'title' => $english
@@ -169,7 +172,7 @@ final class PushDeliveryService
                     'body' => $english
                         ? (string) $notification->body_en
                         : (string) $notification->body_ar,
-                    'image_url' => $imageUrl ?? '',
+                    'image_url' => $imageUrl,
                     'visible_notification' => '1',
                 ],
             ]);
@@ -200,7 +203,7 @@ final class PushDeliveryService
         return true;
     }
 
-    private function notificationImageUrl(Notification $notification): ?string
+    private function notificationImageUrl(Notification $notification): string
     {
         $path = $notification->image_path;
         if (is_string($path) && trim($path) !== '') {
