@@ -78,7 +78,7 @@ class HttpDriverNotificationRepository implements DriverNotificationRepository {
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw DriverNotificationException(
-        'http_' + response.statusCode.toString(),
+        'http_${response.statusCode}',
       );
     }
 
@@ -107,7 +107,7 @@ class HttpDriverNotificationRepository implements DriverNotificationRepository {
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw DriverNotificationException(
-        'http_' + response.statusCode.toString(),
+        'http_${response.statusCode}',
       );
     }
   }
