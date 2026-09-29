@@ -331,6 +331,19 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           authenticated: widget.session.isAuthenticated,
                           onRegister: _register,
                           onLogin: () => Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace'),
+                          onCart: () => Navigator.of(context).pushNamed('/cart'),
+                          onNotifications: () {
+                            if (widget.session.isAuthenticated) {
+                              Navigator.of(context).pushNamed('/notifications');
+                            } else {
+                              Navigator.of(context).pushNamed(
+                                Uri(
+                                  path: '/auth/checkout',
+                                  queryParameters: {'next': '/notifications'},
+                                ).toString(),
+                              );
+                            }
+                          },
                         ),
                       ),
                       SliverToBoxAdapter(
@@ -462,11 +475,15 @@ class _MarketplaceHeader extends StatelessWidget {
     required this.authenticated,
     required this.onRegister,
     required this.onLogin,
+    required this.onCart,
+    required this.onNotifications,
   });
 
   final bool authenticated;
   final VoidCallback onRegister;
   final VoidCallback onLogin;
+  final VoidCallback onCart;
+  final VoidCallback onNotifications;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -496,11 +513,24 @@ class _MarketplaceHeader extends StatelessWidget {
                 ],
               ),
             ),
+            IconButton(
+              key: const ValueKey('marketplace-cart'),
+              tooltip: context.tr('customer.nav.cart'),
+              onPressed: onCart,
+              icon: const Icon(Icons.shopping_cart_outlined),
+            ),
+            IconButton(
+              key: const ValueKey('marketplace-notifications'),
+              tooltip: context.tr('customer.nav.notifications'),
+              onPressed: onNotifications,
+              icon: const Icon(Icons.notifications_none_rounded),
+            ),
             if (!authenticated) ...[
               TextButton(onPressed: onLogin, child: Text(context.tr('customer.action.login'))),
               FilledButton(onPressed: onRegister, child: Text(context.tr('customer.marketplace.register'))),
             ] else
               IconButton(
+                key: const ValueKey('marketplace-profile'),
                 onPressed: () => Navigator.of(context).pushNamed('/profile'),
                 icon: const Icon(Icons.person_outline_rounded),
               ),
