@@ -453,15 +453,41 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           context.tr('customer.checkout_login.title'),
           context.tr('customer.checkout_login.subtitle'),
           [
-            CustomerLoginAction(
-              channel: CustomerChannel.b2c,
+            CustomerPasswordLoginAction(
               api: widget.actionApi,
-              onAuthenticated: widget.onAuthenticated,
+              onAuthenticated: widget.onPlatformRegistered,
               successRoute: checkoutRoute,
             ),
             const SizedBox(height: 14),
             OutlinedButton.icon(
               onPressed: () => Navigator.of(context).pushNamed(registrationRoute),
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: Text(context.tr('customer.action.register')),
+            ),
+          ],
+        );
+      case CustomerRoutePaths.customerLogin:
+        final loginReturn = Uri.parse(widget.location).queryParameters['return'];
+        final loginSuccessRoute = loginReturn != null && loginReturn.startsWith('/')
+            ? loginReturn
+            : CustomerRoutePaths.b2bHome;
+        return (
+          context.tr('customer.login.title'),
+          context.tr('customer.login.subtitle'),
+          [
+            CustomerPasswordLoginAction(
+              api: widget.actionApi,
+              onAuthenticated: widget.onPlatformRegistered,
+              successRoute: loginSuccessRoute,
+            ),
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).pushReplacementNamed(
+                Uri(
+                  path: CustomerRoutePaths.register,
+                  queryParameters: {'return': loginSuccessRoute},
+                ).toString(),
+              ),
               icon: const Icon(Icons.person_add_alt_1_rounded),
               label: Text(context.tr('customer.action.register')),
             ),
