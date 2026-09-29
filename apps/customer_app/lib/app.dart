@@ -161,6 +161,17 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _bindPushSession();
   }
 
+  void _onPlatformRegistered(String token) {
+    setState(() {
+      _session = CustomerSession.authenticated(
+        CustomerChannel.b2b,
+        accessToken: token,
+        platformWide: true,
+      );
+    });
+    _bindPushSession();
+  }
+
   void _enterWholesale(int? retailStoreId) {
     if (!_session.isAuthenticated) return;
     setState(() {
@@ -257,6 +268,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       onAuthenticated: _onAuthenticated,
       onSessionExpired: _onSessionExpired,
       onEnterWholesale: _enterWholesale,
+      onPlatformRegistered: _onPlatformRegistered,
     );
 
     return MaterialApp(
