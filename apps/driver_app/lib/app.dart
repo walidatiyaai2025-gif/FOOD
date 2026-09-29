@@ -55,6 +55,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   StreamSubscription<void>? _pushOpenSubscription;
   StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
 
+  static const _appVersion = '1.0.27';
+
   String get _baseUrl =>
       widget.apiBaseUrl ??
       FoodexEnvironment.apiBaseUrl;
@@ -217,7 +219,55 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
       builder: (context, child) => DriverTranslations(
         locale: widget.locale,
         overrides: _translations,
-        child: child ?? const SizedBox.shrink(),
+        child: Builder(
+          builder: (translatedContext) => Column(
+            children: [
+              Expanded(child: child ?? const SizedBox.shrink()),
+              DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF8FAFC),
+                  border: Border(
+                    top: BorderSide(color: Color(0xFFE3E8EF)),
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: SizedBox(
+                    height: 42,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                          Text(
+                            '${translatedContext.tr('driver.version')} $_appVersion',
+                            key: const Key('driver-app-version-footer'),
+                            style: Theme.of(translatedContext)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: FoodexBrand.muted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const Spacer(),
+                          if (_session != null)
+                            TextButton.icon(
+                              key: const Key('driver-global-logout'),
+                              onPressed: _logout,
+                              icon: const Icon(Icons.logout_rounded, size: 18),
+                              label: Text(
+                                translatedContext.tr('driver.logout'),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
       home: session == null
           ? DriverLoginPage(
