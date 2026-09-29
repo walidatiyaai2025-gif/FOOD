@@ -138,6 +138,7 @@ class CustomerAppRouter {
                 api: b2bApi,
                 actionApi: actionApi,
                 onAuthenticated: onAuthenticated,
+                onPlatformAuthenticated: onPlatformRegistered,
               )
             : B2cJourneyScreen(
                 definition: definition,
@@ -146,6 +147,7 @@ class CustomerAppRouter {
                 catalogApi: b2cCatalogApi,
                 accountApi: b2cAccountApi,
                 onAuthenticated: onAuthenticated,
+                onPlatformAuthenticated: onPlatformRegistered,
                 onSessionExpired: onSessionExpired,
               );
       },
