@@ -34,4 +34,38 @@ void main() {
     expect(body['environment'], 'production');
     expect(body['token'], 'fcm-token');
   });
+
+  test('guest registry uses anonymous customer push endpoint', () async {
+    late http.Request captured;
+    final client = MockClient((request) async {
+      captured = request;
+      return http.Response(
+        jsonEncode({'data': {'id': 88}}),
+        201,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+
+    final registry = CustomerPushDeviceRegistry(
+      baseUrl: 'https://foodex.50sols.com',
+      client: client,
+    );
+
+    final id = await registry.registerGuest(
+      firebaseToken: 'guest-fcm-token',
+    );
+
+    expect(id, 88);
+    expect(
+      captured.url.toString(),
+      'https://foodex.50sols.com/api/v1/push/devices/guest',
+    );
+    expect(captured.headers.containsKey('Authorization'), isFalse);
+
+    final body = jsonDecode(captured.body) as Map<String, dynamic>;
+    expect(body['app'], 'customer');
+    expect(body['token'], 'guest-fcm-token');
+    expect(body['target_channel'], 'all');
+  });
+
 }
