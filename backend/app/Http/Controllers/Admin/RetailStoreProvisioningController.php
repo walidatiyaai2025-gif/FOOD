@@ -100,6 +100,7 @@ final class RetailStoreProvisioningController extends Controller
             'default_customer_wholesale_price_tier_id' => ['nullable', 'integer', 'exists:b2b_price_tiers,id'],
             'is_active' => ['nullable', 'boolean'],
             'advertising_enabled' => ['nullable', 'boolean'],
+            'live_ads_enabled' => ['nullable', 'boolean'],
             'coupons_enabled' => ['nullable', 'boolean'],
             'manager_mode' => ['required', Rule::in(['existing', 'new'])],
             'manager_user_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -120,6 +121,7 @@ final class RetailStoreProvisioningController extends Controller
                 'logo_path' => null,
                 'is_active' => $request->boolean('is_active', true),
                 'advertising_enabled' => $request->boolean('advertising_enabled', true),
+                'live_ads_enabled' => $request->boolean('live_ads_enabled', true),
                 'coupons_enabled' => $request->boolean('coupons_enabled', true),
             ]);
             $logo = $request->file('logo');
@@ -146,6 +148,7 @@ final class RetailStoreProvisioningController extends Controller
                 'logo_path' => $store->logo_path,
                 'is_active' => $store->is_active,
                 'advertising_enabled' => $store->advertising_enabled,
+                'live_ads_enabled' => $store->live_ads_enabled,
                 'coupons_enabled' => $store->coupons_enabled,
             ], $request);
 
@@ -168,6 +171,7 @@ final class RetailStoreProvisioningController extends Controller
             'default_customer_wholesale_price_tier_id' => ['nullable', 'integer', 'exists:b2b_price_tiers,id'],
             'is_active' => ['nullable', 'boolean'],
             'advertising_enabled' => ['nullable', 'boolean'],
+            'live_ads_enabled' => ['nullable', 'boolean'],
             'coupons_enabled' => ['nullable', 'boolean'],
         ]);
         $before = $store->only([
@@ -177,6 +181,7 @@ final class RetailStoreProvisioningController extends Controller
             'default_customer_wholesale_price_tier_id',
             'is_active',
             'advertising_enabled',
+            'live_ads_enabled',
             'coupons_enabled',
         ]);
 
@@ -187,6 +192,7 @@ final class RetailStoreProvisioningController extends Controller
             'default_customer_wholesale_price_tier_id' => $data['default_customer_wholesale_price_tier_id'] ?? null,
             'is_active' => $request->boolean('is_active'),
             'advertising_enabled' => $request->boolean('advertising_enabled'),
+            'live_ads_enabled' => $request->boolean('live_ads_enabled'),
             'coupons_enabled' => $request->boolean('coupons_enabled'),
         ];
         if ($request->hasFile('logo')) {
@@ -207,6 +213,7 @@ final class RetailStoreProvisioningController extends Controller
             'default_customer_wholesale_price_tier_id',
             'is_active',
             'advertising_enabled',
+            'live_ads_enabled',
             'coupons_enabled',
         ]);
         $after['price_tier_id'] = (int) $data['price_tier_id'];
