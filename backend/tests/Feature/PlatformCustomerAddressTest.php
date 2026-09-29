@@ -158,6 +158,72 @@ class PlatformCustomerAddressTest extends TestCase
         ]);
     }
 
+    public function test_geographic_location_sources_require_real_coordinate_pairs(): void
+    {
+        $this->registerPlatformCustomer(
+            'address-location-validation@example.test',
+            '+201000001114',
+        );
+
+        $this->postJson('/api/v1/profile/addresses', [
+            'label' => 'Pinned without coordinates',
+            'line1' => 'Street 1',
+            'city' => 'Cairo',
+            'country_code' => 'EG',
+            'location_source' => 'map_pin',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['latitude', 'longitude']);
+
+        $created = $this->postJson('/api/v1/profile/addresses', [
+            'label' => 'Manual',
+            'line1' => 'Street 2',
+            'city' => 'Cairo',
+            'country_code' => 'EG',
+            'location_source' => 'manual',
+        ])->assertCreated();
+
+        $addressId = (int) $created->json('id');
+
+        $this->patchJson("/api/v1/profile/addresses/{$addressId}", [
+            'location_source' => 'current_location',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['latitude', 'longitude']);
+
+        $this->patchJson("/api/v1/profile/addresses/{$addressId}", [
+            'location_source' => 'current_location',
+            'latitude' => 30.04442,
+            'longitude' => 31.235712,
+            'location_accuracy_meters' => 6.4,
+        ])->assertOk()
+            ->assertJsonPath('location_source', 'current_location')
+            ->assertJsonPath('latitude', 30.04442)
+            ->assertJsonPath('longitude', 31.235712);
+
+        $this->patchJson("/api/v1/profile/addresses/{$addressId}", [
+            'latitude' => null,
+            'longitude' => null,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['latitude', 'longitude']);
+    }
+
+    public function test_location_accuracy_cannot_exist_without_coordinates(): void
+    {
+        $this->registerPlatformCustomer(
+            'address-accuracy-validation@example.test',
+            '+201000001115',
+        );
+
+        $this->postJson('/api/v1/profile/addresses', [
+            'label' => 'Manual accuracy only',
+            'line1' => 'Street 3',
+            'city' => 'Cairo',
+            'country_code' => 'EG',
+            'location_source' => 'manual',
+            'location_accuracy_meters' => 12.5,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['location_accuracy_meters']);
+    }
+
     public function test_platform_customer_cannot_access_another_platform_customers_address(): void
     {
         $owner = $this->registerPlatformCustomer(
