@@ -1043,13 +1043,17 @@ class WholesaleProductDetailsDesignScreen extends StatefulWidget {
   const WholesaleProductDetailsDesignScreen({
     required this.location,
     required this.api,
+    required this.storefrontApi,
     required this.actionApi,
+    required this.session,
     super.key,
   });
 
   final String location;
   final B2bApi? api;
+  final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
+  final CustomerSession session;
 
   @override
   State<WholesaleProductDetailsDesignScreen> createState() =>
@@ -1075,8 +1079,11 @@ class _WholesaleProductDetailsDesignScreenState
         backgroundColor: Colors.white,
         body: SafeArea(
           child: FutureBuilder<Object?>(
-            future:
-                widget.api?.get(endpoint) ?? Future<Object?>.value(null),
+            future: widget.api != null
+                ? widget.api!.get(endpoint)
+                : (widget.storefrontApi != null
+                    ? widget.storefrontApi!.platformProduct(productId)
+                    : Future<Object?>.value(null)),
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
                 return const FoodexLoading(
@@ -1195,24 +1202,31 @@ class _WholesaleProductDetailsDesignScreenState
                     label: 'إضافة إلى السلة',
                     onChanged: (value) =>
                         setState(() => quantity = value),
-                    onPressed: () async {
-                      try {
-                        await widget.actionApi.addCartItem(
-                          storeId: storeId,
-                          productId: productId,
-                          quantity: quantity!,
-                        );
-                        if (context.mounted) {
-                          Navigator.of(context).pushNamed(
-                            '/b2b/cart?store=' + storeId.toString(),
-                          );
-                        }
-                      } catch (error) {
-                        if (context.mounted) {
-                          await showOperationalError(context, error);
-                        }
-                      }
-                    },
+                    onPressed: widget.session.isAuthenticated
+                        ? () async {
+                            try {
+                              await widget.actionApi.addCartItem(
+                                storeId: storeId,
+                                productId: productId,
+                                quantity: quantity!,
+                              );
+                              if (context.mounted) {
+                                Navigator.of(context).pushNamed(
+                                  '/b2b/cart?store=' + storeId.toString(),
+                                );
+                              }
+                            } catch (error) {
+                              if (context.mounted) {
+                                await showOperationalError(context, error);
+                              }
+                            }
+                          }
+                        : () => Navigator.of(context).pushNamed(
+                              Uri(
+                                path: CustomerRoutePaths.register,
+                                queryParameters: {'return': widget.location},
+                              ).toString(),
+                            ),
                   ),
                   const SizedBox(height: 15),
                   FoodexDetailAccordion(
