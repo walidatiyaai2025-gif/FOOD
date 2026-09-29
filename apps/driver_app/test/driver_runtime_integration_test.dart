@@ -15,8 +15,7 @@ class FakeAuth implements DriverAuthRepository {
 
   @override
   Future<DriverSession> login({
-    required String email,
-    required String password,
+    required String username,
   }) async =>
       session;
 
@@ -44,7 +43,10 @@ class FakeAssignments implements DriverAssignmentRepository {
 void main() {
   test('HTTP auth derives exact driver channel from backend roles', () async {
     final client = MockClient((request) async {
-      expect(request.url.path, '/api/v1/auth/login');
+      expect(request.url.path, '/api/v1/auth/mobile-trial');
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      expect(body['username'], 'driver.demo');
+      expect(body['app'], 'driver');
       return http.Response(
         jsonEncode({
           'token': 'abc',
@@ -65,8 +67,7 @@ void main() {
     );
 
     final result = await repo.login(
-      email: 'driver@example.test',
-      password: 'secret',
+      username: 'driver.demo',
     );
     expect(result.channel, DriverChannel.b2c);
     expect(result.token, 'abc');
@@ -141,12 +142,8 @@ void main() {
     );
 
     await tester.enterText(
-      find.byKey(const Key('driver-login-email')),
-      'driver@example.test',
-    );
-    await tester.enterText(
-      find.byKey(const Key('driver-login-password')),
-      'password',
+      find.byKey(const Key('driver-login-username')),
+      'driver.demo',
     );
     await tester.tap(find.byKey(const Key('driver-login-submit')));
     await tester.pumpAndSettle();
