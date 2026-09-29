@@ -23,6 +23,10 @@ final class CustomerDomainResolver
         $customer = $this->b2b->forUser($user);
 
         if (! $customer instanceof B2bCustomer) {
+            $customer = app(PlatformCustomerService::class)->materializeB2b($user);
+        }
+
+        if (! $customer instanceof B2bCustomer) {
             $legacy = Customer::query()
                 ->where('user_id', $user->getKey())
                 ->where('type', 'b2b')
@@ -105,6 +109,10 @@ final class CustomerDomainResolver
         $this->assertStoreChannel($storeId, 'B2C');
 
         $customer = $this->b2c->forUserAndStore($user, $storeId);
+
+        if (! $customer instanceof B2cCustomer) {
+            $customer = app(PlatformCustomerService::class)->materializeB2c($user, $storeId);
+        }
 
         if (! $customer instanceof B2cCustomer) {
             $legacy = Customer::query()
