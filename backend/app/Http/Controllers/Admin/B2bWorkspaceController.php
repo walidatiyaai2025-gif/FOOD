@@ -1286,7 +1286,10 @@ class B2bWorkspaceController extends Controller
             ->leftJoin('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'b2b_customers.id')
             ->leftJoin('stores as retail_customer_store', 'retail_customer_store.id', '=', 'retail_wholesale_accounts.retail_store_id')
             ->where('b2b_accounts.status', 'active')
-            ->whereNotNull('b2b_accounts.price_tier_id')
+            ->where(function ($query): void {
+                $query->whereNotNull('b2b_accounts.price_tier_id')
+                    ->orWhereNotNull('retail_wholesale_accounts.retail_store_id');
+            })
             ->orderByRaw('retail_customer_store.id IS NULL')
             ->orderBy('b2b_accounts.company_name')
             ->orderBy('b2b_customers.name')
@@ -1294,6 +1297,7 @@ class B2bWorkspaceController extends Controller
                 'b2b_customers.id',
                 'b2b_customers.name',
                 'b2b_accounts.company_name',
+                'b2b_accounts.price_tier_id',
                 'retail_wholesale_accounts.retail_store_id',
                 'retail_customer_store.name as retail_store_name',
             ])
@@ -1302,6 +1306,8 @@ class B2bWorkspaceController extends Controller
                 'name' => $row->retail_store_id === null
                     ? trim(($row->company_name ? $row->company_name.' · ' : '').$row->name)
                     : (app()->getLocale() === 'ar' ? 'التجزئة · ' : 'Retail · ').$row->retail_store_name,
+                'price_tier_id' => $row->price_tier_id === null ? null : (int) $row->price_tier_id,
+                'platform_fallback' => $row->retail_store_id !== null,
             ])
             ->all();
 
@@ -1325,6 +1331,13 @@ class B2bWorkspaceController extends Controller
             ->groupBy('product_id')
             ->map(fn ($rows) => $rows->pluck('warehouse_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
 
+        $priceTierIdsByProduct = DB::table('b2b_price_rules')
+            ->whereIn('store_id', $storeIds)
+            ->where('is_active', true)
+            ->get(['product_id', 'price_tier_id'])
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->pluck('price_tier_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
+
         $products = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', function ($join): void {
@@ -1338,13 +1351,15 @@ class B2bWorkspaceController extends Controller
             ->where('products.is_active', true)
             ->where('store_products.is_active', true)
             ->orderBy('products.name')
-            ->get(['products.id', 'catalogs.store_id', 'products.sku', 'products.name'])
+            ->get(['products.id', 'catalogs.store_id', 'products.sku', 'products.name', 'store_products.price'])
             ->map(fn ($row) => [
                 'id' => (int) $row->id,
                 'store_id' => (int) $row->store_id,
                 'sku' => $row->sku,
                 'name' => $row->name,
                 'warehouse_ids' => $warehouseIdsByProduct->get($row->id, []),
+                'price_tier_ids' => $priceTierIdsByProduct->get($row->id, []),
+                'has_fallback_price' => $row->price !== null,
             ])
             ->all();
 
