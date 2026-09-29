@@ -59,6 +59,7 @@ class AdminNavigation
                 $this->module($user, $channels, 'b2b', 'clients', 'admin.b2b_workspace.modules.clients', 'b2b.accounts.view'),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
+                $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'orders', 'admin.b2c_workspace.modules.orders', 'orders.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
                 $this->module($user, $channels, 'b2b', 'orders', 'admin.b2b_workspace.modules.orders', 'orders.view'),
