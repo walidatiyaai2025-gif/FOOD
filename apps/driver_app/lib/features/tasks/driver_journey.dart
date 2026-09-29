@@ -116,11 +116,13 @@ class DriverJourneyPage extends StatefulWidget {
     super.key,
     required this.channel,
     required this.repository,
+    this.initialStatusFilter,
     this.onSessionExpired,
   });
 
   final DriverChannel channel;
   final DriverAssignmentRepository repository;
+  final String? initialStatusFilter;
   final VoidCallback? onSessionExpired;
 
   @override
@@ -131,6 +133,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
   DriverLoadState state = DriverLoadState.loading;
   List<DriverAssignment> assignments = const [];
   DriverOrderFilter _filter = DriverOrderFilter.active;
+  String? _statusFilter;
   final TextEditingController _searchController = TextEditingController();
   final Set<int> _transitioning = <int>{};
   String? _actionError;
@@ -138,6 +141,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
   @override
   void initState() {
     super.initState();
+    _statusFilter = widget.initialStatusFilter;
     _searchController.addListener(_refresh);
     _load();
   }
@@ -182,6 +186,9 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     final query = _searchController.text.trim().toLowerCase();
 
     return assignments.where((assignment) {
+      if (_statusFilter != null && assignment.status != _statusFilter) {
+        return false;
+      }
       final matchesFilter = switch (_filter) {
         DriverOrderFilter.active =>
           !const ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned']
@@ -600,7 +607,10 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                       ],
                       selected: {_filter},
                       onSelectionChanged: (value) {
-                        setState(() => _filter = value.first);
+                        setState(() {
+                          _statusFilter = null;
+                          _filter = value.first;
+                        });
                       },
                     ),
                   ),
