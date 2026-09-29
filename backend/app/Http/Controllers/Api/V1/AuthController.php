@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\B2bAccount;
 use App\Models\User;
+use App\Services\B2bCustomerService;
 use App\Services\CredentialAuthenticator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,6 +39,60 @@ class AuthController extends Controller
             'token_type' => 'Bearer',
             'user' => $this->identity($user),
         ]);
+    }
+
+    public function register(Request $request, B2bCustomerService $customers): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['required', 'string', 'max:40'],
+            'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
+            'locale' => ['nullable', 'string', 'in:ar,en'],
+        ]);
+
+        $user = DB::transaction(function () use ($validated, $customers): User {
+            $user = User::query()->create([
+                'name' => trim((string) $validated['name']),
+                'email' => strtolower(trim((string) $validated['email'])),
+                'password' => Hash::make((string) $validated['password']),
+                'locale' => (string) ($validated['locale'] ?? 'ar'),
+                'is_active' => true,
+            ]);
+
+            $customer = $customers->create([
+                'name' => (string) $validated['name'],
+                'phone' => (string) $validated['phone'],
+                'email' => (string) $validated['email'],
+            ], $user);
+
+            $tierId = DB::table('b2b_price_tiers')
+                ->where('code', 'STANDARD')
+                ->value('id');
+
+            if ($tierId === null) {
+                throw ValidationException::withMessages([
+                    'registration' => ['The default customer price tier is not configured.'],
+                ]);
+            }
+
+            B2bAccount::query()->create([
+                'customer_id' => $customer->legacy_customer_id,
+                'b2b_customer_id' => $customer->getKey(),
+                'price_tier_id' => (int) $tierId,
+                'company_name' => (string) $validated['name'],
+                'status' => 'active',
+                'credit_limit' => 0,
+            ]);
+
+            return $user;
+        });
+
+        return response()->json([
+            'token' => $user->createToken('foodex-customer')->plainTextToken,
+            'token_type' => 'Bearer',
+            'user' => $this->identity($user),
+        ], 201);
     }
 
     public function mobileTrialLogin(Request $request): JsonResponse
