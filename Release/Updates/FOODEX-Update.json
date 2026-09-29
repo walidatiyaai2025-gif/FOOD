@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.29",
-  "minimum_current_version": "1.0.28",
-  "sha256": "57465bac2e9dad033f51535aff65b5f29da7c5b5fba0468ea900349c52b11061",
-  "contains_migrations": false,
+  "target_version": "1.0.34",
+  "minimum_current_version": "1.0.33",
+  "sha256": "7b77c2f4769cd94acb52265001edd9a3e357bae13455911740ef2563b127fb0d",
+  "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "#393 Bump FOODEX release identity to 1.0.29",
+  "release_notes": "#431 Refresh FOODEX 1.0.34 trial distribution",
   "dashboard_fields": {
-    "target_version": "1.0.29",
-    "minimum_current_version": "1.0.28",
-    "sha256": "57465bac2e9dad033f51535aff65b5f29da7c5b5fba0468ea900349c52b11061",
-    "contains_migrations": false,
-    "release_notes": "#393 Bump FOODEX release identity to 1.0.29"
+    "target_version": "1.0.34",
+    "minimum_current_version": "1.0.33",
+    "sha256": "7b77c2f4769cd94acb52265001edd9a3e357bae13455911740ef2563b127fb0d",
+    "contains_migrations": true,
+    "release_notes": "#431 Refresh FOODEX 1.0.34 trial distribution"
   }
 }
