@@ -56,14 +56,21 @@ class CustomerAppRouter {
     }
 
     final redirect = _redirectFor(requested);
+    final redirectLocation = redirect == null
+        ? requestedLocation
+        : _redirectLocation(
+            redirect,
+            requested,
+            requestedLocation,
+          );
 
     return _pageRoute(
       settings: RouteSettings(
-        name: redirect?.pattern ?? requestedLocation,
+        name: redirectLocation,
         arguments: settings.arguments,
       ),
       definition: redirect ?? requested,
-      requestedLocation: redirect?.pattern ?? requestedLocation,
+      requestedLocation: redirectLocation,
     );
   }
 
@@ -83,11 +90,7 @@ class CustomerAppRouter {
     }
 
     if (!session.isAuthenticated) {
-      return definitionFor(
-        requested.channel == CustomerChannel.b2b
-            ? CustomerRoutePaths.b2bLogin
-            : CustomerRoutePaths.checkoutAuth,
-      );
+      return definitionFor(CustomerRoutePaths.checkoutAuth);
     }
 
     if (session.channel != requested.channel && !session.platformWide) {
@@ -104,6 +107,24 @@ class CustomerAppRouter {
     }
 
     return null;
+  }
+
+  String _redirectLocation(
+    CustomerRouteDefinition redirect,
+    CustomerRouteDefinition requested,
+    String requestedLocation,
+  ) {
+    if (
+        !session.isAuthenticated &&
+        requested.requiresAuth &&
+        redirect.pattern == CustomerRoutePaths.checkoutAuth) {
+      return Uri(
+        path: CustomerRoutePaths.checkoutAuth,
+        queryParameters: {'next': requestedLocation},
+      ).toString();
+    }
+
+    return redirect.pattern;
   }
 
   MaterialPageRoute<void> _pageRoute({
