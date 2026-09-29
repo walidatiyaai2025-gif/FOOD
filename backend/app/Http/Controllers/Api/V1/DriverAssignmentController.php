@@ -44,7 +44,17 @@ class DriverAssignmentController extends Controller
         $rows = $query
             ->latest('id')
             ->get()
-            ->map(fn (DriverAssignment $assignment): array => $driverOrders->payload($assignment))
+            ->map(function (DriverAssignment $assignment) use ($driverOrders): array {
+                if (in_array(
+                    (string) $assignment->status,
+                    ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned'],
+                    true,
+                )) {
+                    return $driverOrders->historyPayload($assignment);
+                }
+
+                return $driverOrders->payload($assignment);
+            })
             ->values();
 
         return response()->json([
@@ -67,6 +77,7 @@ class DriverAssignmentController extends Controller
             ->whereKey($assignment)
             ->where('driver_id', $driver->getKey())
             ->where('assignment_type', $channel)
+            ->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned'])
             ->when(
                 $driver->store_id !== null,
                 fn ($query) => $query->where('store_id', (int) $driver->store_id),
