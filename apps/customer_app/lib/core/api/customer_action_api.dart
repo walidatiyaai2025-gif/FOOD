@@ -22,6 +22,11 @@ class CustomerRegistrationResult {
 abstract interface class CustomerActionApi {
   Future<CustomerLoginResult> login({required String username});
 
+  Future<CustomerLoginResult> loginWithPassword({
+    required String email,
+    required String password,
+  });
+
   Future<CustomerRegistrationResult> register({
     required String name,
     required String email,
@@ -81,6 +86,28 @@ class HttpCustomerActionApi implements CustomerActionApi {
       Uri.parse('$baseUrl/api/v1/auth/mobile-trial'),
       headers: _headers,
       body: jsonEncode({'username': username, 'app': 'customer'}),
+    );
+    final body = _decode(response);
+    final value = body is Map ? body['token'] : null;
+    if (value is! String || value.isEmpty) {
+      throw const CustomerActionException('invalid_login_response');
+    }
+
+    return CustomerLoginResult(token: value);
+  }
+
+  @override
+  Future<CustomerLoginResult> loginWithPassword({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/login'),
+      headers: _headers,
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'password': password,
+      }),
     );
     final body = _decode(response);
     final value = body is Map ? body['token'] : null;
