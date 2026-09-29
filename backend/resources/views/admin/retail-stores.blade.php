@@ -80,6 +80,13 @@
                                 </select>
                                 <small class="foodex-file-help">{{ $ar?'هذه الشريحة ستُطبق تلقائيًا عندما يطلب متجر التجزئة من متجر الجملة الرئيسي.':'This tier is applied automatically when the Retail store purchases from the main Wholesale operation.' }}</small>
                             </label>
+                            <label>{{ $ar?'شريحة الجملة الافتراضية لعملاء المتجر':'Default Wholesale tier for customers registered here' }}
+                                <select name="default_customer_wholesale_price_tier_id">
+                                    <option value="">{{ $ar?'STANDARD تلقائيًا':'Automatic STANDARD fallback' }}</option>
+                                    @foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((string)old('default_customer_wholesale_price_tier_id')===(string)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach
+                                </select>
+                                <small class="foodex-file-help">{{ $ar?'العميل الذي يسجل من هذا المتجر يحصل على هذه الشريحة تلقائيًا عند الشراء من متجر الجملة.':'A customer who registers from this Retail store receives this tier automatically when shopping Wholesale.' }}</small>
+                            </label>
                             <label><span>{{ $ar?'حالة المتجر':'Store status' }}</span>
                                 <span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active','1')==='1')> {{ $ar?'نشط ومتاح للإدارة':'Active and manageable' }}</span>
                             </label>
@@ -147,7 +154,8 @@
                                 @endif
                                 <div class="store-accordion-summary-text">
                                     <div class="store-meta"><h3>{{ $store->name }}</h3><span class="badge">{{ $store->code }}</span><span class="badge {{ $store->is_active?'active':'' }}">{{ $store->is_active?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div>
-                                    <small class="foodex-file-help">{{ $ar?'شريحة الجملة':'Wholesale tier' }}: <strong>{{ $store->wholesale_price_tier_name ?: ($ar?'غير محددة':'Not assigned') }}</strong></small>
+                                    <small class="foodex-file-help">{{ $ar?'شريحة شراء المتجر من الجملة':'Store Wholesale purchasing tier' }}: <strong>{{ $store->wholesale_price_tier_name ?: ($ar?'غير محددة':'Not assigned') }}</strong></small>
+                                    <small class="foodex-file-help">{{ $ar?'شريحة الجملة لعملاء المتجر':'Customer Wholesale tier' }}: <strong>{{ $store->customer_wholesale_price_tier_name ?: 'STANDARD' }}</strong></small>
                                 </div>
                             </div>
                             <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
@@ -165,6 +173,7 @@
                             <label>{{ $ar?'اسم المتجر':'Store name' }}<input name="name" value="{{ $store->name }}" required maxlength="255" placeholder="{{ $ar?'اسم المتجر':'Store name' }}"></label>
                             <label>{{ $ar?'استبدال الشعار':'Replace logo' }}<input name="logo" type="file" accept="image/jpeg,image/png,image/webp"><small class="foodex-file-help">{{ $ar?'اتركه فارغًا للاحتفاظ بالشعار الحالي.':'Leave empty to keep the current logo.' }}</small></label>
                             <label>{{ $ar?'شريحة تسعير طلبات الجملة':'Wholesale order price tier' }}<select name="price_tier_id" required><option value="">{{ $ar?'اختر شريحة التسعير':'Select price tier' }}</option>@foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((int)$store->wholesale_price_tier_id===(int)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach</select></label>
+                            <label>{{ $ar?'شريحة الجملة الافتراضية لعملاء المتجر':'Default Wholesale tier for customers registered here' }}<select name="default_customer_wholesale_price_tier_id"><option value="">{{ $ar?'STANDARD تلقائيًا':'Automatic STANDARD fallback' }}</option>@foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((int)$store->default_customer_wholesale_price_tier_id===(int)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach</select></label>
                             <label><span>{{ $ar?'الحالة':'Status' }}</span><span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($store->is_active)> {{ $ar?'نشط':'Active' }}</span></label>
                             <button class="foodex-action-primary" type="submit">✓ {{ $ar?'حفظ بيانات المتجر':'Save store details' }}</button>
                         </form>
@@ -223,7 +232,7 @@
     syncManagerMode();
 
     if (@json($errors->any())) {
-        @php($hasStoreDetailErrors = $errors->has('code') || $errors->has('name') || $errors->has('logo') || $errors->has('price_tier_id') || $errors->has('is_active') || $errors->has('advertising_enabled') || $errors->has('coupons_enabled'))
+        @php($hasStoreDetailErrors = $errors->has('code') || $errors->has('name') || $errors->has('logo') || $errors->has('price_tier_id') || $errors->has('default_customer_wholesale_price_tier_id') || $errors->has('is_active') || $errors->has('advertising_enabled') || $errors->has('coupons_enabled'))
         const storeDetailErrors = @json($hasStoreDetailErrors);
         activate(storeDetailErrors ? 'store-details' : 'store-manager');
     }
