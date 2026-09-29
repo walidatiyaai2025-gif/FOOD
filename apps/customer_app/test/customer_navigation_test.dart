@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
@@ -107,8 +108,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('تفاصيل الطلب'), findsOneWidget);
-    expect(find.text('/b2b/orders/101'), findsOneWidget);
+    expect(find.text('تفاصيل طلب الجملة'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-order-detail-empty')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('legacy B2C session cannot enter protected B2B partition',

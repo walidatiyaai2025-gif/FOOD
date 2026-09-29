@@ -1728,10 +1728,9 @@ class _WholesaleCheckoutDesignScreenState
                                   Navigator.of(context)
                                       .pushReplacementNamed(
                                     orderId > 0
-                                        ? '/orders/' +
-                                            orderId.toString() +
-                                            '/track'
-                                        : '/orders',
+                                        ? '/b2b/orders/' +
+                                            orderId.toString()
+                                        : '/b2b/orders',
                                   );
                                 } catch (error) {
                                   if (context.mounted) {
@@ -2137,6 +2136,262 @@ class _WholesaleOrdersDesignScreenState
               },
             ),
           ),
+        ),
+      );
+}
+
+class WholesaleOrderDetailsDesignScreen extends StatefulWidget {
+  const WholesaleOrderDetailsDesignScreen({
+    required this.location,
+    required this.api,
+    super.key,
+  });
+
+  final String location;
+  final B2bApi? api;
+
+  @override
+  State<WholesaleOrderDetailsDesignScreen> createState() =>
+      _WholesaleOrderDetailsDesignScreenState();
+}
+
+class _WholesaleOrderDetailsDesignScreenState
+    extends State<WholesaleOrderDetailsDesignScreen> {
+  late final int orderId = _orderId(widget.location);
+  late Future<Object?> future = _load();
+
+  static int _orderId(String location) {
+    final segments = Uri.parse(location).pathSegments;
+    final index = segments.indexOf('orders');
+    if (index < 0 || segments.length <= index + 1) return 0;
+    return int.tryParse(segments[index + 1]) ?? 0;
+  }
+
+  Future<Object?> _load() {
+    if (orderId <= 0 || widget.api == null) {
+      return Future<Object?>.value(null);
+    }
+    return widget.api!.get('/api/v1/b2b/orders/' + orderId.toString());
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFFBFAFD),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        key: const ValueKey('b2b-order-back'),
+                        onPressed: () => Navigator.of(context)
+                            .pushReplacementNamed('/b2b/orders'),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                      ),
+                      const Expanded(
+                        child: FoodexTopBar(title: 'تفاصيل طلب الجملة'),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: FutureBuilder<Object?>(
+                    future: future,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const FoodexLoading(
+                          key: ValueKey('b2b-order-detail-loading'),
+                        );
+                      }
+                      if (snapshot.hasError) {
+                        return FoodexErrorState(
+                          key: const ValueKey('b2b-order-detail-error'),
+                          message: 'تعذر تحميل تفاصيل طلب الجملة.',
+                          onRetry: () => setState(() => future = _load()),
+                        );
+                      }
+
+                      final raw = snapshot.data;
+                      final order = raw is Map
+                          ? Map<String, dynamic>.from(raw)
+                          : <String, dynamic>{};
+                      if (order.isEmpty) {
+                        return const FoodexEmptyState(
+                          key: ValueKey('b2b-order-detail-empty'),
+                          title: 'الطلب غير متاح',
+                          subtitle: 'تعذر العثور على بيانات طلب الجملة.',
+                        );
+                      }
+
+                      final items = mapRows(order['items']);
+                      final history = mapRows(
+                        order['status_history'] ??
+                            order['history'] ??
+                            order['timeline'],
+                      );
+                      final currency = order['currency']?.toString() ?? 'KWD';
+                      final total = order['grand_total'] ?? order['total'];
+                      final storeName =
+                          order['store_name']?.toString() ??
+                          (order['store'] is Map
+                              ? (order['store'] as Map)['name']?.toString()
+                              : null) ??
+                          '-';
+                      final payment = paymentLabel(
+                        order['payment_method']?.toString() ?? '-',
+                      );
+
+                      return ListView(
+                        key: const ValueKey('b2b-order-detail'),
+                        padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+                        children: [
+                          _OrderDetailCard(
+                            title: order['order_number']?.toString() ??
+                                '#' + orderId.toString(),
+                            rows: [
+                              (
+                                'الحالة',
+                                orderStatusLabel(
+                                  order['status']?.toString() ?? '',
+                                ),
+                              ),
+                              ('المتجر', storeName),
+                              ('الإجمالي', money(total, currency: currency)),
+                              ('الدفع', payment),
+                            ],
+                          ),
+                          if (items.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            const Text(
+                              'الأصناف',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ...items.map(
+                              (item) => _OrderDetailCard(
+                                title: item['name']?.toString() ??
+                                    item['name_snapshot']?.toString() ??
+                                    'منتج',
+                                rows: [
+                                  (
+                                    'الكمية',
+                                    item['quantity']?.toString() ?? '-',
+                                  ),
+                                  (
+                                    'سعر الوحدة',
+                                    money(
+                                      item['unit_price'],
+                                      currency: currency,
+                                    ),
+                                  ),
+                                  (
+                                    'الإجمالي',
+                                    money(
+                                      item['line_total'],
+                                      currency: currency,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          if (history.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            const Text(
+                              'تحديثات الطلب',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ...history.map(
+                              (entry) => ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.timeline_rounded),
+                                title: Text(
+                                  orderStatusLabel(
+                                    entry['to_status']?.toString() ??
+                                        entry['status']?.toString() ??
+                                        '',
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  entry['created_at']?.toString() ??
+                                      entry['date']?.toString() ??
+                                      '',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _OrderDetailCard extends StatelessWidget {
+  const _OrderDetailCard({
+    required this.title,
+    required this.rows,
+  });
+
+  final String title;
+  final List<(String, String)> rows;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE9E3F0)),
+          borderRadius: BorderRadius.circular(17),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            ...rows.map(
+              (row) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        row.$1,
+                        style: const TextStyle(
+                          color: Color(0xFF6F6A7D),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      row.$2,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       );
 }
