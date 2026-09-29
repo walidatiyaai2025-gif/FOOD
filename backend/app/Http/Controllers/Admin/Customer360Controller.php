@@ -11,6 +11,7 @@ use App\Services\AuditLogger;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -365,7 +366,7 @@ final class Customer360Controller extends Controller
         return $this->addressRedirect($customer, $this->msg('تم حذف العنوان.', 'Address deleted.'));
     }
 
-    /** @return \Illuminate\Database\Eloquent\Builder<Address> */
+    /** @return Builder<Address> */
     private function addressQuery(PlatformCustomer $customer)
     {
         return Address::query()->where(function ($query) use ($customer): void {
