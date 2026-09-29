@@ -655,15 +655,15 @@ class _MarketplaceHeader extends StatelessWidget {
             final compact = constraints.maxWidth < 520;
             return Row(
               children: [
-                const CircleAvatar(
-                  radius: 22,
-                  backgroundColor: Color(0xFFE9F8EF),
-                  child: Icon(
+                CircleAvatar(
+                  radius: compact ? 18 : 22,
+                  backgroundColor: const Color(0xFFE9F8EF),
+                  child: const Icon(
                     Icons.storefront_rounded,
                     color: Color(0xFF087347),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: compact ? 6 : 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -691,6 +691,12 @@ class _MarketplaceHeader extends StatelessWidget {
                 ),
                 IconButton(
                   key: const ValueKey('marketplace-scan'),
+                  visualDensity:
+                      compact ? VisualDensity.compact : VisualDensity.standard,
+                  constraints: compact
+                      ? const BoxConstraints.tightFor(width: 38, height: 38)
+                      : null,
+                  padding: compact ? const EdgeInsets.all(6) : null,
                   tooltip: context.tr('customer.marketplace.scan'),
                   onPressed: onScan,
                   icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -698,16 +704,35 @@ class _MarketplaceHeader extends StatelessWidget {
                 TextButton(
                   key: const ValueKey('marketplace-language'),
                   onPressed: onLanguageToggle,
+                  style: compact
+                      ? TextButton.styleFrom(
+                          minimumSize: const Size(38, 38),
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        )
+                      : null,
                   child: Text(localeCode.toUpperCase()),
                 ),
                 IconButton(
                   key: const ValueKey('marketplace-cart'),
+                  visualDensity:
+                      compact ? VisualDensity.compact : VisualDensity.standard,
+                  constraints: compact
+                      ? const BoxConstraints.tightFor(width: 38, height: 38)
+                      : null,
+                  padding: compact ? const EdgeInsets.all(6) : null,
                   tooltip: context.tr('customer.nav.cart'),
                   onPressed: onCart,
                   icon: const Icon(Icons.shopping_cart_outlined),
                 ),
                 IconButton(
                   key: const ValueKey('marketplace-notifications'),
+                  visualDensity:
+                      compact ? VisualDensity.compact : VisualDensity.standard,
+                  constraints: compact
+                      ? const BoxConstraints.tightFor(width: 38, height: 38)
+                      : null,
+                  padding: compact ? const EdgeInsets.all(6) : null,
                   tooltip: context.tr('customer.nav.notifications'),
                   onPressed: onNotifications,
                   icon: const Icon(Icons.notifications_none_rounded),
@@ -720,28 +745,34 @@ class _MarketplaceHeader extends StatelessWidget {
                     icon: const Icon(Icons.person_outline_rounded),
                   )
                 else if (compact)
-                  PopupMenuButton<String>(
-                    key: const ValueKey('marketplace-auth-menu'),
-                    icon: const Icon(Icons.account_circle_outlined),
-                    onSelected: (value) {
-                      if (value == 'login') {
-                        onLogin();
-                      } else {
-                        onRegister();
-                      }
-                    },
-                    itemBuilder: (_) => [
-                      PopupMenuItem(
-                        value: 'login',
-                        child: Text(context.tr('customer.action.login')),
-                      ),
-                      PopupMenuItem(
-                        value: 'register',
-                        child: Text(
-                          context.tr('customer.marketplace.register'),
+                  SizedBox(
+                    width: 38,
+                    height: 38,
+                    child: PopupMenuButton<String>(
+                      key: const ValueKey('marketplace-auth-menu'),
+                      padding: EdgeInsets.zero,
+                      iconSize: 22,
+                      icon: const Icon(Icons.account_circle_outlined),
+                      onSelected: (value) {
+                        if (value == 'login') {
+                          onLogin();
+                        } else {
+                          onRegister();
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'login',
+                          child: Text(context.tr('customer.action.login')),
                         ),
-                      ),
-                    ],
+                        PopupMenuItem(
+                          value: 'register',
+                          child: Text(
+                            context.tr('customer.marketplace.register'),
+                          ),
+                        ),
+                      ],
+                    ),
                   )
                 else ...[
                   TextButton(
