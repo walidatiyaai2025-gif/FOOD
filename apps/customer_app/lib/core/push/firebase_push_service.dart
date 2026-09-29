@@ -27,6 +27,7 @@ Future<void> customerFirebaseBackgroundHandler(RemoteMessage message) async {
   }
 
   if (message.notification == null) {
+    await initializeFoodexLocalNotifications();
     await showFoodexLocalNotification(message);
   }
 }
