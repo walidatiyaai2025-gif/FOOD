@@ -227,7 +227,7 @@ final class PushDeliveryService
                         ],
                         'data' => $payload['data'] ?? [],
                         'android' => [
-                            'notification' => array_filter([
+                            'notification' => (object) array_filter([
                                 'sound' => $provider->default_sound,
                                 'channel_id' => $provider->default_channel,
                                 'icon' => $provider->default_icon,
@@ -235,7 +235,7 @@ final class PushDeliveryService
                         ],
                         'apns' => [
                             'payload' => [
-                                'aps' => array_filter([
+                                'aps' => (object) array_filter([
                                     'sound' => $provider->default_sound ?? 'default',
                                     'category' => $provider->default_category,
                                 ]),
