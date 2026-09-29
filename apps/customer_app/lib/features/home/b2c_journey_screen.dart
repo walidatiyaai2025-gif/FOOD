@@ -7,6 +7,7 @@ import '../../core/api/b2c_account_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/location/customer_location_service.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../core/theme/foodex_theme.dart';
 import '../../shared/customer_action_widgets.dart';
@@ -21,6 +22,7 @@ class B2cJourneyScreen extends StatefulWidget {
     required this.onAuthenticated,
     required this.onPlatformAuthenticated,
     required this.onSessionExpired,
+    this.locationService = const GeolocatorCustomerLocationService(),
     super.key,
   });
 
@@ -32,6 +34,7 @@ class B2cJourneyScreen extends StatefulWidget {
   final CustomerAuthenticated onAuthenticated;
   final ValueChanged<String> onPlatformAuthenticated;
   final VoidCallback onSessionExpired;
+  final CustomerLocationService locationService;
 
   @override
   State<B2cJourneyScreen> createState() => _B2cJourneyScreenState();
