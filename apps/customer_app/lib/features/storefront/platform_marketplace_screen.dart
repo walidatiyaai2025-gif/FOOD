@@ -14,11 +14,13 @@ class PlatformMarketplaceScreen extends StatefulWidget {
     required this.onPlatformRegistered,
     super.key,
     this.client,
+    this.onLocaleChanged,
   });
 
   final CustomerSession session;
   final ValueChanged<String> onPlatformRegistered;
   final http.Client? client;
+  final ValueChanged<Locale>? onLocaleChanged;
 
   @override
   State<PlatformMarketplaceScreen> createState() => _PlatformMarketplaceScreenState();
@@ -29,6 +31,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   late Future<Map<String, dynamic>> _future = _load();
   final PageController _retailController = PageController(viewportFraction: .88);
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
   Timer? _retailTimer;
   int _retailIndex = 0;
   int _retailCount = -1;
@@ -51,6 +54,15 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
   void _submitSearch(String _) {
     setState(() => _future = _load());
+  }
+
+  void _focusBarcodeSearch() {
+    _searchFocus.requestFocus();
+  }
+
+  void _toggleLocale() {
+    final current = Localizations.localeOf(context).languageCode;
+    widget.onLocaleChanged?.call(Locale(current == 'ar' ? 'en' : 'ar'));
   }
 
   void _selectCategory(int? categoryId) {
@@ -81,6 +93,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     _retailTimer?.cancel();
     _retailController.dispose();
     _searchController.dispose();
+    _searchFocus.dispose();
     if (widget.client == null) {
       _client.close();
     }
@@ -345,6 +358,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           authenticated: widget.session.isAuthenticated,
                           onRegister: _register,
                           onLogin: () => Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace'),
+                          onScan: _focusBarcodeSearch,
+                          onLanguageToggle: _toggleLocale,
+                          localeCode: Localizations.localeOf(context).languageCode,
                           onCart: () => Navigator.of(context).pushNamed('/cart'),
                           onNotifications: () {
                             if (widget.session.isAuthenticated) {
@@ -366,6 +382,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           child: TextField(
                             key: const ValueKey('marketplace-search'),
                             controller: _searchController,
+                            focusNode: _searchFocus,
                             textInputAction: TextInputAction.search,
                             onSubmitted: _submitSearch,
                             decoration: InputDecoration(
@@ -533,6 +550,9 @@ class _MarketplaceHeader extends StatelessWidget {
     required this.authenticated,
     required this.onRegister,
     required this.onLogin,
+    required this.onScan,
+    required this.onLanguageToggle,
+    required this.localeCode,
     required this.onCart,
     required this.onNotifications,
   });
@@ -540,6 +560,9 @@ class _MarketplaceHeader extends StatelessWidget {
   final bool authenticated;
   final VoidCallback onRegister;
   final VoidCallback onLogin;
+  final VoidCallback onScan;
+  final VoidCallback onLanguageToggle;
+  final String localeCode;
   final VoidCallback onCart;
   final VoidCallback onNotifications;
 
@@ -584,6 +607,17 @@ class _MarketplaceHeader extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  key: const ValueKey('marketplace-scan'),
+                  tooltip: context.tr('customer.marketplace.scan'),
+                  onPressed: onScan,
+                  icon: const Icon(Icons.qr_code_scanner_rounded),
+                ),
+                TextButton(
+                  key: const ValueKey('marketplace-language'),
+                  onPressed: onLanguageToggle,
+                  child: Text(localeCode.toUpperCase()),
                 ),
                 IconButton(
                   key: const ValueKey('marketplace-cart'),
