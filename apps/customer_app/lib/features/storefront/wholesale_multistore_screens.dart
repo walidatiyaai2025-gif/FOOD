@@ -141,6 +141,14 @@ class _WholesaleHomeDesignScreenState
             final store = storefront['store'] is Map
                 ? Map<String, dynamic>.from(storefront['store'] as Map)
                 : <String, dynamic>{};
+            final effectiveStoreId = intValue(store['id']) > 0
+                ? intValue(store['id'])
+                : storeId;
+            final retailBanners = (payload['retail_banners'] as List? ??
+                    const <Object>[])
+                .whereType<Map>()
+                .map((row) => Map<String, dynamic>.from(row))
+                .toList(growable: false);
             final hero = storefront['hero'] is Map
                 ? Map<String, dynamic>.from(storefront['hero'] as Map)
                 : <String, dynamic>{};
@@ -233,9 +241,10 @@ class _WholesaleHomeDesignScreenState
                   content.add(
                     _WholesaleProductGrid(
                       rows: rows,
-                      storeId: storeId,
+                      storeId: effectiveStoreId,
                       actionApi: widget.actionApi,
                       palette: palette,
+                      authenticated: widget.session.isAuthenticated,
                     ),
                   );
                   break;
@@ -261,10 +270,34 @@ class _WholesaleHomeDesignScreenState
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
+                      authenticated: widget.session.isAuthenticated,
+                      onAccount: () => Navigator.of(context).pushNamed(
+                        widget.session.isAuthenticated
+                            ? CustomerRoutePaths.profile
+                            : Uri(
+                                path: CustomerRoutePaths.register,
+                                queryParameters: {
+                                  'return': CustomerRoutePaths.b2bHome,
+                                },
+                              ).toString(),
+                      ),
                       onCart: () => Navigator.of(context).pushNamed(
-                        '/b2b/cart?store=' + storeId.toString(),
+                        widget.session.isAuthenticated
+                            ? '/b2b/cart?store=' + effectiveStoreId.toString()
+                            : Uri(
+                                path: CustomerRoutePaths.register,
+                                queryParameters: {
+                                  'return': '/b2b/cart?store=' +
+                                      effectiveStoreId.toString(),
+                                },
+                              ).toString(),
                       ),
                     ),
+                    if (retailBanners.isNotEmpty)
+                      _RetailStoreBannerStrip(
+                        stores: retailBanners,
+                        palette: palette,
+                      ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
                       child: TextField(
@@ -286,8 +319,9 @@ class _WholesaleHomeDesignScreenState
                 ),
               ),
               bottomNavigationBar: _WholesaleBottomNav(
-                storeId: storeId,
+                storeId: effectiveStoreId,
                 palette: palette,
+                authenticated: widget.session.isAuthenticated,
               ),
             );
           },
