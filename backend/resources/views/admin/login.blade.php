@@ -53,7 +53,7 @@
                 <div class="error foodex-state" role="alert">{{ $errors->first() }}</div>
             @endif
 
-            <form method="post" action="{{ route('admin.'.$channel.'.login.store') }}">
+            <form method="post" action="{{ route('admin.'.$channel.'.login.store') }}" data-csrf-refresh-url="{{ route('admin.csrf-token') }}">
                 @csrf
                 <input type="hidden" name="locale" value="{{ $locale }}">
                 <div class="field">
@@ -78,5 +78,39 @@
         </section>
     </main>
 </div>
+<script>
+(() => {
+    const form = document.querySelector('form[data-csrf-refresh-url]');
+    if (!form) return;
+
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) window.location.reload();
+    });
+
+    form.addEventListener('submit', async (event) => {
+        if (form.dataset.csrfRefreshing === '1' || !form.reportValidity()) return;
+        event.preventDefault();
+        form.dataset.csrfRefreshing = '1';
+
+        const submit = form.querySelector('button[type="submit"]');
+        if (submit) submit.disabled = true;
+
+        try {
+            const response = await fetch(form.dataset.csrfRefreshUrl, {
+                credentials: 'same-origin',
+                headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+                cache: 'no-store',
+            });
+            if (response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                const token = form.querySelector('input[name="_token"]');
+                if (token && payload.token) token.value = payload.token;
+            }
+        } finally {
+            HTMLFormElement.prototype.submit.call(form);
+        }
+    });
+})();
+</script>
 </body>
 </html>
