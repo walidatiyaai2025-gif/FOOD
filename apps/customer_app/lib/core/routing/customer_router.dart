@@ -18,6 +18,7 @@ class CustomerAppRouter {
     this.session, {
     required this.actionApi,
     required this.onAuthenticated,
+    required this.onPlatformRegistered,
     required this.onSessionExpired,
     required this.onEnterWholesale,
     this.b2bApi,
@@ -35,6 +36,7 @@ class CustomerAppRouter {
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
   final CustomerAuthenticated onAuthenticated;
+  final PlatformCustomerRegistered onPlatformRegistered;
   final VoidCallback onSessionExpired;
   final ValueChanged<int?> onEnterWholesale;
 
@@ -88,6 +90,10 @@ class CustomerAppRouter {
       );
     }
 
+    if (session.isPlatformCustomer) {
+      return null;
+    }
+
     if (session.channel != requested.channel) {
       final entitledRetailManager =
           requested.channel == CustomerChannel.b2b &&
@@ -124,6 +130,7 @@ class CustomerAppRouter {
             storefrontApi: storefrontApi,
             wholesaleApi: wholesaleApi,
             enterWholesale: onEnterWholesale,
+            onPlatformRegistered: onPlatformRegistered,
           );
         }
 
@@ -142,6 +149,7 @@ class CustomerAppRouter {
                 catalogApi: b2cCatalogApi,
                 accountApi: b2cAccountApi,
                 onAuthenticated: onAuthenticated,
+                onPlatformRegistered: onPlatformRegistered,
                 onSessionExpired: onSessionExpired,
               );
       },
