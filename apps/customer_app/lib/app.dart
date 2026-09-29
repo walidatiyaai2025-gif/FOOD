@@ -161,6 +161,13 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _bindPushSession();
   }
 
+  void _onPlatformRegistered(String token) {
+    setState(() {
+      _session = CustomerSession.platformCustomer(accessToken: token);
+    });
+    _bindPushSession();
+  }
+
   void _enterWholesale(int? retailStoreId) {
     if (!_session.isAuthenticated) return;
     setState(() {
@@ -193,7 +200,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       _session = const CustomerSession.guest();
     });
     _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      CustomerRoutePaths.entry,
+      CustomerRoutePaths.b2bHome,
       (route) => false,
     );
   }
@@ -255,6 +262,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       storefrontApi: storefrontApi,
       wholesaleApi: wholesaleCommerceApi,
       onAuthenticated: _onAuthenticated,
+      onPlatformRegistered: _onPlatformRegistered,
       onSessionExpired: _onSessionExpired,
       onEnterWholesale: _enterWholesale,
     );
