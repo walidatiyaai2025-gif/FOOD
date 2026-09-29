@@ -87,9 +87,67 @@ void main() {
     expect(find.byKey(const Key('assignment-detail-7')), findsOneWidget);
     await tester.tap(find.byKey(const Key('assignment-status-7-accepted')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-status-note-accepted')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('driver-status-note-accepted')),
+      'Gate confirmed',
+    );
+    await tester.tap(find.byKey(const Key('driver-status-confirm-accepted')));
+    await tester.pumpAndSettle();
     expect(repo.transitionedId, 7);
     expect(repo.transitionedChannel, DriverChannel.b2b);
     expect(repo.transitionedStatus, 'accepted');
+  });
+
+  testWidgets('driver can open assigned invoice receipt from order detail',
+      (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 11,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-11',
+        status: 'accepted',
+        invoice: DriverInvoice(
+          id: 91,
+          number: 'INV-B2C-11',
+          status: 'issued',
+          currency: 'EGP',
+          subtotal: 25,
+          discountTotal: 2,
+          deliveryTotal: 3,
+          taxTotal: 1,
+          grandTotal: 27,
+          paymentMethod: 'cash_on_delivery',
+          paymentStatus: 'pending',
+          items: [
+            DriverOrderItem(
+              name: 'Rice',
+              sku: 'RICE-1',
+              quantity: 2,
+              lineTotal: 25,
+            ),
+          ],
+        ),
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2c,
+          repository: repo,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('assignment-11')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-open-invoice-11')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('driver-open-invoice-11')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-invoice-detail-91')), findsOneWidget);
+    expect(find.textContaining('INV-B2C-11'), findsOneWidget);
+    expect(find.textContaining('27.000 EGP'), findsWidgets);
   });
 
   testWidgets('empty and offline states are explicit', (tester) async {
