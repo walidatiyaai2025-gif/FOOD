@@ -293,6 +293,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       onSessionExpired: _onSessionExpired,
       onEnterWholesale: _enterWholesale,
       onPlatformRegistered: _onPlatformRegistered,
+      onLocaleChanged: _changeLocale,
       locationService: widget.locationService ??
           const GeolocatorCustomerLocationService(),
       mapPinPicker: widget.mapPinPicker ?? showCustomerMapPinSelector,
