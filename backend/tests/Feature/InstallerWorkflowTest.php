@@ -46,6 +46,8 @@ class InstallerWorkflowTest extends TestCase
             'foodex.installer_env_path' => $environmentPath,
             'foodex.install_lock' => $this->testDirectory.'/installed.lock',
             'foodex.install_progress' => $this->testDirectory.'/install-progress.json',
+            'foodex.scheduler_auto_provision' => false,
+            'foodex.scheduler_heartbeat' => false,
         ]);
     }
 

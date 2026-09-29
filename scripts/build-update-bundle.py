@@ -29,6 +29,10 @@ RUNTIME_EXACT = {
     "backend/composer.lock",
 }
 
+RUNTIME_ALWAYS_INCLUDE = {
+    "backend/public/brand/foodex-economical-group.webp",
+}
+
 PROTECTED_PARTS = {".git", "storage", "vendor"}
 FIXED_ZIP_TIME = (2026, 9, 27, 0, 0, 0)
 
@@ -114,6 +118,7 @@ def changed_runtime_files(base: str) -> list[str]:
             selected.add(safe_path(path))
 
     selected.add("VERSION")
+    selected.update(RUNTIME_ALWAYS_INCLUDE)
     return sorted(selected)
 
 
