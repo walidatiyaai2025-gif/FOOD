@@ -182,7 +182,7 @@
             .bottom .panel:nth-child(2){grid-column:1/-1;grid-row:1}
             .recent{grid-template-columns:82px minmax(90px,1fr) 44px 88px 92px 72px}
         }
-        @media(max-width:1279px){.module-cards{grid-template-columns:repeat(min(4,var(--foodex-card-columns,4)),minmax(0,1fr))}}
+        @media(max-width:1279px){.module-cards{grid-template-columns:repeat(4,minmax(0,1fr))}}
         @media(max-width:900px){.module-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:1023px){
             .dashboard-layout,html[dir=ltr] .dashboard-layout{grid-template-columns:1fr}
