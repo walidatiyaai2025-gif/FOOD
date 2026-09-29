@@ -4,6 +4,7 @@ import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
+import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 
 void main() {
@@ -119,6 +120,109 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('سلة الجملة'), findsOneWidget);
     expect(find.text('إتمام الطلب'), findsOneWidget);
+  });
+
+  testWidgets(
+      'B2B checkout with order id navigates to B2B details and uses B2B API',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'id': 4,
+      'order_number': 'FDX-B2B-4',
+      'status': 'pending',
+      'store_name': 'Wholesale Store',
+      'grand_total': 25.5,
+      'currency': 'KWD',
+      'payment_method': 'cash_on_delivery',
+      'items': [
+        {
+          'name': 'Bulk Water',
+          'quantity': 2,
+          'unit_price': 12.75,
+          'line_total': 25.5,
+        },
+      ],
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/checkout?store=7',
+        b2bApi: api,
+        storefrontApi: const _CheckoutStorefrontApi(),
+        wholesaleCommerceApi: const _FakeWholesaleCommerceApi({'id': 4}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('تأكيد الطلب'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('تأكيد الطلب'));
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/orders/4');
+    expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
+    expect(find.text('FDX-B2B-4'), findsOneWidget);
+    expect(find.text('Wholesale Store'), findsOneWidget);
+    expect(find.text('الدفع عند الاستلام'), findsOneWidget);
+    expect(find.text('/orders/4/track'), findsNothing);
+  });
+
+  testWidgets('B2B checkout without usable order id falls back to B2B orders',
+      (tester) async {
+    final api = _FakeB2bApi(const {'data': <Object>[]});
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/checkout?store=7',
+        b2bApi: api,
+        storefrontApi: const _CheckoutStorefrontApi(),
+        wholesaleCommerceApi:
+            const _FakeWholesaleCommerceApi(<String, Object?>{}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('تأكيد الطلب'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('تأكيد الطلب'));
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/orders');
+    expect(find.byKey(const ValueKey('b2b-empty')), findsOneWidget);
+  });
+
+  testWidgets(
+      'B2B order details refresh route stays on authoritative B2B endpoint',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'id': 77,
+      'order_number': 'B2B-77',
+      'status': 'out_for_delivery',
+      'grand_total': 101.0,
+      'currency': 'KWD',
+      'payment_method': 'account_credit',
+      'items': const <Object>[],
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/orders/77',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/orders/77');
+    expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
+    expect(find.text('B2B-77'), findsOneWidget);
   });
 
   testWidgets('B2C session cannot enter B2B protected journey', (tester) async {
@@ -310,6 +414,72 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('b2b-error')), findsOneWidget);
   });
+}
+
+class _CheckoutStorefrontApi implements StorefrontApi {
+  const _CheckoutStorefrontApi();
+
+  @override
+  Future<Map<String, dynamic>> selection({
+    String? countryCode,
+    String? city,
+    String? area,
+    bool support = false,
+  }) async =>
+      const {};
+
+  @override
+  Future<Map<String, dynamic>> retailHome(int storeId) async => const {};
+
+  @override
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async => const {};
+
+  @override
+  Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async => const {
+        'addresses': [
+          {'id': 1, 'label': 'المخزن', 'line1': 'شارع 1'},
+        ],
+        'delivery_dates': ['2026-09-30'],
+        'payment_methods': ['cash_on_delivery'],
+      };
+}
+
+class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
+  const _FakeWholesaleCommerceApi(this.checkoutResult);
+
+  final Object? checkoutResult;
+
+  @override
+  Future<Object?> cart(int storeId) async => const {
+        'currency': 'KWD',
+        'subtotal': 25.5,
+        'grand_total': 25.5,
+        'items': [
+          {'name': 'Bulk Water', 'quantity': 2},
+        ],
+      };
+
+  @override
+  Future<Object?> addItem(int storeId, int productId, double quantity) async =>
+      null;
+
+  @override
+  Future<Object?> updateItem(int itemId, double quantity) async => null;
+
+  @override
+  Future<void> removeItem(int itemId) async {}
+
+  @override
+  Future<Object?> checkout({
+    required int storeId,
+    required int addressId,
+    required String paymentMethod,
+    String? requestedDeliveryDate,
+    String? note,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async =>
+      checkoutResult;
 }
 
 class _FakeWholesaleStorefrontApi implements StorefrontApi {

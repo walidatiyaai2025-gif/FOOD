@@ -45,6 +45,7 @@ void main() {
       CustomerRoutePaths.b2bCart,
       CustomerRoutePaths.b2bCheckout,
       CustomerRoutePaths.b2bOrders,
+      CustomerRoutePaths.b2bOrderDetails,
     ]) {
       expect(
         shouldUseMultiStoreDesign(definition(pattern), pattern),
