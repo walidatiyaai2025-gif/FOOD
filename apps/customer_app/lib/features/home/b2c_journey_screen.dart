@@ -731,14 +731,40 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       key: const ValueKey('b2c-orders-data'),
       children: rows.map((order) {
         final id = (order['id'] as num?)?.toInt();
+        final store = order['store'] is Map
+            ? Map<String, dynamic>.from(order['store'] as Map)
+            : const <String, dynamic>{};
+        final channel = order['channel']?.toString().toLowerCase() ?? 'b2c';
+        final storeName = store['name']?.toString().trim();
+        final logoUrl = store['logo_url']?.toString();
+        final channelLabel = channel == 'b2b'
+            ? context.tr('customer.orders.channel.wholesale')
+            : context.tr('customer.orders.channel.retail');
+
         return Card(
           child: ListTile(
+            leading: CircleAvatar(
+              backgroundImage: logoUrl != null && logoUrl.isNotEmpty
+                  ? NetworkImage(logoUrl)
+                  : null,
+              child: logoUrl == null || logoUrl.isEmpty
+                  ? Icon(
+                      channel == 'b2b'
+                          ? Icons.warehouse_outlined
+                          : Icons.storefront_outlined,
+                    )
+                  : null,
+            ),
             title: Text(order['order_number']?.toString() ?? '#${id ?? ''}'),
             subtitle: Text(
-              '${order['status'] ?? ''} · ${order['grand_total'] ?? order['total'] ?? ''} ${order['currency'] ?? 'KWD'}',
+              '${storeName == null || storeName.isEmpty ? channelLabel : storeName} · $channelLabel\n'
+              '${order['status'] ?? ''} · ${order['grand_total'] ?? order['total'] ?? ''} ${order['currency'] ?? 'EGP'}',
             ),
+            isThreeLine: true,
             trailing: const Icon(Icons.chevron_right),
-            onTap: id == null ? null : () => Navigator.of(context).pushNamed('/orders/$id/track'),
+            onTap: id == null
+                ? null
+                : () => Navigator.of(context).pushNamed('/orders/$id/track'),
           ),
         );
       }).toList(growable: false),
