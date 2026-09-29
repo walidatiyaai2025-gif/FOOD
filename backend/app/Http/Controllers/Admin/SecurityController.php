@@ -39,6 +39,7 @@ final class SecurityController extends Controller
             ->with(['roles:id,code,name,is_active', 'storeRoleAssignments.role:id,code,name,is_active', 'storeRoleAssignments.store:id,code,name'])
             ->when($search !== '', fn ($query) => $query->where(function ($nested) use ($search): void {
                 $nested->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('username', 'like', '%'.$search.'%')
                     ->orWhere('email', 'like', '%'.$search.'%');
             }))
             ->when($status === 'active', fn ($query) => $query->where('is_active', true))

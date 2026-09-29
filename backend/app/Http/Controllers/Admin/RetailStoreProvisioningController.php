@@ -87,6 +87,8 @@ final class RetailStoreProvisioningController extends Controller
             'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],
             'is_active' => ['nullable', 'boolean'],
+            'advertising_enabled' => ['nullable', 'boolean'],
+            'coupons_enabled' => ['nullable', 'boolean'],
             'manager_mode' => ['required', Rule::in(['existing', 'new'])],
             'manager_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'manager_name' => ['nullable', 'string', 'max:255'],
@@ -104,6 +106,8 @@ final class RetailStoreProvisioningController extends Controller
                 'name' => $data['name'],
                 'logo_path' => null,
                 'is_active' => $request->boolean('is_active', true),
+                'advertising_enabled' => $request->boolean('advertising_enabled', true),
+                'coupons_enabled' => $request->boolean('coupons_enabled', true),
             ]);
             $logo = $request->file('logo');
             abort_unless($logo instanceof UploadedFile, 422, 'Store logo is required.');
@@ -127,6 +131,8 @@ final class RetailStoreProvisioningController extends Controller
                 'price_tier_id' => (int) $data['price_tier_id'],
                 'logo_path' => $store->logo_path,
                 'is_active' => $store->is_active,
+                'advertising_enabled' => $store->advertising_enabled,
+                'coupons_enabled' => $store->coupons_enabled,
             ], $request);
 
             return $store;
@@ -146,14 +152,18 @@ final class RetailStoreProvisioningController extends Controller
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],
             'is_active' => ['nullable', 'boolean'],
+            'advertising_enabled' => ['nullable', 'boolean'],
+            'coupons_enabled' => ['nullable', 'boolean'],
         ]);
-        $before = $store->only(['code', 'name', 'logo_path', 'is_active']);
+        $before = $store->only(['code', 'name', 'logo_path', 'is_active', 'advertising_enabled', 'coupons_enabled']);
 
         $oldLogo = $store->logo_path;
         $updates = [
             'code' => strtoupper($data['code']),
             'name' => $data['name'],
             'is_active' => $request->boolean('is_active'),
+            'advertising_enabled' => $request->boolean('advertising_enabled'),
+            'coupons_enabled' => $request->boolean('coupons_enabled'),
         ];
         if ($request->hasFile('logo')) {
             $logo = $request->file('logo');
@@ -166,7 +176,7 @@ final class RetailStoreProvisioningController extends Controller
         }
         $this->wholesaleAccounts->syncForStore($store, (int) $data['price_tier_id']);
 
-        $after = $store->only(['code', 'name', 'logo_path', 'is_active']);
+        $after = $store->only(['code', 'name', 'logo_path', 'is_active', 'advertising_enabled', 'coupons_enabled']);
         $after['price_tier_id'] = (int) $data['price_tier_id'];
         $this->audit->record('retail_store.updated', $actor, $store, $before, $after, $request);
 

@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
 /**
@@ -23,7 +24,7 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'locale', 'is_active', 'deactivated_at', 'deactivation_reason', 'last_seen_at'];
+    protected $fillable = ['name', 'username', 'email', 'password', 'locale', 'is_active', 'deactivated_at', 'deactivation_reason', 'last_seen_at'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -167,6 +168,32 @@ class User extends Authenticatable
             ->value('store_types.code');
 
         return is_string($channel) ? strtolower($channel) : null;
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user): void {
+            if (is_string($user->username) && trim($user->username) !== '') {
+                $user->username = strtolower(trim($user->username));
+
+                return;
+            }
+
+            $emailPrefix = Str::before(strtolower((string) $user->email), '@');
+            $base = Str::slug($emailPrefix, '_');
+            if ($base === '') {
+                $base = 'user';
+            }
+
+            $candidate = $base;
+            $suffix = 1;
+            while (static::query()->where('username', $candidate)->exists()) {
+                $suffix++;
+                $candidate = $base.'_'.$suffix;
+            }
+
+            $user->username = $candidate;
+        });
     }
 
     protected function casts(): array

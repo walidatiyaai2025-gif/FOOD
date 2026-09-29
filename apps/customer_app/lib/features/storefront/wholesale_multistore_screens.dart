@@ -1487,6 +1487,14 @@ class _WholesaleCheckoutDesignScreenState
   String? deliveryDate;
   String? paymentMethod;
   final note = TextEditingController();
+  final coupon = TextEditingController();
+
+  @override
+  void dispose() {
+    note.dispose();
+    coupon.dispose();
+    super.dispose();
+  }
 
   Future<_CheckoutPayload> _load() async {
     final options = widget.storefrontApi == null
@@ -1500,12 +1508,6 @@ class _WholesaleCheckoutDesignScreenState
         : <String, dynamic>{};
 
     return _CheckoutPayload(options: options, cart: cart);
-  }
-
-  @override
-  void dispose() {
-    note.dispose();
-    super.dispose();
   }
 
   @override
@@ -1647,6 +1649,15 @@ class _WholesaleCheckoutDesignScreenState
                     ),
                     const SizedBox(height: 12),
                     TextField(
+                      controller: coupon,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'كود الكوبون - اختياري',
+                        prefixIcon: Icon(Icons.confirmation_number_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
                       controller: note,
                       minLines: 3,
                       maxLines: 4,
@@ -1687,6 +1698,7 @@ class _WholesaleCheckoutDesignScreenState
                                     requestedDeliveryDate:
                                         deliveryDate,
                                     note: note.text,
+                                    couponCode: coupon.text,
                                     idempotencyKey: key,
                                   );
                                   if (!context.mounted) return;

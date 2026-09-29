@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/health',
         then: static function (): void {
             require base_path('routes/notifications.php');
+            require base_path('routes/coupons.php');
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

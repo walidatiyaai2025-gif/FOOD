@@ -17,6 +17,7 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CouponRedemptionService;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +36,7 @@ class CheckoutController extends Controller
             'payment_method' => ['nullable', 'string', 'max:50'],
             'requested_delivery_date' => ['nullable', 'date', 'after_or_equal:today'],
             'note' => ['nullable', 'string', 'max:1000'],
+            'coupon_code' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/'],
         ]);
 
         $idempotencyKey = trim((string) $request->header('Idempotency-Key', ''));
@@ -58,6 +60,9 @@ class CheckoutController extends Controller
         $paymentMethod = (string) ($validated['payment_method'] ?? config('checkout.default_payment_method'));
         $note = isset($validated['note']) ? (string) $validated['note'] : null;
         $requestedDeliveryDate = $validated['requested_delivery_date'] ?? null;
+        $couponCode = isset($validated['coupon_code']) && trim((string) $validated['coupon_code']) !== ''
+            ? strtoupper(trim((string) $validated['coupon_code']))
+            : null;
 
         $b2bAccount = null;
         $allowedMethods = array_values((array) config('checkout.payment_methods', ['cash_on_delivery']));
@@ -84,6 +89,7 @@ class CheckoutController extends Controller
             'payment_method' => $paymentMethod,
             'requested_delivery_date' => $requestedDeliveryDate,
             'note' => $note,
+            'coupon_code' => $couponCode,
         ], JSON_THROW_ON_ERROR));
 
         $address = Address::query()
@@ -106,6 +112,7 @@ class CheckoutController extends Controller
             $note,
             $idempotencyKey,
             $requestHash,
+            $couponCode,
             $auditLogger,
             $request,
         ): array {
@@ -238,7 +245,25 @@ class CheckoutController extends Controller
             }
 
             $deliveryTotal = round((float) config('checkout.delivery_fee', 0), 3);
-            $grandTotal = round($subtotal + $deliveryTotal, 3);
+            $discountTotal = 0.0;
+            $coupon = null;
+
+            if ($couponCode !== null) {
+                $quote = app(CouponRedemptionService::class)->quote(
+                    $couponCode,
+                    $channel,
+                    $storeId,
+                    (int) $customer->getKey(),
+                    $user,
+                    round($subtotal, 3),
+                    $deliveryTotal,
+                );
+                $coupon = $quote['coupon'];
+                $discountTotal = (float) $quote['discount_total'];
+                $deliveryTotal = (float) $quote['delivery_total'];
+            }
+
+            $grandTotal = round(max(0, $subtotal + $deliveryTotal - $discountTotal), 3);
 
             if ($channel === 'b2b' && $paymentMethod === 'account_credit') {
                 abort_unless($b2bAccount instanceof B2bAccount, 403, 'An active B2B account is required.');
@@ -256,7 +281,7 @@ class CheckoutController extends Controller
                 'status' => 'pending',
                 'currency' => 'EGP',
                 'subtotal' => round($subtotal, 3),
-                'discount_total' => 0,
+                'discount_total' => $discountTotal,
                 'delivery_total' => $deliveryTotal,
                 'grand_total' => $grandTotal,
                 'checkout_idempotency_key' => $idempotencyKey,
@@ -302,6 +327,16 @@ class CheckoutController extends Controller
                 ],
             ]);
 
+            if ($coupon !== null) {
+                app(CouponRedemptionService::class)->redeem(
+                    $coupon,
+                    $user,
+                    $order,
+                    $subtotal + $deliveryTotal,
+                    $discountTotal,
+                );
+            }
+
             OrderStatusHistory::query()->create([
                 'order_id' => $order->getKey(),
                 'store_id' => $storeId,
@@ -324,6 +359,8 @@ class CheckoutController extends Controller
                     'channel' => $channel,
                     'grand_total' => $grandTotal,
                     'payment_method' => $paymentMethod,
+                    'coupon_code' => $couponCode,
+                    'discount_total' => $discountTotal,
                 ],
                 $request,
             );

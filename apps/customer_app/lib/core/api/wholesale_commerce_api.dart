@@ -23,6 +23,7 @@ abstract interface class WholesaleCommerceApi {
     required String paymentMethod,
     String? requestedDeliveryDate,
     String? note,
+    String? couponCode,
     required String idempotencyKey,
   });
 }
@@ -88,6 +89,7 @@ class HttpWholesaleCommerceApi implements WholesaleCommerceApi {
     required String paymentMethod,
     String? requestedDeliveryDate,
     String? note,
+    String? couponCode,
     required String idempotencyKey,
   }) =>
       _request(
@@ -100,6 +102,8 @@ class HttpWholesaleCommerceApi implements WholesaleCommerceApi {
           if (requestedDeliveryDate != null)
             'requested_delivery_date': requestedDeliveryDate,
           if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+          if (couponCode != null && couponCode.trim().isNotEmpty)
+            'coupon_code': couponCode.trim().toUpperCase(),
         },
         extraHeaders: {'Idempotency-Key': idempotencyKey},
       );

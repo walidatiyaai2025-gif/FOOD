@@ -332,7 +332,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
             _button(
               context,
               context.tr('customer.action.login'),
-              CustomerRoutePaths.checkoutAddressPayment,
+              _withStore(CustomerRoutePaths.checkoutAddressPayment),
             ),
           ],
         );
@@ -450,7 +450,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
               channel: CustomerChannel.b2c,
               api: widget.actionApi,
               onAuthenticated: widget.onAuthenticated,
-              successRoute: CustomerRoutePaths.checkoutAddressPayment,
+              successRoute: _withStore(CustomerRoutePaths.checkoutAddressPayment),
             ),
           ],
         );
@@ -462,6 +462,7 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
             CheckoutAction(
               api: widget.actionApi,
               channel: CustomerChannel.b2c,
+              storeId: _storeId,
             ),
           ],
         );

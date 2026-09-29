@@ -67,7 +67,10 @@ class AdminNavigation
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'content', 'admin.b2c_workspace.modules.content', 'promotions.view'),
-                $isSuperAdmin ? null : $this->routeItemScoped($user, 'notification_campaigns', 'notifications.title', 'admin.notification-campaigns.index', 'notifications.view'),
+            ]),
+            $this->group('advertising', 'admin.nav_groups.advertising', '◉', [
+                $this->routeItemAdvertising($user, 'notification_campaigns', 'notifications.sidebar_campaigns', 'admin.notification-campaigns.index', 'notifications.view', 'advertising_enabled'),
+                $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
@@ -228,6 +231,59 @@ class AdminNavigation
             if (! $hasScopedPermission) {
                 return null;
             }
+        }
+
+        return [
+            'key' => $key,
+            'label' => $label,
+            'route' => $route,
+            'params' => [],
+            'permission' => null,
+        ];
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function routeItemAdvertising(
+        User $user,
+        string $key,
+        string $label,
+        string $route,
+        string $permission,
+        string $featureColumn,
+    ): ?array {
+        if (! Route::has($route)) {
+            return null;
+        }
+
+        if ($user->hasRole('SUPER_ADMIN') || $user->hasPermission($permission)) {
+            return [
+                'key' => $key,
+                'label' => $label,
+                'route' => $route,
+                'params' => [],
+                'permission' => null,
+            ];
+        }
+
+        $retailStoreIds = app(TenantContextResolver::class)->retailStoreIds($user);
+        if ($retailStoreIds === []) {
+            return null;
+        }
+
+        $allowed = $user->storeRoleAssignments()
+            ->whereIn('store_id', $retailStoreIds)
+            ->whereHas('store', fn ($query) => $query
+                ->where('stores.is_active', true)
+                ->where("stores.{$featureColumn}", true))
+            ->whereHas('role', fn ($query) => $query
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'store')
+                ->whereHas('permissions', fn ($permissions) => $permissions
+                    ->where('permissions.code', $permission)))
+            ->exists();
+
+        if (! $allowed) {
+            return null;
         }
 
         return [

@@ -24,18 +24,17 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
 
   @override
   Future<DriverSession> login({
-    required String email,
-    required String password,
+    required String username,
   }) async {
     final http.Response response;
     try {
       response = await _client.post(
-        _endpoint('auth/login'),
+        _endpoint('auth/mobile-trial'),
         headers: const {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode({'username': username, 'app': 'driver'}),
       );
     } on SocketException {
       throw const DriverOfflineException();
@@ -73,7 +72,7 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
     return DriverSession(
       token: decoded['token'] as String,
       name: (user['name'] ?? '').toString(),
-      email: (user['email'] ?? email).toString(),
+      email: (user['email'] ?? '').toString(),
       locale: (user['locale'] ?? 'ar').toString(),
       channel: channel,
     );

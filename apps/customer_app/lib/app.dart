@@ -61,12 +61,22 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<String>? _pushRouteSubscription;
   StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
+  Timer? _versionFooterTimer;
+  bool _showVersionFooter = false;
+
+  static const _appVersion = '1.0.28';
 
   @override
   void initState() {
     super.initState();
     _translations = Map<String, String>.from(widget.translationOverrides);
     _session = widget.session;
+    _showVersionFooter = widget.initialRoute != CustomerRoutePaths.splash;
+    if (!_showVersionFooter) {
+      _versionFooterTimer = Timer(const Duration(milliseconds: 1150), () {
+        if (mounted) setState(() => _showVersionFooter = true);
+      });
+    }
     _loadRemoteTranslations();
     _configurePush();
   }
@@ -166,8 +176,31 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     });
   }
 
+  Future<void> _logout(CustomerActionApi actionApi) async {
+    final service = widget.pushService;
+    if (service != null) {
+      unawaited(service.revokeSession());
+    }
+
+    try {
+      await actionApi.logout();
+    } catch (_) {
+      // Local sign-out remains authoritative for the pilot app experience.
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _session = const CustomerSession.guest();
+    });
+    _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+      CustomerRoutePaths.entry,
+      (route) => false,
+    );
+  }
+
   @override
   void dispose() {
+    _versionFooterTimer?.cancel();
     unawaited(_pushRouteSubscription?.cancel());
     unawaited(_pushAlertSubscription?.cancel());
     super.dispose();
@@ -242,7 +275,77 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       builder: (context, child) => AppTranslations(
         locale: widget.locale,
         overrides: _translations,
-        child: child ?? const SizedBox.shrink(),
+        child: Builder(
+          builder: (translatedContext) => Stack(
+            fit: StackFit.expand,
+            children: [
+              child ?? const SizedBox.shrink(),
+              if (_showVersionFooter) ...[
+                PositionedDirectional(
+                  start: 0,
+                  end: 0,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF8FAFC),
+                        border: Border(
+                          top: BorderSide(color: Color(0xFFE3E8EF)),
+                        ),
+                      ),
+                      child: SafeArea(
+                        top: false,
+                        child: SizedBox(
+                          height: 34,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: Text(
+                                '${translatedContext.tr('customer.version')} $_appVersion',
+                                key: const ValueKey('customer-app-version-footer'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(translatedContext)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: FoodexBrand.muted,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (_session.isAuthenticated)
+                  PositionedDirectional(
+                    end: 6,
+                    bottom: 0,
+                    child: SafeArea(
+                      top: false,
+                      child: SizedBox(
+                        height: 34,
+                        child: TextButton.icon(
+                          key: const ValueKey('customer-logout'),
+                          onPressed: () => _logout(actionApi),
+                          icon: const Icon(Icons.logout_rounded, size: 16),
+                          label: Text(
+                            translatedContext.tr('customer.logout'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
       ),
       initialRoute: widget.initialRoute,
       onGenerateInitialRoutes: (routeName) => [

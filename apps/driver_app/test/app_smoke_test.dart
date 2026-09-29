@@ -9,7 +9,8 @@ void main() {
 
     expect(find.text('فودكس للسائق'), findsOneWidget);
     expect(find.byKey(const Key('driver-config-missing')), findsNothing);
-    expect(find.byKey(const Key('driver-login-email')), findsOneWidget);
+    expect(find.byKey(const Key('driver-login-username')), findsOneWidget);
+    expect(find.byKey(const Key('driver-app-version-footer')), findsOneWidget);
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('ar'));
@@ -26,19 +27,11 @@ void main() {
     expect(directionality.textDirection, TextDirection.rtl);
   });
 
-  testWidgets('driver password eye toggles visibility', (tester) async {
+  testWidgets('driver pilot login uses username only', (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
 
-    final password = find.byKey(const Key('driver-login-password'));
-    expect(tester.widget<TextField>(password).obscureText, isTrue);
-
-    await tester.tap(find.byKey(const Key('driver-password-toggle')));
-    await tester.pump();
-    expect(tester.widget<TextField>(password).obscureText, isFalse);
-
-    await tester.tap(find.byKey(const Key('driver-password-toggle')));
-    await tester.pump();
-    expect(tester.widget<TextField>(password).obscureText, isTrue);
+    expect(find.byKey(const Key('driver-login-username')), findsOneWidget);
+    expect(find.byKey(const Key('driver-login-password')), findsNothing);
   });
 
   testWidgets('driver shell mirrors to English LTR', (tester) async {

@@ -14,7 +14,9 @@ class CustomerLoginResult {
 }
 
 abstract interface class CustomerActionApi {
-  Future<CustomerLoginResult> login({required String email, required String password});
+  Future<CustomerLoginResult> login({required String username});
+
+  Future<void> logout();
 
   Future<Object?> addCartItem({
     required int storeId,
@@ -24,7 +26,9 @@ abstract interface class CustomerActionApi {
 
   Future<Object?> checkout({
     required int addressId,
+    int? storeId,
     String? paymentMethod,
+    String? couponCode,
     required String idempotencyKey,
   });
 }
@@ -56,13 +60,12 @@ class HttpCustomerActionApi implements CustomerActionApi {
 
   @override
   Future<CustomerLoginResult> login({
-    required String email,
-    required String password,
+    required String username,
   }) async {
     final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/auth/login'),
+      Uri.parse('$baseUrl/api/v1/auth/mobile-trial'),
       headers: _headers,
-      body: jsonEncode({'email': email, 'password': password}),
+      body: jsonEncode({'username': username, 'app': 'customer'}),
     );
     final body = _decode(response);
     final value = body is Map ? body['token'] : null;
@@ -71,6 +74,17 @@ class HttpCustomerActionApi implements CustomerActionApi {
     }
 
     return CustomerLoginResult(token: value);
+  }
+
+  @override
+  Future<void> logout() async {
+    if (token == null || token!.isEmpty) return;
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/logout'),
+      headers: _headers,
+    );
+    if (response.statusCode == 401 || response.statusCode == 204) return;
+    _decode(response);
   }
 
   @override
@@ -100,7 +114,9 @@ class HttpCustomerActionApi implements CustomerActionApi {
   @override
   Future<Object?> checkout({
     required int addressId,
+    int? storeId,
     String? paymentMethod,
+    String? couponCode,
     required String idempotencyKey,
   }) async {
     _requireToken();
@@ -109,8 +125,11 @@ class HttpCustomerActionApi implements CustomerActionApi {
       headers: {..._headers, 'Idempotency-Key': idempotencyKey},
       body: jsonEncode({
         'address_id': addressId,
+        if (storeId != null) 'store_id': storeId,
         if (paymentMethod != null && paymentMethod.trim().isNotEmpty)
           'payment_method': paymentMethod.trim(),
+        if (couponCode != null && couponCode.trim().isNotEmpty)
+          'coupon_code': couponCode.trim().toUpperCase(),
       }),
     );
 

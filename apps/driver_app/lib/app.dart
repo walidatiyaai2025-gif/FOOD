@@ -55,6 +55,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   StreamSubscription<void>? _pushOpenSubscription;
   StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
 
+  static const _appVersion = '1.0.28';
+
   String get _baseUrl =>
       widget.apiBaseUrl ??
       FoodexEnvironment.apiBaseUrl;
@@ -217,7 +219,75 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
       builder: (context, child) => DriverTranslations(
         locale: widget.locale,
         overrides: _translations,
-        child: child ?? const SizedBox.shrink(),
+        child: Builder(
+          builder: (translatedContext) => Stack(
+            fit: StackFit.expand,
+            children: [
+              child ?? const SizedBox.shrink(),
+              PositionedDirectional(
+                start: 0,
+                end: 0,
+                bottom: 0,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF8FAFC),
+                      border: Border(
+                        top: BorderSide(color: Color(0xFFE3E8EF)),
+                      ),
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: SizedBox(
+                        height: 34,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Text(
+                              '${translatedContext.tr('driver.version')} $_appVersion',
+                              key: const Key('driver-app-version-footer'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(translatedContext)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: FoodexBrand.muted,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (_session != null)
+                PositionedDirectional(
+                  end: 6,
+                  bottom: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: SizedBox(
+                      height: 34,
+                      child: TextButton.icon(
+                        key: const Key('driver-global-logout'),
+                        onPressed: _logout,
+                        icon: const Icon(Icons.logout_rounded, size: 16),
+                        label: Text(
+                          translatedContext.tr('driver.logout'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
       home: session == null
           ? DriverLoginPage(

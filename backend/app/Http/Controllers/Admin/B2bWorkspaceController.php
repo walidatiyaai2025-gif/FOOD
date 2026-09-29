@@ -1139,10 +1139,11 @@ class B2bWorkspaceController extends Controller
                     ->where('drivers.driver_type', 'b2b')
                     ->whereIn('drivers.store_id', $storeIds)
                     ->orderBy('users.name')
-                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.email', 'drivers.is_available', 'drivers.is_active'])
+                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.username', 'users.email', 'drivers.is_available', 'drivers.is_active'])
                     ->map(fn ($row) => [
                         '_id' => (int) $row->id,
                         'name' => $row->name,
+                        'username' => $row->username,
                         'email' => $row->email,
                         'availability' => (bool) $row->is_available,
                         'active' => (bool) $row->is_active,
@@ -1158,8 +1159,8 @@ class B2bWorkspaceController extends Controller
                     ->whereIn('drivers.store_id', $storeIds)
                     ->where('drivers.is_active', true)
                     ->orderBy('users.name')
-                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.email'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'name' => $row->name, 'email' => $row->email])
+                    ->get(['drivers.id', 'drivers.store_id', 'users.name', 'users.username', 'users.email'])
+                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'name' => $row->name, 'username' => $row->username, 'email' => $row->email])
                     ->all(),
                 'orders' => DB::table('orders')
                     ->whereIn('orders.store_id', $storeIds)

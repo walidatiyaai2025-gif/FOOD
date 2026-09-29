@@ -548,7 +548,7 @@
                     <div style="display:grid;gap:8px">
                         @foreach($moduleData['drivers'] as $driver)
                         <details style="border:1px solid var(--foodex-border);border-radius:12px;padding:10px 12px;background:#fff">
-                            <summary style="cursor:pointer;font-weight:700">{{ $driver['name'] }} · {{ $driver['email'] }}</summary>
+                            <summary style="cursor:pointer;font-weight:700">{{ $driver['name'] }} · {{ app()->getLocale()==='ar'?'اسم المستخدم':'Username' }}: {{ $driver['username'] ?? '—' }} · {{ $driver['email'] }}</summary>
                             <form method="post" action="{{ route('admin.b2c.drivers.password',['driver'=>$driver['id']]) }}" class="module-inline-form" style="margin:10px 0 0">
                                 @csrf @method('PATCH')
                                 <input type="hidden" name="store_id" value="{{ $storeId }}">

@@ -52,6 +52,8 @@ return [
         'support.manage' => 'Manage customer support operations',
         'notifications.view' => 'View notification administration',
         'notifications.manage' => 'Manage notification content and targeting',
+        'coupons.view' => 'View coupon administration',
+        'coupons.manage' => 'Create, edit, activate and retire coupons',
         'drivers.b2b.view' => 'View B2B drivers and delivery operations',
         'drivers.b2b.manage' => 'Manage B2B drivers and delivery operations',
         'drivers.b2c.view' => 'View Retail drivers and delivery operations',
@@ -72,6 +74,7 @@ return [
             'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage',
             'drivers.b2b.view', 'drivers.b2b.manage', 'notifications.view', 'notifications.manage',
+            'coupons.view', 'coupons.manage',
         ],
         'B2C_STORE_ADMIN' => [
             'stores.view',
@@ -83,6 +86,7 @@ return [
             'promotions.view', 'promotions.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage',
             'drivers.b2c.view', 'drivers.b2c.manage', 'notifications.view', 'notifications.manage',
+            'coupons.view', 'coupons.manage',
         ],
         // Global operational roles are wholesale-only. Retail counterparts are store-only.
         'OPERATIONS' => [
