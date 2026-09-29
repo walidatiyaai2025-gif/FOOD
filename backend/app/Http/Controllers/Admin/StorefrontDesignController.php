@@ -27,6 +27,7 @@ final class StorefrontDesignController extends Controller
         'hero',
         'banner_slider',
         'categories',
+        'departments',
         'products',
         'new_arrivals',
         'featured_products',
