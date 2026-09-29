@@ -89,6 +89,23 @@ Rules:
 - Customer authentication identity may remain in the shared `users` identity table, but business customer records remain separate.
 - No API or admin query may combine B2B and B2C customer rows without an explicit SUPER_ADMIN/platform report contract.
 
+## 4.0.1 Platform Customer identity overlay
+
+Customer App authentication now uses one **Platform Customer** identity across the platform, as defined by `docs/architecture/PLATFORM_CUSTOMER_COMMERCE.md`.
+
+This does **not** merge B2B and B2C business data.
+
+Rules:
+- `users` + `platform_customers` provide one login/customer identity.
+- Registration origin is persisted immutably: exact origin channel/store/source/date.
+- Every active Platform Customer receives one active Wholesale B2B customer/account automatically so a Retail-origin customer may also buy from the main Wholesale store.
+- A Retail-origin signup immediately materializes only that exact Retail store's `b2c_customer`.
+- Additional Retail `b2c_customers` materialize only for the exact Retail stores in which that Platform Customer later performs authenticated commerce.
+- B2C rows remain separate per `store_id`; no Retail customer row is shared across tenants.
+- Orders, carts, invoices, pricing and notifications remain owned by the exact selected store/channel.
+- A unified Customer App history may aggregate the authenticated customer's own documents, but Dashboard/admin queries remain tenant scoped unless an explicit SUPER_ADMIN platform contract applies.
+- Platform Customer registration is not permission sharing and does not grant Dashboard roles.
+
 ## 4.1 Retail stores as Wholesale customers and replenishment bridge
 
 Every Retail store is also represented by exactly one managed Wholesale customer/account. This relationship is explicit through `retail_wholesale_accounts`; it is not inferred by name, email or a shared tenant record.
