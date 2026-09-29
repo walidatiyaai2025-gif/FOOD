@@ -93,7 +93,39 @@ class OrderOperationsIsolationTest extends TestCase
 
     private function order(int $storeId, int $legacyCustomerId, int $customerId, string $number): int
     {
-        return (int) DB::table('orders')->insertGetId([
+        $catalog = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $storeId,
+            'channel' => 'b2c',
+            'code' => 'cat-'.strtolower($number),
+            'name' => $number.' Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $unit = (int) DB::table('units')->insertGetId([
+            'scope' => 'global',
+            'scope_key' => 'global',
+            'code' => 'EA-'.$number,
+            'name' => 'Each',
+            'name_ar' => 'قطعة',
+            'name_en' => 'Each',
+            'decimal_places' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $product = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog,
+            'unit_id' => $unit,
+            'sku' => $number.'-SKU',
+            'name' => $number.' Item',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $order = (int) DB::table('orders')->insertGetId([
             'store_id' => $storeId,
             'customer_id' => $legacyCustomerId,
             'b2c_customer_id' => $customerId,
@@ -108,6 +140,21 @@ class OrderOperationsIsolationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        DB::table('order_items')->insert([
+            'order_id' => $order,
+            'product_id' => $product,
+            'sku_snapshot' => $number.'-SKU',
+            'name_snapshot' => $number.' Item',
+            'quantity' => 1,
+            'unit_price' => 10,
+            'line_total' => 10,
+            'currency' => 'KWD',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $order;
     }
 
     private function storeAdmin(int $storeId, string $email): User
