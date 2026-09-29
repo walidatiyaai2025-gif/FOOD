@@ -127,6 +127,7 @@ Route::prefix('admin')
         Route::post('/b2c/warehouses', [B2cWorkspaceController::class, 'storeWarehouse'])->name('b2c.warehouses.store');
         Route::post('/b2c/inventory', [B2cWorkspaceController::class, 'ensureInventory'])->name('b2c.inventory.ensure');
         Route::post('/b2c/inventory/{inventory}/adjust', [B2cWorkspaceController::class, 'adjustInventory'])->whereNumber('inventory')->name('b2c.inventory.adjust');
+        Route::post('/b2c/inventory/transfer', [B2cWorkspaceController::class, 'transferInventory'])->name('b2c.inventory.transfer');
         Route::put('/b2c/settings', [B2cWorkspaceController::class, 'saveSetting'])->name('b2c.settings.save');
         Route::get('/b2c/storefront-preview', [B2cWorkspaceController::class, 'show'])->defaults('module', 'storefront')->name('b2c.storefront-preview');
         Route::put('/b2c/storefront/settings', [StorefrontDesignController::class, 'updateSettings'])->name('b2c.storefront.settings');
