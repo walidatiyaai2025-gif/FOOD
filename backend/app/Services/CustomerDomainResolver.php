@@ -136,9 +136,15 @@ final class CustomerDomainResolver
         }
 
         if (! $customer instanceof B2cCustomer) {
+            $platformCustomer = DB::table('b2b_customers')
+                ->where('user_id', $user->getKey())
+                ->first(['phone']);
+
+            abort_unless($platformCustomer !== null, 404);
+
             $customer = app(B2cCustomerService::class)->create($storeId, [
                 'name' => (string) $user->name,
-                'phone' => DB::table('b2b_customers')->where('user_id', $user->getKey())->value('phone'),
+                'phone' => $platformCustomer->phone,
                 'email' => (string) $user->email,
             ], $user);
         }
