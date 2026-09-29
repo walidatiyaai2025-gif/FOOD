@@ -20,6 +20,7 @@ class CustomerAppRouter {
     required this.onAuthenticated,
     required this.onSessionExpired,
     required this.onEnterWholesale,
+    required this.onPlatformRegistered,
     this.b2bApi,
     this.storefrontApi,
     this.wholesaleApi,
@@ -37,6 +38,7 @@ class CustomerAppRouter {
   final CustomerAuthenticated onAuthenticated;
   final VoidCallback onSessionExpired;
   final ValueChanged<int?> onEnterWholesale;
+  final ValueChanged<String> onPlatformRegistered;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final requestedLocation = settings.name ?? CustomerRoutePaths.splash;
@@ -88,9 +90,19 @@ class CustomerAppRouter {
       );
     }
 
-    // A registered Customer account belongs to the FOODEX platform,
-    // not to one storefront. Store/channel ownership is resolved server-side
-    // from the selected store when cart and checkout operations run.
+    if (session.channel != requested.channel && !session.platformWide) {
+      final entitledRetailManager =
+          requested.channel == CustomerChannel.b2b &&
+          session.b2bRetailStoreId != null;
+      if (!entitledRetailManager) {
+        return definitionFor(
+          requested.channel == CustomerChannel.b2b
+              ? CustomerRoutePaths.b2bLogin
+              : CustomerRoutePaths.entry,
+        );
+      }
+    }
+
     return null;
   }
 
@@ -115,6 +127,7 @@ class CustomerAppRouter {
             wholesaleApi: wholesaleApi,
             enterWholesale: onEnterWholesale,
             onAuthenticated: onAuthenticated,
+            onPlatformRegistered: onPlatformRegistered,
           );
         }
 
