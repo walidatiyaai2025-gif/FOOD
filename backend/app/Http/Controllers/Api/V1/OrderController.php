@@ -15,6 +15,7 @@ use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\InvoiceService;
 use App\Services\OperationalTenantScope;
+use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderInventoryReservationService;
 use App\Services\PlatformCustomerService;
 use App\Services\RetailWholesaleReplenishmentService;
@@ -383,6 +384,7 @@ class OrderController extends Controller
                     : url('/'.ltrim((string) $store->logo_path, '/')),
             ],
             'address_id' => $order->address_id === null ? null : (int) $order->address_id,
+            'delivery_address' => app(OrderDeliveryAddressSnapshotService::class)->payload($order),
             'requested_delivery_date' => $order->requested_delivery_date,
             'channel' => (string) $order->channel,
             'status' => (string) $order->status,
