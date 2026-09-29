@@ -211,7 +211,7 @@ final class PushDeliveryService
                 : url('/'.ltrim($value, '/'));
         }
 
-        return url('/brand/foodex-economical-group.png');
+        return url('/brand/foodex-economical-group.webp');
     }
 
     /**
