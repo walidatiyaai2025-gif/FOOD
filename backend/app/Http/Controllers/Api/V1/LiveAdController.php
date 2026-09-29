@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\LiveAd;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,22 +57,31 @@ final class LiveAdController extends Controller
         $locale = (string) ($data['locale'] ?? 'ar');
 
         return response()->json([
-            'data' => $ads->map(fn (LiveAd $ad): array => [
-                'id' => (int) $ad->id,
-                'name' => (string) $ad->name,
-                'channel' => (string) $ad->channel,
-                'store_id' => $ad->store_id === null ? null : (int) $ad->store_id,
-                'title' => $locale === 'en' ? $ad->title_en : $ad->title_ar,
-                'body' => $locale === 'en' ? $ad->body_en : $ad->body_ar,
-                'image_url' => $this->assetUrl($ad->image_path),
-                'cta_label' => $locale === 'en' ? $ad->cta_label_en : $ad->cta_label_ar,
-                'cta_target' => $ad->cta_target,
-                'frequency' => (string) $ad->frequency,
-                'dismissible' => (bool) $ad->is_dismissible,
-                'priority' => (int) $ad->priority,
-                'starts_at' => $ad->starts_at?->toAtomString(),
-                'ends_at' => $ad->ends_at?->toAtomString(),
-            ])->values(),
+            'data' => $ads->map(function ($ad) use ($locale): array {
+                $startsAt = $ad->getRawOriginal('starts_at');
+                $endsAt = $ad->getRawOriginal('ends_at');
+
+                return [
+                    'id' => (int) $ad->id,
+                    'name' => (string) $ad->name,
+                    'channel' => (string) $ad->channel,
+                    'store_id' => $ad->store_id === null ? null : (int) $ad->store_id,
+                    'title' => $locale === 'en' ? $ad->title_en : $ad->title_ar,
+                    'body' => $locale === 'en' ? $ad->body_en : $ad->body_ar,
+                    'image_url' => $this->assetUrl($ad->image_path),
+                    'cta_label' => $locale === 'en' ? $ad->cta_label_en : $ad->cta_label_ar,
+                    'cta_target' => $ad->cta_target,
+                    'frequency' => (string) $ad->frequency,
+                    'dismissible' => (bool) $ad->is_dismissible,
+                    'priority' => (int) $ad->priority,
+                    'starts_at' => is_string($startsAt) && $startsAt !== ''
+                        ? CarbonImmutable::parse($startsAt)->toAtomString()
+                        : null,
+                    'ends_at' => is_string($endsAt) && $endsAt !== ''
+                        ? CarbonImmutable::parse($endsAt)->toAtomString()
+                        : null,
+                ];
+            })->values(),
         ]);
     }
 
