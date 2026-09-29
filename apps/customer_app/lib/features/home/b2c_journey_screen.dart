@@ -1530,19 +1530,9 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
       }
     }
 
-    for (final controller in [
-      label,
-      recipient,
-      phone,
-      line1,
-      area,
-      city,
-      countryCode,
-      landmark,
-      notes,
-    ]) {
-      controller.dispose();
-    }
+    // Keep the dialog controllers alive through the route's exit/focus
+    // animation. Immediate disposal after showDialog completes can race
+    // Flutter teardown and trigger controller/build-scope assertions.
   }
 
   Future<void> _editProfile(Map<String, dynamic> profile) async {
