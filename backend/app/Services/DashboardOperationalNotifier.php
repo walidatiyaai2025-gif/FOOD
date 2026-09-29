@@ -95,7 +95,9 @@ final class DashboardOperationalNotifier
                 ->value('id');
         }
 
-        $eventKey = 'delivery-status:'.($auditId ?: ($assignment?->getKey() ?? $order->getKey()).':'.$status.':'.(string) ($assignment?->updated_at ?? $order->updated_at));
+        $assignmentKey = $assignment instanceof DriverAssignment ? $assignment->getKey() : $order->getKey();
+        $eventUpdatedAt = $assignment instanceof DriverAssignment ? $assignment->updated_at : $order->updated_at;
+        $eventKey = 'delivery-status:'.($auditId ?: $assignmentKey.':'.$status.':'.(string) $eventUpdatedAt);
 
         $this->notifyOrderAudience(
             $order,
