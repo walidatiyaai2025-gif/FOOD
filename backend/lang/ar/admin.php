@@ -6,6 +6,7 @@ return [
     'navigation' => 'التنقل',
     'overview' => 'نظرة عامة',
     'logout' => 'تسجيل الخروج',
+    'customer_360' => 'العميل 360',
     'profile' => 'الملف الشخصي',
     'sidebar_search' => 'بحث في القوائم',
     'sidebar_toggle' => 'فتح أو إغلاق القائمة',
