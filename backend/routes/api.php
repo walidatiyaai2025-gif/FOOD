@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\MobileRuntimeController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PlatformMarketplaceController;
 use App\Http\Controllers\Api\V1\PushDeviceController;
+use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
@@ -110,6 +111,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/profile/favorites/{product}', [CustomerProfileController::class, 'addFavorite']);
         Route::delete('/profile/favorites/{product}', [CustomerProfileController::class, 'removeFavorite']);
 
+        Route::post('/quote', QuoteController::class);
         Route::post('/checkout', CheckoutController::class);
 
         Route::get('/orders', [OrderController::class, 'index']);
