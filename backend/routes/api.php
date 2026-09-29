@@ -110,6 +110,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/profile/addresses', [CustomerProfileController::class, 'addresses']);
         Route::post('/profile/addresses', [CustomerProfileController::class, 'storeAddress']);
         Route::patch('/profile/addresses/{address}', [CustomerProfileController::class, 'updateAddress']);
+        Route::post('/profile/addresses/{address}/default', [CustomerProfileController::class, 'setDefaultAddress']);
         Route::delete('/profile/addresses/{address}', [CustomerProfileController::class, 'destroyAddress']);
         Route::get('/profile/favorites', [CustomerProfileController::class, 'favorites']);
         Route::post('/profile/favorites/{product}', [CustomerProfileController::class, 'addFavorite']);
