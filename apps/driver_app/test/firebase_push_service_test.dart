@@ -11,6 +11,25 @@ void main() {
     expect(config.isConfigured, isFalse);
   });
 
+  test('driver push data preserves assignment routing and revocation state', () {
+    final open = DriverFirebasePushService.openForData({
+      'assignment_id': '42',
+      'order_id': '99',
+      'access_revoked': '0',
+    });
+
+    expect(open.assignmentId, 42);
+    expect(open.orderId, 99);
+    expect(open.accessRevoked, isFalse);
+
+    final revoked = DriverFirebasePushService.openForData({
+      'assignment_id': '42',
+      'access_revoked': '1',
+    });
+    expect(revoked.assignmentId, 42);
+    expect(revoked.accessRevoked, isTrue);
+  });
+
   test('device registry uses the authenticated FOODEX driver push contract', () async {
     late http.Request captured;
     final client = MockClient((request) async {
