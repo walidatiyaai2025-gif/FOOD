@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.27",
-  "minimum_current_version": "1.0.26",
-  "sha256": "55a89c85a458bc87cf62e06b612fcb14ee2e0c76fa8036f097fdd71425946a2e",
+  "target_version": "1.0.29",
+  "minimum_current_version": "1.0.28",
+  "sha256": "57465bac2e9dad033f51535aff65b5f29da7c5b5fba0468ea900349c52b11061",
   "contains_migrations": false,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Release 1.0.27: Store Selector v3 and Driver active-assignment hardening (#382)",
+  "release_notes": "#393 Bump FOODEX release identity to 1.0.29",
   "dashboard_fields": {
-    "target_version": "1.0.27",
-    "minimum_current_version": "1.0.26",
-    "sha256": "55a89c85a458bc87cf62e06b612fcb14ee2e0c76fa8036f097fdd71425946a2e",
+    "target_version": "1.0.29",
+    "minimum_current_version": "1.0.28",
+    "sha256": "57465bac2e9dad033f51535aff65b5f29da7c5b5fba0468ea900349c52b11061",
     "contains_migrations": false,
-    "release_notes": "Release 1.0.27: Store Selector v3 and Driver active-assignment hardening (#382)"
+    "release_notes": "#393 Bump FOODEX release identity to 1.0.29"
   }
 }
