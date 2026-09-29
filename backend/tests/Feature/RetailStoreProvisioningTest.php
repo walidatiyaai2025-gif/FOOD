@@ -183,13 +183,17 @@ class RetailStoreProvisioningTest extends TestCase
         DB::table('stores')->where('id', $older)->update(['created_at' => now()->subDay()]);
         DB::table('stores')->where('id', $newer)->update(['created_at' => now()]);
 
-        $this->actingAs($admin)
-            ->get(route('admin.retail-stores.index'))
+        $response = $this->actingAs($admin)
+            ->get(route('admin.retail-stores.index'));
+
+        $response
             ->assertOk()
             ->assertSeeInOrder(['Test NEWER', 'Test OLDER'])
-            ->assertSee('data-store-accordion="'.$newer.'" open="open"', false)
-            ->assertDontSee('data-store-accordion="'.$older.'" open="open"', false)
             ->assertSee('store-accordion-body', false);
+
+        $html = (string) $response->getContent();
+        $this->assertMatchesRegularExpression('/data-store-accordion="'.$newer.'"\\s+open="open"/', $html);
+        $this->assertDoesNotMatchRegularExpression('/data-store-accordion="'.$older.'"\\s+open="open"/', $html);
     }
 
     public function test_non_super_admin_cannot_provision_retail_store(): void
