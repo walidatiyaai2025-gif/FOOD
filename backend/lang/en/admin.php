@@ -16,6 +16,7 @@ return [
         'accounts' => 'Customers & Accounts',
         'stores' => 'Stores & Channels',
         'marketing' => 'Marketing & Communications',
+        'advertising' => 'Advertising',
         'analytics' => 'Analytics & Reports',
         'administration' => 'Administration',
     ],
