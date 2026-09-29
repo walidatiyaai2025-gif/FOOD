@@ -28,6 +28,7 @@ bool shouldUseMultiStoreDesign(
     case CustomerRoutePaths.b2bCart:
     case CustomerRoutePaths.b2bCheckout:
     case CustomerRoutePaths.b2bOrders:
+    case CustomerRoutePaths.b2bOrderDetails:
       return true;
     case CustomerRoutePaths.home:
     case CustomerRoutePaths.productDetails:
@@ -128,6 +129,11 @@ class MultiStoreDesignScreen extends StatelessWidget {
         );
       case CustomerRoutePaths.b2bOrders:
         return WholesaleOrdersDesignScreen(api: b2bApi);
+      case CustomerRoutePaths.b2bOrderDetails:
+        return WholesaleOrderDetailsDesignScreen(
+          location: location,
+          api: b2bApi,
+        );
       default:
         return const SizedBox.shrink();
     }
