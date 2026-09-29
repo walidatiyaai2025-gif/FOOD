@@ -54,9 +54,10 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertNotNull($order);
         $this->assertSame((int) $customer->id, (int) $order->b2c_customer_id);
         $this->assertSame(9.0, (float) $order->subtotal);
-        $this->assertSame(1.0, (float) $order->discount_total);
-        $this->assertSame(0.5, (float) $order->delivery_total);
-        $this->assertSame(8.5, (float) $order->grand_total);
+        $this->assertSame(0.0, (float) $order->discount_total);
+        $this->assertSame(0.0, (float) $order->delivery_total);
+        $this->assertSame(9.0, (float) $order->grand_total);
+        $this->assertNotNull($order->quote_id, 'Dashboard orders must persist the backend quote identity.');
         $this->assertSame(2.0, (float) DB::table('inventories')->where('id', $inventory)->value('reserved_quantity'));
         $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'provider' => 'cash_on_delivery', 'status' => 'pending']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'dashboard.order_created', 'store_id' => $store]);
