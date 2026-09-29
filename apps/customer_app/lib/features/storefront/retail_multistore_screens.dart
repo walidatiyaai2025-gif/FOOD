@@ -7,6 +7,7 @@ import '../../core/api/b2c_catalog_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
+import '../../core/engagement/live_ad_service.dart';
 import 'storefront_design_system.dart';
 
 typedef WholesaleContextCallback = void Function(int? retailStoreId);
@@ -633,6 +634,8 @@ class _RetailStorefrontDesignScreenState
   late final int storeId = retailStoreId(widget.location);
   late Future<_RetailHomeData> future = _load();
   final search = TextEditingController();
+  final liveAds = CustomerLiveAdService();
+  bool _liveAdScheduled = false;
 
   Future<_RetailHomeData> _load() async {
     final values = await Future.wait<Object?>([
@@ -680,6 +683,20 @@ class _RetailStorefrontDesignScreenState
                 ),
               ),
             );
+          }
+
+          if (!_liveAdScheduled) {
+            _liveAdScheduled = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              liveAds
+                  .showForContext(
+                    context,
+                    channel: 'b2c',
+                    storeId: storeId,
+                  )
+                  .catchError((_) {});
+            });
           }
 
           final data = snapshot.data!;
