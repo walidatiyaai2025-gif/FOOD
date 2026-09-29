@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 final class DriverOrderService
@@ -35,12 +36,11 @@ final class DriverOrderService
             'accepted' => match ($orderStatus) {
                 'ready' => ['picked_up'],
                 'out_for_delivery' => ['delivered', 'failed'],
-                'failed' => ['out_for_delivery'],
                 default => [],
             },
             'picked_up' => $orderStatus === 'ready' ? ['out_for_delivery'] : [],
             'out_for_delivery' => $orderStatus === 'out_for_delivery' ? ['delivered', 'failed'] : [],
-            'failed' => $orderStatus === 'failed' ? ['out_for_delivery'] : [],
+            'failed' => [],
             default => [],
         };
     }
@@ -145,12 +145,15 @@ final class DriverOrderService
         $driverHistory = DB::table('delivery_proofs')
             ->leftJoin('users', 'users.id', '=', 'delivery_proofs.user_id')
             ->where('driver_assignment_id', $assignment->getKey())
-            ->whereIn('proof_type', ['status_note', 'failure_note'])
+            ->whereIn('proof_type', ['status_note', 'failure_note', 'delivery_image'])
             ->orderByDesc('delivery_proofs.id')
             ->limit(50)
             ->get([
                 'delivery_proofs.from_status',
                 'delivery_proofs.to_status',
+                'delivery_proofs.proof_type',
+                'delivery_proofs.file_path',
+                'delivery_proofs.reason_code',
                 'delivery_proofs.note',
                 'delivery_proofs.captured_at',
                 'users.name as actor_name',
@@ -158,6 +161,9 @@ final class DriverOrderService
             ->map(static fn (object $event): array => [
                 'from_status' => $event->from_status,
                 'to_status' => $event->to_status,
+                'proof_type' => $event->proof_type,
+                'file_path' => $event->file_path,
+                'reason_code' => $event->reason_code,
                 'note' => $event->note,
                 'actor_name' => $event->actor_name,
                 'captured_at' => $event->captured_at === null ? null : (string) $event->captured_at,
@@ -268,6 +274,8 @@ final class DriverOrderService
         string $targetStatus,
         ?string $note,
         Request $request,
+        ?UploadedFile $proofImage = null,
+        ?string $failureReason = null,
     ): DriverAssignment {
         $beforeAssignment = (string) $assignment->status;
         $beforeOrder = null;
@@ -280,6 +288,8 @@ final class DriverOrderService
             $targetStatus,
             $note,
             $request,
+            $proofImage,
+            $failureReason,
             &$beforeAssignment,
             &$beforeOrder,
             &$afterOrder,
@@ -320,13 +330,17 @@ final class DriverOrderService
                 $afterOrder = 'delivered';
             } elseif ($targetStatus === 'failed') {
                 abort_unless((string) $order->status === 'out_for_delivery', 409);
-                $this->updateOrderStatus($order, $actor, 'failed', $note, $request);
-                $afterOrder = 'failed';
+                abort_unless($failureReason !== null && trim($failureReason) !== '', 422, 'Failure reason is required.');
+                $failureAuditNote = trim($failureReason)
+                    .($note !== null && trim($note) !== '' ? ': '.trim($note) : '');
+                $this->updateOrderStatus($order, $actor, 'failed', $failureAuditNote, $request);
+                $this->updateOrderStatus($order->fresh(), $actor, 'ready', $failureAuditNote, $request);
+                $afterOrder = 'ready';
             } elseif ($targetStatus === 'picked_up') {
                 abort_unless((string) $order->status === 'ready', 409);
             }
 
-            $locked->status = $targetStatus;
+            $locked->status = $targetStatus === 'failed' ? 'picked_up' : $targetStatus;
             if ($targetStatus === 'delivered') {
                 $locked->completed_at = now();
             } elseif ($targetStatus !== 'delivered') {
@@ -334,16 +348,28 @@ final class DriverOrderService
             }
             $locked->save();
 
-            if ($note !== null && trim($note) !== '') {
+            $proofPath = null;
+            if ($proofImage !== null && in_array($targetStatus, ['delivered', 'failed'], true)) {
+                $proofPath = $proofImage->store('delivery-proofs', 'public');
+            }
+
+            if (
+                ($note !== null && trim($note) !== '')
+                || $proofPath !== null
+                || ($targetStatus === 'failed' && $failureReason !== null && trim($failureReason) !== '')
+            ) {
                 DB::table('delivery_proofs')->insert([
                     'driver_assignment_id' => $locked->getKey(),
                     'user_id' => $actor->getKey(),
-                    'proof_type' => $targetStatus === 'failed' ? 'failure_note' : 'status_note',
+                    'proof_type' => $targetStatus === 'failed'
+                        ? 'failure_note'
+                        : ($proofPath !== null ? 'delivery_image' : 'status_note'),
                     'from_status' => $beforeAssignment,
                     'to_status' => $targetStatus,
-                    'file_path' => null,
+                    'file_path' => $proofPath,
                     'otp_hash' => null,
-                    'note' => trim($note),
+                    'reason_code' => $targetStatus === 'failed' ? trim((string) $failureReason) : null,
+                    'note' => $note === null ? null : trim($note),
                     'captured_at' => now(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -355,7 +381,7 @@ final class DriverOrderService
                 $actor,
                 $locked,
                 ['status' => (string) $assignment->status],
-                ['status' => $targetStatus, 'note' => $note],
+                ['status' => $targetStatus, 'failure_reason' => $failureReason, 'note' => $note],
                 $request,
             );
 
