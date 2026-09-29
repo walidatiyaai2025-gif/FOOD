@@ -214,6 +214,11 @@ class B2bJourneyScreen extends StatelessWidget {
           context.tr('b2b.profile.subtitle'),
           [
             _section(context.tr('b2b.profile.company')),
+            _button(
+              context,
+              context.tr('customer.profile.addresses'),
+              CustomerRoutePaths.addresses,
+            ),
             _section(context.tr('b2b.profile.settings')),
           ],
         );
