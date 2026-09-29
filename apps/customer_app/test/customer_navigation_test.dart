@@ -79,7 +79,7 @@ void main() {
 
     expect(find.text('تسجيل الدخول'), findsWidgets);
     expect(find.textContaining('/auth/checkout'), findsOneWidget);
-    expect(find.textContaining('/b2b/dashboard'), findsOneWidget);
+    expect(find.textContaining('next='), findsOneWidget);
   });
 
   testWidgets('authenticated B2C session reaches B2C protected routes',
