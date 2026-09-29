@@ -12,4 +12,9 @@ class Order extends Model
     protected $table = 'orders';
 
     protected $guarded = [];
+
+    protected $casts = [
+        'quoted_at' => 'datetime',
+        'pricing_snapshot' => 'array',
+    ];
 }
