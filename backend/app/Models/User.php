@@ -175,6 +175,7 @@ class User extends Authenticatable
         static::creating(function (User $user): void {
             if (is_string($user->username) && trim($user->username) !== '') {
                 $user->username = strtolower(trim($user->username));
+
                 return;
             }
 
