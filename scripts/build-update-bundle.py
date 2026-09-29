@@ -29,8 +29,18 @@ RUNTIME_EXACT = {
     "backend/composer.lock",
 }
 
+# Recovery-critical files are shipped in every incremental update, even when unchanged
+# from the selected cumulative base. This heals installations that previously received
+# an incomplete update package.
 RUNTIME_ALWAYS_INCLUDE = {
+    "backend/app/Domain/Installer/InstallerWorkflow.php",
+    "backend/app/Domain/Updater/LaravelUpdateRuntime.php",
+    "backend/app/Http/Middleware/RunSchedulerHeartbeat.php",
+    "backend/app/Services/SchedulerRuntime.php",
+    "backend/bootstrap/app.php",
+    "backend/config/foodex.php",
     "backend/public/brand/foodex-economical-group.webp",
+    "backend/routes/console.php",
 }
 
 PROTECTED_PARTS = {".git", "storage", "vendor"}
