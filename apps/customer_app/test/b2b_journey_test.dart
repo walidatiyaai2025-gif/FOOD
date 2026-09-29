@@ -147,7 +147,7 @@ void main() {
         initialRoute: '/b2b/checkout?store=7',
         b2bApi: api,
         storefrontApi: const _CheckoutStorefrontApi(),
-        wholesaleApi: const _FakeWholesaleCommerceApi({'id': 4}),
+        wholesaleCommerceApi: const _FakeWholesaleCommerceApi({'id': 4}),
       ),
     );
     await tester.pumpAndSettle();
@@ -172,7 +172,7 @@ void main() {
         initialRoute: '/b2b/checkout?store=7',
         b2bApi: api,
         storefrontApi: const _CheckoutStorefrontApi(),
-        wholesaleApi: const _FakeWholesaleCommerceApi(<String, Object?>{}),
+        wholesaleCommerceApi: const _FakeWholesaleCommerceApi(<String, Object?>{}),
       ),
     );
     await tester.pumpAndSettle();
