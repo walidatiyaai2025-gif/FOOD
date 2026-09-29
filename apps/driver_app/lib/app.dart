@@ -52,7 +52,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   DriverSession? _session;
   final GlobalKey<NavigatorState> _driverNavigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
-  StreamSubscription<void>? _pushOpenSubscription;
+  StreamSubscription<DriverPushOpen>? _pushOpenSubscription;
   StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
 
   static const _appVersion = '1.0.34';
@@ -124,10 +124,11 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   void _configurePush() {
     final service = widget.pushService;
     if (service == null) return;
-    _pushOpenSubscription = service.opens.listen((_) => _openFromPush());
+    _pushOpenSubscription = service.opens.listen(_openFromPush);
     _pushAlertSubscription = service.alerts.listen(_showPushAlert);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (service.takePendingOpen()) _openFromPush();
+      final pending = service.takePendingOpen();
+      if (pending != null) _openFromPush(pending);
     });
     _bindPushSession();
   }
@@ -140,13 +141,17 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     }
   }
 
-  void _openFromPush() {
+  void _openFromPush(DriverPushOpen open) {
     final session = _session;
     if (session == null) return;
     final route = session.channel == DriverChannel.b2c
         ? DriverRoutes.b2cDeliveries
         : DriverRoutes.b2bDeliveries;
-    _driverNavigatorKey.currentState?.pushNamed(route);
+
+    _driverNavigatorKey.currentState?.pushNamed(
+      route,
+      arguments: open.accessRevoked ? null : open.assignmentId,
+    );
   }
 
   void _showPushAlert(DriverPushAlert alert) {
