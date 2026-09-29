@@ -8,7 +8,7 @@
 
 <details class="foodex-card" open style="margin:16px 0">
     <summary style="cursor:pointer;font-weight:800">
-        {{ $isArOrder ? 'إنشاء طلب متعدد المنتجات' : 'Create multi-line order' }}
+        {{ $isArOrder ? 'إنشاء طلب جديد · متعدد المنتجات' : 'Create new order · Multi-line' }}
     </summary>
     <form method="post"
           action="{{ route($orderStoreRoute) }}"
