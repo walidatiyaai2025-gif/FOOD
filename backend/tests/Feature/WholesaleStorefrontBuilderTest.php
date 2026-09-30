@@ -141,7 +141,7 @@ class WholesaleStorefrontBuilderTest extends TestCase
         $this->assertNotNull($draftBanner);
         $this->assertNotEmpty($draftBanner['editor_id']);
         $this->assertStringStartsWith('storage/stores/'.$storeId.'/branding/', (string) $draft->payload['store']['logo_path']);
-        $this->assertStringStartsWith('storage/stores/'.$storeId.'/banners/', (string) $draftBanner['image_path']);
+        $this->assertStringStartsWith('storage/banners/'.$storeId.'/', (string) $draftBanner['image_path']);
 
         Sanctum::actingAs($buyer);
         $this->getJson('/api/v1/b2b/stores/'.$storeId.'/storefront')
