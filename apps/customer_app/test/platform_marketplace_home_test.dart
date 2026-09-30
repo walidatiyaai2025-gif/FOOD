@@ -122,7 +122,7 @@ void main() {
         find.byKey(const ValueKey('marketplace-retail-carousel'));
     expect(carousel, findsOneWidget);
 
-    await tester.drag(carousel, const Offset(-350, 0));
+    await tester.drag(carousel, const Offset(-700, 0));
     await tester.pumpAndSettle();
     expect(find.text('Retail Seven Offer'), findsOneWidget);
 
@@ -179,11 +179,11 @@ void main() {
 
     expect(find.text('FOODEX Wholesale'), findsOneWidget);
 
-    await tester.drag(carousel, const Offset(-350, 0));
+    await tester.drag(carousel, const Offset(-700, 0));
     await tester.pumpAndSettle();
     expect(find.text('Retail Seven Offer'), findsOneWidget);
 
-    await tester.drag(carousel, const Offset(-350, 0));
+    await tester.drag(carousel, const Offset(-700, 0));
     await tester.pumpAndSettle();
     expect(find.text('Retail Eight Offer'), findsOneWidget);
   });
