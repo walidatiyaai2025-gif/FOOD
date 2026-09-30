@@ -56,6 +56,12 @@ class AppPreviewSessionTest extends TestCase
             ->assertJsonPath('data.target.user_id', $customer->id)
             ->assertJsonPath('data.read_only', true);
 
+        // Sanctum::actingAs() stores the admin on the in-memory guard for this
+        // test process. Clear that state so this request proves the opaque
+        // preview token cannot authenticate a normal Sanctum route.
+        $this->app['auth']->guard('sanctum')->setUser(null);
+        $this->app['auth']->forgetGuards();
+
         $this->withToken($plainToken)
             ->getJson('/api/v1/profile')
             ->assertUnauthorized();
