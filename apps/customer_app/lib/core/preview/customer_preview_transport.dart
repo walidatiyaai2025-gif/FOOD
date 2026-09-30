@@ -119,6 +119,8 @@ class CustomerPreviewReadHttpClient extends http.BaseClient {
     const roots = <String>[
       '/stores/',
       '/checkout/options',
+      '/dashboard',
+      '/reports/',
       '/products',
       '/invoices',
       '/account-statement',
