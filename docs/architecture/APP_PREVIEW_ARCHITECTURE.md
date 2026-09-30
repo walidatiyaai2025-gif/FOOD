@@ -148,6 +148,7 @@ The Dashboard exposes a unified Preview Center with explicit controls for:
 - Draft vs Published;
 - AR/EN and RTL/LTR;
 - supported device profile;
+- deterministic viewport semantics: width/height, platform, safe-area insets, portrait orientation, text scale and keyboard bottom inset;
 - runtime/app/config schema version;
 - connection/stale status.
 
@@ -231,14 +232,14 @@ Customer Flutter:
 - Guest/authenticated variants;
 - tier/store pricing;
 - routes/deep links;
-- RTL/LTR and supported widths.
+- RTL/LTR and supported device profiles/viewport semantics, including safe-area and text-scale behavior.
 
 Driver Flutter:
 - B2B/B2C scope;
 - status cards/assignments/details;
 - lifecycle action visibility;
 - proof/failure flows;
-- RTL/LTR.
+- RTL/LTR and the same host-provided viewport/safe-area semantics as Customer preview.
 
 Dashboard:
 - persona/store/channel selection;
