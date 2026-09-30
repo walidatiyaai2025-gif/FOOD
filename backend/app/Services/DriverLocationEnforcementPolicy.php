@@ -18,7 +18,7 @@ final class DriverLocationEnforcementPolicy
         $stored = $this->read(self::ENABLED_KEY);
 
         if ($stored === null) {
-            return (bool) config('driver_location.enforcement_default', false);
+            return false;
         }
 
         if (is_bool($stored)) {

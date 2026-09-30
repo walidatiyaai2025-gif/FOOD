@@ -36,6 +36,20 @@ class DriverFreshLocationEnforcementTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_truthy_runtime_config_cannot_enable_enforcement_without_persisted_policy(): void
+    {
+        config()->set('driver_location.enforcement_default', true);
+
+        $this->assertFalse(app(DriverLocationEnforcementPolicy::class)->enabled());
+
+        [$user] = $this->b2bDriver('location-env-bypass@example.test');
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/driver/assignments')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 0);
+    }
+
     public function test_enforcement_off_preserves_existing_driver_operational_access(): void
     {
         [$user] = $this->b2bDriver('location-off@example.test');
