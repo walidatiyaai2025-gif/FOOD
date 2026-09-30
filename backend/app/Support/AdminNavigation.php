@@ -85,6 +85,7 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2b', 'reports', 'admin.b2b_workspace.modules.reports', 'reports.view'),
             ]),
             $this->group('applications', 'admin.nav_groups.applications', '▣', [
+                $this->routeItemScoped($user, 'app_preview', 'admin.app_preview', 'admin.app-preview.index', 'app_preview.view'),
                 $this->routeItem($user, 'mobile_customer_download', 'admin.mobile_apps.customer_download', 'admin.mobile-apps.customer.download', 'platform.manage'),
                 $this->routeItem($user, 'mobile_driver_download', 'admin.mobile_apps.driver_download', 'admin.mobile-apps.driver.download', 'platform.manage'),
             ]),
