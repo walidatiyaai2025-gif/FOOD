@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../../core/api/b2b_api.dart';
 import '../../core/api/b2c_account_api.dart';
@@ -11,6 +12,7 @@ import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
 import 'retail_multistore_screens.dart';
 import 'professional_store_selector_screen.dart';
+import 'marketplace_barcode_scanner.dart';
 import 'platform_marketplace_screen.dart';
 import 'wholesale_multistore_screens.dart';
 
@@ -55,6 +57,8 @@ class MultiStoreDesignScreen extends StatelessWidget {
     this.b2bApi,
     this.storefrontApi,
     this.wholesaleApi,
+    this.marketplaceClient,
+    this.marketplaceBarcodeScanner,
     super.key,
   });
 
@@ -70,6 +74,8 @@ class MultiStoreDesignScreen extends StatelessWidget {
   final B2bApi? b2bApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
+  final http.Client? marketplaceClient;
+  final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
   final ValueChanged<int?> enterWholesale;
 
   @override
@@ -80,6 +86,9 @@ class MultiStoreDesignScreen extends StatelessWidget {
           session: session,
           onPlatformRegistered: onPlatformRegistered,
           onLocaleChanged: onLocaleChanged,
+          client: marketplaceClient,
+          barcodeScanner:
+              marketplaceBarcodeScanner ?? showMarketplaceBarcodeScanner,
         );
       case CustomerRoutePaths.stores:
       case CustomerRoutePaths.storeSelector:
