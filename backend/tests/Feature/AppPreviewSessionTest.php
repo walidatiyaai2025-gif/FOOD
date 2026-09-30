@@ -168,6 +168,70 @@ class AppPreviewSessionTest extends TestCase
         ]);
     }
 
+
+    public function test_expired_preview_token_cannot_resolve(): void
+    {
+        $storeId = $this->retailStore('PREVIEW-EXPIRED');
+        $admin = $this->storeAdmin($storeId, 'preview-expired-admin@example.test');
+        $customer = $this->user('Expired Customer', 'preview-expired-customer@example.test');
+        $this->retailCustomer($customer, $storeId);
+
+        Sanctum::actingAs($admin);
+        $created = $this->postJson('/api/v1/admin/app-preview/sessions', [
+            'target_user_id' => $customer->id,
+            'target_type' => 'customer',
+            'channel' => 'b2c',
+            'store_id' => $storeId,
+        ])->assertCreated();
+
+        $token = (string) $created->json('preview_token');
+        DB::table('app_preview_sessions')->update(['expires_at' => now()->subMinute()]);
+
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->postJson('/api/v1/app-preview/resolve')
+            ->assertUnauthorized();
+    }
+
+    public function test_preview_resolve_rechecks_actor_access_and_target_activity(): void
+    {
+        $storeId = $this->retailStore('PREVIEW-REAUTH');
+        $admin = $this->storeAdmin($storeId, 'preview-reauth-admin@example.test');
+        $customer = $this->user('Reauth Customer', 'preview-reauth-customer@example.test');
+        $this->retailCustomer($customer, $storeId);
+
+        Sanctum::actingAs($admin);
+        $created = $this->postJson('/api/v1/admin/app-preview/sessions', [
+            'target_user_id' => $customer->id,
+            'target_type' => 'customer',
+            'channel' => 'b2c',
+            'store_id' => $storeId,
+        ])->assertCreated();
+
+        $token = (string) $created->json('preview_token');
+        DB::table('user_store_roles')->where('user_id', $admin->id)->where('store_id', $storeId)->delete();
+
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->postJson('/api/v1/app-preview/resolve')
+            ->assertForbidden();
+
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+            'role_id' => $roleId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $customer->update(['is_active' => false]);
+
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->postJson('/api/v1/app-preview/resolve')
+            ->assertUnauthorized();
+    }
+
     public function test_driver_preview_requires_matching_active_driver_channel_and_store(): void
     {
         $wholesaleStoreId = app(WholesalePrincipal::class)->storeId();
