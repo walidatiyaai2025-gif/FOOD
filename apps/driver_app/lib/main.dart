@@ -86,6 +86,9 @@ class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
 
   @override
   Widget build(BuildContext context) {
-    return FoodexDriverApp(\n      pushService: _pushService,\n      locationGateService: const GeolocatorDriverLocationGateService(),\n    );
+    return FoodexDriverApp(
+      pushService: _pushService,
+      locationGateService: const GeolocatorDriverLocationGateService(),
+    );
   }
 }
