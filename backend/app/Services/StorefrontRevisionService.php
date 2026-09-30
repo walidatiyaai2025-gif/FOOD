@@ -453,8 +453,7 @@ final class StorefrontRevisionService
         int $storeId,
         string $channel,
         ?StorefrontRevision $assetRevision = null,
-    ): void
-    {
+    ): void {
         $normalized = $this->validatedPayload($payload, $storeId, $channel);
 
         $settings = (array) $normalized['settings'];
@@ -604,7 +603,7 @@ final class StorefrontRevisionService
     }
 
     /** @param array<string,mixed> $payload
-     *  @return array<string,mixed>
+     * @return array<string,mixed>
      */
     private function validatedPayload(array $payload, int $storeId, string $channel): array
     {
