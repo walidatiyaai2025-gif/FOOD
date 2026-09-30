@@ -4,6 +4,8 @@ import 'package:flutter/widgets.dart';
 import 'app.dart';
 import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/push/firebase_push_service.dart';
+import 'core/preview/customer_preview_runtime_builder.dart';
+import 'core/preview/customer_preview_runtime_host.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +28,20 @@ Future<void> main() async {
     diagnostics.recordDartError(error, stack);
     return previousPlatformHandler?.call(error, stack) ?? false;
   };
+
+  if (kIsWeb && isEmbeddedCustomerPreviewRuntime) {
+    try {
+      final bootstrap = await waitForCustomerPreviewBootstrap();
+      if (bootstrap != null) {
+        runApp(buildCustomerPreviewApp(bootstrap));
+        postCustomerPreviewStatus('ready');
+        return;
+      }
+    } catch (_) {
+      postCustomerPreviewStatus('error', code: 'runtime_bootstrap_failed');
+      return;
+    }
+  }
 
   CustomerFirebasePushService? pushService;
   try {
