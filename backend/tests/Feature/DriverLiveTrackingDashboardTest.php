@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -37,7 +38,7 @@ class DriverLiveTrackingDashboardTest extends TestCase
     public function test_dashboard_web_session_can_read_live_tracking_feed(): void
     {
         $user = $this->globalUser('SUPER_ADMIN', 'tracking-feed@example.test');
-        app(\App\Services\WholesalePrincipal::class)->storeId();
+        app(WholesalePrincipal::class)->storeId();
 
         $this->actingAs($user)
             ->getJson('/admin/driver-live-tracking/feed')
