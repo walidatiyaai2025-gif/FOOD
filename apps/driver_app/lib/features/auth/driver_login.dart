@@ -19,21 +19,25 @@ class DriverLoginPage extends StatefulWidget {
 }
 
 class _DriverLoginPageState extends State<DriverLoginPage> {
-  final _username = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
   bool _submitting = false;
+  bool _passwordVisible = false;
   String? _errorKey;
 
   @override
   void dispose() {
-    _username.dispose();
+    _email.dispose();
+    _password.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final repository = widget.repository;
     if (repository == null || _submitting) return;
-    final username = _username.text.trim();
-    if (username.isEmpty) {
+    final email = _email.text.trim();
+    final password = _password.text;
+    if (email.isEmpty || password.isEmpty) {
       setState(() => _errorKey = 'driver.login.required');
       return;
     }
@@ -44,7 +48,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
     });
 
     try {
-      final session = await repository.login(username: username);
+      final session = await repository.login(email: email, password: password);
       if (mounted) widget.onAuthenticated(session);
     } on DriverAuthenticationException {
       if (mounted) setState(() => _errorKey = 'driver.login.invalid');
@@ -136,14 +140,46 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                 ),
                               if (configured) ...[
                                 TextField(
-                                  key: const Key('driver-login-username'),
-                                  controller: _username,
+                                  key: const Key('driver-login-email'),
+                                  controller: _email,
+                                  keyboardType: TextInputType.emailAddress,
+                                  autofillHints: const [AutofillHints.email],
+                                  textInputAction: TextInputAction.next,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('driver.login.email'),
+                                    prefixIcon: const Icon(Icons.alternate_email_rounded),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextField(
+                                  key: const Key('driver-login-password'),
+                                  controller: _password,
+                                  obscureText: !_passwordVisible,
+                                  autofillHints: const [AutofillHints.password],
                                   textInputAction: TextInputAction.done,
                                   autocorrect: false,
                                   enableSuggestions: false,
                                   decoration: InputDecoration(
-                                    labelText: context.tr('driver.login.username'),
-                                    prefixIcon: const Icon(Icons.person_outline_rounded),
+                                    labelText: context.tr('driver.login.password'),
+                                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                                    suffixIcon: IconButton(
+                                      key: const Key('driver-password-toggle'),
+                                      tooltip: context.tr(
+                                        _passwordVisible
+                                            ? 'driver.login.hide_password'
+                                            : 'driver.login.show_password',
+                                      ),
+                                      onPressed: () => setState(
+                                        () => _passwordVisible = !_passwordVisible,
+                                      ),
+                                      icon: Icon(
+                                        _passwordVisible
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                      ),
+                                    ),
                                   ),
                                   onSubmitted: (_) => _submit(),
                                 ),
