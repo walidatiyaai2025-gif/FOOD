@@ -18,6 +18,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       customer: ${{ steps.filter.outputs.customer }}
       driver: ${{ steps.filter.outputs.driver }}
+      app_preview_visual: ${{ steps.filter.outputs.app_preview_visual }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,6 +39,7 @@ jobs:
           backend=false
           customer=false
           driver=false
+          app_preview_visual=false
 
           if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$)' changed-files.txt; then
             backend=true
@@ -57,10 +59,15 @@ jobs:
             driver=true
           fi
 
+          if grep -Eq '^(apps/(customer_app|driver_app)/(lib/core/preview/|lib/preview_main\.dart|test/(customer|driver)_preview)|backend/(config/app_preview\.php|resources/views/admin/app-preview\.blade\.php)|scripts/app_preview_visual_parity\.mjs|docs/quality/APP_PREVIEW_VISUAL_PARITY\.md|\.github/workflows/app-preview-(acceptance-ci|visual-parity)\.yml|\.github/workflows/required-ci-gate\.yml)' changed-files.txt; then
+            app_preview_visual=true
+          fi
+
           {
             echo "backend=$backend"
             echo "customer=$customer"
             echo "driver=$driver"
+            echo "app_preview_visual=$app_preview_visual"
           } >> "$GITHUB_OUTPUT"
 
   repository-policy:
@@ -100,6 +107,12 @@ jobs:
     if: ${{ needs.changes.outputs.driver == 'true' }}
     uses: ./.github/workflows/driver-app-ci.yml
 
+  app-preview-visual-parity:
+    name: APP-PREVIEW visual runtime parity
+    needs: changes
+    if: ${{ needs.changes.outputs.app_preview_visual == 'true' }}
+    uses: ./.github/workflows/app-preview-visual-parity.yml
+
   screenshot-evidence:
     name: Runtime screenshot evidence
     if: ${{ github.head_ref == 'test/175-runtime-screenshot-evidence' || github.head_ref == 'ci/184-screenshot-evidence-guards' }}
@@ -116,6 +129,7 @@ jobs:
       - backend-validation
       - customer-validation
       - driver-validation
+      - app-preview-visual-parity
       - screenshot-evidence
     runs-on: ubuntu-latest
     steps:
@@ -130,6 +144,8 @@ jobs:
           CUSTOMER_RESULT: ${{ needs.customer-validation.result }}
           DRIVER_CHANGED: ${{ needs.changes.outputs.driver }}
           DRIVER_RESULT: ${{ needs.driver-validation.result }}
+          APP_PREVIEW_VISUAL_CHANGED: ${{ needs.changes.outputs.app_preview_visual }}
+          APP_PREVIEW_VISUAL_RESULT: ${{ needs.app-preview-visual-parity.result }}
           SCREENSHOT_RESULT: ${{ needs.screenshot-evidence.result }}
         run: |
           set -euo pipefail
@@ -162,6 +178,7 @@ jobs:
           require_applicable_success "$BACKEND_CHANGED" "Backend validation" "$BACKEND_RESULT"
           require_applicable_success "$CUSTOMER_CHANGED" "Customer validation" "$CUSTOMER_RESULT"
           require_applicable_success "$DRIVER_CHANGED" "Driver validation" "$DRIVER_RESULT"
+          require_applicable_success "$APP_PREVIEW_VISUAL_CHANGED" "APP-PREVIEW visual runtime parity" "$APP_PREVIEW_VISUAL_RESULT"
 
           if [[ "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" || "${{ github.head_ref }}" == "ci/184-screenshot-evidence-guards" ]]; then
             require_success "Runtime screenshot evidence" "$SCREENSHOT_RESULT"
