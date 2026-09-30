@@ -343,7 +343,7 @@ class CustomerDiagnostics {
   static String _sanitizeBaseUrl(String value) {
     try {
       final uri = Uri.parse(value);
-      return uri.replace(userInfo: '', query: null, fragment: null).toString();
+      return uri.replace(userInfo: '', query: '', fragment: '').toString();
     } catch (_) {
       return '';
     }
