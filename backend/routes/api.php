@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
+use App\Http\Controllers\Api\V1\StorefrontRevisionController;
 use App\Http\Controllers\Api\V1\TranslationController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +43,9 @@ Route::prefix('v1')->group(function (): void {
 
     Route::get('/app-version', AppVersionController::class);
     Route::post('/app-preview/resolve', [AppPreviewSessionController::class, 'resolve'])
+        ->middleware('throttle:60,1');
+    Route::post('/app-preview/storefront-revisions/{revision}/resolve', [StorefrontRevisionController::class, 'resolvePreview'])
+        ->whereUuid('revision')
         ->middleware('throttle:60,1');
     Route::get('/mobile/runtime', MobileRuntimeController::class);
     Route::get('/translations/{locale}', TranslationController::class)->whereIn('locale', ['ar', 'en']);
@@ -113,6 +117,12 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/admin/app-preview/sessions', [AppPreviewSessionController::class, 'store']);
         Route::delete('/admin/app-preview/sessions/{session}', [AppPreviewSessionController::class, 'destroy'])
             ->whereNumber('session');
+        Route::get('/admin/app-preview/storefront-revisions', [StorefrontRevisionController::class, 'index']);
+        Route::post('/admin/app-preview/storefront-revisions/draft', [StorefrontRevisionController::class, 'draft']);
+        Route::get('/admin/app-preview/storefront-revisions/{revision}', [StorefrontRevisionController::class, 'show'])->whereUuid('revision');
+        Route::patch('/admin/app-preview/storefront-revisions/{revision}', [StorefrontRevisionController::class, 'update'])->whereUuid('revision');
+        Route::post('/admin/app-preview/storefront-revisions/{revision}/publish', [StorefrontRevisionController::class, 'publish'])->whereUuid('revision');
+        Route::post('/admin/app-preview/storefront-revisions/{revision}/rollback', [StorefrontRevisionController::class, 'rollback'])->whereUuid('revision');
         Route::get('/store-selector', [StorefrontController::class, 'selector']);
         Route::get('/b2b/stores/{store}/storefront', [StorefrontController::class, 'showWholesale']);
         Route::get('/b2b/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);

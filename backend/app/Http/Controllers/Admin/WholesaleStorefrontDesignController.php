@@ -8,6 +8,7 @@ use App\Services\AuditLogger;
 use App\Services\BannerImageService;
 use App\Services\OperationalTenantScope;
 use App\Services\StoreLogoService;
+use App\Services\StorefrontRevisionService;
 use App\Services\WholesalePrincipal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -89,6 +90,7 @@ final class WholesaleStorefrontDesignController extends Controller
         $newLogoPath = null;
         $logo = $request->file('logo');
         if ($logo instanceof UploadedFile) {
+            app(StorefrontRevisionService::class)->preserveLiveAssetsForScope($storeId, 'b2b');
             $newLogoPath = $logos->store($logo, $storeId);
         }
 
@@ -133,6 +135,8 @@ final class WholesaleStorefrontDesignController extends Controller
             'logo_changed' => $newLogoPath !== null,
         ], $request);
 
+        $this->syncPublished($actor, $storeId, $request);
+
         return back()->with('status', $this->msg(
             'تم حفظ هوية وتصميم واجهة متجر الجملة.',
             'Wholesale storefront branding and theme saved.',
@@ -175,6 +179,8 @@ final class WholesaleStorefrontDesignController extends Controller
             'store_id' => $storeId,
             'section_key' => $data['section_key'],
         ], $request);
+
+        $this->syncPublished($actor, $storeId, $request);
 
         return back()->with('status', $this->msg('تمت إضافة قسم واجهة الجملة.', 'Wholesale storefront section added.'));
     }
@@ -221,6 +227,8 @@ final class WholesaleStorefrontDesignController extends Controller
             'section_id' => $section,
         ], $request);
 
+        $this->syncPublished($actor, $storeId, $request);
+
         return back()->with('status', $this->msg('تم تحديث قسم واجهة الجملة.', 'Wholesale storefront section updated.'));
     }
 
@@ -238,6 +246,8 @@ final class WholesaleStorefrontDesignController extends Controller
             'store_id' => $storeId,
             'section_id' => $section,
         ], null, $request);
+
+        $this->syncPublished($actor, $storeId, $request);
 
         return back()->with('status', $this->msg('تم حذف قسم واجهة الجملة.', 'Wholesale storefront section deleted.'));
     }
@@ -274,6 +284,8 @@ final class WholesaleStorefrontDesignController extends Controller
             'banner_id' => $id,
         ], $request);
 
+        $this->syncPublished($actor, $storeId, $request);
+
         return back()->with('status', $this->msg('تم رفع بانر متجر الجملة.', 'Wholesale storefront banner uploaded.'));
     }
 
@@ -294,6 +306,7 @@ final class WholesaleStorefrontDesignController extends Controller
 
         $newPath = null;
         if ($request->hasFile('banner_image')) {
+            app(StorefrontRevisionService::class)->preserveLiveAssetsForScope($storeId, 'b2b');
             $file = $request->file('banner_image');
             abort_unless($file instanceof UploadedFile, 422);
             $newPath = $images->store($file, $storeId);
@@ -322,6 +335,8 @@ final class WholesaleStorefrontDesignController extends Controller
             'banner_id' => $banner,
         ], $request);
 
+        $this->syncPublished($actor, $storeId, $request);
+
         return back()->with('status', $this->msg('تم تحديث بانر متجر الجملة.', 'Wholesale storefront banner updated.'));
     }
 
@@ -337,6 +352,7 @@ final class WholesaleStorefrontDesignController extends Controller
         $storeId = (int) $current->store_id;
         $this->assertWholesaleStore($actor, $storeId);
 
+        app(StorefrontRevisionService::class)->preserveLiveAssetsForScope($storeId, 'b2b');
         DB::table('banners')->where('id', $banner)->delete();
         $images->delete((string) $current->image_path);
 
@@ -344,6 +360,8 @@ final class WholesaleStorefrontDesignController extends Controller
             'store_id' => $storeId,
             'banner_id' => $banner,
         ], null, $request);
+
+        $this->syncPublished($actor, $storeId, $request);
 
         return back()->with('status', $this->msg('تم حذف بانر متجر الجملة.', 'Wholesale storefront banner deleted.'));
     }
@@ -451,6 +469,16 @@ final class WholesaleStorefrontDesignController extends Controller
         abort_unless($actor instanceof User, 401);
 
         return $actor;
+    }
+
+    private function syncPublished(User $actor, int $storeId, Request $request): void
+    {
+        app(StorefrontRevisionService::class)->synchronizePublishedFromLive(
+            $actor,
+            $storeId,
+            'b2b',
+            $request,
+        );
     }
 
     private function msg(string $ar, string $en): string

@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\OperationalTenantScope;
 use App\Services\StoreLogoService;
+use App\Services\StorefrontRevisionService;
 use App\Support\TenantContextResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -80,6 +81,7 @@ final class StorefrontDesignController extends Controller
         $newLogoPath = null;
         $logo = $request->file('logo');
         if ($logo instanceof UploadedFile) {
+            app(StorefrontRevisionService::class)->preserveLiveAssetsForScope($storeId, 'b2c');
             $newLogoPath = $logos->store($logo, $storeId);
         }
 
@@ -124,6 +126,8 @@ final class StorefrontDesignController extends Controller
             'logo_changed' => $newLogoPath !== null,
         ], $request);
 
+        $this->syncPublished($actor, $storeId, $request);
+
         return back()->with('status', $this->msg(
             'تم حفظ هوية وتصميم واجهة المتجر.',
             'Storefront branding and theme saved.',
@@ -166,6 +170,8 @@ final class StorefrontDesignController extends Controller
             'store_id' => $storeId,
             'section_key' => $data['section_key'],
         ], $request);
+
+        $this->syncPublished($actor, $storeId, $request);
 
         return back()->with('status', $this->msg('تمت إضافة قسم الواجهة.', 'Storefront section added.'));
     }
@@ -212,6 +218,8 @@ final class StorefrontDesignController extends Controller
             'section_key' => $data['section_key'],
         ], $request);
 
+        $this->syncPublished($actor, $storeId, $request);
+
         return back()->with('status', $this->msg('تم تحديث قسم الواجهة.', 'Storefront section updated.'));
     }
 
@@ -230,6 +238,8 @@ final class StorefrontDesignController extends Controller
             'section_id' => $section,
             'section_key' => $current->section_key,
         ], null, $request);
+
+        $this->syncPublished($actor, $storeId, $request);
 
         return back()->with('status', $this->msg('تم حذف قسم الواجهة.', 'Storefront section deleted.'));
     }
@@ -272,6 +282,8 @@ final class StorefrontDesignController extends Controller
             'area' => $area,
         ], $request);
 
+        $this->syncPublished($actor, $storeId, $request);
+
         return back()->with('status', $this->msg('تم حفظ منطقة الخدمة.', 'Service zone saved.'));
     }
 
@@ -289,6 +301,8 @@ final class StorefrontDesignController extends Controller
             'store_id' => $storeId,
             'zone_id' => $zone,
         ], null, $request);
+
+        $this->syncPublished($actor, $storeId, $request);
 
         return back()->with('status', $this->msg('تم حذف منطقة الخدمة.', 'Service zone deleted.'));
     }
@@ -356,6 +370,16 @@ final class StorefrontDesignController extends Controller
         $value = trim((string) ($value ?? ''));
 
         return $value === '' ? null : $value;
+    }
+
+    private function syncPublished(User $actor, int $storeId, Request $request): void
+    {
+        app(StorefrontRevisionService::class)->synchronizePublishedFromLive(
+            $actor,
+            $storeId,
+            'b2c',
+            $request,
+        );
     }
 
     private function msg(string $ar, string $en): string
