@@ -162,6 +162,20 @@ class DriverRuntimeInspector {
     });
   }
 
+  void recordTrackingFailure({
+    required String code,
+    Object? error,
+    StackTrace? stack,
+  }) {
+    _append({
+      'type': 'driver_tracking_failure',
+      'code': sanitizeForDiagnostics(code, maxLength: 80),
+      if (error != null) 'error_type': error.runtimeType.toString(),
+      if (stack != null)
+        'stack': sanitizeForDiagnostics(stack, maxLength: 4000),
+    });
+  }
+
   List<Map<String, dynamic>> snapshot() => _events
       .map((event) => Map<String, dynamic>.from(event))
       .toList(growable: false);
