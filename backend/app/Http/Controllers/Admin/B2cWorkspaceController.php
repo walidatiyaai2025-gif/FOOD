@@ -15,6 +15,7 @@ use App\Services\B2cDashboardService;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
+use App\Services\StorefrontDraftEditorService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
@@ -742,41 +743,20 @@ class B2cWorkspaceController extends Controller
         }
 
         $storeId = (int) $store->id;
-        $settings = DB::table('storefront_settings')->where('store_id', $storeId)->first();
-        $branding = [];
-        if ($settings !== null && is_string($settings->branding ?? null)) {
-            $decodedBranding = json_decode($settings->branding, true);
-            $branding = is_array($decodedBranding) ? $decodedBranding : [];
-        }
-
+        $editor = app(StorefrontDraftEditorService::class)->viewModel($storeId, 'b2c');
         $content = $this->contentModuleData([$storeId]);
 
         return [
             'columns' => ['store', 'products', 'banners', 'status'],
             'rows' => [[
-                'store' => $store->name,
+                'store' => data_get($editor, 'store.name', $store->name),
                 'products' => DB::table('store_products')->where('store_id', $storeId)->where('is_active', true)->count(),
-                'banners' => DB::table('banners')->where('store_id', $storeId)->where('is_active', true)->count(),
-                'status' => (bool) $store->is_active,
+                'banners' => collect($editor['banners'] ?? [])->where('is_active', true)->count(),
+                'status' => (bool) data_get($editor, 'store.is_active', $store->is_active),
             ]],
-            'store' => [
-                'id' => $storeId,
-                'code' => $store->code,
-                'name' => $store->name,
-                'logo_path' => $store->logo_path,
-            ],
-            'settings' => [
-                'theme_code' => (string) ($settings->theme_code ?? 'retail_grocery'),
-                'primary_color' => $settings->primary_color ?? '#078A43',
-                'primary_dark_color' => $settings->primary_dark_color ?? '#006736',
-                'accent_color' => $settings->accent_color ?? '#B5F23E',
-                'background_color' => $settings->background_color ?? '#F8FBF9',
-                'header_address' => $settings->header_address ?? '',
-                'brand_title_ar' => (string) ($branding['brand_title_ar'] ?? ''),
-                'brand_title_en' => (string) ($branding['brand_title_en'] ?? ''),
-                'brand_subtitle_ar' => (string) ($branding['brand_subtitle_ar'] ?? ''),
-                'brand_subtitle_en' => (string) ($branding['brand_subtitle_en'] ?? ''),
-            ],
+            'store' => $editor['store'],
+            'settings' => $editor['settings'],
+            'revision' => $editor['revision'],
             'themes' => [
                 'retail_grocery' => $this->msg('بقالة / سوبر ماركت', 'Grocery / Supermarket'),
                 'retail_pharmacy' => $this->msg('صيدلية', 'Pharmacy'),
@@ -796,49 +776,10 @@ class B2cWorkspaceController extends Controller
                 'product_grid' => $this->msg('شبكة منتجات', 'Product Grid'),
                 'product_carousel' => $this->msg('سلايدر منتجات', 'Product Carousel'),
             ],
-            'sections' => DB::table('storefront_sections')
-                ->where('store_id', $storeId)
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get([
-                    'id',
-                    'section_key',
-                    'section_type',
-                    'title_ar',
-                    'title_en',
-                    'sort_order',
-                    'config',
-                    'is_active',
-                ])
-                ->map(function ($section): array {
-                    $config = is_string($section->config) ? trim($section->config) : '';
-
-                    return [
-                        'id' => (int) $section->id,
-                        'section_key' => (string) $section->section_key,
-                        'section_type' => (string) $section->section_type,
-                        'title_ar' => (string) ($section->title_ar ?? ''),
-                        'title_en' => (string) ($section->title_en ?? ''),
-                        'sort_order' => (int) $section->sort_order,
-                        'config_json' => $config,
-                        'is_active' => (bool) $section->is_active,
-                    ];
-                })->all(),
-            'zones' => DB::table('store_service_zones')
-                ->where('store_id', $storeId)
-                ->orderBy('country_code')
-                ->orderBy('city')
-                ->orderBy('area')
-                ->get(['id', 'country_code', 'city', 'area', 'is_active'])
-                ->map(fn ($zone) => [
-                    'id' => (int) $zone->id,
-                    'country_code' => (string) $zone->country_code,
-                    'city' => (string) ($zone->city ?? ''),
-                    'area' => (string) ($zone->area ?? ''),
-                    'is_active' => (bool) $zone->is_active,
-                ])->all(),
+            'sections' => $editor['sections'],
+            'zones' => $editor['zones'],
             'targets' => $content['targets'] ?? [],
-            'banners' => $content['rows'] ?? [],
+            'banners' => $editor['banners'],
         ];
     }
 
@@ -1040,45 +981,35 @@ class B2cWorkspaceController extends Controller
             ]));
 
         $targetLabels = $targets->pluck('label', 'ref');
+        $rows = [];
+        if (count($storeIds) === 1) {
+            $storeId = (int) $storeIds[0];
+            $editor = app(StorefrontDraftEditorService::class)->viewModel($storeId, 'b2c');
+            $rows = collect($editor['banners'] ?? [])
+                ->map(function (array $row) use ($targetLabels, $storeId): array {
+                    $targetRef = (string) ($row['_target_ref'] ?? '');
+
+                    return [
+                        '_id' => (string) $row['_id'],
+                        '_store_id' => $storeId,
+                        '_target_ref' => $targetRef,
+                        'title' => (string) $row['title'],
+                        'store' => (string) data_get($row, 'store', ''),
+                        'image' => (string) $row['image'],
+                        'target' => $targetRef === '' ? '—' : (string) ($targetLabels[$targetRef] ?? $targetRef),
+                        'sort_order' => (int) $row['sort_order'],
+                        'status' => (bool) $row['status'],
+                        'actions' => [],
+                    ];
+                })
+                ->all();
+        }
 
         return [
             'actions' => [],
             'targets' => $targets->values()->all(),
             'columns' => ['image', 'title', 'target', 'sort_order', 'status', 'actions'],
-            'rows' => DB::table('banners')
-                ->join('stores', 'stores.id', '=', 'banners.store_id')
-                ->whereIn('banners.store_id', $storeIds)
-                ->orderBy('banners.sort_order')
-                ->orderByDesc('banners.id')
-                ->limit(100)
-                ->get([
-                    'banners.id',
-                    'banners.store_id',
-                    'banners.title',
-                    'stores.name as store',
-                    'banners.image_path as image',
-                    'banners.target_type',
-                    'banners.target_id',
-                    'banners.sort_order',
-                    'banners.is_active as status',
-                ])->map(function ($row) use ($targetLabels): array {
-                    $targetRef = $row->target_type !== null && $row->target_id !== null
-                        ? $row->target_type.':'.(int) $row->target_id
-                        : '';
-
-                    return [
-                        '_id' => (int) $row->id,
-                        '_store_id' => (int) $row->store_id,
-                        '_target_ref' => $targetRef,
-                        'title' => $row->title,
-                        'store' => $row->store,
-                        'image' => $row->image,
-                        'target' => $targetRef === '' ? '—' : (string) ($targetLabels[$targetRef] ?? $targetRef),
-                        'sort_order' => (int) $row->sort_order,
-                        'status' => (bool) $row->status,
-                        'actions' => [],
-                    ];
-                })->all(),
+            'rows' => $rows,
         ];
     }
 
