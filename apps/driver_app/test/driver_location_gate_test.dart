@@ -78,6 +78,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('operations')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets('permission denied and reduced accuracy remain blocking', (tester) async {
@@ -107,6 +108,7 @@ void main() {
 
     expect(find.byKey(const Key('driver-location-gate')), findsOneWidget);
     expect(find.byKey(const Key('operations')), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets('periodic recheck blocks operations after permission is revoked', (tester) async {
@@ -129,6 +131,7 @@ void main() {
 
     expect(find.byKey(const Key('driver-location-gate')), findsOneWidget);
     expect(find.byKey(const Key('operations')), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets('app resume rechecks location state', (tester) async {
@@ -144,13 +147,14 @@ void main() {
     final checksBeforeResume = service.checks;
 
     service.status = DriverLocationGateStatus.serviceDisabled;
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
 
     expect(service.checks, greaterThan(checksBeforeResume));
     expect(find.byKey(const Key('driver-location-gate')), findsOneWidget);
     expect(find.byKey(const Key('operations')), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets('denied forever keeps logout and both settings actions available', (tester) async {
@@ -181,5 +185,6 @@ void main() {
     await tester.tap(find.byKey(const Key('driver-location-logout')));
     await tester.pump();
     expect(loggedOut, isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 }
