@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/auth/driver_session.dart';
 import '../../core/localization/driver_translations.dart';
 import '../../core/navigation/driver_navigation.dart';
+import '../../core/preview/driver_preview_context.dart';
 import '../../core/theme/foodex_theme.dart';
 
 enum DriverLoadState { loading, ready, empty, error, offline }
@@ -148,6 +149,7 @@ class DriverJourneyPage extends StatefulWidget {
     this.focusAssignmentId,
     this.initialAssignmentStatus,
     this.navigationLauncher = launchDriverNavigation,
+    this.previewContext,
   });
 
   final DriverChannel channel;
@@ -156,6 +158,7 @@ class DriverJourneyPage extends StatefulWidget {
   final int? focusAssignmentId;
   final String? initialAssignmentStatus;
   final DriverNavigationLauncher navigationLauncher;
+  final DriverPreviewContext? previewContext;
 
   @override
   State<DriverJourneyPage> createState() => _DriverJourneyPageState();
@@ -196,8 +199,17 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     try {
       final rows = await widget.repository.list(widget.channel);
       if (!mounted) return;
+      final preview = widget.previewContext;
       final filtered = rows
-          .where((row) => row.channel == widget.channel)
+          .where(
+            (row) =>
+                row.channel == widget.channel &&
+                (preview == null ||
+                    preview.allowsAssignment(
+                      assignmentChannel: row.channel,
+                      assignmentStoreId: row.storeId,
+                    )),
+          )
           .toList(growable: false);
       setState(() {
         assignments = filtered;
@@ -267,6 +279,14 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     String? proofImagePath,
     String? failureReason,
   }) async {
+    if (widget.previewContext != null) {
+      if (mounted) {
+        setState(
+          () => _actionError = context.tr('driver.preview.mutation_blocked'),
+        );
+      }
+      return;
+    }
     if (_transitioning.contains(assignment.id)) return;
     setState(() {
       _transitioning.add(assignment.id);
@@ -309,6 +329,15 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     DriverAssignment assignment,
     String status,
   ) async {
+    if (widget.previewContext != null) {
+      if (mounted) {
+        setState(
+          () => _actionError = context.tr('driver.preview.mutation_blocked'),
+        );
+      }
+      return;
+    }
+
     var noteValue = '';
     String? proofImagePath;
     String? failureReason;
@@ -644,6 +673,20 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                       'driver-navigate-${assignment.id}',
                     ),
                     onPressed: () async {
+                      final preview = widget.previewContext;
+                      if (preview != null && !preview.nativeNavigationEnabled) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                context.tr('driver.preview.navigation_simulated'),
+                              ),
+                            ),
+                          );
+                        }
+                        return;
+                      }
+
                       final launched = await widget.navigationLauncher(
                         assignment.navigationLatitude!,
                         assignment.navigationLongitude!,
