@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
 use App\Models\Role;
+use App\Models\StorefrontRevision;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,7 +24,7 @@ class StorefrontAdminBuilderTest extends TestCase
         Storage::fake('public');
     }
 
-    public function test_retail_store_admin_can_manage_branding_sections_and_service_zones(): void
+    public function test_retail_storefront_editor_is_draft_first_until_explicit_publish(): void
     {
         $storeId = $this->retailStore('BUILDER-A');
         $admin = $this->storeAdmin($storeId, 'builder-a@example.test');
@@ -31,9 +33,16 @@ class StorefrontAdminBuilderTest extends TestCase
             ->get(route('admin.b2c.module', ['module' => 'storefront', 'store_id' => $storeId]))
             ->assertOk()
             ->assertSee('Store branding &amp; theme', false)
-            ->assertSee('Home layout sections')
-            ->assertSee('Service zones')
-            ->assertSee('Storefront banners');
+            ->assertSee('Save Draft')
+            ->assertSee('Open real app preview')
+            ->assertSee('channel=b2c', false)
+            ->assertSee('store_id='.$storeId, false)
+            ->assertSee('mode=draft', false);
+
+        $this->getJson('/api/v1/stores/'.$storeId.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('theme.primary', null)
+            ->assertJsonMissing(['title_en' => 'Best sellers']);
 
         $this->actingAs($admin)->put(route('admin.b2c.storefront.settings'), [
             'store_id' => $storeId,
@@ -50,17 +59,24 @@ class StorefrontAdminBuilderTest extends TestCase
             'logo' => UploadedFile::fake()->image('store-logo.png', 512, 512),
         ])->assertSessionHasNoErrors();
 
-        $settings = DB::table('storefront_settings')->where('store_id', $storeId)->first();
-        $this->assertNotNull($settings);
-        $this->assertSame('retail_pharmacy', $settings->theme_code);
-        $this->assertSame('#0A8DDA', $settings->primary_color);
-        $this->assertSame('Smouha', $settings->header_address);
-        $branding = json_decode((string) $settings->branding, true);
-        $this->assertSame('Test Pharmacy', $branding['brand_title_en']);
+        $this->assertDatabaseMissing('storefront_settings', [
+            'store_id' => $storeId,
+            'theme_code' => 'retail_pharmacy',
+        ]);
+        $this->assertNull(DB::table('stores')->where('id', $storeId)->value('logo_path'));
 
-        $logoPath = (string) DB::table('stores')->where('id', $storeId)->value('logo_path');
-        $this->assertStringStartsWith('storage/stores/'.$storeId.'/branding/', $logoPath);
-        Storage::disk('public')->assertExists(substr($logoPath, strlen('storage/')));
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->where('status', 'draft')
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame('retail_pharmacy', $draft->payload['settings']['theme_code']);
+        $this->assertSame('#0A8DDA', $draft->payload['settings']['primary_color']);
+        $this->assertSame('Test Pharmacy', $draft->payload['settings']['branding']['brand_title_en']);
+        $this->assertStringStartsWith('storage/stores/'.$storeId.'/branding/', (string) $draft->payload['store']['logo_path']);
+        Storage::disk('public')->assertExists(substr((string) $draft->payload['store']['logo_path'], strlen('storage/')));
 
         $this->actingAs($admin)->post(route('admin.b2c.storefront.sections.store'), [
             'store_id' => $storeId,
@@ -73,13 +89,39 @@ class StorefrontAdminBuilderTest extends TestCase
             'is_active' => 1,
         ])->assertSessionHasNoErrors();
 
-        $sectionId = (int) DB::table('storefront_sections')
-            ->where('store_id', $storeId)
-            ->where('section_key', 'best_sellers')
-            ->value('id');
-        $this->assertGreaterThan(0, $sectionId);
+        $this->actingAs($admin)->post(route('admin.b2c.storefront.zones.store'), [
+            'store_id' => $storeId,
+            'country_code' => 'eg',
+            'city' => 'Alexandria',
+            'area' => 'Smouha',
+            'is_active' => 1,
+        ])->assertSessionHasNoErrors();
 
-        $this->actingAs($admin)->patch(route('admin.b2c.storefront.sections.update', $sectionId), [
+        $this->assertDatabaseMissing('storefront_sections', [
+            'store_id' => $storeId,
+            'section_key' => 'best_sellers',
+        ]);
+        $this->assertDatabaseMissing('store_service_zones', [
+            'store_id' => $storeId,
+            'country_code' => 'EG',
+            'city' => 'Alexandria',
+            'area' => 'Smouha',
+        ]);
+
+        $this->getJson('/api/v1/stores/'.$storeId.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('theme.primary', null)
+            ->assertJsonMissing(['title_en' => 'Best sellers']);
+
+        $draft->refresh();
+        $section = collect($draft->payload['sections'])->firstWhere('key', 'best_sellers');
+        $zone = collect($draft->payload['service_zones'])->firstWhere('area', 'Smouha');
+        $this->assertNotNull($section);
+        $this->assertNotNull($zone);
+        $this->assertNotEmpty($section['editor_id']);
+        $this->assertNotEmpty($zone['editor_id']);
+
+        $this->actingAs($admin)->patch(route('admin.b2c.storefront.sections.update', ['section' => $section['editor_id']]), [
             'store_id' => $storeId,
             'section_key' => 'best_sellers',
             'section_type' => 'best_sellers',
@@ -90,40 +132,174 @@ class StorefrontAdminBuilderTest extends TestCase
             'is_active' => 1,
         ])->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('storefront_sections', [
-            'id' => $sectionId,
+        $this->actingAs($admin)
+            ->delete(route('admin.b2c.storefront.zones.destroy', ['zone' => $zone['editor_id']]), [
+                'store_id' => $storeId,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $draft->refresh();
+        $draftChecksum = $draft->checksum;
+
+        $this->actingAs($admin)->post(route('admin.b2c.storefront.publish'), [
             'store_id' => $storeId,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('storefront_settings', [
+            'store_id' => $storeId,
+            'theme_code' => 'retail_pharmacy',
+            'primary_color' => '#0A8DDA',
+            'header_address' => 'Smouha',
+        ]);
+        $this->assertDatabaseHas('storefront_sections', [
+            'store_id' => $storeId,
+            'section_key' => 'best_sellers',
             'title_en' => 'Most ordered',
             'sort_order' => 25,
             'is_active' => 1,
         ]);
-
-        $this->actingAs($admin)->post(route('admin.b2c.storefront.zones.store'), [
+        $this->assertDatabaseMissing('store_service_zones', [
             'store_id' => $storeId,
-            'country_code' => 'eg',
-            'city' => 'Alexandria',
             'area' => 'Smouha',
-            'is_active' => 1,
+        ]);
+
+        $logoPath = (string) DB::table('stores')->where('id', $storeId)->value('logo_path');
+        $this->assertStringStartsWith('storage/stores/'.$storeId.'/branding/', $logoPath);
+        Storage::disk('public')->assertExists(substr($logoPath, strlen('storage/')));
+
+        $this->getJson('/api/v1/stores/'.$storeId.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('theme.primary', '#0A8DDA')
+            ->assertJsonFragment([
+                'key' => 'best_sellers',
+                'title_en' => 'Most ordered',
+            ]);
+
+        $draft->refresh();
+        $this->assertSame('published', $draft->status);
+        $this->assertSame($draftChecksum, $draft->checksum);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'storefront.revision.published',
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+        ]);
+
+        $publishedId = $draft->id;
+        $this->actingAs($admin)->put(route('admin.b2c.storefront.settings'), [
+            'store_id' => $storeId,
+            'theme_code' => 'retail_grocery',
+            'primary_color' => '#118844',
+            'primary_dark_color' => '#0668A9',
+            'accent_color' => '#37CCFF',
+            'background_color' => '#F8FCFF',
         ])->assertSessionHasNoErrors();
 
-        $zoneId = (int) DB::table('store_service_zones')
+        $nextDraft = StorefrontRevision::query()
             ->where('store_id', $storeId)
-            ->where('country_code', 'EG')
-            ->where('city', 'Alexandria')
-            ->where('area', 'Smouha')
-            ->value('id');
-        $this->assertGreaterThan(0, $zoneId);
+            ->where('channel', 'b2c')
+            ->where('status', 'draft')
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertNotSame($publishedId, $nextDraft->id);
+        $this->assertSame('#118844', $nextDraft->payload['settings']['primary_color']);
+        $this->assertSame('#0A8DDA', DB::table('storefront_settings')->where('store_id', $storeId)->value('primary_color'));
+    }
+
+    public function test_retail_builder_deep_link_opens_exact_draft_context_and_labels_are_bilingual(): void
+    {
+        $storeId = $this->retailStore('BUILDER-DEEP-LINK');
+        $admin = $this->storeAdmin($storeId, 'builder-deep-link@example.test');
 
         $this->actingAs($admin)
-            ->delete(route('admin.b2c.storefront.zones.destroy', $zoneId))
-            ->assertSessionHasNoErrors();
-        $this->assertDatabaseMissing('store_service_zones', ['id' => $zoneId]);
+            ->get(route('admin.b2c.module', ['module' => 'storefront', 'store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('Save Draft')
+            ->assertSee('Published')
+            ->assertSee('mode=draft', false)
+            ->assertSee('channel=b2c', false)
+            ->assertSee('store_id='.$storeId, false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.app-preview.index', [
+                'app' => 'customer',
+                'channel' => 'b2c',
+                'store_id' => $storeId,
+                'persona' => 'guest',
+                'mode' => 'draft',
+            ]))
+            ->assertOk()
+            ->assertSee('<option value="customer" selected>', false)
+            ->assertSee('<option value="b2c" selected>', false)
+            ->assertSee('<option value="'.$storeId.'" selected>', false)
+            ->assertSee('<option value="guest" id="preview-persona-guest" selected>', false)
+            ->assertSee('<option value="draft" selected>', false);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.b2c.module', ['module' => 'storefront', 'store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('حفظ المسودة')
+            ->assertSee('النسخة المنشورة')
+            ->assertSee('فتح المعاينة الحقيقية');
+    }
+
+    public function test_discard_resets_retail_draft_to_current_published_without_touching_live(): void
+    {
+        $storeId = $this->retailStore('BUILDER-DISCARD');
+        $admin = $this->storeAdmin($storeId, 'builder-discard@example.test');
+
+        DB::table('storefront_settings')->insert([
+            'store_id' => $storeId,
+            'theme_code' => 'retail_grocery',
+            'primary_color' => '#112233',
+            'primary_dark_color' => '#001122',
+            'accent_color' => '#334455',
+            'background_color' => '#F8FBF9',
+            'header_address' => 'Published address',
+            'branding' => json_encode(['brand_title_en' => 'Published Store'], JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.b2c.storefront.settings'), [
+            'store_id' => $storeId,
+            'theme_code' => 'retail_pharmacy',
+            'primary_color' => '#AA5500',
+            'primary_dark_color' => '#001122',
+            'accent_color' => '#334455',
+            'background_color' => '#F8FBF9',
+            'header_address' => 'Draft address',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('#112233', DB::table('storefront_settings')->where('store_id', $storeId)->value('primary_color'));
+
+        $this->actingAs($admin)->post(route('admin.b2c.storefront.discard'), [
+            'store_id' => $storeId,
+        ])->assertSessionHasNoErrors();
+
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->where('status', 'draft')
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame('#112233', $draft->payload['settings']['primary_color']);
+        $this->assertSame('Published address', $draft->payload['settings']['header_address']);
+        $this->assertSame('#112233', DB::table('storefront_settings')->where('store_id', $storeId)->value('primary_color'));
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'storefront.revision.draft_discarded',
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+        ]);
     }
 
     public function test_storefront_admin_actions_cannot_cross_retail_tenants(): void
     {
-        $storeA = $this->retailStore('BUILDER-A');
-        $storeB = $this->retailStore('BUILDER-B');
+        $storeA = $this->retailStore('BUILDER-ISO-A');
+        $storeB = $this->retailStore('BUILDER-ISO-B');
         $adminA = $this->storeAdmin($storeA, 'builder-isolation@example.test');
 
         $this->actingAs($adminA)->put(route('admin.b2c.storefront.settings'), [
@@ -135,10 +311,14 @@ class StorefrontAdminBuilderTest extends TestCase
             'background_color' => '#F8FBF9',
         ])->assertForbidden();
 
-        $this->assertDatabaseMissing('storefront_settings', ['store_id' => $storeB]);
+        $this->assertDatabaseMissing('storefront_revisions', [
+            'store_id' => $storeB,
+            'channel' => 'b2c',
+            'status' => 'draft',
+        ]);
     }
 
-    public function test_duplicate_section_key_is_rejected_inside_same_store(): void
+    public function test_duplicate_section_key_is_rejected_inside_draft_without_touching_live(): void
     {
         $storeId = $this->retailStore('BUILDER-DUP');
         $admin = $this->storeAdmin($storeId, 'builder-dup@example.test');
@@ -167,7 +347,59 @@ class StorefrontAdminBuilderTest extends TestCase
         );
     }
 
-    public function test_super_admin_storefront_mutation_requires_explicit_support_context(): void
+    public function test_publish_requires_app_preview_publish_permission(): void
+    {
+        $storeId = $this->retailStore('BUILDER-PUBLISH-PERM');
+        $admin = $this->storeAdmin($storeId, 'builder-publish-owner@example.test');
+
+        $this->actingAs($admin)->put(route('admin.b2c.storefront.settings'), [
+            'store_id' => $storeId,
+            'theme_code' => 'retail_grocery',
+            'primary_color' => '#123456',
+            'primary_dark_color' => '#234567',
+            'accent_color' => '#345678',
+            'background_color' => '#F8FBF9',
+        ])->assertSessionHasNoErrors();
+
+        $limited = User::query()->create([
+            'name' => 'Limited Storefront Manager',
+            'email' => 'builder-limited@example.test',
+            'password' => 'Password1234',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $role = Role::query()->create([
+            'code' => 'TEST_DRAFT_ONLY',
+            'name' => 'Test Draft Only',
+            'scope' => 'store',
+            'is_system' => false,
+            'is_active' => true,
+        ]);
+        $role->permissions()->attach(Permission::query()->where('code', 'settings.manage')->firstOrFail());
+        DB::table('user_store_roles')->insert([
+            'user_id' => $limited->id,
+            'store_id' => $storeId,
+            'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($limited)->post(route('admin.b2c.storefront.publish'), [
+            'store_id' => $storeId,
+        ])->assertForbidden();
+
+        $this->assertDatabaseHas('storefront_revisions', [
+            'store_id' => $storeId,
+            'channel' => 'b2c',
+            'status' => 'draft',
+        ]);
+        $this->assertDatabaseMissing('storefront_settings', [
+            'store_id' => $storeId,
+            'primary_color' => '#123456',
+        ]);
+    }
+
+    public function test_super_admin_storefront_mutation_requires_explicit_support_context_and_stays_draft(): void
     {
         $storeId = $this->retailStore('BUILDER-SUPPORT');
         $admin = User::query()->create([
@@ -192,16 +424,21 @@ class StorefrontAdminBuilderTest extends TestCase
             ->put(route('admin.b2c.storefront.settings'), $payload)
             ->assertForbidden();
 
-        $this->assertDatabaseMissing('storefront_settings', ['store_id' => $storeId]);
-
         $this->actingAs($admin)
             ->put(route('admin.b2c.storefront.settings'), [...$payload, 'support_access' => 1])
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('storefront_settings', [
+        $this->assertDatabaseMissing('storefront_settings', [
             'store_id' => $storeId,
             'theme_code' => 'retail_grocery',
         ]);
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->where('status', 'draft')
+            ->firstOrFail();
+        $this->assertSame('#078A43', $draft->payload['settings']['primary_color']);
+
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $admin->id,
             'store_id' => $storeId,

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\StorefrontRevision;
 use App\Models\User;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
@@ -89,7 +90,7 @@ class AdminProfileNavigationBannerTest extends TestCase
             ->assertDontSee('foodex-sidebar-logout', false);
     }
 
-    public function test_retail_banner_upload_replace_and_delete_persist_real_files(): void
+    public function test_retail_banner_upload_replace_and_delete_stays_in_draft_and_preserves_files(): void
     {
         Storage::fake('public');
         $storeId = $this->retailStore('BANNER-STORE');
@@ -99,38 +100,54 @@ class AdminProfileNavigationBannerTest extends TestCase
             'store_id' => $storeId,
             'title' => 'Fresh weekend',
             'banner_image' => UploadedFile::fake()->image('fresh.jpg', 1200, 420),
-            'target_url' => '/offers',
             'sort_order' => 10,
             'is_active' => 1,
         ])->assertSessionHasNoErrors();
 
-        $banner = DB::table('banners')->where('store_id', $storeId)->first();
+        $this->assertDatabaseMissing('banners', [
+            'store_id' => $storeId,
+            'title' => 'Fresh weekend',
+        ]);
+
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->where('status', 'draft')
+            ->latest('id')
+            ->firstOrFail();
+        $banner = collect($draft->payload['banners'])->firstWhere('title', 'Fresh weekend');
         $this->assertNotNull($banner);
-        $this->assertStringStartsWith("storage/banners/{$storeId}/", (string) $banner->image_path);
-        $firstRelative = substr((string) $banner->image_path, strlen('storage/'));
+        $editorId = (string) $banner['editor_id'];
+        $firstPath = (string) $banner['image_path'];
+        $firstRelative = substr($firstPath, strlen('storage/'));
         Storage::disk('public')->assertExists($firstRelative);
 
-        $this->actingAs($admin)->patch(route('admin.business.banners.update', $banner->id), [
+        $this->actingAs($admin)->patch(route('admin.business.banners.update', $editorId), [
             'store_id' => $storeId,
             'title' => 'Fresh weekend updated',
             'banner_image' => UploadedFile::fake()->image('fresh-new.webp', 1200, 420),
-            'target_url' => '/products',
             'sort_order' => 20,
             'is_active' => 1,
         ])->assertSessionHasNoErrors();
 
-        $updated = DB::table('banners')->where('id', $banner->id)->first();
+        $draft->refresh();
+        $updated = collect($draft->payload['banners'])->firstWhere('editor_id', $editorId);
         $this->assertNotNull($updated);
-        $this->assertNotSame($banner->image_path, $updated->image_path);
-        Storage::disk('public')->assertMissing($firstRelative);
-        $newRelative = substr((string) $updated->image_path, strlen('storage/'));
+        $this->assertSame('Fresh weekend updated', $updated['title']);
+        $this->assertNotSame($firstPath, $updated['image_path']);
+        Storage::disk('public')->assertExists($firstRelative);
+        $newRelative = substr((string) $updated['image_path'], strlen('storage/'));
         Storage::disk('public')->assertExists($newRelative);
 
-        $this->actingAs($admin)->delete(route('admin.business.banners.destroy', $banner->id))
-            ->assertSessionHasNoErrors();
+        $this->actingAs($admin)->delete(route('admin.business.banners.destroy', $editorId), [
+            'store_id' => $storeId,
+        ])->assertSessionHasNoErrors();
 
-        $this->assertDatabaseMissing('banners', ['id' => $banner->id]);
-        Storage::disk('public')->assertMissing($newRelative);
+        $draft->refresh();
+        $this->assertNull(collect($draft->payload['banners'])->firstWhere('editor_id', $editorId));
+        $this->assertDatabaseMissing('banners', ['store_id' => $storeId]);
+        Storage::disk('public')->assertExists($firstRelative);
+        Storage::disk('public')->assertExists($newRelative);
     }
 
     /** @return list<string> */

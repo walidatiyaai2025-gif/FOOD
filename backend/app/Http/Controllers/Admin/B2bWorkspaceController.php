@@ -24,6 +24,7 @@ use App\Services\DashboardOperationalNotifier;
 use App\Services\LookupScopeService;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
+use App\Services\StorefrontDraftEditorService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
@@ -759,12 +760,7 @@ class B2bWorkspaceController extends Controller
         }
 
         $storeId = (int) $store->id;
-        $settings = DB::table('storefront_settings')->where('store_id', $storeId)->first();
-        $branding = [];
-        if ($settings !== null && is_string($settings->branding ?? null)) {
-            $decoded = json_decode($settings->branding, true);
-            $branding = is_array($decoded) ? $decoded : [];
-        }
+        $editor = app(StorefrontDraftEditorService::class)->viewModel($storeId, 'b2b');
 
         $targets = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -801,26 +797,9 @@ class B2bWorkspaceController extends Controller
         return [
             'columns' => [],
             'rows' => [],
-            'store' => [
-                'id' => $storeId,
-                'code' => (string) $store->code,
-                'name' => (string) $store->name,
-                'logo_path' => $store->logo_path,
-            ],
-            'settings' => [
-                'theme_code' => (string) ($settings->theme_code ?? 'wholesale_b2b'),
-                'primary_color' => $settings->primary_color ?? '#5D2A91',
-                'primary_dark_color' => $settings->primary_dark_color ?? '#35195E',
-                'accent_color' => $settings->accent_color ?? '#B983F0',
-                'background_color' => $settings->background_color ?? '#FBFAFD',
-                'header_address' => $settings->header_address ?? '',
-                'brand_title_ar' => (string) ($branding['brand_title_ar'] ?? ''),
-                'brand_title_en' => (string) ($branding['brand_title_en'] ?? ''),
-                'brand_subtitle_ar' => (string) ($branding['brand_subtitle_ar'] ?? ''),
-                'brand_subtitle_en' => (string) ($branding['brand_subtitle_en'] ?? ''),
-                'hero_cta_ar' => (string) ($branding['hero_cta_ar'] ?? ''),
-                'hero_cta_en' => (string) ($branding['hero_cta_en'] ?? ''),
-            ],
+            'store' => $editor['store'],
+            'settings' => $editor['settings'],
+            'revision' => $editor['revision'],
             'section_types' => [
                 'hero' => 'Hero',
                 'banner_slider' => $this->msg('سلايدر بانرات', 'Banner Slider'),
@@ -833,38 +812,8 @@ class B2bWorkspaceController extends Controller
                 'product_grid' => $this->msg('شبكة منتجات', 'Product Grid'),
                 'product_carousel' => $this->msg('سلايدر منتجات', 'Product Carousel'),
             ],
-            'sections' => DB::table('storefront_sections')
-                ->where('store_id', $storeId)
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get(['id', 'section_key', 'section_type', 'title_ar', 'title_en', 'sort_order', 'config', 'is_active'])
-                ->map(fn ($row) => [
-                    'id' => (int) $row->id,
-                    'section_key' => (string) $row->section_key,
-                    'section_type' => (string) $row->section_type,
-                    'title_ar' => (string) ($row->title_ar ?? ''),
-                    'title_en' => (string) ($row->title_en ?? ''),
-                    'sort_order' => (int) $row->sort_order,
-                    'config_json' => is_string($row->config) ? $row->config : '',
-                    'is_active' => (bool) $row->is_active,
-                ])
-                ->all(),
-            'banners' => DB::table('banners')
-                ->where('store_id', $storeId)
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get(['id', 'title', 'image_path', 'target_type', 'target_id', 'sort_order', 'is_active'])
-                ->map(fn ($row) => [
-                    'id' => (int) $row->id,
-                    'title' => (string) $row->title,
-                    'image' => $row->image_path,
-                    'target_ref' => $row->target_type !== null && $row->target_id !== null
-                        ? $row->target_type.':'.$row->target_id
-                        : '',
-                    'sort_order' => (int) $row->sort_order,
-                    'is_active' => (bool) $row->is_active,
-                ])
-                ->all(),
+            'sections' => $editor['sections'],
+            'banners' => $editor['banners'],
             'targets' => [...$categoryTargets, ...$targets],
         ];
     }

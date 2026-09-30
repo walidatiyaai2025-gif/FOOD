@@ -205,6 +205,7 @@ final class StorefrontRevisionService
             'checksum' => $newChecksum,
             'created_by' => $actor->getKey(),
         ])->save();
+        $this->archiveAssetsForRevision($revision);
 
         $this->audit->record(
             'storefront.revision.draft_updated',

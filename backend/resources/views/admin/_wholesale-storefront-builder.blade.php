@@ -5,6 +5,11 @@
     $sfBanners = $moduleData['banners'] ?? [];
     $sfTargets = $moduleData['targets'] ?? [];
     $sfSectionTypes = $moduleData['section_types'] ?? [];
+    $sfRevision = $moduleData['revision'] ?? [];
+    $sfHasDraft = (bool)($sfRevision['has_draft'] ?? false);
+    $sfStoreId = (int)($sfStore['id'] ?? 0);
+    $sfCanPublish = $sfStoreId > 0 && ($user->hasPermission('app_preview.publish', $sfStoreId) || $user->hasPermission('app_preview.publish'));
+    $sfPreviewUrl = route('admin.app-preview.index', ['app'=>'customer','channel'=>'b2b','store_id'=>$sfStoreId,'persona'=>'guest','mode'=>'draft']);
     $canManageStorefront = $user->hasPermission('settings.manage');
     $primary = $sfSettings['primary_color'] ?? '#5D2A91';
     $primaryDark = $sfSettings['primary_dark_color'] ?? '#35195E';
@@ -19,7 +24,7 @@
 <div class="wsf-grid">
     <section class="wsf-card">
         <h3>{{ app()->getLocale()==='ar'?'هوية وتصميم متجر الجملة':'Wholesale branding & theme' }}</h3>
-        <p class="wsf-muted">{{ app()->getLocale()==='ar'?'تتحكم هذه الإعدادات مباشرة في واجهة متجر الجملة داخل تطبيق العميل.':'These settings feed the Wholesale storefront in the customer app.' }}</p>
+        <p class="wsf-muted">{{ app()->getLocale()==='ar'?'كل تعديل يُحفظ كمسودة أولاً ولا يغيّر تطبيق العميل حتى النشر.':'Every edit is saved as Draft first and does not change the customer app until Publish.' }}</p>
         @if($canManageStorefront)
         <form method="post" action="{{ route('admin.b2b.storefront.settings') }}" enctype="multipart/form-data">
             @csrf @method('PUT')
@@ -39,21 +44,25 @@
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالعربية':'Arabic hero CTA' }}<input name="hero_cta_ar" value="{{ $sfSettings['hero_cta_ar'] ?? '' }}" maxlength="120" placeholder="تصفح الكتالوج"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالإنجليزية':'English hero CTA' }}<input name="hero_cta_en" value="{{ $sfSettings['hero_cta_en'] ?? '' }}" maxlength="120" placeholder="Browse catalog"></label>
             </div>
-            <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ واجهة الجملة':'Save Wholesale storefront' }}</button></div>
+            <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ المسودة':'Save Draft' }}</button></div>
         </form>
         @endif
     </section>
 
     <aside class="wsf-card">
-        <h3>{{ app()->getLocale()==='ar'?'معاينة مباشرة':'Live preview' }}</h3>
-        <div class="wsf-preview" style="--wsf-primary:{{ $primary }};--wsf-dark:{{ $primaryDark }};--wsf-accent:{{ $accent }};--wsf-bg:{{ $background }}">
-            <div class="wsf-preview-head">
-                @if(!empty($sfStore['logo_path']))<img class="wsf-logo" src="{{ asset(ltrim($sfStore['logo_path'],'/')) }}" alt="logo">@else<div class="wsf-logo"></div>@endif
-                <div style="flex:1"><strong>{{ app()->getLocale()==='ar' ? (($sfSettings['brand_title_ar'] ?? '') ?: ($sfStore['name'] ?? 'متجر الجملة')) : (($sfSettings['brand_title_en'] ?? '') ?: ($sfStore['name'] ?? 'Wholesale')) }}</strong><div style="font-size:.76rem;opacity:.85">{{ $sfSettings['header_address'] ?? '' }}</div></div>
-                <span class="wsf-badge">B2B</span>
-            </div>
-            <div class="wsf-hero"><strong style="font-size:1.15rem">{{ app()->getLocale()==='ar' ? (($sfSettings['brand_subtitle_ar'] ?? '') ?: 'أفضل الأسعار لمتاجر التجزئة') : (($sfSettings['brand_subtitle_en'] ?? '') ?: 'Best prices for retailers') }}</strong><div style="margin-top:12px"><span class="wsf-badge">{{ app()->getLocale()==='ar' ? (($sfSettings['hero_cta_ar'] ?? '') ?: 'تصفح الكتالوج') : (($sfSettings['hero_cta_en'] ?? '') ?: 'Browse catalog') }}</span></div></div>
-            <div class="wsf-chip-row">@foreach(array_slice($sfSections,0,8) as $section)<span class="wsf-chip">{{ $sfSectionTypes[$section['section_type']] ?? $section['section_type'] }} · {{ $section['sort_order'] }}</span>@endforeach</div>
+        <h3>{{ app()->getLocale()==='ar'?'المسودة والمعاينة الحقيقية':'Draft & real app preview' }}</h3>
+        <p class="wsf-muted">{{ app()->getLocale()==='ar'?'المعاينة المعتمدة تفتح نفس Customer Flutter runtime المستخدم للتطبيق.':'The authoritative preview opens the same Customer Flutter runtime used by the app.' }}</p>
+        <div class="wsf-item">
+            <div class="wsf-item-head"><strong>{{ $sfHasDraft ? (app()->getLocale()==='ar'?'مسودة نشطة':'Active Draft') : (app()->getLocale()==='ar'?'النسخة المنشورة':'Published') }}</strong><span class="wsf-code">{{ strtoupper((string)($sfRevision['status'] ?? 'published')) }}</span></div>
+            <div class="wsf-code" style="margin-top:8px">rev {{ $sfRevision['revision_id'] ?? '—' }}</div>
+            <div class="wsf-code">{{ substr((string)($sfRevision['checksum'] ?? ''),0,16) }}</div>
+        </div>
+        <div class="wsf-actions">
+            <a class="foodex-primary" href="{{ $sfPreviewUrl }}">{{ app()->getLocale()==='ar'?'فتح المعاينة الحقيقية':'Open real app preview' }}</a>
+            @if($sfHasDraft && $sfCanPublish)
+                <form method="post" action="{{ route('admin.b2b.storefront.publish') }}">@csrf<input type="hidden" name="store_id" value="{{ $sfStoreId }}"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'نشر المسودة':'Publish Draft' }}</button></form>
+                <form method="post" action="{{ route('admin.b2b.storefront.discard') }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'إرجاع المسودة إلى المنشور؟':'Reset Draft to Published?'))">@csrf<input type="hidden" name="store_id" value="{{ $sfStoreId }}"><button class="wsf-danger" type="submit">{{ app()->getLocale()==='ar'?'إلغاء تغييرات المسودة':'Discard Draft changes' }}</button></form>
+            @endif
         </div>
     </aside>
 </div>
@@ -74,7 +83,7 @@
                 <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
                 <label class="wide">Config JSON<textarea name="config_json" rows="2" placeholder='{"limit":12}'></textarea></label>
             </div>
-            <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة القسم':'Add section' }}</button></div>
+            <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة للقسم في المسودة':'Add section to Draft' }}</button></div>
         </form>
         @endif
         <div class="wsf-list">
@@ -94,9 +103,9 @@
                         <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" @checked($section['is_active'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
                         <label class="wide">Config JSON<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
                     </div>
-                    <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></div>
+                    <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}</button></div>
                 </form>
-                <form method="post" action="{{ route('admin.b2b.storefront.sections.destroy',['section'=>$section['id']]) }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'حذف القسم؟':'Delete section?'))">@csrf @method('DELETE')<button class="wsf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
+                <form method="post" action="{{ route('admin.b2b.storefront.sections.destroy',['section'=>$section['id']]) }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'حذف القسم؟':'Delete section?'))">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $sfStoreId }}"><button class="wsf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
                 @endif
             </div>
         @empty
@@ -118,7 +127,7 @@
                 <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="0" min="0" required></label>
                 <label><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
             </div>
-            <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'رفع البانر':'Upload banner' }}</button></div>
+            <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة البانر للمسودة':'Add banner to Draft' }}</button></div>
         </form>
         @endif
         <div class="wsf-list">
@@ -136,9 +145,9 @@
                         <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="{{ $banner['sort_order'] }}" min="0" required></label>
                         <label><span><input type="checkbox" name="is_active" value="1" @checked($banner['is_active'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
                     </div>
-                    <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ البانر':'Save banner' }}</button></div>
+                    <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}</button></div>
                 </form>
-                <form method="post" action="{{ route('admin.b2b.storefront.banners.destroy',['banner'=>$banner['id']]) }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'حذف البانر؟':'Delete banner?'))">@csrf @method('DELETE')<button class="wsf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
+                <form method="post" action="{{ route('admin.b2b.storefront.banners.destroy',['banner'=>$banner['id']]) }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'حذف البانر؟':'Delete banner?'))">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $sfStoreId }}"><button class="wsf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
                 @endif
             </div>
         @empty

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\StorefrontRevision;
 use App\Models\User;
 use App\Services\CatalogOwnership;
 use App\Services\ReportExportService;
@@ -175,13 +176,22 @@ class RetailAdminProductionDefectsTest extends TestCase
             'is_active' => 1,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('banners', [
+        $this->assertDatabaseMissing('banners', [
             'store_id' => $storeId,
             'title' => 'Product Banner',
-            'target_type' => 'product',
-            'target_id' => $productId,
-            'target_url' => '/products/'.$productId,
         ]);
+
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->where('status', 'draft')
+            ->latest('id')
+            ->firstOrFail();
+        $banner = collect($draft->payload['banners'])->firstWhere('title', 'Product Banner');
+        $this->assertNotNull($banner);
+        $this->assertSame('product', $banner['target_type']);
+        $this->assertSame($productId, $banner['target_id']);
+        $this->assertSame('/products/'.$productId, $banner['target_url']);
 
         $this->actingAs($admin)
             ->get('/admin/b2c/content')

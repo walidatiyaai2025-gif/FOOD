@@ -615,6 +615,11 @@
                 @include('admin._driver-assignment-management',['channel'=>'b2c'])
             @endif
             @if($module==='content' && $storeId > 0 && ($user->hasPermission('promotions.manage',$storeId) || $user->hasPermission('promotions.manage')))
+                <div class="module-inline-form" style="margin-bottom:12px">
+                    <strong>{{ app()->getLocale()==='ar'?'البانرات تُحفظ كمسودة':'Banners are saved as Draft' }}</strong>
+                    <span>{{ app()->getLocale()==='ar'?'لن تتغير واجهة التطبيق المنشورة حتى تنشر المسودة من إدارة واجهة المتجر.':'The published app will not change until the Draft is published from Storefront management.' }}</span>
+                    <a class="foodex-primary" href="{{ route('admin.b2c.module',['module'=>'storefront','store_id'=>$storeId] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ app()->getLocale()==='ar'?'إدارة المسودة والنشر':'Manage Draft & Publish' }}</a>
+                </div>
                 <form method="post" action="{{ route('admin.business.banners.store') }}" enctype="multipart/form-data" class="module-inline-form">
                     @csrf
                     <input type="hidden" name="store_id" value="{{ $storeId }}">
@@ -624,7 +629,7 @@
                     <select name="target_ref" required><option value="">{{ app()->getLocale()==='ar'?'اختر المنتج أو التصنيف':'Select product or category' }}</option>@foreach(($moduleData['targets'] ?? []) as $target)<option value="{{ $target['ref'] }}">{{ $target['label'] }}</option>@endforeach</select>
                     <input type="number" name="sort_order" min="0" value="0" required placeholder="{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}">
                     <label style="display:flex;align-items:center;gap:7px"><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
-                    <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'رفع وإضافة البانر':'Upload & add banner' }}</button>
+                    <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة البانر للمسودة':'Add banner to Draft' }}</button>
                 </form>
             @endif
             @if($module==='orders' && $storeId > 0 && (collect($storeIds)->contains(fn($candidateStoreId) => $user->hasPermission('orders.manage',(int)$candidateStoreId)) || $user->hasPermission('orders.manage')))
@@ -681,7 +686,7 @@
                                                 <label style="display:flex;align-items:center;gap:7px"><input type="checkbox" name="is_active" value="1" @checked($row['status'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
                                                 <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
                                             </form>
-                                            <form method="post" action="{{ route('admin.business.banners.destroy',$row['_id']) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'حذف البانر وصورته؟':'Delete this banner and its image?' }}')">@csrf @method('DELETE')<button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
+                                            <form method="post" action="{{ route('admin.business.banners.destroy',$row['_id']) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'حذف البانر من المسودة؟':'Delete this banner from Draft?' }}')">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $row['_store_id'] }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
                                         </div>
                                     @elseif($column==='actions' && is_array($row[$column] ?? null))
                                         <div class="module-links">
