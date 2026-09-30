@@ -149,6 +149,42 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /app-preview/storefront-configuration:
+    get:
+      tags: [App Preview]
+      summary: Resolve the current Draft or Published storefront configuration for a valid Customer preview session
+      operationId: resolveCurrentStorefrontPreviewConfiguration
+      parameters:
+        - in: header
+          name: X-Foodex-Preview-Token
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - in: query
+          name: mode
+          required: true
+          schema:
+            type: string
+            enum: [draft, published]
+      responses:
+        "200":
+          description: Current read-only storefront configuration for the preview session scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontRevisionPreviewResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
   /app-preview/storefront-revisions/{revision}/resolve:
     post:
       tags: [App Preview]
@@ -3456,6 +3492,9 @@ components:
             read_only:
               type: boolean
               const: true
+            mode:
+              type: string
+              enum: [draft, published]
 
     StorefrontRevisionPreviewResponse:
       type: object
