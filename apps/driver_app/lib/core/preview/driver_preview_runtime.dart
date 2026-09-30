@@ -5,6 +5,7 @@ import '../../app.dart';
 import '../../navigation.dart';
 import 'driver_preview_bootstrap.dart';
 import 'driver_preview_transport.dart';
+import 'driver_preview_viewport.dart';
 
 class DriverPreviewRuntime {
   DriverPreviewRuntime._({
@@ -44,7 +45,7 @@ class DriverPreviewRuntime {
     );
 
     return DriverPreviewRuntime._(
-      app: app,
+      app: DriverPreviewViewport(bootstrap: bootstrap, child: app),
       bundle: bundle,
     );
   }
