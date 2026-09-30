@@ -88,6 +88,18 @@ class B2cWorkspaceController extends Controller
 
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2c_'.$module;
+        $canViewDriverTracking = $module === 'dashboard'
+            && in_array(
+                $storeId,
+                app(OperationalTenantScope::class)->allowedStoreIds($user, 'drivers.tracking.view', 'b2c'),
+                true,
+            );
+        $driverTrackingFeedUrl = $canViewDriverTracking
+            ? route('admin.driver-live-tracking.feed', ['channel' => 'b2c', 'store_id' => $storeId])
+            : null;
+        $driverTrackingPageUrl = $canViewDriverTracking
+            ? route('admin.driver-live-tracking.index')
+            : null;
         [$dashboardFrom, $dashboardTo] = $module === 'dashboard'
             ? $this->dashboardRange($request)
             : [null, null];
@@ -121,6 +133,9 @@ class B2cWorkspaceController extends Controller
             'dashboard',
             'moduleData',
             'visibleModules',
+            'canViewDriverTracking',
+            'driverTrackingFeedUrl',
+            'driverTrackingPageUrl',
         ));
     }
 

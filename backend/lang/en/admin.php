@@ -101,6 +101,7 @@ return [
         'load_failed' => 'Unable to load live driver locations.',
         'last_updated' => 'Last updated',
         'recenter' => 'Recenter',
+        'view_full' => 'View live tracking',
         'auto_refresh' => 'Auto refresh every 5 seconds',
         'store' => 'Store',
         'order' => 'Active order',

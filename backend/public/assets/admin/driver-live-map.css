@@ -10,8 +10,9 @@
 .driver-live-map-shell .tracking-summary strong{display:block;font-size:1.6rem}
 .driver-live-map-shell .tracking-summary small{color:var(--foodex-muted)}
 .driver-live-map-shell .driver-live-map-canvas{height:590px;border:1px solid var(--foodex-border);border-radius:18px;overflow:hidden;background:#eef2f5}
-.driver-live-map-shell[data-mode="compact"] .driver-live-map-canvas{height:320px}
+.driver-live-map-shell[data-mode="compact"] .driver-live-map-canvas{height:218px}
 .driver-live-map-shell .tracking-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.driver-live-map-shell .tracking-toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .driver-live-map-shell .tracking-status{color:var(--foodex-muted);font-size:.9rem}
 .driver-live-map-shell .tracking-last-updated{margin-top:8px}
 .driver-live-map-shell .tracking-list{display:grid;gap:8px;max-height:590px;overflow:auto}
@@ -24,6 +25,19 @@
 .driver-live-map-shell .tracking-error{padding:12px;border:1px solid #fecaca;background:#fff1f2;color:#991b1b;border-radius:12px;margin-bottom:10px}
 .driver-live-map-shell .tracking-search-label{display:grid;gap:6px;font-weight:700}
 .driver-live-map-shell .tracking-list-title{font-size:1rem;margin:16px 0 10px}
+[data-dashboard-live-driver-map]{min-width:0;overflow:hidden}
+[data-dashboard-live-driver-map] .driver-live-map-shell{min-width:0}
+[data-dashboard-live-driver-map] .tracking-summary{margin:0 0 10px;gap:7px}
+[data-dashboard-live-driver-map] .tracking-summary>div{padding:7px 8px;border-radius:10px}
+[data-dashboard-live-driver-map] .tracking-summary strong{font-size:1.05rem;line-height:1.1}
+[data-dashboard-live-driver-map] .tracking-summary small{font-size:.67rem}
+[data-dashboard-live-driver-map] .tracking-map-card{padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important}
+[data-dashboard-live-driver-map] .tracking-toolbar{margin-bottom:8px;align-items:flex-start}
+[data-dashboard-live-driver-map] .tracking-toolbar>div:first-child>strong{font-size:.9rem}
+[data-dashboard-live-driver-map] .tracking-status{font-size:.7rem}
+[data-dashboard-live-driver-map] .tracking-toolbar .btn{min-height:32px;padding:5px 8px;font-size:.68rem}
+[data-dashboard-live-driver-map] .tracking-last-updated{margin-top:6px}
+
 @media(max-width:1180px){
     .driver-live-map-shell .tracking-grid{grid-template-columns:1fr}
     .driver-live-map-shell .tracking-list{max-height:360px}
@@ -32,5 +46,5 @@
 @media(max-width:640px){
     .driver-live-map-shell .tracking-filters{grid-template-columns:1fr}
     .driver-live-map-shell .driver-live-map-canvas{height:480px}
-    .driver-live-map-shell[data-mode="compact"] .driver-live-map-canvas{height:280px}
+    .driver-live-map-shell[data-mode="compact"] .driver-live-map-canvas{height:250px}
 }

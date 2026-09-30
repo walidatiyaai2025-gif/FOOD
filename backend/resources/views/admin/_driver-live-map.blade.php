@@ -4,6 +4,25 @@
     $showList = $showList ?? true;
     $showSummary = $showSummary ?? true;
     $pollMs = $pollMs ?? 5000;
+    $ctaUrl = $ctaUrl ?? null;
+    $ctaLabel = $ctaLabel ?? __('admin.driver_live_tracking.view_full');
+    $trackingI18n = $trackingI18n ?? [
+        'noDrivers' => __('admin.driver_live_tracking.no_drivers'),
+        'loading' => __('admin.driver_live_tracking.loading'),
+        'failed' => __('admin.driver_live_tracking.load_failed'),
+        'ready' => __('admin.driver_live_tracking.ready'),
+        'store' => __('admin.driver_live_tracking.store'),
+        'status' => __('admin.driver_live_tracking.status'),
+        'statuses' => [
+            'online' => __('admin.driver_live_tracking.online'),
+            'stale' => __('admin.driver_live_tracking.stale'),
+            'offline' => __('admin.driver_live_tracking.offline'),
+        ],
+        'order' => __('admin.driver_live_tracking.order'),
+        'accuracy' => __('admin.driver_live_tracking.accuracy'),
+        'speed' => __('admin.driver_live_tracking.speed'),
+        'lastSeen' => __('admin.driver_live_tracking.last_seen'),
+    ];
 @endphp
 
 <div
@@ -65,7 +84,12 @@
                         · {{ __('admin.driver_live_tracking.auto_refresh') }}
                     </div>
                 </div>
-                <button class="btn" type="button" data-live-map="recenter">{{ __('admin.driver_live_tracking.recenter') }}</button>
+                <div class="tracking-toolbar-actions">
+                    @if ($ctaUrl)
+                        <a class="btn" data-live-map-cta href="{{ $ctaUrl }}">{{ $ctaLabel }}</a>
+                    @endif
+                    <button class="btn" type="button" data-live-map="recenter">{{ __('admin.driver_live_tracking.recenter') }}</button>
+                </div>
             </div>
 
             <div

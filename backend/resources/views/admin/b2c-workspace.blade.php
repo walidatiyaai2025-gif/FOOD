@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ __('admin.b2c_workspace.title') }} · FOODEX</title>
     @include('admin._brand-components')
+    @if($module === 'dashboard' && $canViewDriverTracking)
+    <link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">
+    @endif
     <style>
         body{margin:0;overflow-x:hidden;background:var(--foodex-background);color:var(--foodex-ink)}
         a{color:inherit;text-decoration:none}
@@ -62,7 +66,7 @@
         .delta.down{color:var(--foodex-red);background:rgba(239,83,80,.10)}
         .delta.na{color:var(--foodex-muted);background:var(--foodex-background)}
 
-        .middle{direction:ltr;display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:var(--foodex-space-3);margin-top:var(--foodex-space-3)}
+        .middle{direction:ltr;display:grid;grid-template-columns:repeat(var(--dashboard-primary-columns,2),minmax(0,1fr));gap:var(--foodex-space-3);margin-top:var(--foodex-space-3)}
         .panel{background:var(--foodex-surface)!important;border:1px solid var(--foodex-border)!important;border-radius:var(--foodex-radius-card)!important;padding:var(--foodex-space-4);box-shadow:var(--foodex-shadow-sm)!important}
         html[dir=rtl] .middle>.panel,html[dir=rtl] .bottom>.panel{direction:rtl}
         .panel-title{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--foodex-space-3);margin-bottom:var(--foodex-space-3)}
@@ -301,8 +305,8 @@
                 @endforeach
             </section>
 
-            <section class="middle">
-                <article class="panel">
+            <section class="middle" data-dashboard-primary-row style="--dashboard-primary-columns:{{ $canViewDriverTracking ? 3 : 2 }}">
+                <article class="panel" data-dashboard-primary-card="sales">
                     <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.orders_revenue') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Orders & Revenue</small>@endif</div><div class="legend"><span><i class="dot" style="background:var(--foodex-orange)"></i>{{ __('admin.b2c_dashboard.orders') }}</span><span><i class="dot" style="background:var(--foodex-green)"></i>{{ __('admin.b2c_dashboard.revenue') }}</span></div></div>
                     @php
                         $maxOrders=max(1,max(array_column($dashboard['series'],'orders')));
@@ -331,7 +335,21 @@
                     $dist=$dashboard['distribution'];$total=array_sum($dist);$p1=$total?($dist['processing']/$total*100):0;$p2=$total?($dist['out_for_delivery']/$total*100):0;$p3=$total?($dist['delivered']/$total*100):0;
                     $gradient="conic-gradient(var(--foodex-blue) 0 {$p1}%, var(--foodex-orange) {$p1}% ".($p1+$p2)."%, var(--foodex-green) ".($p1+$p2)."% ".($p1+$p2+$p3)."%, var(--foodex-red) ".($p1+$p2+$p3)."% 100%)";
                 @endphp
-                <article class="panel">
+                @if($canViewDriverTracking)
+                <article class="panel dashboard-live-map-card" data-dashboard-primary-card="driver-map" data-dashboard-live-driver-map>
+                    @include('admin._driver-live-map', [
+                        'feedUrl' => $driverTrackingFeedUrl,
+                        'liveMapMode' => 'compact',
+                        'showFilters' => false,
+                        'showList' => false,
+                        'showSummary' => true,
+                        'pollMs' => 5000,
+                        'ctaUrl' => $driverTrackingPageUrl,
+                    ])
+                </article>
+                @endif
+
+                <article class="panel" data-dashboard-primary-card="order-distribution">
                     <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.distribution') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Orders Distribution</small>@endif</div></div>
                     <div class="donut-wrap">
                         <div class="donut" style="background:{{ $gradient }}"><div class="donut-center">{{ $total }}<small>{{ __('admin.b2c_dashboard.total_orders') }}</small></div></div>
@@ -694,6 +712,10 @@
         @endif
     </main>
 </div>
+@endif
+@if($module === 'dashboard' && $canViewDriverTracking)
+<script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
+<script src="{{ asset('assets/admin/driver-live-map.js') }}"></script>
 @endif
 </body>
 </html>
