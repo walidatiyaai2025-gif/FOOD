@@ -36,7 +36,9 @@ final class StorefrontDraftEditorController extends Controller
         private readonly WholesalePrincipal $principal,
     ) {}
 
-    public function retailSettings(Request $request, StoreLogoService $logos): RedirectResponse {
+    public function retailSettings(Request $request, StoreLogoService $logos): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $this->settingsData($request, false);
         $storeId = (int) $data['store_id'];
@@ -63,7 +65,9 @@ final class StorefrontDraftEditorController extends Controller
         ));
     }
 
-    public function wholesaleSettings(Request $request, StoreLogoService $logos): RedirectResponse {
+    public function wholesaleSettings(Request $request, StoreLogoService $logos): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $this->settingsData($request, true);
         $storeId = (int) $data['store_id'];
@@ -90,31 +94,45 @@ final class StorefrontDraftEditorController extends Controller
         ));
     }
 
-    public function retailSectionStore(Request $request): RedirectResponse {
+    public function retailSectionStore(Request $request): RedirectResponse
+
+    {
         return $this->storeSection($request, 'b2c');
     }
 
-    public function wholesaleSectionStore(Request $request): RedirectResponse {
+    public function wholesaleSectionStore(Request $request): RedirectResponse
+
+    {
         return $this->storeSection($request, 'b2b');
     }
 
-    public function retailSectionUpdate(Request $request, string $section): RedirectResponse {
+    public function retailSectionUpdate(Request $request, string $section): RedirectResponse
+
+    {
         return $this->updateSection($request, 'b2c', $section);
     }
 
-    public function wholesaleSectionUpdate(Request $request, string $section): RedirectResponse {
+    public function wholesaleSectionUpdate(Request $request, string $section): RedirectResponse
+
+    {
         return $this->updateSection($request, 'b2b', $section);
     }
 
-    public function retailSectionDestroy(Request $request, string $section): RedirectResponse {
+    public function retailSectionDestroy(Request $request, string $section): RedirectResponse
+
+    {
         return $this->destroySection($request, 'b2c', $section);
     }
 
-    public function wholesaleSectionDestroy(Request $request, string $section): RedirectResponse {
+    public function wholesaleSectionDestroy(Request $request, string $section): RedirectResponse
+
+    {
         return $this->destroySection($request, 'b2b', $section);
     }
 
-    public function retailZoneStore(Request $request): RedirectResponse {
+    public function retailZoneStore(Request $request): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $request->validate([
             'store_id' => ['required', 'integer', 'exists:stores,id'],
@@ -133,7 +151,9 @@ final class StorefrontDraftEditorController extends Controller
         return back()->with('status', $this->msg('تم حفظ منطقة الخدمة في المسودة.', 'Service zone saved to Draft.'));
     }
 
-    public function retailZoneDestroy(Request $request, string $zone): RedirectResponse {
+    public function retailZoneDestroy(Request $request, string $zone): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
         abort_unless($storeId > 0, 422);
@@ -143,47 +163,69 @@ final class StorefrontDraftEditorController extends Controller
         return back()->with('status', $this->msg('تم حذف منطقة الخدمة من المسودة.', 'Service zone removed from Draft.'));
     }
 
-    public function retailBannerStore(Request $request, BannerImageService $images): RedirectResponse {
+    public function retailBannerStore(Request $request, BannerImageService $images): RedirectResponse
+
+    {
         return $this->storeBanner($request, $images, 'b2c');
     }
 
-    public function wholesaleBannerStore(Request $request, BannerImageService $images): RedirectResponse {
+    public function wholesaleBannerStore(Request $request, BannerImageService $images): RedirectResponse
+
+    {
         return $this->storeBanner($request, $images, 'b2b');
     }
 
-    public function retailBannerUpdate(Request $request, string $banner, BannerImageService $images): RedirectResponse {
+    public function retailBannerUpdate(Request $request, string $banner, BannerImageService $images): RedirectResponse
+
+    {
         return $this->updateBanner($request, $banner, $images, 'b2c');
     }
 
-    public function wholesaleBannerUpdate(Request $request, string $banner, BannerImageService $images): RedirectResponse {
+    public function wholesaleBannerUpdate(Request $request, string $banner, BannerImageService $images): RedirectResponse
+
+    {
         return $this->updateBanner($request, $banner, $images, 'b2b');
     }
 
-    public function retailBannerDestroy(Request $request, string $banner): RedirectResponse {
+    public function retailBannerDestroy(Request $request, string $banner): RedirectResponse
+
+    {
         return $this->destroyBanner($request, $banner, 'b2c');
     }
 
-    public function wholesaleBannerDestroy(Request $request, string $banner): RedirectResponse {
+    public function wholesaleBannerDestroy(Request $request, string $banner): RedirectResponse
+
+    {
         return $this->destroyBanner($request, $banner, 'b2b');
     }
 
-    public function retailPublish(Request $request): RedirectResponse {
+    public function retailPublish(Request $request): RedirectResponse
+
+    {
         return $this->publish($request, 'b2c');
     }
 
-    public function wholesalePublish(Request $request): RedirectResponse {
+    public function wholesalePublish(Request $request): RedirectResponse
+
+    {
         return $this->publish($request, 'b2b');
     }
 
-    public function retailDiscard(Request $request): RedirectResponse {
+    public function retailDiscard(Request $request): RedirectResponse
+
+    {
         return $this->discard($request, 'b2c');
     }
 
-    public function wholesaleDiscard(Request $request): RedirectResponse {
+    public function wholesaleDiscard(Request $request): RedirectResponse
+
+    {
         return $this->discard($request, 'b2b');
     }
 
-    private function storeSection(Request $request, string $channel): RedirectResponse {
+    private function storeSection(Request $request, string $channel): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $this->sectionData($request, $channel);
         $storeId = (int) $data['store_id'];
@@ -202,7 +244,9 @@ final class StorefrontDraftEditorController extends Controller
         return back()->with('status', $this->msg('تمت إضافة القسم إلى المسودة.', 'Section added to Draft.'));
     }
 
-    private function updateSection(Request $request, string $channel, string $editorId): RedirectResponse {
+    private function updateSection(Request $request, string $channel, string $editorId): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $this->sectionData($request, $channel);
         $storeId = (int) $data['store_id'];
@@ -221,7 +265,9 @@ final class StorefrontDraftEditorController extends Controller
         return back()->with('status', $this->msg('تم تحديث القسم في المسودة.', 'Section updated in Draft.'));
     }
 
-    private function destroySection(Request $request, string $channel, string $editorId): RedirectResponse {
+    private function destroySection(Request $request, string $channel, string $editorId): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
         abort_unless($storeId > 0, 422);
@@ -231,7 +277,9 @@ final class StorefrontDraftEditorController extends Controller
         return back()->with('status', $this->msg('تم حذف القسم من المسودة.', 'Section removed from Draft.'));
     }
 
-    private function storeBanner(Request $request, BannerImageService $images, string $channel): RedirectResponse {
+    private function storeBanner(Request $request, BannerImageService $images, string $channel): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $this->bannerData($request, true, $channel);
         $storeId = (int) $data['store_id'];
@@ -277,7 +325,9 @@ final class StorefrontDraftEditorController extends Controller
         return back()->with('status', $this->msg('تم تحديث البانر في المسودة.', 'Banner updated in Draft.'));
     }
 
-    private function destroyBanner(Request $request, string $editorId, string $channel): RedirectResponse {
+    private function destroyBanner(Request $request, string $editorId, string $channel): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
         abort_unless($storeId > 0, 404);
@@ -288,7 +338,9 @@ final class StorefrontDraftEditorController extends Controller
         return back()->with('status', $this->msg('تم حذف البانر من المسودة.', 'Banner removed from Draft.'));
     }
 
-    private function publish(Request $request, string $channel): RedirectResponse {
+    private function publish(Request $request, string $channel): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
         abort_unless($storeId > 0, 422);
@@ -303,7 +355,9 @@ final class StorefrontDraftEditorController extends Controller
         ));
     }
 
-    private function discard(Request $request, string $channel): RedirectResponse {
+    private function discard(Request $request, string $channel): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
         abort_unless($storeId > 0, 422);
@@ -342,7 +396,7 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     /** @param array<string,mixed> $data
-     *  @return array<string,mixed>
+     * @return array<string,mixed>
      */
     private function settingsPatch(array $data, bool $wholesale): array
     {
@@ -451,7 +505,9 @@ final class StorefrontDraftEditorController extends Controller
         $this->scope->assertStore($actor, $storeId, $ability, 'b2c');
     }
 
-    private function authorizeWholesale(User $actor, int $storeId, string $ability): void {
+    private function authorizeWholesale(User $actor, int $storeId, string $ability): void
+
+    {
         abort_unless($storeId === $this->principal->storeId(), 404);
         $this->scope->assertStore($actor, $storeId, $ability, 'b2b');
     }
