@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/auth/driver_session.dart';
 import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/localization/driver_translations.dart';
+import 'core/preview/driver_preview_context.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/notifications/driver_notification_page.dart';
 import 'features/notifications/notification_feed.dart';
@@ -33,6 +34,7 @@ class DriverNavigator {
     this.notificationRepository,
     this.onSessionExpired,
     this.onLogout,
+    this.previewContext,
   });
 
   final DriverChannel channel;
@@ -40,6 +42,7 @@ class DriverNavigator {
   final DriverNotificationRepository? notificationRepository;
   final VoidCallback? onSessionExpired;
   final VoidCallback? onLogout;
+  final DriverPreviewContext? previewContext;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? DriverRoutes.root;
@@ -68,6 +71,7 @@ class DriverNavigator {
             onSessionExpired: onSessionExpired,
             focusAssignmentId: focusAssignmentId,
             initialAssignmentStatus: initialAssignmentStatus,
+            previewContext: previewContext,
           ),
           settings,
         );
@@ -119,6 +123,7 @@ class DriverNavigator {
       repository: repository,
       onSessionExpired: onSessionExpired,
       onLogout: onLogout,
+      previewContext: previewContext,
     );
   }
 
@@ -136,6 +141,7 @@ class _DriverHomePage extends StatefulWidget {
     required this.repository,
     this.onSessionExpired,
     this.onLogout,
+    this.previewContext,
   });
 
   final String routeName;
@@ -145,6 +151,7 @@ class _DriverHomePage extends StatefulWidget {
   final DriverAssignmentRepository repository;
   final VoidCallback? onSessionExpired;
   final VoidCallback? onLogout;
+  final DriverPreviewContext? previewContext;
 
   @override
   State<_DriverHomePage> createState() => _DriverHomePageState();
@@ -178,8 +185,19 @@ class _DriverHomePageState extends State<_DriverHomePage> {
     try {
       final rows = await widget.repository.list(widget.channel);
       if (!mounted) return;
+      final preview = widget.previewContext;
       setState(() {
-        _assignments = rows.where((row) => row.channel == widget.channel).toList(growable: false);
+        _assignments = rows
+            .where(
+              (row) =>
+                  row.channel == widget.channel &&
+                  (preview == null ||
+                      preview.allowsAssignment(
+                        assignmentChannel: row.channel,
+                        assignmentStoreId: row.storeId,
+                      )),
+            )
+            .toList(growable: false);
         _loading = false;
       });
     } on DriverSessionExpiredException {
