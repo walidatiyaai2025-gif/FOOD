@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminLoginController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminShellController;
 use App\Http\Controllers\Admin\AppPreviewController;
+use App\Http\Controllers\Admin\AppPreviewInvalidationController;
 use App\Http\Controllers\Admin\AppVersionController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
@@ -82,6 +83,7 @@ Route::prefix('admin')
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
         Route::get('/app-preview', [AppPreviewController::class, 'index'])->name('app-preview.index');
         Route::get('/app-preview/targets', [AppPreviewController::class, 'targets'])->name('app-preview.targets');
+        Route::get('/app-preview/events', AppPreviewInvalidationController::class)->name('app-preview.events');
         Route::post('/app-preview/sessions', [AppPreviewController::class, 'storeSession'])->name('app-preview.sessions.store');
         Route::delete('/app-preview/sessions/{sessionId}', [AppPreviewController::class, 'destroySession'])
             ->whereUuid('sessionId')
