@@ -218,6 +218,7 @@ function instrumentPage(page) {
     page_errors: [],
     request_failures: [],
     bad_responses: [],
+    preview_requests: [],
   };
   diagnosticsByPage.set(page, diagnostics);
   page.on('console', (message) => {
@@ -228,6 +229,15 @@ function instrumentPage(page) {
   });
   page.on('pageerror', (error) => {
     diagnostics.page_errors.push(String(error));
+  });
+  page.on('request', (request) => {
+    const url = request.url();
+    if (url.includes('/app-preview/') || url.includes('/admin/app-preview/')) {
+      diagnostics.preview_requests.push({
+        method: request.method(),
+        url,
+      });
+    }
   });
   page.on('requestfailed', (request) => {
     diagnostics.request_failures.push({
