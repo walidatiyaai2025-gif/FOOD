@@ -4,9 +4,9 @@ FOODEX system updates are a privileged, backend-owned workflow. Only the dedicat
 
 The execution coordinator uses this mandatory sequence:
 
-`Validate package -> Preflight -> Backup files -> Backup database when needed -> Maintenance mode -> Extract release -> Run migrations when declared -> Rebuild caches -> Health check -> Exit maintenance -> Record version/history`
+`Inspect ZIP for migrations -> Validate package -> Preflight -> Backup files -> Backup database when needed -> Maintenance mode -> Extract release -> Run detected migrations -> Rebuild caches -> Health check -> Exit maintenance -> Record version/history`
 
-The package SHA-256 is checked before any backup or mutation. The target version must be newer than the installed version and the current version must satisfy the package minimum.
+Migration presence is derived from the ZIP contents by the backend and is never trusted from a manual dashboard checkbox. Any package containing `backend/database/migrations/` automatically requires a database backup and `php artisan migrate --force`.\n\nThe package SHA-256 is checked before any backup or mutation. The target version must be newer than the installed version and the current version must satisfy the package minimum.
 
 If a stage fails after backups exist, the coordinator attempts file rollback, database rollback when a database backup exists, and maintenance-mode exit. The failure stored in `update_history` identifies the stage but does not persist raw exception details or credentials. Both successful and failed executions emit audit events.
 
