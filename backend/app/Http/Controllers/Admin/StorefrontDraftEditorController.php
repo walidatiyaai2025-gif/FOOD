@@ -506,7 +506,6 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     private function authorizeWholesale(User $actor, int $storeId, string $ability): void
-
     {
         abort_unless($storeId === $this->principal->storeId(), 404);
         $this->scope->assertStore($actor, $storeId, $ability, 'b2b');
