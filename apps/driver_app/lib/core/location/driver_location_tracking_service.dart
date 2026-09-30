@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
@@ -39,8 +40,15 @@ abstract interface class DriverLocationSource {
   Future<DriverLocationSample> current();
 }
 
-class GeolocatorDriverLocationSource implements DriverLocationSource {
-  const GeolocatorDriverLocationSource();
+abstract interface class DriverActiveDeliveryLocationSource {
+  Stream<DriverLocationSample> watchActiveDelivery();
+}
+
+class GeolocatorDriverLocationSource
+    implements DriverLocationSource, DriverActiveDeliveryLocationSource {
+  const GeolocatorDriverLocationSource({this.locale = 'ar'});
+
+  final String locale;
 
   @override
   Future<DriverLocationSample> current() async {
@@ -50,6 +58,43 @@ class GeolocatorDriverLocationSource implements DriverLocationSource {
       ),
     );
 
+    return _sample(position);
+  }
+
+  @override
+  Stream<DriverLocationSample> watchActiveDelivery() {
+    final settings = switch (defaultTargetPlatform) {
+      TargetPlatform.android => AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10,
+          intervalDuration: const Duration(seconds: 7),
+          foregroundNotificationConfig: ForegroundNotificationConfig(
+            notificationTitle: locale == 'en'
+                ? 'FOODEX Driver · active delivery'
+                : 'FOODEX Driver · توصيل نشط',
+            notificationText: locale == 'en'
+                ? 'Location sharing is active only while this delivery is in progress.'
+                : 'مشاركة الموقع تعمل فقط أثناء تنفيذ التوصيل الحالي.',
+            enableWakeLock: true,
+          ),
+        ),
+      TargetPlatform.iOS => AppleSettings(
+          accuracy: LocationAccuracy.high,
+          activityType: ActivityType.automotiveNavigation,
+          distanceFilter: 10,
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: true,
+        ),
+      _ => const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10,
+        ),
+    };
+
+    return Geolocator.getPositionStream(locationSettings: settings).map(_sample);
+  }
+
+  static DriverLocationSample _sample(Position position) {
     final accuracy = position.accuracy >= 0 ? position.accuracy : null;
     final speed = position.speed >= 0 && position.speed <= 500
         ? position.speed
@@ -190,6 +235,7 @@ class TimerDriverTrackingScheduler implements DriverTrackingScheduler {
 abstract interface class DriverLocationTrackingController {
   void start();
   void setGateReady(bool ready);
+  void setAppInForeground(bool foreground);
   void stop({bool clearQueue = true});
   void dispose();
 }
@@ -221,36 +267,38 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
   bool _started = false;
   bool _gateReady = false;
   bool _cycleRunning = false;
+  bool _backgroundFlushRunning = false;
   bool _disposed = false;
   bool _activeDelivery = false;
+  bool _appInForeground = true;
+  StreamSubscription<DriverLocationSample>? _backgroundSubscription;
 
   bool get isStarted => _started;
   bool get gateReady => _gateReady;
   bool get activeDelivery => _activeDelivery;
+  bool get appInForeground => _appInForeground;
+  bool get backgroundTracking => _backgroundSubscription != null;
   int get queuedSamples => _queue.length;
 
   @override
   void start() {
     if (_disposed || _started) return;
     _started = true;
-    if (_gateReady) {
-      _schedule(Duration.zero);
-    }
+    _reconcileTrackingMode();
   }
 
   @override
   void setGateReady(bool ready) {
     if (_disposed || _gateReady == ready) return;
     _gateReady = ready;
+    _reconcileTrackingMode();
+  }
 
-    if (!ready) {
-      scheduler.cancel();
-      return;
-    }
-
-    if (_started && !_cycleRunning) {
-      _schedule(Duration.zero);
-    }
+  @override
+  void setAppInForeground(bool foreground) {
+    if (_disposed || _appInForeground == foreground) return;
+    _appInForeground = foreground;
+    _reconcileTrackingMode();
   }
 
   @override
@@ -259,6 +307,7 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
     _gateReady = false;
     _activeDelivery = false;
     scheduler.cancel();
+    _stopBackgroundStream();
     if (clearQueue) {
       _queue.clear();
     }
@@ -275,39 +324,25 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
   }
 
   Future<void> runCycle() async {
-    if (!_canRun || _cycleRunning) return;
+    if (!_canRun || !_appInForeground || _cycleRunning) return;
     _cycleRunning = true;
     var nextDelay = cadence.retry;
 
     try {
       final sample = await locationSource.current();
-      if (!_canRun) return;
+      if (!_canRun || !_appInForeground) return;
 
       _enqueue(sample);
       final receipt = await _flush();
       if (!_canRun) return;
 
-      if (receipt != null) {
-        _activeDelivery = receipt.activeAssignmentId != null;
-      }
+      _applyReceipt(receipt);
       nextDelay = cadence.next(activeDelivery: _activeDelivery);
     } on DriverSessionExpiredException catch (error, stack) {
-      inspector.recordTrackingFailure(
-        code: 'session_expired',
-        error: error,
-        stack: stack,
-      );
-      stop(clearQueue: true);
-      onSessionInvalid?.call();
+      _handleSessionFailure('session_expired', error, stack);
       return;
     } on DriverAccessDeniedException catch (error, stack) {
-      inspector.recordTrackingFailure(
-        code: 'access_denied',
-        error: error,
-        stack: stack,
-      );
-      stop(clearQueue: true);
-      onSessionInvalid?.call();
+      _handleSessionFailure('access_denied', error, stack);
       return;
     } catch (error, stack) {
       inspector.recordTrackingFailure(
@@ -318,8 +353,10 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
       nextDelay = cadence.retry;
     } finally {
       _cycleRunning = false;
-      if (_canRun) {
+      if (_canRun && _appInForeground) {
         _schedule(nextDelay);
+      } else {
+        _reconcileTrackingMode();
       }
     }
   }
@@ -327,7 +364,105 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
   bool get _canRun => _started && _gateReady && !_disposed;
 
   void _schedule(Duration delay) {
+    if (!_canRun || !_appInForeground) return;
     scheduler.schedule(delay, runCycle);
+  }
+
+  void _reconcileTrackingMode() {
+    scheduler.cancel();
+
+    if (!_canRun) {
+      _stopBackgroundStream();
+      return;
+    }
+
+    if (_appInForeground) {
+      _stopBackgroundStream();
+      if (!_cycleRunning) {
+        _schedule(Duration.zero);
+      }
+      return;
+    }
+
+    if (_activeDelivery) {
+      _startBackgroundStream();
+    } else {
+      _stopBackgroundStream();
+    }
+  }
+
+  void _applyReceipt(DriverHeartbeatReceipt? receipt) {
+    if (receipt == null) return;
+    final wasActive = _activeDelivery;
+    _activeDelivery = receipt.activeAssignmentId != null;
+    if (wasActive != _activeDelivery || !_appInForeground) {
+      _reconcileTrackingMode();
+    }
+  }
+
+  void _startBackgroundStream() {
+    if (_backgroundSubscription != null || !_canRun || _appInForeground || !_activeDelivery) {
+      return;
+    }
+    final source = locationSource;
+    if (source is! DriverActiveDeliveryLocationSource) {
+      return;
+    }
+    final backgroundSource = source as DriverActiveDeliveryLocationSource;
+
+    _backgroundSubscription = backgroundSource.watchActiveDelivery().listen(
+      (sample) => unawaited(_handleBackgroundSample(sample)),
+      onError: (Object error, StackTrace stack) {
+        inspector.recordTrackingFailure(
+          code: 'background_location_unavailable',
+          error: error,
+          stack: stack,
+        );
+      },
+    );
+  }
+
+  void _stopBackgroundStream() {
+    final subscription = _backgroundSubscription;
+    _backgroundSubscription = null;
+    if (subscription != null) {
+      unawaited(subscription.cancel());
+    }
+  }
+
+  Future<void> _handleBackgroundSample(DriverLocationSample sample) async {
+    if (!_canRun || _appInForeground || !_activeDelivery) return;
+    _enqueue(sample);
+    if (_backgroundFlushRunning) return;
+
+    _backgroundFlushRunning = true;
+    try {
+      final receipt = await _flush();
+      if (!_canRun) return;
+      _applyReceipt(receipt);
+    } on DriverSessionExpiredException catch (error, stack) {
+      _handleSessionFailure('session_expired', error, stack);
+    } on DriverAccessDeniedException catch (error, stack) {
+      _handleSessionFailure('access_denied', error, stack);
+    } catch (error, stack) {
+      inspector.recordTrackingFailure(
+        code: 'background_heartbeat_unavailable',
+        error: error,
+        stack: stack,
+      );
+    } finally {
+      _backgroundFlushRunning = false;
+    }
+  }
+
+  void _handleSessionFailure(String code, Object error, StackTrace stack) {
+    inspector.recordTrackingFailure(
+      code: code,
+      error: error,
+      stack: stack,
+    );
+    stop(clearQueue: true);
+    onSessionInvalid?.call();
   }
 
   void _enqueue(DriverLocationSample sample) {

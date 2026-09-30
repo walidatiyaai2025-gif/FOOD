@@ -29,9 +29,13 @@ class _FakeTrackingController implements DriverLocationTrackingController {
   int stops = 0;
   int disposes = 0;
   final List<bool> gateStates = <bool>[];
+  final List<bool> foregroundStates = <bool>[];
 
   @override
   void start() => starts++;
+
+  @override
+  void setAppInForeground(bool foreground) => foregroundStates.add(foreground);
 
   @override
   void setGateReady(bool ready) => gateStates.add(ready);
@@ -87,6 +91,7 @@ void main() {
     await tester.pump();
 
     expect(tracking.starts, 1);
+    expect(tracking.foregroundStates, [true]);
     expect(tracking.gateStates, contains(true));
     expect(find.byKey(const Key('driver-location-gate')), findsNothing);
 
@@ -95,6 +100,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
 
+    expect(tracking.foregroundStates, containsAllInOrder([true, false, true]));
     expect(tracking.gateStates.last, isFalse);
     expect(find.byKey(const Key('driver-location-gate')), findsOneWidget);
 

@@ -57,10 +57,15 @@ jobs:
           grep -Fx "uses-permission: name='android.permission.INTERNET'" build/release-permissions.txt
           grep -Fx "uses-permission: name='android.permission.ACCESS_COARSE_LOCATION'" build/release-permissions.txt
           grep -Fx "uses-permission: name='android.permission.ACCESS_FINE_LOCATION'" build/release-permissions.txt
+          grep -Fx "uses-permission: name='android.permission.FOREGROUND_SERVICE'" build/release-permissions.txt
+          grep -Fx "uses-permission: name='android.permission.FOREGROUND_SERVICE_LOCATION'" build/release-permissions.txt
           if grep -Fq "android.permission.ACCESS_BACKGROUND_LOCATION" build/release-permissions.txt; then
-            echo "Driver foreground-only gate must not request background location in this slice." >&2
+            echo "Driver active-delivery background path must not request broad background-location permission." >&2
             exit 1
           fi
+          "$aapt_bin" dump xmltree "$apk" AndroidManifest.xml > build/release-manifest-tree.txt
+          grep -F "com.baseflow.geolocator.GeolocatorLocationService" build/release-manifest-tree.txt
+          grep -F "android:foregroundServiceType" build/release-manifest-tree.txt | grep -F "0x8"
           "$aapt_bin" dump badging "$apk" > build/release-badging.txt
           grep -Fx "application-label:'FOODEX Driver'" build/release-badging.txt
           grep -F "package: name='com.fiftysolution.foodex.driver'" build/release-badging.txt
@@ -121,8 +126,10 @@ jobs:
           location_usage="$(/usr/libexec/PlistBuddy -c 'Print :NSLocationWhenInUseUsageDescription' "$plist")"
           test -n "$location_usage"
           echo "$location_usage" | grep -F "FOODEX Driver"
+          /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' "$plist" > build/ios-background-modes.txt
+          grep -F "location" build/ios-background-modes.txt
           if /usr/libexec/PlistBuddy -c 'Print :NSLocationAlwaysAndWhenInUseUsageDescription' "$plist" >/dev/null 2>&1; then
-            echo "Driver foreground-only gate must not request Always location in this slice." >&2
+            echo "Driver active-delivery path must not request Always location unless it becomes technically required." >&2
             exit 1
           fi
 

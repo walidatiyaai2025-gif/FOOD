@@ -315,16 +315,23 @@ def _enable_android_core_library_desugaring(app: Path) -> None:
     raise RuntimeError('Generated Android app build.gradle(.kts) was not found')
 
 
-def _configure_android_foreground_location(app: Path) -> None:
+def _configure_android_foreground_location(app: Path, *, background_delivery: bool = False) -> None:
     manifest = app / 'src' / 'main' / 'AndroidManifest.xml'
     if not manifest.exists():
         raise RuntimeError('Generated Android main manifest was not found')
 
     text = manifest.read_text()
-    permissions = (
+    permissions = [
         'android.permission.ACCESS_COARSE_LOCATION',
         'android.permission.ACCESS_FINE_LOCATION',
-    )
+    ]
+    if background_delivery:
+        permissions.extend(
+            [
+                'android.permission.FOREGROUND_SERVICE',
+                'android.permission.FOREGROUND_SERVICE_LOCATION',
+            ]
+        )
     for permission in permissions:
         if permission in text:
             continue
@@ -391,7 +398,10 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
         IDENTITIES['customer']['bundle_id'],
         IDENTITIES['driver']['bundle_id'],
     ):
-        _configure_android_foreground_location(app)
+        _configure_android_foreground_location(
+            app,
+            background_delivery=bundle_id == IDENTITIES['driver']['bundle_id'],
+        )
     _write_android_brand_resources(app)
 
 
@@ -565,8 +575,13 @@ def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
     elif bundle_id == IDENTITIES['driver']['bundle_id']:
         plist['NSLocationWhenInUseUsageDescription'] = (
             'FOODEX Driver requires your precise location while you use the app '
-            'so delivery operations and live driver position can work.'
+            'and during an active delivery so live driver position can continue '
+            'when the app is backgrounded.'
         )
+        background_modes = list(plist.get('UIBackgroundModes', []))
+        if 'location' not in background_modes:
+            background_modes.append('location')
+        plist['UIBackgroundModes'] = background_modes
     with info.open('wb') as stream:
         plistlib.dump(plist, stream, sort_keys=False)
 
