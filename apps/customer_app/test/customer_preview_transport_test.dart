@@ -138,7 +138,10 @@ void main() {
     final client = CustomerPreviewReadHttpClient(
       MockClient((request) async {
         paths.add(request.url.path);
-        headers.add(Map<String, String>.from(request.headers));
+        headers.add({
+          for (final entry in request.headers.entries)
+            entry.key.toLowerCase(): entry.value,
+        });
         return http.Response(
           jsonEncode({'data': const <Object>[]}),
           200,
