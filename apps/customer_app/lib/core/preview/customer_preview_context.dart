@@ -343,13 +343,36 @@ class PreviewStorefrontApi implements StorefrontApi {
     String? city,
     String? area,
     bool support = false,
-  }) =>
-      delegate.selection(
-        countryCode: countryCode,
-        city: city,
-        area: area,
-        support: false,
-      );
+  }) async {
+    final value = await delegate.selection(
+      countryCode: countryCode,
+      city: city,
+      area: area,
+      support: false,
+    );
+
+    if (context.channel != CustomerChannel.b2c) {
+      return value;
+    }
+
+    final retailStores = (value['retail_stores'] as List?)
+            ?.whereType<Map>()
+            .map((row) => Map<String, dynamic>.from(row))
+            .where((row) => (row['id'] as num?)?.toInt() == context.storeId)
+            .toList(growable: false) ??
+        const <Map<String, dynamic>>[];
+
+    return {
+      ...value,
+      'retail_stores': retailStores,
+      'wholesale_stores': const <Object>[],
+      'entitlements': {
+        'direct_b2b': false,
+        'retail_context_ids': [context.storeId],
+        'support_access': false,
+      },
+    };
+  }
 
   @override
   Future<Map<String, dynamic>> retailHome(int storeId) {
@@ -440,7 +463,6 @@ Future<CustomerMapPinSelection?> previewCustomerMapPinPicker(
   double? initialLongitude,
 }) async =>
     null;
-
 
 class PreviewReadOnlyHttpClient extends http.BaseClient {
   PreviewReadOnlyHttpClient(this.delegate);

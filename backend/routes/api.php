@@ -72,6 +72,42 @@ Route::prefix('v1')->group(function (): void {
     Route::patch('/cart/items/{item}', [GuestCartController::class, 'updateItem']);
     Route::delete('/cart/items/{item}', [GuestCartController::class, 'removeItem']);
 
+    Route::prefix('app-preview/customer')
+        ->middleware('preview.customer:b2c')
+        ->group(function (): void {
+            Route::get('/cart', [GuestCartController::class, 'show']);
+            Route::get('/profile', [CustomerProfileController::class, 'show']);
+            Route::get('/profile/addresses', [CustomerProfileController::class, 'addresses']);
+            Route::get('/profile/favorites', [CustomerProfileController::class, 'favorites']);
+            Route::get('/orders', [OrderController::class, 'index']);
+            Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
+            Route::get('/invoices', [CustomerInvoiceController::class, 'index']);
+            Route::get('/invoices/{invoice}', [CustomerInvoiceController::class, 'show'])->whereNumber('invoice');
+            Route::get('/store-selector', [StorefrontController::class, 'selector']);
+            Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show'])->whereNumber('store');
+        });
+
+    Route::prefix('b2b/app-preview/customer')
+        ->middleware('preview.customer:b2b')
+        ->group(function (): void {
+            Route::get('/cart', [GuestCartController::class, 'show']);
+            Route::get('/profile', [CustomerProfileController::class, 'show']);
+            Route::get('/profile/addresses', [CustomerProfileController::class, 'addresses']);
+            Route::get('/orders', [OrderController::class, 'index']);
+            Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
+            Route::get('/invoices', [B2bFinanceController::class, 'invoices']);
+            Route::get('/invoices/{invoice}', [B2bFinanceController::class, 'invoice'])->whereNumber('invoice');
+            Route::get('/account-statement', [B2bFinanceController::class, 'statement']);
+            Route::get('/store-selector', [StorefrontController::class, 'selector']);
+            Route::get('/stores/{store}/storefront', [StorefrontController::class, 'showWholesale'])->whereNumber('store');
+            Route::get('/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);
+            Route::get('/dashboard', [B2bReportController::class, 'dashboard']);
+            Route::get('/reports/purchases', [B2bReportController::class, 'purchases']);
+            Route::get('/products/top', [B2bReportController::class, 'topProducts']);
+            Route::get('/products', [B2bPricingController::class, 'products']);
+            Route::get('/products/{product}', [B2bPricingController::class, 'product'])->whereNumber('product');
+        });
+
     Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::post('/admin/app-preview/sessions', [AppPreviewSessionController::class, 'store']);

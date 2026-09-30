@@ -48,7 +48,27 @@ class GuestCartController extends Controller
 
             if ($cart === null) {
                 $this->activeStoreForChannel($resolvedStoreId, $channel);
-                $cart = $this->customerCart($customer, $resolvedStoreId, $channel);
+
+                if ($request->attributes->get('app_preview_read_only') === true) {
+                    $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
+                    $cart = Cart::query()
+                        ->where('store_id', $resolvedStoreId)
+                        ->where($customerColumn, $customer->getKey())
+                        ->where('channel', $channel)
+                        ->first();
+
+                    if (! $cart instanceof Cart) {
+                        return response()->json(
+                            $this->emptyPreviewCartPayload(
+                                $customer,
+                                $resolvedStoreId,
+                                $channel,
+                            ),
+                        );
+                    }
+                } else {
+                    $cart = $this->customerCart($customer, $resolvedStoreId, $channel);
+                }
             }
 
             return response()->json($this->cartPayload($cart->fresh()));
@@ -200,6 +220,10 @@ class GuestCartController extends Controller
     private function apiUser(Request $request): ?User
     {
         $user = Auth::guard('sanctum')->user();
+
+        if (! $user instanceof User && $request->attributes->has('app_preview_session')) {
+            $user = $request->user();
+        }
 
         if ($user instanceof User) {
             abort_unless($user->is_active, 401, 'Unauthenticated.');
@@ -452,6 +476,44 @@ class GuestCartController extends Controller
         if ($availableQuantity !== null && $requestedQuantity > $availableQuantity) {
             abort(409, 'Requested quantity exceeds available stock.');
         }
+    }
+
+    /**
+     * Read-only preview must never materialize a cart as a side effect of GET.
+     *
+     * @return array<string,mixed>
+     */
+    private function emptyPreviewCartPayload(
+        B2bCustomer|B2cCustomer $customer,
+        int $storeId,
+        string $channel,
+    ): array {
+        return [
+            'id' => null,
+            'store_id' => $storeId,
+            'customer_id' => $customer->legacy_customer_id === null
+                ? null
+                : (int) $customer->legacy_customer_id,
+            'b2b_customer_id' => $channel === 'b2b' ? (int) $customer->getKey() : null,
+            'b2c_customer_id' => $channel === 'b2c' ? (int) $customer->getKey() : null,
+            'channel' => $channel,
+            'guest_token' => null,
+            'currency' => 'KWD',
+            'items' => [],
+            'subtotal' => 0.0,
+            'has_unavailable_items' => false,
+            'quote' => [
+                'quote_id' => null,
+                'quoted_at' => now()->toIso8601String(),
+                'promotion_discount_total' => 0.0,
+                'discount_total' => 0.0,
+                'delivery_total' => 0.0,
+                'tax_rate' => 0.0,
+                'tax_total' => 0.0,
+                'grand_total' => 0.0,
+                'pricing_source' => 'preview_read_only',
+            ],
+        ];
     }
 
     private function cartPayload(Cart $cart): array
