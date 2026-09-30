@@ -10,6 +10,7 @@ import '../auth/customer_session.dart';
 import '../location/customer_location_service.dart';
 import '../location/customer_map_pin_selector.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
+import '../../features/diagnostics/customer_diagnostics_screen.dart';
 import '../../features/home/b2c_journey_screen.dart';
 import '../../features/storefront/multistore_design_screen.dart';
 import '../../shared/customer_action_widgets.dart';
@@ -143,6 +144,10 @@ class CustomerAppRouter {
     return MaterialPageRoute<void>(
       settings: settings,
       builder: (_) {
+        if (definition.pattern == CustomerRoutePaths.diagnostics) {
+          return const CustomerDiagnosticsScreen();
+        }
+
         if (shouldUseMultiStoreDesign(definition, requestedLocation)) {
           return MultiStoreDesignScreen(
             definition: definition,
