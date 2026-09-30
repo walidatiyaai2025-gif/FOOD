@@ -161,6 +161,15 @@ class StorefrontRevisionTest extends TestCase
 
         $token = (string) $session->json('preview_token');
 
+        $this->postJson(
+            '/api/v1/app-preview/storefront-revisions/'.$draftAId.'/resolve',
+            ['preview_token' => $token],
+        )->assertUnauthorized();
+
+        $this->postJson(
+            '/api/v1/app-preview/storefront-revisions/'.$draftAId.'/resolve?preview_token='.$token,
+        )->assertUnauthorized();
+
         $this->withHeader('X-Foodex-Preview-Token', $token)
             ->postJson('/api/v1/app-preview/storefront-revisions/'.$draftAId.'/resolve')
             ->assertOk()
