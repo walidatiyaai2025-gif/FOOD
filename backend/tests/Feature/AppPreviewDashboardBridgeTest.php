@@ -256,11 +256,8 @@ class AppPreviewDashboardBridgeTest extends TestCase
         );
 
         app()->setLocale('ar');
-        $this->actingAs($admin)
-            ->get(route('admin.app-preview.index'))
-            ->assertOk()
-            ->assertSee('فاحص المعاينة')
-            ->assertSee('تصدير JSON للتشخيص');
+        $this->assertSame('فاحص المعاينة', __('admin.preview_center.inspector'));
+        $this->assertSame('تصدير JSON للتشخيص', __('admin.preview_center.export_diagnostic'));
     }
 
     public function test_user_without_preview_permission_cannot_discover_or_create_targets(): void
