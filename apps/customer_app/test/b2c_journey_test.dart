@@ -222,6 +222,40 @@ void main() {
     expect(find.byKey(const ValueKey('b2c-retry')), findsOneWidget);
   });
 
+  testWidgets('Customer password eye toggles visibility without changing the password', (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: '/auth/checkout',
+        b2cCatalogApi: _FakeCatalogApi(),
+        b2cAccountApi: _FakeAccountApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final passwordFinder =
+        find.byKey(const ValueKey('customer-login-password'));
+    final visibilityFinder =
+        find.byKey(const ValueKey('customer-login-password-visibility'));
+
+    expect(passwordFinder, findsOneWidget);
+    expect(visibilityFinder, findsOneWidget);
+
+    await tester.enterText(passwordFinder, 'Secret-123');
+    expect(tester.widget<TextField>(passwordFinder).obscureText, isTrue);
+
+    await tester.tap(visibilityFinder);
+    await tester.pump();
+
+    expect(tester.widget<TextField>(passwordFinder).obscureText, isFalse);
+    expect(find.text('Secret-123'), findsOneWidget);
+
+    await tester.tap(visibilityFinder);
+    await tester.pump();
+
+    expect(tester.widget<TextField>(passwordFinder).obscureText, isTrue);
+    expect(find.text('Secret-123'), findsOneWidget);
+  });
+
   testWidgets('B2C expired session clears auth and exposes sign-in recovery', (tester) async {
     await tester.pumpWidget(
       FoodexCustomerApp(

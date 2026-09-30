@@ -35,6 +35,7 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
   final _username = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
+  bool _passwordVisible = false;
   String? _error;
 
   bool get _requiresPassword => widget.api is HttpCustomerActionApi;
@@ -109,10 +110,26 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
             TextField(
               key: const ValueKey('customer-login-password'),
               controller: _password,
-              obscureText: true,
+              obscureText: !_passwordVisible,
               textInputAction: TextInputAction.done,
               decoration: InputDecoration(
                 labelText: context.tr('customer.login.password'),
+                suffixIcon: IconButton(
+                  key: const ValueKey('customer-login-password-visibility'),
+                  tooltip: context.tr(
+                    _passwordVisible
+                        ? 'customer.login.hide_password'
+                        : 'customer.login.show_password',
+                  ),
+                  onPressed: () => setState(
+                    () => _passwordVisible = !_passwordVisible,
+                  ),
+                  icon: Icon(
+                    _passwordVisible
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
+                  ),
+                ),
               ),
               onSubmitted: (_) => _submit(),
             ),
