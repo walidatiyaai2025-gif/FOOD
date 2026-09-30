@@ -37,7 +37,6 @@ final class StorefrontDraftEditorController extends Controller
     ) {}
 
     public function retailSettings(Request $request, StoreLogoService $logos): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $this->settingsData($request, false);
@@ -66,7 +65,6 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     public function wholesaleSettings(Request $request, StoreLogoService $logos): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $this->settingsData($request, true);
@@ -95,43 +93,36 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     public function retailSectionStore(Request $request): RedirectResponse
-
     {
         return $this->storeSection($request, 'b2c');
     }
 
     public function wholesaleSectionStore(Request $request): RedirectResponse
-
     {
         return $this->storeSection($request, 'b2b');
     }
 
     public function retailSectionUpdate(Request $request, string $section): RedirectResponse
-
     {
         return $this->updateSection($request, 'b2c', $section);
     }
 
     public function wholesaleSectionUpdate(Request $request, string $section): RedirectResponse
-
     {
         return $this->updateSection($request, 'b2b', $section);
     }
 
     public function retailSectionDestroy(Request $request, string $section): RedirectResponse
-
     {
         return $this->destroySection($request, 'b2c', $section);
     }
 
     public function wholesaleSectionDestroy(Request $request, string $section): RedirectResponse
-
     {
         return $this->destroySection($request, 'b2b', $section);
     }
 
     public function retailZoneStore(Request $request): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -152,7 +143,6 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     public function retailZoneDestroy(Request $request, string $zone): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
@@ -164,67 +154,56 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     public function retailBannerStore(Request $request, BannerImageService $images): RedirectResponse
-
     {
         return $this->storeBanner($request, $images, 'b2c');
     }
 
     public function wholesaleBannerStore(Request $request, BannerImageService $images): RedirectResponse
-
     {
         return $this->storeBanner($request, $images, 'b2b');
     }
 
     public function retailBannerUpdate(Request $request, string $banner, BannerImageService $images): RedirectResponse
-
     {
         return $this->updateBanner($request, $banner, $images, 'b2c');
     }
 
     public function wholesaleBannerUpdate(Request $request, string $banner, BannerImageService $images): RedirectResponse
-
     {
         return $this->updateBanner($request, $banner, $images, 'b2b');
     }
 
     public function retailBannerDestroy(Request $request, string $banner): RedirectResponse
-
     {
         return $this->destroyBanner($request, $banner, 'b2c');
     }
 
     public function wholesaleBannerDestroy(Request $request, string $banner): RedirectResponse
-
     {
         return $this->destroyBanner($request, $banner, 'b2b');
     }
 
     public function retailPublish(Request $request): RedirectResponse
-
     {
         return $this->publish($request, 'b2c');
     }
 
     public function wholesalePublish(Request $request): RedirectResponse
-
     {
         return $this->publish($request, 'b2b');
     }
 
     public function retailDiscard(Request $request): RedirectResponse
-
     {
         return $this->discard($request, 'b2c');
     }
 
     public function wholesaleDiscard(Request $request): RedirectResponse
-
     {
         return $this->discard($request, 'b2b');
     }
 
     private function storeSection(Request $request, string $channel): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $this->sectionData($request, $channel);
@@ -245,7 +224,6 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     private function updateSection(Request $request, string $channel, string $editorId): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $this->sectionData($request, $channel);
@@ -266,7 +244,6 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     private function destroySection(Request $request, string $channel, string $editorId): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
@@ -278,7 +255,6 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     private function storeBanner(Request $request, BannerImageService $images, string $channel): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $this->bannerData($request, true, $channel);
@@ -326,7 +302,6 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     private function destroyBanner(Request $request, string $editorId, string $channel): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
@@ -339,7 +314,6 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     private function publish(Request $request, string $channel): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
@@ -356,7 +330,6 @@ final class StorefrontDraftEditorController extends Controller
     }
 
     private function discard(Request $request, string $channel): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
