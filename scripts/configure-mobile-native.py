@@ -387,7 +387,10 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
 
     _enable_android_core_library_desugaring(app)
     _configure_android_firebase(app_dir, bundle_id)
-    if bundle_id == IDENTITIES['customer']['bundle_id']:
+    if bundle_id in (
+        IDENTITIES['customer']['bundle_id'],
+        IDENTITIES['driver']['bundle_id'],
+    ):
         _configure_android_foreground_location(app)
     _write_android_brand_resources(app)
 
