@@ -16,4 +16,4 @@ No manual migration checkbox and no server-side shell command are required for t
 
 ## Release identity
 
-Dashboard `VERSION` is 1.0.38. Customer mobile identity is synchronized to 1.0.38+38 in this reconciliation slice. Driver synchronization is deliberately deferred until the active #522 Driver tracking branch merges, so #481 does not edit a file owned by another worker.
+Dashboard `VERSION` is 1.0.38. Customer and Driver mobile package identities are synchronized to `1.0.38+38`, and both runtime footers report `1.0.38`. Driver heartbeat telemetry reports the same build identity.
