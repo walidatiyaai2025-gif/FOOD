@@ -98,20 +98,48 @@ final class AppPreviewSessionService
         abort_if($session->revoked_at !== null, 401, 'Preview session is revoked.');
         abort_if($session->expires_at === null || $session->expires_at->isPast(), 401, 'Preview session is expired.');
 
+        $actor = $session->actor_user_id === null
+            ? null
+            : User::query()
+                ->whereKey($session->actor_user_id)
+                ->where('is_active', true)
+                ->first();
+        abort_unless($actor instanceof User, 401, 'Preview session owner is no longer active.');
+
+        $storeId = $session->store_id === null ? null : (int) $session->store_id;
+        abort_unless($storeId !== null, 401, 'Preview session store context is invalid.');
+
+        $resolvedStoreId = $this->resolveAuthorizedStore(
+            $actor,
+            (string) $session->channel,
+            $storeId,
+            (bool) $session->support_access,
+            $request,
+        );
+        abort_unless($resolvedStoreId === $storeId, 403, 'Preview session store access changed.');
+        abort_unless($actor->hasPermission('app_preview.view', $storeId), 403);
+        abort_unless(
+            $actor->hasPermission("app_preview.impersonate_{$session->target_type}", $storeId),
+            403,
+        );
+
         $target = User::query()
             ->whereKey($session->target_user_id)
             ->where('is_active', true)
             ->first();
         abort_unless($target instanceof User, 401, 'Preview target is no longer active.');
+        $this->assertTarget(
+            $actor,
+            $target,
+            (string) $session->target_type,
+            (string) $session->channel,
+            $storeId,
+        );
 
         $firstResolve = $session->last_resolved_at === null;
         $session->forceFill(['last_resolved_at' => now()])->save();
 
         if ($firstResolve) {
-            $actor = $session->actor_user_id === null
-                ? null
-                : User::query()->find($session->actor_user_id);
-
             $this->audit->record(
                 'app_preview.session.resolved',
                 $actor,
