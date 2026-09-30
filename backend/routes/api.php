@@ -101,6 +101,9 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/store-selector', [StorefrontController::class, 'selector']);
             Route::get('/stores/{store}/storefront', [StorefrontController::class, 'showWholesale'])->whereNumber('store');
             Route::get('/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);
+            Route::get('/dashboard', [B2bReportController::class, 'dashboard']);
+            Route::get('/reports/purchases', [B2bReportController::class, 'purchases']);
+            Route::get('/products/top', [B2bReportController::class, 'topProducts']);
             Route::get('/products', [B2bPricingController::class, 'products']);
             Route::get('/products/{product}', [B2bPricingController::class, 'product'])->whereNumber('product');
         });
