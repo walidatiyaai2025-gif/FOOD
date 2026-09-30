@@ -108,8 +108,8 @@ final class AppPreviewController extends Controller
 
         return response()->json([
             'data' => $sessions->context($created['session']),
-            'preview_token' => $created['token'],
-            'token_type' => 'Preview',
+            'credential' => $created['token'],
+            'credential_type' => 'Preview',
         ], 201);
     }
 
