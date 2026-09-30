@@ -48,6 +48,63 @@ void main() {
     expect(resolved.storeId, 7);
   });
 
+  test('Draft and Published resolve deterministic different storefront payloads',
+      () async {
+    final context = _context(CustomerChannel.b2c, 7);
+    final transport = CustomerPreviewReadHttpClient(
+      MockClient((request) async {
+        final mode = request.url.queryParameters['mode'] ?? 'published';
+        return http.Response(
+          jsonEncode(
+            _response(
+              channel: 'b2c',
+              storeId: 7,
+              mode: mode,
+              primaryColor: mode == 'draft' ? '#DDAA11' : '#1122AA',
+            ),
+          ),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      }),
+      credential: 'opaque-preview-secret',
+      channel: CustomerChannel.b2c,
+    );
+
+    final draft = await CustomerPreviewResolvedConfiguration.resolve(
+      baseUrl: 'https://foodex.example',
+      client: transport,
+      context: context,
+      mode: 'draft',
+    );
+    final published = await CustomerPreviewResolvedConfiguration.resolve(
+      baseUrl: 'https://foodex.example',
+      client: transport,
+      context: context,
+      mode: 'published',
+    );
+
+    final draftHome = await PreviewRevisionStorefrontApi(
+      delegate: _StorefrontFake(),
+      context: context,
+      configuration: draft,
+      baseUrl: 'https://foodex.example',
+    ).retailHome(7);
+    final publishedHome = await PreviewRevisionStorefrontApi(
+      delegate: _StorefrontFake(),
+      context: context,
+      configuration: published,
+      baseUrl: 'https://foodex.example',
+    ).retailHome(7);
+
+    expect(draft.mode, 'draft');
+    expect(published.mode, 'published');
+    expect(draft.revisionId, 'revision-draft-7');
+    expect(published.revisionId, 'revision-published-7');
+    expect(draftHome['theme']['primary'], '#DDAA11');
+    expect(publishedHome['theme']['primary'], '#1122AA');
+  });
+
   test('Retail Store A rejects a Store B revision even with a valid response',
       () async {
     final context = _context(CustomerChannel.b2c, 7);
