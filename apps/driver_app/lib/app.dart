@@ -8,6 +8,7 @@ import 'core/auth/driver_session.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/localization/driver_translations.dart';
+import 'core/preview/driver_preview_context.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/auth/driver_login.dart';
@@ -37,6 +38,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.initialSession,
     this.theme,
     this.pushService,
+    this.previewContext,
   });
 
   final String initialRoute;
@@ -50,6 +52,7 @@ class FoodexDriverApp extends StatefulWidget {
   final DriverSession? initialSession;
   final ThemeData? theme;
   final DriverFirebasePushService? pushService;
+  final DriverPreviewContext? previewContext;
 
   @override
   State<FoodexDriverApp> createState() => _FoodexDriverAppState();
@@ -143,6 +146,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   }
 
   void _configurePush() {
+    if (widget.previewContext != null) return;
     final service = widget.pushService;
     if (service == null) return;
     _pushOpenSubscription = service.opens.listen(_openFromPush);
@@ -155,6 +159,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   }
 
   void _bindPushSession() {
+    if (widget.previewContext != null) return;
     final service = widget.pushService;
     final session = _session;
     if (service != null && session != null) {
@@ -198,6 +203,19 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   }
 
   Future<void> _logout() async {
+    if (widget.previewContext != null) {
+      final previewContext = _messengerKey.currentContext;
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(
+            previewContext?.tr('driver.preview.mutation_blocked') ??
+                'Safe preview blocks production actions.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final session = _session;
     final service = widget.pushService;
     if (service != null) await service.revokeSession();
@@ -223,6 +241,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   @override
   Widget build(BuildContext context) {
     final session = _session;
+    final preview = widget.previewContext;
+    final previewConfigurationInvalid = preview != null &&
+        (session == null || !preview.matchesSession(session));
     final authRepository = _authRepository();
     final assignments =
         session == null ? null : _assignmentRepository(session);
@@ -238,6 +259,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
             onLogout: () {
               _logout();
             },
+            previewContext: preview,
           );
 
     return MaterialApp(
@@ -284,7 +306,12 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
                           children: [
                             Expanded(
                               child: Text(
-                                '${translatedContext.tr('driver.version')} $driverAppVersion',
+                                preview == null
+                                    ? '${translatedContext.tr('driver.version')} $driverAppVersion'
+                                    : _previewFooterLabel(
+                                        translatedContext,
+                                        preview,
+                                      ),
                                 key: const Key('driver-app-version-footer'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -360,18 +387,54 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
           ),
         ),
       ),
-      home: session == null
-          ? DriverLoginPage(
-              repository: authRepository,
-              onAuthenticated: _authenticated,
-            )
-          : assignments == null
-              ? const _DriverRuntimeConfigurationError()
-              : Navigator(
+      home: previewConfigurationInvalid
+          ? const _DriverPreviewConfigurationError()
+          : session == null
+              ? DriverLoginPage(
+                  repository: authRepository,
+                  onAuthenticated: _authenticated,
+                )
+              : assignments == null
+                  ? const _DriverRuntimeConfigurationError()
+                  : Navigator(
                   key: _driverNavigatorKey,
                   initialRoute: widget.initialRoute,
                   onGenerateRoute: navigator!.onGenerateRoute,
                 ),
+    );
+  }
+
+  String _previewFooterLabel(
+    BuildContext context,
+    DriverPreviewContext preview,
+  ) {
+    final parts = <String>[
+      context.tr('driver.preview.safe'),
+      preview.channel == DriverChannel.b2c ? 'B2C' : 'B2B',
+      if (preview.storeId != null)
+        '${context.tr('driver.preview.store')} ${preview.storeId}',
+      if (preview.configurationRevision?.isNotEmpty == true)
+        '${context.tr('driver.preview.revision')} ${preview.configurationRevision}',
+      if (preview.runtimeVersion?.isNotEmpty == true)
+        '${context.tr('driver.preview.runtime')} ${preview.runtimeVersion}',
+      '${context.tr('driver.version')} $driverAppVersion',
+    ];
+    return parts.join(' · ');
+  }
+}
+
+class _DriverPreviewConfigurationError extends StatelessWidget {
+  const _DriverPreviewConfigurationError();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Text(
+          context.tr('driver.preview.configuration_invalid'),
+          key: const Key('driver-preview-configuration-invalid'),
+        ),
+      ),
     );
   }
 }
