@@ -152,8 +152,9 @@ void main() {
     expect(find.textContaining('Safe preview'), findsOneWidget);
     expect(find.textContaining('draft-17'), findsOneWidget);
 
-    final scaffold = find.byType(Scaffold).first;
-    final media = MediaQuery.of(tester.element(scaffold));
+    final boundary = find.byKey(const ValueKey('driver-preview-viewport'));
+    expect(boundary, findsOneWidget);
+    final media = MediaQuery.of(tester.element(boundary));
     expect(media.size, const Size(390, 844));
     expect(media.padding.top, 47);
     expect(media.padding.bottom, 34);
