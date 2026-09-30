@@ -117,6 +117,11 @@ void main() {
       find.byKey(const ValueKey('customer-diagnostics-export')),
       findsOneWidget,
     );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('customer-diagnostics-clear')),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(
       find.byKey(const ValueKey('customer-diagnostics-clear')),
       findsOneWidget,
