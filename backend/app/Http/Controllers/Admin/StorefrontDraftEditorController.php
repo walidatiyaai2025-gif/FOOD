@@ -454,7 +454,7 @@ final class StorefrontDraftEditorController extends Controller
 
         $targetType = null;
         $targetId = null;
-        if (! empty($data['target_ref'])) {
+        if (empty($data['target_ref']) === false) {
             [$targetType, $targetIdText] = explode(':', (string) $data['target_ref'], 2);
             $targetId = (int) $targetIdText;
         }
