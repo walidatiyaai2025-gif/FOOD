@@ -1006,6 +1006,12 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           icon: const Icon(Icons.edit_outlined),
           label: Text(context.tr('customer.settings.edit_profile')),
         ),
+        const SizedBox(height: 12),
+        _section(
+          context.tr('customer.diagnostics.title'),
+          onTap: () =>
+              Navigator.of(context).pushNamed(CustomerRoutePaths.diagnostics),
+        ),
       ],
     );
   }
@@ -1606,6 +1612,11 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         _section(
           context.tr('customer.settings.title'),
           onTap: () => Navigator.of(context).pushNamed(CustomerRoutePaths.settings),
+        ),
+        _section(
+          context.tr('customer.diagnostics.title'),
+          onTap: () =>
+              Navigator.of(context).pushNamed(CustomerRoutePaths.diagnostics),
         ),
       ],
     );
