@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 
 import '../../app.dart';
 import '../../navigation.dart';
-import '../auth/driver_session.dart';
 import 'driver_preview_bootstrap.dart';
 import 'driver_preview_transport.dart';
 
