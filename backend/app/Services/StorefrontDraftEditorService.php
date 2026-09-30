@@ -28,7 +28,7 @@ final class StorefrontDraftEditorService
 
         $revision = $draft instanceof StorefrontRevision
             ? $draft
-            : $this->revisions->resolveCurrent($storeId, $channel, 'published');
+            : $this->revisions->ensurePublished($storeId, $channel);
 
         return [
             'revision' => $revision,
