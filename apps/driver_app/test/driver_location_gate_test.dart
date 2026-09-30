@@ -147,8 +147,8 @@ void main() {
     final checksBeforeResume = service.checks;
 
     service.status = DriverLocationGateStatus.serviceDisabled;
-    await tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    await tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
 
     expect(service.checks, greaterThan(checksBeforeResume));
