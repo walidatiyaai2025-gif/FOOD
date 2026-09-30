@@ -4,6 +4,7 @@ use App\Http\Middleware\CorrelationId;
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureManagementDashboardAccess;
 use App\Http\Middleware\ResolveTenantContext;
+use App\Http\Middleware\ResolveCustomerPreviewSession;
 use App\Http\Middleware\RunSchedulerHeartbeat;
 use App\Services\SystemInspectorRecorder;
 use Illuminate\Foundation\Application;
@@ -29,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'active.user' => EnsureActiveUser::class,
             'management.dashboard' => EnsureManagementDashboardAccess::class,
             'tenant.context' => ResolveTenantContext::class,
+            'preview.customer' => ResolveCustomerPreviewSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
