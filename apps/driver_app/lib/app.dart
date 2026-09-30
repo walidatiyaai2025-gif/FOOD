@@ -13,11 +13,13 @@ import 'core/location/driver_location_tracking_service.dart';
 import 'core/preview/driver_preview_context.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
+import 'core/version/driver_version_policy_client.dart';
 import 'features/auth/driver_login.dart';
 import 'features/inspector/driver_inspector_panel.dart';
 import 'features/location/driver_location_gate.dart';
 import 'features/notifications/notification_feed.dart';
 import 'features/tasks/driver_journey.dart';
+import 'features/version/driver_version_policy_gate.dart';
 import 'navigation.dart';
 
 typedef DriverAssignmentRepositoryFactory = DriverAssignmentRepository Function(
@@ -48,6 +50,8 @@ class FoodexDriverApp extends StatefulWidget {
     this.previewContext,
     this.locationGateService,
     this.locationTrackingFactory,
+    this.versionPolicyClient,
+    this.updateLauncher,
   });
 
   factory FoodexDriverApp.preview({
@@ -91,6 +95,8 @@ class FoodexDriverApp extends StatefulWidget {
   final DriverPreviewContext? previewContext;
   final DriverLocationGateService? locationGateService;
   final DriverLocationTrackingFactory? locationTrackingFactory;
+  final DriverVersionPolicyClient? versionPolicyClient;
+  final DriverUpdateLauncher? updateLauncher;
 
   @override
   State<FoodexDriverApp> createState() => _FoodexDriverAppState();
@@ -363,6 +369,32 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
             previewContext: preview,
           );
 
+    final runtimeHome = previewConfigurationInvalid
+          ? const _DriverPreviewConfigurationError()
+          : session == null
+              ? DriverLoginPage(
+                  repository: authRepository,
+                  onAuthenticated: _authenticated,
+                )
+              : assignments == null
+                  ? const _DriverRuntimeConfigurationError()
+                  : widget.locationGateService == null || preview != null
+                      ? Navigator(
+                          key: _driverNavigatorKey,
+                          initialRoute: widget.initialRoute,
+                          onGenerateRoute: navigator!.onGenerateRoute,
+                        )
+                      : DriverLocationGate(
+                          service: widget.locationGateService!,
+                          onLogout: _logout,
+                          onStatusChanged: _onLocationGateStatus,
+                          child: Navigator(
+                            key: _driverNavigatorKey,
+                            initialRoute: widget.initialRoute,
+                            onGenerateRoute: navigator!.onGenerateRoute,
+                          ),
+                        );
+
     return MaterialApp(
       scaffoldMessengerKey: _messengerKey,
       debugShowCheckedModeBanner: false,
@@ -488,31 +520,13 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
           ),
         ),
       ),
-      home: previewConfigurationInvalid
-          ? const _DriverPreviewConfigurationError()
-          : session == null
-              ? DriverLoginPage(
-                  repository: authRepository,
-                  onAuthenticated: _authenticated,
-                )
-              : assignments == null
-                  ? const _DriverRuntimeConfigurationError()
-                  : widget.locationGateService == null || preview != null
-                      ? Navigator(
-                          key: _driverNavigatorKey,
-                          initialRoute: widget.initialRoute,
-                          onGenerateRoute: navigator!.onGenerateRoute,
-                        )
-                      : DriverLocationGate(
-                          service: widget.locationGateService!,
-                          onLogout: _logout,
-                          onStatusChanged: _onLocationGateStatus,
-                          child: Navigator(
-                            key: _driverNavigatorKey,
-                            initialRoute: widget.initialRoute,
-                            onGenerateRoute: navigator!.onGenerateRoute,
-                          ),
-                        ),
+      home: preview != null || widget.versionPolicyClient == null
+          ? runtimeHome
+          : DriverVersionPolicyGate(
+              client: widget.versionPolicyClient!,
+              updateLauncher: widget.updateLauncher,
+              child: runtimeHome,
+            ),
     );
   }
 
