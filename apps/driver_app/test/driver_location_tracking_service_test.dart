@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/core/diagnostics/driver_runtime_inspector.dart';
 import 'package:foodex_driver_app/core/location/driver_location_tracking_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 class _FakeScheduler implements DriverTrackingScheduler {
   Duration? delay;
@@ -250,4 +252,116 @@ void main() {
 
     service.dispose();
   });
+
+  test('HTTP heartbeat client matches backend contract and active assignment',
+      () async {
+    const token = 'driver-secret-token';
+    late Map<String, dynamic> payload;
+
+    final client = HttpDriverLocationHeartbeatClient(
+      baseUrl: 'https://foodex.example/base',
+      token: token,
+      client: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/base/api/v1/driver/location/heartbeat');
+        expect(request.headers['authorization'], 'Bearer $token');
+        expect(request.headers['accept'], 'application/json');
+
+        payload = Map<String, dynamic>.from(
+          jsonDecode(request.body) as Map,
+        );
+        return http.Response(
+          jsonEncode({
+            'data': {
+              'driver_id': 3,
+              'store_id': 5,
+              'channel': 'b2c',
+              'active_assignment_id': 77,
+            },
+          }),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      }),
+    );
+
+    final receipt = await client.send(_sample(1));
+
+    expect(receipt.activeAssignmentId, 77);
+    expect(payload['captured_at'], '2026-09-30T06:00:01.000Z');
+    expect(payload['app_version'], driverAppVersion);
+    expect(payload['accuracy'], 5);
+    expect(payload['speed'], 2);
+    expect(payload['heading'], 90);
+    expect(payload['is_mocked'], isFalse);
+
+    client.close();
+  });
+
+  test('HTTP heartbeat client maps authorization and API failures', () async {
+    Future<void> expectStatus(
+      int status,
+      Matcher matcher,
+    ) async {
+      final client = HttpDriverLocationHeartbeatClient(
+        baseUrl: 'https://foodex.example',
+        token: 'driver-secret-token',
+        client: MockClient(
+          (_) async => http.Response(
+            jsonEncode({'message': 'failed'}),
+            status,
+            headers: const {'content-type': 'application/json'},
+          ),
+        ),
+      );
+
+      await expectLater(client.send(_sample(1)), throwsA(matcher));
+      client.close();
+    }
+
+    await expectStatus(401, isA<DriverSessionExpiredException>());
+    await expectStatus(403, isA<DriverAccessDeniedException>());
+    await expectStatus(500, isA<DriverApiException>());
+  });
+
+  test('HTTP heartbeat failure diagnostics exclude bearer and coordinates',
+      () async {
+    const token = 'driver-private-bearer-token';
+    final inspector = DriverRuntimeInspector.instance;
+    await inspector.clear();
+
+    final client = HttpDriverLocationHeartbeatClient(
+      baseUrl: 'https://foodex.example',
+      token: token,
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'latitude': 29.37591,
+            'longitude': 47.97741,
+            'token': token,
+          }),
+          503,
+          headers: const {'content-type': 'application/json'},
+        ),
+      ),
+    );
+
+    await expectLater(
+      client.send(_sample(1)),
+      throwsA(isA<DriverApiException>()),
+    );
+
+    final exported = jsonEncode(
+      inspector.exportPayload(locale: 'en', authenticated: true),
+    );
+    expect(exported, isNot(contains(token)));
+    expect(exported, isNot(contains('29.37591')));
+    expect(exported, isNot(contains('47.97741')));
+    expect(exported, contains('driver/location/heartbeat'));
+    expect(exported, contains('"status_code":503'));
+
+    client.close();
+    await inspector.clear();
+  });
+
 }
