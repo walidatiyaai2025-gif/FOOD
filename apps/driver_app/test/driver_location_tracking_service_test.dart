@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 
@@ -49,6 +50,35 @@ class _FakeLocationSource implements DriverLocationSource {
     }
     return samples.removeFirst();
   }
+}
+
+class _FakeBackgroundLocationSource
+    implements DriverLocationSource, DriverActiveDeliveryLocationSource {
+  _FakeBackgroundLocationSource(Iterable<DriverLocationSample> foreground)
+      : foreground = Queue<DriverLocationSample>.of(foreground);
+
+  final Queue<DriverLocationSample> foreground;
+  final StreamController<DriverLocationSample> background =
+      StreamController<DriverLocationSample>.broadcast();
+  int watches = 0;
+
+  @override
+  Future<DriverLocationSample> current() async {
+    if (foreground.isEmpty) {
+      throw StateError('No fake foreground sample available.');
+    }
+    return foreground.removeFirst();
+  }
+
+  @override
+  Stream<DriverLocationSample> watchActiveDelivery() {
+    watches++;
+    return background.stream;
+  }
+
+  void emit(DriverLocationSample sample) => background.add(sample);
+
+  Future<void> close() => background.close();
 }
 
 class _FakeHeartbeatClient implements DriverLocationHeartbeatClient {
@@ -125,6 +155,86 @@ void main() {
     expect(scheduler.delay, const Duration(seconds: 20));
 
     service.dispose();
+  });
+
+  test('background stream runs only for active delivery and stops when assignment ends',
+      () async {
+    final scheduler = _FakeScheduler();
+    final source = _FakeBackgroundLocationSource([_sample(1)]);
+    final heartbeat = _FakeHeartbeatClient(
+      activeAssignments: <int?>[44, 44, null],
+    );
+    final service = DriverLocationTrackingService(
+      locationSource: source,
+      heartbeatClient: heartbeat,
+      scheduler: scheduler,
+      inspector: DriverRuntimeInspector(maxEvents: 20),
+    );
+
+    service.start();
+    service.setGateReady(true);
+    await scheduler.fire();
+
+    expect(service.activeDelivery, isTrue);
+    expect(service.backgroundTracking, isFalse);
+
+    service.setAppInForeground(false);
+    expect(service.appInForeground, isFalse);
+    expect(service.backgroundTracking, isTrue);
+    expect(source.watches, 1);
+    expect(scheduler.callback, isNull);
+
+    source.emit(_sample(2));
+    await Future<void>.delayed(Duration.zero);
+    expect(heartbeat.successful.map((sample) => sample.capturedAt.second), [1, 2]);
+    expect(service.backgroundTracking, isTrue);
+
+    source.emit(_sample(3));
+    await Future<void>.delayed(Duration.zero);
+    expect(heartbeat.successful.map((sample) => sample.capturedAt.second), [1, 2, 3]);
+    expect(service.activeDelivery, isFalse);
+    expect(service.backgroundTracking, isFalse);
+
+    service.dispose();
+    await source.close();
+  });
+
+  test('background idle and revoked gate never keep high frequency tracking alive',
+      () async {
+    final scheduler = _FakeScheduler();
+    final source = _FakeBackgroundLocationSource([_sample(1), _sample(2)]);
+    final heartbeat = _FakeHeartbeatClient(
+      activeAssignments: <int?>[null, 88],
+    );
+    final service = DriverLocationTrackingService(
+      locationSource: source,
+      heartbeatClient: heartbeat,
+      scheduler: scheduler,
+      inspector: DriverRuntimeInspector(maxEvents: 20),
+    );
+
+    service.start();
+    service.setGateReady(true);
+    await scheduler.fire();
+    expect(service.activeDelivery, isFalse);
+
+    service.setAppInForeground(false);
+    expect(service.backgroundTracking, isFalse);
+    expect(scheduler.callback, isNull);
+
+    service.setAppInForeground(true);
+    await scheduler.fire();
+    expect(service.activeDelivery, isTrue);
+
+    service.setAppInForeground(false);
+    expect(service.backgroundTracking, isTrue);
+
+    service.setGateReady(false);
+    expect(service.backgroundTracking, isFalse);
+    expect(service.gateReady, isFalse);
+
+    service.dispose();
+    await source.close();
   });
 
   test('offline samples flush oldest to newest after connectivity returns',

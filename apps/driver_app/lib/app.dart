@@ -102,7 +102,7 @@ class FoodexDriverApp extends StatefulWidget {
   State<FoodexDriverApp> createState() => _FoodexDriverAppState();
 }
 
-class _FoodexDriverAppState extends State<FoodexDriverApp> {
+class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingObserver {
   late Map<String, String> _translations;
   DriverSession? _session;
   final GlobalKey<NavigatorState> _driverNavigatorKey = GlobalKey<NavigatorState>();
@@ -113,6 +113,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   String? _routeBeforeInspector;
   DriverLocationTrackingController? _locationTracking;
   bool _locationGateReady = false;
+  bool _appInForeground = true;
 
   static const _appVersion = '1.0.38';
 
@@ -123,6 +124,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _session = widget.initialSession;
     _translations = Map<String, String>.from(widget.translationOverrides);
     DriverRuntimeInspector.instance.recordNavigation(
@@ -155,6 +157,14 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
       unawaited(_pushAlertSubscription?.cancel());
       _configurePush();
     }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final foreground = state == AppLifecycleState.resumed;
+    if (_appInForeground == foreground) return;
+    _appInForeground = foreground;
+    _locationTracking?.setAppInForeground(foreground);
   }
 
   DriverAuthRepository? _authRepository() {
@@ -197,7 +207,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
 
     final tracking = factory?.call(session, _sessionExpired) ??
         DriverLocationTrackingService(
-          locationSource: const GeolocatorDriverLocationSource(),
+          locationSource: GeolocatorDriverLocationSource(locale: session.locale),
           heartbeatClient: HttpDriverLocationHeartbeatClient(
             baseUrl: _baseUrl,
             token: session.token,
@@ -206,6 +216,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
         );
 
     _locationTracking = tracking;
+    tracking.setAppInForeground(_appInForeground);
     tracking.start();
     tracking.setGateReady(_locationGateReady);
   }
@@ -337,6 +348,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _disposeLocationTracking();
     unawaited(_pushOpenSubscription?.cancel());
     unawaited(_pushAlertSubscription?.cancel());
