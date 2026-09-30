@@ -15,6 +15,7 @@ use App\Services\B2cDashboardService;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
+use App\Services\StorefrontDraftEditorService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
@@ -742,7 +743,7 @@ class B2cWorkspaceController extends Controller
         }
 
         $storeId = (int) $store->id;
-        $editor = app(\App\Services\StorefrontDraftEditorService::class)->viewModel($storeId, 'b2c');
+        $editor = app(StorefrontDraftEditorService::class)->viewModel($storeId, 'b2c');
         $content = $this->contentModuleData([$storeId]);
 
         return [
@@ -983,7 +984,7 @@ class B2cWorkspaceController extends Controller
         $rows = [];
         if (count($storeIds) === 1) {
             $storeId = (int) $storeIds[0];
-            $editor = app(\App\Services\StorefrontDraftEditorService::class)->viewModel($storeId, 'b2c');
+            $editor = app(StorefrontDraftEditorService::class)->viewModel($storeId, 'b2c');
             $rows = collect($editor['banners'] ?? [])
                 ->map(function (array $row) use ($targetLabels, $storeId): array {
                     $targetRef = (string) ($row['_target_ref'] ?? '');
