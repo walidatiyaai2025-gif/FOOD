@@ -92,8 +92,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final search = find.byKey(const ValueKey('b2c-home-search'));
-      final media = MediaQuery.of(tester.element(search));
+      final boundary =
+          find.byKey(const ValueKey('customer-preview-viewport'));
+      expect(boundary, findsOneWidget);
+      final media = MediaQuery.of(tester.element(boundary));
       expect(media.size, const Size(390, 844));
       expect(media.padding.top, 47);
       expect(media.padding.bottom, 34);
