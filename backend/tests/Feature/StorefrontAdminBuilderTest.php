@@ -34,7 +34,15 @@ class StorefrontAdminBuilderTest extends TestCase
             ->assertOk()
             ->assertSee('Store branding &amp; theme', false)
             ->assertSee('Save Draft')
-            ->assertSee('Open real app preview');
+            ->assertSee('Open real app preview')
+            ->assertSee('channel=b2c', false)
+            ->assertSee('store_id='.$storeId, false)
+            ->assertSee('mode=draft', false);
+
+        $this->getJson('/api/v1/stores/'.$storeId.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('theme.primary', null)
+            ->assertJsonMissing(['title_en' => 'Best sellers']);
 
         $this->actingAs($admin)->put(route('admin.b2c.storefront.settings'), [
             'store_id' => $storeId,
@@ -100,6 +108,11 @@ class StorefrontAdminBuilderTest extends TestCase
             'area' => 'Smouha',
         ]);
 
+        $this->getJson('/api/v1/stores/'.$storeId.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('theme.primary', null)
+            ->assertJsonMissing(['title_en' => 'Best sellers']);
+
         $draft->refresh();
         $section = collect($draft->payload['sections'])->firstWhere('key', 'best_sellers');
         $zone = collect($draft->payload['service_zones'])->firstWhere('area', 'Smouha');
@@ -124,6 +137,8 @@ class StorefrontAdminBuilderTest extends TestCase
                 'store_id' => $storeId,
             ])
             ->assertSessionHasNoErrors();
+
+        $draftChecksum = $draft->checksum;
 
         $this->actingAs($admin)->post(route('admin.b2c.storefront.publish'), [
             'store_id' => $storeId,
@@ -151,8 +166,17 @@ class StorefrontAdminBuilderTest extends TestCase
         $this->assertStringStartsWith('storage/stores/'.$storeId.'/branding/', $logoPath);
         Storage::disk('public')->assertExists(substr($logoPath, strlen('storage/')));
 
+        $this->getJson('/api/v1/stores/'.$storeId.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('theme.primary', '#0A8DDA')
+            ->assertJsonFragment([
+                'key' => 'best_sellers',
+                'title_en' => 'Most ordered',
+            ]);
+
         $draft->refresh();
         $this->assertSame('published', $draft->status);
+        $this->assertSame($draftChecksum, $draft->checksum);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'storefront.revision.published',
             'user_id' => $admin->id,
@@ -179,6 +203,45 @@ class StorefrontAdminBuilderTest extends TestCase
         $this->assertNotSame($publishedId, $nextDraft->id);
         $this->assertSame('#118844', $nextDraft->payload['settings']['primary_color']);
         $this->assertSame('#0A8DDA', DB::table('storefront_settings')->where('store_id', $storeId)->value('primary_color'));
+    }
+
+    public function test_retail_builder_deep_link_opens_exact_draft_context_and_labels_are_bilingual(): void
+    {
+        $storeId = $this->retailStore('BUILDER-DEEP-LINK');
+        $admin = $this->storeAdmin($storeId, 'builder-deep-link@example.test');
+
+        $this->actingAs($admin)
+            ->get(route('admin.b2c.module', ['module' => 'storefront', 'store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('Save Draft')
+            ->assertSee('Published')
+            ->assertSee('mode=draft', false)
+            ->assertSee('channel=b2c', false)
+            ->assertSee('store_id='.$storeId, false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.app-preview.index', [
+                'app' => 'customer',
+                'channel' => 'b2c',
+                'store_id' => $storeId,
+                'persona' => 'guest',
+                'mode' => 'draft',
+            ]))
+            ->assertOk()
+            ->assertSee('<option value="customer" selected>', false)
+            ->assertSee('<option value="b2c" selected>', false)
+            ->assertSee('<option value="'.$storeId.'" selected>', false)
+            ->assertSee('<option value="guest" id="preview-persona-guest" selected>', false)
+            ->assertSee('<option value="draft" selected>', false);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.b2c.module', ['module' => 'storefront', 'store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('حفظ المسودة')
+            ->assertSee('النسخة المنشورة')
+            ->assertSee('فتح المعاينة الحقيقية');
     }
 
     public function test_discard_resets_retail_draft_to_current_published_without_touching_live(): void
