@@ -72,7 +72,14 @@ final class ResolveCustomerPreviewSession
         $request->attributes->set('app_preview_channel', $expectedChannel);
         $request->attributes->set('app_preview_read_only', true);
         $request->headers->set('X-FOODEX-Customer-Domain', $expectedChannel);
-        $request->headers->set('X-FOODEX-Store-ID', (string) $storeId);
+
+        if ($expectedChannel === 'b2c') {
+            $request->headers->set('X-FOODEX-Store-ID', (string) $storeId);
+        } else {
+            // Wholesale profile/account resolvers treat X-FOODEX-Store-ID as a
+            // Retail customer-domain selector, so never leak it into B2B reads.
+            $request->headers->remove('X-FOODEX-Store-ID');
+        }
 
         $request->setUserResolver(static fn (): User => $target);
 
