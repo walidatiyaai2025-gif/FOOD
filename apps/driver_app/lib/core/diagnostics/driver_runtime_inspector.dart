@@ -1,0 +1,328 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+const driverAppVersion = '1.0.37';
+const driverAppBuild = '37';
+
+String sanitizeForDiagnostics(Object? value, {int maxLength = 12000}) {
+  var text = value?.toString() ?? '';
+
+  text = text.replaceAll(
+    RegExp(r'Bearer\s+[A-Za-z0-9._~+\/=:-]+', caseSensitive: false),
+    'Bearer [REDACTED]',
+  );
+
+  text = text.replaceAllMapped(
+    RegExp(
+      r'("(?:password|passcode|token|access_token|refresh_token|authorization|cookie|secret|customer_name|customer_phone|customer_email|address|civil_id|latitude|longitude|lat|lng)"\s*:\s*")[^"]*(")',
+      caseSensitive: false,
+    ),
+    (match) => '${match.group(1)}[REDACTED]${match.group(2)}',
+  );
+
+  text = text.replaceAllMapped(
+    RegExp(
+      r'\b(password|passcode|token|access_token|refresh_token|authorization|cookie|secret)=([^&\s]+)',
+      caseSensitive: false,
+    ),
+    (match) => '${match.group(1)}=[REDACTED]',
+  );
+
+  text = text.replaceAllMapped(
+    RegExp(r'([?&][^=\s]+)=([^&\s]+)'),
+    (match) => '${match.group(1)}=[REDACTED]',
+  );
+
+  text = text.replaceAll(
+    RegExp(
+      r'\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b',
+      caseSensitive: false,
+    ),
+    '[REDACTED_EMAIL]',
+  );
+
+  text = text.replaceAll(
+    RegExp(r'(?<!\d)(?:\+?\d[\d -]{6,}\d)(?!\d)'),
+    '[REDACTED_PHONE]',
+  );
+
+  text = text.replaceAll(
+    RegExp(r'(?<![A-Za-z0-9])[-+]?\d{1,3}\.\d{4,}(?![A-Za-z0-9])'),
+    '[REDACTED_COORDINATE]',
+  );
+
+  if (text.length > maxLength) {
+    return '${text.substring(0, maxLength)}…[TRUNCATED]';
+  }
+  return text;
+}
+
+class DriverRuntimeInspector {
+  DriverRuntimeInspector({this.maxEvents = 120});
+
+  static final DriverRuntimeInspector instance = DriverRuntimeInspector();
+
+  static const _storageKey = 'foodex_driver_runtime_inspector_v1';
+
+  final int maxEvents;
+  final List<Map<String, dynamic>> _events = <Map<String, dynamic>>[];
+
+  SharedPreferences? _preferences;
+  Future<void> _persistChain = Future<void>.value();
+  String _appVersion = driverAppVersion;
+  String _appBuild = driverAppBuild;
+  String? _lastRoute;
+
+  int get eventCount => _events.length;
+  String? get lastRoute => _lastRoute;
+  String? get lastEventAt =>
+      _events.isEmpty ? null : _events.last['timestamp']?.toString();
+
+  Future<void> initialize({
+    String appVersion = driverAppVersion,
+    String appBuild = driverAppBuild,
+  }) async {
+    _appVersion = appVersion;
+    _appBuild = appBuild;
+
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      _preferences = preferences;
+      final raw = preferences.getString(_storageKey);
+      if (raw == null || raw.trim().isEmpty) return;
+
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return;
+
+      _events
+        ..clear()
+        ..addAll(
+          decoded
+              .whereType<Map>()
+              .map((event) => Map<String, dynamic>.from(event))
+              .take(maxEvents),
+        );
+      if (_events.length > maxEvents) {
+        _events.removeRange(0, _events.length - maxEvents);
+      }
+
+      for (final event in _events.reversed) {
+        if (event['type'] == 'navigation' && event['route'] is String) {
+          _lastRoute = event['route'] as String;
+          break;
+        }
+      }
+    } catch (_) {
+      // Diagnostics must never interfere with app startup.
+    }
+  }
+
+  void recordNavigation(String route) {
+    final safeRoute = sanitizeForDiagnostics(route, maxLength: 300);
+    _lastRoute = safeRoute;
+    _append({
+      'type': 'navigation',
+      'route': safeRoute,
+    });
+  }
+
+  void recordException(
+    Object error,
+    StackTrace stack, {
+    required String source,
+  }) {
+    _append({
+      'type': 'error',
+      'source': sanitizeForDiagnostics(source, maxLength: 80),
+      'error_type': error.runtimeType.toString(),
+      'message': sanitizeForDiagnostics(error, maxLength: 2000),
+      'stack': sanitizeForDiagnostics(stack, maxLength: 12000),
+    });
+  }
+
+  void recordHttpFailure({
+    required String method,
+    required Uri uri,
+    required Duration elapsed,
+    int? statusCode,
+    Object? error,
+  }) {
+    _append({
+      'type': 'http_failure',
+      'method': sanitizeForDiagnostics(method.toUpperCase(), maxLength: 16),
+      'endpoint': _safeEndpoint(uri),
+      'status_code': statusCode,
+      'duration_ms': elapsed.inMilliseconds,
+      if (error != null)
+        'error': sanitizeForDiagnostics(error, maxLength: 1200),
+    });
+  }
+
+  List<Map<String, dynamic>> snapshot() => _events
+      .map((event) => Map<String, dynamic>.from(event))
+      .toList(growable: false);
+
+  Map<String, dynamic> exportPayload({
+    required String locale,
+    required bool authenticated,
+  }) {
+    return {
+      'schema': 'foodex.driver.inspector.v1',
+      'generated_at': DateTime.now().toUtc().toIso8601String(),
+      'app': {
+        'name': 'FOODEX Driver',
+        'version': _appVersion,
+        'build': _appBuild,
+        'platform': Platform.operatingSystem,
+        'os_version': sanitizeForDiagnostics(
+          Platform.operatingSystemVersion,
+          maxLength: 1000,
+        ),
+        'locale': sanitizeForDiagnostics(locale, maxLength: 20),
+      },
+      'session': {
+        'authenticated': authenticated,
+      },
+      'current_route': _lastRoute,
+      'event_count': _events.length,
+      'events': snapshot(),
+      'privacy': {
+        'automatic_upload': false,
+        'request_bodies_included': false,
+        'response_bodies_included': false,
+        'credentials_included': false,
+        'query_values_included': false,
+        'precise_location_included': false,
+      },
+    };
+  }
+
+  Future<File> writeExportFile({
+    required String locale,
+    required bool authenticated,
+  }) async {
+    final generated = DateTime.now().toUtc();
+    final stamp =
+        generated.toIso8601String().replaceAll(RegExp(r'[:.]'), '-');
+    final file = File(
+      '${Directory.systemTemp.path}/foodex-driver-inspector-$stamp.json',
+    );
+    final encoder = const JsonEncoder.withIndent('  ');
+    await file.writeAsString(
+      encoder.convert(
+        exportPayload(
+          locale: locale,
+          authenticated: authenticated,
+        ),
+      ),
+      flush: true,
+    );
+    return file;
+  }
+
+  Future<void> clear() async {
+    try {
+      await _persistChain;
+    } catch (_) {
+      // Keep clearing even if a previous preference write failed.
+    }
+    _events.clear();
+    _lastRoute = null;
+    final preferences = _preferences;
+    if (preferences != null) {
+      try {
+        await preferences.remove(_storageKey);
+      } catch (_) {
+        // Clearing diagnostics must not break the UI.
+      }
+    }
+  }
+
+  void _append(Map<String, dynamic> event) {
+    final timestamp = DateTime.now().toUtc().toIso8601String();
+    _events.add(<String, dynamic>{
+      'timestamp': timestamp,
+      ...event,
+    });
+    if (_events.length > maxEvents) {
+      _events.removeRange(0, _events.length - maxEvents);
+    }
+    _schedulePersist();
+  }
+
+  void _schedulePersist() {
+    final preferences = _preferences;
+    if (preferences == null) return;
+
+    final payload = jsonEncode(_events);
+    _persistChain = _persistChain
+        .then((_) => preferences.setString(_storageKey, payload))
+        .then<void>((_) {})
+        .catchError((_) {});
+  }
+
+  String _safeEndpoint(Uri uri) {
+    final segments = uri.pathSegments.map((segment) {
+      if (RegExp(r'^\d+$').hasMatch(segment)) return ':id';
+      if (RegExp(
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+        caseSensitive: false,
+      ).hasMatch(segment)) {
+        return ':id';
+      }
+      return sanitizeForDiagnostics(segment, maxLength: 160);
+    }).join('/');
+
+    final port = uri.hasPort &&
+            !((uri.scheme == 'https' && uri.port == 443) ||
+                (uri.scheme == 'http' && uri.port == 80))
+        ? ':${uri.port}'
+        : '';
+    final path = segments.isEmpty ? '/' : '/$segments';
+    return '${uri.scheme}://${uri.host}$port$path';
+  }
+}
+
+class DriverDiagnosticHttpClient extends http.BaseClient {
+  DriverDiagnosticHttpClient(
+    this._inner, {
+    DriverRuntimeInspector? inspector,
+  }) : _inspector = inspector ?? DriverRuntimeInspector.instance;
+
+  final http.Client _inner;
+  final DriverRuntimeInspector _inspector;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      final response = await _inner.send(request);
+      stopwatch.stop();
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        _inspector.recordHttpFailure(
+          method: request.method,
+          uri: request.url,
+          statusCode: response.statusCode,
+          elapsed: stopwatch.elapsed,
+        );
+      }
+      return response;
+    } catch (error) {
+      stopwatch.stop();
+      _inspector.recordHttpFailure(
+        method: request.method,
+        uri: request.url,
+        elapsed: stopwatch.elapsed,
+        error: error,
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  void close() => _inner.close();
+}
