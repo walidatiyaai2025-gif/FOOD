@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CustomerInvoiceController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
+use App\Http\Controllers\Api\V1\DriverLocationController;
+use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
@@ -93,6 +95,7 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/admin/security/users/{user}/roles', [SecurityController::class, 'updateUserRoles']);
         Route::patch('/admin/security/users/{user}/status', [SecurityController::class, 'updateUserStatus']);
         Route::get('/admin/reports/dashboard', [AdminReportController::class, 'dashboard']);
+        Route::get('/admin/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed']);
         Route::get('/admin/reports/{report}', [ManagementReportController::class, 'show'])
             ->whereIn('report', ['orders', 'products', 'customers', 'operations']);
         Route::get('/admin/b2b/accounts', [B2bAccountController::class, 'index']);
@@ -137,6 +140,8 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/orders/{order}/status', [OrderController::class, 'transition']);
         Route::post('/admin/deliveries/assign', [DriverAssignmentController::class, 'assign']);
         Route::delete('/admin/deliveries/orders/{order}', [DriverAssignmentController::class, 'unassign'])->whereNumber('order');
+        Route::post('/driver/location/heartbeat', [DriverLocationController::class, 'heartbeat'])
+            ->middleware('throttle:120,1');
         Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
         Route::get('/driver/assignments/{assignment}', [DriverAssignmentController::class, 'show'])->whereNumber('assignment');
         Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition'])->whereNumber('assignment');
