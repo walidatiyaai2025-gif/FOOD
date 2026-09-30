@@ -183,12 +183,17 @@ class CustomerPreviewReadBridgeTest extends TestCase
             'b2b',
             $storeId,
         );
+        $this->assertDatabaseHas('b2b_customers', [
+            'user_id' => $target->id,
+        ]);
+
         $this->app['auth']->forgetGuards();
 
-        $this->withHeader('X-Foodex-Preview-Token', $token)
-            ->getJson('/api/v1/b2b/app-preview/customer/profile')
-            ->assertOk()
-            ->assertJsonPath('channel', 'b2b');
+        $response = $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->getJson('/api/v1/b2b/app-preview/customer/profile');
+
+        $this->assertSame(200, $response->status(), $response->getContent());
+        $response->assertJsonPath('channel', 'b2b');
 
         $this->withHeader('X-Foodex-Preview-Token', $token)
             ->getJson('/api/v1/app-preview/customer/profile')
