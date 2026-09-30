@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:http/http.dart' as http;
 
 import '../api/b2c_account_api.dart';
 import '../api/b2c_catalog_api.dart';
@@ -439,3 +440,28 @@ Future<CustomerMapPinSelection?> previewCustomerMapPinPicker(
   double? initialLongitude,
 }) async =>
     null;
+
+
+class PreviewReadOnlyHttpClient extends http.BaseClient {
+  PreviewReadOnlyHttpClient(this.delegate);
+
+  final http.Client delegate;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    if (request.method.toUpperCase() != 'GET') {
+      return Future<http.StreamedResponse>.error(
+        CustomerPreviewMutationBlocked(
+          'marketplace.${request.method.toLowerCase()}',
+        ),
+      );
+    }
+
+    return delegate.send(request);
+  }
+
+  @override
+  void close() {
+    // The Dashboard host owns the injected transport lifecycle.
+  }
+}
