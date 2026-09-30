@@ -8,11 +8,13 @@ import 'core/auth/driver_session.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/localization/driver_translations.dart';
+import 'core/location/driver_location_gate_service.dart';
 import 'core/preview/driver_preview_context.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/auth/driver_login.dart';
 import 'features/inspector/driver_inspector_panel.dart';
+import 'features/location/driver_location_gate.dart';
 import 'features/notifications/notification_feed.dart';
 import 'features/tasks/driver_journey.dart';
 import 'navigation.dart';
@@ -39,6 +41,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.theme,
     this.pushService,
     this.previewContext,
+    this.locationGateService,
   });
 
   factory FoodexDriverApp.preview({
@@ -80,6 +83,7 @@ class FoodexDriverApp extends StatefulWidget {
   final ThemeData? theme;
   final DriverFirebasePushService? pushService;
   final DriverPreviewContext? previewContext;
+  final DriverLocationGateService? locationGateService;
 
   @override
   State<FoodexDriverApp> createState() => _FoodexDriverAppState();
@@ -428,11 +432,21 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
                 )
               : assignments == null
                   ? const _DriverRuntimeConfigurationError()
-                  : Navigator(
-                  key: _driverNavigatorKey,
-                  initialRoute: widget.initialRoute,
-                  onGenerateRoute: navigator!.onGenerateRoute,
-                ),
+                  : widget.locationGateService == null || preview != null
+                      ? Navigator(
+                          key: _driverNavigatorKey,
+                          initialRoute: widget.initialRoute,
+                          onGenerateRoute: navigator!.onGenerateRoute,
+                        )
+                      : DriverLocationGate(
+                          service: widget.locationGateService!,
+                          onLogout: _logout,
+                          child: Navigator(
+                            key: _driverNavigatorKey,
+                            initialRoute: widget.initialRoute,
+                            onGenerateRoute: navigator!.onGenerateRoute,
+                          ),
+                        ),
     );
   }
 

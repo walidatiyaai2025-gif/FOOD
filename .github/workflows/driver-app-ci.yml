@@ -55,6 +55,12 @@ jobs:
           apk=build/app/outputs/flutter-apk/app-release.apk
           "$aapt_bin" dump permissions "$apk" > build/release-permissions.txt
           grep -Fx "uses-permission: name='android.permission.INTERNET'" build/release-permissions.txt
+          grep -Fx "uses-permission: name='android.permission.ACCESS_COARSE_LOCATION'" build/release-permissions.txt
+          grep -Fx "uses-permission: name='android.permission.ACCESS_FINE_LOCATION'" build/release-permissions.txt
+          if grep -Fq "android.permission.ACCESS_BACKGROUND_LOCATION" build/release-permissions.txt; then
+            echo "Driver foreground-only gate must not request background location in this slice." >&2
+            exit 1
+          fi
           "$aapt_bin" dump badging "$apk" > build/release-badging.txt
           grep -Fx "application-label:'FOODEX Driver'" build/release-badging.txt
           grep -F "package: name='com.fiftysolution.foodex.driver'" build/release-badging.txt
@@ -112,6 +118,13 @@ jobs:
           test "$actual" = "FOODEX Driver"
           bundle="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")"
           test "$bundle" = "com.fiftysolution.foodex.driver"
+          location_usage="$(/usr/libexec/PlistBuddy -c 'Print :NSLocationWhenInUseUsageDescription' "$plist")"
+          test -n "$location_usage"
+          echo "$location_usage" | grep -F "FOODEX Driver"
+          if /usr/libexec/PlistBuddy -c 'Print :NSLocationAlwaysAndWhenInUseUsageDescription' "$plist" >/dev/null 2>&1; then
+            echo "Driver foreground-only gate must not request Always location in this slice." >&2
+            exit 1
+          fi
 
       - name: Archive unsigned iOS app
         run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app build/ios/iphoneos/Runner.app.zip

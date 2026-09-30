@@ -387,7 +387,10 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
 
     _enable_android_core_library_desugaring(app)
     _configure_android_firebase(app_dir, bundle_id)
-    if bundle_id == IDENTITIES['customer']['bundle_id']:
+    if bundle_id in (
+        IDENTITIES['customer']['bundle_id'],
+        IDENTITIES['driver']['bundle_id'],
+    ):
         _configure_android_foreground_location(app)
     _write_android_brand_resources(app)
 
@@ -558,6 +561,11 @@ def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
         )
         plist['NSCameraUsageDescription'] = (
             'Scan product barcodes and QR codes for marketplace search.'
+        )
+    elif bundle_id == IDENTITIES['driver']['bundle_id']:
+        plist['NSLocationWhenInUseUsageDescription'] = (
+            'FOODEX Driver requires your precise location while you use the app '
+            'so delivery operations and live driver position can work.'
         )
     with info.open('wb') as stream:
         plistlib.dump(plist, stream, sort_keys=False)
