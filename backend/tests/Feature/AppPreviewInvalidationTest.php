@@ -60,6 +60,9 @@ class AppPreviewInvalidationTest extends TestCase
         $this->assertStringNotContainsString('"store_id":'.$storeB, $content);
         $this->assertStringNotContainsString($token, $content);
         $this->assertStringNotContainsString('SSE Customer', $content);
+        foreach (['"payload"', '"email"', '"phone"', '"token"', '"credential"', '"authorization"', '"price"'] as $forbidden) {
+            $this->assertStringNotContainsString($forbidden, strtolower($content));
+        }
 
         $lastId = (int) DB::table('app_preview_invalidation_events')
             ->where('store_id', $storeA)
