@@ -365,17 +365,17 @@ final class StorefrontRevisionService
         return $revision;
     }
 
-    public function resolveCurrentForPreview(
-        AppPreviewSession $session,
+    public function resolveCurrent(
+        int $storeId,
+        string $channel,
         string $mode,
     ): StorefrontRevision {
-        abort_unless($session->target_type === 'customer', 404);
-        abort_unless((string) $session->mode === 'read_only', 403);
+        $this->assertStoreChannel($storeId, $channel);
         abort_unless(in_array($mode, ['draft', 'published'], true), 422);
 
         $revision = StorefrontRevision::query()
-            ->where('store_id', $session->store_id)
-            ->where('channel', $session->channel)
+            ->where('store_id', $storeId)
+            ->where('channel', $channel)
             ->where('status', $mode)
             ->latest('id')
             ->first();
@@ -388,7 +388,26 @@ final class StorefrontRevisionService
                 : 'No Published storefront revision exists for this preview scope.',
         );
 
-        return $this->resolveForPreview($session, $revision);
+        $this->assertSupportedSchema($revision);
+
+        return $revision;
+    }
+
+    public function resolveCurrentForPreview(
+        AppPreviewSession $session,
+        string $mode,
+    ): StorefrontRevision {
+        abort_unless($session->target_type === 'customer', 404);
+        abort_unless((string) $session->mode === 'read_only', 403);
+
+        return $this->resolveForPreview(
+            $session,
+            $this->resolveCurrent(
+                (int) $session->store_id,
+                (string) $session->channel,
+                $mode,
+            ),
+        );
     }
 
     /** @return array<string,mixed> */
