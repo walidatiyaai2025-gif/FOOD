@@ -336,9 +336,11 @@ try {
   for (const testCase of cases) {
     const { app, width, height, profile, id } = testCase;
 
+    const browserLocale = testCase.locale === 'ar' ? 'ar-KW' : 'en-US';
     const standalone = await browser.newPage({
       viewport: { width, height },
       deviceScaleFactor: 1,
+      locale: browserLocale,
     });
     instrumentPage(standalone);
     await standalone.goto(
@@ -356,6 +358,7 @@ try {
     const embedded = await browser.newPage({
       viewport: { width: width + 40, height: height + 40 },
       deviceScaleFactor: 1,
+      locale: browserLocale,
     });
     instrumentPage(embedded);
     await embedded.goto(origin + '/host.html?fixture=' + encodeURIComponent(id), { waitUntil: 'networkidle' });
