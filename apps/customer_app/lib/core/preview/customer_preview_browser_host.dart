@@ -2,7 +2,7 @@
 
 import 'dart:async';
 import 'dart:html' as html;
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
 
 import 'package:flutter/material.dart';
 
@@ -95,13 +95,9 @@ class _CustomerPreviewBrowserHostState
     }
   }
 
-  Map<String, dynamic>? _map(Object? value) {
-    if (value is Map) {
-      return Map<String, dynamic>.from(value);
-    }
-
+  Map<String, dynamic>? _map(JSAny? value) {
     try {
-      final converted = js_util.dartify(value);
+      final converted = value.dartify();
       if (converted is Map) {
         return Map<String, dynamic>.from(converted);
       }
@@ -130,7 +126,7 @@ class _CustomerPreviewBrowserHostState
 
   void _post(Map<String, Object?> message) {
     html.window.parent?.postMessage(
-      js_util.jsify(message),
+      message.jsify(),
       _allowedOrigin,
     );
   }
