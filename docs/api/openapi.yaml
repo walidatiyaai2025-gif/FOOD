@@ -163,16 +163,10 @@ paths:
             format: uuid
         - in: header
           name: X-Foodex-Preview-Token
-          required: false
+          required: true
           schema:
             type: string
             minLength: 1
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AppPreviewResolveRequest"
       responses:
         "200":
           description: Exact read-only storefront revision for the authorized preview scope
