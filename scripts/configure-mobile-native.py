@@ -559,6 +559,11 @@ def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
         plist['NSCameraUsageDescription'] = (
             'Scan product barcodes and QR codes for marketplace search.'
         )
+    elif bundle_id == IDENTITIES['driver']['bundle_id']:
+        plist['NSLocationWhenInUseUsageDescription'] = (
+            'FOODEX Driver requires your precise location while you use the app '
+            'so delivery operations and live driver position can work.'
+        )
     with info.open('wb') as stream:
         plistlib.dump(plist, stream, sort_keys=False)
 
