@@ -149,6 +149,230 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /app-preview/storefront-revisions/{revision}/resolve:
+    post:
+      tags: [App Preview]
+      summary: Resolve one exact Draft or Published Customer storefront revision through a valid preview session
+      operationId: resolveStorefrontRevisionForPreview
+      parameters:
+        - in: path
+          name: revision
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: header
+          name: X-Foodex-Preview-Token
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Exact read-only storefront revision for the authorized preview scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontRevisionPreviewResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /admin/app-preview/storefront-revisions:
+    get:
+      tags: [App Preview]
+      summary: List scoped storefront revisions
+      operationId: listStorefrontRevisions
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: channel
+          required: true
+          schema:
+            type: string
+            enum: [b2b, b2c]
+        - in: query
+          name: store_id
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [draft, published, archived]
+        - in: query
+          name: support_access
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Scoped storefront revision history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontRevisionCollection"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/app-preview/storefront-revisions/draft:
+    post:
+      tags: [App Preview]
+      summary: Create or reuse the scoped Draft storefront revision
+      operationId: createStorefrontDraft
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorefrontRevisionScopeRequest"
+      responses:
+        "201":
+          description: Draft revision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontRevisionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/app-preview/storefront-revisions/{revision}:
+    get:
+      tags: [App Preview]
+      summary: Get one scoped storefront revision
+      operationId: getStorefrontRevision
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: revision
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Storefront revision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontRevisionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [App Preview]
+      summary: Replace the payload of a Draft storefront revision
+      operationId: updateStorefrontDraft
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: revision
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorefrontRevisionUpdateRequest"
+      responses:
+        "200":
+          description: Updated Draft revision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontRevisionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/app-preview/storefront-revisions/{revision}/publish:
+    post:
+      tags: [App Preview]
+      summary: Atomically publish one validated Draft and apply its storefront snapshot
+      operationId: publishStorefrontRevision
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: revision
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Published storefront revision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontRevisionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/app-preview/storefront-revisions/{revision}/rollback:
+    post:
+      tags: [App Preview]
+      summary: Publish a new immutable revision from an older valid Published or Archived snapshot
+      operationId: rollbackStorefrontRevision
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: revision
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: New Published rollback revision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontRevisionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /app-version:
     get:
       tags: [Version]
@@ -3109,6 +3333,149 @@ components:
         token_type:
           type: string
           const: Preview
+
+    StorefrontRevisionScopeRequest:
+      type: object
+      additionalProperties: false
+      required: [channel]
+      properties:
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+          description: Required for Retail; Wholesale resolves to the canonical principal store.
+        support_access:
+          type: boolean
+          default: false
+
+    StorefrontRevisionUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [payload]
+      properties:
+        payload:
+          $ref: "#/components/schemas/StorefrontRevisionPayload"
+
+    StorefrontRevisionPayload:
+      type: object
+      required: [schema_version, channel, store, settings, sections, banners, service_zones]
+      properties:
+        schema_version:
+          type: integer
+          const: 1
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store:
+          type: object
+          required: [id, code, name, logo_path, is_active]
+          additionalProperties: true
+        settings:
+          type: object
+          required: [theme_code, branding]
+          additionalProperties: true
+        sections:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        banners:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        service_zones:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    StorefrontRevision:
+      type: object
+      required: [id, revision_id, store_id, channel, status, schema_version, checksum, payload]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        revision_id:
+          type: string
+          format: uuid
+        store_id:
+          type: integer
+          minimum: 1
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        status:
+          type: string
+          enum: [draft, published, archived]
+        schema_version:
+          type: integer
+          const: 1
+        checksum:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        parent_revision_id:
+          type: [integer, "null"]
+        source_revision_id:
+          type: [integer, "null"]
+        created_by:
+          type: [integer, "null"]
+        published_by:
+          type: [integer, "null"]
+        published_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: [string, "null"]
+          format: date-time
+        updated_at:
+          type: [string, "null"]
+          format: date-time
+        payload:
+          $ref: "#/components/schemas/StorefrontRevisionPayload"
+
+    StorefrontRevisionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/StorefrontRevision"
+
+    StorefrontRevisionPreview:
+      allOf:
+        - $ref: "#/components/schemas/StorefrontRevision"
+        - type: object
+          required: [preview_session_id, read_only]
+          properties:
+            preview_session_id:
+              type: string
+              format: uuid
+            read_only:
+              type: boolean
+              const: true
+
+    StorefrontRevisionPreviewResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/StorefrontRevisionPreview"
+
+    StorefrontRevisionCollection:
+      type: object
+      required: [data, schema_version]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        schema_version:
+          type: integer
+          const: 1
 
     SecurityPermission:
       type: object

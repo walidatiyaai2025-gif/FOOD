@@ -11,6 +11,7 @@ use App\Services\B2cCustomerService;
 use App\Services\BannerImageService;
 use App\Services\CustomerImageService;
 use App\Services\OperationalTenantScope;
+use App\Services\StorefrontRevisionService;
 use App\Support\TenantContextResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -346,6 +347,8 @@ final class BusinessManagementController extends Controller
             throw $exception;
         }
 
+        $this->syncStorefrontRevision($actor, $storeId, $request);
+
         return back()->with('status', $this->msg('تم رفع صورة البانر وإضافته بنجاح.', 'Banner image uploaded and banner added successfully.'));
     }
 
@@ -362,6 +365,10 @@ final class BusinessManagementController extends Controller
 
         $newPath = null;
         if ($request->hasFile('banner_image')) {
+            app(StorefrontRevisionService::class)->preserveLiveAssetsForScope(
+                $storeId,
+                $this->storefrontChannel($storeId),
+            );
             $bannerImage = $request->file('banner_image');
             abort_unless($bannerImage instanceof UploadedFile, 422);
             $newPath = $images->store($bannerImage, $storeId);
@@ -385,6 +392,8 @@ final class BusinessManagementController extends Controller
             $images->delete((string) $current->image_path);
         }
 
+        $this->syncStorefrontRevision($actor, $storeId, $request);
+
         return back()->with('status', $this->msg('تم حفظ بيانات البانر وصورته بنجاح.', 'Banner details and image were saved successfully.'));
     }
 
@@ -394,10 +403,16 @@ final class BusinessManagementController extends Controller
         $current = DB::table('banners')->where('id', $banner)->first();
         abort_unless($current !== null && $current->store_id !== null, 404);
         app(OperationalTenantScope::class)->assertStore($actor, (int) $current->store_id, 'promotions.manage');
+        $storeId = (int) $current->store_id;
+        app(StorefrontRevisionService::class)->preserveLiveAssetsForScope(
+            $storeId,
+            $this->storefrontChannel($storeId),
+        );
         DB::table('banners')->where('id', $banner)->delete();
         $images->delete((string) $current->image_path);
+        $this->syncStorefrontRevision($actor, $storeId, $request);
 
-        return back()->with('status', $this->msg('تم حذف البانر وصورته.', 'Banner and its image were deleted.'));
+        return back()->with('status', $this->msg('تم حذف البانر.', 'Banner deleted.'));
     }
 
     public function storeDriver(Request $request): RedirectResponse
@@ -588,6 +603,26 @@ final class BusinessManagementController extends Controller
             $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
             $request,
         );
+    }
+
+    private function syncStorefrontRevision(User $actor, int $storeId, Request $request): void
+    {
+        app(StorefrontRevisionService::class)->synchronizePublishedFromLive(
+            $actor,
+            $storeId,
+            $this->storefrontChannel($storeId),
+            $request,
+        );
+    }
+
+    private function storefrontChannel(int $storeId): string
+    {
+        $channel = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->value('store_types.code');
+
+        return strtoupper((string) $channel) === 'B2B' ? 'b2b' : 'b2c';
     }
 
     private function actor(Request $request): User
