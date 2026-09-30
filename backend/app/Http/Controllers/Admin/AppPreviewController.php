@@ -8,6 +8,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\AppPreviewSessionService;
 use App\Services\AppPreviewTargetService;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
@@ -21,6 +22,7 @@ final class AppPreviewController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly TenantContextResolver $tenantResolver,
+        private readonly WholesalePrincipal $wholesalePrincipal,
     ) {}
 
     public function index(Request $request): View
@@ -50,6 +52,7 @@ final class AppPreviewController extends Controller
             'navContext' => 'app_preview',
             'retailStores' => $retailStores,
             'wholesaleAvailable' => $wholesaleAvailable,
+            'wholesaleStoreId' => $wholesaleAvailable ? $this->wholesalePrincipal->storeId() : null,
             'retailAvailable' => $retailAvailable,
             'supportAccessRequired' => $user->hasRole('SUPER_ADMIN'),
             'canImpersonateCustomer' => $this->canImpersonate($user, 'customer', $retailStores->pluck('id')->all()),
