@@ -38,14 +38,16 @@ class _CustomerPreviewBrowserHostState
     super.initState();
     _messages = html.window.onMessage.listen(_onMessage);
 
-    if (_allowedOrigin.isEmpty) {
-      _setError('preview_parent_origin_missing');
-      return;
-    }
-    _post({
-      'type': 'foodex.preview.ready',
-      'version': CustomerPreviewHostContract.version,
-      'target_type': 'customer',
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_allowedOrigin.isEmpty) {
+        _setError('preview_parent_origin_missing');
+        return;
+      }
+      _post({
+        'type': 'foodex.preview.ready',
+        'version': CustomerPreviewHostContract.version,
+        'target_type': 'customer',
+      });
     });
   }
 
@@ -53,8 +55,7 @@ class _CustomerPreviewBrowserHostState
     if (!CustomerPreviewHostContract.allowsMessage(
       origin: event.origin,
       expectedOrigin: _allowedOrigin,
-      fromParent:
-          event.source == html.window.parent || event.source == html.window,
+      fromParent: event.source == html.window.parent,
     )) {
       return;
     }
