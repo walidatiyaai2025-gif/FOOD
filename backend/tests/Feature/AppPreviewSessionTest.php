@@ -168,7 +168,6 @@ class AppPreviewSessionTest extends TestCase
         ]);
     }
 
-
     public function test_expired_preview_token_cannot_resolve(): void
     {
         $storeId = $this->retailStore('PREVIEW-EXPIRED');
