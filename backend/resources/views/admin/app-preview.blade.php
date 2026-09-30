@@ -12,8 +12,8 @@
 .preview-target-state{font-size:.88rem;color:var(--foodex-muted);min-height:1.35em}
 .preview-host-card{padding:var(--foodex-space-5);min-width:0}.preview-host-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
 .preview-runtime-shell{min-height:620px;border:1px solid var(--foodex-border);border-radius:20px;background:#f7f9fb;padding:18px;display:grid;place-items:center;overflow:auto}
-.preview-device{width:min(100%,var(--preview-device-width,390px));min-height:560px;border:1px solid var(--foodex-border);border-radius:26px;background:#fff;overflow:hidden;box-shadow:0 16px 40px rgba(16,24,40,.08)}
-.preview-device iframe{display:block;width:100%;height:720px;border:0;background:#fff}
+.preview-device{width:min(100%,var(--preview-device-width,390px));height:var(--preview-device-height,844px);max-height:80vh;min-height:0;border:1px solid var(--foodex-border);border-radius:26px;background:#fff;overflow:hidden;box-shadow:0 16px 40px rgba(16,24,40,.08)}
+.preview-device iframe{display:block;width:100%;height:100%;border:0;background:#fff}
 .preview-unavailable{min-height:560px;padding:34px;display:grid;place-items:center;text-align:center}.preview-unavailable>div{max-width:560px}
 .preview-unavailable strong{display:block;font-size:1.15rem;margin-bottom:8px}.preview-unavailable p{color:var(--foodex-muted);line-height:1.65}
 .preview-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}.preview-meta div{padding:12px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}.preview-meta small{display:block;color:var(--foodex-muted);margin-bottom:4px}
@@ -101,7 +101,17 @@
                 <label>{{ __('admin.preview_center.device') }}
                     <select id="preview-device" data-preview-control="device">
                         @foreach($deviceProfiles as $key=>$profile)
-                            <option value="{{ $key }}" data-width="{{ (int)($profile['width']??390) }}">{{ $profile['label']??$key }} · {{ (int)($profile['width']??390) }}px</option>
+                            <option value="{{ $key }}"
+                                data-width="{{ (int)($profile['width']??390) }}"
+                                data-height="{{ (int)($profile['height']??844) }}"
+                                data-safe-top="{{ (int)($profile['safe_area']['top']??0) }}"
+                                data-safe-right="{{ (int)($profile['safe_area']['right']??0) }}"
+                                data-safe-bottom="{{ (int)($profile['safe_area']['bottom']??0) }}"
+                                data-safe-left="{{ (int)($profile['safe_area']['left']??0) }}"
+                                data-orientation="{{ $profile['orientation']??'portrait' }}"
+                                data-text-scale="{{ (float)($profile['text_scale']??1) }}"
+                                data-view-inset-bottom="{{ (int)($profile['view_insets']['bottom']??0) }}"
+                            >{{ $profile['label']??$key }} · {{ (int)($profile['width']??390) }}×{{ (int)($profile['height']??844) }}</option>
                         @endforeach
                     </select>
                 </label>
@@ -337,7 +347,10 @@
 
     const inspectorContext = () => {
         const runtime = activeRuntime();
-        const width = safeInteger(device?.selectedOptions?.[0]?.dataset?.width, 240, 2000);
+        const option = device?.selectedOptions?.[0];
+        const width = safeInteger(option?.dataset?.width, 240, 2000);
+        const height = safeInteger(option?.dataset?.height, 320, 2400);
+        const textScale = Number(option?.dataset?.textScale || 1);
         const storeId = selectedStoreId();
         return {
             app: app?.value === 'driver' ? 'driver' : 'customer',
@@ -349,6 +362,8 @@
             locale: locale?.value === 'en' ? 'en' : 'ar',
             device_profile: safeText(device?.value, 64),
             device_width: width,
+            device_height: height,
+            text_scale: Number.isFinite(textScale) ? textScale : 1,
             configuration: configuration?.value === 'draft' ? 'draft' : 'published',
             runtime_contract: safeText(runtime?.contract_version, 64),
         };
@@ -367,6 +382,8 @@
                 locale: context.locale,
                 device_profile: context.device_profile,
                 device_width: context.device_width,
+                device_height: context.device_height,
+                text_scale: context.text_scale,
                 configuration: context.configuration,
                 runtime_contract: context.runtime_contract,
             },
@@ -412,7 +429,11 @@
             store_id: context.store_id,
             auth_mode: context.auth_mode,
             locale: context.locale,
-            device: [context.device_profile, context.device_width ? context.device_width + 'px' : null].filter(Boolean).join(' · '),
+            device: [
+                context.device_profile,
+                context.device_width && context.device_height ? context.device_width + '×' + context.device_height : null,
+                context.text_scale ? 'text×' + context.text_scale : null,
+            ].filter(Boolean).join(' · '),
             configuration: context.configuration,
             revision,
             runtime_version: runtime.runtime_version ?? runtime.app_version ?? runtime.config_version,
@@ -462,8 +483,11 @@
     };
 
     const syncDevice = () => {
-        const width = device?.selectedOptions?.[0]?.dataset?.width || '390';
+        const option = device?.selectedOptions?.[0];
+        const width = option?.dataset?.width || '390';
+        const height = option?.dataset?.height || '844';
         frame?.style.setProperty('--preview-device-width', width + 'px');
+        frame?.style.setProperty('--preview-device-height', height + 'px');
     };
 
     const syncChannel = () => {
@@ -736,8 +760,20 @@
                     configuration: configuration?.value || 'published',
                     locale: locale?.value || 'ar',
                     device: {
-                        profile: device?.value || 'phone_standard',
+                        profile: device?.value || 'android_common',
                         width: Number(device?.selectedOptions?.[0]?.dataset?.width || 390),
+                        height: Number(device?.selectedOptions?.[0]?.dataset?.height || 844),
+                        safe_area: {
+                            top: Number(device?.selectedOptions?.[0]?.dataset?.safeTop || 0),
+                            right: Number(device?.selectedOptions?.[0]?.dataset?.safeRight || 0),
+                            bottom: Number(device?.selectedOptions?.[0]?.dataset?.safeBottom || 0),
+                            left: Number(device?.selectedOptions?.[0]?.dataset?.safeLeft || 0),
+                        },
+                        orientation: device?.selectedOptions?.[0]?.dataset?.orientation || 'portrait',
+                        text_scale: Number(device?.selectedOptions?.[0]?.dataset?.textScale || 1),
+                        view_insets: {
+                            bottom: Number(device?.selectedOptions?.[0]?.dataset?.viewInsetBottom || 0),
+                        },
                     },
                     safe_mode: 'read_only',
                 },

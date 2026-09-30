@@ -112,6 +112,7 @@ class CustomerPreviewRuntime {
           wholesaleCommerceApi: bundle.wholesale,
           initialRoute: initialRoute,
           locale: Locale(bootstrap.locale),
+          previewBootstrap: bootstrap,
         );
 
         return CustomerPreviewRuntime._(
@@ -184,6 +185,7 @@ class CustomerPreviewRuntime {
             : null,
         initialRoute: initialRoute,
         locale: Locale(bootstrap.locale),
+        previewBootstrap: bootstrap,
       );
 
       return CustomerPreviewRuntime._(

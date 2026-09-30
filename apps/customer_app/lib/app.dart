@@ -17,7 +17,9 @@ import 'core/localization/app_translations.dart';
 import 'core/location/customer_location_service.dart';
 import 'core/location/customer_map_pin_selector.dart';
 import 'core/push/firebase_push_service.dart';
+import 'core/preview/customer_preview_bootstrap.dart';
 import 'core/preview/customer_preview_context.dart';
+import 'core/preview/customer_preview_viewport.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
 import 'core/theme/foodex_theme.dart';
@@ -42,6 +44,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.locationService,
     this.mapPinPicker,
     this.previewContext,
+    this.previewBootstrap,
     this.marketplaceClient,
     this.marketplaceBarcodeScanner,
   });
@@ -60,6 +63,7 @@ class FoodexCustomerApp extends StatefulWidget {
     Map<String, String> translationOverrides = const {},
     TranslationFetcher? translationFetcher,
     ThemeData? theme,
+    CustomerPreviewBootstrap? previewBootstrap,
   }) {
     if (previewContext.channel == CustomerChannel.b2b &&
         (b2bApi == null || wholesaleCommerceApi == null)) {
@@ -91,6 +95,7 @@ class FoodexCustomerApp extends StatefulWidget {
       locationService: const PreviewCustomerLocationService(),
       mapPinPicker: previewCustomerMapPinPicker,
       previewContext: previewContext,
+      previewBootstrap: previewBootstrap,
       marketplaceClient: PreviewReadOnlyHttpClient(marketplaceClient),
       marketplaceBarcodeScanner: (context) async => null,
     );
@@ -112,6 +117,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final CustomerLocationService? locationService;
   final CustomerMapPinPicker? mapPinPicker;
   final CustomerPreviewContext? previewContext;
+  final CustomerPreviewBootstrap? previewBootstrap;
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
 
@@ -314,6 +320,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     super.dispose();
   }
 
+  Widget _withPreviewViewport(Widget child) {
+    final bootstrap = widget.previewBootstrap;
+    if (bootstrap == null) return child;
+    return CustomerPreviewViewport(bootstrap: bootstrap, child: child);
+  }
+
   @override
   Widget build(BuildContext context) {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
@@ -442,7 +454,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('ar'), Locale('en')],
-      builder: (context, child) => AppTranslations(
+      builder: (context, child) => _withPreviewViewport(AppTranslations(
         locale: _locale,
         overrides: _translations,
         child: Builder(
@@ -516,7 +528,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
             ],
           ),
         ),
-      ),
+      )),
       initialRoute: widget.initialRoute,
       onGenerateInitialRoutes: (routeName) => [
         router.onGenerateRoute(RouteSettings(name: routeName)),
