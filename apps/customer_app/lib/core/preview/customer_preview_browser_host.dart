@@ -1,8 +1,8 @@
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:html' as html;
-import 'dart:js_util' as js_util;
 
 import 'package:flutter/material.dart';
 
@@ -95,11 +95,14 @@ class _CustomerPreviewBrowserHostState
     if (value is Map) {
       return Map<String, dynamic>.from(value);
     }
+    if (value is! String || value.trim().isEmpty) {
+      return null;
+    }
 
     try {
-      final converted = js_util.dartify(value);
-      if (converted is Map) {
-        return Map<String, dynamic>.from(converted);
+      final decoded = jsonDecode(value);
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
       }
     } catch (_) {
       return null;
@@ -126,7 +129,7 @@ class _CustomerPreviewBrowserHostState
 
   void _post(Map<String, Object?> message) {
     html.window.parent?.postMessage(
-      js_util.jsify(message),
+      jsonEncode(message),
       _allowedOrigin,
     );
   }
