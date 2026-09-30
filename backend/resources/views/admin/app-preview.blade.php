@@ -140,7 +140,7 @@
     </main>
 </div>
 
-<script>
+<script id="foodex-preview-bridge">
 (() => {
     'use strict';
 
