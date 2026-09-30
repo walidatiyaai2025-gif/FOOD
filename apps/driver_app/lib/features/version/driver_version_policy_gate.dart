@@ -81,6 +81,19 @@ class _DriverVersionPolicyGateState extends State<DriverVersionPolicyGate> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = DriverTranslations.maybeOf(context)?.locale ??
+        Localizations.maybeLocaleOf(context) ??
+        const Locale('en');
+    final textDirection =
+        locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr;
+
+    return Directionality(
+      textDirection: textDirection,
+      child: _buildPolicySurface(context),
+    );
+  }
+
+  Widget _buildPolicySurface(BuildContext context) {
     if (_loading) {
       return _StatusScaffold(
         key: const Key('driver-version-loading'),
