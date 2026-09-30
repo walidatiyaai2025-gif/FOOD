@@ -44,6 +44,8 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/app-version', AppVersionController::class);
     Route::post('/app-preview/resolve', [AppPreviewSessionController::class, 'resolve'])
         ->middleware('throttle:60,1');
+    Route::get('/app-preview/storefront-configuration', [StorefrontRevisionController::class, 'resolveCurrentPreviewConfiguration'])
+        ->middleware('throttle:60,1');
     Route::post('/app-preview/storefront-revisions/{revision}/resolve', [StorefrontRevisionController::class, 'resolvePreview'])
         ->whereUuid('revision')
         ->middleware('throttle:60,1');
