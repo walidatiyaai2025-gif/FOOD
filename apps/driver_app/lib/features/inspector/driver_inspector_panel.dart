@@ -1,4 +1,3 @@
-import 'package:cross_file/cross_file.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -34,14 +33,16 @@ class _DriverInspectorPanelState extends State<DriverInspectorPanel> {
     try {
       final locale =
           Localizations.maybeLocaleOf(context)?.languageCode ?? 'unknown';
+      final shareText = context.tr('driver.inspector.share_text');
       final file = await _inspector.writeExportFile(
         locale: locale,
         authenticated: widget.authenticated,
       );
+      if (!mounted) return;
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/json')],
         subject: 'FOODEX Driver diagnostics',
-        text: context.tr('driver.inspector.share_text'),
+        text: shareText,
       );
       if (!mounted) return;
       _show(context.tr('driver.inspector.export_ready'));
