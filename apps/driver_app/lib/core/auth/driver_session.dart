@@ -17,7 +17,7 @@ class DriverSession {
 }
 
 abstract interface class DriverAuthRepository {
-  Future<DriverSession> login({required String username});
+  Future<DriverSession> login({required String email, required String password});
   Future<void> logout(String token);
 }
 
