@@ -28,11 +28,11 @@ void main() {
           'latitude': 29.375859,
           'longitude': 47.977405,
         },
-        'message': 'Bearer hidden-token customer@example.test',
+        'message': 'Bearer hidden-token customer@example.test; access_token=plain-secret; coordinates=29.375859,47.977405',
       });
 
     final json = diagnostics.exportJson(
-      note: 'Contact customer@example.test if needed.',
+      note: 'Call +96550000001; civil_id=123456789012; token=note-secret; Contact customer@example.test.',
     );
 
     expect(json, contains('[REDACTED]'));
@@ -45,6 +45,11 @@ void main() {
     expect(json, isNot(contains('29.375859')));
     expect(json, isNot(contains('47.977405')));
     expect(json, isNot(contains('token=secret')));
+    expect(json, isNot(contains('plain-secret')));
+    expect(json, isNot(contains('note-secret')));
+    expect(json, isNot(contains('+96550000001')));
+    expect(json, isNot(contains('123456789012')));
+    expect(json, isNot(contains('29.375859,47.977405')));
   });
 
   test('diagnostics retains only the configured rolling event window', () {
