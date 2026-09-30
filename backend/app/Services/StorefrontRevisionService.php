@@ -124,40 +124,53 @@ final class StorefrontRevisionService
         ?Request $request = null,
     ): StorefrontRevision {
         $this->assertStoreChannel($storeId, $channel);
-        $published = $this->ensurePublished($storeId, $channel, $actor);
+        $this->ensurePublished($storeId, $channel, $actor);
 
-        $draft = StorefrontRevision::query()
-            ->where('store_id', $storeId)
-            ->where('channel', $channel)
-            ->where('status', 'draft')
-            ->latest('id')
-            ->first();
+        return DB::transaction(function () use ($actor, $storeId, $channel, $request): StorefrontRevision {
+            // The current Published row is the serialization point for this
+            // storefront scope, preventing concurrent requests from creating
+            // multiple active Draft revisions.
+            $published = StorefrontRevision::query()
+                ->where('store_id', $storeId)
+                ->where('channel', $channel)
+                ->where('status', 'published')
+                ->lockForUpdate()
+                ->latest('id')
+                ->firstOrFail();
 
-        if ($draft instanceof StorefrontRevision) {
-            return $draft;
-        }
+            $draft = StorefrontRevision::query()
+                ->where('store_id', $storeId)
+                ->where('channel', $channel)
+                ->where('status', 'draft')
+                ->latest('id')
+                ->first();
 
-        $revision = $this->createRevision(
-            storeId: $storeId,
-            channel: $channel,
-            status: 'draft',
-            payload: $published->payload,
-            actor: $actor,
-            parentRevisionId: $published->getKey(),
-            sourceRevisionId: null,
-            published: false,
-        );
+            if ($draft instanceof StorefrontRevision) {
+                return $draft;
+            }
 
-        $this->audit->record(
-            'storefront.revision.draft_created',
-            $actor,
-            $revision,
-            null,
-            $this->auditPayload($revision),
-            $request,
-        );
+            $revision = $this->createRevision(
+                storeId: $storeId,
+                channel: $channel,
+                status: 'draft',
+                payload: $published->payload,
+                actor: $actor,
+                parentRevisionId: $published->getKey(),
+                sourceRevisionId: null,
+                published: false,
+            );
 
-        return $revision;
+            $this->audit->record(
+                'storefront.revision.draft_created',
+                $actor,
+                $revision,
+                null,
+                $this->auditPayload($revision),
+                $request,
+            );
+
+            return $revision;
+        });
     }
 
     /** @param array<string,mixed> $payload */
@@ -325,6 +338,7 @@ final class StorefrontRevisionService
     ): StorefrontRevision {
         abort_unless($session->revoked_at === null, 401);
         abort_unless($session->target_type === 'customer', 404);
+        abort_unless((string) $session->mode === 'read_only', 403);
         abort_unless((int) $session->store_id === (int) $revision->store_id, 404);
         abort_unless((string) $session->channel === (string) $revision->channel, 404);
         abort_unless(in_array($revision->status, ['draft', 'published'], true), 404);
