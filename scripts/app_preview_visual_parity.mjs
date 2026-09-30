@@ -208,6 +208,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 await new Promise((resolve) => server.listen(4173, '127.0.0.1', resolve));
+const origin = 'http://127.0.0.1:4173';
 const browser = await chromium.launch({ headless: true });
 
 async function stableScreenshot(target, page, { initialDelay = 600 } = {}) {
