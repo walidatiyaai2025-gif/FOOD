@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\StorefrontRevision;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -120,7 +121,15 @@ class AdminBusinessManagementTest extends TestCase
             'sort_order' => 1,
             'is_active' => 1,
         ])->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('banners', ['title' => 'Launch Banner']);
+        $this->assertDatabaseMissing('banners', ['title' => 'Launch Banner']);
+
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->where('status', 'draft')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertNotNull(collect($draft->payload['banners'])->firstWhere('title', 'Launch Banner'));
 
         $this->actingAs($user)->post('/admin/business/drivers', [
             'store_id' => $storeId,
