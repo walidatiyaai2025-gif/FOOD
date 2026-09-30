@@ -48,6 +48,52 @@ void main() {
     expect(resolved.storeId, 7);
   });
 
+  test('Guest resolver uses Dashboard session scope without preview credential',
+      () async {
+    late http.Request seen;
+    final context = CustomerPreviewContext.guest(
+      channel: CustomerChannel.b2c,
+      storeId: 7,
+      supportAccess: true,
+    );
+    final client = MockClient((request) async {
+      seen = request;
+      return http.Response(
+        jsonEncode(_response(channel: 'b2c', storeId: 7, mode: 'draft')),
+        200,
+        headers: const {'content-type': 'application/json'},
+      );
+    });
+
+    final resolved = await CustomerPreviewResolvedConfiguration.resolveGuest(
+      dashboardBaseUrl: 'https://dashboard.example/',
+      client: client,
+      context: context,
+      mode: 'draft',
+    );
+
+    expect(
+      seen.url.path,
+      '/admin/app-preview/storefront-configuration',
+    );
+    expect(seen.url.queryParameters, {
+      'channel': 'b2c',
+      'store_id': '7',
+      'mode': 'draft',
+      'support_access': '1',
+    });
+    expect(seen.headers.containsKey('Authorization'), isFalse);
+    expect(
+      seen.headers.keys
+          .map((key) => key.toLowerCase())
+          .contains('x-foodex-preview-token'),
+      isFalse,
+    );
+    expect(seen.url.queryParameters.containsKey('preview_token'), isFalse);
+    expect(resolved.revisionId, 'revision-draft-7');
+    expect(resolved.mode, 'draft');
+  });
+
   test('Draft and Published resolve deterministic different storefront payloads',
       () async {
     final context = _context(CustomerChannel.b2c, 7);
