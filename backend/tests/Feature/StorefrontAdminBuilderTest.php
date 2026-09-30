@@ -33,7 +33,7 @@ class StorefrontAdminBuilderTest extends TestCase
             ->get(route('admin.b2c.module', ['module' => 'storefront', 'store_id' => $storeId]))
             ->assertOk()
             ->assertSee('Store branding &amp; theme', false)
-            ->assertSee('Save to Draft')
+            ->assertSee('Save Draft')
             ->assertSee('Open real app preview');
 
         $this->actingAs($admin)->put(route('admin.b2c.storefront.settings'), [
