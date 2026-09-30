@@ -541,7 +541,10 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
         if (viewport == null) return translated;
         return MediaQuery(
           data: viewport.apply(MediaQuery.of(context)),
-          child: translated,
+          child: KeyedSubtree(
+            key: const ValueKey('driver-preview-viewport'),
+            child: translated,
+          ),
         );
       },
       home: preview != null || widget.versionPolicyClient == null
