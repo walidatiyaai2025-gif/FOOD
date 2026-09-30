@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Driver;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -104,6 +106,62 @@ class AppPreviewDashboardBridgeTest extends TestCase
         ]);
     }
 
+    public function test_wholesale_driver_discovery_uses_active_driver_profile_and_permission(): void
+    {
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $admin = $this->roleUser('B2B_ADMIN', 'bridge-b2b-admin@example.test');
+        $driverUser = $this->roleUser('B2B_DRIVER', 'bridge-b2b-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.app-preview.targets', [
+                'target_type' => 'driver',
+                'channel' => 'b2b',
+            ]))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.user_id', $driverUser->id)
+            ->assertJsonPath('data.0.driver_id', $driver->id)
+            ->assertJsonPath('data.0.store_id', $storeId);
+    }
+
+    public function test_dashboard_bridge_uses_ephemeral_message_handoff_and_rejects_insecure_runtime_origin(): void
+    {
+        $admin = $this->roleUser('B2B_ADMIN', 'bridge-runtime-admin@example.test');
+
+        config()->set('app_preview.runtimes.customer.url', 'https://preview.example/customer');
+        config()->set('app_preview.runtimes.customer.contract_version', 'shared-flutter-v1');
+
+        $html = $this->actingAs($admin)
+            ->get(route('admin.app-preview.index'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('foodex.preview.ready', $html);
+        $this->assertStringContainsString('foodex.preview.bootstrap', $html);
+        $this->assertStringContainsString('"available":true', $html);
+        $this->assertStringNotContainsString('preview_token', $html);
+        $this->assertStringNotContainsString('X-Foodex-Preview-Token', $html);
+        $this->assertStringNotContainsString('localStorage', $html);
+        $this->assertStringNotContainsString('sessionStorage', $html);
+
+        config()->set('app_preview.runtimes.customer.url', 'http://preview.example/customer');
+
+        $insecureHtml = $this->actingAs($admin)
+            ->get(route('admin.app-preview.index'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('"origin":""', $insecureHtml);
+        $this->assertStringContainsString('"available":false', $insecureHtml);
+    }
+
     public function test_user_without_preview_permission_cannot_discover_or_create_targets(): void
     {
         $storeId = $this->retailStore('BRIDGE-DENIED');
@@ -129,6 +187,14 @@ class AppPreviewDashboardBridgeTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseCount('app_preview_sessions', 0);
+    }
+
+    private function roleUser(string $roleCode, string $email): User
+    {
+        $user = $this->user($roleCode, $email);
+        $user->roles()->attach(Role::query()->where('code', $roleCode)->firstOrFail());
+
+        return $user;
     }
 
     private function storeAdmin(int $storeId, string $email): User
