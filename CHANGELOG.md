@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.37 - 2026-09-30
+
+- Recover dashboard installations where the 1.0.36 migration flag was omitted by shipping a new cumulative migration-bearing update.
+- Auto-detect database migration files inside uploaded dashboard update ZIP packages so future updates do not depend on a manual checkbox.
+- Remove the manual migration checkbox from the updated System Update interface while retaining backward-compatible request handling.
+
 ## 1.0.36 - Platform customer addresses, delivery location and lifecycle notifications
 
 - Unify each Platform Customer into one cross-channel address book shared by Wholesale and Retail journeys, with manual entry, explicit foreground location sharing, corrected map pins, default-address management and strict ownership isolation.
