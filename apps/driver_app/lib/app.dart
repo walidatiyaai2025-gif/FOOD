@@ -528,7 +528,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
         '${context.tr('driver.preview.revision')} ${preview.configurationRevision}',
       if (preview.runtimeVersion?.isNotEmpty == true)
         '${context.tr('driver.preview.runtime')} ${preview.runtimeVersion}',
-      '${context.tr('driver.version')} $driverAppVersion',
+      '${context.tr('driver.version')} $_appVersion',
     ];
     return parts.join(' · ');
   }

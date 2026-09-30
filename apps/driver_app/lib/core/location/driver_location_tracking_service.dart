@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import '../auth/driver_session.dart';
 import '../diagnostics/driver_runtime_inspector.dart';
 
-const driverAppVersion = '1.0.38+38';
 
 class DriverLocationSample {
   const DriverLocationSample({
