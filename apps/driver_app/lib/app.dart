@@ -115,7 +115,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
   bool _locationGateReady = false;
   bool _appInForeground = true;
 
-  static const _appVersion = '1.0.38';
+  static const _appVersion = '1.0.39';
 
   String get _baseUrl =>
       widget.apiBaseUrl ??
