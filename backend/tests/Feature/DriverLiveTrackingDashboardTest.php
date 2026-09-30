@@ -42,6 +42,22 @@ class DriverLiveTrackingDashboardTest extends TestCase
             ->assertSee('/admin/driver-live-tracking/feed', false);
     }
 
+    public function test_arabic_live_tracking_contract_exposes_localized_status_labels(): void
+    {
+        $user = $this->globalUser('SUPER_ADMIN', 'tracking-ar@example.test');
+        app()->setLocale('ar');
+
+        $this->actingAs($user)
+            ->get('/admin/driver-live-tracking')
+            ->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('data-mode="full"', false)
+            ->assertSee('"status":"الحالة"', false)
+            ->assertSee('"online":"متصل"', false)
+            ->assertSee('"stale":"متأخر"', false)
+            ->assertSee('"offline":"غير متصل"', false);
+    }
+
     public function test_dashboard_web_session_can_read_live_tracking_feed(): void
     {
         $user = $this->globalUser('SUPER_ADMIN', 'tracking-feed@example.test');
