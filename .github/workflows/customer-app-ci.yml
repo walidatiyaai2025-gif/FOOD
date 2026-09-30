@@ -51,6 +51,8 @@ jobs:
             --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com \
             --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=https://foodex.50sols.com \
             --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          test -f build/web/index.html
+          test -f build/web/main.dart.js
 
       - name: Android release-mode validation build
         run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com
