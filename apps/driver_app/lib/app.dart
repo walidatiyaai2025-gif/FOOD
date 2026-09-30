@@ -63,6 +63,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   StreamSubscription<DriverPushOpen>? _pushOpenSubscription;
   StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
   bool _inspectorOpen = false;
+  String? _routeBeforeInspector;
 
   String get _baseUrl =>
       widget.apiBaseUrl ??
@@ -299,6 +300,11 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
                             TextButton.icon(
                               key: const Key('driver-global-inspector'),
                               onPressed: () {
+                                _routeBeforeInspector =
+                                    DriverRuntimeInspector.instance.lastRoute ??
+                                        (_session == null
+                                            ? 'driver.login'
+                                            : widget.initialRoute);
                                 DriverRuntimeInspector.instance
                                     .recordNavigation('driver.inspector');
                                 setState(() => _inspectorOpen = true);
@@ -339,13 +345,14 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
                   child: DriverInspectorPanel(
                     authenticated: _session != null,
                     onClose: () {
-                      DriverRuntimeInspector.instance.recordNavigation(
-                        _session == null
-                            ? 'driver.login'
-                            : DriverRuntimeInspector.instance.lastRoute ??
-                                widget.initialRoute,
-                      );
-                      setState(() => _inspectorOpen = false);
+                      final route = _routeBeforeInspector;
+                      if (route != null) {
+                        DriverRuntimeInspector.instance.recordNavigation(route);
+                      }
+                      setState(() {
+                        _inspectorOpen = false;
+                        _routeBeforeInspector = null;
+                      });
                     },
                   ),
                 ),
