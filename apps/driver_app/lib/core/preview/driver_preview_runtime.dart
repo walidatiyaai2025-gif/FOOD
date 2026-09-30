@@ -41,6 +41,7 @@ class DriverPreviewRuntime {
       assignmentRepository: bundle.assignments,
       initialRoute: initialRoute,
       locale: Locale(bootstrap.locale),
+      previewViewport: bootstrap.viewport,
     );
 
     return DriverPreviewRuntime._(
