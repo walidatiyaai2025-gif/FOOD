@@ -102,6 +102,19 @@ class B2bWorkspaceController extends Controller
 
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2b_'.$module;
+        $principalStoreId = $this->principal->storeId();
+        $canViewDriverTracking = $module === 'dashboard'
+            && in_array(
+                $principalStoreId,
+                $this->operationalScope->allowedStoreIds($user, 'drivers.tracking.view', 'b2b'),
+                true,
+            );
+        $driverTrackingFeedUrl = $canViewDriverTracking
+            ? route('admin.driver-live-tracking.feed', ['channel' => 'b2b', 'store_id' => $principalStoreId])
+            : null;
+        $driverTrackingPageUrl = $canViewDriverTracking
+            ? route('admin.driver-live-tracking.index')
+            : null;
         [$dashboardFrom, $dashboardTo] = $module === 'dashboard'
             ? $this->dashboardRange($request)
             : [null, null];
@@ -114,7 +127,20 @@ class B2bWorkspaceController extends Controller
             fn (string $candidate): bool => $this->canOpenModule($user, $candidate),
         ));
 
-        return view('admin.b2b-workspace', compact('user', 'module', 'storeIds', 'counts', 'navGroups', 'navContext', 'dashboard', 'moduleData', 'visibleModules'));
+        return view('admin.b2b-workspace', compact(
+            'user',
+            'module',
+            'storeIds',
+            'counts',
+            'navGroups',
+            'navContext',
+            'dashboard',
+            'moduleData',
+            'visibleModules',
+            'canViewDriverTracking',
+            'driverTrackingFeedUrl',
+            'driverTrackingPageUrl',
+        ));
     }
 
     public function transitionOrder(
