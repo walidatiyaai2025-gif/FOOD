@@ -247,7 +247,11 @@ async function installStandaloneHarness(page, testCase) {
 
   await page.goto(origin + '/' + testCase.app + '/index.html', { waitUntil: 'networkidle' });
   await page.evaluate(() => {
-    const send = () => window.postMessage(window.__foodexBootstrapForTest, location.origin);
+    const send = () => window.dispatchEvent(new MessageEvent('message', {
+      data: window.__foodexBootstrapForTest,
+      origin: location.origin,
+      source: window,
+    }));
     send();
     const retry = setInterval(() => {
       const terminal = window.__foodexMessages.some((m) =>
