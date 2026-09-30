@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
+use App\Jobs\DispatchPushNotification;
 use App\Models\DriverAssignment;
 use App\Models\Notification;
 use App\Models\Order;
@@ -13,7 +14,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\OperationalTenantScope;
-use App\Services\PushDeliveryService;
+use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Support\AdminNavigation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -135,7 +136,6 @@ final class OrderOperationsController extends Controller
     public function remindDriver(
         Request $request,
         int $order,
-        PushDeliveryService $push,
         AuditLogger $audit,
     ): RedirectResponse {
         $actor = $this->actor($request);
@@ -155,7 +155,7 @@ final class OrderOperationsController extends Controller
         abort_unless($driver !== null && $driver->user_id !== null, 409, 'Assigned driver has no active app user.');
 
         $notification = Notification::query()->create([
-            'channel' => 'push',
+            'channel' => 'both',
             'type' => 'order.driver_reminder',
             'title' => 'تذكير بالطلب '.$model->order_number,
             'body' => 'يوجد طلب يحتاج متابعتك الآن.',
@@ -175,11 +175,14 @@ final class OrderOperationsController extends Controller
                 'order_number' => (string) $model->order_number,
                 'channel' => (string) $model->channel,
                 'driver_id' => (int) $driver->id,
-                'route' => '/deliveries',
+                'assignment_id' => (int) $assignment->getKey(),
+                'access_revoked' => false,
+                'route' => 'assignment',
             ],
         ]);
 
-        $push->dispatchNotification($notification);
+        DispatchPushNotification::dispatch((int) $notification->getKey())->afterCommit();
+
         $audit->record(
             'operations.order.driver_reminder_sent',
             $actor,
@@ -331,6 +334,7 @@ final class OrderOperationsController extends Controller
     private function detail(Order $order): array
     {
         $row = $this->row($order);
+        $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
         $history = OrderStatusHistory::query()
             ->where('order_id', $order->getKey())
@@ -365,6 +369,7 @@ final class OrderOperationsController extends Controller
 
         return [
             ...$row,
+            'delivery_address' => $deliveryAddress,
             'history' => $history,
             'assignments' => $assignments,
         ];

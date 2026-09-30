@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/auth/driver_session.dart';
 import '../../core/localization/driver_translations.dart';
+import '../../core/navigation/driver_navigation.dart';
 import '../../core/theme/foodex_theme.dart';
 
 enum DriverLoadState { loading, ready, empty, error, offline }
@@ -70,6 +71,8 @@ class DriverAssignment {
     this.customerName = '',
     this.customerPhone = '',
     this.address = '',
+    this.navigationLatitude,
+    this.navigationLongitude,
     this.currency = 'KWD',
     this.grandTotal = 0,
     this.paymentMethod = '',
@@ -94,7 +97,12 @@ class DriverAssignment {
   final String customerName;
   final String customerPhone;
   final String address;
+  final double? navigationLatitude;
+  final double? navigationLongitude;
   final String currency;
+
+  bool get hasNavigation =>
+      navigationLatitude != null && navigationLongitude != null;
   final double grandTotal;
   final String paymentMethod;
   final String paymentStatus;
@@ -137,13 +145,17 @@ class DriverJourneyPage extends StatefulWidget {
     required this.channel,
     required this.repository,
     this.onSessionExpired,
+    this.focusAssignmentId,
     this.initialAssignmentStatus,
+    this.navigationLauncher = launchDriverNavigation,
   });
 
   final DriverChannel channel;
   final DriverAssignmentRepository repository;
   final VoidCallback? onSessionExpired;
+  final int? focusAssignmentId;
   final String? initialAssignmentStatus;
+  final DriverNavigationLauncher navigationLauncher;
 
   @override
   State<DriverJourneyPage> createState() => _DriverJourneyPageState();
@@ -157,6 +169,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
   final TextEditingController _searchController = TextEditingController();
   final Set<int> _transitioning = <int>{};
   String? _actionError;
+  bool _didFocusInitialAssignment = false;
 
   @override
   void initState() {
@@ -190,6 +203,24 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
         assignments = filtered;
         state = filtered.isEmpty ? DriverLoadState.empty : DriverLoadState.ready;
       });
+
+      final focusId = widget.focusAssignmentId;
+      if (!_didFocusInitialAssignment && focusId != null) {
+        _didFocusInitialAssignment = true;
+        DriverAssignment? match;
+        for (final row in filtered) {
+          if (row.id == focusId) {
+            match = row;
+            break;
+          }
+        }
+        if (match != null) {
+          final focusedAssignment = match;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _showDetail(focusedAssignment);
+          });
+        }
+      }
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
       if (mounted && widget.onSessionExpired == null) {
@@ -606,6 +637,31 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                     label: context.tr('driver.detail.address'),
                     value: assignment.address,
                   ),
+                if (assignment.hasNavigation) ...[
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    key: Key(
+                      'driver-navigate-${assignment.id}',
+                    ),
+                    onPressed: () async {
+                      final launched = await widget.navigationLauncher(
+                        assignment.navigationLatitude!,
+                        assignment.navigationLongitude!,
+                      );
+                      if (!launched && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              context.tr('driver.navigation.unavailable'),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.navigation_rounded),
+                    label: Text(context.tr('driver.navigation.open')),
+                  ),
+                ],
                 if (assignment.customerNote.isNotEmpty)
                   _DetailLine(
                     label: context.tr('driver.detail.note'),

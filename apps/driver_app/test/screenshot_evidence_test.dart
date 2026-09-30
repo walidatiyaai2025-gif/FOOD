@@ -109,6 +109,12 @@ void main() {
         key,
         '01_Mobile/Driver_B2C/04_driver_delivery_detail__actions__$localeCode.png',
       );
+      expect(find.byKey(const Key('driver-navigate-3')), findsOneWidget);
+      await _writeBoundary(
+        tester,
+        key,
+        '01_Mobile/Driver_B2C/07_driver_navigation__available__$localeCode.png',
+      );
     });
 
     testWidgets('capture B2C empty deliveries $localeCode', (tester) async {
@@ -266,6 +272,10 @@ class _EvidenceAssignments implements DriverAssignmentRepository {
               ? '#FOODEX-41'
               : '#FOODEX-B2B-141',
           status: 'assigned',
+          address: 'Bayan Block 1 · Street 5 · Building 12',
+          navigationLatitude: 29.3031,
+          navigationLongitude: 48.0489,
+          customerNote: 'Call on arrival',
           availableStatuses: const ['accepted', 'picked_up'],
         ),
         DriverAssignment(

@@ -243,6 +243,79 @@ void main() {
     expect(repo.transitionedFailureReason, 'customer_no_answer');
   });
 
+  testWidgets('push-targeted assignment opens its detail after load', (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 21,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-21',
+        status: 'assigned',
+      ),
+      DriverAssignment(
+        id: 22,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-22',
+        status: 'assigned',
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2c,
+          repository: repo,
+          focusAssignmentId: 22,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('assignment-detail-22')), findsOneWidget);
+    expect(find.byKey(const Key('assignment-detail-21')), findsNothing);
+  });
+
+  testWidgets('driver can launch immutable order coordinates from detail',
+      (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 31,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-31',
+        status: 'assigned',
+        address: 'Snapshot Street',
+        navigationLatitude: 29.3759,
+        navigationLongitude: 47.9774,
+      ),
+    ]);
+    double? launchedLat;
+    double? launchedLng;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2c,
+          repository: repo,
+          navigationLauncher: (latitude, longitude) async {
+            launchedLat = latitude;
+            launchedLng = longitude;
+            return true;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('assignment-31')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-navigate-31')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('driver-navigate-31')));
+    await tester.pumpAndSettle();
+
+    expect(launchedLat, 29.3759);
+    expect(launchedLng, 47.9774);
+  });
+
   testWidgets('empty and offline states are explicit', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

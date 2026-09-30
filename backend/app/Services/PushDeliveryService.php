@@ -43,14 +43,24 @@ final class PushDeliveryService
         PushDeviceToken $device,
         array $payload,
         bool $isTest = false,
+        ?int $notificationId = null,
     ): PushDeliveryLog {
+        $attempt = $notificationId === null
+            ? 1
+            : PushDeliveryLog::query()
+                ->where('notification_id', $notificationId)
+                ->where('device_id', $device->id)
+                ->count() + 1;
+
         $log = PushDeliveryLog::query()->create([
+            'notification_id' => $notificationId,
             'user_id' => $device->user_id,
             'device_id' => $device->id,
             'app' => $device->app,
             'platform' => $device->platform,
             'environment' => $device->environment,
             'status' => 'sending',
+            'attempt' => $attempt,
             'is_test' => $isTest,
         ]);
 
@@ -61,6 +71,7 @@ final class PushDeliveryService
 
             $body = $response->json();
             $successful = $response->successful();
+            $invalidToken = ! $successful && $this->isInvalidDeviceToken($body);
 
             $log->update([
                 'status' => $successful ? 'sent' : 'failed',
@@ -70,11 +81,15 @@ final class PushDeliveryService
                     : null,
                 'error_code' => $successful
                     ? null
-                    : 'provider_http_'.$response->status(),
+                    : ($invalidToken ? 'invalid_device_token' : 'provider_http_'.$response->status()),
                 'error_message' => $successful
                     ? null
                     : $this->safeError($body),
             ]);
+
+            if ($invalidToken && $device->revoked_at === null) {
+                $device->forceFill(['revoked_at' => now()])->save();
+            }
         } catch (Throwable $exception) {
             $log->update([
                 'status' => 'failed',
@@ -86,11 +101,15 @@ final class PushDeliveryService
         return $log->fresh();
     }
 
-    public function dispatchNotification(Notification $notification): void
-    {
+    public function dispatchNotification(
+        Notification $notification,
+        bool $throwOnTransient = false,
+    ): void {
         if (! in_array($notification->channel, ['push', 'both'], true)) {
             return;
         }
+
+        $transientFailure = false;
 
         $devices = PushDeviceToken::query()
             ->whereNull('revoked_at')
@@ -137,12 +156,14 @@ final class PushDeliveryService
 
             if ($provider === null) {
                 PushDeliveryLog::query()->create([
+                    'notification_id' => $notification->id,
                     'user_id' => $device->user_id,
                     'device_id' => $device->id,
                     'app' => $device->app,
                     'platform' => $device->platform,
                     'environment' => $device->environment,
                     'status' => 'skipped',
+                    'attempt' => 1,
                     'error_code' => 'provider_not_configured',
                     'error_message' => 'No enabled provider configuration exists for this device.',
                 ]);
@@ -155,7 +176,16 @@ final class PushDeliveryService
                 : (string) $device->locale;
             $english = $deviceLocale === 'en';
 
-            $this->send($provider, $device, [
+            $alreadySent = PushDeliveryLog::query()
+                ->where('notification_id', $notification->id)
+                ->where('device_id', $device->id)
+                ->where('status', 'sent')
+                ->exists();
+            if ($alreadySent) {
+                continue;
+            }
+
+            $log = $this->send($provider, $device, [
                 'title' => $english
                     ? $notification->title_en
                     : $notification->title_ar,
@@ -163,20 +193,108 @@ final class PushDeliveryService
                     ? $notification->body_en
                     : $notification->body_ar,
                 'image_url' => $imageUrl,
-                'data' => [
-                    'notification_id' => (string) $notification->id,
-                    'type' => (string) $notification->type,
-                    'title' => $english
-                        ? (string) $notification->title_en
-                        : (string) $notification->title_ar,
-                    'body' => $english
-                        ? (string) $notification->body_en
-                        : (string) $notification->body_ar,
-                    'image_url' => $imageUrl,
-                    'visible_notification' => '1',
-                ],
-            ]);
+                'data' => $this->pushData($notification, $english, $imageUrl),
+            ], false, (int) $notification->id);
+
+            if ($this->isTransientFailure($log)) {
+                $transientFailure = true;
+            }
         }
+
+        if ($transientFailure && $throwOnTransient) {
+            throw new \RuntimeException('One or more push deliveries failed transiently and will be retried.');
+        }
+    }
+
+    private function isTransientFailure(PushDeliveryLog $log): bool
+    {
+        if ($log->status !== 'failed' || $log->error_code === 'invalid_device_token') {
+            return false;
+        }
+
+        $code = $log->response_code === null ? null : (int) $log->response_code;
+        if ($code === null) {
+            return $log->error_code !== ValidationException::class
+                && $log->error_code !== 'ValidationException';
+        }
+
+        return $code === 429 || $code >= 500;
+    }
+
+    private function isInvalidDeviceToken(mixed $body): bool
+    {
+        if (! is_array($body)) {
+            return false;
+        }
+
+        $status = strtoupper((string) data_get($body, 'error.status', ''));
+        if ($status === 'UNREGISTERED') {
+            return true;
+        }
+
+        foreach ((array) data_get($body, 'error.details', []) as $detail) {
+            if (! is_array($detail)) {
+                continue;
+            }
+
+            $errorCode = strtoupper((string) ($detail['errorCode'] ?? ''));
+            if ($errorCode === 'UNREGISTERED') {
+                return true;
+            }
+
+            if ($errorCode === 'INVALID_ARGUMENT') {
+                $message = strtolower((string) data_get($body, 'error.message', ''));
+                if (str_contains($message, 'registration token')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /** @return array<string, string> */
+    private function pushData(Notification $notification, bool $english, string $imageUrl): array
+    {
+        $data = [
+            'notification_id' => (string) $notification->id,
+            'type' => (string) $notification->type,
+            'title' => $english
+                ? (string) $notification->title_en
+                : (string) $notification->title_ar,
+            'body' => $english
+                ? (string) $notification->body_en
+                : (string) $notification->body_ar,
+            'image_url' => $imageUrl,
+            'visible_notification' => '1',
+        ];
+
+        $notificationData = $notification->getAttribute('data');
+        if (! is_array($notificationData)) {
+            return $data;
+        }
+
+        foreach ($notificationData as $key => $value) {
+            $dataKey = (string) $key;
+            if ($dataKey === '') {
+                continue;
+            }
+
+            if ($value === null) {
+                $data[$dataKey] = '';
+            } elseif (is_bool($value)) {
+                $data[$dataKey] = $value ? '1' : '0';
+            } elseif (is_scalar($value)) {
+                $data[$dataKey] = (string) $value;
+            } else {
+                $encoded = json_encode($value);
+                if (is_string($encoded)) {
+                    $data[$dataKey] = $encoded;
+                }
+            }
+        }
+
+        return $data;
     }
 
     private function anonymousDeviceMatches(PushDeviceToken $device, Notification $notification): bool

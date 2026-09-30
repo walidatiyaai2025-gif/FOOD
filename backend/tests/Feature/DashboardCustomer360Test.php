@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Address;
 use App\Models\PlatformCustomer;
 use App\Models\Role;
 use App\Models\User;
@@ -89,6 +90,131 @@ class DashboardCustomer360Test extends TestCase
             ->assertSee('Retail A · RETAIL-A')
             ->assertSee('Retail B · RETAIL-B')
             ->assertSee('Wholesale account');
+    }
+
+    public function test_retail_admin_can_fully_manage_visible_customer_addresses_only(): void
+    {
+        $storeA = $this->store('B2C', 'ADDRESS-A', 'Address Store A');
+        $storeB = $this->store('B2C', 'ADDRESS-B', 'Address Store B');
+        $user = $this->customer('Address Customer', 'address-customer@example.test', $storeA);
+        $foreign = $this->customer('Foreign Address Customer', 'address-foreign@example.test', $storeB);
+        $platform = PlatformCustomer::query()->where('user_id', $user->id)->firstOrFail();
+        $foreignPlatform = PlatformCustomer::query()->where('user_id', $foreign->id)->firstOrFail();
+        $admin = $this->retailAdmin($storeA);
+
+        $this->actingAs($admin)
+            ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
+            ->assertOk()
+            ->assertSee('Manage addresses')
+            ->assertSee('Add new address');
+
+        $this->actingAs($admin)
+            ->from(route('admin.customer-360.show', ['platformCustomer' => $platform->id]).'#addresses')
+            ->post(route('admin.customer-360.addresses.store', ['platformCustomer' => $platform->id]), [
+                'label' => 'Invalid pin',
+                'line1' => 'Street without coordinates',
+                'city' => 'Cairo',
+                'country_code' => 'EG',
+                'location_source' => 'map_pin',
+            ])
+            ->assertSessionHasErrors(['latitude', 'longitude']);
+
+        $this->assertDatabaseMissing('addresses', [
+            'platform_customer_id' => $platform->id,
+            'label' => 'Invalid pin',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.customer-360.addresses.store', ['platformCustomer' => $platform->id]), [
+                'label' => 'Home',
+                'recipient_name' => 'Address Customer',
+                'delivery_phone' => '+201011111111',
+                'line1' => 'Street 1',
+                'city' => 'Cairo',
+                'area' => 'Nasr City',
+                'country_code' => 'EG',
+                'latitude' => 30.04442,
+                'longitude' => 31.235712,
+                'location_source' => 'map_pin',
+                'landmark' => 'Near the park',
+            ])
+            ->assertRedirect();
+
+        $first = Address::query()
+            ->where('platform_customer_id', $platform->id)
+            ->where('label', 'Home')
+            ->firstOrFail();
+
+        $this->assertTrue((bool) $first->is_default);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.customer-360.addresses.update', [
+                'platformCustomer' => $platform->id,
+                'address' => $first->id,
+            ]), [
+                'label' => 'Home updated',
+                'line1' => 'Street 2',
+                'city' => 'Cairo',
+                'country_code' => 'EG',
+                'latitude' => 30.0500000,
+                'longitude' => 31.2400000,
+                'location_source' => 'map_pin',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('addresses', [
+            'id' => $first->id,
+            'platform_customer_id' => $platform->id,
+            'label' => 'Home updated',
+            'line1' => 'Street 2',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.customer-360.addresses.store', ['platformCustomer' => $platform->id]), [
+                'label' => 'Office',
+                'line1' => 'Office Street',
+                'city' => 'Cairo',
+                'country_code' => 'EG',
+            ])
+            ->assertRedirect();
+
+        $second = Address::query()
+            ->where('platform_customer_id', $platform->id)
+            ->where('label', 'Office')
+            ->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('admin.customer-360.addresses.default', [
+                'platformCustomer' => $platform->id,
+                'address' => $second->id,
+            ]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('addresses', ['id' => $first->id, 'is_default' => false]);
+        $this->assertDatabaseHas('addresses', ['id' => $second->id, 'is_default' => true]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.customer-360.addresses.destroy', [
+                'platformCustomer' => $platform->id,
+                'address' => $second->id,
+            ]))
+            ->assertRedirect();
+
+        $this->assertSoftDeleted('addresses', ['id' => $second->id]);
+        $this->assertDatabaseHas('addresses', ['id' => $first->id, 'is_default' => true]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.customer-360.addresses.store', ['platformCustomer' => $foreignPlatform->id]), [
+                'line1' => 'Forbidden Street',
+                'city' => 'Cairo',
+                'country_code' => 'EG',
+            ])
+            ->assertNotFound();
+
+        $this->assertDatabaseMissing('addresses', [
+            'platform_customer_id' => $foreignPlatform->id,
+            'line1' => 'Forbidden Street',
+        ]);
     }
 
     public function test_b2b_admin_does_not_receive_exact_retail_origin_store(): void

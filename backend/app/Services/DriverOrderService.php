@@ -66,20 +66,9 @@ final class DriverOrderService
                 ->where('id', $domainCustomerId)
                 ->first(['name', 'phone', 'email']);
 
-        $address = $order->address_id === null
-            ? null
-            : DB::table('addresses')
-                ->where('id', $order->address_id)
-                ->first([
-                    'label',
-                    'line1',
-                    'line2',
-                    'city',
-                    'area',
-                    'country_code',
-                    'latitude',
-                    'longitude',
-                ]);
+        // Delivery execution must use the order snapshot, never the mutable
+        // customer address row. This keeps navigation/history stable after profile edits.
+        $address = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
         $payment = DB::table('payments')
             ->where('order_id', $order->getKey())
@@ -212,15 +201,15 @@ final class DriverOrderService
                     'phone' => $customer?->phone,
                     'email' => $customer?->email,
                 ],
-                'address' => $address === null ? null : [
-                    'label' => $address->label,
-                    'line1' => $address->line1,
-                    'line2' => $address->line2,
-                    'city' => $address->city,
-                    'area' => $address->area,
-                    'country_code' => $address->country_code,
-                    'latitude' => $address->latitude === null ? null : (float) $address->latitude,
-                    'longitude' => $address->longitude === null ? null : (float) $address->longitude,
+                'address' => $address,
+                'navigation' => $address === null ? [
+                    'available' => false,
+                    'latitude' => null,
+                    'longitude' => null,
+                ] : [
+                    'available' => (bool) ($address['has_coordinates'] ?? false),
+                    'latitude' => $address['latitude'] ?? null,
+                    'longitude' => $address['longitude'] ?? null,
                 ],
                 'payment' => $payment === null ? null : [
                     'provider' => $payment->provider,
@@ -246,6 +235,34 @@ final class DriverOrderService
                     'items' => $invoiceItems,
                 ],
                 'driver_history' => $driverHistory,
+            ],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function historyPayload(DriverAssignment $assignment): array
+    {
+        $order = Order::query()->findOrFail($assignment->order_id);
+        abort_unless(
+            (int) $order->store_id === (int) $assignment->store_id
+                && strtolower((string) $order->channel) === strtolower((string) $assignment->assignment_type),
+            404,
+        );
+
+        return [
+            'id' => (int) $assignment->getKey(),
+            'driver_id' => (int) $assignment->driver_id,
+            'order_id' => (int) $order->getKey(),
+            'store_id' => (int) $order->store_id,
+            'assignment_type' => strtolower((string) $assignment->assignment_type),
+            'status' => (string) $assignment->status,
+            'assigned_at' => $assignment->assigned_at,
+            'completed_at' => $assignment->completed_at,
+            'available_statuses' => [],
+            'order' => [
+                'number' => (string) $order->order_number,
+                'status' => (string) $order->status,
+                'created_at' => $order->created_at,
             ],
         ];
     }

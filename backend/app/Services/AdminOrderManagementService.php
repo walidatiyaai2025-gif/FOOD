@@ -96,6 +96,7 @@ final class AdminOrderManagementService
         [$customer, $legacyCustomerId] = $this->customer($channel, $storeId, (int) $data['customer_id']);
         $customerId = (int) $customer->getKey();
         $addressId = $this->addressId($channel, $customerId, $data['address_id'] ?? null);
+        $address = $addressId === null ? null : Address::query()->findOrFail($addressId);
         $paymentMethod = $this->paymentMethod(
             (string) ($data['payment_method'] ?? config('checkout.default_payment_method')),
             $channel,
@@ -116,6 +117,7 @@ final class AdminOrderManagementService
             $customerId,
             $legacyCustomerId,
             $addressId,
+            $address,
             $paymentMethod,
             $customerUser,
             $couponCode,
@@ -147,6 +149,7 @@ final class AdminOrderManagementService
                 'customer_id' => $legacyCustomerId,
                 $customerColumn => $customerId,
                 'address_id' => $addressId,
+                ...app(OrderDeliveryAddressSnapshotService::class)->attributes($address),
                 'order_number' => 'FDX-'.strtoupper($channel).'-'.now()->format('Ymd').'-'.Str::upper(Str::random(8)),
                 'channel' => $channel,
                 'status' => 'pending',
@@ -288,6 +291,7 @@ final class AdminOrderManagementService
         [$customer, $legacyCustomerId] = $this->customer($channel, $storeId, (int) $data['customer_id']);
         $customerId = (int) $customer->getKey();
         $addressId = $this->addressId($channel, $customerId, $data['address_id'] ?? null);
+        $address = $addressId === null ? null : Address::query()->findOrFail($addressId);
         $paymentMethod = $this->paymentMethod(
             (string) ($data['payment_method'] ?? config('checkout.default_payment_method')),
             $channel,
@@ -325,6 +329,7 @@ final class AdminOrderManagementService
             $customerId,
             $legacyCustomerId,
             $addressId,
+            $address,
             $paymentMethod,
             $customerUser,
             $couponCode,
@@ -380,6 +385,7 @@ final class AdminOrderManagementService
                 'b2c_customer_id' => $channel === 'b2c' ? $customerId : null,
                 'warehouse_id' => $warehouseId,
                 'address_id' => $addressId,
+                ...app(OrderDeliveryAddressSnapshotService::class)->attributes($address),
                 'currency' => $header['currency'],
                 'subtotal' => $header['subtotal'],
                 'discount_total' => $header['discount_total'],
@@ -579,9 +585,26 @@ final class AdminOrderManagementService
         }
 
         $column = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
+        $customerTable = $channel === 'b2b' ? 'b2b_customers' : 'b2c_customers';
+        $userId = DB::table($customerTable)
+            ->where('id', $customerId)
+            ->value('user_id');
+        $platformCustomerId = $userId === null
+            ? null
+            : DB::table('platform_customers')
+                ->where('user_id', $userId)
+                ->where('is_active', true)
+                ->value('id');
+
         $address = Address::query()
             ->whereKey((int) $addressId)
-            ->where($column, $customerId)
+            ->where(function ($query) use ($column, $customerId, $platformCustomerId): void {
+                $query->where($column, $customerId);
+
+                if ($platformCustomerId !== null) {
+                    $query->orWhere('platform_customer_id', (int) $platformCustomerId);
+                }
+            })
             ->firstOrFail();
 
         return (int) $address->getKey();

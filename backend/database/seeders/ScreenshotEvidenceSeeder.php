@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\PlatformCustomerService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -60,6 +61,111 @@ class ScreenshotEvidenceSeeder extends Seeder
             'code' => 'FOODEX-EVIDENCE-B2B-WH',
             'name' => 'FOODEX Wholesale Warehouse',
             'is_active' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $retailStoreId = (int) DB::table('stores')
+            ->where('code', 'FOODEX-DEMO-B2C')
+            ->value('id');
+
+        $platformUser = app(PlatformCustomerService::class)->register([
+            'name' => 'FOODEX Address Evidence Customer',
+            'email' => 'evidence.address@foodex.test',
+            'phone' => '+96555509999',
+            'password' => 'Evidence123!',
+            'locale' => 'ar',
+            'store_id' => $retailStoreId,
+        ], 'dashboard');
+
+        $platformCustomer = DB::table('platform_customers')
+            ->where('user_id', $platformUser->id)
+            ->first();
+
+        if ($platformCustomer === null) {
+            throw new RuntimeException('Platform Customer screenshot fixture was not created.');
+        }
+
+        $addressId = (int) DB::table('addresses')->insertGetId([
+            'customer_id' => (int) $platformCustomer->legacy_customer_id,
+            'platform_customer_id' => (int) $platformCustomer->id,
+            'b2b_customer_id' => null,
+            'b2c_customer_id' => null,
+            'label' => 'Home',
+            'recipient_name' => 'FOODEX Address Evidence Customer',
+            'delivery_phone' => '+96555509999',
+            'line1' => 'Block 1, Street 5, Building 12',
+            'line2' => null,
+            'city' => 'Kuwait City',
+            'area' => 'Bayan',
+            'country_code' => 'KW',
+            'country' => 'Kuwait',
+            'governorate' => 'Hawalli',
+            'block' => '1',
+            'street' => 'Street 5',
+            'avenue' => null,
+            'building' => '12',
+            'floor' => '2',
+            'apartment' => '7',
+            'landmark' => 'Near Bayan Co-op',
+            'delivery_notes' => 'Call on arrival',
+            'latitude' => 29.3031000,
+            'longitude' => 48.0489000,
+            'location_accuracy_meters' => 6.0,
+            'location_source' => 'map_pin',
+            'is_default' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $b2cCustomerId = DB::table('b2c_customers')
+            ->where('user_id', $platformUser->id)
+            ->where('store_id', $retailStoreId)
+            ->value('id');
+
+        $deliverySnapshot = [
+            'version' => 1,
+            'address_id' => $addressId,
+            'label' => 'Home',
+            'recipient_name' => 'FOODEX Address Evidence Customer',
+            'delivery_phone' => '+96555509999',
+            'line1' => 'Block 1, Street 5, Building 12',
+            'line2' => null,
+            'city' => 'Kuwait City',
+            'area' => 'Bayan',
+            'country_code' => 'KW',
+            'country' => 'Kuwait',
+            'governorate' => 'Hawalli',
+            'block' => '1',
+            'street' => 'Street 5',
+            'avenue' => null,
+            'building' => '12',
+            'floor' => '2',
+            'apartment' => '7',
+            'landmark' => 'Near Bayan Co-op',
+            'delivery_notes' => 'Call on arrival',
+            'latitude' => 29.3031,
+            'longitude' => 48.0489,
+            'location_accuracy_meters' => 6.0,
+            'location_source' => 'map_pin',
+        ];
+
+        DB::table('orders')->insert([
+            'store_id' => $retailStoreId,
+            'customer_id' => (int) $platformCustomer->legacy_customer_id,
+            'b2c_customer_id' => $b2cCustomerId === null ? null : (int) $b2cCustomerId,
+            'address_id' => $addressId,
+            'delivery_address_snapshot' => json_encode($deliverySnapshot, JSON_THROW_ON_ERROR),
+            'delivery_latitude' => 29.3031000,
+            'delivery_longitude' => 48.0489000,
+            'order_number' => 'FOODEX-EVID-LOC-1',
+            'channel' => 'b2c',
+            'status' => 'confirmed',
+            'currency' => 'KWD',
+            'subtotal' => 12.500,
+            'discount_total' => 0,
+            'delivery_total' => 1.000,
+            'grand_total' => 13.500,
             'created_at' => $now,
             'updated_at' => $now,
         ]);

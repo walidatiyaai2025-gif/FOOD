@@ -10,10 +10,14 @@ import 'core/localization/driver_translations.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/auth/driver_login.dart';
+import 'features/notifications/notification_feed.dart';
 import 'features/tasks/driver_journey.dart';
 import 'navigation.dart';
 
 typedef DriverAssignmentRepositoryFactory = DriverAssignmentRepository Function(
+  DriverSession session,
+);
+typedef DriverNotificationRepositoryFactory = DriverNotificationRepository Function(
   DriverSession session,
 );
 
@@ -27,6 +31,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.apiBaseUrl,
     this.authRepository,
     this.assignmentRepositoryFactory,
+    this.notificationRepositoryFactory,
     this.initialSession,
     this.theme,
     this.pushService,
@@ -39,6 +44,7 @@ class FoodexDriverApp extends StatefulWidget {
   final String? apiBaseUrl;
   final DriverAuthRepository? authRepository;
   final DriverAssignmentRepositoryFactory? assignmentRepositoryFactory;
+  final DriverNotificationRepositoryFactory? notificationRepositoryFactory;
   final DriverSession? initialSession;
   final ThemeData? theme;
   final DriverFirebasePushService? pushService;
@@ -52,7 +58,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   DriverSession? _session;
   final GlobalKey<NavigatorState> _driverNavigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
-  StreamSubscription<void>? _pushOpenSubscription;
+  StreamSubscription<DriverPushOpen>? _pushOpenSubscription;
   StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
 
   static const _appVersion = '1.0.34';
@@ -102,6 +108,16 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     return HttpDriverAssignmentRepository(_baseUrl, session.token);
   }
 
+  DriverNotificationRepository? _notificationRepository(DriverSession session) {
+    final factory = widget.notificationRepositoryFactory;
+    if (factory != null) return factory(session);
+    if (_baseUrl.isEmpty) return null;
+    return HttpDriverNotificationRepository(
+      baseUrl: _baseUrl,
+      token: session.token,
+    );
+  }
+
   Future<void> _loadRemoteTranslations() async {
     try {
       final fetcher = widget.translationFetcher;
@@ -124,10 +140,11 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   void _configurePush() {
     final service = widget.pushService;
     if (service == null) return;
-    _pushOpenSubscription = service.opens.listen((_) => _openFromPush());
+    _pushOpenSubscription = service.opens.listen(_openFromPush);
     _pushAlertSubscription = service.alerts.listen(_showPushAlert);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (service.takePendingOpen()) _openFromPush();
+      final pending = service.takePendingOpen();
+      if (pending != null) _openFromPush(pending);
     });
     _bindPushSession();
   }
@@ -140,13 +157,17 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     }
   }
 
-  void _openFromPush() {
+  void _openFromPush(DriverPushOpen open) {
     final session = _session;
     if (session == null) return;
     final route = session.channel == DriverChannel.b2c
         ? DriverRoutes.b2cDeliveries
         : DriverRoutes.b2bDeliveries;
-    _driverNavigatorKey.currentState?.pushNamed(route);
+
+    _driverNavigatorKey.currentState?.pushNamed(
+      route,
+      arguments: open.accessRevoked ? null : open.assignmentId,
+    );
   }
 
   void _showPushAlert(DriverPushAlert alert) {
@@ -168,7 +189,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   Future<void> _logout() async {
     final session = _session;
     final service = widget.pushService;
-    if (service != null) unawaited(service.revokeSession());
+    if (service != null) await service.revokeSession();
     if (mounted) setState(() => _session = null);
     if (session == null) return;
     final repository = _authRepository();
@@ -193,11 +214,14 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     final authRepository = _authRepository();
     final assignments =
         session == null ? null : _assignmentRepository(session);
+    final notifications =
+        session == null ? null : _notificationRepository(session);
     final navigator = session == null || assignments == null
         ? null
         : DriverNavigator(
             session.channel,
             repository: assignments,
+            notificationRepository: notifications,
             onSessionExpired: _sessionExpired,
             onLogout: () {
               _logout();

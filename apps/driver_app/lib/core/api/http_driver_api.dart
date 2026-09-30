@@ -168,6 +168,9 @@ class HttpDriverAssignmentRepository implements DriverProofAssignmentRepository 
     final address = order['address'] is Map
         ? Map<String, dynamic>.from(order['address'] as Map)
         : <String, dynamic>{};
+    final navigation = order['navigation'] is Map
+        ? Map<String, dynamic>.from(order['navigation'] as Map)
+        : <String, dynamic>{};
 
     final addressParts = [
       address['label'],
@@ -241,6 +244,12 @@ class HttpDriverAssignmentRepository implements DriverProofAssignmentRepository 
       customerName: (customer['name'] ?? '').toString(),
       customerPhone: (customer['phone'] ?? '').toString(),
       address: addressParts.join(' · '),
+      navigationLatitude: navigation['available'] == true
+          ? (navigation['latitude'] as num?)?.toDouble()
+          : null,
+      navigationLongitude: navigation['available'] == true
+          ? (navigation['longitude'] as num?)?.toDouble()
+          : null,
       currency: (order['currency'] ?? 'KWD').toString(),
       grandTotal: (order['grand_total'] as num?)?.toDouble() ?? 0,
       paymentMethod: (order['payment_method'] ?? '').toString(),

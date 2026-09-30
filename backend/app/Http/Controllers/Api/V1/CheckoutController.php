@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\Cart;
@@ -18,9 +17,11 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CommerceQuoteService;
 use App\Services\CouponRedemptionService;
+use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\InvoiceService;
+use App\Services\OrderDeliveryAddressSnapshotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -98,10 +99,8 @@ class CheckoutController extends Controller
             'coupon_code' => $couponCode,
         ], JSON_THROW_ON_ERROR));
 
-        $address = Address::query()
-            ->whereKey($addressId)
-            ->where($customerColumn, $customer->getKey())
-            ->firstOrFail();
+        $address = app(CustomerAddressService::class)
+            ->findOwned($user, $addressId, $customer, $channel);
 
         /** @var array{0: Order, 1: bool} $result */
         $result = DB::transaction(function () use (
@@ -230,6 +229,7 @@ class CheckoutController extends Controller
                 'customer_id' => $legacyCustomerId,
                 $customerColumn => $customer->getKey(),
                 'address_id' => $address->getKey(),
+                ...app(OrderDeliveryAddressSnapshotService::class)->attributes($address),
                 'requested_delivery_date' => $requestedDeliveryDate,
                 'order_number' => 'FDX-'.now()->format('Ymd').'-'.Str::upper(Str::random(10)),
                 'channel' => $channel,
@@ -398,6 +398,7 @@ class CheckoutController extends Controller
             'order_number' => (string) $order->order_number,
             'store_id' => (int) $order->store_id,
             'address_id' => $order->address_id === null ? null : (int) $order->address_id,
+            'delivery_address' => app(OrderDeliveryAddressSnapshotService::class)->payload($order),
             'requested_delivery_date' => $order->requested_delivery_date,
             'channel' => (string) $order->channel,
             'status' => (string) $order->status,

@@ -45,4 +45,28 @@ void main() {
       ),
     );
   });
+
+  test('B2C account API posts explicit set-default address action', () async {
+    http.Request? captured;
+    final api = HttpB2cAccountApi(
+      baseUrl: 'https://foodex.example',
+      token: 'customer-token',
+      guestSession: CustomerGuestSession(),
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response(
+          '{"id":8,"is_default":true}',
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
+
+    final result = await api.setDefaultAddress(8);
+
+    expect(captured?.method, 'POST');
+    expect(captured?.url.path, '/api/v1/profile/addresses/8/default');
+    expect(captured?.headers['Authorization'], 'Bearer customer-token');
+    expect(result, isA<Map<String, dynamic>>());
+  });
 }

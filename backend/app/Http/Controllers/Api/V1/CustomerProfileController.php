@@ -10,12 +10,14 @@ use App\Models\CustomerFavorite;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class CustomerProfileController extends Controller
@@ -110,46 +112,63 @@ class CustomerProfileController extends Controller
 
     public function addresses(Request $request): JsonResponse
     {
-        [, $customer, $channel] = $this->context($request);
-        $customerColumn = $this->customerColumn($channel);
+        [$user, $customer, $channel] = $this->addressContext($request);
+        $addresses = app(CustomerAddressService::class)
+            ->queryFor($user, $customer, $channel)
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Address $address): array => $this->addressPayload($address))
+            ->values()
+            ->all();
 
-        return response()->json([
-            'data' => Address::query()
-                ->where($customerColumn, $customer->getKey())
-                ->orderByDesc('is_default')
-                ->orderBy('id')
-                ->get()
-                ->map(fn (Address $address): array => $this->addressPayload($address))
-                ->values()
-                ->all(),
-        ]);
+        return response()->json(['data' => $addresses]);
+    }
+
+    public function showAddress(Request $request, int $address): JsonResponse
+    {
+        [$user, $customer, $channel] = $this->addressContext($request);
+
+        $model = app(CustomerAddressService::class)
+            ->findOwned($user, $address, $customer, $channel);
+
+        return response()->json($this->addressPayload($model));
     }
 
     public function storeAddress(Request $request, AuditLogger $auditLogger): JsonResponse
     {
-        [$user, $customer, $channel] = $this->context($request);
-
+        [$user, $customer, $channel] = $this->addressContext($request);
         $validated = $request->validate($this->addressRules(false));
-        $customerColumn = $this->customerColumn($channel);
-        $legacyCustomerId = app(CustomerDomainResolver::class)->legacyId($customer);
+        $this->assertLocationSemantics($validated);
+        $service = app(CustomerAddressService::class);
 
-        $address = DB::transaction(function () use ($customer, $customerColumn, $legacyCustomerId, $validated): Address {
+        $address = DB::transaction(function () use (
+            $service,
+            $user,
+            $customer,
+            $channel,
+            $validated,
+        ): Address {
+            // Serialize default-address decisions for this owner so two concurrent
+            // writes cannot both become the active default.
+            $service->queryFor($user, $customer, $channel)
+                ->lockForUpdate()
+                ->get();
+
             $shouldDefault = (bool) ($validated['is_default'] ?? false)
-                || ! Address::query()->where($customerColumn, $customer->getKey())->exists();
+                || ! $service->queryFor($user, $customer, $channel)->exists();
 
             if ($shouldDefault) {
-                Address::query()
-                    ->where($customerColumn, $customer->getKey())
+                $service->queryFor($user, $customer, $channel)
                     ->update(['is_default' => false, 'updated_at' => now()]);
             }
 
             return Address::query()->create([
-                'customer_id' => $legacyCustomerId,
-                $customerColumn => $customer->getKey(),
+                ...$service->ownerAttributes($user, $customer, $channel),
                 ...$this->normalizedAddressValues($validated),
                 'is_default' => $shouldDefault,
             ]);
-        });
+        }, 3);
 
         $auditLogger->record(
             'customer.address_created',
@@ -168,54 +187,110 @@ class CustomerProfileController extends Controller
         int $address,
         AuditLogger $auditLogger,
     ): JsonResponse {
-        [$user, $customer, $channel] = $this->context($request);
-        $customerColumn = $this->customerColumn($channel);
-
-        $model = Address::query()
-            ->whereKey($address)
-            ->where($customerColumn, $customer->getKey())
-            ->firstOrFail();
-
+        [$user, $customer, $channel] = $this->addressContext($request);
+        $service = app(CustomerAddressService::class);
         $validated = $request->validate($this->addressRules(true));
-        $before = $this->addressPayload($model);
 
-        DB::transaction(function () use ($model, $customer, $customerColumn, $validated): void {
+        $existing = $service->findOwned($user, $address, $customer, $channel);
+        $this->assertLocationSemantics($validated, $existing);
+        $before = $this->addressPayload($existing);
+
+        $model = DB::transaction(function () use (
+            $service,
+            $user,
+            $customer,
+            $channel,
+            $address,
+            $validated,
+        ): Address {
+            $service->queryFor($user, $customer, $channel)
+                ->lockForUpdate()
+                ->get();
+
+            $locked = $service->queryFor($user, $customer, $channel)
+                ->whereKey($address)
+                ->firstOrFail();
+
             if (($validated['is_default'] ?? false) === true) {
-                Address::query()
-                    ->where($customerColumn, $customer->getKey())
-                    ->whereKeyNot($model->getKey())
+                $service->queryFor($user, $customer, $channel)
+                    ->whereKeyNot($locked->getKey())
                     ->update(['is_default' => false, 'updated_at' => now()]);
             }
 
             $values = $this->normalizedAddressValues($validated);
-
             if ($values !== []) {
-                $model->fill($values);
+                $locked->fill($values);
             }
 
             if (array_key_exists('is_default', $validated)) {
-                $model->is_default = (bool) $validated['is_default'];
+                $locked->is_default = (bool) $validated['is_default'];
             }
 
-            $model->save();
+            $locked->save();
 
-            if (! Address::query()
-                ->where($customerColumn, $customer->getKey())
+            if (! $service->queryFor($user, $customer, $channel)
                 ->where('is_default', true)
                 ->exists()) {
-                $fallback = Address::query()
-                    ->where($customerColumn, $customer->getKey())
+                $fallback = $service->queryFor($user, $customer, $channel)
                     ->orderBy('id')
                     ->first();
 
                 $fallback?->update(['is_default' => true]);
             }
-        });
 
-        $model->refresh();
+            return $locked->refresh();
+        }, 3);
 
         $auditLogger->record(
             'customer.address_updated',
+            $user,
+            $model,
+            $before,
+            $this->addressPayload($model),
+            $request,
+        );
+
+        return response()->json($this->addressPayload($model));
+    }
+
+    public function setDefaultAddress(
+        Request $request,
+        int $address,
+        AuditLogger $auditLogger,
+    ): JsonResponse {
+        [$user, $customer, $channel] = $this->addressContext($request);
+        $service = app(CustomerAddressService::class);
+
+        $existing = $service->findOwned($user, $address, $customer, $channel);
+        $before = $this->addressPayload($existing);
+
+        $model = DB::transaction(function () use (
+            $service,
+            $user,
+            $customer,
+            $channel,
+            $address,
+        ): Address {
+            $service->queryFor($user, $customer, $channel)
+                ->lockForUpdate()
+                ->get();
+
+            $locked = $service->queryFor($user, $customer, $channel)
+                ->whereKey($address)
+                ->firstOrFail();
+
+            $service->queryFor($user, $customer, $channel)
+                ->whereKeyNot($locked->getKey())
+                ->update(['is_default' => false, 'updated_at' => now()]);
+
+            $locked->is_default = true;
+            $locked->save();
+
+            return $locked->refresh();
+        }, 3);
+
+        $auditLogger->record(
+            'customer.address_default_changed',
             $user,
             $model,
             $before,
@@ -231,29 +306,35 @@ class CustomerProfileController extends Controller
         int $address,
         AuditLogger $auditLogger,
     ): Response {
-        [$user, $customer, $channel] = $this->context($request);
-        $customerColumn = $this->customerColumn($channel);
+        [$user, $customer, $channel] = $this->addressContext($request);
+        $service = app(CustomerAddressService::class);
 
-        $model = Address::query()
-            ->whereKey($address)
-            ->where($customerColumn, $customer->getKey())
-            ->firstOrFail();
-
+        $model = $service->findOwned($user, $address, $customer, $channel);
         $before = $this->addressPayload($model);
         $wasDefault = (bool) $model->is_default;
 
-        DB::transaction(function () use ($model, $customer, $customerColumn, $wasDefault): void {
+        DB::transaction(function () use (
+            $service,
+            $user,
+            $customer,
+            $channel,
+            $model,
+            $wasDefault,
+        ): void {
+            $service->queryFor($user, $customer, $channel)
+                ->lockForUpdate()
+                ->get();
+
             $model->delete();
 
             if ($wasDefault) {
-                $fallback = Address::query()
-                    ->where($customerColumn, $customer->getKey())
+                $fallback = $service->queryFor($user, $customer, $channel)
                     ->orderBy('id')
                     ->first();
 
                 $fallback?->update(['is_default' => true]);
             }
-        });
+        }, 3);
 
         $auditLogger->record(
             'customer.address_deleted',
@@ -356,6 +437,21 @@ class CustomerProfileController extends Controller
         return [$user, $customer, $channel];
     }
 
+    /** @return array{0: User, 1: B2bCustomer|B2cCustomer|null, 2: string|null} */
+    private function addressContext(Request $request): array
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        if (app(CustomerAddressService::class)->platformCustomer($user) !== null) {
+            return [$user, null, null];
+        }
+
+        [$customer, $channel] = app(CustomerDomainResolver::class)->profile($user, $request);
+
+        return [$user, $customer, $channel];
+    }
+
     private function identityPayload(User $user): array
     {
         $roles = $user->roles()
@@ -399,9 +495,8 @@ class CustomerProfileController extends Controller
             ? [(int) $customer->store_id]
             : [];
 
-        $customerColumn = $this->customerColumn($channel);
-        $addresses = Address::query()
-            ->where($customerColumn, $customer->getKey())
+        $addresses = app(CustomerAddressService::class)
+            ->queryFor($user, $customer, $channel)
             ->orderByDesc('is_default')
             ->orderBy('id')
             ->get()
@@ -438,22 +533,95 @@ class CustomerProfileController extends Controller
 
         return [
             'label' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'recipient_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'delivery_phone' => ['sometimes', 'nullable', 'string', 'max:50'],
             'line1' => [...$prefix, 'string', 'max:255'],
             'line2' => ['sometimes', 'nullable', 'string', 'max:255'],
             'city' => [...$prefix, 'string', 'max:120'],
             'area' => ['sometimes', 'nullable', 'string', 'max:120'],
             'country_code' => [...$prefix, 'string', 'size:2'],
-            'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
+            'country' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'governorate' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'block' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'street' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'avenue' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'building' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'floor' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'apartment' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'landmark' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'delivery_notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
+            'location_accuracy_meters' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100000'],
+            'location_source' => ['sometimes', Rule::in(['manual', 'current_location', 'map_pin'])],
             'is_default' => ['sometimes', 'boolean'],
         ];
+    }
+
+    /**
+     * Current-location and map-pin addresses must never claim a geographic
+     * source without a complete coordinate pair. On PATCH, validate the final
+     * state after applying the submitted values to the existing address.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function assertLocationSemantics(array $validated, ?Address $existing = null): void
+    {
+        $source = array_key_exists('location_source', $validated)
+            ? (string) $validated['location_source']
+            : (string) ($existing?->location_source ?: 'manual');
+
+        $latitude = array_key_exists('latitude', $validated)
+            ? $validated['latitude']
+            : $existing?->latitude;
+        $longitude = array_key_exists('longitude', $validated)
+            ? $validated['longitude']
+            : $existing?->longitude;
+
+        if (in_array($source, ['current_location', 'map_pin'], true)
+            && ($latitude === null || $longitude === null)) {
+            throw ValidationException::withMessages([
+                'latitude' => ['Latitude and longitude are required for the selected location source.'],
+                'longitude' => ['Latitude and longitude are required for the selected location source.'],
+            ]);
+        }
+
+        if (array_key_exists('location_accuracy_meters', $validated)
+            && $validated['location_accuracy_meters'] !== null
+            && ($latitude === null || $longitude === null)) {
+            throw ValidationException::withMessages([
+                'location_accuracy_meters' => ['Location accuracy requires a saved coordinate pair.'],
+            ]);
+        }
     }
 
     private function normalizedAddressValues(array $validated): array
     {
         $values = [];
 
-        foreach (['label', 'line1', 'line2', 'city', 'area', 'latitude', 'longitude'] as $field) {
+        foreach ([
+            'label',
+            'recipient_name',
+            'delivery_phone',
+            'line1',
+            'line2',
+            'city',
+            'area',
+            'country',
+            'governorate',
+            'block',
+            'street',
+            'avenue',
+            'building',
+            'floor',
+            'apartment',
+            'landmark',
+            'delivery_notes',
+            'latitude',
+            'longitude',
+            'location_accuracy_meters',
+            'location_source',
+        ] as $field) {
             if (array_key_exists($field, $validated)) {
                 $values[$field] = $validated[$field];
             }
@@ -461,6 +629,14 @@ class CustomerProfileController extends Controller
 
         if (array_key_exists('country_code', $validated)) {
             $values['country_code'] = Str::upper((string) $validated['country_code']);
+        }
+
+        if (
+            array_key_exists('line1', $values)
+            && ! array_key_exists('street', $values)
+            && $values['line1'] !== null
+        ) {
+            $values['street'] = $values['line1'];
         }
 
         return $values;
@@ -471,14 +647,32 @@ class CustomerProfileController extends Controller
         return [
             'id' => (int) $address->getKey(),
             'label' => $address->label,
+            'recipient_name' => $address->recipient_name,
+            'delivery_phone' => $address->delivery_phone,
             'line1' => (string) $address->line1,
             'line2' => $address->line2,
             'city' => (string) $address->city,
             'area' => $address->area,
             'country_code' => (string) $address->country_code,
+            'country' => $address->country,
+            'governorate' => $address->governorate,
+            'block' => $address->block,
+            'street' => $address->street,
+            'avenue' => $address->avenue,
+            'building' => $address->building,
+            'floor' => $address->floor,
+            'apartment' => $address->apartment,
+            'landmark' => $address->landmark,
+            'delivery_notes' => $address->delivery_notes,
             'latitude' => $address->latitude === null ? null : (float) $address->latitude,
             'longitude' => $address->longitude === null ? null : (float) $address->longitude,
+            'location_accuracy_meters' => $address->location_accuracy_meters === null
+                ? null
+                : (float) $address->location_accuracy_meters,
+            'location_source' => (string) ($address->location_source ?: 'manual'),
             'is_default' => (bool) $address->is_default,
+            'created_at' => $address->created_at?->toAtomString(),
+            'updated_at' => $address->updated_at?->toAtomString(),
         ];
     }
 
@@ -501,11 +695,6 @@ class CustomerProfileController extends Controller
             ->map(fn (Product $product): array => $this->favoriteProductPayload($product))
             ->values()
             ->all();
-    }
-
-    private function customerColumn(string $channel): string
-    {
-        return $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
     }
 
     private function favoriteProductPayload(Product $product): array

@@ -17,6 +17,9 @@ class Order extends Model
         'store_id',
         'warehouse_id',
         'address_id',
+        'delivery_address_snapshot',
+        'delivery_latitude',
+        'delivery_longitude',
         'currency',
         'subtotal',
         'discount_total',
@@ -40,6 +43,9 @@ class Order extends Model
         'quoted_at' => 'datetime',
         'commercial_locked_at' => 'datetime',
         'pricing_snapshot' => 'array',
+        'delivery_address_snapshot' => 'array',
+        'delivery_latitude' => 'float',
+        'delivery_longitude' => 'float',
     ];
 
     protected static function booted(): void

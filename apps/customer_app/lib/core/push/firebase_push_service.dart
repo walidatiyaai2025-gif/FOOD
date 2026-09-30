@@ -32,13 +32,18 @@ Future<void> customerFirebaseBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-Future<void> initializeFoodexLocalNotifications() async {
+Future<void> initializeFoodexLocalNotifications({
+  void Function(NotificationResponse)? onTap,
+}) async {
   const settings = InitializationSettings(
     android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     iOS: DarwinInitializationSettings(),
   );
 
-  await _customerLocalNotifications.initialize(settings);
+  await _customerLocalNotifications.initialize(
+    settings,
+    onDidReceiveNotificationResponse: onTap,
+  );
 
   if (Platform.isAndroid) {
     const channel = AndroidNotificationChannel(
@@ -255,6 +260,7 @@ class CustomerFirebasePushService {
   StreamSubscription<RemoteMessage>? _openedSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   String? _accessToken;
+  int? _deviceId;
   String? _pendingRoute;
 
   Stream<String> get routes => _routes.stream;
@@ -287,7 +293,6 @@ class CustomerFirebasePushService {
       FirebaseMessaging.onBackgroundMessage(
         customerFirebaseBackgroundHandler,
       );
-      await initializeFoodexLocalNotifications();
 
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission(
@@ -305,10 +310,22 @@ class CustomerFirebasePushService {
         registry: registry,
         messaging: messaging,
       );
-
-      service._pendingRoute = routeForData(
-        (await messaging.getInitialMessage())?.data,
+      await initializeFoodexLocalNotifications(
+        onTap: (response) {
+          final route = response.payload;
+          if (route != null && route.isNotEmpty) {
+            service._routes.add(route);
+          }
+        },
       );
+
+      final initialMessage = await messaging.getInitialMessage();
+      final launchDetails =
+          await _customerLocalNotifications.getNotificationAppLaunchDetails();
+      service._pendingRoute = routeForData(initialMessage?.data) ??
+          (launchDetails?.didNotificationLaunchApp == true
+              ? launchDetails?.notificationResponse?.payload
+              : null);
 
       service._openedSubscription =
           FirebaseMessaging.onMessageOpenedApp.listen((message) {
@@ -388,6 +405,7 @@ class CustomerFirebasePushService {
   }
 
   Future<void> bindGuest() async {
+    _deviceId = null;
     final messaging = _messaging;
     if (messaging == null) return;
 
@@ -418,7 +436,7 @@ class CustomerFirebasePushService {
 
     final token = await messaging.getToken();
     if (token != null && token.isNotEmpty) {
-      await registry.register(
+      _deviceId = await registry.register(
         accessToken: accessToken,
         firebaseToken: token,
       );
@@ -432,7 +450,7 @@ class CustomerFirebasePushService {
         return;
       }
 
-      await registry.register(
+      _deviceId = await registry.register(
         accessToken: currentToken,
         firebaseToken: newToken,
       );
@@ -440,7 +458,25 @@ class CustomerFirebasePushService {
   }
 
   Future<void> revokeSession() async {
+    final accessToken = _accessToken;
+    final deviceId = _deviceId;
     _accessToken = null;
+    _deviceId = null;
+
+    await _tokenSubscription?.cancel();
+    _tokenSubscription = null;
+
+    if (accessToken != null && accessToken.isNotEmpty && deviceId != null) {
+      try {
+        await registry.revoke(
+          accessToken: accessToken,
+          deviceId: deviceId,
+        );
+      } catch (_) {
+        // Local logout must continue even if device revocation is unavailable.
+      }
+    }
+
     await bindGuest();
   }
 

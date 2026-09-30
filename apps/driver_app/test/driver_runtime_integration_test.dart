@@ -93,6 +93,15 @@ void main() {
                 'order': {
                   'number': 'B2B-55',
                   'currency': 'EGP',
+                  'address': {
+                    'line1': 'Warehouse Street',
+                    'city': 'Cairo',
+                  },
+                  'navigation': {
+                    'available': true,
+                    'latitude': 30.04442,
+                    'longitude': 31.235712,
+                  },
                   'invoice': {
                     'id': 77,
                     'number': 'INV-B2B-55',
@@ -146,6 +155,10 @@ void main() {
     expect(rows.single.availableStatuses, ['accepted']);
     expect(rows.single.invoice?.number, 'INV-B2B-55');
     expect(rows.single.invoice?.grandTotal, 50);
+    expect(rows.single.address, contains('Warehouse Street'));
+    expect(rows.single.hasNavigation, isTrue);
+    expect(rows.single.navigationLatitude, 30.04442);
+    expect(rows.single.navigationLongitude, 31.235712);
     expect(rows.single.invoice?.items.single.sku, 'CASE-1');
     await repo.transition(9, DriverChannel.b2b, 'accepted');
     expect(requests, [
@@ -176,11 +189,12 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('driver-login-submit')));
     await tester.pumpAndSettle();
-    expect(find.text('/driver/b2c/home'), findsOneWidget);
+    expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
+    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
 
     await tester.tap(find.byKey(const Key('driver-open-deliveries')));
     await tester.pumpAndSettle();
     expect(find.text('#41'), findsOneWidget);
-    expect(find.text('/driver/b2b/home'), findsNothing);
+    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 }

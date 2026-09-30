@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/b2b_api.dart';
+import '../../core/api/b2c_account_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/localization/app_translations.dart';
@@ -15,12 +16,14 @@ class B2bJourneyScreen extends StatelessWidget {
     required this.onAuthenticated,
     required this.onPlatformAuthenticated,
     this.api,
+    this.accountApi,
     super.key,
   });
 
   final CustomerRouteDefinition definition;
   final String location;
   final B2bApi? api;
+  final B2cAccountApi? accountApi;
   final CustomerActionApi actionApi;
   final CustomerAuthenticated onAuthenticated;
   final ValueChanged<String> onPlatformAuthenticated;
@@ -31,7 +34,8 @@ class B2bJourneyScreen extends StatelessWidget {
     final hasRemoteState = api != null && _endpoint() != null;
     final keepLocalActions =
         definition.pattern == CustomerRoutePaths.b2bProductDetails ||
-        definition.pattern == CustomerRoutePaths.b2bCart;
+        definition.pattern == CustomerRoutePaths.b2bCart ||
+        definition.pattern == CustomerRoutePaths.b2bProfile;
 
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('b2b.app.title'))),
@@ -201,6 +205,7 @@ class B2bJourneyScreen extends StatelessWidget {
             CheckoutAction(
               api: actionApi,
               channel: CustomerChannel.b2b,
+              accountApi: accountApi,
             ),
           ],
         );
@@ -210,6 +215,11 @@ class B2bJourneyScreen extends StatelessWidget {
           context.tr('b2b.profile.subtitle'),
           [
             _section(context.tr('b2b.profile.company')),
+            _button(
+              context,
+              context.tr('customer.profile.addresses'),
+              CustomerRoutePaths.addresses,
+            ),
             _section(context.tr('b2b.profile.settings')),
           ],
         );

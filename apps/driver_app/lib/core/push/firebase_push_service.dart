@@ -4,16 +4,95 @@ import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/foodex_environment.dart';
 
 const driverBundleId = 'com.fiftysolution.foodex.driver';
+const _driverPushChannelId = 'foodex_driver_high_priority';
+const _driverPushChannelName = 'FOODEX Driver';
+const _driverPushChannelDescription = 'FOODEX driver order and delivery alerts.';
+
+final FlutterLocalNotificationsPlugin _driverLocalNotifications =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> initializeDriverLocalNotifications({
+  void Function(NotificationResponse)? onTap,
+}) async {
+  const settings = InitializationSettings(
+    android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    iOS: DarwinInitializationSettings(),
+  );
+  await _driverLocalNotifications.initialize(
+    settings,
+    onDidReceiveNotificationResponse: onTap,
+  );
+
+  if (Platform.isAndroid) {
+    const channel = AndroidNotificationChannel(
+      _driverPushChannelId,
+      _driverPushChannelName,
+      description: _driverPushChannelDescription,
+      importance: Importance.high,
+    );
+    await _driverLocalNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+  }
+}
+
+Future<void> showDriverLocalNotification(RemoteMessage message) async {
+  final title = message.notification?.title ??
+      message.data['title']?.toString() ??
+      'FOODEX Driver';
+  final body = message.notification?.body ??
+      message.data['body']?.toString() ??
+      '';
+
+  const details = NotificationDetails(
+    android: AndroidNotificationDetails(
+      _driverPushChannelId,
+      _driverPushChannelName,
+      channelDescription: _driverPushChannelDescription,
+      importance: Importance.high,
+      priority: Priority.high,
+      visibility: NotificationVisibility.public,
+    ),
+    iOS: DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    ),
+  );
+
+  await _driverLocalNotifications.show(
+    message.messageId?.hashCode ??
+        DateTime.now().millisecondsSinceEpoch.remainder(2147483647),
+    title,
+    body,
+    details,
+    payload: jsonEncode(message.data),
+  );
+}
 
 class DriverPushAlert {
   const DriverPushAlert({required this.title, required this.body});
   final String title;
   final String body;
+}
+
+class DriverPushOpen {
+  const DriverPushOpen({
+    this.assignmentId,
+    this.orderId,
+    this.accessRevoked = false,
+  });
+
+  final int? assignmentId;
+  final int? orderId;
+  final bool accessRevoked;
 }
 
 class DriverFirebaseConfig {
@@ -76,16 +155,17 @@ class DriverFirebasePushService {
   DriverFirebasePushService._({required this.registry, required FirebaseMessaging? messaging}) : _messaging = messaging;
   final DriverPushDeviceRegistry registry;
   final FirebaseMessaging? _messaging;
-  final StreamController<void> _opens = StreamController<void>.broadcast();
+  final StreamController<DriverPushOpen> _opens =
+      StreamController<DriverPushOpen>.broadcast();
   final StreamController<DriverPushAlert> _alerts = StreamController<DriverPushAlert>.broadcast();
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   String? _accessToken;
   int? _deviceId;
-  bool _hasPendingOpen = false;
+  DriverPushOpen? _pendingOpen;
 
-  Stream<void> get opens => _opens.stream;
+  Stream<DriverPushOpen> get opens => _opens.stream;
   Stream<DriverPushAlert> get alerts => _alerts.stream;
   bool get enabled => _messaging != null;
 
@@ -102,12 +182,36 @@ class DriverFirebasePushService {
       await messaging.requestPermission(alert: true, badge: true, sound: true);
       await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
       final service = DriverFirebasePushService._(registry: registry, messaging: messaging);
-      service._hasPendingOpen = await messaging.getInitialMessage() != null;
-      service._openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen((_) { service._opens.add(null); });
+      await initializeDriverLocalNotifications(
+        onTap: (response) {
+          final open = DriverFirebasePushService.openForPayload(response.payload);
+          if (open != null) service._opens.add(open);
+        },
+      );
+      final initialMessage = await messaging.getInitialMessage();
+      final launchDetails =
+          await _driverLocalNotifications.getNotificationAppLaunchDetails();
+      service._pendingOpen = initialMessage != null
+          ? DriverFirebasePushService.openForData(initialMessage.data)
+          : DriverFirebasePushService.openForPayload(
+              launchDetails?.didNotificationLaunchApp == true
+                  ? launchDetails?.notificationResponse?.payload
+                  : null,
+            );
+      service._openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        service._opens.add(DriverFirebasePushService.openForData(message.data));
+      });
       service._foregroundSubscription = FirebaseMessaging.onMessage.listen((message) {
-        final notification = message.notification;
-        if (notification == null) return;
-        service._alerts.add(DriverPushAlert(title: notification.title ?? 'FOODEX Driver', body: notification.body ?? ''));
+        if (Platform.isAndroid) {
+          showDriverLocalNotification(message);
+        }
+        final title = message.notification?.title ??
+            message.data['title']?.toString() ??
+            'FOODEX Driver';
+        final body = message.notification?.body ??
+            message.data['body']?.toString() ??
+            '';
+        service._alerts.add(DriverPushAlert(title: title, body: body));
       });
       return service;
     } catch (_) {
@@ -115,7 +219,40 @@ class DriverFirebasePushService {
     }
   }
 
-  bool takePendingOpen() { final value = _hasPendingOpen; _hasPendingOpen = false; return value; }
+  static DriverPushOpen? openForPayload(String? payload) {
+    if (payload == null || payload.trim().isEmpty) return null;
+
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is! Map) return null;
+      return openForData(Map<String, dynamic>.from(decoded));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static DriverPushOpen openForData(Map<String, dynamic>? data) {
+    if (data == null || data.isEmpty) return const DriverPushOpen();
+
+    final assignmentId =
+        int.tryParse((data['assignment_id'] ?? '').toString());
+    final orderId = int.tryParse((data['order_id'] ?? '').toString());
+    final revoked = const {'1', 'true', 'yes'}
+        .contains((data['access_revoked'] ?? '').toString().toLowerCase());
+
+    return DriverPushOpen(
+      assignmentId:
+          assignmentId != null && assignmentId > 0 ? assignmentId : null,
+      orderId: orderId != null && orderId > 0 ? orderId : null,
+      accessRevoked: revoked,
+    );
+  }
+
+  DriverPushOpen? takePendingOpen() {
+    final value = _pendingOpen;
+    _pendingOpen = null;
+    return value;
+  }
 
   Future<void> bindSession(String accessToken) async {
     _accessToken = accessToken;

@@ -11,6 +11,63 @@ void main() {
     expect(config.isConfigured, isFalse);
   });
 
+  test('driver local notification payload restores safe assignment routing', () {
+    final open = DriverFirebasePushService.openForPayload(jsonEncode({
+      'assignment_id': '42',
+      'order_id': '99',
+      'access_revoked': '0',
+    }));
+
+    expect(open, isNotNull);
+    expect(open!.assignmentId, 42);
+    expect(open.orderId, 99);
+    expect(open.accessRevoked, isFalse);
+    expect(DriverFirebasePushService.openForPayload('{invalid'), isNull);
+  });
+
+  test('driver push data preserves assignment routing and revocation state', () {
+    final open = DriverFirebasePushService.openForData({
+      'assignment_id': '42',
+      'order_id': '99',
+      'access_revoked': '0',
+    });
+
+    expect(open.assignmentId, 42);
+    expect(open.orderId, 99);
+    expect(open.accessRevoked, isFalse);
+
+    final revoked = DriverFirebasePushService.openForData({
+      'assignment_id': '42',
+      'access_revoked': '1',
+    });
+    expect(revoked.assignmentId, 42);
+    expect(revoked.accessRevoked, isTrue);
+  });
+
+  test('device registry revokes authenticated driver push device', () async {
+    late http.Request captured;
+    final client = MockClient((request) async {
+      captured = request;
+      return http.Response('', 204);
+    });
+    final registry = DriverPushDeviceRegistry(
+      baseUrl: 'https://foodex.50sols.com',
+      client: client,
+    );
+
+    await registry.revoke(
+      accessToken: 'driver-token',
+      deviceId: 77,
+    );
+
+    expect(
+      captured.url.toString(),
+      'https://foodex.50sols.com/api/v1/push/devices/77',
+    );
+    expect(captured.method, 'DELETE');
+    expect(captured.headers['Authorization'], 'Bearer driver-token');
+  });
+
   test('device registry uses the authenticated FOODEX driver push contract', () async {
     late http.Request captured;
     final client = MockClient((request) async {

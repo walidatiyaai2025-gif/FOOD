@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Address;
 use App\Models\Customer;
 use App\Models\Driver;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\OrderDeliveryAddressSnapshotService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -33,6 +35,16 @@ class DriverAssignmentLifecycleTest extends TestCase
         $created = $this->postJson('/api/v1/admin/deliveries/assign', ['driver_id' => $driver->id, 'order_id' => $order->id])->assertCreated()->assertJsonPath('data.assignment_type', 'b2c');
 
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.created']);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $driverUser->id,
+            'app' => 'driver',
+            'type' => 'delivery.assigned',
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => (int) DB::table('customers')->where('id', $order->customer_id)->value('user_id'),
+            'app' => 'customer',
+            'type' => 'delivery.assigned',
+        ]);
         Sanctum::actingAs($driverUser);
         $id = $created->json('data.id');
         $this->getJson('/api/v1/driver/assignments')
@@ -66,6 +78,28 @@ class DriverAssignmentLifecycleTest extends TestCase
             }
         }
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.status_changed']);
+        $customerUserId = (int) DB::table('customers')
+            ->where('id', $order->customer_id)
+            ->value('user_id');
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $customerUserId,
+            'app' => 'customer',
+            'type' => 'order.status_changed',
+        ]);
+        $deliveredNotification = DB::table('notifications')
+            ->where('user_id', $customerUserId)
+            ->where('app', 'customer')
+            ->where('type', 'order.status_changed')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($deliveredNotification);
+        $deliveredData = json_decode(
+            (string) $deliveredNotification->data,
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+        $this->assertSame('delivered', $deliveredData['status']);
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'delivered']);
         $this->assertDatabaseHas('delivery_proofs', [
             'driver_assignment_id' => $id,
@@ -189,6 +223,77 @@ class DriverAssignmentLifecycleTest extends TestCase
         $response->assertJsonPath('data.order.driver_history.0.file_path', $proof->file_path);
     }
 
+    public function test_driver_payload_uses_immutable_order_delivery_snapshot(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+
+        $address = Address::query()->create([
+            'customer_id' => $order->customer_id,
+            'label' => 'Home',
+            'recipient_name' => 'Delivery Customer',
+            'delivery_phone' => '+201000000999',
+            'line1' => 'Original delivery street',
+            'city' => 'Cairo',
+            'country_code' => 'EG',
+            'landmark' => 'Original landmark',
+            'delivery_notes' => 'Ring once',
+            'latitude' => 30.0444200,
+            'longitude' => 31.2357120,
+            'location_source' => 'map_pin',
+            'is_default' => true,
+        ]);
+
+        $order->fill([
+            'address_id' => $address->id,
+            ...app(OrderDeliveryAddressSnapshotService::class)->attributes($address),
+            'status' => 'ready',
+        ])->save();
+
+        $address->update([
+            'line1' => 'Mutated customer address',
+            'landmark' => 'Mutated landmark',
+            'latitude' => 29.5000000,
+            'longitude' => 30.5000000,
+        ]);
+
+        $admin = $this->roleUser('B2C_STORE_ADMIN', 'snapshot-admin@example.test');
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+            'role_id' => $roleId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $driverUser = $this->roleUser('B2C_DRIVER', 'snapshot-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+        $assignmentId = $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($driverUser);
+        $this->getJson("/api/v1/driver/assignments/{$assignmentId}")
+            ->assertOk()
+            ->assertJsonPath('data.order.address.line1', 'Original delivery street')
+            ->assertJsonPath('data.order.address.landmark', 'Original landmark')
+            ->assertJsonPath('data.order.address.delivery_notes', 'Ring once')
+            ->assertJsonPath('data.order.address.has_coordinates', true)
+            ->assertJsonPath('data.order.navigation.available', true)
+            ->assertJsonPath('data.order.navigation.latitude', 30.04442)
+            ->assertJsonPath('data.order.navigation.longitude', 31.235712);
+    }
+
     public function test_admin_can_reassign_and_unassign_order_while_preserving_history(): void
     {
         $this->seed(CoreReferenceSeeder::class);
@@ -251,6 +356,18 @@ class DriverAssignmentLifecycleTest extends TestCase
         $this->getJson('/api/v1/driver/assignments?scope=active')
             ->assertOk()
             ->assertJsonCount(0, 'data');
+
+        $this->getJson("/api/v1/driver/assignments/{$firstId}")
+            ->assertNotFound();
+
+        $history = $this->getJson('/api/v1/driver/assignments?scope=all')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $firstId)
+            ->assertJsonPath('data.0.status', 'reassigned');
+        $history->assertJsonMissingPath('data.0.order.address');
+        $history->assertJsonMissingPath('data.0.order.customer');
+        $history->assertJsonMissingPath('data.0.order.navigation');
 
         Sanctum::actingAs($driverTwoUser);
         $this->getJson('/api/v1/driver/assignments?scope=active')

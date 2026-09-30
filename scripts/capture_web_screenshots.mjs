@@ -109,6 +109,51 @@ async function captureLocale(browser, locale) {
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'products', '/admin/b2c/products');
 
+  await page.goto(
+    `${baseUrl}/admin/customer-360?q=evidence.address%40foodex.test`,
+    { waitUntil: 'networkidle' },
+  );
+  const customer360Link = page.locator(
+    'a.foodex-action-primary[href*="/admin/customer-360/"]',
+  ).first();
+  if (await customer360Link.count() !== 1) {
+    throw new Error('Deterministic Customer 360 evidence fixture was not found.');
+  }
+  await Promise.all([
+    page.waitForLoadState('networkidle'),
+    customer360Link.click(),
+  ]);
+  await page.locator('#addresses').scrollIntoViewIfNeeded();
+  await snap(
+    page,
+    `02_Web/B2C_Admin/12_customer_360_addresses__populated__${locale}.png`,
+  );
+
+  await page.goto(
+    `${baseUrl}/admin/operations/orders?order_number=FOODEX-EVID-LOC-1`,
+    { waitUntil: 'networkidle' },
+  );
+  const orderLocationLink = page.locator(
+    'td a[href*="order="]',
+    { hasText: 'FOODEX-EVID-LOC-1' },
+  ).first();
+  if (await orderLocationLink.count() !== 1) {
+    throw new Error('Deterministic delivery-location order evidence was not found.');
+  }
+  await Promise.all([
+    page.waitForLoadState('networkidle'),
+    orderLocationLink.click(),
+  ]);
+  const mapAction = page.locator('a[href*="google.com/maps/search/"]').first();
+  if (await mapAction.count() !== 1) {
+    throw new Error('Order Operations map action was not rendered.');
+  }
+  await mapAction.scrollIntoViewIfNeeded();
+  await snap(
+    page,
+    `02_Web/B2C_Admin/13_order_delivery_location__populated__${locale}.png`,
+  );
+
   // Capture B2B with an independent authenticated session.
   await context.clearCookies();
   await login(page, 'b2b', locale, email);
