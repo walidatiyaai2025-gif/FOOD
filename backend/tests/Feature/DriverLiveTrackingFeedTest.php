@@ -109,6 +109,63 @@ class DriverLiveTrackingFeedTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_tracking_feed_preserves_channel_store_authorization_pairs(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $b2bTypeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $b2bStore = DB::table('stores')->insertGetId([
+            'store_type_id' => $b2bTypeId,
+            'code' => 'TRACK-PAIR-W',
+            'name' => 'Tracking Pair Wholesale',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $b2cStore = DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'TRACK-PAIR-R',
+            'name' => 'Tracking Pair Retail',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = $this->roleUser('SUPER_ADMIN', 'tracking-super-admin@example.test');
+        $wholesaleDriver = $this->driver(
+            'B2B_DRIVER',
+            'tracking-pair-wholesale@example.test',
+            'b2b',
+            $b2bStore,
+        );
+        $retailDriver = $this->driver(
+            'B2C_DRIVER',
+            'tracking-pair-retail@example.test',
+            'b2c',
+            $b2cStore,
+        );
+        $mismatchedDriver = $this->driver(
+            'B2C_DRIVER',
+            'tracking-pair-mismatch@example.test',
+            'b2c',
+            $b2bStore,
+        );
+
+        $this->location($wholesaleDriver, $b2bStore, 'b2b', 29.3800, 47.9800);
+        $this->location($retailDriver, $b2cStore, 'b2c', 29.3600, 47.9600);
+        $this->location($mismatchedDriver, $b2bStore, 'b2c', 29.3400, 47.9400);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/v1/admin/driver-live-tracking/feed')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['driver_id' => $wholesaleDriver->id])
+            ->assertJsonFragment(['driver_id' => $retailDriver->id])
+            ->assertJsonMissing(['driver_id' => $mismatchedDriver->id]);
+    }
+
     private function roleUser(string $role, string $email): User
     {
         $user = User::query()->create([
