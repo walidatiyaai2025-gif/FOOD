@@ -292,6 +292,92 @@ void main() {
     expect(refetches, 0);
   });
 
+  test('Stale revision signal is ignored without authoritative refetch',
+      () async {
+    var refetches = 0;
+    final context = CustomerPreviewContext.guest(
+      channel: CustomerChannel.b2c,
+      storeId: 7,
+    );
+    final coordinator = CustomerPreviewInvalidationCoordinator(
+      feed: CustomerPreviewInvalidationFeed(
+        apiBaseUrl: apiBase,
+        dashboardBaseUrl: dashboardBase,
+        context: context,
+        client: MockClient(
+          (_) async => _sseResponse(
+            _eventBlock(
+              id: 24,
+              channel: 'b2c',
+              storeId: 7,
+              mode: 'draft',
+              revisionId: 'current-revision',
+              checksum: _checksum('a'),
+            ),
+          ),
+        ),
+      ),
+      context: context,
+      mode: 'draft',
+      currentConfiguration: _configuration(
+        channel: CustomerChannel.b2c,
+        storeId: 7,
+        mode: 'draft',
+        revisionId: 'current-revision',
+        checksum: _checksum('a'),
+      ),
+      authoritativeRefetch: () async {
+        refetches++;
+        return _configuration(
+          channel: CustomerChannel.b2c,
+          storeId: 7,
+          mode: 'draft',
+          revisionId: 'unexpected',
+          checksum: _checksum('b'),
+        );
+      },
+    );
+
+    final outcome = await coordinator.pollOnce();
+
+    expect(outcome.changed, isFalse);
+    expect(outcome.cursor, 24);
+    expect(refetches, 0);
+  });
+
+  test('Network loss reports disconnected retryable state', () async {
+    final context = CustomerPreviewContext.guest(
+      channel: CustomerChannel.b2c,
+      storeId: 7,
+    );
+    final feed = CustomerPreviewInvalidationFeed(
+      apiBaseUrl: apiBase,
+      dashboardBaseUrl: dashboardBase,
+      context: context,
+      client: MockClient(
+        (_) async => throw http.ClientException('offline'),
+      ),
+    );
+
+    await expectLater(
+      feed.poll(),
+      throwsA(
+        isA<CustomerPreviewInvalidationException>()
+            .having(
+              (error) => error.code,
+              'code',
+              'preview_invalidation_network_error',
+            )
+            .having(
+              (error) => error.runtimeState,
+              'state',
+              'disconnected',
+            )
+            .having((error) => error.retryable, 'retryable', isTrue),
+      ),
+    );
+  });
+
   test('Reconnect carries monotonic cursor and replay is duplicate safe',
       () async {
     final context = CustomerPreviewContext.guest(
