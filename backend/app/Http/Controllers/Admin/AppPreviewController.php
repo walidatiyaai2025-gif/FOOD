@@ -3,12 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppPreviewSession;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\AppPreviewSessionService;
+use App\Services\AppPreviewTargetService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\Response;
 
 final class AppPreviewController extends Controller
 {
@@ -55,6 +61,79 @@ final class AppPreviewController extends Controller
             'deviceProfiles' => (array) config('app_preview.device_profiles', []),
             'platformVersion' => trim((string) @file_get_contents(base_path('../VERSION'))),
         ]);
+    }
+
+
+    public function targets(Request $request, AppPreviewTargetService $targets): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $data = $request->validate([
+            'target_type' => ['required', Rule::in(['customer', 'driver'])],
+            'channel' => ['required', Rule::in(['b2b', 'b2c'])],
+            'store_id' => ['nullable', 'integer', 'min:1'],
+            'support_access' => ['nullable', 'boolean'],
+            'q' => ['nullable', 'string', 'max:80'],
+        ]);
+
+        return response()->json([
+            'data' => $targets->discover(
+                $user,
+                (string) $data['target_type'],
+                (string) $data['channel'],
+                isset($data['store_id']) ? (int) $data['store_id'] : null,
+                (bool) ($data['support_access'] ?? false),
+                $request,
+                isset($data['q']) ? (string) $data['q'] : null,
+            ),
+        ]);
+    }
+
+    public function storeSession(Request $request, AppPreviewSessionService $sessions): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $data = $request->validate([
+            'target_user_id' => ['required', 'integer', 'exists:users,id'],
+            'target_type' => ['required', Rule::in(['customer', 'driver'])],
+            'channel' => ['required', Rule::in(['b2b', 'b2c'])],
+            'store_id' => ['nullable', 'integer', 'min:1'],
+            'support_access' => ['nullable', 'boolean'],
+            'ttl_minutes' => ['nullable', 'integer', 'min:5', 'max:30'],
+        ]);
+
+        $created = $sessions->create($user, $data, $request);
+
+        return response()->json([
+            'data' => $sessions->context($created['session']),
+            'preview_token' => $created['token'],
+            'token_type' => 'Preview',
+        ], 201);
+    }
+
+    public function destroySession(
+        Request $request,
+        string $sessionId,
+        AppPreviewSessionService $sessions,
+    ): Response {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $session = AppPreviewSession::query()
+            ->where('public_id', $sessionId)
+            ->firstOrFail();
+        $reason = $request->input('reason');
+
+        $sessions->revoke(
+            $user,
+            $session,
+            $request,
+            is_string($reason) ? $reason : null,
+        );
+
+        return response()->noContent();
     }
 
     /**
