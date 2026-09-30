@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/core/preview/driver_preview_bootstrap.dart';
@@ -37,7 +38,21 @@ Map<String, dynamic> _message({
         'credential': credential,
         'configuration': configuration,
         'locale': locale,
-        'device': {'profile': 'phone_standard', 'width': 390},
+        'device': {
+          'profile': 'iphone_common',
+          'platform': 'ios',
+          'width': 390,
+          'height': 844,
+          'safe_area': {
+            'top': 47,
+            'right': 0,
+            'bottom': 34,
+            'left': 0,
+          },
+          'text_scale': 1.1,
+          'orientation': 'portrait',
+          'keyboard_inset_bottom': 0,
+        },
         'safe_mode': 'read_only',
       },
     };
@@ -57,6 +72,15 @@ void main() {
     expect(bootstrap.context.driverId, 23);
     expect(bootstrap.context.runtimeIdentity.token, isEmpty);
     expect(bootstrap.credential, 'preview-secret');
+    expect(bootstrap.deviceProfile, 'iphone_common');
+    expect(bootstrap.deviceWidth, 390);
+    expect(bootstrap.deviceHeight, 844);
+    expect(bootstrap.viewport.platform, 'ios');
+    final media = bootstrap.viewport.apply(const MediaQueryData());
+    expect(media.size, const Size(390, 844));
+    expect(media.padding.top, 47);
+    expect(media.padding.bottom, 34);
+    expect(media.textScaler.scale(10), 11);
     expect(bootstrap.safeStatusMetadata['auth_mode'], 'preview-driver');
     expect(
       bootstrap.safeStatusMetadata.values,
