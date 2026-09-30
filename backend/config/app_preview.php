@@ -15,10 +15,12 @@ return [
         'customer' => [
             'url' => env('FOODEX_CUSTOMER_PREVIEW_RUNTIME_URL'),
             'contract_version' => env('FOODEX_CUSTOMER_PREVIEW_CONTRACT_VERSION'),
+            'allowed_origin' => env('FOODEX_CUSTOMER_PREVIEW_ALLOWED_ORIGIN'),
         ],
         'driver' => [
             'url' => env('FOODEX_DRIVER_PREVIEW_RUNTIME_URL'),
             'contract_version' => env('FOODEX_DRIVER_PREVIEW_CONTRACT_VERSION'),
+            'allowed_origin' => env('FOODEX_DRIVER_PREVIEW_ALLOWED_ORIGIN'),
         ],
     ],
 

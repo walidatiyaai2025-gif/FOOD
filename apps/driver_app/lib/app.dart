@@ -9,6 +9,7 @@ import 'core/config/foodex_environment.dart';
 import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/localization/driver_translations.dart';
 import 'core/location/driver_location_gate_service.dart';
+import 'core/location/driver_location_tracking_service.dart';
 import 'core/preview/driver_preview_context.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
@@ -24,6 +25,10 @@ typedef DriverAssignmentRepositoryFactory = DriverAssignmentRepository Function(
 );
 typedef DriverNotificationRepositoryFactory = DriverNotificationRepository Function(
   DriverSession session,
+);
+typedef DriverLocationTrackingFactory = DriverLocationTrackingController Function(
+  DriverSession session,
+  void Function() onSessionInvalid,
 );
 
 class FoodexDriverApp extends StatefulWidget {
@@ -42,6 +47,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.pushService,
     this.previewContext,
     this.locationGateService,
+    this.locationTrackingFactory,
   });
 
   factory FoodexDriverApp.preview({
@@ -84,6 +90,7 @@ class FoodexDriverApp extends StatefulWidget {
   final DriverFirebasePushService? pushService;
   final DriverPreviewContext? previewContext;
   final DriverLocationGateService? locationGateService;
+  final DriverLocationTrackingFactory? locationTrackingFactory;
 
   @override
   State<FoodexDriverApp> createState() => _FoodexDriverAppState();
@@ -98,6 +105,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
   bool _inspectorOpen = false;
   String? _routeBeforeInspector;
+  DriverLocationTrackingController? _locationTracking;
+  bool _locationGateReady = false;
 
   String get _baseUrl =>
       widget.apiBaseUrl ??
@@ -113,6 +122,10 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     );
     _loadRemoteTranslations();
     _configurePush();
+    final session = _session;
+    if (session != null) {
+      _configureLocationTracking(session);
+    }
   }
 
   @override
@@ -124,8 +137,10 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
       _loadRemoteTranslations();
     }
     if (oldWidget.initialSession != widget.initialSession && widget.initialSession != null) {
+      _locationGateReady = false;
       _session = widget.initialSession;
       _bindPushSession();
+      _configureLocationTracking(widget.initialSession!);
     }
     if (oldWidget.pushService != widget.pushService) {
       unawaited(_pushOpenSubscription?.cancel());
@@ -158,6 +173,47 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
       baseUrl: _baseUrl,
       token: session.token,
     );
+  }
+
+  void _configureLocationTracking(DriverSession session) {
+    _disposeLocationTracking();
+
+    if (widget.previewContext != null || widget.locationGateService == null) {
+      return;
+    }
+
+    final factory = widget.locationTrackingFactory;
+    if (factory == null && _baseUrl.isEmpty) {
+      return;
+    }
+
+    final tracking = factory?.call(session, _sessionExpired) ??
+        DriverLocationTrackingService(
+          locationSource: const GeolocatorDriverLocationSource(),
+          heartbeatClient: HttpDriverLocationHeartbeatClient(
+            baseUrl: _baseUrl,
+            token: session.token,
+          ),
+          onSessionInvalid: _sessionExpired,
+        );
+
+    _locationTracking = tracking;
+    tracking.start();
+    tracking.setGateReady(_locationGateReady);
+  }
+
+  void _onLocationGateStatus(DriverLocationGateStatus status) {
+    final ready = status == DriverLocationGateStatus.ready;
+    _locationGateReady = ready;
+    _locationTracking?.setGateReady(ready);
+  }
+
+  void _disposeLocationTracking() {
+    final tracking = _locationTracking;
+    _locationTracking = null;
+    if (tracking == null) return;
+    tracking.stop(clearQueue: true);
+    tracking.dispose();
   }
 
   Future<void> _loadRemoteTranslations() async {
@@ -225,11 +281,15 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
           ? DriverRoutes.b2cHome
           : DriverRoutes.b2bHome,
     );
+    _locationGateReady = false;
     if (mounted) setState(() => _session = session);
     _bindPushSession();
+    _configureLocationTracking(session);
   }
 
   void _sessionExpired() {
+    _disposeLocationTracking();
+    _locationGateReady = false;
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
     DriverRuntimeInspector.instance.recordNavigation('driver.login');
@@ -251,6 +311,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     }
 
     final session = _session;
+    _disposeLocationTracking();
+    _locationGateReady = false;
     final service = widget.pushService;
     if (service != null) await service.revokeSession();
     DriverRuntimeInspector.instance.recordNavigation('driver.login');
@@ -267,6 +329,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
 
   @override
   void dispose() {
+    _disposeLocationTracking();
     unawaited(_pushOpenSubscription?.cancel());
     unawaited(_pushAlertSubscription?.cancel());
     super.dispose();
@@ -441,6 +504,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
                       : DriverLocationGate(
                           service: widget.locationGateService!,
                           onLogout: _logout,
+                          onStatusChanged: _onLocationGateStatus,
                           child: Navigator(
                             key: _driverNavigatorKey,
                             initialRoute: widget.initialRoute,
