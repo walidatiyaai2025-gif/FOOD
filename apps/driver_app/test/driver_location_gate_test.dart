@@ -30,6 +30,22 @@ class _FakeLocationGateService implements DriverLocationGateService {
   }
 }
 
+Widget _gate({
+  required _FakeLocationGateService service,
+  required Widget child,
+  Duration recheckInterval = const Duration(days: 1),
+  Future<void> Function()? onLogout,
+}) {
+  return MaterialApp(
+    home: DriverLocationGate(
+      service: service,
+      recheckInterval: recheckInterval,
+      onLogout: onLogout ?? () async {},
+      child: child,
+    ),
+  );
+}
+
 void main() {
   testWidgets('GPS off blocks operations and retry resumes without login', (tester) async {
     final service = _FakeLocationGateService(
@@ -37,13 +53,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: DriverLocationGate(
-          service: service,
-          recheckInterval: const Duration(days: 1),
-          onLogout: () async {},
-          child: const Text('OPERATIONS', key: Key('operations')),
-        ),
+      _gate(
+        service: service,
+        child: const Text('OPERATIONS', key: Key('operations')),
       ),
     );
     await tester.pumpAndSettle();
@@ -51,9 +63,15 @@ void main() {
     expect(find.byKey(const Key('driver-location-gate')), findsOneWidget);
     expect(find.byKey(const Key('operations')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('driver-location-settings')));
+    await tester.tap(
+      find.byKey(const Key('driver-location-location-settings')),
+    );
     await tester.pump();
     expect(service.locationSettings, 1);
+
+    await tester.tap(find.byKey(const Key('driver-location-app-settings')));
+    await tester.pump();
+    expect(service.appSettings, 1);
 
     service.status = DriverLocationGateStatus.ready;
     await tester.tap(find.byKey(const Key('driver-location-retry')));
@@ -62,27 +80,103 @@ void main() {
     expect(find.byKey(const Key('operations')), findsOneWidget);
   });
 
-  testWidgets('denied forever keeps logout and app settings available', (tester) async {
+  testWidgets('permission denied and reduced accuracy remain blocking', (tester) async {
+    final service = _FakeLocationGateService(
+      DriverLocationGateStatus.permissionDenied,
+    );
+
+    await tester.pumpWidget(
+      _gate(
+        service: service,
+        child: const Text('OPERATIONS', key: Key('operations')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-location-gate')), findsOneWidget);
+    expect(find.byKey(const Key('operations')), findsNothing);
+    expect(find.byKey(const Key('driver-location-app-settings')), findsOneWidget);
+    expect(
+      find.byKey(const Key('driver-location-location-settings')),
+      findsOneWidget,
+    );
+
+    service.status = DriverLocationGateStatus.reducedAccuracy;
+    await tester.tap(find.byKey(const Key('driver-location-retry')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-location-gate')), findsOneWidget);
+    expect(find.byKey(const Key('operations')), findsNothing);
+  });
+
+  testWidgets('periodic recheck blocks operations after permission is revoked', (tester) async {
+    final service = _FakeLocationGateService(DriverLocationGateStatus.ready);
+
+    await tester.pumpWidget(
+      _gate(
+        service: service,
+        recheckInterval: const Duration(seconds: 1),
+        child: const Text('OPERATIONS', key: Key('operations')),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('operations')), findsOneWidget);
+
+    service.status = DriverLocationGateStatus.permissionDenied;
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+
+    expect(find.byKey(const Key('driver-location-gate')), findsOneWidget);
+    expect(find.byKey(const Key('operations')), findsNothing);
+  });
+
+  testWidgets('app resume rechecks location state', (tester) async {
+    final service = _FakeLocationGateService(DriverLocationGateStatus.ready);
+
+    await tester.pumpWidget(
+      _gate(
+        service: service,
+        child: const Text('OPERATIONS', key: Key('operations')),
+      ),
+    );
+    await tester.pump();
+    final checksBeforeResume = service.checks;
+
+    service.status = DriverLocationGateStatus.serviceDisabled;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+
+    expect(service.checks, greaterThan(checksBeforeResume));
+    expect(find.byKey(const Key('driver-location-gate')), findsOneWidget);
+    expect(find.byKey(const Key('operations')), findsNothing);
+  });
+
+  testWidgets('denied forever keeps logout and both settings actions available', (tester) async {
     final service = _FakeLocationGateService(
       DriverLocationGateStatus.permissionDeniedForever,
     );
     var loggedOut = false;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: DriverLocationGate(
-          service: service,
-          recheckInterval: const Duration(days: 1),
-          onLogout: () async => loggedOut = true,
-          child: const Text('OPERATIONS'),
-        ),
+      _gate(
+        service: service,
+        onLogout: () async => loggedOut = true,
+        child: const Text('OPERATIONS'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('driver-location-settings')));
+    await tester.tap(find.byKey(const Key('driver-location-app-settings')));
     await tester.pump();
     expect(service.appSettings, 1);
+
+    await tester.tap(
+      find.byKey(const Key('driver-location-location-settings')),
+    );
+    await tester.pump();
+    expect(service.locationSettings, 1);
 
     await tester.tap(find.byKey(const Key('driver-location-logout')));
     await tester.pump();
