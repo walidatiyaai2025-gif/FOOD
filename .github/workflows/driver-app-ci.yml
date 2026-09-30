@@ -65,8 +65,7 @@ jobs:
           fi
           "$aapt_bin" dump xmltree "$apk" AndroidManifest.xml > build/release-manifest-tree.txt
           grep -F "com.baseflow.geolocator.GeolocatorLocationService" build/release-manifest-tree.txt
-          grep -F "android:foregroundServiceType" build/release-manifest-tree.txt
-          grep -F "0x00000008" build/release-manifest-tree.txt
+          grep -F "android:foregroundServiceType" build/release-manifest-tree.txt | grep -F "0x8"
           "$aapt_bin" dump badging "$apk" > build/release-badging.txt
           grep -Fx "application-label:'FOODEX Driver'" build/release-badging.txt
           grep -F "package: name='com.fiftysolution.foodex.driver'" build/release-badging.txt
