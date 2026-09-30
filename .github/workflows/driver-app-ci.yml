@@ -55,6 +55,12 @@ jobs:
           apk=build/app/outputs/flutter-apk/app-release.apk
           "$aapt_bin" dump permissions "$apk" > build/release-permissions.txt
           grep -Fx "uses-permission: name='android.permission.INTERNET'" build/release-permissions.txt
+          grep -Fx "uses-permission: name='android.permission.ACCESS_COARSE_LOCATION'" build/release-permissions.txt
+          grep -Fx "uses-permission: name='android.permission.ACCESS_FINE_LOCATION'" build/release-permissions.txt
+          if grep -Fq "android.permission.ACCESS_BACKGROUND_LOCATION" build/release-permissions.txt; then
+            echo "Driver foreground-only gate must not request background location in this slice." >&2
+            exit 1
+          fi
           "$aapt_bin" dump badging "$apk" > build/release-badging.txt
           grep -Fx "application-label:'FOODEX Driver'" build/release-badging.txt
           grep -F "package: name='com.fiftysolution.foodex.driver'" build/release-badging.txt
