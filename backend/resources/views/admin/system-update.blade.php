@@ -74,10 +74,9 @@
             <label>Release notes
                 <textarea name="release_notes" rows="4"></textarea>
             </label>
-            <label class="checkbox">
-                <input type="checkbox" name="contains_migrations" value="1">
-                Package contains database migrations
-            </label>
+            <div class="notice">
+                Database migrations are detected automatically from the uploaded update package. No manual migration checkbox is required.
+            </div>
             <button class="foodex-primary" type="submit">Validate and install update</button>
         </form>
     </section>
