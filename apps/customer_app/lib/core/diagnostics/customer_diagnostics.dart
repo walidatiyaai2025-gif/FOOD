@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -52,7 +51,7 @@ class CustomerDiagnostics extends ChangeNotifier {
   String _appVersion = 'unknown';
   String _buildNumber = 'unknown';
   String _deviceModel = 'unknown';
-  String _osVersion = Platform.operatingSystemVersion;
+  final String _osVersion = Platform.operatingSystemVersion;
   String _apiBaseUrl = '';
   String _environment = 'unknown';
   String _route = '/';
