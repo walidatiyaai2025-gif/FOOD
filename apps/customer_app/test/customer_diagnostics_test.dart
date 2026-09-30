@@ -82,7 +82,15 @@ void main() {
         child: MaterialApp(home: CustomerDiagnosticsScreen()),
       ),
     );
-    expect(find.byKey(const ValueKey('customer-diagnostics-export')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('customer-diagnostics-export')),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(
+      find.byKey(const ValueKey('customer-diagnostics-export')),
+      findsOneWidget,
+    );
     expect(find.text('Export JSON'), findsOneWidget);
 
     await tester.pumpWidget(
@@ -91,6 +99,11 @@ void main() {
         overrides: {},
         child: MaterialApp(home: CustomerDiagnosticsScreen()),
       ),
+    );
+    await tester.scrollUntilVisible(
+      find.text('تصدير JSON'),
+      220,
+      scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('تصدير JSON'), findsOneWidget);
   });
