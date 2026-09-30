@@ -75,6 +75,7 @@ Route::prefix('v1')->group(function (): void {
     Route::prefix('app-preview/customer')
         ->middleware('preview.customer:b2c')
         ->group(function (): void {
+            Route::get('/cart', [GuestCartController::class, 'show']);
             Route::get('/profile', [CustomerProfileController::class, 'show']);
             Route::get('/profile/addresses', [CustomerProfileController::class, 'addresses']);
             Route::get('/profile/favorites', [CustomerProfileController::class, 'favorites']);
@@ -89,6 +90,7 @@ Route::prefix('v1')->group(function (): void {
     Route::prefix('b2b/app-preview/customer')
         ->middleware('preview.customer:b2b')
         ->group(function (): void {
+            Route::get('/cart', [GuestCartController::class, 'show']);
             Route::get('/profile', [CustomerProfileController::class, 'show']);
             Route::get('/profile/addresses', [CustomerProfileController::class, 'addresses']);
             Route::get('/orders', [OrderController::class, 'index']);
