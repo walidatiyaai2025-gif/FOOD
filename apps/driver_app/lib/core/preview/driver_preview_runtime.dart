@@ -5,7 +5,6 @@ import '../../app.dart';
 import '../../navigation.dart';
 import 'driver_preview_bootstrap.dart';
 import 'driver_preview_transport.dart';
-import 'driver_preview_viewport.dart';
 
 class DriverPreviewRuntime {
   DriverPreviewRuntime._({
@@ -42,10 +41,11 @@ class DriverPreviewRuntime {
       assignmentRepository: bundle.assignments,
       initialRoute: initialRoute,
       locale: Locale(bootstrap.locale),
+      previewBootstrap: bootstrap,
     );
 
     return DriverPreviewRuntime._(
-      app: DriverPreviewViewport(bootstrap: bootstrap, child: app),
+      app: app,
       bundle: bundle,
     );
   }
