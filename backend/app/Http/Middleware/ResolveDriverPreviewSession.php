@@ -49,22 +49,6 @@ final class ResolveDriverPreviewSession
             ->first();
         abort_unless($target instanceof User, 401, 'Preview target is no longer active.');
 
-        $driver = Driver::query()
-            ->where('user_id', $target->getKey())
-            ->where('is_active', true)
-            ->first();
-        abort_unless($driver instanceof Driver, 401, 'Preview driver is no longer active.');
-        abort_unless(
-            strtolower((string) $driver->driver_type) === strtolower((string) $session->channel),
-            403,
-            'Preview driver channel changed.',
-        );
-        abort_unless(
-            (int) ($driver->store_id ?? 0) === $storeId,
-            403,
-            'Preview driver store changed.',
-        );
-
         $request->headers->remove('Authorization');
         $request->headers->remove('X-Guest-Token');
         $request->headers->remove('X-FOODEX-Retail-Store-ID');
