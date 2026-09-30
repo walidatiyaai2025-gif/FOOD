@@ -50,8 +50,8 @@ class CustomerDiagnostics extends ChangeNotifier {
 
   SharedPreferences? _preferences;
   Future<void> _persistChain = Future<void>.value();
-  String _appVersion = customerDiagnosticsAppVersion;
-  String _buildNumber = customerDiagnosticsAppBuild;
+  final String _appVersion = customerDiagnosticsAppVersion;
+  final String _buildNumber = customerDiagnosticsAppBuild;
   final String? _deviceModel = null;
   final String _osVersion = Platform.operatingSystemVersion;
   String _apiBaseUrl = '';
