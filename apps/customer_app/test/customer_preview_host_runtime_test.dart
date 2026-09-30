@@ -129,7 +129,7 @@ void main() {
       runtime.safeStatusMetadata['configuration_revision'],
       'revision-draft-1',
     );
-    expect(runtime.safeStatusMetadata['configuration_checksum'], 'a' * 64);
+    expect(runtime.safeStatusMetadata['configuration_checksum'], List.filled(64, 'a').join());
 
     await runtime.authenticatedBundle!.b2b!.get('/api/v1/b2b/products');
     expect(seen, hasLength(2));
@@ -238,7 +238,7 @@ Map<String, dynamic> _configurationResponse({
         'status': mode,
         'mode': mode,
         'schema_version': 1,
-        'checksum': 'a' * 64,
+        'checksum': List.filled(64, 'a').join(),
         'read_only': true,
         'preview_session_id': 'session-1',
         'payload': {
