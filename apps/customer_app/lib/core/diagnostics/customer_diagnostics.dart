@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -50,7 +49,7 @@ class CustomerDiagnostics extends ChangeNotifier {
   SharedPreferences? _preferences;
   String _appVersion = 'unknown';
   String _buildNumber = 'unknown';
-  String _deviceModel = 'unknown';
+  String? _deviceModel;
   final String _osVersion = Platform.operatingSystemVersion;
   String _apiBaseUrl = '';
   String _environment = 'unknown';
@@ -102,17 +101,6 @@ class CustomerDiagnostics extends ChangeNotifier {
       final package = await PackageInfo.fromPlatform();
       _appVersion = package.version;
       _buildNumber = package.buildNumber;
-    } catch (_) {}
-
-    try {
-      final deviceInfo = DeviceInfoPlugin();
-      if (Platform.isAndroid) {
-        final info = await deviceInfo.androidInfo;
-        _deviceModel = '${info.manufacturer} ${info.model}'.trim();
-      } else if (Platform.isIOS) {
-        final info = await deviceInfo.iosInfo;
-        _deviceModel = info.utsname.machine;
-      }
     } catch (_) {}
 
     notifyListeners();
