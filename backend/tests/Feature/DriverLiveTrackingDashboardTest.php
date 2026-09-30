@@ -52,12 +52,12 @@ class DriverLiveTrackingDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('data-mode="full"', false)
-            ->assertViewHas('trackingI18n', fn (array $i18n): bool =>
-                $i18n['status'] === 'الحالة'
-                && $i18n['statuses']['online'] === 'متصل'
-                && $i18n['statuses']['stale'] === 'متأخر'
-                && $i18n['statuses']['offline'] === 'غير متصل'
-            );
+            ->assertViewHas('trackingI18n', static function (array $i18n): bool {
+                return $i18n['status'] === 'الحالة'
+                    && $i18n['statuses']['online'] === 'متصل'
+                    && $i18n['statuses']['stale'] === 'متأخر'
+                    && $i18n['statuses']['offline'] === 'غير متصل';
+            });
     }
 
     public function test_dashboard_web_session_can_read_live_tracking_feed(): void
