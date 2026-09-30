@@ -9,6 +9,7 @@ use App\Models\PushDeviceToken;
 use App\Models\PushProviderSetting;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\DriverLocationEnforcementPolicy;
 use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 final class MobileSettingsController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, DriverLocationEnforcementPolicy $driverLocationPolicy): View
     {
         $this->authorizeAny($request);
 
@@ -26,6 +27,7 @@ final class MobileSettingsController extends Controller
             'providers' => PushProviderSetting::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
             'devices' => PushDeviceToken::query()->whereNull('revoked_at')->latest()->limit(100)->get(),
             'logs' => PushDeliveryLog::query()->latest()->limit(100)->get(),
+            'driverLocationPolicy' => $driverLocationPolicy->snapshot(),
         ]);
     }
 
@@ -85,6 +87,49 @@ final class MobileSettingsController extends Controller
         );
 
         return back()->with('status', __('mobile_settings.saved'));
+    }
+
+    public function updateDriverLocationPolicy(
+        Request $request,
+        AuditLogger $audit,
+        DriverLocationEnforcementPolicy $policy,
+    ): RedirectResponse {
+        $actor = $this->authorize($request, 'mobile_settings.manage');
+        $data = $request->validate([
+            'enabled' => ['nullable', 'boolean'],
+            'freshness_seconds' => ['required', 'integer', 'min:30', 'max:600'],
+        ]);
+
+        $enabled = $request->boolean('enabled');
+        if ($enabled) {
+            $readiness = $policy->rolloutReadiness();
+            if (! $readiness['ready']) {
+                throw ValidationException::withMessages([
+                    'enabled' => [app()->getLocale() === 'ar'
+                        ? 'لا يمكن تفعيل فرض الموقع قبل اكتمال سياسة إصدار السائق 1.0.38 أو أحدث لأندرويد وآي أو إس مع روابط تحديث صالحة.'
+                        : 'Driver location enforcement cannot be enabled until Android and iOS Driver policies require version 1.0.38 or newer and provide valid update URLs.'],
+                ]);
+            }
+        }
+
+        $before = $policy->snapshot();
+        $after = $policy->persist(
+            $enabled,
+            (int) $data['freshness_seconds'],
+        );
+
+        $audit->record(
+            'driver.location_enforcement.policy_updated',
+            $actor,
+            null,
+            $before,
+            $after,
+            $request,
+        );
+
+        return back()->with('status', app()->getLocale() === 'ar'
+            ? 'تم حفظ سياسة الموقع الإلزامية للسائق.'
+            : 'Driver location enforcement policy saved.');
     }
 
     public function updateProvider(

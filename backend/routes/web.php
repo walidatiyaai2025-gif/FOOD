@@ -225,6 +225,7 @@ Route::prefix('admin')
         Route::post('/settings/app-versions', [AppVersionController::class, 'store'])->name('app-versions.store');
         Route::get('/settings/mobile', [MobileSettingsController::class, 'index'])->name('mobile-settings.index');
         Route::put('/settings/mobile/app', [MobileSettingsController::class, 'updateApp'])->name('mobile-settings.app');
+        Route::put('/settings/mobile/driver-location-policy', [MobileSettingsController::class, 'updateDriverLocationPolicy'])->name('mobile-settings.driver-location-policy');
         Route::put('/settings/mobile/push', [MobileSettingsController::class, 'updateProvider'])->name('mobile-settings.push');
         Route::post('/settings/mobile/push/test-connection', [MobileSettingsController::class, 'testProvider'])->name('mobile-settings.push.test');
         Route::post('/settings/mobile/test-push', [MobileSettingsController::class, 'testPush'])->name('mobile-settings.test');

@@ -188,8 +188,11 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/admin/deliveries/orders/{order}', [DriverAssignmentController::class, 'unassign'])->whereNumber('order');
         Route::post('/driver/location/heartbeat', [DriverLocationController::class, 'heartbeat'])
             ->middleware('throttle:120,1');
-        Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
-        Route::get('/driver/assignments/{assignment}', [DriverAssignmentController::class, 'show'])->whereNumber('assignment');
-        Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition'])->whereNumber('assignment');
+
+        Route::middleware('driver.location.fresh')->group(function (): void {
+            Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
+            Route::get('/driver/assignments/{assignment}', [DriverAssignmentController::class, 'show'])->whereNumber('assignment');
+            Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition'])->whereNumber('assignment');
+        });
     });
 });
