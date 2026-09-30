@@ -133,7 +133,8 @@ final class StorefrontDraftEditorService
         array $settings,
         ?string $logoPath,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         [$draft, $payload] = $this->draftPayload($actor, $storeId, $channel, $request);
 
         $payloadSettings = (array) ($payload['settings'] ?? []);
@@ -168,7 +169,8 @@ final class StorefrontDraftEditorService
         string $channel,
         array $section,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         [$draft, $payload] = $this->draftPayload($actor, $storeId, $channel, $request);
         $sections = array_values((array) ($payload['sections'] ?? []));
         $key = trim((string) ($section['key'] ?? ''));
@@ -204,7 +206,8 @@ final class StorefrontDraftEditorService
         string $editorId,
         array $section,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         [$draft, $payload] = $this->draftPayload($actor, $storeId, $channel, $request);
         $sections = array_values((array) ($payload['sections'] ?? []));
         $index = $this->findByEditorId($sections, $editorId);
@@ -241,7 +244,8 @@ final class StorefrontDraftEditorService
         string $channel,
         string $editorId,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         [$draft, $payload] = $this->draftPayload($actor, $storeId, $channel, $request);
         $sections = array_values((array) ($payload['sections'] ?? []));
         $index = $this->findByEditorId($sections, $editorId);
@@ -257,7 +261,8 @@ final class StorefrontDraftEditorService
         int $storeId,
         array $zone,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         [$draft, $payload] = $this->draftPayload($actor, $storeId, 'b2c', $request);
         $zones = array_values((array) ($payload['service_zones'] ?? []));
         $normalized = [
@@ -295,7 +300,8 @@ final class StorefrontDraftEditorService
         int $storeId,
         string $editorId,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         [$draft, $payload] = $this->draftPayload($actor, $storeId, 'b2c', $request);
         $zones = array_values((array) ($payload['service_zones'] ?? []));
         $index = $this->findByEditorId($zones, $editorId);
@@ -312,7 +318,8 @@ final class StorefrontDraftEditorService
         string $channel,
         array $banner,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         [$draft, $payload] = $this->draftPayload($actor, $storeId, $channel, $request);
         $banners = array_values((array) ($payload['banners'] ?? []));
         $this->assertTargetBelongsToStore($storeId, $channel, $banner['target_type'] ?? null, $banner['target_id'] ?? null);
@@ -340,7 +347,8 @@ final class StorefrontDraftEditorService
         string $editorId,
         array $banner,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         [$draft, $payload] = $this->draftPayload($actor, $storeId, $channel, $request);
         $banners = array_values((array) ($payload['banners'] ?? []));
         $index = $this->findByEditorId($banners, $editorId);
@@ -369,7 +377,8 @@ final class StorefrontDraftEditorService
         string $channel,
         string $editorId,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         [$draft, $payload] = $this->draftPayload($actor, $storeId, $channel, $request);
         $banners = array_values((array) ($payload['banners'] ?? []));
         $index = $this->findByEditorId($banners, $editorId);
@@ -384,7 +393,8 @@ final class StorefrontDraftEditorService
         int $storeId,
         string $channel,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         $draft = StorefrontRevision::query()
             ->where('store_id', $storeId)
             ->where('channel', $channel)
@@ -400,7 +410,8 @@ final class StorefrontDraftEditorService
         int $storeId,
         string $channel,
         ?Request $request = null,
-    ): StorefrontRevision {
+    ): StorefrontRevision
+    {
         $draft = StorefrontRevision::query()
             ->where('store_id', $storeId)
             ->where('channel', $channel)
@@ -435,7 +446,8 @@ final class StorefrontDraftEditorService
         int $storeId,
         string $channel,
         ?Request $request,
-    ): array {
+    ): array
+    {
         $draft = $this->revisions->createOrReuseDraft($actor, $storeId, $channel, $request);
 
         return [$draft, $this->withEditorIds($draft->payload)];
@@ -515,7 +527,8 @@ final class StorefrontDraftEditorService
         string $channel,
         mixed $targetType,
         mixed $targetId,
-    ): void {
+    ): void
+    {
         if ($targetType === null || $targetId === null) {
             return;
         }
