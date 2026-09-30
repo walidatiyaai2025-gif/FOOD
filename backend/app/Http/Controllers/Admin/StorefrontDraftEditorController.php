@@ -305,7 +305,7 @@ final class StorefrontDraftEditorController extends Controller
     {
         $actor = $this->actor($request);
         $storeId = $request->integer('store_id');
-        abort_unless($storeId > 0, 422);
+        abort_unless($storeId > 0, 404);
         $ability = $channel === 'b2c' ? 'promotions.manage' : 'settings.manage';
         $this->authorize($actor, $storeId, $channel, $ability, $request);
         $this->drafts->removeBanner($actor, $storeId, $channel, $editorId, $request);
