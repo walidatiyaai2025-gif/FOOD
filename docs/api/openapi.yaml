@@ -39,6 +39,8 @@ tags:
     description: Authenticated mobile push-device registration and revocation.
   - name: Management Reporting
     description: Permission and scope-aware management reporting catalog.
+  - name: App Preview
+    description: Short-lived, read-only Customer/Driver preview sessions for the authorized Management Dashboard.
 
 paths:
   /version:
@@ -53,6 +55,99 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiVersion"
+
+  /app-preview/resolve:
+    post:
+      tags: [App Preview]
+      summary: Resolve a short-lived read-only application preview token
+      operationId: resolveAppPreviewSession
+      parameters:
+        - in: header
+          name: X-Foodex-Preview-Token
+          required: false
+          description: Opaque preview token. It is not a Sanctum bearer token.
+          schema:
+            type: string
+            minLength: 1
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppPreviewResolveRequest"
+      responses:
+        "200":
+          description: Active read-only preview context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppPreviewContextResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /admin/app-preview/sessions:
+    post:
+      tags: [App Preview]
+      summary: Create an audited short-lived authenticated app preview session
+      operationId: createAppPreviewSession
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppPreviewSessionCreateRequest"
+      responses:
+        "201":
+          description: Preview session created; the plaintext token is returned once
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppPreviewSessionCreateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/app-preview/sessions/{session}:
+    delete:
+      tags: [App Preview]
+      summary: Revoke an app preview session
+      operationId: revokeAppPreviewSession
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: session
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason:
+                  type: string
+                  maxLength: 255
+      responses:
+        "204":
+          description: Preview session revoked
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /app-version:
     get:
@@ -2910,6 +3005,110 @@ components:
         release_notes:
           type: [string, "null"]
 
+
+    AppPreviewResolveRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        preview_token:
+          type: string
+          minLength: 1
+          description: Opaque short-lived preview token when the header form is not used.
+
+    AppPreviewSessionCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [target_user_id, target_type, channel]
+      properties:
+        target_user_id:
+          type: integer
+          minimum: 1
+        target_type:
+          type: string
+          enum: [customer, driver]
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+          description: Required for Retail; Wholesale always resolves to the canonical principal store.
+        support_access:
+          type: boolean
+          default: false
+          description: Must be explicitly true for SUPER_ADMIN Retail support preview.
+        ttl_minutes:
+          type: integer
+          minimum: 5
+          maximum: 30
+          default: 15
+
+    AppPreviewTarget:
+      type: object
+      required: [user_id, name, locale]
+      properties:
+        user_id:
+          type: integer
+        name:
+          type: string
+        locale:
+          type: string
+          enum: [ar, en]
+        driver_id:
+          type: [integer, "null"]
+
+    AppPreviewContext:
+      type: object
+      required: [session_id, target_type, channel, store_id, mode, read_only, support_access, expires_at, audit_correlation_id, target]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        target_type:
+          type: string
+          enum: [customer, driver]
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: integer
+          minimum: 1
+        mode:
+          type: string
+          const: read_only
+        read_only:
+          type: boolean
+          const: true
+        support_access:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+        audit_correlation_id:
+          type: string
+          format: uuid
+        target:
+          $ref: "#/components/schemas/AppPreviewTarget"
+
+    AppPreviewContextResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/AppPreviewContext"
+
+    AppPreviewSessionCreateResponse:
+      type: object
+      required: [data, preview_token, token_type]
+      properties:
+        data:
+          $ref: "#/components/schemas/AppPreviewContext"
+        preview_token:
+          type: string
+          description: Plaintext token returned only at creation; persistence stores only its SHA-256 hash.
+        token_type:
+          type: string
+          const: Preview
 
     SecurityPermission:
       type: object
