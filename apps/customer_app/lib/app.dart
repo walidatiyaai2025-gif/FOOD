@@ -62,6 +62,7 @@ class FoodexCustomerApp extends StatefulWidget {
     ThemeData? theme,
   }) {
     if (previewContext.channel == CustomerChannel.b2b &&
+        previewContext.authenticated &&
         (b2bApi == null || wholesaleCommerceApi == null)) {
       throw ArgumentError(
         'B2B Customer preview requires host-injected B2B and wholesale APIs.',
@@ -340,6 +341,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
         );
       }
       if (preview.channel == CustomerChannel.b2b &&
+          preview.authenticated &&
           (widget.b2bApi == null || widget.wholesaleCommerceApi == null)) {
         throw StateError(
           'B2B Customer preview requires host-injected B2B APIs.',
