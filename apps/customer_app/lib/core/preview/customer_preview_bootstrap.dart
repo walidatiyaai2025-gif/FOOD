@@ -136,6 +136,7 @@ class CustomerPreviewBootstrap {
           contextData['configuration_revision'],
         ),
         runtimeVersion: _nullableString(contextData['runtime_version']),
+        supportAccess: contextData['support_access'] == true,
       );
     }
 
