@@ -2,6 +2,8 @@
 
 ## 1.0.38 - 2026-09-30
 
+- Complete the dashboard-only recovery path for installations that received 1.0.36 files while database migrations remained pending: install the migration-free 1.0.37 bootstrap first, then the cumulative 1.0.38 update so migration auto-detection triggers backup + pending migrations without a manual checkbox or shell command.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.38 / mobile build 1.0.38+38.
 - Fix production invoice PDF downloads when an existing Dashboard installation does not have the newly declared TCPDF Composer dependency in its vendor directory.
 - Ship a pinned self-contained TCPDF 6.11.3 runtime and DejaVu font assets inside the Dashboard Update package, outside the protected Composer vendor tree.
 - Prefer normal Composer autoload when TCPDF is installed and fall back to the bundled runtime automatically, requiring no SSH, Composer command or manual server-side action.
