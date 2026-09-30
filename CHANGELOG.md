@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.37 - Automatic dashboard migration detection bootstrap
+
+- Remove the manual database-migration checkbox from System Update and derive migration presence directly from ZIP contents on the backend.
+- Automatically require database backup and migration execution whenever an update package contains files under backend/database/migrations.
+- Add regression coverage proving migration archives cannot be misclassified as migration-free updates.
+- Prepare a dashboard-only recovery path for installations where 1.0.36 files were applied while its migrations remained pending.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.37.
+
+
 ## 1.0.36 - Platform customer addresses, delivery location and lifecycle notifications
 
 - Unify each Platform Customer into one cross-channel address book shared by Wholesale and Retail journeys, with manual entry, explicit foreground location sharing, corrected map pins, default-address management and strict ownership isolation.
