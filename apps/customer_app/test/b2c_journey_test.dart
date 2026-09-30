@@ -225,7 +225,7 @@ void main() {
   testWidgets('Customer password eye toggles visibility without changing the password', (tester) async {
     await tester.pumpWidget(
       FoodexCustomerApp(
-        initialRoute: '/checkout/login',
+        initialRoute: '/auth/checkout',
         b2cCatalogApi: _FakeCatalogApi(),
         b2cAccountApi: _FakeAccountApi(),
       ),
