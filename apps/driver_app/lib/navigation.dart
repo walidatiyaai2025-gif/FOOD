@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/auth/driver_session.dart';
+import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/localization/driver_translations.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/notifications/driver_notification_page.dart';
@@ -42,6 +43,7 @@ class DriverNavigator {
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? DriverRoutes.root;
+    DriverRuntimeInspector.instance.recordNavigation(name);
 
     if (name == DriverRoutes.root) return _page(_homeFor(channel), settings);
 
