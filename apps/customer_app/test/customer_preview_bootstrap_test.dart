@@ -117,6 +117,33 @@ void main() {
     );
   });
 
+  test('message gate rejects same-origin non-parent senders', () {
+    expect(
+      CustomerPreviewHostContract.allowsMessage(
+        origin: origin,
+        expectedOrigin: origin,
+        fromParent: true,
+      ),
+      isTrue,
+    );
+    expect(
+      CustomerPreviewHostContract.allowsMessage(
+        origin: origin,
+        expectedOrigin: origin,
+        fromParent: false,
+      ),
+      isFalse,
+    );
+    expect(
+      CustomerPreviewHostContract.allowsMessage(
+        origin: 'https://evil.example',
+        expectedOrigin: origin,
+        fromParent: true,
+      ),
+      isFalse,
+    );
+  });
+
   test('rejects wrong origin, contract, target and unsafe mode', () {
     expect(
       () => CustomerPreviewBootstrap.parse(

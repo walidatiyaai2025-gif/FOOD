@@ -161,8 +161,11 @@ class AppPreviewDashboardBridgeTest extends TestCase
         $this->assertStringNotContainsString('sessionStorage', $bridgeScript);
         $this->assertStringNotContainsString("searchParams.set('credential'", $bridgeScript);
         $this->assertStringNotContainsString("searchParams.set('preview_token'", $bridgeScript);
-        $this->assertStringContainsString('JSON.stringify(bootstrap)', $bridgeScript);
-        $this->assertStringContainsString('JSON.parse(message)', $bridgeScript);
+        $this->assertStringNotContainsString('JSON.stringify(bootstrap)', $bridgeScript);
+        $this->assertStringNotContainsString('JSON.parse(message)', $bridgeScript);
+        $this->assertStringContainsString('postMessage(', $bridgeScript);
+        $this->assertStringContainsString('bootstrap,', $bridgeScript);
+        $this->assertStringContainsString('event.source !== runtimeFrame.contentWindow', $bridgeScript);
 
         config()->set('app_preview.runtimes.customer.allowed_origin', 'https://other.example');
 

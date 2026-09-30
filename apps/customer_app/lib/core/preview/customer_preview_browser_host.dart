@@ -1,8 +1,8 @@
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:html' as html;
+import 'dart:js_interop';
 
 import 'package:flutter/material.dart';
 
@@ -46,7 +46,11 @@ class _CustomerPreviewBrowserHostState
   }
 
   void _onMessage(html.MessageEvent event) {
-    if (_allowedOrigin.isEmpty || event.origin != _allowedOrigin) {
+    if (!CustomerPreviewHostContract.allowsMessage(
+      origin: event.origin,
+      expectedOrigin: _allowedOrigin,
+      fromParent: event.source == html.window.parent,
+    )) {
       return;
     }
 
@@ -91,18 +95,11 @@ class _CustomerPreviewBrowserHostState
     }
   }
 
-  Map<String, dynamic>? _map(Object? value) {
-    if (value is Map) {
-      return Map<String, dynamic>.from(value);
-    }
-    if (value is! String || value.trim().isEmpty) {
-      return null;
-    }
-
+  Map<String, dynamic>? _map(JSAny? value) {
     try {
-      final decoded = jsonDecode(value);
-      if (decoded is Map) {
-        return Map<String, dynamic>.from(decoded);
+      final converted = value.dartify();
+      if (converted is Map) {
+        return Map<String, dynamic>.from(converted);
       }
     } catch (_) {
       return null;
@@ -129,7 +126,7 @@ class _CustomerPreviewBrowserHostState
 
   void _post(Map<String, Object?> message) {
     html.window.parent?.postMessage(
-      jsonEncode(message),
+      message.jsify(),
       _allowedOrigin,
     );
   }

@@ -466,14 +466,7 @@
         if (!runtimeFrame || !activeSession || !runtime) return;
         if (event.source !== runtimeFrame.contentWindow || event.origin !== runtime.origin) return;
 
-        let message = event.data;
-        if (typeof message === 'string') {
-            try {
-                message = JSON.parse(message);
-            } catch (_) {
-                return;
-            }
-        }
+        const message = event.data;
         if (!message || typeof message !== 'object') return;
 
         if (message.type === 'foodex.preview.ready') {
@@ -498,7 +491,7 @@
                 },
             };
             runtimeFrame.contentWindow?.postMessage(
-                app?.value === 'customer' ? JSON.stringify(bootstrap) : bootstrap,
+                bootstrap,
                 runtime.origin,
             );
             setStatus(copy.connected);
