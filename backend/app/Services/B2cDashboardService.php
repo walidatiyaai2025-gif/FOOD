@@ -338,22 +338,6 @@ final class B2cDashboardService
     }
 
     /** @param list<int> $storeIds */
-    private function canAnyStore(User $user, array $storeIds, string $permission): bool
-    {
-        if ($user->hasPermission($permission)) {
-            return true;
-        }
-
-        foreach ($storeIds as $storeId) {
-            if ($user->hasPermission($permission, $storeId)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /** @param list<int> $storeIds */
     private function unreadNotifications(User $user, array $storeIds): int
     {
         return DB::table('notifications')
