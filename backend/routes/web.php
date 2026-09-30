@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\B2cWorkspaceController;
 use App\Http\Controllers\Admin\BusinessManagementController;
 use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\Customer360Controller;
+use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LiveAdController;
 use App\Http\Controllers\Admin\LookupManagementController;
@@ -79,6 +80,7 @@ Route::prefix('admin')
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
         Route::get('/app-preview', [AppPreviewController::class, 'index'])->name('app-preview.index');
+        Route::get('/driver-live-tracking', [DriverLiveTrackingDashboardController::class, 'index'])->name('driver-live-tracking.index');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
         Route::post('/customer-360/{platformCustomer}/addresses', [Customer360Controller::class, 'storeAddress'])->whereNumber('platformCustomer')->name('customer-360.addresses.store');
