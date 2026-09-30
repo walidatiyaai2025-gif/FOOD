@@ -67,6 +67,32 @@ void main() {
     expect(preview.nativeNavigationEnabled, isFalse);
   });
 
+  test('resolved #500 driver context never becomes a normal auth token', () {
+    final preview = DriverPreviewContext.fromResolvedSession({
+      'session_id': 'preview-session-id',
+      'target_type': 'driver',
+      'channel': 'b2b',
+      'store_id': 9,
+      'mode': 'read_only',
+      'read_only': true,
+      'audit_correlation_id': 'audit-id',
+      'expires_at': '2026-09-30T06:30:00+03:00',
+      'target': {
+        'user_id': 17,
+        'driver_id': 23,
+        'name': 'Wholesale Driver',
+        'locale': 'ar',
+      },
+    });
+
+    expect(preview.channel, DriverChannel.b2b);
+    expect(preview.storeId, 9);
+    expect(preview.driverId, 23);
+    expect(preview.auditCorrelationId, 'audit-id');
+    expect(preview.runtimeIdentity.token, isEmpty);
+    expect(preview.runtimeIdentity.channel, DriverChannel.b2b);
+  });
+
   testWidgets('real B2C journey filters preview to the selected retail store',
       (tester) async {
     final repo = _PreviewRepo(const [
@@ -93,11 +119,10 @@ void main() {
     ]);
 
     await tester.pumpWidget(
-      FoodexDriverApp(
+      FoodexDriverApp.preview(
         locale: const Locale('en'),
-        initialSession: _session(DriverChannel.b2c),
         initialRoute: DriverRoutes.b2cDeliveries,
-        assignmentRepositoryFactory: (_) => repo,
+        assignmentRepository: repo,
         previewContext: const DriverPreviewContext(
           channel: DriverChannel.b2c,
           storeId: 41,
