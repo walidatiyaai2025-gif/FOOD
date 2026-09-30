@@ -46,15 +46,15 @@
             <section class="foodex-card preview-controls" aria-label="{{ __('admin.preview_center.controls') }}">
                 <label>{{ __('admin.preview_center.application') }}
                     <select id="preview-app" data-preview-control="app">
-                        <option value="customer">{{ __('admin.preview_center.customer') }}</option>
-                        <option value="driver" @disabled(!$canImpersonateDriver)>{{ __('admin.preview_center.driver') }}</option>
+                        <option value="customer" @selected(request()->query('app', 'customer') === 'customer')>{{ __('admin.preview_center.customer') }}</option>
+                        <option value="driver" @selected(request()->query('app') === 'driver') @disabled(!$canImpersonateDriver)>{{ __('admin.preview_center.driver') }}</option>
                     </select>
                 </label>
 
                 <label>{{ __('admin.preview_center.channel') }}
                     <select id="preview-channel" data-preview-control="channel">
-                        @if($wholesaleAvailable)<option value="b2b">{{ __('admin.preview_center.wholesale') }}</option>@endif
-                        @if($retailAvailable)<option value="b2c">{{ __('admin.preview_center.retail') }}</option>@endif
+                        @if($wholesaleAvailable)<option value="b2b" @selected(request()->query('channel') === 'b2b')>{{ __('admin.preview_center.wholesale') }}</option>@endif
+                        @if($retailAvailable)<option value="b2c" @selected(request()->query('channel') === 'b2c')>{{ __('admin.preview_center.retail') }}</option>@endif
                     </select>
                 </label>
 
@@ -62,7 +62,7 @@
                 <label id="preview-store-wrap" @if($wholesaleAvailable) hidden @endif>{{ __('admin.preview_center.store') }}
                     <select id="preview-store" data-preview-control="store">
                         @foreach($retailStores as $store)
-                            <option value="{{ $store->id }}">{{ $store->name }} · {{ $store->code }}</option>
+                            <option value="{{ $store->id }}" @selected((int) request()->query('store_id', 0) === (int) $store->id)>{{ $store->name }} · {{ $store->code }}</option>
                         @endforeach
                     </select>
                 </label>
@@ -70,9 +70,9 @@
 
                 <label>{{ __('admin.preview_center.persona') }}
                     <select id="preview-persona" data-preview-control="persona">
-                        <option value="guest" id="preview-persona-guest">{{ __('admin.preview_center.guest') }}</option>
+                        <option value="guest" id="preview-persona-guest" @selected(request()->query('persona', 'guest') === 'guest')>{{ __('admin.preview_center.guest') }}</option>
                         @if($canImpersonateCustomer || $canImpersonateDriver)
-                            <option value="authenticated" id="preview-persona-authenticated">{{ __('admin.preview_center.authenticated') }}</option>
+                            <option value="authenticated" id="preview-persona-authenticated" @selected(request()->query('persona') === 'authenticated')>{{ __('admin.preview_center.authenticated') }}</option>
                         @endif
                     </select>
                 </label>
@@ -86,8 +86,8 @@
 
                 <label>{{ __('admin.preview_center.configuration') }}
                     <select id="preview-config" data-preview-control="configuration">
-                        <option value="published">{{ __('admin.preview_center.published') }}</option>
-                        <option value="draft">{{ __('admin.preview_center.draft') }}</option>
+                        <option value="published" @selected(request()->query('mode', request()->query('configuration', 'published')) === 'published')>{{ __('admin.preview_center.published') }}</option>
+                        <option value="draft" @selected(request()->query('mode', request()->query('configuration', 'published')) === 'draft')>{{ __('admin.preview_center.draft') }}</option>
                     </select>
                 </label>
 
