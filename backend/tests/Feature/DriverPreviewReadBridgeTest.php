@@ -71,7 +71,7 @@ class DriverPreviewReadBridgeTest extends TestCase
 
         $this->postJson('/api/v1/app-preview/driver/assignments/1/status', [
             'status' => 'accepted',
-        ])->assertStatus(405);
+        ])->assertNotFound();
     }
 
     public function test_driver_preview_revalidates_revocation_target_type_and_driver_scope(): void
