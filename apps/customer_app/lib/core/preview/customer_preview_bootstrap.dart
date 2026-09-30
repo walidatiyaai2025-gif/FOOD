@@ -27,6 +27,11 @@ class CustomerPreviewBootstrap {
   static const readyType = 'foodex.preview.ready';
   static const statusType = 'foodex.preview.status';
 
+  static Map<String, Object?> readyEnvelope(String contractVersion) => {
+        'type': readyType,
+        'version': contractVersion,
+      };
+
   factory CustomerPreviewBootstrap.parse({
     required Object? message,
     required String eventOrigin,
@@ -102,7 +107,11 @@ class CustomerPreviewBootstrap {
     }
 
     final context = authenticated
-        ? CustomerPreviewContext.fromResolvedSession(contextData)
+        ? CustomerPreviewContext.fromResolvedSession(
+            contextData,
+            configurationRevision: payload['configuration_revision']?.toString(),
+            runtimeVersion: version,
+          )
         : CustomerPreviewContext.guest(
             channel: channel,
             storeId: storeId,
