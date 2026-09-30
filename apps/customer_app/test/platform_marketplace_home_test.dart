@@ -113,11 +113,18 @@ void main() {
       find.byKey(const ValueKey('marketplace-wholesale-offers')),
       findsOneWidget,
     );
-    expect(find.text('Retail Seven Offer'), findsOneWidget);
+    expect(find.text('FOODEX Wholesale'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('marketplace-retail-carousel')),
+      find.byKey(const ValueKey('marketplace-banner-carousel')),
       findsOneWidget,
     );
+    final carousel =
+        find.byKey(const ValueKey('marketplace-retail-carousel'));
+    expect(carousel, findsOneWidget);
+
+    await tester.drag(carousel, const Offset(-700, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Retail Seven Offer'), findsOneWidget);
 
     await tester.tap(find.text('Retail Seven Offer'));
     await tester.pumpAndSettle();
@@ -126,7 +133,7 @@ void main() {
     expect(find.text('/retail/7/home'), findsOneWidget);
   });
 
-  testWidgets('marketplace retail carousel supports manual swipe', (tester) async {
+  testWidgets('marketplace banner carousel keeps Wholesale first then Retail slides', (tester) async {
     final client = MockClient((request) async => http.Response(
           jsonEncode({
             'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
@@ -170,9 +177,14 @@ void main() {
     final carousel = find.byKey(const ValueKey('marketplace-retail-carousel'));
     expect(carousel, findsOneWidget);
 
-    await tester.drag(carousel, const Offset(-350, 0));
-    await tester.pumpAndSettle();
+    expect(find.text('FOODEX Wholesale'), findsOneWidget);
 
+    await tester.drag(carousel, const Offset(-700, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Retail Seven Offer'), findsOneWidget);
+
+    await tester.drag(carousel, const Offset(-700, 0));
+    await tester.pumpAndSettle();
     expect(find.text('Retail Eight Offer'), findsOneWidget);
   });
 
