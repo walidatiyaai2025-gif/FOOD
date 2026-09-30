@@ -1,0 +1,189 @@
+name: APP-PREVIEW Final Acceptance CI
+
+on:
+  pull_request:
+    paths:
+      - "backend/app/Http/Controllers/Admin/AppPreview**"
+      - "backend/app/Http/Controllers/Api/V1/AppPreview**"
+      - "backend/app/Http/Middleware/Resolve*PreviewSession.php"
+      - "backend/app/Services/AppPreview**"
+      - "backend/config/app_preview.php"
+      - "backend/resources/views/admin/app-preview.blade.php"
+      - "backend/tests/Feature/AppPreview*.php"
+      - "backend/tests/Feature/CustomerPreviewReadBridgeTest.php"
+      - "backend/tests/Feature/DriverPreviewReadBridgeTest.php"
+      - "backend/tests/Feature/StorefrontPreviewConfigurationTest.php"
+      - "backend/tests/Feature/StorefrontRevisionTest.php"
+      - "apps/customer_app/lib/core/preview/**"
+      - "apps/customer_app/lib/preview_main.dart"
+      - "apps/customer_app/test/customer_preview*.dart"
+      - "apps/driver_app/lib/core/preview/**"
+      - "apps/driver_app/lib/preview_main.dart"
+      - "apps/driver_app/test/driver_preview*.dart"
+      - "docs/architecture/APP_PREVIEW_ARCHITECTURE.md"
+      - "docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE.md"
+      - ".github/workflows/app-preview-acceptance-ci.yml"
+      - ".github/workflows/customer-app-ci.yml"
+      - ".github/workflows/driver-app-ci.yml"
+      - ".github/workflows/driver-preview-web-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  scope-guard:
+    name: Acceptance branch scope guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reject overlap with active #564 / PR #570 implementation files
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          git diff --name-only "$base" "$head" > /tmp/app-preview-acceptance-files.txt
+          cat /tmp/app-preview-acceptance-files.txt
+          forbidden=(
+            backend/app/Http/Controllers/Admin/B2bWorkspaceController.php
+            backend/app/Http/Controllers/Admin/B2cWorkspaceController.php
+            backend/app/Http/Controllers/Admin/StorefrontDraftEditorController.php
+            backend/app/Services/StorefrontDraftEditorService.php
+            backend/app/Services/StorefrontRevisionService.php
+            backend/resources/views/admin/_storefront-builder.blade.php
+            backend/resources/views/admin/_wholesale-storefront-builder.blade.php
+            backend/resources/views/admin/b2c-workspace.blade.php
+            backend/routes/web.php
+            backend/tests/Feature/AdminBusinessManagementTest.php
+            backend/tests/Feature/AdminProfileNavigationBannerTest.php
+            backend/tests/Feature/RetailAdminProductionDefectsTest.php
+            backend/tests/Feature/StorefrontAdminBuilderTest.php
+            backend/tests/Feature/StorefrontRevisionTest.php
+            backend/tests/Feature/WholesaleStorefrontBuilderTest.php
+          )
+          for file in "${forbidden[@]}"; do
+            if grep -Fxq "$file" /tmp/app-preview-acceptance-files.txt; then
+              echo "::error::Final acceptance branch must not overlap active #564 / PR #570 file: $file"
+              exit 1
+            fi
+          done
+
+  backend-preview:
+    name: Backend preview security and contract acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, intl, pdo_sqlite
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare acceptance database
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+      - name: Run APP-PREVIEW backend acceptance suite
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+        run: |
+          vendor/bin/phpunit \
+            tests/Feature/AppPreviewSessionTest.php \
+            tests/Feature/AppPreviewDashboardTest.php \
+            tests/Feature/AppPreviewDashboardBridgeTest.php \
+            tests/Feature/AppPreviewCustomerReadBridgeTest.php \
+            tests/Feature/CustomerPreviewReadBridgeTest.php \
+            tests/Feature/StorefrontPreviewConfigurationTest.php \
+            tests/Feature/AppPreviewInvalidationTest.php \
+            tests/Feature/AppPreviewDashboardInvalidationTest.php \
+            tests/Feature/AppPreviewGuestConfigurationTest.php \
+            tests/Feature/DriverPreviewReadBridgeTest.php \
+            tests/Feature/StorefrontRevisionTest.php \
+            tests/Feature/OpenApiContractTest.php
+
+  customer-preview:
+    name: Customer shared runtime acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/customer_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Run Customer preview and shared-navigation tests
+        run: |
+          flutter test \
+            test/customer_preview_acceptance_test.dart \
+            test/customer_preview_runtime_test.dart \
+            test/customer_preview_bootstrap_test.dart \
+            test/customer_preview_host_runtime_test.dart \
+            test/customer_preview_transport_test.dart \
+            test/customer_preview_configuration_test.dart \
+            test/customer_navigation_test.dart \
+            test/b2b_journey_test.dart \
+            test/b2c_journey_test.dart \
+            test/localization_test.dart
+      - name: Compile real Customer Preview Web runtime
+        run: |
+          flutter build web \
+            --release \
+            --target=lib/preview_main.dart \
+            --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com \
+            --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=https://foodex.50sols.com \
+            --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          test -f build/web/index.html
+          test -f build/web/main.dart.js
+
+  driver-preview:
+    name: Driver shared runtime acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/driver_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+      - name: Prepare Web scaffolding
+        run: flutter create --platforms=web --project-name foodex_driver_app .
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Run Driver preview and shared-journey tests
+        run: |
+          flutter test \
+            test/driver_preview_runtime_test.dart \
+            test/driver_preview_web_contract_test.dart \
+            test/navigation_test.dart \
+            test/driver_journey_test.dart \
+            test/localization_test.dart
+      - name: Compile real Driver Preview Web runtime
+        run: |
+          flutter build web \
+            --release \
+            --target=lib/preview_main.dart \
+            --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com \
+            --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=https://foodex.50sols.com \
+            --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          test -f build/web/index.html
+          test -f build/web/main.dart.js
