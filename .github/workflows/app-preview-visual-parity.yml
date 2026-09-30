@@ -28,7 +28,7 @@ jobs:
           flutter test             test/customer_preview_acceptance_test.dart             test/customer_preview_bootstrap_test.dart             test/customer_preview_host_runtime_test.dart             test/customer_preview_runtime_test.dart             test/customer_preview_configuration_test.dart
       - name: Build authoritative Customer Web preview
         run: |
-          flutter build web             --release             --target=lib/preview_main.dart             --base-href=/customer/             --dart-define=FOODEX_API_BASE_URL=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          flutter build web             --release             --target=lib/preview_main.dart             --no-web-resources-cdn             --base-href=/customer/             --dart-define=FOODEX_API_BASE_URL=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
           test -s build/web/index.html
           test -s build/web/main.dart.js
       - uses: actions/upload-artifact@v4
@@ -60,7 +60,7 @@ jobs:
           flutter test             test/driver_preview_runtime_test.dart             test/driver_preview_web_contract_test.dart
       - name: Build authoritative Driver Web preview
         run: |
-          flutter build web             --release             --target=lib/preview_main.dart             --base-href=/driver/             --dart-define=FOODEX_API_BASE_URL=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          flutter build web             --release             --target=lib/preview_main.dart             --no-web-resources-cdn             --base-href=/driver/             --dart-define=FOODEX_API_BASE_URL=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
           test -s build/web/index.html
           test -s build/web/main.dart.js
       - uses: actions/upload-artifact@v4
