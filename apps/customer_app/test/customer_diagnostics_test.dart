@@ -122,6 +122,11 @@ void main() {
       220,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.drag(
+      find.byType(Scrollable).first,
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('customer-diagnostics-clear')),
       findsOneWidget,
