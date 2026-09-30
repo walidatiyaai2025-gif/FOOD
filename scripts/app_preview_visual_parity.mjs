@@ -127,7 +127,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (url.pathname === '/host.html') {
+  if (url.pathname === '/host.html' || url.pathname === '/standalone.html') {
     const fixtureId = url.searchParams.get('fixture');
     const testCase = cases.find((item) => item.id === fixtureId);
     if (!testCase) {
@@ -229,40 +229,6 @@ async function stableScreenshot(target, page, { initialDelay = 600 } = {}) {
   throw new Error('preview_render_did_not_stabilize');
 }
 
-async function installStandaloneHarness(page, testCase) {
-  await page.addInitScript(({ bootstrap }) => {
-    window.__foodexMessages = [];
-    window.__foodexHandshake = false;
-    window.__foodexBootstrapForTest = bootstrap;
-    addEventListener('message', (event) => {
-      if (event.origin !== location.origin) return;
-      if (!event.data || typeof event.data !== 'object') return;
-      window.__foodexMessages.push(event.data);
-      if (event.data.type === 'foodex.preview.ready' &&
-          event.data.version === 'shared-flutter-v1') {
-        window.__foodexHandshake = true;
-      }
-    });
-  }, { bootstrap: bootstrapFor(testCase) });
-
-  await page.goto(origin + '/' + testCase.app + '/index.html', { waitUntil: 'networkidle' });
-  await page.evaluate(() => {
-    const send = () => window.dispatchEvent(new MessageEvent('message', {
-      data: window.__foodexBootstrapForTest,
-      origin: location.origin,
-      source: window,
-    }));
-    send();
-    const retry = setInterval(() => {
-      const terminal = window.__foodexMessages.some((m) =>
-        m.type === 'foodex.preview.status' &&
-        ['ready', 'error', 'expired', 'forbidden'].includes(m.state));
-      if (terminal) clearInterval(retry); else send();
-    }, 400);
-    setTimeout(() => clearInterval(retry), 12000);
-  });
-}
-
 async function waitForState(page, testCase, surface) {
   try {
     await page.waitForFunction(({ state, code }) =>
@@ -292,8 +258,8 @@ async function waitForState(page, testCase, surface) {
     return { handshake: window.__foodexHandshake === true, status };
   }, { state: testCase.expectedState, code: testCase.expectedCode ?? null });
 
-  if (surface === 'embedded' && !snapshot.handshake) {
-    throw new Error(testCase.id + ': missing embedded shared-flutter-v1 ready handshake');
+  if (!snapshot.handshake) {
+    throw new Error(testCase.id + ': missing ' + surface + ' shared-flutter-v1 ready handshake');
   }
 
   if (testCase.expectedState === 'ready') {
@@ -324,10 +290,21 @@ try {
   for (const testCase of cases) {
     const { app, width, height, profile, id } = testCase;
 
-    const standalone = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
-    await installStandaloneHarness(standalone, testCase);
+    const standalone = await browser.newPage({
+      viewport: { width, height },
+      deviceScaleFactor: 1,
+    });
+    await standalone.goto(
+      origin + '/standalone.html?fixture=' + encodeURIComponent(id),
+      { waitUntil: 'networkidle' },
+    );
     const standaloneStatus = await waitForState(standalone, testCase, 'standalone');
-    const standalonePng = await stableScreenshot(standalone, standalone);
+    const standaloneFrame = standalone.locator('#runtime');
+    const standalonePng = await stableScreenshot(
+      standaloneFrame,
+      standalone,
+      { initialDelay: 250 },
+    );
 
     const embedded = await browser.newPage({
       viewport: { width: width + 40, height: height + 40 },
