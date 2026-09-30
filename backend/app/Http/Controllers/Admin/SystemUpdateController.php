@@ -20,7 +20,8 @@ final class SystemUpdateController extends Controller
     public function __construct(
         private readonly UpdateManager $manager,
         private readonly UpdatePackageInspector $packageInspector,
-    ) {}
+    ) {
+    }
 
     public function index(Request $request): View
     {
