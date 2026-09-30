@@ -41,6 +41,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.theme,
     this.pushService,
     this.previewContext,
+    this.locationGateService,
   });
 
   factory FoodexDriverApp.preview({
@@ -82,6 +83,7 @@ class FoodexDriverApp extends StatefulWidget {
   final ThemeData? theme;
   final DriverFirebasePushService? pushService;
   final DriverPreviewContext? previewContext;
+  final DriverLocationGateService? locationGateService;
 
   @override
   State<FoodexDriverApp> createState() => _FoodexDriverAppState();
@@ -430,11 +432,21 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
                 )
               : assignments == null
                   ? const _DriverRuntimeConfigurationError()
-                  : Navigator(
-                  key: _driverNavigatorKey,
-                  initialRoute: widget.initialRoute,
-                  onGenerateRoute: navigator!.onGenerateRoute,
-                ),
+                  : widget.locationGateService == null || preview != null
+                      ? Navigator(
+                          key: _driverNavigatorKey,
+                          initialRoute: widget.initialRoute,
+                          onGenerateRoute: navigator!.onGenerateRoute,
+                        )
+                      : DriverLocationGate(
+                          service: widget.locationGateService!,
+                          onLogout: _logout,
+                          child: Navigator(
+                            key: _driverNavigatorKey,
+                            initialRoute: widget.initialRoute,
+                            onGenerateRoute: navigator!.onGenerateRoute,
+                          ),
+                        ),
     );
   }
 
