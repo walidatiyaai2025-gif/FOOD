@@ -33,3 +33,14 @@ The authoritative tenancy contract is `docs/architecture/MULTI_TENANT_ARCHITECTU
 ## Bootstrap scope
 
 Only application roots, domain boundaries, contracts and infrastructure foundations are established now. Product workflows remain issue-scoped implementation work.
+
+## Application Preview runtime parity
+
+The authoritative application-preview contract is `docs/architecture/APP_PREVIEW_ARCHITECTURE.md`.
+
+- Dashboard Preview is not a third application implementation. It must embed/reuse the Customer/Driver Flutter runtime or shared presentation packages and the same backend business contracts.
+- Laravel remains authoritative for preview authorization, StoreContext, pricing, catalog, orders, delivery state and app-visible capabilities.
+- Preview-specific APIs are limited to secure preview-session/revision resolution or equivalent context plumbing; they must not duplicate Customer/Driver business APIs.
+- Guest/authenticated, B2B/B2C, Retail store, locale, Draft/Published and runtime-version context must be explicit and testable.
+- Preview credentials are short-lived, scoped, auditable and invalid as normal production app login credentials.
+- A Dashboard-managed app-visible change is incomplete unless the same PR preserves real-app/shared-runtime preview parity and updates contract/regression coverage.
