@@ -17,14 +17,14 @@
         html[dir=ltr] .dashboard-sidebar{grid-column:1;direction:ltr;border-left:0;border-right:1px solid var(--foodex-border)}
         html[dir=ltr] .dashboard-shell{grid-column:2;direction:ltr}
 
-        .topbar{direction:ltr;min-height:var(--foodex-header-height);background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border);display:grid;grid-template-columns:minmax(210px,1fr) minmax(150px,.45fr) minmax(340px,540px);grid-template-areas:"profile actions search";align-items:center;gap:var(--foodex-space-4);padding:0 var(--foodex-space-6);position:sticky;top:0;z-index:10}
-        html[dir=ltr] .topbar{grid-template-columns:minmax(340px,540px) minmax(150px,.45fr) minmax(210px,1fr);grid-template-areas:"search actions profile"}
+        .topbar{direction:ltr;min-height:var(--foodex-header-height);background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border);display:grid;grid-template-columns:minmax(150px,.45fr) minmax(210px,1fr) minmax(340px,540px);grid-template-areas:"actions profile search";align-items:center;gap:var(--foodex-space-4);padding:0 var(--foodex-space-6);position:sticky;top:0;z-index:10}
+        html[dir=ltr] .topbar{grid-template-columns:minmax(340px,540px) minmax(210px,1fr) minmax(150px,.45fr);grid-template-areas:"search profile actions"}
         html[dir=rtl] .topbar>*{direction:rtl}
         .profile{grid-area:profile;display:flex;align-items:center;gap:var(--foodex-space-3);justify-self:start}
         .avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:var(--foodex-font-weight-bold);border:1px solid var(--foodex-border)}
         .profile strong{font-weight:var(--foodex-font-weight-bold);font-size:var(--foodex-text-sm)}
         .profile small{display:block;color:var(--foodex-muted);font-size:var(--foodex-text-xs);margin-top:1px}
-        .top-actions{grid-area:actions;display:flex;align-items:center;justify-content:flex-end;gap:var(--foodex-space-4);color:var(--foodex-muted);justify-self:end}
+        .top-actions{grid-area:actions;display:flex;align-items:center;justify-content:flex-start;gap:var(--foodex-space-4);color:var(--foodex-muted);justify-self:start}html[dir=ltr] .top-actions{justify-content:flex-end;justify-self:end}
         .language,.bell{min-height:var(--foodex-touch-target);display:inline-flex;align-items:center;gap:7px}
         .bell{position:relative;font-size:19px}
         .bell b{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--foodex-orange);inset:7px -1px auto auto}
@@ -158,8 +158,8 @@
 
         @media(min-width:1600px){
             .content{padding-inline:40px}
-            .topbar{padding-inline:40px;grid-template-columns:minmax(240px,1fr) minmax(170px,.45fr) minmax(420px,620px)}
-            html[dir=ltr] .topbar{grid-template-columns:minmax(420px,620px) minmax(170px,.45fr) minmax(240px,1fr)}
+            .topbar{padding-inline:40px;grid-template-columns:minmax(170px,.45fr) minmax(240px,1fr) minmax(420px,620px)}
+            html[dir=ltr] .topbar{grid-template-columns:minmax(420px,620px) minmax(240px,1fr) minmax(170px,.45fr)}
             .middle{grid-template-columns:minmax(0,2.25fr) minmax(340px,.9fr)}
             .bottom{grid-template-columns:minmax(290px,.9fr) minmax(560px,1.7fr) minmax(280px,.85fr)}
             .chart{height:250px}
@@ -173,8 +173,8 @@
             .kpi-value{font-size:clamp(1.3rem,1.75vw,1.5rem)}
         }
         @media(max-width:1279px){
-            .topbar{grid-template-columns:minmax(180px,.8fr) minmax(140px,.4fr) minmax(300px,1.4fr);padding-inline:var(--foodex-space-4)}
-            html[dir=ltr] .topbar{grid-template-columns:minmax(300px,1.4fr) minmax(140px,.4fr) minmax(180px,.8fr)}
+            .topbar{grid-template-columns:minmax(140px,.4fr) minmax(180px,.8fr) minmax(300px,1.4fr);padding-inline:var(--foodex-space-4)}
+            html[dir=ltr] .topbar{grid-template-columns:minmax(300px,1.4fr) minmax(180px,.8fr) minmax(140px,.4fr)}
             .content{padding-inline:var(--foodex-space-4)}
             .kpis{grid-template-columns:1fr 1fr}
             .middle{grid-template-columns:1fr}
@@ -188,7 +188,7 @@
             .dashboard-layout,html[dir=ltr] .dashboard-layout{grid-template-columns:1fr}
             .dashboard-sidebar,html[dir=ltr] .dashboard-sidebar{display:block;grid-column:1;grid-row:1;position:relative;min-height:auto;height:auto;max-height:320px;overflow:auto;border-inline:0;border-bottom:1px solid var(--foodex-border)}
             .dashboard-shell,html[dir=ltr] .dashboard-shell{grid-column:1!important;grid-row:2}
-            .topbar,html[dir=ltr] .topbar{grid-template-columns:1fr auto;grid-template-areas:"profile actions" "search search";height:auto;min-height:68px;padding:10px var(--foodex-space-4)}
+            .topbar,html[dir=ltr] .topbar{grid-template-columns:auto 1fr;grid-template-areas:"actions profile" "search search";height:auto;min-height:68px;padding:10px var(--foodex-space-4)}html[dir=ltr] .topbar{grid-template-columns:1fr auto;grid-template-areas:"profile actions" "search search"}
             .global-search{grid-column:auto;grid-row:auto}
             .profile,.top-actions{grid-row:auto}
             .bottom{grid-template-columns:1fr}
