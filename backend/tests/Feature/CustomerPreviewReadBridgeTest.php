@@ -92,6 +92,14 @@ class CustomerPreviewReadBridgeTest extends TestCase
         $this->getJson('/api/v1/app-preview/customer/profile')
             ->assertUnauthorized();
 
+        $this->getJson('/api/v1/app-preview/customer/profile?preview_token='.$token)
+            ->assertUnauthorized();
+
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->withToken('unrelated-production-bearer')
+            ->getJson('/api/v1/app-preview/customer/profile')
+            ->assertUnauthorized();
+
         $this->withToken($token)
             ->getJson('/api/v1/profile')
             ->assertUnauthorized();
@@ -100,7 +108,7 @@ class CustomerPreviewReadBridgeTest extends TestCase
             ->patchJson('/api/v1/app-preview/customer/profile', [
                 'name' => 'Must Not Change',
             ])
-            ->assertMethodNotAllowed();
+            ->assertStatus(405);
 
         $this->assertDatabaseHas('users', [
             'id' => $target->id,
