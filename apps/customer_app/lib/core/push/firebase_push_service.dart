@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/foodex_environment.dart';
+import '../diagnostics/customer_diagnostics.dart';
 import '../routing/customer_routes.dart';
 
 const customerBundleId = 'com.fiftysolution.foodex.customer';
@@ -380,7 +381,11 @@ class CustomerFirebasePushService {
       await service.bindGuest();
 
       return service;
-    } catch (_) {
+    } catch (error) {
+      CustomerDiagnostics.instance.record(
+        'push_bootstrap_failure',
+        {'error': error.toString()},
+      );
       return CustomerFirebasePushService._(
         registry: registry,
         messaging: null,
@@ -444,20 +449,27 @@ class CustomerFirebasePushService {
 
     await _tokenSubscription?.cancel();
     _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
-      final currentAccessToken = _accessToken;
-      if (currentAccessToken == null || currentAccessToken.isEmpty) {
-        await registry.registerGuest(
+      try {
+        final currentAccessToken = _accessToken;
+        if (currentAccessToken == null || currentAccessToken.isEmpty) {
+          await registry.registerGuest(
+            firebaseToken: newToken,
+            installId: installId,
+          );
+          return;
+        }
+
+        await registry.register(
+          accessToken: currentAccessToken,
           firebaseToken: newToken,
           installId: installId,
         );
-        return;
+      } catch (error) {
+        CustomerDiagnostics.instance.record(
+          'push_token_refresh_failure',
+          {'mode': 'guest', 'error': error.toString()},
+        );
       }
-
-      await registry.register(
-        accessToken: currentAccessToken,
-        firebaseToken: newToken,
-        installId: installId,
-      );
     });
   }
 
@@ -478,20 +490,27 @@ class CustomerFirebasePushService {
 
     await _tokenSubscription?.cancel();
     _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
-      final currentToken = _accessToken;
-      if (currentToken == null || currentToken.isEmpty) {
-        await registry.registerGuest(
+      try {
+        final currentToken = _accessToken;
+        if (currentToken == null || currentToken.isEmpty) {
+          await registry.registerGuest(
+            firebaseToken: newToken,
+            installId: installId,
+          );
+          return;
+        }
+
+        _deviceId = await registry.register(
+          accessToken: currentToken,
           firebaseToken: newToken,
           installId: installId,
         );
-        return;
+      } catch (error) {
+        CustomerDiagnostics.instance.record(
+          'push_token_refresh_failure',
+          {'mode': 'session', 'error': error.toString()},
+        );
       }
-
-      _deviceId = await registry.register(
-        accessToken: currentToken,
-        firebaseToken: newToken,
-        installId: installId,
-      );
     });
   }
 
@@ -510,7 +529,11 @@ class CustomerFirebasePushService {
           accessToken: accessToken,
           deviceId: deviceId,
         );
-      } catch (_) {
+      } catch (error) {
+        CustomerDiagnostics.instance.record(
+          'push_revoke_failure',
+          {'error': error.toString()},
+        );
         // Local logout must continue even if device revocation is unavailable.
       }
     }
