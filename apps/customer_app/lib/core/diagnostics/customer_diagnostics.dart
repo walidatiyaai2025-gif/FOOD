@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CustomerDiagnostics {
@@ -210,7 +209,7 @@ class CustomerDiagnostics {
   }
 
   Future<File> writeExportFile({String? note}) async {
-    final directory = await getTemporaryDirectory();
+    final directory = Directory.systemTemp;
     final timestamp = DateTime.now()
         .toUtc()
         .toIso8601String()
@@ -376,7 +375,9 @@ class CustomerDiagnostics {
     final preferences = _preferences;
     if (preferences == null) return;
     final payload = jsonEncode(_events);
-    unawaited(preferences.setString(_storageKey, payload));
+    unawaited(
+      preferences.setString(_storageKey, payload).then<void>((_) {}),
+    );
   }
 }
 
