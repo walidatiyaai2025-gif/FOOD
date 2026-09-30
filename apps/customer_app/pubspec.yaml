@@ -18,7 +18,6 @@ dependencies:
   firebase_messaging: ^15.2.10
   flutter_local_notifications: ^18.0.1
   shared_preferences: ^2.5.3
-  cross_file: ^0.3.4+2
   share_plus: ^13.3.0
   mobile_scanner: ^5.2.3
   geolocator: ^14.1.1
