@@ -193,7 +193,7 @@ class CustomerPreviewReadBridgeTest extends TestCase
             ->getJson('/api/v1/b2b/app-preview/customer/profile');
 
         $this->assertSame(200, $response->status(), $response->getContent());
-        $response->assertJsonPath('channel', 'b2b');
+        $response->assertJsonPath('customer.type', 'b2b');
 
         $this->withHeader('X-Foodex-Preview-Token', $token)
             ->getJson('/api/v1/app-preview/customer/profile')
