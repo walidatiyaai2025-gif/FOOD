@@ -81,13 +81,29 @@ try {
   for (const testCase of cases) {
     const { app, width, height, profile } = testCase;
     const standalone = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
+    await standalone.addInitScript(() => {
+      window.__foodexReady = false;
+      addEventListener('message', (event) => {
+        if (
+          event.source === window &&
+          event.origin === location.origin &&
+          event.data &&
+          event.data.type === 'foodex.preview.ready' &&
+          event.data.version === 'shared-flutter-v1'
+        ) {
+          window.__foodexReady = true;
+        }
+      });
+    });
     await standalone.goto(`http://127.0.0.1:4173/${app}/index.html`, { waitUntil: 'networkidle' });
-    await standalone.waitForSelector('flt-glass-pane, flutter-view', { timeout: 15000 });
+    await standalone.waitForFunction(() => window.__foodexReady === true, null, { timeout: 15000 });
+    await standalone.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const standalonePng = await standalone.screenshot();
 
     const embedded = await browser.newPage({ viewport: { width: width + 40, height: height + 40 }, deviceScaleFactor: 1 });
     await embedded.goto(`http://127.0.0.1:4173/host.html?app=${app}&width=${width}&height=${height}`, { waitUntil: 'networkidle' });
     await embedded.waitForFunction(() => window.__foodexReady === true, null, { timeout: 15000 });
+    await embedded.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const iframe = embedded.locator('#runtime');
     const embeddedPng = await iframe.screenshot();
 
