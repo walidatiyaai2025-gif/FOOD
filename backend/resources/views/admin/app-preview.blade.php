@@ -466,7 +466,14 @@
         if (!runtimeFrame || !activeSession || !runtime) return;
         if (event.source !== runtimeFrame.contentWindow || event.origin !== runtime.origin) return;
 
-        const message = event.data;
+        let message = event.data;
+        if (typeof message === 'string') {
+            try {
+                message = JSON.parse(message);
+            } catch (_) {
+                return;
+            }
+        }
         if (!message || typeof message !== 'object') return;
 
         if (message.type === 'foodex.preview.ready') {
@@ -475,7 +482,7 @@
                 return;
             }
 
-            runtimeFrame.contentWindow?.postMessage({
+            const bootstrap = {
                 type: 'foodex.preview.bootstrap',
                 version: runtime.contract_version,
                 payload: {
@@ -489,7 +496,11 @@
                     },
                     safe_mode: 'read_only',
                 },
-            }, runtime.origin);
+            };
+            runtimeFrame.contentWindow?.postMessage(
+                app?.value === 'customer' ? JSON.stringify(bootstrap) : bootstrap,
+                runtime.origin,
+            );
             setStatus(copy.connected);
             return;
         }
