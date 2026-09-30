@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/config/foodex_environment.dart';
 import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/location/driver_location_gate_service.dart';
 import 'core/push/firebase_push_service.dart';
+import 'core/version/driver_version_policy_client.dart';
 
 Future<void> main() async {
   await runZonedGuarded(
@@ -60,6 +63,11 @@ class _FoodexDriverBootstrap extends StatefulWidget {
 
 class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
   DriverFirebasePushService? _pushService;
+  late final HttpDriverVersionPolicyClient _versionPolicyClient =
+      HttpDriverVersionPolicyClient(
+        baseUrl: FoodexEnvironment.apiBaseUrl,
+        platform: Platform.isIOS ? 'ios' : 'android',
+      );
 
   @override
   void initState() {
@@ -81,6 +89,7 @@ class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
   @override
   void dispose() {
     unawaited(_pushService?.dispose());
+    _versionPolicyClient.close();
     super.dispose();
   }
 
@@ -89,6 +98,7 @@ class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
     return FoodexDriverApp(
       pushService: _pushService,
       locationGateService: const GeolocatorDriverLocationGateService(),
+      versionPolicyClient: _versionPolicyClient,
     );
   }
 }
