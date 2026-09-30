@@ -4,7 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon $expires_at
+ * @property Carbon|null $last_resolved_at
+ * @property Carbon|null $revoked_at
+ */
 class AppPreviewSession extends Model
 {
     protected $table = 'app_preview_sessions';
