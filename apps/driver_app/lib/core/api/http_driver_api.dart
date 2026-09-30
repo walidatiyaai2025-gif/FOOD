@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../features/tasks/driver_journey.dart';
 import '../auth/driver_session.dart';
+import '../diagnostics/driver_runtime_inspector.dart';
 
 Uri _driverApiBase(String raw) {
   final parsed = Uri.parse(raw);
@@ -15,7 +16,7 @@ Uri _driverApiBase(String raw) {
 class HttpDriverAuthRepository implements DriverAuthRepository {
   HttpDriverAuthRepository(String baseUrl, {http.Client? client})
       : _base = _driverApiBase(baseUrl),
-        _client = client ?? http.Client();
+        _client = DriverDiagnosticHttpClient(client ?? http.Client());
 
   final Uri _base;
   final http.Client _client;
@@ -108,7 +109,7 @@ class HttpDriverAssignmentRepository implements DriverProofAssignmentRepository 
     this.token, {
     http.Client? client,
   })  : _base = _driverApiBase(baseUrl),
-        _client = client ?? http.Client();
+        _client = DriverDiagnosticHttpClient(client ?? http.Client());
 
   final Uri _base;
   final String token;

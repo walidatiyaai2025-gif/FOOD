@@ -6,10 +6,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/api/http_driver_api.dart';
 import 'core/auth/driver_session.dart';
 import 'core/config/foodex_environment.dart';
+import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/localization/driver_translations.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/auth/driver_login.dart';
+import 'features/inspector/driver_inspector_panel.dart';
 import 'features/notifications/notification_feed.dart';
 import 'features/tasks/driver_journey.dart';
 import 'navigation.dart';
@@ -60,8 +62,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<DriverPushOpen>? _pushOpenSubscription;
   StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
-
-  static const _appVersion = '1.0.36';
+  bool _inspectorOpen = false;
+  String? _routeBeforeInspector;
 
   String get _baseUrl =>
       widget.apiBaseUrl ??
@@ -72,6 +74,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     super.initState();
     _session = widget.initialSession;
     _translations = Map<String, String>.from(widget.translationOverrides);
+    DriverRuntimeInspector.instance.recordNavigation(
+      _session == null ? 'driver.login' : widget.initialRoute,
+    );
     _loadRemoteTranslations();
     _configurePush();
   }
@@ -176,6 +181,11 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   }
 
   void _authenticated(DriverSession session) {
+    DriverRuntimeInspector.instance.recordNavigation(
+      session.channel == DriverChannel.b2c
+          ? DriverRoutes.b2cHome
+          : DriverRoutes.b2bHome,
+    );
     if (mounted) setState(() => _session = session);
     _bindPushSession();
   }
@@ -183,6 +193,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   void _sessionExpired() {
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
+    DriverRuntimeInspector.instance.recordNavigation('driver.login');
     if (mounted) setState(() => _session = null);
   }
 
@@ -190,6 +201,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     final session = _session;
     final service = widget.pushService;
     if (service != null) await service.revokeSession();
+    DriverRuntimeInspector.instance.recordNavigation('driver.login');
     if (mounted) setState(() => _session = null);
     if (session == null) return;
     final repository = _authRepository();
@@ -252,61 +264,96 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
                 start: 0,
                 end: 0,
                 bottom: 0,
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF8FAFC),
-                      border: Border(
-                        top: BorderSide(color: Color(0xFFE3E8EF)),
-                      ),
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    border: Border(
+                      top: BorderSide(color: Color(0xFFE3E8EF)),
                     ),
-                    child: SafeArea(
-                      top: false,
-                      child: SizedBox(
-                        height: 34,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            child: Text(
-                              '${translatedContext.tr('driver.version')} $_appVersion',
-                              key: const Key('driver-app-version-footer'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(translatedContext)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: FoodexBrand.muted,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: SizedBox(
+                      height: 38,
+                      child: Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          start: 12,
+                          end: 4,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${translatedContext.tr('driver.version')} $driverAppVersion',
+                                key: const Key('driver-app-version-footer'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(translatedContext)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: FoodexBrand.muted,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
                             ),
-                          ),
+                            TextButton.icon(
+                              key: const Key('driver-global-inspector'),
+                              onPressed: () {
+                                _routeBeforeInspector =
+                                    DriverRuntimeInspector.instance.lastRoute ??
+                                        (_session == null
+                                            ? 'driver.login'
+                                            : widget.initialRoute);
+                                DriverRuntimeInspector.instance
+                                    .recordNavigation('driver.inspector');
+                                setState(() => _inspectorOpen = true);
+                              },
+                              icon: const Icon(
+                                Icons.bug_report_outlined,
+                                size: 16,
+                              ),
+                              label: Text(
+                                translatedContext.tr('driver.inspector.open'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (_session != null)
+                              TextButton.icon(
+                                key: const Key('driver-global-logout'),
+                                onPressed: _logout,
+                                icon: const Icon(
+                                  Icons.logout_rounded,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                  translatedContext.tr('driver.logout'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-              if (_session != null)
-                PositionedDirectional(
-                  end: 6,
-                  bottom: 0,
-                  child: SafeArea(
-                    top: false,
-                    child: SizedBox(
-                      height: 34,
-                      child: TextButton.icon(
-                        key: const Key('driver-global-logout'),
-                        onPressed: _logout,
-                        icon: const Icon(Icons.logout_rounded, size: 16),
-                        label: Text(
-                          translatedContext.tr('driver.logout'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
+              if (_inspectorOpen)
+                Positioned.fill(
+                  child: DriverInspectorPanel(
+                    authenticated: _session != null,
+                    onClose: () {
+                      final route = _routeBeforeInspector;
+                      if (route != null) {
+                        DriverRuntimeInspector.instance.recordNavigation(route);
+                      }
+                      setState(() {
+                        _inspectorOpen = false;
+                        _routeBeforeInspector = null;
+                      });
+                    },
                   ),
                 ),
             ],

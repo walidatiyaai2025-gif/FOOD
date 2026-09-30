@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 
+import '../diagnostics/driver_runtime_inspector.dart';
+
 typedef DriverTranslationFetcher = Future<Map<String, String>> Function(String locale);
 
 class DriverTranslations extends InheritedWidget {
@@ -53,6 +55,24 @@ class DriverTranslations extends InheritedWidget {
     'driver.config.missing': 'عنوان خادم فودكس غير مضبوط لهذا الإصدار',
     'driver.logout': 'تسجيل الخروج',
     'driver.dismiss': 'إغلاق',
+    'driver.inspector.open': 'التشخيص',
+    'driver.inspector.title': 'أداة تشخيص التطبيق',
+    'driver.inspector.summary': 'ملخص التشخيص',
+    'driver.inspector.events': 'عدد الأحداث',
+    'driver.inspector.last_event': 'آخر حدث',
+    'driver.inspector.current_route': 'الشاشة الحالية',
+    'driver.inspector.privacy': 'يتم حفظ سجل محدود محليًا فقط. لا يتم رفعه تلقائيًا ولا يتضمن كلمات المرور أو الرموز السرية أو محتوى الطلبات والاستجابات أو بيانات العميل أو إحداثيات الموقع الدقيقة.',
+    'driver.inspector.export': 'تصدير ملف JSON',
+    'driver.inspector.clear': 'مسح سجل التشخيص',
+    'driver.inspector.recent': 'أحدث الأحداث',
+    'driver.inspector.none': 'لا توجد بيانات',
+    'driver.inspector.navigation': 'تنقل',
+    'driver.inspector.network_error': 'خطأ شبكة',
+    'driver.inspector.share_text': 'ملف تشخيص فودكس للسائق',
+    'driver.inspector.export_ready': 'تم تجهيز ملف التشخيص للمشاركة.',
+    'driver.inspector.export_failed': 'تعذر تجهيز ملف التشخيص.',
+    'driver.inspector.clear_done': 'تم مسح سجل التشخيص.',
+    'driver.inspector.clear_failed': 'تعذر مسح سجل التشخيص.',
     'driver.detail.title': 'تفاصيل التوصيل',
     'driver.detail.order': 'الطلب',
     'driver.detail.status': 'الحالة',
@@ -161,6 +181,24 @@ class DriverTranslations extends InheritedWidget {
     'driver.config.missing': 'The FOODEX server URL is not configured for this build',
     'driver.logout': 'Sign out',
     'driver.dismiss': 'Dismiss',
+    'driver.inspector.open': 'Diagnostics',
+    'driver.inspector.title': 'App diagnostics',
+    'driver.inspector.summary': 'Diagnostics summary',
+    'driver.inspector.events': 'Event count',
+    'driver.inspector.last_event': 'Last event',
+    'driver.inspector.current_route': 'Current screen',
+    'driver.inspector.privacy': 'Only a bounded local history is kept. Nothing is uploaded automatically, and exports exclude passwords, tokens, request/response bodies, customer information and precise location coordinates.',
+    'driver.inspector.export': 'Export JSON',
+    'driver.inspector.clear': 'Clear diagnostics history',
+    'driver.inspector.recent': 'Recent events',
+    'driver.inspector.none': 'No data',
+    'driver.inspector.navigation': 'Navigation',
+    'driver.inspector.network_error': 'Network error',
+    'driver.inspector.share_text': 'FOODEX Driver diagnostics',
+    'driver.inspector.export_ready': 'Diagnostics file is ready to share.',
+    'driver.inspector.export_failed': 'Unable to prepare the diagnostics file.',
+    'driver.inspector.clear_done': 'Diagnostics history cleared.',
+    'driver.inspector.clear_failed': 'Unable to clear diagnostics history.',
     'driver.detail.title': 'Delivery details',
     'driver.detail.order': 'Order',
     'driver.detail.status': 'Status',
@@ -266,21 +304,26 @@ extension DriverTranslationContext on BuildContext {
 }
 
 Future<Map<String, String>> fetchDriverTranslationBundle(String baseUrl, String locale) async {
-  final response = await http.get(
-    Uri.parse('$baseUrl/api/v1/translations/$locale'),
-    headers: const {'Accept': 'application/json'},
-  );
+  final client = DriverDiagnosticHttpClient(http.Client());
+  try {
+    final response = await client.get(
+      Uri.parse('$baseUrl/api/v1/translations/$locale'),
+      headers: const {'Accept': 'application/json'},
+    );
 
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    return const {};
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      return const {};
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic> || decoded['translations'] is! Map) {
+      return const {};
+    }
+
+    return (decoded['translations'] as Map).map(
+      (key, value) => MapEntry(key.toString(), value.toString()),
+    );
+  } finally {
+    client.close();
   }
-
-  final decoded = jsonDecode(response.body);
-  if (decoded is! Map<String, dynamic> || decoded['translations'] is! Map) {
-    return const {};
-  }
-
-  return (decoded['translations'] as Map).map(
-    (key, value) => MapEntry(key.toString(), value.toString()),
-  );
 }

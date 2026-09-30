@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/diagnostics/driver_runtime_inspector.dart';
+
 class DriverNotification {
   const DriverNotification({
     required this.id,
@@ -53,7 +55,7 @@ class HttpDriverNotificationRepository implements DriverNotificationRepository {
     required this.baseUrl,
     required this.token,
     http.Client? client,
-  }) : _client = client ?? http.Client();
+  }) : _client = DriverDiagnosticHttpClient(client ?? http.Client());
 
   final String baseUrl;
   final String token;
