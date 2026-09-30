@@ -21,6 +21,7 @@ import 'core/preview/customer_preview_context.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
 import 'core/theme/foodex_theme.dart';
+import 'features/storefront/marketplace_barcode_scanner.dart';
 
 class FoodexCustomerApp extends StatefulWidget {
   const FoodexCustomerApp({
@@ -41,6 +42,8 @@ class FoodexCustomerApp extends StatefulWidget {
     this.locationService,
     this.mapPinPicker,
     this.previewContext,
+    this.marketplaceClient,
+    this.marketplaceBarcodeScanner,
   });
 
   factory FoodexCustomerApp.preview({
@@ -49,6 +52,7 @@ class FoodexCustomerApp extends StatefulWidget {
     required B2cCatalogApi b2cCatalogApi,
     required B2cAccountApi b2cAccountApi,
     required StorefrontApi storefrontApi,
+    required http.Client marketplaceClient,
     B2bApi? b2bApi,
     WholesaleCommerceApi? wholesaleCommerceApi,
     String initialRoute = CustomerRoutePaths.marketplace,
@@ -87,6 +91,8 @@ class FoodexCustomerApp extends StatefulWidget {
       locationService: const PreviewCustomerLocationService(),
       mapPinPicker: previewCustomerMapPinPicker,
       previewContext: previewContext,
+      marketplaceClient: PreviewReadOnlyHttpClient(marketplaceClient),
+      marketplaceBarcodeScanner: (context) async => null,
     );
   }
 
@@ -106,6 +112,8 @@ class FoodexCustomerApp extends StatefulWidget {
   final CustomerLocationService? locationService;
   final CustomerMapPinPicker? mapPinPicker;
   final CustomerPreviewContext? previewContext;
+  final http.Client? marketplaceClient;
+  final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
 
   @override
   State<FoodexCustomerApp> createState() => _FoodexCustomerAppState();
@@ -324,7 +332,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       if (widget.b2cCatalogApi == null ||
           widget.b2cAccountApi == null ||
           widget.actionApi == null ||
-          widget.storefrontApi == null) {
+          widget.storefrontApi == null ||
+          widget.marketplaceClient == null ||
+          widget.marketplaceBarcodeScanner == null) {
         throw StateError(
           'Customer preview requires host-injected Customer APIs.',
         );
@@ -412,6 +422,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       locationService: widget.locationService ??
           const GeolocatorCustomerLocationService(),
       mapPinPicker: widget.mapPinPicker ?? showCustomerMapPinSelector,
+      marketplaceClient: widget.marketplaceClient,
+      marketplaceBarcodeScanner: widget.marketplaceBarcodeScanner,
     );
 
     return MaterialApp(
