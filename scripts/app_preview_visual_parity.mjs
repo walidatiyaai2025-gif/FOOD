@@ -334,7 +334,7 @@ async function waitForState(page, testCase, surface) {
 const report = [];
 try {
   for (const testCase of cases) {
-    const { app, width, height, profile, id } = testCase;
+    const { app, width, height, profile, id, locale } = testCase;
 
     const browserLocale = testCase.locale === 'ar' ? 'ar-KW' : 'en-US';
     const standalone = await browser.newPage({
