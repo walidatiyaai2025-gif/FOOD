@@ -116,6 +116,7 @@ class AdminBusinessManagementTest extends TestCase
 
         $this->actingAs($user)->post('/admin/business/banners', [
             'store_id' => $storeId,
+            'support_access' => 1,
             'title' => 'Launch Banner',
             'banner_image' => UploadedFile::fake()->image('launch.jpg', 1200, 420),
             'sort_order' => 1,
