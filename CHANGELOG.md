@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.39 - 2026-09-30
+
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.39 / mobile build 1.0.39+39 after the completed Driver tracking rollout chain.
+- Ship the real Customer Flutter Web preview runtime and authenticated/guest read bridge, including Draft/Published revision resolution, scoped live invalidation, parity coverage and sanitized preview diagnostics.
+- Ship the revisioned storefront Draft/Published backend foundation and preview configuration contracts required by the real application preview runtime; editor activation remains governed by its separate task.
+- Add Dashboard live Driver tracking, including the dedicated page, sidebar access and compact B2B/B2C dashboard map cards using locally served map assets.
+- Add Driver minimum-version policy enforcement in the app runtime while preserving the existing production minimum-version setting; this release does not mutate production AppVersion rows.
+- Add server-side fresh Driver location enforcement capability with audited enable/disable controls and a stable recovery contract, while keeping enforcement OFF unless activated separately through the governed production path.
+- Close the unaudited environment-variable enable bypass so absence of the persisted environment-scoped enforcement setting resolves OFF.
+- Add active-delivery Driver background location lifecycle for Android/iOS, with foreground-service/native declarations, logout and permission revocation shutdown, and no broad Android background-location permission.
+- Add the real Driver Flutter Web preview bridge and dedicated preview Web validation without enabling native/background tracking in preview.
+- Preserve rollout separation: publishing 1.0.39 does not activate Driver location enforcement or change the production minimum-supported version; heartbeat evidence and production activation remain separate operational gates.
+
+
 ## 1.0.38 - 2026-09-30
 
 - Complete the dashboard-only recovery path for installations that received 1.0.36 files while database migrations remained pending: install the migration-free 1.0.37 bootstrap first, then the cumulative 1.0.38 update so migration auto-detection triggers backup + pending migrations without a manual checkbox or shell command.

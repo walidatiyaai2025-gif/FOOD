@@ -1,51 +1,49 @@
-# FOODEX 1.0.0 Release Notes
+# FOODEX 1.0.39 Release Notes
 
-Status: release candidate identity for the completed repository baseline. Production promotion remains blocked only by the external deployment/signing evidence tracked in #124 and #125.
+Status: synchronized trial-distribution release for the merged runtime baseline after the Driver live-tracking chain. Publishing this release does not activate production Driver minimum-version enforcement or fresh-location enforcement.
 
-## Source state
+## Release identity
 
-- Release version: `1.0.0`
-- Customer app: `1.0.0+1`
-- Driver app: `1.0.0+1`
-- Runtime evidence baseline merged in #177 at `3261d9b46f34358ee653ef588022c7820d46734f`.
-- The final promoted source SHA is the main commit containing this release identity after #178 is merged.
+- Dashboard: `1.0.39`
+- Customer app: `1.0.39+39`
+- Driver app: `1.0.39+39`
+- Customer runtime/footer identity: `1.0.39`
+- Driver runtime/footer identity: `1.0.39`
+- Driver diagnostics, heartbeat telemetry and version-policy current identity: `1.0.39`
+- Driver diagnostics build identity: `39`
 
-## Product scope in 1.0.0
+## Deployable delta since 1.0.38
 
-### Web administration
-- B2B and B2C management surfaces are implemented with FOODEX branding, Arabic/English localization and store/channel-aware authorization.
-- Product, inventory, order, customer, promotion, driver/delivery, pricing approval, reports, settings and governance flows are wired to working backend data.
-- Critical mutations remain permission-checked and audited.
+### Customer preview and storefront revision runtime
+- Adds the real Customer Flutter Web preview host/runtime and authenticated Customer read bridge.
+- Resolves guest and authenticated Draft/Published storefront revisions using scoped preview sessions.
+- Adds scoped live preview invalidation and parity coverage for Retail/Wholesale directionality and shared runtime behavior.
+- Adds sanitized Preview Inspector export without production credentials or sensitive query values.
+- Includes the revisioned Draft/Published storefront backend foundation required by the preview runtime. Storefront editor activation remains owned by its separate task and is not fabricated by this release branch.
 
-### Customer mobile
-- One Customer binary supports the approved B2B and B2C journeys without duplicating server-owned business rules.
-- B2B includes dashboard, purchase reports, top products, invoices, account statement, orders, catalog, product detail, cart and profile.
-- B2C includes store selection, catalog/offers, product detail, cart, checkout authentication, address/payment, order tracking and profile/favorites.
-- Arabic RTL and English LTR are supported.
+### Driver live tracking and rollout controls
+- Adds Dashboard live Driver tracking with a dedicated page, sidebar entry and compact B2B/B2C map cards.
+- Adds the Driver app minimum-version policy gate and current-version reporting.
+- Adds server-side fresh-location enforcement capability and stable recovery semantics.
+- Removes the unaudited environment-variable enforcement-enable fallback; no persisted environment-scoped setting means enforcement is OFF.
+- Adds active-delivery background/foreground Driver tracking lifecycle with Android foreground-location service declarations and iOS location background mode.
+- Keeps broad Android `ACCESS_BACKGROUND_LOCATION` absent and does not request iOS Always permission unless a future supported path requires it.
+- Stops tracking on logout/session invalidation or permission/service loss and avoids high-frequency background tracking without an active delivery.
+- Adds the real Driver Flutter Web preview bridge; preview remains exempt from native/background tracking.
 
-### Driver mobile
-- One Driver binary supports B2B/B2C channel behavior.
-- Login, home, deliveries, delivery actions and empty/offline states are implemented and evidenced.
-- Arabic RTL and English LTR are supported.
+### Validation and distribution
+- Customer and Driver Android release builds and iOS no-codesign builds remain required CI gates.
+- Driver native validation checks location permissions/service declarations and iOS background-mode contract.
+- Customer Preview Web and Driver Preview Web release builds are validated in CI.
+- Trial Distribution generates synchronized Customer APK, Driver APK, Laravel setup/update artifacts and `BUILD_INFO.json` from the final `main` source commit.
 
-## Release and quality evidence
-- Required repository policy and required-ci-gate are green on the completed product baseline.
-- Backend validation covers tests, lint, static analysis, security audit and OpenAPI contract checks.
-- MySQL/MariaDB/Redis deployment acceptance covers clean install, updater fixture, backup/restore and recovery behavior on disposable services.
-- Customer and Driver Android release-mode plus iOS no-codesign validation artifacts are reproducible.
-- Screenshot evidence contains 110 real runtime PNGs covering all 46 approved baseline screens plus Driver states.
-- Screenshot audit reports zero canonical FOODEX palette failures and zero role/surface brand-anchor failures.
+## Explicit non-activation statement
 
-## External production blockers
+This source release does **not**:
+- change production minimum-supported AppVersion rows;
+- enable Driver fresh-location enforcement;
+- activate Driver location enforcement through configuration or database mutation;
+- claim production heartbeat evidence;
+- mark parent rollout #512 operationally complete.
 
-The following are intentionally not fabricated and must be supplied before production/store-ready closure:
-
-1. Exact previous supported FOODEX release package/version for the real upgrade rehearsal.
-2. Target staging/production environment and production HTTPS API URL.
-3. Approved Customer Android applicationId and iOS bundle ID.
-4. Approved Driver Android applicationId and iOS bundle ID.
-5. Android production signing configuration and Apple signing team/certificates/profiles.
-6. Production/staging backup identifier, post-deploy health check and rollback decision evidence.
-7. Final physical-device installation/runtime acceptance for both mobile binaries.
-
-These blockers remain owned by #124 and #125. This document does not mark them complete.
+Production heartbeat evidence, minimum-version activation and enforcement activation remain separate governed operational steps after published-artifact verification.
