@@ -720,7 +720,7 @@ class _MarketplaceHeader extends StatelessWidget {
                   visualDensity:
                       compact ? VisualDensity.compact : VisualDensity.standard,
                   constraints: compact
-                      ? const BoxConstraints.tightFor(width: 38, height: 38)
+                      ? const BoxConstraints.tightFor(width: 44, height: 44)
                       : null,
                   padding: compact ? const EdgeInsets.all(6) : null,
                   tooltip: context.tr('customer.marketplace.scan'),
@@ -732,7 +732,7 @@ class _MarketplaceHeader extends StatelessWidget {
                   onPressed: onLanguageToggle,
                   style: compact
                       ? TextButton.styleFrom(
-                          minimumSize: const Size(38, 38),
+                          minimumSize: const Size(44, 44),
                           padding: EdgeInsets.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         )
@@ -744,7 +744,7 @@ class _MarketplaceHeader extends StatelessWidget {
                   visualDensity:
                       compact ? VisualDensity.compact : VisualDensity.standard,
                   constraints: compact
-                      ? const BoxConstraints.tightFor(width: 38, height: 38)
+                      ? const BoxConstraints.tightFor(width: 44, height: 44)
                       : null,
                   padding: compact ? const EdgeInsets.all(6) : null,
                   tooltip: context.tr('customer.nav.cart'),
@@ -756,7 +756,7 @@ class _MarketplaceHeader extends StatelessWidget {
                   visualDensity:
                       compact ? VisualDensity.compact : VisualDensity.standard,
                   constraints: compact
-                      ? const BoxConstraints.tightFor(width: 38, height: 38)
+                      ? const BoxConstraints.tightFor(width: 44, height: 44)
                       : null,
                   padding: compact ? const EdgeInsets.all(6) : null,
                   tooltip: context.tr('customer.nav.notifications'),
@@ -772,8 +772,8 @@ class _MarketplaceHeader extends StatelessWidget {
                   )
                 else if (compact)
                   SizedBox(
-                    width: 38,
-                    height: 38,
+                    width: 44,
+                    height: 44,
                     child: PopupMenuButton<String>(
                       key: const ValueKey('marketplace-auth-menu'),
                       padding: EdgeInsets.zero,
