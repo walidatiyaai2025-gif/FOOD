@@ -47,9 +47,10 @@ class CustomerDiagnostics extends ChangeNotifier {
   final List<CustomerDiagnosticEvent> _events = <CustomerDiagnosticEvent>[];
 
   SharedPreferences? _preferences;
+  Future<void> _persistChain = Future<void>.value();
   String _appVersion = 'unknown';
   String _buildNumber = 'unknown';
-  String? _deviceModel;
+  final String? _deviceModel = null;
   final String _osVersion = Platform.operatingSystemVersion;
   String _apiBaseUrl = '';
   String _environment = 'unknown';
@@ -81,15 +82,18 @@ class CustomerDiagnostics extends ChangeNotifier {
       if (raw != null && raw.isNotEmpty) {
         final decoded = jsonDecode(raw);
         if (decoded is List) {
+          final restored = decoded
+              .whereType<Map>()
+              .map((row) => CustomerDiagnosticEvent.fromJson(
+                    Map<String, dynamic>.from(row),
+                  ))
+              .toList(growable: false);
           _events
             ..clear()
             ..addAll(
-              decoded
-                  .whereType<Map>()
-                  .map((row) => CustomerDiagnosticEvent.fromJson(
-                        Map<String, dynamic>.from(row),
-                      ))
-                  .take(maxEvents),
+              restored.length <= maxEvents
+                  ? restored
+                  : restored.sublist(restored.length - maxEvents),
             );
         }
       }
@@ -290,12 +294,13 @@ class CustomerDiagnostics extends ChangeNotifier {
   Future<void> _persist() async {
     final prefs = _preferences;
     if (prefs == null) return;
-    try {
-      await prefs.setString(
-        _storageKey,
-        jsonEncode(_events.map((event) => event.toJson()).toList()),
-      );
-    } catch (_) {}
+    final payload =
+        jsonEncode(_events.map((event) => event.toJson()).toList());
+    _persistChain = _persistChain
+        .then((_) => prefs.setString(_storageKey, payload))
+        .then<void>((_) {})
+        .catchError((_) {});
+    await _persistChain;
   }
 }
 
