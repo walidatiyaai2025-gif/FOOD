@@ -22,15 +22,24 @@ class CustomerPreviewRuntime {
     required this.app,
     required this.client,
     required this.safeStatusMetadata,
+    required this.bootstrap,
+    required this.baseUrl,
+    required this.dashboardBaseUrl,
     this.authenticatedBundle,
-    this.configuration,
+    required this.configuration,
   });
 
   final Widget app;
   final http.Client client;
   final Map<String, Object?> safeStatusMetadata;
+  final CustomerPreviewBootstrap bootstrap;
+  final String baseUrl;
+  final String dashboardBaseUrl;
   final CustomerPreviewApiBundle? authenticatedBundle;
-  final CustomerPreviewResolvedConfiguration? configuration;
+  final CustomerPreviewResolvedConfiguration configuration;
+
+  http.Client get invalidationClient =>
+      authenticatedBundle?.transport ?? client;
 
   void close() {
     authenticatedBundle?.close();
@@ -40,10 +49,17 @@ class CustomerPreviewRuntime {
   static Future<CustomerPreviewRuntime> create({
     required String baseUrl,
     required CustomerPreviewBootstrap bootstrap,
+    String? dashboardBaseUrl,
+    CustomerPreviewResolvedConfiguration? resolvedConfiguration,
     http.Client? client,
   }) async {
     final transportOwner = client ?? http.Client();
     final context = bootstrap.context;
+    final dashboardOrigin = _normalizedBase(
+      dashboardBaseUrl == null || dashboardBaseUrl.trim().isEmpty
+          ? baseUrl
+          : dashboardBaseUrl,
+    );
     final initialRoute = context.channel == CustomerChannel.b2c
         ? '/retail/${context.storeId}/home'
         : (context.authenticated
@@ -67,9 +83,15 @@ class CustomerPreviewRuntime {
       );
 
       try {
-        final configuration = await CustomerPreviewResolvedConfiguration.resolve(
-          baseUrl: baseUrl,
-          client: bundle.transport,
+        final configuration = resolvedConfiguration ??
+            await CustomerPreviewResolvedConfiguration.resolve(
+              baseUrl: baseUrl,
+              client: bundle.transport,
+              context: context,
+              mode: bootstrap.configuration,
+            );
+        _requireConfigurationScope(
+          configuration,
           context: context,
           mode: bootstrap.configuration,
         );
@@ -97,6 +119,9 @@ class CustomerPreviewRuntime {
           client: transportOwner,
           authenticatedBundle: bundle,
           configuration: configuration,
+          bootstrap: bootstrap,
+          baseUrl: baseUrl,
+          dashboardBaseUrl: dashboardOrigin,
           safeStatusMetadata: {
             ...bootstrap.safeStatusMetadata,
             ...configuration.safeStatusMetadata,
@@ -109,43 +134,93 @@ class CustomerPreviewRuntime {
       }
     }
 
-    final guestSession = CustomerGuestSession();
-    final catalog = HttpB2cCatalogApi(
-      baseUrl: baseUrl,
-      client: transportOwner,
-    );
-    final account = HttpB2cAccountApi(
-      baseUrl: baseUrl,
-      token: null,
-      guestSession: guestSession,
-      client: transportOwner,
-    );
-    final storefront = _GuestPreviewStorefrontApi(
-      baseUrl: baseUrl,
-      client: transportOwner,
-    );
+    try {
+      final configuration = resolvedConfiguration ??
+          await CustomerPreviewResolvedConfiguration.resolveGuest(
+            dashboardBaseUrl: dashboardOrigin,
+            client: transportOwner,
+            context: context,
+            mode: bootstrap.configuration,
+          );
+      _requireConfigurationScope(
+        configuration,
+        context: context,
+        mode: bootstrap.configuration,
+      );
 
-    final app = FoodexCustomerApp.preview(
-      previewContext: context,
-      b2cCatalogApi: catalog,
-      b2cAccountApi: account,
-      storefrontApi: storefront,
-      marketplaceClient: transportOwner,
-      b2bApi: context.channel == CustomerChannel.b2b
-          ? const _GuestB2bApi()
-          : null,
-      wholesaleCommerceApi: context.channel == CustomerChannel.b2b
-          ? const _GuestWholesaleCommerceApi()
-          : null,
-      initialRoute: initialRoute,
-      locale: Locale(bootstrap.locale),
-    );
+      final guestSession = CustomerGuestSession();
+      final catalog = HttpB2cCatalogApi(
+        baseUrl: baseUrl,
+        client: transportOwner,
+      );
+      final account = HttpB2cAccountApi(
+        baseUrl: baseUrl,
+        token: null,
+        guestSession: guestSession,
+        client: transportOwner,
+      );
+      final delegate = _GuestPreviewStorefrontApi(
+        baseUrl: baseUrl,
+        client: transportOwner,
+      );
+      final storefront = PreviewRevisionStorefrontApi(
+        delegate: delegate,
+        context: context,
+        configuration: configuration,
+        baseUrl: baseUrl,
+      );
 
-    return CustomerPreviewRuntime._(
-      app: app,
-      client: transportOwner,
-      safeStatusMetadata: bootstrap.safeStatusMetadata,
-    );
+      final app = FoodexCustomerApp.preview(
+        previewContext: context,
+        b2cCatalogApi: catalog,
+        b2cAccountApi: account,
+        storefrontApi: storefront,
+        marketplaceClient: transportOwner,
+        b2bApi: context.channel == CustomerChannel.b2b
+            ? const _GuestB2bApi()
+            : null,
+        wholesaleCommerceApi: context.channel == CustomerChannel.b2b
+            ? const _GuestWholesaleCommerceApi()
+            : null,
+        initialRoute: initialRoute,
+        locale: Locale(bootstrap.locale),
+      );
+
+      return CustomerPreviewRuntime._(
+        app: app,
+        client: transportOwner,
+        configuration: configuration,
+        bootstrap: bootstrap,
+        baseUrl: baseUrl,
+        dashboardBaseUrl: dashboardOrigin,
+        safeStatusMetadata: {
+          ...bootstrap.safeStatusMetadata,
+          ...configuration.safeStatusMetadata,
+        },
+      );
+    } catch (_) {
+      transportOwner.close();
+      rethrow;
+    }
+  }
+
+  static void _requireConfigurationScope(
+    CustomerPreviewResolvedConfiguration configuration, {
+    required CustomerPreviewContext context,
+    required String mode,
+  }) {
+    if (configuration.channel != context.channel ||
+        configuration.storeId != context.storeId ||
+        configuration.mode != mode) {
+      throw const CustomerPreviewConfigurationException(
+        'preview_configuration_scope_mismatch',
+      );
+    }
+  }
+
+  static String _normalizedBase(String value) {
+    final base = value.trim();
+    return base.endsWith('/') ? base.substring(0, base.length - 1) : base;
   }
 }
 
