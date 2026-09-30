@@ -239,7 +239,7 @@ class AppPreviewDashboardBridgeTest extends TestCase
         ] as $expected) {
             $this->assertStringContainsString($expected, $html.$bridgeScript);
         }
-        $this->assertStringContainsString("device: selectedDeviceProfile()", $bridgeScript);
+        $this->assertStringContainsString('device: selectedDeviceProfile()', $bridgeScript);
     }
 
     public function test_preview_inspector_is_source_gated_sanitized_versioned_and_localized(): void
