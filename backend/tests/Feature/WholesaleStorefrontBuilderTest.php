@@ -34,7 +34,7 @@ class WholesaleStorefrontBuilderTest extends TestCase
             ->get(route('admin.b2b.module', ['module' => 'storefront']))
             ->assertOk()
             ->assertSee('Wholesale branding &amp; theme', false)
-            ->assertSee('Save to Draft')
+            ->assertSee('Save Draft')
             ->assertSee('Open real app preview');
 
         $buyer = User::query()->create([
