@@ -30,6 +30,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout pinned TCPDF runtime
+        uses: actions/checkout@v4
+        with:
+          repository: tecnickcom/TCPDF
+          ref: b18f6119161019916c5bb07cb8da5205ae5c1b63
+          path: .foodex-thirdparty/tcpdf-source
+          persist-credentials: false
+
+      - name: Stage self-contained invoice PDF runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf backend/app/ThirdParty/tcpdf
+          mkdir -p backend/app/ThirdParty/tcpdf
+          rsync -a             --exclude='.git'             --exclude='examples'             --exclude='tests'             --exclude='test'             .foodex-thirdparty/tcpdf-source/             backend/app/ThirdParty/tcpdf/
+          test -f backend/app/ThirdParty/tcpdf/tcpdf.php
+          test -f backend/app/ThirdParty/tcpdf/LICENSE.TXT
+          test -f backend/app/ThirdParty/tcpdf/fonts/dejavusans.php
+          test -f backend/app/ThirdParty/tcpdf/fonts/dejavusans.z
+
       - name: Resolve cumulative update boundary
         shell: bash
         env:
@@ -113,6 +133,10 @@ jobs:
               "backend/app/Domain/Updater/LaravelUpdateRuntime.php",
               "backend/app/Http/Middleware/RunSchedulerHeartbeat.php",
               "backend/app/Services/SchedulerRuntime.php",
+              "backend/app/ThirdParty/tcpdf/tcpdf.php",
+              "backend/app/ThirdParty/tcpdf/LICENSE.TXT",
+              "backend/app/ThirdParty/tcpdf/fonts/dejavusans.php",
+              "backend/app/ThirdParty/tcpdf/fonts/dejavusans.z",
               "backend/bootstrap/app.php",
               "backend/config/foodex.php",
               "backend/public/brand/foodex-economical-group.webp",
