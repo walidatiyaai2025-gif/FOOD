@@ -31,7 +31,18 @@ class DriverLiveTrackingDashboardTest extends TestCase
             ->assertSee('/vendor/leaflet/1.9.4/leaflet.css', false)
             ->assertSee('/vendor/leaflet/1.9.4/leaflet.js', false)
             ->assertDontSee('unpkg.com', false)
-            ->assertSee('/api/v1/admin/driver-live-tracking/feed', false);
+            ->assertSee('/admin/driver-live-tracking/feed', false);
+    }
+
+    public function test_dashboard_web_session_can_read_live_tracking_feed(): void
+    {
+        $user = $this->globalUser('SUPER_ADMIN', 'tracking-feed@example.test');
+        app(\App\Services\WholesalePrincipal::class)->storeId();
+
+        $this->actingAs($user)
+            ->getJson('/admin/driver-live-tracking/feed')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 0);
     }
 
     public function test_user_without_tracking_permission_is_denied_and_navigation_hides_entry(): void
