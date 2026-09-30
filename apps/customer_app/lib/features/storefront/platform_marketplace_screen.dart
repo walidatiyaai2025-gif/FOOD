@@ -32,12 +32,12 @@ class PlatformMarketplaceScreen extends StatefulWidget {
 class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   late final http.Client _client = widget.client ?? http.Client();
   late Future<Map<String, dynamic>> _future = _load();
-  final PageController _retailController = PageController(viewportFraction: .88);
+  final PageController _bannerController = PageController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
-  Timer? _retailTimer;
-  int _retailIndex = 0;
-  int _retailCount = -1;
+  Timer? _bannerTimer;
+  int _bannerIndex = 0;
+  int _bannerCount = -1;
   int? _selectedCategoryId;
   String? _pendingAfterAuth;
 
@@ -96,16 +96,16 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     });
   }
 
-  void _startRetailAutoSlide(int count) {
-    if (_retailCount == count) return;
-    _retailCount = count;
-    _retailTimer?.cancel();
+  void _startBannerAutoSlide(int count) {
+    if (_bannerCount == count) return;
+    _bannerCount = count;
+    _bannerTimer?.cancel();
     if (count <= 1) return;
-    _retailTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!mounted || !_retailController.hasClients) return;
-      _retailIndex = (_retailIndex + 1) % count;
-      _retailController.animateToPage(
-        _retailIndex,
+    _bannerTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_bannerController.hasClients) return;
+      _bannerIndex = (_bannerIndex + 1) % count;
+      _bannerController.animateToPage(
+        _bannerIndex,
         duration: const Duration(milliseconds: 420),
         curve: Curves.easeOutCubic,
       );
@@ -114,8 +114,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
   @override
   void dispose() {
-    _retailTimer?.cancel();
-    _retailController.dispose();
+    _bannerTimer?.cancel();
+    _bannerController.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
     if (widget.client == null) {
@@ -367,13 +367,13 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   : <String, dynamic>{};
               final storeId = _int(wholesale['id']);
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _startRetailAutoSlide(retail.length);
+                _startBannerAutoSlide(retail.length + 1);
               });
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final retailHeight = (constraints.maxHeight * .20)
-                      .clamp(118.0, 176.0)
+                  final bannerHeight = (constraints.maxHeight * .20)
+                      .clamp(150.0, 176.0)
                       .toDouble();
 
                   return CustomScrollView(
@@ -424,39 +424,43 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           ),
                         ),
                       ),
-                      if (retail.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            height: retailHeight,
-                            child: PageView.builder(
-                              key: const ValueKey('marketplace-retail-carousel'),
-                              controller: _retailController,
-                              itemCount: retail.length,
-                              onPageChanged: (index) => _retailIndex = index,
-                              padEnds: false,
-                              itemBuilder: (_, index) {
-                                final store = retail[index];
-                                return Padding(
-                                  padding: EdgeInsetsDirectional.only(
-                                    start: index == 0 ? 14 : 5,
-                                    end: 5,
-                                    top: 8,
-                                    bottom: 10,
-                                  ),
-                                  child: _RetailStoreBanner(
-                                    store: store,
-                                    width: double.infinity,
-                                    onTap: () => _openRetail(store),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
                       SliverToBoxAdapter(
-                        child: _WholesaleHero(
-                          title: wholesale['name']?.toString() ?? 'متجر الجملة',
-                          imageUrl: hero['image_url']?.toString(),
+                        child: SizedBox(
+                          key: const ValueKey('marketplace-banner-carousel'),
+                          height: bannerHeight,
+                          child: PageView.builder(
+                            key: const ValueKey('marketplace-retail-carousel'),
+                            controller: _bannerController,
+                            itemCount: retail.length + 1,
+                            onPageChanged: (index) => _bannerIndex = index,
+                            itemBuilder: (_, index) {
+                              if (index == 0) {
+                                final configuredTitle =
+                                    hero['title']?.toString().trim() ?? '';
+                                return _WholesaleHero(
+                                  title: configuredTitle.isNotEmpty
+                                      ? configuredTitle
+                                      : 'FOODEX Wholesale',
+                                  imageUrl: hero['image_url']?.toString(),
+                                );
+                              }
+
+                              final store = retail[index - 1];
+                              return Padding(
+                                padding: const EdgeInsetsDirectional.fromSTEB(
+                                  14,
+                                  6,
+                                  14,
+                                  2,
+                                ),
+                                child: _RetailStoreBanner(
+                                  store: store,
+                                  width: double.infinity,
+                                  onTap: () => _openRetail(store),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                       if (offers.isNotEmpty)
