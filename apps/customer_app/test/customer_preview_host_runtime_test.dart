@@ -40,7 +40,21 @@ void main() {
           'credential': credential,
           'configuration': configuration,
           'locale': 'en',
-          'device': {'profile': 'phone_standard', 'width': 390},
+          'device': {
+            'profile': 'android_common',
+            'platform': 'android',
+            'width': 390,
+            'height': 844,
+            'safe_area': {
+              'top': 24,
+              'right': 0,
+              'bottom': 24,
+              'left': 0,
+            },
+            'text_scale': 1.0,
+            'orientation': 'portrait',
+            'keyboard_inset_bottom': 0,
+          },
           'safe_mode': 'read_only',
         },
       };
@@ -81,6 +95,9 @@ void main() {
     expect(runtime.app, isA<FoodexCustomerApp>());
     final app = runtime.app as FoodexCustomerApp;
     expect(app.previewContext, same(bootstrap.context));
+    expect(app.previewViewport, same(bootstrap.viewport));
+    expect(app.previewViewport?.width, 390);
+    expect(app.previewViewport?.height, 844);
     expect(app.session.isAuthenticated, isFalse);
     expect(app.initialRoute, '/retail/7/home');
     expect(runtime.configuration.revisionId, 'revision-published-1');
