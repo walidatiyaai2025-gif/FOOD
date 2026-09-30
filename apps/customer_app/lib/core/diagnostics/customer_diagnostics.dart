@@ -301,7 +301,7 @@ class CustomerDiagnostics {
     var value = input;
     value = value.replaceAllMapped(
       RegExp(
-        r'\b(password|passcode|token|access[_-]?token|refresh[_-]?token|fcm[_-]?token|push[_-]?token|guest[_-]?token|authorization|cookie|secret|client[_-]?secret|email|phone(?:[_-]?number)?|civil(?:[_-]?(?:id|number))?|address|latitude|longitude|coordinates|card[_-]?number|cvv)\s*[:=]\s*[^\n;]+',
+        r'\b(password|passcode|token|access[_-]?token|refresh[_-]?token|fcm[_-]?token|push[_-]?token|guest[_-]?token|authorization|cookie|secret|client[_-]?secret|email|phone(?:[_-]?number)?|civil(?:[_-]?(?:id|number))?|address|latitude|longitude|coordinates|card[_-]?number|cvv)\s*[:=]\s*[^\n;,&]+',
         caseSensitive: false,
       ),
       (match) => '${match.group(1)}=[REDACTED]',
@@ -339,7 +339,7 @@ class CustomerDiagnostics {
     if (route == null || route.trim().isEmpty) return null;
     try {
       final uri = Uri.parse(route);
-      return uri.replace(query: null, fragment: null).toString();
+      return uri.replace(query: '', fragment: '').toString();
     } catch (_) {
       return route.split('?').first;
     }
