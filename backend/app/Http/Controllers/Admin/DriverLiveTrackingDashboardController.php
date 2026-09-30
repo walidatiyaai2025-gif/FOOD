@@ -26,7 +26,7 @@ final class DriverLiveTrackingDashboardController extends Controller
             'user' => $user,
             'navGroups' => $this->navigation->groupsFor($user),
             'navContext' => 'driver_live_tracking',
-            'feedUrl' => url('/api/v1/admin/driver-live-tracking/feed'),
+            'feedUrl' => route('admin.driver-live-tracking.feed'),
             'trackingI18n' => [
                 'noDrivers' => __('admin.driver_live_tracking.no_drivers'),
                 'loading' => __('admin.driver_live_tracking.loading'),
