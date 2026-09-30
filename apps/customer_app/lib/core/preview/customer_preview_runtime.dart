@@ -16,7 +16,6 @@ import 'customer_preview_bootstrap.dart';
 import 'customer_preview_configuration.dart';
 import 'customer_preview_context.dart';
 import 'customer_preview_transport.dart';
-import 'customer_preview_viewport.dart';
 
 class CustomerPreviewRuntime {
   CustomerPreviewRuntime._({
@@ -113,10 +112,11 @@ class CustomerPreviewRuntime {
           wholesaleCommerceApi: bundle.wholesale,
           initialRoute: initialRoute,
           locale: Locale(bootstrap.locale),
+          previewBootstrap: bootstrap,
         );
 
         return CustomerPreviewRuntime._(
-          app: CustomerPreviewViewport(bootstrap: bootstrap, child: app),
+          app: app,
           client: transportOwner,
           authenticatedBundle: bundle,
           configuration: configuration,
@@ -185,10 +185,11 @@ class CustomerPreviewRuntime {
             : null,
         initialRoute: initialRoute,
         locale: Locale(bootstrap.locale),
+        previewBootstrap: bootstrap,
       );
 
       return CustomerPreviewRuntime._(
-        app: CustomerPreviewViewport(bootstrap: bootstrap, child: app),
+        app: app,
         client: transportOwner,
         configuration: configuration,
         bootstrap: bootstrap,
