@@ -76,6 +76,29 @@ class AppPreviewCustomerReadBridgeTest extends TestCase
         ]);
     }
 
+    public function test_preview_cart_read_does_not_materialize_a_cart(): void
+    {
+        $storeId = $this->retailStore('PREVIEW-CART-READONLY');
+        $admin = $this->storeAdmin($storeId, 'preview-cart-admin@example.test');
+        $customer = $this->user('Preview Cart Customer', 'preview-cart-customer@example.test');
+        $this->retailCustomer($customer, $storeId);
+
+        $token = $this->customerPreviewToken($admin, $customer, $storeId);
+        $this->app['auth']->forgetGuards();
+
+        $before = DB::table('carts')->count();
+
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->getJson("/api/v1/app-preview/customer/cart?store={$storeId}")
+            ->assertOk()
+            ->assertJsonPath('store_id', $storeId)
+            ->assertJsonPath('channel', 'b2c')
+            ->assertJsonPath('items', [])
+            ->assertJsonPath('quote.pricing_source', 'preview_read_only');
+
+        $this->assertSame($before, DB::table('carts')->count());
+    }
+
     private function customerPreviewToken(User $admin, User $customer, int $storeId): string
     {
         Sanctum::actingAs($admin);
