@@ -235,7 +235,7 @@ async function installStandaloneHarness(page, testCase) {
     window.__foodexHandshake = false;
     window.__foodexBootstrapForTest = bootstrap;
     addEventListener('message', (event) => {
-      if (event.origin !== location.origin || event.source !== window) return;
+      if (event.origin !== location.origin) return;
       if (!event.data || typeof event.data !== 'object') return;
       window.__foodexMessages.push(event.data);
       if (event.data.type === 'foodex.preview.ready' &&
@@ -247,11 +247,7 @@ async function installStandaloneHarness(page, testCase) {
 
   await page.goto(origin + '/' + testCase.app + '/index.html', { waitUntil: 'networkidle' });
   await page.evaluate(() => {
-    const send = () => window.dispatchEvent(new MessageEvent('message', {
-      data: window.__foodexBootstrapForTest,
-      origin: location.origin,
-      source: window,
-    }));
+    const send = () => window.postMessage(window.__foodexBootstrapForTest, location.origin);
     send();
     const retry = setInterval(() => {
       const terminal = window.__foodexMessages.some((m) =>
