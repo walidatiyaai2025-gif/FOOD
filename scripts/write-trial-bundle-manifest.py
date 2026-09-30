@@ -32,6 +32,7 @@ def main() -> None:
     parser.add_argument("--version", required=True)
     parser.add_argument("--source-commit", required=True)
     parser.add_argument("--run-number", required=True)
+    parser.add_argument("--mobile-build-number", required=True, type=int)
     parser.add_argument("--api-base-url", required=True)
     parser.add_argument("--customer", type=Path, required=True)
     parser.add_argument("--driver", type=Path, required=True)
@@ -55,11 +56,15 @@ def main() -> None:
         "production_store_ready": False,
         "customer": {
             **file_entry(args.customer),
+            "version": args.version,
+            "build_number": args.mobile_build_number,
             "application_id": "com.fiftysolution.foodex.customer",
             "firebase_configured": parse_bool(args.customer_firebase),
         },
         "driver": {
             **file_entry(args.driver),
+            "version": args.version,
+            "build_number": args.mobile_build_number,
             "application_id": "com.fiftysolution.foodex.driver",
             "firebase_configured": parse_bool(args.driver_firebase),
         },
