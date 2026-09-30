@@ -33,13 +33,14 @@ class _CustomerDiagnosticsScreenState
   }
 
   Future<void> _export() async {
+    final shareText = context.tr('customer.diagnostics.share_text');
     setState(() => _busy = true);
     try {
       final file = await _diagnostics.writeExportFile(note: _note.text);
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],
-          text: context.tr('customer.diagnostics.share_text'),
+          text: shareText,
         ),
       );
       if (!mounted) return;
