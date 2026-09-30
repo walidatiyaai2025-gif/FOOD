@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Driver;
 use App\Models\DriverAssignment;
 use App\Models\DriverCurrentLocation;
-use App\Models\User;
-use App\Services\WholesalePrincipal;
+use App\Services\DriverRuntimeContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,9 +13,9 @@ use Illuminate\Support\Facades\DB;
 
 class DriverLocationController extends Controller
 {
-    public function heartbeat(Request $request): JsonResponse
+    public function heartbeat(Request $request, DriverRuntimeContextResolver $driverContext): JsonResponse
     {
-        [$driver, $channel, $storeId] = $this->driverContext($request);
+        [$driver, $channel, $storeId] = $driverContext->resolve($request);
 
         $data = $request->validate([
             'latitude' => ['required', 'numeric', 'between:-90,90'],
@@ -97,32 +95,5 @@ class DriverLocationController extends Controller
                 'active_assignment_id' => $location->active_assignment_id,
             ],
         ]);
-    }
-
-    /** @return array{0: Driver, 1: string, 2: int} */
-    private function driverContext(Request $request): array
-    {
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-
-        $driver = Driver::query()
-            ->where('user_id', $user->getKey())
-            ->where('is_active', true)
-            ->first();
-        abort_unless($driver instanceof Driver, 403, 'Active driver profile is required.');
-
-        $channel = strtolower((string) $driver->driver_type);
-        abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403);
-        abort_unless($user->hasPermission("deliveries.{$channel}.execute"), 403);
-
-        $storeId = (int) ($driver->store_id ?? 0);
-        if ($storeId < 1 && $channel === 'b2b') {
-            $storeId = app(WholesalePrincipal::class)->storeId();
-            $driver->forceFill(['store_id' => $storeId])->save();
-        }
-
-        abort_unless($storeId > 0, 409, 'Driver store context is required before location tracking.');
-
-        return [$driver->fresh(), $channel, $storeId];
     }
 }
