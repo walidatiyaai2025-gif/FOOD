@@ -666,7 +666,7 @@
                                                 <input name="email" value="{{ $row['email']==='-'?'':$row['email'] }}" type="email" maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'البريد الإلكتروني':'Email address' }}">
                                                 <input type="file" name="customer_image" accept="image/jpeg,image/png,image/webp" aria-label="{{ app()->getLocale()==='ar'?'استبدال صورة العميل':'Replace customer image' }}">
                                                 @if(!empty($row['image']))<label style="display:flex;align-items:center;gap:7px"><input type="checkbox" name="remove_image" value="1"> {{ app()->getLocale()==='ar'?'حذف الصورة الحالية':'Remove current image' }}</label>@endif
-                                                <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}</button>
+                                                <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
                                             </form>
                                             @endif
                                             @if($user->hasPermission('customers.delete',$row['_store_id']) || $user->hasPermission('customers.delete'))
