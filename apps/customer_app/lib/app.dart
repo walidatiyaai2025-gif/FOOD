@@ -42,6 +42,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.locationService,
     this.mapPinPicker,
     this.previewContext,
+    this.previewViewport,
     this.marketplaceClient,
     this.marketplaceBarcodeScanner,
   });
@@ -60,6 +61,7 @@ class FoodexCustomerApp extends StatefulWidget {
     Map<String, String> translationOverrides = const {},
     TranslationFetcher? translationFetcher,
     ThemeData? theme,
+    CustomerPreviewViewport? previewViewport,
   }) {
     if (previewContext.channel == CustomerChannel.b2b &&
         (b2bApi == null || wholesaleCommerceApi == null)) {
@@ -91,6 +93,7 @@ class FoodexCustomerApp extends StatefulWidget {
       locationService: const PreviewCustomerLocationService(),
       mapPinPicker: previewCustomerMapPinPicker,
       previewContext: previewContext,
+      previewViewport: previewViewport,
       marketplaceClient: PreviewReadOnlyHttpClient(marketplaceClient),
       marketplaceBarcodeScanner: (context) async => null,
     );
@@ -112,6 +115,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final CustomerLocationService? locationService;
   final CustomerMapPinPicker? mapPinPicker;
   final CustomerPreviewContext? previewContext;
+  final CustomerPreviewViewport? previewViewport;
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
 
@@ -442,11 +446,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('ar'), Locale('en')],
-      builder: (context, child) => AppTranslations(
-        locale: _locale,
-        overrides: _translations,
-        child: Builder(
-          builder: (translatedContext) => Stack(
+      builder: (context, child) {
+        final translated = AppTranslations(
+          locale: _locale,
+          overrides: _translations,
+          child: Builder(
+            builder: (translatedContext) => Stack(
             fit: StackFit.expand,
             children: [
               child ?? const SizedBox.shrink(),
@@ -514,9 +519,16 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                   ),
               ],
             ],
+            ),
           ),
-        ),
-      ),
+        );
+        final viewport = widget.previewViewport;
+        if (viewport == null) return translated;
+        return MediaQuery(
+          data: viewport.apply(MediaQuery.of(context)),
+          child: translated,
+        );
+      },
       initialRoute: widget.initialRoute,
       onGenerateInitialRoutes: (routeName) => [
         router.onGenerateRoute(RouteSettings(name: routeName)),
