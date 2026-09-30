@@ -165,11 +165,19 @@ final class AppPreviewController extends Controller
         $url = trim((string) ($runtime['url'] ?? ''));
         $contractVersion = trim((string) ($runtime['contract_version'] ?? ''));
         $origin = $this->runtimeOrigin($url);
+        $allowedOrigin = $this->runtimeOrigin(
+            trim((string) ($runtime['allowed_origin'] ?? '')),
+        );
+        $available = $url !== ''
+            && $origin !== ''
+            && $allowedOrigin !== ''
+            && hash_equals($allowedOrigin, $origin)
+            && $contractVersion !== '';
 
         return [
-            'available' => $url !== '' && $origin !== '' && $contractVersion !== '',
+            'available' => $available,
             'url' => $url,
-            'origin' => $origin,
+            'origin' => $available ? $origin : '',
             'contract_version' => $contractVersion,
         ];
     }
