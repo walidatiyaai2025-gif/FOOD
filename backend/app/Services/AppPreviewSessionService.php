@@ -6,6 +6,7 @@ use App\Models\AppPreviewSession;
 use App\Models\Driver;
 use App\Models\User;
 use App\Support\TenantContextResolver;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -97,7 +98,12 @@ final class AppPreviewSessionService
 
         abort_unless($session instanceof AppPreviewSession, 401, 'Preview session is invalid.');
         abort_if($session->revoked_at !== null, 401, 'Preview session is revoked.');
-        abort_if($session->expires_at === null || $session->expires_at->isPast(), 401, 'Preview session is expired.');
+        $expiresAt = $session->getAttribute('expires_at');
+        abort_if(
+            $expiresAt === null || CarbonImmutable::parse((string) $expiresAt)->isPast(),
+            401,
+            'Preview session is expired.',
+        );
 
         $actor = $session->actor_user_id === null
             ? null
@@ -200,7 +206,7 @@ final class AppPreviewSessionService
             'mode' => 'read_only',
             'read_only' => true,
             'support_access' => (bool) $session->support_access,
-            'expires_at' => $session->expires_at?->toIso8601String(),
+            'expires_at' => $this->isoDate($session->getAttribute('expires_at')),
             'audit_correlation_id' => (string) $session->audit_correlation_id,
             'target' => [
                 'user_id' => (int) $target->getKey(),
@@ -297,6 +303,19 @@ final class AppPreviewSessionService
         abort_unless($retailCustomer || $platformCustomer, 404, 'Retail customer context was not found.');
     }
 
+    private function isoDate(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return CarbonImmutable::instance($value)->toIso8601String();
+        }
+
+        return CarbonImmutable::parse((string) $value)->toIso8601String();
+    }
+
     /** @return array<string,mixed> */
     private function auditPayload(AppPreviewSession $session): array
     {
@@ -309,8 +328,8 @@ final class AppPreviewSessionService
             'store_id' => $session->store_id,
             'mode' => (string) $session->mode,
             'support_access' => (bool) $session->support_access,
-            'expires_at' => $session->expires_at?->toIso8601String(),
-            'revoked_at' => $session->revoked_at?->toIso8601String(),
+            'expires_at' => $this->isoDate($session->getAttribute('expires_at')),
+            'revoked_at' => $this->isoDate($session->getAttribute('revoked_at')),
             'audit_correlation_id' => (string) $session->audit_correlation_id,
         ];
     }
