@@ -45,17 +45,19 @@ class DriverLiveTrackingDashboardTest extends TestCase
     public function test_arabic_live_tracking_contract_exposes_localized_status_labels(): void
     {
         $user = $this->globalUser('SUPER_ADMIN', 'tracking-ar@example.test');
-        app()->setLocale('ar');
+        $user->forceFill(['locale' => 'ar'])->save();
 
         $this->actingAs($user)
             ->get('/admin/driver-live-tracking')
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('data-mode="full"', false)
-            ->assertSee('"status":"الحالة"', false)
-            ->assertSee('"online":"متصل"', false)
-            ->assertSee('"stale":"متأخر"', false)
-            ->assertSee('"offline":"غير متصل"', false);
+            ->assertViewHas('trackingI18n', fn (array $i18n): bool =>
+                $i18n['status'] === 'الحالة'
+                && $i18n['statuses']['online'] === 'متصل'
+                && $i18n['statuses']['stale'] === 'متأخر'
+                && $i18n['statuses']['offline'] === 'غير متصل'
+            );
     }
 
     public function test_dashboard_web_session_can_read_live_tracking_feed(): void
