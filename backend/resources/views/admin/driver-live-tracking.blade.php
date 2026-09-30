@@ -82,7 +82,7 @@
                     </div>
                     <button class="btn" type="button" id="tracking-recenter">{{ __('admin.driver_live_tracking.recenter') }}</button>
                 </div>
-                <div id="driver-map" data-map-provider="openstreetmap" data-map-library="leaflet-1.9.4"></div>
+                <div id="driver-map" data-map-provider="openstreetmap" data-map-library="leaflet-1.9.4" data-feed-url="{{ $feedUrl }}"></div>
                 <div class="tracking-status" style="margin-top:8px">
                     {{ __('admin.driver_live_tracking.last_updated') }}: <span id="tracking-updated">—</span>
                 </div>
