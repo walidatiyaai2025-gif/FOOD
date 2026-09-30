@@ -41,6 +41,33 @@ class FoodexDriverApp extends StatefulWidget {
     this.previewContext,
   });
 
+  factory FoodexDriverApp.preview({
+    Key? key,
+    required DriverPreviewContext previewContext,
+    required DriverAssignmentRepository assignmentRepository,
+    DriverNotificationRepository? notificationRepository,
+    String initialRoute = DriverRoutes.root,
+    Locale? locale,
+    Map<String, String> translationOverrides = const {},
+    DriverTranslationFetcher? translationFetcher,
+    ThemeData? theme,
+  }) {
+    return FoodexDriverApp(
+      key: key,
+      initialRoute: initialRoute,
+      locale: locale ?? Locale(previewContext.targetLocale == 'en' ? 'en' : 'ar'),
+      translationOverrides: translationOverrides,
+      translationFetcher: translationFetcher,
+      assignmentRepositoryFactory: (_) => assignmentRepository,
+      notificationRepositoryFactory: notificationRepository == null
+          ? null
+          : (_) => notificationRepository,
+      initialSession: previewContext.runtimeIdentity,
+      theme: theme,
+      previewContext: previewContext,
+    );
+  }
+
   final String initialRoute;
   final Locale locale;
   final Map<String, String> translationOverrides;
@@ -104,6 +131,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   }
 
   DriverAuthRepository? _authRepository() {
+    if (widget.previewContext != null) return null;
     if (widget.authRepository != null) return widget.authRepository;
     if (_baseUrl.isEmpty) return null;
     return HttpDriverAuthRepository(_baseUrl);
@@ -112,6 +140,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   DriverAssignmentRepository? _assignmentRepository(DriverSession session) {
     final factory = widget.assignmentRepositoryFactory;
     if (factory != null) return factory(session);
+    if (widget.previewContext != null) return null;
     if (_baseUrl.isEmpty) return null;
     return HttpDriverAssignmentRepository(_baseUrl, session.token);
   }
@@ -119,6 +148,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   DriverNotificationRepository? _notificationRepository(DriverSession session) {
     final factory = widget.notificationRepositoryFactory;
     if (factory != null) return factory(session);
+    if (widget.previewContext != null) return null;
     if (_baseUrl.isEmpty) return null;
     return HttpDriverNotificationRepository(
       baseUrl: _baseUrl,
@@ -243,7 +273,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     final session = _session;
     final preview = widget.previewContext;
     final previewConfigurationInvalid = preview != null &&
-        (session == null || !preview.matchesSession(session));
+        (session == null ||
+            !preview.matchesSession(session) ||
+            widget.assignmentRepositoryFactory == null);
     final authRepository = _authRepository();
     final assignments =
         session == null ? null : _assignmentRepository(session);
@@ -411,8 +443,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
     final parts = <String>[
       context.tr('driver.preview.safe'),
       preview.channel == DriverChannel.b2c ? 'B2C' : 'B2B',
-      if (preview.storeId != null)
-        '${context.tr('driver.preview.store')} ${preview.storeId}',
+      '${context.tr('driver.preview.store')} ${preview.storeId}',
       if (preview.configurationRevision?.isNotEmpty == true)
         '${context.tr('driver.preview.revision')} ${preview.configurationRevision}',
       if (preview.runtimeVersion?.isNotEmpty == true)
