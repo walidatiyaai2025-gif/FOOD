@@ -526,7 +526,10 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
         if (viewport == null) return translated;
         return MediaQuery(
           data: viewport.apply(MediaQuery.of(context)),
-          child: translated,
+          child: KeyedSubtree(
+            key: const ValueKey('customer-preview-viewport'),
+            child: translated,
+          ),
         );
       },
       initialRoute: widget.initialRoute,
