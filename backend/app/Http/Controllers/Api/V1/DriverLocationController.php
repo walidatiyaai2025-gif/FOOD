@@ -11,6 +11,7 @@ use App\Services\WholesalePrincipal;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DriverLocationController extends Controller
 {
@@ -37,9 +38,29 @@ class DriverLocationController extends Controller
             ->latest('id')
             ->value('id');
 
-        $location = DriverCurrentLocation::query()->updateOrCreate(
-            ['driver_id' => $driver->getKey()],
-            [
+        $incomingCapturedAt = CarbonImmutable::parse((string) $data['captured_at']);
+
+        $location = DB::transaction(function () use (
+            $driver,
+            $channel,
+            $storeId,
+            $data,
+            $activeAssignmentId,
+            $incomingCapturedAt,
+        ): DriverCurrentLocation {
+            $location = DriverCurrentLocation::query()
+                ->where('driver_id', $driver->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            if (
+                $location instanceof DriverCurrentLocation
+                && CarbonImmutable::parse((string) $location->captured_at)->greaterThanOrEqualTo($incomingCapturedAt)
+            ) {
+                return $location;
+            }
+
+            $values = [
                 'store_id' => $storeId,
                 'channel' => $channel,
                 'latitude' => $data['latitude'],
@@ -47,13 +68,24 @@ class DriverLocationController extends Controller
                 'accuracy' => $data['accuracy'] ?? null,
                 'speed' => $data['speed'] ?? null,
                 'heading' => $data['heading'] ?? null,
-                'captured_at' => $data['captured_at'],
+                'captured_at' => $incomingCapturedAt,
                 'received_at' => now(),
                 'app_version' => $data['app_version'] ?? null,
                 'is_mocked' => $data['is_mocked'] ?? null,
                 'active_assignment_id' => $activeAssignmentId === null ? null : (int) $activeAssignmentId,
-            ],
-        );
+            ];
+
+            if ($location instanceof DriverCurrentLocation) {
+                $location->forceFill($values)->save();
+
+                return $location->fresh();
+            }
+
+            return DriverCurrentLocation::query()->create([
+                'driver_id' => $driver->getKey(),
+                ...$values,
+            ]);
+        }, 3);
 
         return response()->json([
             'data' => [
