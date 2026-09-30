@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AdminReportController;
+use App\Http\Controllers\Api\V1\AppPreviewSessionController;
 use App\Http\Controllers\Api\V1\AppVersionController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\B2bAccountController;
@@ -38,6 +39,8 @@ Route::prefix('v1')->group(function (): void {
     ]));
 
     Route::get('/app-version', AppVersionController::class);
+    Route::post('/app-preview/resolve', [AppPreviewSessionController::class, 'resolve'])
+        ->middleware('throttle:60,1');
     Route::get('/mobile/runtime', MobileRuntimeController::class);
     Route::get('/translations/{locale}', TranslationController::class)->whereIn('locale', ['ar', 'en']);
 
@@ -69,6 +72,9 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/admin/app-preview/sessions', [AppPreviewSessionController::class, 'store']);
+        Route::delete('/admin/app-preview/sessions/{session}', [AppPreviewSessionController::class, 'destroy'])
+            ->whereNumber('session');
         Route::get('/store-selector', [StorefrontController::class, 'selector']);
         Route::get('/b2b/stores/{store}/storefront', [StorefrontController::class, 'showWholesale']);
         Route::get('/b2b/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);
