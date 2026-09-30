@@ -27,17 +27,19 @@ class CustomerPreviewBootstrap {
     required this.context,
     required this.locale,
     required this.configuration,
-    required this.deviceProfile,
-    required this.deviceWidth,
+    required this.viewport,
     this.credential,
   });
 
   final CustomerPreviewContext context;
   final String locale;
   final String configuration;
-  final String deviceProfile;
-  final int deviceWidth;
+  final CustomerPreviewViewport viewport;
   final String? credential;
+
+  String get deviceProfile => viewport.profile;
+  int get deviceWidth => viewport.width;
+  int get deviceHeight => viewport.height;
 
   bool get authenticated => context.authenticated;
 
@@ -48,8 +50,19 @@ class CustomerPreviewBootstrap {
         'authenticated': context.authenticated,
         'locale': locale,
         'configuration': configuration,
-        'device_profile': deviceProfile,
-        'device_width': deviceWidth,
+        'device_profile': viewport.profile,
+        'device_platform': viewport.platform,
+        'device_width': viewport.width,
+        'device_height': viewport.height,
+        'device_safe_area': {
+          'top': viewport.safeAreaTop,
+          'right': viewport.safeAreaRight,
+          'bottom': viewport.safeAreaBottom,
+          'left': viewport.safeAreaLeft,
+        },
+        'device_text_scale': viewport.textScale,
+        'device_orientation': viewport.orientation,
+        'keyboard_inset_bottom': viewport.keyboardInsetBottom,
         'runtime_version': context.runtimeVersion,
         'configuration_revision': context.configurationRevision,
         'read_only': true,
@@ -156,21 +169,74 @@ class CustomerPreviewBootstrap {
     final device = body['device'];
     final deviceMap =
         device is Map ? Map<String, dynamic>.from(device) : const <String, dynamic>{};
-    final width = _positiveInt(deviceMap['width']) ?? 390;
-    if (width < 320 || width > 1024) {
-      throw const CustomerPreviewBootstrapException('preview_device_invalid');
-    }
-    final profile =
-        _nullableString(deviceMap['profile']) ?? 'phone_standard';
+    final viewport = _viewport(deviceMap);
 
     return CustomerPreviewBootstrap(
       context: context,
       locale: locale,
       configuration: configuration,
-      deviceProfile: profile,
-      deviceWidth: width,
+      viewport: viewport,
       credential: credentialText,
     );
+  }
+
+  static CustomerPreviewViewport _viewport(Map<String, dynamic> data) {
+    final profile = _nullableString(data['profile']) ?? 'android_common';
+    final platform = switch (_nullableString(data['platform'])) {
+      'ios' => 'ios',
+      'android' || null => 'android',
+      _ => throw const CustomerPreviewBootstrapException(
+          'preview_device_invalid',
+        ),
+    };
+    final width = _positiveInt(data['width']) ?? 390;
+    final height = _positiveInt(data['height']) ?? 844;
+    final orientation = _nullableString(data['orientation']) ?? 'portrait';
+    final textScale = data['text_scale'] is num
+        ? (data['text_scale'] as num).toDouble()
+        : 1.0;
+    final keyboardInset = _nonNegativeInt(data['keyboard_inset_bottom']) ?? 0;
+    final safeRaw = data['safe_area'];
+    final safe = safeRaw is Map
+        ? Map<String, dynamic>.from(safeRaw)
+        : const <String, dynamic>{};
+    final top = _nonNegativeInt(safe['top']) ?? 0;
+    final right = _nonNegativeInt(safe['right']) ?? 0;
+    final bottom = _nonNegativeInt(safe['bottom']) ?? 0;
+    final left = _nonNegativeInt(safe['left']) ?? 0;
+
+    if (width < 320 ||
+        width > 1024 ||
+        height < 480 ||
+        height > 1600 ||
+        height < width ||
+        orientation != 'portrait' ||
+        textScale < 0.8 ||
+        textScale > 2.0 ||
+        keyboardInset > 800 ||
+        [top, right, bottom, left].any((value) => value > 240)) {
+      throw const CustomerPreviewBootstrapException('preview_device_invalid');
+    }
+
+    return CustomerPreviewViewport(
+      profile: profile,
+      platform: platform,
+      width: width,
+      height: height,
+      safeAreaTop: top,
+      safeAreaRight: right,
+      safeAreaBottom: bottom,
+      safeAreaLeft: left,
+      textScale: textScale,
+      orientation: orientation,
+      keyboardInsetBottom: keyboardInset,
+    );
+  }
+
+  static int? _nonNegativeInt(Object? value) {
+    if (value is int && value >= 0) return value;
+    if (value is num && value >= 0) return value.toInt();
+    return null;
   }
 
   static int? _positiveInt(Object? value) {
