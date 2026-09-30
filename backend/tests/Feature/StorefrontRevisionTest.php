@@ -136,6 +136,21 @@ class StorefrontRevisionTest extends TestCase
         ])->assertCreated();
         $draftAId = (string) $draftA->json('data.revision_id');
 
+        $this->postJson('/api/v1/admin/app-preview/storefront-revisions/draft', [
+            'channel' => 'b2c',
+            'store_id' => $storeA,
+        ])->assertCreated()
+            ->assertJsonPath('data.revision_id', $draftAId);
+
+        $this->assertSame(
+            1,
+            StorefrontRevision::query()
+                ->where('store_id', $storeA)
+                ->where('channel', 'b2c')
+                ->where('status', 'draft')
+                ->count(),
+        );
+
         $revisionB = app(StorefrontRevisionService::class)->ensurePublished($storeB, 'b2c');
         $draftB = StorefrontRevision::query()->create([
             'public_id' => (string) \Illuminate\Support\Str::uuid(),
@@ -180,6 +195,14 @@ class StorefrontRevisionTest extends TestCase
         $this->withHeader('X-Foodex-Preview-Token', $token)
             ->postJson('/api/v1/app-preview/storefront-revisions/'.$draftB->public_id.'/resolve')
             ->assertNotFound();
+
+        DB::table('app_preview_sessions')
+            ->where('token_hash', hash('sha256', $token))
+            ->update(['mode' => 'interactive']);
+
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->postJson('/api/v1/app-preview/storefront-revisions/'.$draftAId.'/resolve')
+            ->assertForbidden();
     }
 
     public function test_retail_store_admin_cannot_manage_another_store_revisions(): void
