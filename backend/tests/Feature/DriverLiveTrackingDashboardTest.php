@@ -31,6 +31,13 @@ class DriverLiveTrackingDashboardTest extends TestCase
             ->assertSee('data-map-provider="openstreetmap"', false)
             ->assertSee('/assets/leaflet/1.9.4/leaflet.css', false)
             ->assertSee('/assets/leaflet/1.9.4/leaflet.js', false)
+            ->assertSee('/assets/admin/driver-live-map.css', false)
+            ->assertSee('/assets/admin/driver-live-map.js', false)
+            ->assertSee('data-driver-live-map', false)
+            ->assertSee('data-driver-live-map-i18n', false)
+            ->assertSee('"status":"Status"', false)
+            ->assertSee('"online":"Online"', false)
+            ->assertDontSee('const popupFor', false)
             ->assertDontSee('unpkg.com', false)
             ->assertSee('/admin/driver-live-tracking/feed', false);
     }
