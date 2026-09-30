@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
+import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
+import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/preview/customer_preview_context.dart';
 import 'package:foodex_customer_app/core/preview/customer_preview_transport.dart';
@@ -106,6 +108,57 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  for (final locale in locales) {
+    testWidgets(
+      'Customer preview renders shared Wholesale runtime in ${locale.languageCode}',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(390, 844));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final context = CustomerPreviewContext.fromResolvedSession({
+          'session_id': 'preview-b2b-ui',
+          'target_type': 'customer',
+          'channel': 'b2b',
+          'store_id': 1,
+          'read_only': true,
+          'target': {
+            'user_id': 91,
+            'name': 'Wholesale Customer',
+            'locale': locale.languageCode,
+          },
+        });
+
+        await tester.pumpWidget(
+          FoodexCustomerApp.preview(
+            previewContext: context,
+            b2cCatalogApi: const _PreviewCatalogApi(),
+            b2cAccountApi: const _PreviewAccountApi(),
+            storefrontApi: const _PreviewStorefrontApi(),
+            b2bApi: const _PreviewB2bApi(),
+            wholesaleCommerceApi: const _PreviewWholesaleApi(),
+            marketplaceClient: MockClient(
+              (_) async => http.Response('{"data":[]}', 200),
+            ),
+            initialRoute: '/b2b/home?store_id=1',
+            locale: locale,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        final scaffold = find.byType(Scaffold).first;
+        expect(scaffold, findsOneWidget);
+        final direction = Directionality.of(tester.element(scaffold));
+        expect(
+          direction,
+          locale.languageCode == 'ar'
+              ? TextDirection.rtl
+              : TextDirection.ltr,
+        );
+      },
+    );
+  }
 
   test(
     'authenticated B2B preview preserves personalized price and tier state',
@@ -242,6 +295,67 @@ class _PreviewAccountApi implements B2cAccountApi {
       Future<Object?>.value(null);
 }
 
+class _PreviewB2bApi implements B2bApi {
+  const _PreviewB2bApi();
+
+  @override
+  Future<Object?> get(String path) async => {
+        'data': [
+          {
+            'id': 42,
+            'name': 'Wholesale Product',
+            'sku': 'WHOLESALE-42',
+            'account_price': 72.5,
+            'pricing_tier': 'gold',
+            'minimum_order_quantity': 5,
+          },
+        ],
+      };
+}
+
+class _PreviewWholesaleApi implements WholesaleCommerceApi {
+  const _PreviewWholesaleApi();
+
+  @override
+  Future<Object?> cart(int storeId) async =>
+      {'store_id': storeId, 'items': const <Object>[]};
+
+  @override
+  Future<Object?> addItem(
+    int storeId,
+    int productId,
+    double quantity,
+  ) =>
+      Future<Object?>.error(
+        const CustomerPreviewMutationBlocked('wholesale.cart.add'),
+      );
+
+  @override
+  Future<Object?> updateItem(int itemId, double quantity) =>
+      Future<Object?>.error(
+        const CustomerPreviewMutationBlocked('wholesale.cart.update'),
+      );
+
+  @override
+  Future<void> removeItem(int itemId) => Future<void>.error(
+        const CustomerPreviewMutationBlocked('wholesale.cart.remove'),
+      );
+
+  @override
+  Future<Object?> checkout({
+    required int storeId,
+    required int addressId,
+    required String paymentMethod,
+    String? requestedDeliveryDate,
+    String? note,
+    String? couponCode,
+    required String idempotencyKey,
+  }) =>
+      Future<Object?>.error(
+        const CustomerPreviewMutationBlocked('wholesale.checkout'),
+      );
+}
+
 class _PreviewStorefrontApi implements StorefrontApi {
   const _PreviewStorefrontApi();
 
@@ -289,8 +403,27 @@ class _PreviewStorefrontApi implements StorefrontApi {
       };
 
   @override
-  Future<Map<String, dynamic>> wholesaleHome(int storeId) async =>
-      const <String, dynamic>{};
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async => {
+        'store': {
+          'id': storeId,
+          'code': 'WHOLESALE-$storeId',
+          'name': 'Wholesale Preview',
+          'theme_code': 'wholesale_b2b',
+        },
+        'theme': {
+          'code': 'wholesale_b2b',
+          'primary': '#5D2A91',
+          'primary_dark': '#35195E',
+          'accent': '#B983F0',
+          'background': '#FBFAFD',
+        },
+        'branding': {
+          'address': 'Kuwait',
+          'custom': const <String, Object?>{},
+        },
+        'hero': null,
+        'sections': const <Object>[],
+      };
 
   @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
