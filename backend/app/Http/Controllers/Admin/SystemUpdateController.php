@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\Updater\UpdateManager;
 use App\Domain\Updater\UpdatePackageManifest;
+use App\Domain\Updater\UpdatePackageInspector;
 use App\Http\Controllers\Controller;
 use App\Models\SystemVersion;
 use App\Models\UpdateHistory;
@@ -16,7 +17,10 @@ use RuntimeException;
 
 final class SystemUpdateController extends Controller
 {
-    public function __construct(private readonly UpdateManager $manager) {}
+    public function __construct(
+        private readonly UpdateManager $manager,
+        private readonly UpdatePackageInspector $packageInspector,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -38,7 +42,6 @@ final class SystemUpdateController extends Controller
             'minimum_current_version' => ['required', 'string', 'max:64'],
             'sha256' => ['required', 'regex:/^[a-fA-F0-9]{64}$/'],
             'release_notes' => ['nullable', 'string', 'max:5000'],
-            'contains_migrations' => ['nullable', 'boolean'],
         ]);
 
         $user = $request->user();
@@ -61,7 +64,7 @@ final class SystemUpdateController extends Controller
             (string) $validated['minimum_current_version'],
             strtolower((string) $validated['sha256']),
             (string) ($validated['release_notes'] ?? ''),
-            $request->boolean('contains_migrations'),
+            $this->packageInspector->containsMigrations($packagePath),
         );
 
         try {
