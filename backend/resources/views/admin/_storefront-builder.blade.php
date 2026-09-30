@@ -52,7 +52,7 @@
                     <label class="sf-label">{{ app()->getLocale()==='ar'?'وصف قصير بالعربية':'Arabic subtitle' }}<input name="brand_subtitle_ar" maxlength="500" value="{{ $sfSettings['brand_subtitle_ar'] ?? '' }}" placeholder="{{ app()->getLocale()==='ar'?'طازج وسريع إلى بابك':'Arabic subtitle' }}"></label>
                     <label class="sf-label">{{ app()->getLocale()==='ar'?'وصف قصير بالإنجليزية':'English subtitle' }}<input name="brand_subtitle_en" maxlength="500" value="{{ $sfSettings['brand_subtitle_en'] ?? '' }}" placeholder="Fresh and fast"></label>
                 </div>
-                <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ الهوية في المسودة':'Save branding to Draft' }}</button></div>
+                <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ المسودة':'Save Draft' }}</button></div>
             </form>
             @endif
         </section>
