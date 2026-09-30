@@ -11,6 +11,7 @@ import 'core/api/storefront_api.dart';
 import 'core/api/wholesale_commerce_api.dart';
 import 'core/auth/customer_session.dart';
 import 'core/config/foodex_environment.dart';
+import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/localization/app_translations.dart';
 import 'core/location/customer_location_service.dart';
 import 'core/location/customer_map_pin_selector.dart';
@@ -68,6 +69,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<String>? _pushRouteSubscription;
   StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
+  late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
   Timer? _versionFooterTimer;
   bool _showVersionFooter = false;
 
@@ -76,9 +78,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   @override
   void initState() {
     super.initState();
+    _diagnosticsHttpClient =
+        CustomerDiagnosticsHttpClient(CustomerDiagnostics.instance);
     _translations = Map<String, String>.from(widget.translationOverrides);
     _session = widget.session;
     _locale = widget.locale;
+    _syncDiagnosticsContext();
     _showVersionFooter = widget.initialRoute != CustomerRoutePaths.splash;
     if (!_showVersionFooter) {
       _versionFooterTimer = Timer(const Duration(milliseconds: 1150), () {
@@ -96,10 +101,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
         oldWidget.translationOverrides != widget.translationOverrides) {
       _locale = widget.locale;
       _translations = Map<String, String>.from(widget.translationOverrides);
+      _syncDiagnosticsContext();
       _loadRemoteTranslations();
     }
     if (oldWidget.session != widget.session) {
       _session = widget.session;
+      _syncDiagnosticsContext();
       _bindPushSession();
     }
     if (oldWidget.pushService != widget.pushService) {
@@ -140,14 +147,37 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       _locale = locale;
       _translations = Map<String, String>.from(widget.translationOverrides);
     });
+    _syncDiagnosticsContext();
     _loadRemoteTranslations();
+  }
+
+  void _syncDiagnosticsContext() {
+    CustomerDiagnostics.instance.updateContext(
+      locale: _locale.languageCode,
+      isAuthenticated: _session.isAuthenticated,
+      channel: _session.channel?.name,
+      platformWide: _session.platformWide,
+      storeId: _session.b2bRetailStoreId,
+    );
   }
 
   void _configurePush() {
     final service = widget.pushService;
     if (service == null) return;
-    _pushRouteSubscription = service.routes.listen(_navigateFromPush);
-    _pushAlertSubscription = service.alerts.listen(_showPushAlert);
+    _pushRouteSubscription = service.routes.listen(
+      _navigateFromPush,
+      onError: (Object error, StackTrace stackTrace) {
+        CustomerDiagnostics.instance
+            .recordError('push_route_error', error, stackTrace);
+      },
+    );
+    _pushAlertSubscription = service.alerts.listen(
+      _showPushAlert,
+      onError: (Object error, StackTrace stackTrace) {
+        CustomerDiagnostics.instance
+            .recordError('push_delivery_error', error, stackTrace);
+      },
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final route = service.takePendingRoute();
       if (route != null) _navigateFromPush(route);
@@ -159,15 +189,27 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     final service = widget.pushService;
     final token = _session.accessToken;
     if (service != null && token != null && token.isNotEmpty) {
-      unawaited(service.bindSession(token));
+      unawaited(
+        service.bindSession(token).catchError((Object error, StackTrace stackTrace) {
+          CustomerDiagnostics.instance
+              .recordError('push_registration_error', error, stackTrace);
+        }),
+      );
     }
   }
 
   void _navigateFromPush(String route) {
+    CustomerDiagnostics.instance.record('push_navigation', {
+      'route': Uri.tryParse(route)?.path ?? route,
+    });
     _navigatorKey.currentState?.pushNamed(route);
   }
 
   void _showPushAlert(FoodexPushAlert alert) {
+    CustomerDiagnostics.instance.record('push_delivery', {
+      'has_title': alert.title.isNotEmpty,
+      'has_body': alert.body.isNotEmpty,
+    });
     final message = alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
     _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(message)));
   }
@@ -176,6 +218,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     setState(() {
       _session = CustomerSession.authenticated(channel, accessToken: token);
     });
+    _syncDiagnosticsContext();
     _bindPushSession();
   }
 
@@ -187,6 +230,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
         platformWide: true,
       );
     });
+    _syncDiagnosticsContext();
     _bindPushSession();
   }
 
@@ -195,6 +239,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     setState(() {
       _session = _session.asB2bRetailContext(retailStoreId);
     });
+    _syncDiagnosticsContext();
   }
 
   void _onSessionExpired() {
@@ -204,6 +249,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     setState(() {
       _session = const CustomerSession.guest();
     });
+    _syncDiagnosticsContext();
     _navigatorKey.currentState?.pushNamedAndRemoveUntil(
       CustomerRoutePaths.marketplace,
       (route) => false,
@@ -227,6 +273,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     setState(() {
       _session = const CustomerSession.guest();
     });
+    _syncDiagnosticsContext();
     _navigatorKey.currentState?.pushNamedAndRemoveUntil(
       CustomerRoutePaths.marketplace,
       (route) => false,
@@ -238,6 +285,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _versionFooterTimer?.cancel();
     unawaited(_pushRouteSubscription?.cancel());
     unawaited(_pushAlertSubscription?.cancel());
+    _diagnosticsHttpClient.close();
     super.dispose();
   }
 
@@ -252,18 +300,25 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                 baseUrl: baseUrl,
                 token: token,
                 retailStoreContextId: _session.b2bRetailStoreId,
+                client: _diagnosticsHttpClient,
               ));
-    final b2cCatalogApi = widget.b2cCatalogApi ?? HttpB2cCatalogApi(baseUrl: baseUrl);
+    final b2cCatalogApi = widget.b2cCatalogApi ??
+        HttpB2cCatalogApi(
+          baseUrl: baseUrl,
+          client: _diagnosticsHttpClient,
+        );
     final actionApi = widget.actionApi ?? HttpCustomerActionApi(
       baseUrl: baseUrl,
       token: token,
       guestSession: _guestSession,
       b2bRetailStoreId: _session.b2bRetailStoreId,
+      client: _diagnosticsHttpClient,
     );
     final b2cAccountApi = widget.b2cAccountApi ?? HttpB2cAccountApi(
       baseUrl: baseUrl,
       token: token,
       guestSession: _guestSession,
+      client: _diagnosticsHttpClient,
     );
     final storefrontApi = widget.storefrontApi ??
         (widget.b2cCatalogApi != null
@@ -272,6 +327,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                 baseUrl: baseUrl,
                 token: token,
                 retailStoreContextId: _session.b2bRetailStoreId,
+                client: _diagnosticsHttpClient,
               ));
     final wholesaleCommerceApi = widget.wholesaleCommerceApi ??
         (token == null || widget.b2bApi != null
@@ -280,6 +336,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                 baseUrl: baseUrl,
                 token: token,
                 retailStoreContextId: _session.b2bRetailStoreId,
+                client: _diagnosticsHttpClient,
               ));
     final router = CustomerAppRouter(
       _session,
@@ -302,6 +359,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     return MaterialApp(
       navigatorKey: _navigatorKey,
       scaffoldMessengerKey: _messengerKey,
+      navigatorObservers: [
+        CustomerDiagnosticsRouteObserver(CustomerDiagnostics.instance),
+      ],
       debugShowCheckedModeBanner: false,
       title: 'FOODEX Customer',
       theme: widget.theme ?? FoodexTheme.light(),
