@@ -201,6 +201,10 @@ class GuestCartController extends Controller
     {
         $user = Auth::guard('sanctum')->user();
 
+        if (! $user instanceof User && $request->attributes->has('app_preview_session')) {
+            $user = $request->user();
+        }
+
         if ($user instanceof User) {
             abort_unless($user->is_active, 401, 'Unauthenticated.');
 
