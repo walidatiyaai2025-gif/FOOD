@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../auth/driver_session.dart';
 import '../diagnostics/driver_runtime_inspector.dart';
 
+
 class DriverLocationSample {
   const DriverLocationSample({
     required this.latitude,

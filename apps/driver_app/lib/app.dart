@@ -108,6 +108,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
   DriverLocationTrackingController? _locationTracking;
   bool _locationGateReady = false;
 
+  static const _appVersion = '1.0.38';
+
   String get _baseUrl =>
       widget.apiBaseUrl ??
       FoodexEnvironment.apiBaseUrl;
@@ -406,7 +408,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
                             Expanded(
                               child: Text(
                                 preview == null
-                                    ? '${translatedContext.tr('driver.version')} $driverAppVersion'
+                                    ? '${translatedContext.tr('driver.version')} $_appVersion'
                                     : _previewFooterLabel(
                                         translatedContext,
                                         preview,
@@ -526,7 +528,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> {
         '${context.tr('driver.preview.revision')} ${preview.configurationRevision}',
       if (preview.runtimeVersion?.isNotEmpty == true)
         '${context.tr('driver.preview.runtime')} ${preview.runtimeVersion}',
-      '${context.tr('driver.version')} $driverAppVersion',
+      '${context.tr('driver.version')} $_appVersion',
     ];
     return parts.join(' · ');
   }
