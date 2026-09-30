@@ -137,6 +137,7 @@ class AppPreviewDashboardBridgeTest extends TestCase
 
         config()->set('app_preview.runtimes.customer.url', 'https://preview.example/customer');
         config()->set('app_preview.runtimes.customer.contract_version', 'shared-flutter-v1');
+        config()->set('app_preview.runtimes.customer.allowed_origin', 'https://preview.example');
 
         $html = $this->actingAs($admin)
             ->get(route('admin.app-preview.index'))
@@ -148,9 +149,30 @@ class AppPreviewDashboardBridgeTest extends TestCase
         $this->assertStringContainsString('"available":true', $html);
         $this->assertStringNotContainsString('preview_token', $html);
         $this->assertStringNotContainsString('X-Foodex-Preview-Token', $html);
-        $this->assertStringNotContainsString('localStorage', $html);
-        $this->assertStringNotContainsString('sessionStorage', $html);
 
+        preg_match(
+            '/<script id="foodex-preview-bridge">(.*?)<\\/script>/s',
+            $html,
+            $bridgeMatch,
+        );
+        $this->assertArrayHasKey(1, $bridgeMatch);
+        $bridgeScript = (string) $bridgeMatch[1];
+        $this->assertStringNotContainsString('localStorage', $bridgeScript);
+        $this->assertStringNotContainsString('sessionStorage', $bridgeScript);
+        $this->assertStringNotContainsString("searchParams.set('credential'", $bridgeScript);
+        $this->assertStringNotContainsString("searchParams.set('preview_token'", $bridgeScript);
+
+        config()->set('app_preview.runtimes.customer.allowed_origin', 'https://other.example');
+
+        $mismatchedHtml = $this->actingAs($admin)
+            ->get(route('admin.app-preview.index'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('"origin":""', $mismatchedHtml);
+        $this->assertStringContainsString('"available":false', $mismatchedHtml);
+
+        config()->set('app_preview.runtimes.customer.allowed_origin', 'https://preview.example');
         config()->set('app_preview.runtimes.customer.url', 'http://preview.example/customer');
 
         $insecureHtml = $this->actingAs($admin)
