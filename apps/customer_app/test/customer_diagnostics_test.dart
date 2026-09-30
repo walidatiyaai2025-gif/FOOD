@@ -76,10 +76,14 @@ void main() {
 
   testWidgets('diagnostics screen exposes English and Arabic labels', (tester) async {
     await tester.pumpWidget(
-      const AppTranslations(
-        locale: Locale('en'),
-        overrides: {},
-        child: MaterialApp(home: CustomerDiagnosticsScreen()),
+      MaterialApp(
+        locale: const Locale('en'),
+        home: const CustomerDiagnosticsScreen(),
+        builder: (context, child) => AppTranslations(
+          locale: const Locale('en'),
+          overrides: const {},
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
     );
     await tester.scrollUntilVisible(
@@ -94,10 +98,14 @@ void main() {
     expect(find.text('Export JSON'), findsOneWidget);
 
     await tester.pumpWidget(
-      const AppTranslations(
-        locale: Locale('ar'),
-        overrides: {},
-        child: MaterialApp(home: CustomerDiagnosticsScreen()),
+      MaterialApp(
+        locale: const Locale('ar'),
+        home: const CustomerDiagnosticsScreen(),
+        builder: (context, child) => AppTranslations(
+          locale: const Locale('ar'),
+          overrides: const {},
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
     );
     await tester.scrollUntilVisible(
