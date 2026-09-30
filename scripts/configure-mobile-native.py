@@ -556,6 +556,9 @@ def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
             'FOODEX uses your location only when you choose Share my location '
             'to save an accurate delivery address.'
         )
+        plist['NSCameraUsageDescription'] = (
+            'Scan product barcodes and QR codes for marketplace search.'
+        )
     with info.open('wb') as stream:
         plistlib.dump(plist, stream, sort_keys=False)
 

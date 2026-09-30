@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../core/auth/customer_session.dart';
 import '../../core/config/foodex_environment.dart';
 import '../../core/localization/app_translations.dart';
+import 'marketplace_barcode_scanner.dart';
 
 class PlatformMarketplaceScreen extends StatefulWidget {
   const PlatformMarketplaceScreen({
@@ -15,12 +16,14 @@ class PlatformMarketplaceScreen extends StatefulWidget {
     super.key,
     this.client,
     this.onLocaleChanged,
+    this.barcodeScanner = showMarketplaceBarcodeScanner,
   });
 
   final CustomerSession session;
   final ValueChanged<String> onPlatformRegistered;
   final http.Client? client;
   final ValueChanged<Locale>? onLocaleChanged;
+  final MarketplaceBarcodeScanner barcodeScanner;
 
   @override
   State<PlatformMarketplaceScreen> createState() => _PlatformMarketplaceScreenState();
@@ -58,8 +61,27 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     });
   }
 
-  void _focusBarcodeSearch() {
-    _searchFocus.requestFocus();
+  Future<void> _scanBarcode() async {
+    String? scanned;
+    try {
+      scanned = await widget.barcodeScanner(context);
+    } catch (_) {
+      scanned = null;
+    }
+
+    if (!mounted) return;
+    final value = scanned?.trim() ?? '';
+    if (value.isEmpty) {
+      _searchFocus.requestFocus();
+      return;
+    }
+
+    _searchController.text = value;
+    _searchFocus.unfocus();
+    setState(() {
+      _selectedCategoryId = null;
+      _future = _load();
+    });
   }
 
   void _toggleLocale() {
@@ -361,7 +383,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           authenticated: widget.session.isAuthenticated,
                           onRegister: _register,
                           onLogin: () => Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace'),
-                          onScan: _focusBarcodeSearch,
+                          onScan: _scanBarcode,
                           onLanguageToggle: _toggleLocale,
                           localeCode: Localizations.localeOf(context).languageCode,
                           onCart: () => Navigator.of(context).pushNamed('/cart'),
