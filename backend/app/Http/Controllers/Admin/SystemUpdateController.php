@@ -59,15 +59,15 @@ final class SystemUpdateController extends Controller
         $upload->move($directory, $fileName);
         $packagePath = $directory.'/'.$fileName;
 
-        $manifest = new UpdatePackageManifest(
-            (string) $validated['target_version'],
-            (string) $validated['minimum_current_version'],
-            strtolower((string) $validated['sha256']),
-            (string) ($validated['release_notes'] ?? ''),
-            $this->packageInspector->containsMigrations($packagePath),
-        );
-
         try {
+            $manifest = new UpdatePackageManifest(
+                (string) $validated['target_version'],
+                (string) $validated['minimum_current_version'],
+                strtolower((string) $validated['sha256']),
+                (string) ($validated['release_notes'] ?? ''),
+                $this->packageInspector->containsMigrations($packagePath),
+            );
+
             $history = $this->manager->execute(
                 $manifest,
                 $this->currentVersion(),
