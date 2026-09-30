@@ -146,7 +146,7 @@ void main() {
     final app = runtime.app as FoodexCustomerApp;
     expect(app.previewContext?.runtimeIdentity.accessToken, isNull);
     expect(app.session.accessToken, isNull);
-    expect(runtime.configuration?.revisionId, 'revision-draft-1');
+    expect(runtime.configuration.revisionId, 'revision-draft-1');
     expect(
       runtime.safeStatusMetadata['configuration_revision'],
       'revision-draft-1',
