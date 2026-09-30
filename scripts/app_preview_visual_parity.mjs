@@ -30,15 +30,17 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(400); res.end('bad app'); return;
     }
     const body = `<!doctype html><html><body style="margin:0;background:white;overflow:hidden">
-<iframe id="runtime" src="/${app}/index.html" width="${width}" height="${height}" style="display:block;border:0"></iframe>
+<iframe id="runtime" width="${width}" height="${height}" style="display:block;border:0"></iframe>
 <script>
 window.__foodexReady = false;
+const runtime = document.getElementById('runtime');
 addEventListener('message', (event) => {
-  if (event.origin !== location.origin || event.source !== document.getElementById('runtime').contentWindow) return;
+  if (event.origin !== location.origin || event.source !== runtime.contentWindow) return;
   if (event.data && event.data.type === 'foodex.preview.ready' && event.data.version === 'shared-flutter-v1') {
     window.__foodexReady = true;
   }
 });
+runtime.src = "/${app}/index.html";
 </script></body></html>`;
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(body);
