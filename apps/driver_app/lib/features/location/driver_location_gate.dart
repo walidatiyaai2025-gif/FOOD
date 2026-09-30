@@ -13,12 +13,14 @@ class DriverLocationGate extends StatefulWidget {
     required this.onLogout,
     this.service = const GeolocatorDriverLocationGateService(),
     this.recheckInterval = const Duration(seconds: 5),
+    this.onStatusChanged,
   });
 
   final Widget child;
   final Future<void> Function() onLogout;
   final DriverLocationGateService service;
   final Duration recheckInterval;
+  final ValueChanged<DriverLocationGateStatus>? onStatusChanged;
 
   @override
   State<DriverLocationGate> createState() => _DriverLocationGateState();
@@ -53,16 +55,25 @@ class _DriverLocationGateState extends State<DriverLocationGate>
         requestPermission: requestPermission,
       );
       if (!mounted) return;
+      final changed = _status != status;
       setState(() {
         _status = status;
         _checking = false;
       });
+      if (changed) {
+        widget.onStatusChanged?.call(status);
+      }
     } catch (_) {
       if (!mounted) return;
+      const status = DriverLocationGateStatus.permissionDenied;
+      final changed = _status != status;
       setState(() {
-        _status = DriverLocationGateStatus.permissionDenied;
+        _status = status;
         _checking = false;
       });
+      if (changed) {
+        widget.onStatusChanged?.call(status);
+      }
     }
   }
 
