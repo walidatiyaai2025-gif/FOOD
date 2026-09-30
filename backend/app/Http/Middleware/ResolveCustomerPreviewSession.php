@@ -22,6 +22,12 @@ final class ResolveCustomerPreviewSession
         $expectedChannel = strtolower(trim($channel));
         abort_unless(in_array($expectedChannel, ['b2b', 'b2c'], true), 500);
 
+        abort_if(
+            $request->bearerToken() !== null,
+            401,
+            'Production bearer credentials are not accepted by the preview bridge.',
+        );
+
         $credential = $request->header('X-Foodex-Preview-Token');
         abort_unless(
             is_string($credential) && trim($credential) !== '',
