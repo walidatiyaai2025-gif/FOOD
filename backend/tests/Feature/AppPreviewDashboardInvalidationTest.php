@@ -44,7 +44,9 @@ class AppPreviewDashboardInvalidationTest extends TestCase
         $this->assertStringContainsString('id: '.$eventA->id, $content);
         $this->assertStringContainsString('"store_id":'.$storeA, $content);
         $this->assertStringNotContainsString('"store_id":'.$storeB, $content);
-        $this->assertStringNotContainsString('"payload"', $content);
+        foreach (['"payload"', '"email"', '"phone"', '"token"', '"credential"', '"authorization"', '"price"'] as $forbidden) {
+            $this->assertStringNotContainsString($forbidden, strtolower($content));
+        }
         $this->assertDatabaseCount('app_preview_sessions', 0);
     }
 
