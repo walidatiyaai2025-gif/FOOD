@@ -3,6 +3,8 @@
 Issue: #575  
 Parent: #498
 
+Final umbrella reconciliation: PR #581 re-runs this gate on the combined post-#574/#575 `main` baseline before #498 closes.
+
 This gate is the automated evidence that the Dashboard embedding boundary does not fork the real Customer or Driver Flutter preview runtime.
 
 ## What the gate proves
