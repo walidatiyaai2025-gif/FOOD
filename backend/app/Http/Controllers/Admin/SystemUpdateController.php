@@ -51,7 +51,7 @@ final class SystemUpdateController extends Controller
         abort_if($upload === null, 422, 'Update package is required.');
 
         $directory = storage_path('app/private/updates/incoming');
-        if (! is_dir($directory) && ! @mkdir($directory, 0750, true) && ! is_dir($directory)) {
+        if (!is_dir($directory) && !@mkdir($directory, 0750, true) && !is_dir($directory)) {
             throw new RuntimeException('Update upload directory could not be prepared.');
         }
 
