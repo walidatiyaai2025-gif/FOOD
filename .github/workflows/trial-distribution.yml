@@ -53,6 +53,13 @@ jobs:
         run: |
           set -euo pipefail
           current_version="$(tr -d '[:space:]' < VERSION)"
+          customer_identity="$(awk '/^version:/{print $2; exit}' apps/customer_app/pubspec.yaml | tr -d '"')"
+          driver_identity="$(awk '/^version:/{print $2; exit}' apps/driver_app/pubspec.yaml | tr -d '"')"
+          test "$customer_identity" = "$driver_identity"
+          test "${driver_identity%%+*}" = "$current_version"
+          mobile_build_number="${driver_identity##*+}"
+          test -n "$mobile_build_number"
+          test "$mobile_build_number" -gt 0
           head_previous_version="$(git show HEAD^:VERSION 2>/dev/null | tr -d '[:space:]' || true)"
           if [[ -z "$head_previous_version" ]]; then
             head_previous_version="$current_version"
@@ -85,6 +92,7 @@ jobs:
           fi
 
           echo "CURRENT_VERSION=$current_version" >> "$GITHUB_ENV"
+          echo "MOBILE_BUILD_NUMBER=$mobile_build_number" >> "$GITHUB_ENV"
           echo "PREVIOUS_VERSION=$previous_version" >> "$GITHUB_ENV"
           echo "UPDATE_BASE_REF=$update_base_ref" >> "$GITHUB_ENV"
 
@@ -125,13 +133,15 @@ jobs:
             defines+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID")
             defines+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$CUSTOMER_FIREBASE_PROJECT_ID")
           fi
-          flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" "${defines[@]}"
+          flutter build apk --release --build-name="$CURRENT_VERSION" --build-number="$MOBILE_BUILD_NUMBER" "${defines[@]}"
           aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           apk=build/app/outputs/flutter-apk/app-release.apk
           "$aapt_bin" dump permissions "$apk" | grep -Fx "uses-permission: name='android.permission.INTERNET'"
           "$aapt_bin" dump badging "$apk" > build/trial-badging.txt
           grep -Fx "application-label:'FOODEX'" build/trial-badging.txt
           grep -F "package: name='com.fiftysolution.foodex.customer'" build/trial-badging.txt
+          grep -F "versionCode='$MOBILE_BUILD_NUMBER'" build/trial-badging.txt
+          grep -F "versionName='$CURRENT_VERSION'" build/trial-badging.txt
           cp "$apk" "$GITHUB_WORKSPACE/Release/FOODEX-Customer.apk"
 
       - name: Build Driver Android tester APK
@@ -150,13 +160,15 @@ jobs:
             defines+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$DRIVER_FIREBASE_MESSAGING_SENDER_ID")
             defines+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$DRIVER_FIREBASE_PROJECT_ID")
           fi
-          flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" "${defines[@]}"
+          flutter build apk --release --build-name="$CURRENT_VERSION" --build-number="$MOBILE_BUILD_NUMBER" "${defines[@]}"
           aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           apk=build/app/outputs/flutter-apk/app-release.apk
           "$aapt_bin" dump permissions "$apk" | grep -Fx "uses-permission: name='android.permission.INTERNET'"
           "$aapt_bin" dump badging "$apk" > build/trial-badging.txt
           grep -Fx "application-label:'FOODEX Driver'" build/trial-badging.txt
           grep -F "package: name='com.fiftysolution.foodex.driver'" build/trial-badging.txt
+          grep -F "versionCode='$MOBILE_BUILD_NUMBER'" build/trial-badging.txt
+          grep -F "versionName='$CURRENT_VERSION'" build/trial-badging.txt
           cp "$apk" "$GITHUB_WORKSPACE/Release/FOODEX-Driver.apk"
 
       - name: Build Laravel first-install ZIP
@@ -197,7 +209,7 @@ jobs:
           if [[ -n "$DRIVER_FIREBASE_API_KEY" && -n "$DRIVER_FIREBASE_APP_ID" && -n "$DRIVER_FIREBASE_MESSAGING_SENDER_ID" && -n "$DRIVER_FIREBASE_PROJECT_ID" ]]; then
             driver_firebase=true
           fi
-          python3 scripts/write-trial-bundle-manifest.py --version "$CURRENT_VERSION" --source-commit "$GITHUB_SHA" --run-number "$GITHUB_RUN_NUMBER" --api-base-url "$FOODEX_API_BASE_URL" --customer Release/FOODEX-Customer.apk --driver Release/FOODEX-Driver.apk --setup Release/FOODEX-Laravel-Setup.zip --customer-firebase "$customer_firebase" --driver-firebase "$driver_firebase" --output Release/BUILD_INFO.json
+          python3 scripts/write-trial-bundle-manifest.py --version "$CURRENT_VERSION" --source-commit "$GITHUB_SHA" --run-number "$GITHUB_RUN_NUMBER" --mobile-build-number "$MOBILE_BUILD_NUMBER" --api-base-url "$FOODEX_API_BASE_URL" --customer Release/FOODEX-Customer.apk --driver Release/FOODEX-Driver.apk --setup Release/FOODEX-Laravel-Setup.zip --customer-firebase "$customer_firebase" --driver-firebase "$driver_firebase" --output Release/BUILD_INFO.json
 
       - name: Publish version-locked mobile APK assets
         shell: bash
@@ -215,8 +227,8 @@ jobs:
           Source commit: $GITHUB_SHA
 
           - Dashboard: $CURRENT_VERSION
-          - Customer Android APK: $CURRENT_VERSION
-          - Driver Android APK: $CURRENT_VERSION
+          - Customer Android APK: $CURRENT_VERSION+$MOBILE_BUILD_NUMBER
+          - Driver Android APK: $CURRENT_VERSION+$MOBILE_BUILD_NUMBER
           EOF
 
           git config user.name "github-actions[bot]"
@@ -248,6 +260,36 @@ jobs:
           grep -Fx "FOODEX-Customer.apk" <<<"$assets"
           grep -Fx "FOODEX-Driver.apk" <<<"$assets"
           grep -Fx "BUILD_INFO.json" <<<"$assets"
+
+          rm -rf /tmp/foodex-published
+          mkdir -p /tmp/foodex-published
+          gh release download "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "FOODEX-Driver.apk" \
+            --pattern "BUILD_INFO.json" \
+            --dir /tmp/foodex-published \
+            --clobber
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          import os
+
+          root = Path("/tmp/foodex-published")
+          manifest = json.loads((root / "BUILD_INFO.json").read_text(encoding="utf-8"))
+          driver = root / "FOODEX-Driver.apk"
+          digest = hashlib.sha256(driver.read_bytes()).hexdigest()
+          expected_version = os.environ["CURRENT_VERSION"]
+          expected_build = int(os.environ["MOBILE_BUILD_NUMBER"])
+          assert manifest["version"] == expected_version
+          assert manifest["driver"]["version"] == expected_version
+          assert manifest["driver"]["build_number"] == expected_build
+          assert manifest["driver"]["application_id"] == "com.fiftysolution.foodex.driver"
+          assert manifest["driver"]["sha256"] == digest
+          assert manifest["android_signing"] == "flutter-template-debug-key-test-only"
+          assert manifest["production_store_ready"] is False
+          print("Verified published Driver artifact:", expected_version, expected_build, digest)
+          PY
 
       - name: Validate bundle files
         shell: bash
