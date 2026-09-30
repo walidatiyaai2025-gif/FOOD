@@ -351,6 +351,8 @@ final class StorefrontRevisionService
         AppPreviewSession $session,
         string $mode,
     ): StorefrontRevision {
+        abort_unless($session->target_type === 'customer', 404);
+        abort_unless((string) $session->mode === 'read_only', 403);
         abort_unless(in_array($mode, ['draft', 'published'], true), 422);
 
         $revision = StorefrontRevision::query()
