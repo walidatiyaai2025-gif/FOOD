@@ -149,6 +149,41 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /app-preview/events:
+    get:
+      tags: [App Preview]
+      summary: Stream scoped storefront preview invalidation events
+      operationId: streamAppPreviewInvalidationEvents
+      parameters:
+        - in: header
+          name: X-Foodex-Preview-Token
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - in: header
+          name: Last-Event-ID
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Server-sent invalidation events for the exact preview session store/channel scope
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE frames whose data field conforms to AppPreviewInvalidationEvent.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
   /app-preview/storefront-configuration:
     get:
       tags: [App Preview]
@@ -3316,6 +3351,39 @@ components:
           enum: [ar, en]
         driver_id:
           type: [integer, "null"]
+
+    AppPreviewInvalidationEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, event, channel, store_id, occurred_at]
+      properties:
+        event_id:
+          type: integer
+          minimum: 1
+        event:
+          type: string
+          enum: [storefront.preview.updated, app.preview.configuration.updated]
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: integer
+          minimum: 1
+        revision_id:
+          type: [string, "null"]
+          format: uuid
+        revision_status:
+          type: [string, "null"]
+          enum: [draft, published, archived, null]
+        checksum:
+          type: [string, "null"]
+          pattern: "^[a-f0-9]{64}$"
+        schema_version:
+          type: [integer, "null"]
+          minimum: 1
+        occurred_at:
+          type: string
+          format: date-time
 
     AppPreviewContext:
       type: object
