@@ -1,0 +1,44 @@
+name: Driver Preview Web CI
+
+on:
+  pull_request:
+    paths:
+      - "apps/driver_app/lib/preview_main.dart"
+      - "apps/driver_app/lib/core/preview/**"
+      - "apps/driver_app/lib/core/diagnostics/**"
+      - "apps/driver_app/test/driver_preview_web_contract_test.dart"
+      - ".github/workflows/driver-preview-web-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Driver preview Flutter Web validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/driver_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Prepare Web scaffolding
+        run: flutter create --platforms=web --project-name foodex_driver_app .
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze Driver preview sources
+        run: |
+          flutter analyze             lib/preview_main.dart             lib/core/preview             lib/core/diagnostics
+
+      - name: Build Driver preview Web runtime
+        run: |
+          flutter build web             --release             --target=lib/preview_main.dart             --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com             --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=https://foodex.50sols.com             --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
