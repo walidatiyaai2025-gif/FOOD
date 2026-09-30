@@ -1,9 +1,9 @@
 # APP-PREVIEW Final E2E / Runtime Parity Acceptance
 
 Parent: #498  
-Acceptance task: #571  
-Audited baseline: `main@f449ddf025bc2d07e72a8a202e2855c05e77b2e0`  
-Active integration dependency intentionally not edited by this task: #564 / PR #570.
+Acceptance task: #571; final reconciliation: #498  
+Final reconciled baseline: `main@3dffc2892cd5f95d53002a18eb4d55a1e5df9232`  
+All previously identified repository child gaps are merged on `main`: #564 / PR #570, #573 / PR #577, #574 / PR #579, and #575 / PR #580.
 
 ## Status rules
 
@@ -25,7 +25,7 @@ Active integration dependency intentionally not edited by this task: #564 / PR #
 | Retail A != Retail B isolation | PASS | `customer_preview_runtime_test.dart`, `customer_preview_transport_test.dart`, `CustomerPreviewReadBridgeTest.php`, `StorefrontPreviewConfigurationTest.php`. |
 | AR/EN + RTL/LTR | PASS | `customer_preview_acceptance_test.dart` runs AR/EN over 360/390/430 and asserts Directionality; shared Customer localization tests remain included. |
 | Responsive preview widths | PASS | Customer acceptance matrix covers 360/390/430 real shared runtime widths. |
-| Full required device-profile semantics | NOT IMPLEMENTED | #574. Current profiles carry generic label + width only; safe-area/text-scale/iPhone/narrow semantic profiles are not proven. |
+| Full required device-profile semantics | PASS | #574 / PR #579 (`33d3641723c90f52c19cbede17af2c49d216de15`) adds real profile semantics and automated Customer/Driver/backend coverage for viewport dimensions, safe-area/text-scale and supported device profiles. |
 | Navigation/deep-link semantics | PASS | Real preview app factory + `customer_navigation_test.dart`, `b2b_journey_test.dart`, `b2c_journey_test.dart`; preview has no alternate Dashboard router. |
 | Read-only mutation blocking | PASS | `customer_preview_runtime_test.dart` and `customer_preview_transport_test.dart` block commercial/write methods before delegate/network. |
 
@@ -65,9 +65,9 @@ Active integration dependency intentionally not edited by this task: #564 / PR #
 | No silent Draft -> Published fallback | PASS | Authenticated and Guest resolver tests assert explicit missing-Draft state. |
 | Deterministic Draft vs Published comparison | PASS | Customer configuration test resolves deterministic different Draft/Published payloads; revision checksum/id metadata is exposed to Inspector. |
 | Revision publish/rollback/schema compatibility foundation | PASS | `StorefrontRevisionTest.php`: atomic publish/rollback snapshot behavior, unsupported schema rejection and asset-history restoration. |
-| Dashboard editor Save affects Preview only | BLOCKED | #564 / PR #570 is the active Draft-first editor conversion and is not merged into audited `main`. |
-| Publish exposes the exact edited Draft to normal runtime | BLOCKED | #564 / PR #570 owns final editor-to-revision integration; acceptance must be re-run after merge. |
-| Discard/revert editor behavior | BLOCKED | #564 / PR #570. |
+| Dashboard editor Save affects Preview only | PASS | #564 / PR #570 (`219acf93c5de880fe0e495e8d39f17eed5fc826d`) merged Draft-first Retail/Wholesale editors; Save Draft does not mutate Published/live state. |
+| Publish exposes the exact edited Draft to normal runtime | PASS | #564 / PR #570 publishes the exact Draft revision atomically through the authoritative revision contract. |
+| Discard/revert editor behavior | PASS | #564 / PR #570 restores Draft from Published without changing the live Published revision. |
 
 ## Live-update acceptance matrix
 
@@ -77,7 +77,7 @@ Active integration dependency intentionally not edited by this task: #564 / PR #
 | Authenticated SSE scope + replay cursor | PASS | Token-auth feed is store-scoped, token/PII-free and supports `Last-Event-ID`. |
 | Guest/Dashboard SSE scope + replay cursor | PASS | `AppPreviewDashboardInvalidationTest.php`: exact Retail/B2B scope, support audit, permission and cursor behavior without preview session creation. |
 | Event carries invalidation rather than business payload | PASS | SSE regressions assert token/PII absence and event model is revision/scope metadata only. |
-| Embedded Preview subscribes/reconnects/replays and authoritative-refetches | NOT IMPLEMENTED | #573. Current Preview Center/Flutter host has no EventSource/invalidation consumer, so server-side events do not refresh an already-open preview. |
+| Embedded Preview subscribes/reconnects/replays and authoritative-refetches | PASS | #573 / PR #577 (`7c4aa2c1173060817c7205d122c8f5fbf04baa24`) wires scoped invalidation consumption, replay/reconnect and authoritative refetch into the real shared runtime. |
 
 ## Preview Center / runtime parity matrix
 
@@ -88,7 +88,7 @@ Active integration dependency intentionally not edited by this task: #564 / PR #
 | Guest/Auth persona | PASS | Guest creates no impersonation session; authenticated flow creates/revokes scoped session; Driver is authenticated-only. |
 | Draft/Published selector | PASS | Preview Center emits selected configuration; Customer runtime consumes authoritative resolver. |
 | Locale selector | PASS | Bootstrap validation + Customer AR/EN runtime tests. |
-| Device selector basic viewport width | PASS | Dashboard applies selected width and bootstrap sends profile/width. Full semantics remain #574. |
+| Device selector real viewport/profile semantics | PASS | #574 / PR #579 validates supported device profile, width, safe-area/text-scale semantics and exact bootstrap propagation. |
 | Runtime/contract health and exact handshake | PASS | Dashboard rejects unavailable/insecure runtime, checks exact origin/source/contract; shared `shared-flutter-v1` structured envelope. |
 | Preview Inspector | PASS | Source-gated runtime status + allowlisted metadata tests. |
 | Sanitized Diagnostic JSON export | PASS | Deterministic `foodex.preview.diagnostic.v1` export regression excludes credentials/PII-sensitive fields. |
@@ -98,7 +98,7 @@ Active integration dependency intentionally not edited by this task: #564 / PR #
 | Embedded and standalone Web message contract parity | PASS | Customer/Driver bootstrap tests use structured `shared-flutter-v1`, exact parent source/origin and same bootstrap/status envelope. |
 | Customer Preview Web compilation in CI | PASS | Customer CI explicitly builds `lib/preview_main.dart`; #571 acceptance CI repeats it. |
 | Driver Preview Web compilation in CI | PASS | Dedicated Driver Preview Web CI builds `lib/preview_main.dart`; #571 acceptance CI repeats it. |
-| Embedded-vs-standalone automated visual parity | NOT IMPLEMENTED | #575. Existing visual QA/screenshots do not compare the embedded Preview Center runtime with standalone preview Web for the same fixture. |
+| Embedded-vs-standalone automated visual parity | PASS | #575 / PR #580 (`3dffc2892cd5f95d53002a18eb4d55a1e5df9232`) adds the required CI gate and deterministic real-runtime browser comparison; the final PR head completed the parity check successfully. |
 | Deployed runtime URL/origin availability | BLOCKED | External/deployment-only. Repository correctly renders unavailable when env-backed Customer/Driver preview runtime URL/origin/contract is not configured; no deployment state is fabricated here. |
 
 ## Governance / CI
@@ -110,18 +110,21 @@ Active integration dependency intentionally not edited by this task: #564 / PR #
 | Backend affected tests | PASS | #571 dedicated acceptance workflow groups session, Dashboard, Customer/Driver read bridge, revision, configuration, SSE and OpenAPI tests. |
 | Customer Flutter + Web build | PASS | #571 dedicated acceptance workflow runs preview/shared journey tests and compiles Web preview. |
 | Driver Flutter + Web build | PASS | #571 dedicated acceptance workflow runs preview/shared journey tests and compiles Web preview. |
-| Required CI | BLOCKED | Must be green on the #571 PR head before squash merge; final run evidence is recorded on the issue/PR. |
-| Visual/runtime QA | BLOCKED | Existing Admin visual QA remains applicable when Admin view files change; APP-PREVIEW embedded-vs-standalone parity remains #575. |
+| Required CI | PASS | #571 established the acceptance suite; #564/#573/#574/#575 each merged only after green required CI. This final #498 reconciliation PR re-runs Required CI on the combined `main` baseline before merge. |
+| Visual/runtime QA | PASS | #575 / PR #580 makes embedded-vs-standalone real-runtime parity a CI failure condition; Admin visual QA remains applicable for Admin view changes. |
 
-## Closure decision
+## Final reconciliation / closure decision
 
-#498 **must remain open** on this audited baseline.
+Repository-side APP-PREVIEW acceptance is complete on the combined final baseline.
 
-Current concrete blockers/gaps:
-- #564 / PR #570 — Draft-first editor integration must merge and pass its own CI before final Draft-only edit / exact Publish / Discard acceptance can be re-run.
-- #573 — live invalidation is produced server-side but not consumed by the open Preview runtime.
-- #574 — required real device-profile semantics are incomplete.
-- #575 — no automated embedded-vs-standalone visual runtime parity gate.
-- deployed Customer/Driver Preview runtime availability is external environment evidence and must be verified separately where deployment access exists.
+Previously open gaps are now merged:
+- #564 / PR #570 — Draft-first Retail/Wholesale Save Draft / Publish / Discard integration.
+- #573 / PR #577 — scoped live invalidation consumption with authoritative runtime refetch.
+- #574 / PR #579 — real device-profile viewport semantics. PR #578 was superseded and closed unmerged.
+- #575 / PR #580 — automated embedded-vs-standalone visual/runtime parity gate.
 
-#571 can close after its Test/CI/Docs evidence is merged; closing #571 does **not** imply closing #498 while any gap above remains open.
+This reconciliation PR intentionally changes acceptance documentation only so that `.github/workflows/app-preview-acceptance-ci.yml` and Required CI execute against the final combined `main` state. Merge is permitted only after those checks are green.
+
+The deployed Customer/Driver Preview runtime URL/origin remains external deployment evidence. Repository acceptance does not fabricate that environment state; runtime-unavailable behavior is already explicit and tested. That external verification is not an open repository implementation gap under #498.
+
+When this reconciliation PR is green and merged, #498 is eligible to close as completed.
