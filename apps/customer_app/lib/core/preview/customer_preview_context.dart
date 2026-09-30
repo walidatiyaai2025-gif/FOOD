@@ -23,6 +23,7 @@ class CustomerPreviewContext {
     this.expiresAt,
     this.configurationRevision,
     this.runtimeVersion,
+    this.supportAccess = false,
   }) : assert(storeId > 0, 'Customer preview requires an explicit storeId.');
 
   factory CustomerPreviewContext.guest({
@@ -31,6 +32,7 @@ class CustomerPreviewContext {
     String targetLocale = 'ar',
     String? configurationRevision,
     String? runtimeVersion,
+    bool supportAccess = false,
   }) =>
       CustomerPreviewContext(
         channel: channel,
@@ -39,6 +41,7 @@ class CustomerPreviewContext {
         targetLocale: targetLocale,
         configurationRevision: configurationRevision,
         runtimeVersion: runtimeVersion,
+        supportAccess: supportAccess,
       );
 
   factory CustomerPreviewContext.fromResolvedSession(
@@ -75,6 +78,7 @@ class CustomerPreviewContext {
       expiresAt: data['expires_at']?.toString(),
       configurationRevision: configurationRevision,
       runtimeVersion: runtimeVersion,
+      supportAccess: data['support_access'] == true,
     );
   }
 
@@ -89,6 +93,7 @@ class CustomerPreviewContext {
   final String? expiresAt;
   final String? configurationRevision;
   final String? runtimeVersion;
+  final bool supportAccess;
 
   bool get mutationsAllowed => false;
 
