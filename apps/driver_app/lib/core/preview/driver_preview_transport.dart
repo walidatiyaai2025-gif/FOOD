@@ -33,7 +33,7 @@ class DriverPreviewReadHttpClient extends http.BaseClient {
     final method = request.method.toUpperCase();
     if (method != 'GET' && method != 'HEAD') {
       return Future<http.StreamedResponse>.error(
-        DriverPreviewMutationBlocked('http.' + method.toLowerCase()),
+        DriverPreviewMutationBlocked('http.${method.toLowerCase()}'),
       );
     }
 
