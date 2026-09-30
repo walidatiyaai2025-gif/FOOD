@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AdminReportController;
+use App\Http\Controllers\Api\V1\AppPreviewInvalidationController;
 use App\Http\Controllers\Api\V1\AppPreviewSessionController;
 use App\Http\Controllers\Api\V1\AppVersionController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -43,6 +44,8 @@ Route::prefix('v1')->group(function (): void {
 
     Route::get('/app-version', AppVersionController::class);
     Route::post('/app-preview/resolve', [AppPreviewSessionController::class, 'resolve'])
+        ->middleware('throttle:60,1');
+    Route::get('/app-preview/events', AppPreviewInvalidationController::class)
         ->middleware('throttle:60,1');
     Route::get('/app-preview/storefront-configuration', [StorefrontRevisionController::class, 'resolveCurrentPreviewConfiguration'])
         ->middleware('throttle:60,1');
