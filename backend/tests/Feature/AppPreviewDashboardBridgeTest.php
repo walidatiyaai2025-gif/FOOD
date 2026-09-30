@@ -67,9 +67,9 @@ class AppPreviewDashboardBridgeTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.target.user_id', $customer->id)
             ->assertJsonPath('data.read_only', true)
-            ->assertJsonPath('token_type', 'Preview');
+            ->assertJsonPath('credential_type', 'Preview');
 
-        $token = (string) $created->json('preview_token');
+        $token = (string) $created->json('credential');
         $publicId = (string) $created->json('data.session_id');
 
         $this->assertNotSame('', $token);
