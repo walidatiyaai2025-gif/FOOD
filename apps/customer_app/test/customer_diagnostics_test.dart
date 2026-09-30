@@ -99,7 +99,7 @@ void main() {
     expect(details['status_code'], 500);
     expect(details['correlation_id'], 'req-123');
     expect(details['path'], contains('store=7'));
-    expect(details['path'], contains('token=%5BREDACTED%5D'));
+    expect(details['path'], contains('token=[REDACTED]'));
     expect(details.toString(), isNot(contains('secret-token')));
     expect(details.toString(), isNot(contains('should-never-be-recorded')));
 
