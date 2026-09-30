@@ -1006,6 +1006,15 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           icon: const Icon(Icons.edit_outlined),
           label: Text(context.tr('customer.settings.edit_profile')),
         ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          key: const ValueKey('b2c-settings-diagnostics'),
+          onPressed: () => Navigator.of(context).pushNamed(
+            CustomerRoutePaths.diagnostics,
+          ),
+          icon: const Icon(Icons.bug_report_outlined),
+          label: Text(context.tr('customer.diagnostics.open')),
+        ),
       ],
     );
   }
@@ -1606,6 +1615,12 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         _section(
           context.tr('customer.settings.title'),
           onTap: () => Navigator.of(context).pushNamed(CustomerRoutePaths.settings),
+        ),
+        _section(
+          context.tr('customer.diagnostics.title'),
+          onTap: () => Navigator.of(context).pushNamed(
+            CustomerRoutePaths.diagnostics,
+          ),
         ),
       ],
     );
