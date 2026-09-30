@@ -54,14 +54,19 @@ final class ResolveCustomerPreviewSession
             ->first();
         abort_unless($target instanceof User, 401, 'Preview target is no longer active.');
 
+        // The preview credential is never allowed to become or coexist with
+        // a normal Customer/guest/support credential inside this bridge.
+        $request->headers->remove('Authorization');
+        $request->headers->remove('X-Guest-Token');
+        $request->headers->remove('X-FOODEX-Retail-Store-ID');
+        $request->headers->remove('X-FOODEX-Support-Access');
+
         $request->attributes->set('app_preview_session', $session);
         $request->attributes->set('app_preview_store_id', $storeId);
         $request->attributes->set('app_preview_channel', $expectedChannel);
+        $request->attributes->set('app_preview_read_only', true);
         $request->headers->set('X-FOODEX-Customer-Domain', $expectedChannel);
-
-        if ($expectedChannel === 'b2c') {
-            $request->headers->set('X-FOODEX-Store-ID', (string) $storeId);
-        }
+        $request->headers->set('X-FOODEX-Store-ID', (string) $storeId);
 
         $request->setUserResolver(static fn (): User => $target);
 
