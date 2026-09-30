@@ -36,9 +36,11 @@ class _CustomerDiagnosticsScreenState
     setState(() => _busy = true);
     try {
       final file = await _diagnostics.writeExportFile(note: _note.text);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: context.tr('customer.diagnostics.share_text'),
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: context.tr('customer.diagnostics.share_text'),
+        ),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
