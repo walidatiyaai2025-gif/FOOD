@@ -76,36 +76,37 @@ const cases = [
   { app: 'driver', width: 390, height: 844, profile: 'iphone-common' },
 ];
 
+async function stableScreenshot(target, page, { initialDelay = 600 } = {}) {
+  await page.waitForTimeout(initialDelay);
+  let previousHash = null;
+  let latest = null;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    await page.evaluate(() => new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    latest = await target.screenshot();
+    const hash = crypto.createHash('sha256').update(latest).digest('hex');
+    if (hash === previousHash) return latest;
+    previousHash = hash;
+    await page.waitForTimeout(200);
+  }
+
+  throw new Error('preview_render_did_not_stabilize');
+}
+
 const report = [];
 try {
   for (const testCase of cases) {
     const { app, width, height, profile } = testCase;
     const standalone = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
-    await standalone.addInitScript(() => {
-      window.__foodexReady = false;
-      addEventListener('message', (event) => {
-        if (
-          event.source === window &&
-          event.origin === location.origin &&
-          event.data &&
-          event.data.type === 'foodex.preview.ready' &&
-          event.data.version === 'shared-flutter-v1'
-        ) {
-          window.__foodexReady = true;
-        }
-      });
-    });
     await standalone.goto(`http://127.0.0.1:4173/${app}/index.html`, { waitUntil: 'networkidle' });
-    await standalone.waitForFunction(() => window.__foodexReady === true, null, { timeout: 15000 });
-    await standalone.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    const standalonePng = await standalone.screenshot();
+    const standalonePng = await stableScreenshot(standalone, standalone);
 
     const embedded = await browser.newPage({ viewport: { width: width + 40, height: height + 40 }, deviceScaleFactor: 1 });
     await embedded.goto(`http://127.0.0.1:4173/host.html?app=${app}&width=${width}&height=${height}`, { waitUntil: 'networkidle' });
     await embedded.waitForFunction(() => window.__foodexReady === true, null, { timeout: 15000 });
-    await embedded.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const iframe = embedded.locator('#runtime');
-    const embeddedPng = await iframe.screenshot();
+    const embeddedPng = await stableScreenshot(iframe, embedded, { initialDelay: 250 });
 
     const a = PNG.sync.read(standalonePng);
     const b = PNG.sync.read(embeddedPng);
