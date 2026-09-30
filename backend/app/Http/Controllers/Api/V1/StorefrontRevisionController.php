@@ -206,10 +206,11 @@ final class StorefrontRevisionController extends Controller
         StorefrontRevisionService $revisions,
     ): JsonResponse {
         $token = $request->header('X-Foodex-Preview-Token');
-        if (! is_string($token) || trim($token) === '') {
-            $token = $request->input('preview_token');
-        }
-        abort_unless(is_string($token) && trim($token) !== '', 401, 'Preview token is required.');
+        abort_unless(
+            is_string($token) && trim($token) !== '',
+            401,
+            'Preview token is required.',
+        );
 
         $session = $sessions->resolve($token, $request);
         $model = $this->revision($revision);
