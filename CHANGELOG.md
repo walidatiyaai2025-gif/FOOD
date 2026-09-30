@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.36 - Platform customer addresses, delivery location and lifecycle notifications
+
+- Unify each Platform Customer into one cross-channel address book shared by Wholesale and Retail journeys, with manual entry, explicit foreground location sharing, corrected map pins, default-address management and strict ownership isolation.
+- Validate checkout address ownership on the backend and persist an immutable delivery-address snapshot on the order so later address-book edits cannot rewrite historical delivery data.
+- Add full Customer 360 address CRUD plus exact delivery-address and map actions in Order Operations without leaking coordinates into unrelated list views, logs or public APIs.
+- Carry the immutable delivery coordinates into Driver assignments and expose a safe one-tap navigation action while preserving B2B/B2C assignment boundaries.
+- Make order/assignment lifecycle notifications backend-authoritative for Customer and Driver, with safe deep-link payloads, durable delivery logs, deduplication, retry/backoff and invalid-token revocation.
+- Harden mobile push lifecycle with explicit logout revocation, foreground/local-notification tap routing, cold-launch recovery and a stable per-installation identity that reconciles FCM token refresh without revoking another device.
+- Add OpenAPI contracts, cross-surface PCX-09 E2E acceptance, Arabic/English mobile screenshot evidence and Admin runtime visual evidence for the address/location journey.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.36.
+
 ## 1.0.35 - Order operations detail stability
 
 - Fix HTTP 500 when opening Order Management details for orders with driver assignment history.

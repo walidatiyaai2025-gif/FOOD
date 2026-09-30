@@ -30,6 +30,12 @@ mobile_release_version="${customer_version%%+*}"
 [[ "$mobile_release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
 test "$release_version" = "$mobile_release_version"
+
+customer_ui_version="$(awk -F"'" '/static const _appVersion =/ {print $2; exit}' apps/customer_app/lib/app.dart)"
+driver_ui_version="$(awk -F"'" '/static const _appVersion =/ {print $2; exit}' apps/driver_app/lib/app.dart)"
+test "$customer_ui_version" = "$release_version"
+test "$driver_ui_version" = "$release_version"
+
 grep -Eq '^# FOODEX [0-9]+\.[0-9]+\.[0-9]+ Release Notes$' docs/release/RELEASE_NOTES.md
 grep -Fq "## $mobile_release_version -" CHANGELOG.md
 grep -Fq "VERSION and release notes identify the exact release being promoted. Evidence: #178" docs/release/RELEASE_CHECKLIST.md

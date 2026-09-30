@@ -71,7 +71,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   Timer? _versionFooterTimer;
   bool _showVersionFooter = false;
 
-  static const _appVersion = '1.0.34';
+  static const _appVersion = '1.0.36';
 
   @override
   void initState() {

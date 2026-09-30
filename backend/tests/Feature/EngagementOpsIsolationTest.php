@@ -57,6 +57,70 @@ class EngagementOpsIsolationTest extends TestCase
         ]);
     }
 
+    public function test_push_token_refresh_revokes_only_the_previous_token_for_same_installation(): void
+    {
+        $base = [
+            'app' => 'customer',
+            'platform' => 'android',
+            'environment' => 'production',
+            'target_channel' => 'all',
+            'locale' => 'ar',
+        ];
+
+        $this->postJson('/api/v1/push/devices/guest', [
+            ...$base,
+            'token' => 'install-a-old-token',
+            'install_id' => 'stable-install-a',
+        ])->assertCreated();
+
+        $this->postJson('/api/v1/push/devices/guest', [
+            ...$base,
+            'token' => 'install-b-token',
+            'install_id' => 'stable-install-b',
+        ])->assertCreated();
+
+        $this->postJson('/api/v1/push/devices/guest', [
+            ...$base,
+            'token' => 'install-a-new-token',
+            'install_id' => 'stable-install-a',
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('push_device_tokens', [
+            'token_hash' => hash('sha256', 'install-a-old-token'),
+            'install_id' => 'stable-install-a',
+        ]);
+        $this->assertNotNull(
+            DB::table('push_device_tokens')
+                ->where('token_hash', hash('sha256', 'install-a-old-token'))
+                ->value('revoked_at'),
+        );
+
+        $this->assertDatabaseHas('push_device_tokens', [
+            'token_hash' => hash('sha256', 'install-a-new-token'),
+            'install_id' => 'stable-install-a',
+            'revoked_at' => null,
+        ]);
+        $this->assertDatabaseHas('push_device_tokens', [
+            'token_hash' => hash('sha256', 'install-b-token'),
+            'install_id' => 'stable-install-b',
+            'revoked_at' => null,
+        ]);
+
+        $this->assertSame(
+            1,
+            DB::table('push_device_tokens')
+                ->where('install_id', 'stable-install-a')
+                ->whereNull('revoked_at')
+                ->count(),
+        );
+        $this->assertSame(
+            2,
+            DB::table('push_device_tokens')
+                ->whereNull('revoked_at')
+                ->count(),
+        );
+    }
+
     public function test_guest_push_registration_rejects_driver_missing_install_and_store_channel_mismatch(): void
     {
         $this->postJson('/api/v1/push/devices/guest', [

@@ -12,27 +12,27 @@ permissions:
 jobs:
   backend-validation:
     name: Backend + MySQL commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') }}
     uses: ./.github/workflows/backend-ci.yml
 
   customer-validation:
     name: Customer Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') }}
     uses: ./.github/workflows/customer-app-ci.yml
 
   driver-validation:
     name: Driver Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') }}
     uses: ./.github/workflows/driver-app-ci.yml
 
   runtime-evidence:
     name: Runtime screenshot evidence
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') }}
     uses: ./.github/workflows/screenshot-evidence.yml
 
   release-gate:
     name: Platform Customer commerce release gate
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e') }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-')) }}
     needs:
       - backend-validation
       - customer-validation
@@ -86,6 +86,45 @@ jobs:
           grep -Fq "customer app renders English LTR from the bilingual catalog" apps/customer_app/test/localization_test.dart
           grep -Fq "driver app renders English LTR from the bilingual catalog" apps/driver_app/test/localization_test.dart
 
+      - name: Verify PCX-09 address and lifecycle evidence contracts
+        if: ${{ startsWith(github.head_ref, 'feat/436-') || startsWith(github.ref_name, 'feat/436-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f backend/database/migrations/2026_09_29_180000_unify_platform_customer_addresses.php
+          test -f backend/database/migrations/2026_09_29_190000_snapshot_order_delivery_addresses.php
+          test -f backend/database/migrations/2026_09_29_200000_link_push_delivery_logs_to_notifications.php
+
+          grep -Fq 'test_platform_customer_has_one_cross_channel_address_book_with_precise_location' backend/tests/Feature/PlatformCustomerAddressTest.php
+          grep -Fq 'test_geographic_location_sources_require_real_coordinate_pairs' backend/tests/Feature/PlatformCustomerAddressTest.php
+          grep -Fq 'test_platform_customer_cannot_access_another_platform_customers_address' backend/tests/Feature/PlatformCustomerAddressTest.php
+          grep -Fq 'test_retail_admin_can_fully_manage_visible_customer_addresses_only' backend/tests/Feature/DashboardCustomer360Test.php
+          grep -Fq 'test_order_detail_shows_immutable_delivery_address_and_map_action' backend/tests/Feature/OrderOperationsIsolationTest.php
+          grep -Fq 'test_driver_payload_uses_immutable_order_delivery_snapshot' backend/tests/Feature/DriverAssignmentLifecycleTest.php
+          grep -Fq 'test_dashboard_status_transition_notifies_the_order_customer' backend/tests/Feature/OrderOperationsIsolationTest.php
+          grep -Fq 'test_dashboard_cancellation_revokes_driver_and_notifies_customer_and_driver' backend/tests/Feature/OrderOperationsIsolationTest.php
+          grep -Fq 'test_customer_and_driver_notifications_are_user_scoped_deduplicated_and_queued' backend/tests/Feature/OrderLifecycleNotificationTest.php
+          grep -Fq 'test_order_routing_metadata_is_forwarded_to_fcm_data_payload' backend/tests/Feature/PushLifecyclePayloadTest.php
+          grep -Fq 'test_transient_failure_retries_without_resending_after_success' backend/tests/Feature/PushLifecyclePayloadTest.php
+          grep -Fq 'test_unregistered_fcm_token_is_revoked_and_not_retried' backend/tests/Feature/PushLifecyclePayloadTest.php
+          grep -Fq 'test_push_token_refresh_revokes_only_the_previous_token_for_same_installation' backend/tests/Feature/EngagementOpsIsolationTest.php
+
+          grep -Fq 'B2B profile exposes the unified customer address book' apps/customer_app/test/b2b_journey_test.dart
+          grep -Fq 'My Addresses saves shared foreground location only after user action' apps/customer_app/test/b2c_journey_test.dart
+          grep -Fq 'My Addresses can choose and save a corrected map pin' apps/customer_app/test/b2c_journey_test.dart
+          grep -Fq 'location denial keeps manual address entry available' apps/customer_app/test/b2c_journey_test.dart
+          grep -Fq 'My Addresses can set another address as default' apps/customer_app/test/b2c_journey_test.dart
+          grep -Fq 'notification routes are constrained to authorized customer destinations' apps/customer_app/test/firebase_push_service_test.dart
+          grep -Fq 'device registry revokes authenticated customer push device' apps/customer_app/test/firebase_push_service_test.dart
+
+          grep -Fq 'driver can launch immutable order coordinates from detail' apps/driver_app/test/driver_journey_test.dart
+          grep -Fq 'push-targeted assignment opens its detail after load' apps/driver_app/test/driver_journey_test.dart
+          grep -Fq 'driver local notification payload restores safe assignment routing' apps/driver_app/test/firebase_push_service_test.dart
+          grep -Fq 'device registry revokes authenticated driver push device' apps/driver_app/test/firebase_push_service_test.dart
+
+          grep -Fq 'capture My Addresses edit with location' apps/customer_app/test/screenshot_evidence_test.dart
+
       - name: Write exact release evidence manifest
         shell: bash
         run: |
@@ -101,6 +140,7 @@ jobs:
             echo "driver_validation=${{ needs.driver-validation.result }}"
             echo "runtime_evidence=${{ needs.runtime-evidence.result }}"
             echo "journeys=12"
+            echo "pcx09_address_lifecycle_contracts=${{ startsWith(github.head_ref, 'feat/436-') || startsWith(github.ref_name, 'feat/436-') }}"
             echo "release_gate=PASS"
           } > artifacts/platform-customer-commerce-e2e.txt
 

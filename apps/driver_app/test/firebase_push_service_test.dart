@@ -75,7 +75,11 @@ void main() {
       return http.Response(jsonEncode({'data': {'id': 77}}), 201, headers: {'content-type': 'application/json'});
     });
     final registry = DriverPushDeviceRegistry(baseUrl: 'https://foodex.50sols.com', client: client);
-    final id = await registry.register(accessToken: 'driver-token', firebaseToken: 'driver-fcm-token');
+    final id = await registry.register(
+      accessToken: 'driver-token',
+      firebaseToken: 'driver-fcm-token',
+      installId: 'driver-install-1',
+    );
     expect(id, 77);
     expect(captured.url.toString(), 'https://foodex.50sols.com/api/v1/push/devices');
     expect(captured.headers['Authorization'], 'Bearer driver-token');
@@ -83,5 +87,6 @@ void main() {
     expect(body['app'], 'driver');
     expect(body['environment'], 'production');
     expect(body['token'], 'driver-fcm-token');
+    expect(body['install_id'], 'driver-install-1');
   });
 }
