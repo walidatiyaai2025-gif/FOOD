@@ -133,6 +133,10 @@ class CustomerDiagnostics extends ChangeNotifier {
       _authState = isAuthenticated
           ? (platformWide == true ? 'authenticated_platform' : 'authenticated')
           : 'guest';
+      if (!isAuthenticated) {
+        _channel = null;
+        _storeId = null;
+      }
     }
     if (channel != null) _channel = channel;
     if (storeId != null) _storeId = storeId;
