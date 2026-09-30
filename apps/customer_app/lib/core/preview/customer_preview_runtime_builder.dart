@@ -5,6 +5,7 @@ import '../../app.dart';
 import '../api/b2b_api.dart';
 import '../api/b2c_account_api.dart';
 import '../api/b2c_catalog_api.dart';
+import '../api/customer_action_api.dart';
 import '../api/storefront_api.dart';
 import '../api/wholesale_commerce_api.dart';
 import '../auth/customer_session.dart';
