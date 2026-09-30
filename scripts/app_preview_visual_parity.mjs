@@ -210,6 +210,40 @@ const server = http.createServer(async (req, res) => {
 await new Promise((resolve) => server.listen(4173, '127.0.0.1', resolve));
 const origin = 'http://127.0.0.1:4173';
 const browser = await chromium.launch({ headless: true });
+const diagnosticsByPage = new WeakMap();
+
+function instrumentPage(page) {
+  const diagnostics = {
+    console: [],
+    page_errors: [],
+    request_failures: [],
+    bad_responses: [],
+  };
+  diagnosticsByPage.set(page, diagnostics);
+  page.on('console', (message) => {
+    diagnostics.console.push({
+      type: message.type(),
+      text: message.text(),
+    });
+  });
+  page.on('pageerror', (error) => {
+    diagnostics.page_errors.push(String(error));
+  });
+  page.on('requestfailed', (request) => {
+    diagnostics.request_failures.push({
+      url: request.url(),
+      failure: request.failure(),
+    });
+  });
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      diagnostics.bad_responses.push({
+        status: response.status(),
+        url: response.url(),
+      });
+    }
+  });
+}
 
 async function stableScreenshot(target, page, { initialDelay = 600 } = {}) {
   await page.waitForTimeout(initialDelay);
@@ -240,13 +274,25 @@ async function waitForState(page, testCase, surface) {
       { state: testCase.expectedState, code: testCase.expectedCode ?? null },
       { timeout: 20000 });
   } catch (error) {
-    const diagnostics = await page.evaluate(() => ({
+    const browserDiagnostics = diagnosticsByPage.get(page) || {};
+    const pageDiagnostics = await page.evaluate(() => ({
       messages: window.__foodexMessages || [],
       handshake: window.__foodexHandshake === true,
       text: document.body?.innerText || '',
+      ready_state: document.readyState,
+    }));
+    const frames = await Promise.all(page.frames().map(async (frame) => {
+      let readyState = null;
+      let text = '';
+      try {
+        readyState = await frame.evaluate(() => document.readyState);
+        text = await frame.evaluate(() => document.body?.innerText || '');
+      } catch (_) {}
+      return { url: frame.url(), ready_state: readyState, text };
     }));
     throw new Error(testCase.id + ': ' + surface + ' state timeout; diagnostics=' +
-      JSON.stringify(diagnostics) + '; cause=' + error.message);
+      JSON.stringify({ ...pageDiagnostics, frames, ...browserDiagnostics }) +
+      '; cause=' + error.message);
   }
 
   const snapshot = await page.evaluate(({ state, code }) => {
@@ -294,6 +340,7 @@ try {
       viewport: { width, height },
       deviceScaleFactor: 1,
     });
+    instrumentPage(standalone);
     await standalone.goto(
       origin + '/standalone.html?fixture=' + encodeURIComponent(id),
       { waitUntil: 'networkidle' },
@@ -310,6 +357,7 @@ try {
       viewport: { width: width + 40, height: height + 40 },
       deviceScaleFactor: 1,
     });
+    instrumentPage(embedded);
     await embedded.goto(origin + '/host.html?fixture=' + encodeURIComponent(id), { waitUntil: 'networkidle' });
     const embeddedStatus = await waitForState(embedded, testCase, 'embedded');
     const iframe = embedded.locator('#runtime');
