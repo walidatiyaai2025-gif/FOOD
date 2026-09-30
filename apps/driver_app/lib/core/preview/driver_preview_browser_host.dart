@@ -1,7 +1,5 @@
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
-import 'dart:async';
-import 'dart:html' as html;
 import 'dart:js_interop';
 
 import 'package:flutter/material.dart';
@@ -9,6 +7,22 @@ import 'package:flutter/material.dart';
 import '../config/foodex_environment.dart';
 import 'driver_preview_bootstrap.dart';
 import 'driver_preview_runtime.dart';
+
+@JS('window')
+external _PreviewWindow get _previewWindow;
+
+extension type _PreviewWindow(JSObject _) implements JSObject {
+  external _PreviewWindow get parent;
+  external void addEventListener(String type, JSFunction listener);
+  external void removeEventListener(String type, JSFunction listener);
+  external void postMessage(JSAny? message, String targetOrigin);
+}
+
+extension type _PreviewMessageEvent(JSObject _) implements JSObject {
+  external String get origin;
+  external JSAny? get source;
+  external JSAny? get data;
+}
 
 class DriverPreviewBrowserHost extends StatefulWidget {
   const DriverPreviewBrowserHost({super.key});
@@ -19,7 +33,7 @@ class DriverPreviewBrowserHost extends StatefulWidget {
 }
 
 class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
-  StreamSubscription<html.MessageEvent>? _messages;
+  JSFunction? _messageListener;
   DriverPreviewRuntime? _runtime;
   String? _error;
 
@@ -29,7 +43,10 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
   @override
   void initState() {
     super.initState();
-    _messages = html.window.onMessage.listen(_onMessage);
+    _messageListener = ((JSObject rawEvent) {
+      _onMessage(_PreviewMessageEvent(rawEvent));
+    }).toJS;
+    _previewWindow.addEventListener('message', _messageListener!);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_allowedOrigin.isEmpty) {
@@ -44,11 +61,14 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
     });
   }
 
-  void _onMessage(html.MessageEvent event) {
+  void _onMessage(_PreviewMessageEvent event) {
+    final source = event.source;
+    final fromParent = source != null &&
+        source.strictEquals(_previewWindow.parent).toDart;
     if (!DriverPreviewHostContract.allowsMessage(
       origin: event.origin,
       expectedOrigin: _allowedOrigin,
-      fromParent: event.source == html.window.parent,
+      fromParent: fromParent,
     )) {
       return;
     }
@@ -124,7 +144,7 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
   }
 
   void _post(Map<String, Object?> message) {
-    html.window.parent?.postMessage(
+    _previewWindow.parent.postMessage(
       message.jsify(),
       _allowedOrigin,
     );
@@ -132,7 +152,11 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
 
   @override
   void dispose() {
-    unawaited(_messages?.cancel());
+    final listener = _messageListener;
+    if (listener != null) {
+      _previewWindow.removeEventListener('message', listener);
+      _messageListener = null;
+    }
     _runtime?.close();
     super.dispose();
   }
