@@ -37,7 +37,7 @@ class UpdatePackageInspectorTest extends TestCase
     }
 
     /**
-     * @param array<string, string> $files
+     * @param  array<string, string>  $files
      */
     private function package(array $files): string
     {
