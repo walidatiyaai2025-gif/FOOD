@@ -299,17 +299,38 @@ class CustomerDiagnostics {
 
   static String _redactString(String input) {
     var value = input;
+    value = value.replaceAllMapped(
+      RegExp(
+        r'\\b(password|passcode|token|access[_-]?token|refresh[_-]?token|fcm[_-]?token|push[_-]?token|guest[_-]?token|authorization|cookie|secret|client[_-]?secret|email|phone(?:[_-]?number)?|civil(?:[_-]?(?:id|number))?|address|latitude|longitude|coordinates|card[_-]?number|cvv)\\s*[:=]\\s*[^\\n;]+',
+        caseSensitive: false,
+      ),
+      (match) => '${match.group(1)}=[REDACTED]',
+    );
     value = value.replaceAll(
-      RegExp(r'Bearer\s+[^\s,;]+', caseSensitive: false),
+      RegExp(r'Bearer\\s+[^\\s,;]+', caseSensitive: false),
       'Bearer [REDACTED]',
     );
     value = value.replaceAll(
-      RegExp(r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}', caseSensitive: false),
+      RegExp(r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}', caseSensitive: false),
       '[REDACTED_EMAIL]',
     );
     value = value.replaceAll(
-      RegExp(r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'),
+      RegExp(r'eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}'),
       '[REDACTED_TOKEN]',
+    );
+    value = value.replaceAll(
+      RegExp(r'(?<!\\d)(?:\\+?965[\\s-]?)?[24569]\\d{7}(?!\\d)'),
+      '[REDACTED_PHONE]',
+    );
+    value = value.replaceAll(
+      RegExp(r'(?<!\\d)\\d{12}(?!\\d)'),
+      '[REDACTED_CIVIL_ID]',
+    );
+    value = value.replaceAll(
+      RegExp(
+        r'(?<!\\d)-?\\d{1,3}\\.\\d{4,}\\s*[,/]\\s*-?\\d{1,3}\\.\\d{4,}(?!\\d)',
+      ),
+      '[REDACTED_COORDINATES]',
     );
     return value.length > 4000 ? '${value.substring(0, 4000)}…' : value;
   }
