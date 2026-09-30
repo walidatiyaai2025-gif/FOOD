@@ -4,8 +4,10 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+const customerDiagnosticsAppVersion = '1.0.36';
+const customerDiagnosticsAppBuild = '36';
 
 class CustomerDiagnosticEvent {
   const CustomerDiagnosticEvent({
@@ -48,8 +50,8 @@ class CustomerDiagnostics extends ChangeNotifier {
 
   SharedPreferences? _preferences;
   Future<void> _persistChain = Future<void>.value();
-  String _appVersion = 'unknown';
-  String _buildNumber = 'unknown';
+  String _appVersion = customerDiagnosticsAppVersion;
+  String _buildNumber = customerDiagnosticsAppBuild;
   final String? _deviceModel = null;
   final String _osVersion = Platform.operatingSystemVersion;
   String _apiBaseUrl = '';
@@ -100,12 +102,6 @@ class CustomerDiagnostics extends ChangeNotifier {
     } catch (_) {
       _preferences = null;
     }
-
-    try {
-      final package = await PackageInfo.fromPlatform();
-      _appVersion = package.version;
-      _buildNumber = package.buildNumber;
-    } catch (_) {}
 
     notifyListeners();
   }
