@@ -118,6 +118,29 @@ void main() {
     expect(seen, ['GET /api/v1/platform/storefront']);
   });
 
+  test('guest Wholesale preview does not require authenticated B2B adapters', () {
+    final context = CustomerPreviewContext.guest(
+      channel: CustomerChannel.b2b,
+      storeId: 1,
+      targetLocale: 'ar',
+    );
+
+    final app = FoodexCustomerApp.preview(
+      previewContext: context,
+      b2cCatalogApi: _CatalogFake(),
+      b2cAccountApi: _AccountFake(),
+      storefrontApi: _StorefrontFake(),
+      marketplaceClient: MockClient(
+        (request) async => http.Response('{"data":[]}', 200),
+      ),
+    );
+
+    expect(app.session.isAuthenticated, isFalse);
+    expect(app.session.accessToken, isNull);
+    expect(app.b2bApi, isNull);
+    expect(app.wholesaleCommerceApi, isNull);
+  });
+
   test('preview factory keeps native and production fallbacks disabled', () {
     final context = CustomerPreviewContext.guest(
       channel: CustomerChannel.b2c,
