@@ -91,7 +91,7 @@ jobs:
       - name: Install browser parity dependencies
         run: |
           npm install --no-save playwright@1.55.0 pixelmatch@6.0.0 pngjs@7.0.0
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Compare real shared runtimes
         run: node scripts/app_preview_visual_parity.mjs
       - uses: actions/upload-artifact@v4
