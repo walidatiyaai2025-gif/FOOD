@@ -58,6 +58,41 @@ void main() {
     bundle.close();
   });
 
+  test('preview event feed keeps credential header-only and preserves cursor',
+      () async {
+    const credential = 'opaque-preview-secret';
+    late http.Request seen;
+    final client = CustomerPreviewReadHttpClient(
+      MockClient((request) async {
+        seen = request;
+        return http.Response(
+          'retry: 3000\\n\\n: heartbeat test\\n\\n',
+          200,
+          headers: const {'content-type': 'text/event-stream'},
+        );
+      }),
+      credential: credential,
+      channel: CustomerChannel.b2c,
+    );
+
+    final response = await client.get(
+      Uri.parse('https://foodex.example/api/v1/app-preview/events'),
+      headers: const {
+        'Accept': 'text/event-stream',
+        'Last-Event-ID': '123',
+      },
+    );
+
+    expect(response.statusCode, 200);
+    expect(seen.url.path, '/api/v1/app-preview/events');
+    expect(seen.url.query, isEmpty);
+    expect(seen.headers['x-foodex-preview-token'], credential);
+    expect(seen.headers['Last-Event-ID'], '123');
+    expect(seen.headers.containsKey('authorization'), isFalse);
+    expect(seen.url.queryParameters.containsKey('preview_token'), isFalse);
+    expect(seen.url.queryParameters.containsKey('credential'), isFalse);
+  });
+
   test('public catalog reads never receive preview credential or auth sentinel',
       () async {
     const credential = 'opaque-preview-secret';

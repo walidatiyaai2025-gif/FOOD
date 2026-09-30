@@ -53,8 +53,29 @@ void main() {
     );
     final runtime = await CustomerPreviewRuntime.create(
       baseUrl: 'https://foodex.example',
+      dashboardBaseUrl: 'https://dashboard.example',
       bootstrap: bootstrap,
-      client: MockClient((request) async => http.Response('{}', 200)),
+      client: MockClient((request) async {
+        expect(
+          request.url.path,
+          '/admin/app-preview/storefront-configuration',
+        );
+        expect(request.url.queryParameters['channel'], 'b2c');
+        expect(request.url.queryParameters['store_id'], '7');
+        expect(request.url.queryParameters['mode'], 'published');
+        return http.Response(
+          jsonEncode(
+            _configurationResponse(
+              channel: 'b2c',
+              storeId: 7,
+              mode: 'published',
+              color: '#176B3A',
+            ),
+          ),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      }),
     );
 
     expect(runtime.app, isA<FoodexCustomerApp>());
@@ -62,7 +83,8 @@ void main() {
     expect(app.previewContext, same(bootstrap.context));
     expect(app.session.isAuthenticated, isFalse);
     expect(app.initialRoute, '/retail/7/home');
-    expect(runtime.configuration, isNull);
+    expect(runtime.configuration.revisionId, 'revision-published-1');
+    expect(runtime.configuration.mode, 'published');
 
     runtime.close();
   });
@@ -124,7 +146,7 @@ void main() {
     final app = runtime.app as FoodexCustomerApp;
     expect(app.previewContext?.runtimeIdentity.accessToken, isNull);
     expect(app.session.accessToken, isNull);
-    expect(runtime.configuration?.revisionId, 'revision-draft-1');
+    expect(runtime.configuration.revisionId, 'revision-draft-1');
     expect(
       runtime.safeStatusMetadata['configuration_revision'],
       'revision-draft-1',
@@ -191,7 +213,7 @@ void main() {
     runtime.close();
   });
 
-  test('B2B guest uses public wholesale storefront contract', () async {
+  test('B2B guest renders the authoritative dashboard revision', () async {
     late Uri seen;
     final bootstrap = CustomerPreviewBootstrap.parse(
       bootstrapMessage(channel: 'b2b', storeId: 3),
@@ -201,14 +223,19 @@ void main() {
 
     final runtime = await CustomerPreviewRuntime.create(
       baseUrl: 'https://foodex.example',
+      dashboardBaseUrl: 'https://dashboard.example',
       bootstrap: bootstrap,
       client: MockClient((request) async {
         seen = request.url;
         return http.Response(
-          jsonEncode({
-            'store': {'id': 3, 'channel': 'b2b'},
-            'sections': const [],
-          }),
+          jsonEncode(
+            _configurationResponse(
+              channel: 'b2b',
+              storeId: 3,
+              mode: 'published',
+              color: '#5D2A91',
+            ),
+          ),
           200,
           headers: const {'content-type': 'application/json'},
         );
@@ -218,8 +245,12 @@ void main() {
     final app = runtime.app as FoodexCustomerApp;
     final result = await app.storefrontApi!.wholesaleHome(3);
 
-    expect(seen.path, '/api/v1/wholesale/stores/3/storefront');
+    expect(seen.path, '/admin/app-preview/storefront-configuration');
+    expect(seen.queryParameters['channel'], 'b2b');
+    expect(seen.queryParameters['store_id'], '3');
+    expect(seen.queryParameters['mode'], 'published');
     expect(result['store']['id'], 3);
+    expect(result['theme']['primary'], '#5D2A91');
     expect(app.session.isAuthenticated, isFalse);
 
     runtime.close();

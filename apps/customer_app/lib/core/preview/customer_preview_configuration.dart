@@ -60,15 +60,57 @@ class CustomerPreviewResolvedConfiguration {
         'preview_configuration_requires_authenticated_customer',
       );
     }
+
+    return _resolve(
+      uri: Uri.parse(
+        '${_normalizedBase(baseUrl)}/api/v1/app-preview/storefront-configuration',
+      ).replace(queryParameters: {'mode': mode}),
+      client: client,
+      context: context,
+      mode: mode,
+    );
+  }
+
+  static Future<CustomerPreviewResolvedConfiguration> resolveGuest({
+    required String dashboardBaseUrl,
+    required http.Client client,
+    required CustomerPreviewContext context,
+    required String mode,
+  }) async {
+    if (context.authenticated) {
+      throw const CustomerPreviewConfigurationException(
+        'preview_guest_configuration_requires_guest',
+      );
+    }
+
+    return _resolve(
+      uri: Uri.parse(
+        '${_normalizedBase(dashboardBaseUrl)}/admin/app-preview/storefront-configuration',
+      ).replace(
+        queryParameters: {
+          'channel': context.channel.name,
+          'store_id': context.storeId.toString(),
+          'mode': mode,
+          if (context.supportAccess) 'support_access': '1',
+        },
+      ),
+      client: client,
+      context: context,
+      mode: mode,
+    );
+  }
+
+  static Future<CustomerPreviewResolvedConfiguration> _resolve({
+    required Uri uri,
+    required http.Client client,
+    required CustomerPreviewContext context,
+    required String mode,
+  }) async {
     if (mode != 'draft' && mode != 'published') {
       throw const CustomerPreviewConfigurationException(
         'preview_configuration_mode_invalid',
       );
     }
-
-    final uri = Uri.parse(
-      '$baseUrl/api/v1/app-preview/storefront-configuration',
-    ).replace(queryParameters: {'mode': mode});
 
     late http.Response response;
     try {
@@ -106,6 +148,11 @@ class CustomerPreviewResolvedConfiguration {
       context: context,
       requestedMode: mode,
     );
+  }
+
+  static String _normalizedBase(String value) {
+    final base = value.trim();
+    return base.endsWith('/') ? base.substring(0, base.length - 1) : base;
   }
 
   static CustomerPreviewResolvedConfiguration _parse(

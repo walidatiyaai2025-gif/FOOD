@@ -76,7 +76,8 @@ class CustomerPreviewReadHttpClient extends http.BaseClient {
 
   String? _previewPath(String path) {
     const api = '/api/v1';
-    if (path == '$api/app-preview/storefront-configuration') {
+    if (path == '$api/app-preview/storefront-configuration' ||
+        path == '$api/app-preview/events') {
       return path;
     }
 
