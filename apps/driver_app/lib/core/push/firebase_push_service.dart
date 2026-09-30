@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/foodex_environment.dart';
 
@@ -13,6 +15,22 @@ const driverBundleId = 'com.fiftysolution.foodex.driver';
 const _driverPushChannelId = 'foodex_driver_high_priority';
 const _driverPushChannelName = 'FOODEX Driver';
 const _driverPushChannelDescription = 'FOODEX driver order and delivery alerts.';
+const _driverInstallIdPreferenceKey = 'foodex_driver_install_id_v1';
+
+Future<String> _loadOrCreateDriverInstallId() async {
+  final preferences = await SharedPreferences.getInstance();
+  final stored = preferences.getString(_driverInstallIdPreferenceKey)?.trim();
+  if (stored != null && stored.isNotEmpty) return stored;
+
+  final random = Random.secure();
+  final entropy = List<int>.generate(16, (_) => random.nextInt(256))
+      .map((value) => value.toRadixString(16).padLeft(2, '0'))
+      .join();
+  final generated =
+      'driver-${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-$entropy';
+  await preferences.setString(_driverInstallIdPreferenceKey, generated);
+  return generated;
+}
 
 final FlutterLocalNotificationsPlugin _driverLocalNotifications =
     FlutterLocalNotificationsPlugin();
@@ -125,7 +143,11 @@ class DriverPushDeviceRegistry {
   final String baseUrl;
   final http.Client _client;
 
-  Future<int?> register({required String accessToken, required String firebaseToken}) async {
+  Future<int?> register({
+    required String accessToken,
+    required String firebaseToken,
+    required String installId,
+  }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/push/devices'),
       headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
@@ -134,6 +156,7 @@ class DriverPushDeviceRegistry {
         'platform': Platform.isIOS ? 'ios' : 'android',
         'environment': FoodexEnvironment.pushEnvironment,
         'token': firebaseToken,
+        'install_id': installId,
       }),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) return null;
@@ -163,6 +186,7 @@ class DriverFirebasePushService {
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   String? _accessToken;
   int? _deviceId;
+  Future<String>? _installIdFuture;
   DriverPushOpen? _pendingOpen;
 
   Stream<DriverPushOpen> get opens => _opens.stream;
@@ -254,17 +278,33 @@ class DriverFirebasePushService {
     return value;
   }
 
+  Future<String> _installId() =>
+      _installIdFuture ??= _loadOrCreateDriverInstallId();
+
   Future<void> bindSession(String accessToken) async {
     _accessToken = accessToken;
     final messaging = _messaging;
     if (messaging == null) return;
+
+    final installId = await _installId();
     final token = await messaging.getToken();
-    if (token != null && token.isNotEmpty) _deviceId = await registry.register(accessToken: accessToken, firebaseToken: token);
+    if (token != null && token.isNotEmpty) {
+      _deviceId = await registry.register(
+        accessToken: accessToken,
+        firebaseToken: token,
+        installId: installId,
+      );
+    }
+
     await _tokenSubscription?.cancel();
     _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
       final currentToken = _accessToken;
       if (currentToken == null || currentToken.isEmpty) return;
-      _deviceId = await registry.register(accessToken: currentToken, firebaseToken: newToken);
+      _deviceId = await registry.register(
+        accessToken: currentToken,
+        firebaseToken: newToken,
+        installId: installId,
+      );
     });
   }
 

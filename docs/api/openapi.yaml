@@ -1624,6 +1624,23 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /push/devices/guest:
+    post:
+      tags: [Push Devices]
+      summary: Register or refresh an anonymous Customer installation for push
+      operationId: registerGuestPushDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestPushDeviceRegistrationRequest"
+      responses:
+        "200": { description: Existing anonymous registration refreshed }
+        "201": { description: Anonymous Customer installation registered }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
   /push/devices:
     post:
       tags: [Push Devices]
@@ -1631,6 +1648,12 @@ paths:
       operationId: registerPushDevice
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushDeviceRegistrationRequest"
       responses:
         "200": { description: Existing registration refreshed }
         "201": { description: Device registered }
@@ -1760,6 +1783,53 @@ components:
       properties:
         version:
           type: string
+
+    PushDeviceRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [app, platform, environment, token]
+      properties:
+        app:
+          type: string
+          enum: [customer, driver]
+        platform:
+          type: string
+          enum: [android, ios]
+        environment:
+          type: string
+          enum: [development, staging, production]
+        token:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: Push-provider device token.
+        install_id:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Stable per-installation identifier used to reconcile provider token refresh without revoking other devices.
+        store_id:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+        target_channel:
+          type: string
+          enum: [all, b2b, b2c]
+          default: all
+        locale:
+          type: string
+          enum: [ar, en]
+
+    GuestPushDeviceRegistrationRequest:
+      allOf:
+        - $ref: "#/components/schemas/PushDeviceRegistrationRequest"
+        - type: object
+          required: [install_id]
+          properties:
+            app:
+              type: string
+              enum: [customer]
 
     PlatformCustomerRegistrationRequest:
       type: object

@@ -396,8 +396,13 @@ final class OrderLifecycleNotificationService
             }
         }
 
+        $customerId = $order->getAttribute('customer_id');
+        if ($customerId === null) {
+            return null;
+        }
+
         $id = DB::table('customers')
-            ->where('id', $order->customer_id)
+            ->where('id', $customerId)
             ->value('user_id');
 
         return $id === null ? null : (int) $id;

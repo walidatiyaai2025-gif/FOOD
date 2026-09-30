@@ -84,22 +84,48 @@ final class PushDeviceController extends Controller
             ? (string) $data['locale']
             : ($user instanceof User ? (string) $user->locale : 'ar');
 
-        $device = PushDeviceToken::query()->updateOrCreate(
-            ['token_hash' => hash('sha256', $data['token'])],
-            [
-                'user_id' => $user?->id,
-                'install_id' => $data['install_id'] ?? null,
-                'app' => $data['app'],
-                'platform' => $data['platform'],
-                'environment' => $data['environment'],
-                'store_id' => $storeId,
-                'target_channel' => $targetChannel,
-                'locale' => $locale,
-                'token_encrypted' => $data['token'],
-                'revoked_at' => null,
-                'last_seen_at' => now(),
-            ],
-        );
+        $installId = isset($data['install_id']) && trim((string) $data['install_id']) !== ''
+            ? trim((string) $data['install_id'])
+            : null;
+
+        $device = DB::transaction(function () use (
+            $data,
+            $user,
+            $installId,
+            $storeId,
+            $targetChannel,
+            $locale,
+        ): PushDeviceToken {
+            $device = PushDeviceToken::query()->updateOrCreate(
+                ['token_hash' => hash('sha256', $data['token'])],
+                [
+                    'user_id' => $user?->id,
+                    'install_id' => $installId,
+                    'app' => $data['app'],
+                    'platform' => $data['platform'],
+                    'environment' => $data['environment'],
+                    'store_id' => $storeId,
+                    'target_channel' => $targetChannel,
+                    'locale' => $locale,
+                    'token_encrypted' => $data['token'],
+                    'revoked_at' => null,
+                    'last_seen_at' => now(),
+                ],
+            );
+
+            if ($installId !== null) {
+                PushDeviceToken::query()
+                    ->where('install_id', $installId)
+                    ->where('app', $data['app'])
+                    ->where('platform', $data['platform'])
+                    ->where('environment', $data['environment'])
+                    ->where('id', '!=', $device->id)
+                    ->whereNull('revoked_at')
+                    ->update(['revoked_at' => now()]);
+            }
+
+            return $device;
+        });
 
         return response()->json([
             'data' => [

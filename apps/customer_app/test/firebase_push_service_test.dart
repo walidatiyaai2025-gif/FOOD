@@ -25,7 +25,11 @@ void main() {
       return http.Response(jsonEncode({'data': {'id': 42}}), 201, headers: {'content-type': 'application/json'});
     });
     final registry = CustomerPushDeviceRegistry(baseUrl: 'https://foodex.50sols.com', client: client);
-    final id = await registry.register(accessToken: 'access-token', firebaseToken: 'fcm-token');
+    final id = await registry.register(
+      accessToken: 'access-token',
+      firebaseToken: 'fcm-token',
+      installId: 'customer-install-1',
+    );
     expect(id, 42);
     expect(captured.url.toString(), 'https://foodex.50sols.com/api/v1/push/devices');
     expect(captured.headers['Authorization'], 'Bearer access-token');
@@ -33,6 +37,7 @@ void main() {
     expect(body['app'], 'customer');
     expect(body['environment'], 'production');
     expect(body['token'], 'fcm-token');
+    expect(body['install_id'], 'customer-install-1');
   });
 
   test('device registry revokes authenticated customer push device', () async {
@@ -77,6 +82,7 @@ void main() {
 
     final id = await registry.registerGuest(
       firebaseToken: 'guest-fcm-token',
+      installId: 'customer-install-1',
     );
 
     expect(id, 88);
@@ -89,6 +95,7 @@ void main() {
     final body = jsonDecode(captured.body) as Map<String, dynamic>;
     expect(body['app'], 'customer');
     expect(body['token'], 'guest-fcm-token');
+    expect(body['install_id'], 'customer-install-1');
     expect(body['target_channel'], 'all');
   });
 

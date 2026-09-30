@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/foodex_environment.dart';
 import '../routing/customer_routes.dart';
@@ -14,6 +16,22 @@ const customerBundleId = 'com.fiftysolution.foodex.customer';
 const _customerPushChannelId = 'foodex_customer_high_priority';
 const _customerPushChannelName = 'FOODEX Customer';
 const _customerPushChannelDescription = 'FOODEX customer alerts and promotional notifications.';
+const _customerInstallIdPreferenceKey = 'foodex_customer_install_id_v1';
+
+Future<String> _loadOrCreateCustomerInstallId() async {
+  final preferences = await SharedPreferences.getInstance();
+  final stored = preferences.getString(_customerInstallIdPreferenceKey)?.trim();
+  if (stored != null && stored.isNotEmpty) return stored;
+
+  final random = Random.secure();
+  final entropy = List<int>.generate(16, (_) => random.nextInt(256))
+      .map((value) => value.toRadixString(16).padLeft(2, '0'))
+      .join();
+  final generated =
+      'customer-${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-$entropy';
+  await preferences.setString(_customerInstallIdPreferenceKey, generated);
+  return generated;
+}
 
 final FlutterLocalNotificationsPlugin _customerLocalNotifications =
     FlutterLocalNotificationsPlugin();
@@ -180,29 +198,31 @@ class CustomerPushDeviceRegistry {
   Future<int?> register({
     required String accessToken,
     required String firebaseToken,
+    required String installId,
   }) =>
       _register(
         endpoint: '/api/v1/push/devices',
         firebaseToken: firebaseToken,
+        installId: installId,
         accessToken: accessToken,
       );
 
   Future<int?> registerGuest({
     required String firebaseToken,
+    required String installId,
   }) =>
       _register(
         endpoint: '/api/v1/push/devices/guest',
         firebaseToken: firebaseToken,
+        installId: installId,
       );
 
   Future<int?> _register({
     required String endpoint,
     required String firebaseToken,
+    required String installId,
     String? accessToken,
   }) async {
-    final installId = firebaseToken.length <= 110
-        ? firebaseToken
-        : firebaseToken.substring(0, 110);
     final response = await _client.post(
       Uri.parse('$baseUrl$endpoint'),
       headers: {
@@ -261,6 +281,7 @@ class CustomerFirebasePushService {
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   String? _accessToken;
   int? _deviceId;
+  Future<String>? _installIdFuture;
   String? _pendingRoute;
 
   Stream<String> get routes => _routes.stream;
@@ -404,27 +425,38 @@ class CustomerFirebasePushService {
     return route;
   }
 
+  Future<String> _installId() =>
+      _installIdFuture ??= _loadOrCreateCustomerInstallId();
+
   Future<void> bindGuest() async {
     _deviceId = null;
     final messaging = _messaging;
     if (messaging == null) return;
 
+    final installId = await _installId();
     final token = await messaging.getToken();
     if (token != null && token.isNotEmpty) {
-      await registry.registerGuest(firebaseToken: token);
+      await registry.registerGuest(
+        firebaseToken: token,
+        installId: installId,
+      );
     }
 
     await _tokenSubscription?.cancel();
     _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
       final currentAccessToken = _accessToken;
       if (currentAccessToken == null || currentAccessToken.isEmpty) {
-        await registry.registerGuest(firebaseToken: newToken);
+        await registry.registerGuest(
+          firebaseToken: newToken,
+          installId: installId,
+        );
         return;
       }
 
       await registry.register(
         accessToken: currentAccessToken,
         firebaseToken: newToken,
+        installId: installId,
       );
     });
   }
@@ -434,11 +466,13 @@ class CustomerFirebasePushService {
     final messaging = _messaging;
     if (messaging == null) return;
 
+    final installId = await _installId();
     final token = await messaging.getToken();
     if (token != null && token.isNotEmpty) {
       _deviceId = await registry.register(
         accessToken: accessToken,
         firebaseToken: token,
+        installId: installId,
       );
     }
 
@@ -446,13 +480,17 @@ class CustomerFirebasePushService {
     _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
       final currentToken = _accessToken;
       if (currentToken == null || currentToken.isEmpty) {
-        await registry.registerGuest(firebaseToken: newToken);
+        await registry.registerGuest(
+          firebaseToken: newToken,
+          installId: installId,
+        );
         return;
       }
 
       _deviceId = await registry.register(
         accessToken: currentToken,
         firebaseToken: newToken,
+        installId: installId,
       );
     });
   }

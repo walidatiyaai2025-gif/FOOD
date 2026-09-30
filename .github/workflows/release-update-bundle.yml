@@ -58,13 +58,42 @@ jobs:
           echo "UPDATE_BASE_REF=$update_base_ref" >> "$GITHUB_ENV"
 
       - name: Build deterministic FOODEX update
+        shell: bash
         run: |
+          set -euo pipefail
+          release_notes="$(python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["CURRENT_VERSION"]
+          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          match = re.search(
+              rf"^## {re.escape(version)} - [^\n]+\n(?P<body>.*?)(?=^## |\Z)",
+              changelog,
+              flags=re.MULTILINE | re.DOTALL,
+          )
+          if match is None:
+              raise SystemExit(f"Missing CHANGELOG entry for {version}")
+
+          bullets = [
+              line[2:].strip()
+              for line in match.group("body").splitlines()
+              if line.startswith("- ")
+          ]
+          if not bullets:
+              raise SystemExit(f"CHANGELOG entry for {version} has no release-note bullets")
+
+          print(f"FOODEX {version}: " + " ".join(bullets))
+          PY
+          )"
+
           python3 scripts/build-update-bundle.py \
             --base "$UPDATE_BASE_REF" \
             --target-version "$CURRENT_VERSION" \
             --minimum-current-version "$MINIMUM_VERSION" \
             --output-dir dist/update \
-            --release-notes "FOODEX $CURRENT_VERSION cumulative update"
+            --release-notes "$release_notes"
 
       - name: Verify package metadata and recovery contract
         run: |
