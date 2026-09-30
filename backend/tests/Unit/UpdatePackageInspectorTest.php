@@ -47,7 +47,7 @@ class UpdatePackageInspectorTest extends TestCase
         }
 
         $archive = new ZipArchive;
-        $this->assertTrue($archive->open($path, ZipArchive::OVERWRITE) === true);
+        $this->assertTrue($archive->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true);
 
         foreach ($files as $name => $content) {
             $this->assertTrue($archive->addFromString($name, $content));
