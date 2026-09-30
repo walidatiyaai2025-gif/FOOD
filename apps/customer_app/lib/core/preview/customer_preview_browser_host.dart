@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../config/foodex_environment.dart';
 import 'customer_preview_bootstrap.dart';
+import 'customer_preview_configuration.dart';
 import 'customer_preview_runtime.dart';
 
 class CustomerPreviewBrowserHost extends StatefulWidget {
@@ -23,6 +24,7 @@ class _CustomerPreviewBrowserHostState
   StreamSubscription<html.MessageEvent>? _messages;
   CustomerPreviewRuntime? _runtime;
   String? _error;
+  int _bootstrapAttempt = 0;
 
   String get _allowedOrigin =>
       CustomerPreviewHostContract.allowedParentOrigin.trim();
@@ -45,7 +47,7 @@ class _CustomerPreviewBrowserHostState
     });
   }
 
-  void _onMessage(html.MessageEvent event) {
+  void _onMessage(html.MessageEvent event) async {
     if (!CustomerPreviewHostContract.allowsMessage(
       origin: event.origin,
       expectedOrigin: _allowedOrigin,
@@ -59,19 +61,30 @@ class _CustomerPreviewBrowserHostState
       return;
     }
 
+    final attempt = ++_bootstrapAttempt;
+
     try {
       final bootstrap = CustomerPreviewBootstrap.parse(
         data,
         origin: event.origin,
         expectedOrigin: _allowedOrigin,
       );
-      final next = CustomerPreviewRuntime.create(
+
+      final previous = _runtime;
+      if (mounted) {
+        setState(() {
+          _runtime = null;
+          _error = null;
+        });
+      }
+      previous?.close();
+
+      final next = await CustomerPreviewRuntime.create(
         baseUrl: FoodexEnvironment.apiBaseUrl,
         bootstrap: bootstrap,
       );
 
-      final previous = _runtime;
-      if (!mounted) {
+      if (!mounted || attempt != _bootstrapAttempt) {
         next.close();
         return;
       }
@@ -80,18 +93,25 @@ class _CustomerPreviewBrowserHostState
         _runtime = next;
         _error = null;
       });
-      previous?.close();
 
       _post({
         'type': 'foodex.preview.status',
         'version': CustomerPreviewHostContract.version,
         'state': 'ready',
-        'metadata': bootstrap.safeStatusMetadata,
+        'metadata': next.safeStatusMetadata,
       });
     } on CustomerPreviewBootstrapException catch (error) {
-      _setError(error.code);
+      if (attempt == _bootstrapAttempt) {
+        _setError(error.code);
+      }
+    } on CustomerPreviewConfigurationException catch (error) {
+      if (attempt == _bootstrapAttempt) {
+        _setError(error.code, state: error.runtimeState);
+      }
     } catch (_) {
-      _setError('preview_bootstrap_failed');
+      if (attempt == _bootstrapAttempt) {
+        _setError('preview_bootstrap_failed');
+      }
     }
   }
 
@@ -108,7 +128,7 @@ class _CustomerPreviewBrowserHostState
     return null;
   }
 
-  void _setError(String code) {
+  void _setError(String code, {String state = 'error'}) {
     if (mounted) {
       setState(() {
         _error = code;
@@ -118,7 +138,7 @@ class _CustomerPreviewBrowserHostState
       _post({
         'type': 'foodex.preview.status',
         'version': CustomerPreviewHostContract.version,
-        'state': 'error',
+        'state': state,
         'code': code,
       });
     }
@@ -133,6 +153,7 @@ class _CustomerPreviewBrowserHostState
 
   @override
   void dispose() {
+    _bootstrapAttempt++;
     unawaited(_messages?.cancel());
     _runtime?.close();
     super.dispose();
