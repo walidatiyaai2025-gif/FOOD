@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('admin.driver_live_tracking.title') }} · FOODEX</title>
 @include('admin._brand-components')
-<link rel="stylesheet" href="{{ asset('vendor/leaflet/1.9.4/leaflet.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
 <style>
 .tracking-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:var(--foodex-space-4)}
 .tracking-map-card,.tracking-list-card,.tracking-filter-card{padding:var(--foodex-space-4)}
@@ -100,7 +100,7 @@
     </main>
 </div>
 
-<script src="{{ asset('vendor/leaflet/1.9.4/leaflet.js') }}"></script>
+<script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
 <script>
 (() => {
     const feedUrl = @json($feedUrl);
