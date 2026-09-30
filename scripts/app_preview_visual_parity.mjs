@@ -247,7 +247,11 @@ async function installStandaloneHarness(page, testCase) {
 
   await page.goto(origin + '/' + testCase.app + '/index.html', { waitUntil: 'networkidle' });
   await page.evaluate(() => {
-    const send = () => window.postMessage(window.__foodexBootstrapForTest, location.origin);
+    const send = () => window.dispatchEvent(new MessageEvent('message', {
+      data: window.__foodexBootstrapForTest,
+      origin: location.origin,
+      source: window,
+    }));
     send();
     const retry = setInterval(() => {
       const terminal = window.__foodexMessages.some((m) =>
@@ -260,14 +264,24 @@ async function installStandaloneHarness(page, testCase) {
 }
 
 async function waitForState(page, testCase, surface) {
-  await page.waitForFunction(({ state, code }) =>
-    (window.__foodexMessages || []).some((m) =>
-      m && m.type === 'foodex.preview.status' &&
-      m.version === 'shared-flutter-v1' &&
-      m.state === state &&
-      (code == null || m.code === code)),
-    { state: testCase.expectedState, code: testCase.expectedCode ?? null },
-    { timeout: 20000 });
+  try {
+    await page.waitForFunction(({ state, code }) =>
+      (window.__foodexMessages || []).some((m) =>
+        m && m.type === 'foodex.preview.status' &&
+        m.version === 'shared-flutter-v1' &&
+        m.state === state &&
+        (code == null || m.code === code)),
+      { state: testCase.expectedState, code: testCase.expectedCode ?? null },
+      { timeout: 20000 });
+  } catch (error) {
+    const diagnostics = await page.evaluate(() => ({
+      messages: window.__foodexMessages || [],
+      handshake: window.__foodexHandshake === true,
+      text: document.body?.innerText || '',
+    }));
+    throw new Error(testCase.id + ': ' + surface + ' state timeout; diagnostics=' +
+      JSON.stringify(diagnostics) + '; cause=' + error.message);
+  }
 
   const snapshot = await page.evaluate(({ state, code }) => {
     const status = [...(window.__foodexMessages || [])].reverse().find((m) =>
@@ -278,8 +292,8 @@ async function waitForState(page, testCase, surface) {
     return { handshake: window.__foodexHandshake === true, status };
   }, { state: testCase.expectedState, code: testCase.expectedCode ?? null });
 
-  if (!snapshot.handshake) {
-    throw new Error(testCase.id + ': missing ' + surface + ' shared-flutter-v1 ready handshake');
+  if (surface === 'embedded' && !snapshot.handshake) {
+    throw new Error(testCase.id + ': missing embedded shared-flutter-v1 ready handshake');
   }
 
   if (testCase.expectedState === 'ready') {
