@@ -37,6 +37,94 @@ final class StorefrontDraftEditorService
         ];
     }
 
+    /** @return array<string,mixed> */
+    public function viewModel(int $storeId, string $channel): array
+    {
+        $state = $this->editorState($storeId, $channel);
+        $revision = $state['revision'];
+        $payload = $state['payload'];
+        $settings = (array) ($payload['settings'] ?? []);
+        $branding = (array) ($settings['branding'] ?? []);
+        $store = (array) ($payload['store'] ?? []);
+
+        return [
+            'revision' => [
+                ...$this->revisions->metadata($revision),
+                'has_draft' => (bool) $state['has_draft'],
+            ],
+            'store' => [
+                'id' => $storeId,
+                'code' => (string) ($store['code'] ?? ''),
+                'name' => (string) ($store['name'] ?? ''),
+                'logo_path' => $store['logo_path'] ?? null,
+                'is_active' => (bool) ($store['is_active'] ?? false),
+            ],
+            'settings' => [
+                'theme_code' => (string) ($settings['theme_code'] ?? ($channel === 'b2b' ? 'wholesale_b2b' : 'retail_grocery')),
+                'primary_color' => $settings['primary_color'] ?? null,
+                'primary_dark_color' => $settings['primary_dark_color'] ?? null,
+                'accent_color' => $settings['accent_color'] ?? null,
+                'background_color' => $settings['background_color'] ?? null,
+                'header_address' => $settings['header_address'] ?? '',
+                'brand_title_ar' => (string) ($branding['brand_title_ar'] ?? ''),
+                'brand_title_en' => (string) ($branding['brand_title_en'] ?? ''),
+                'brand_subtitle_ar' => (string) ($branding['brand_subtitle_ar'] ?? ''),
+                'brand_subtitle_en' => (string) ($branding['brand_subtitle_en'] ?? ''),
+                'hero_cta_ar' => (string) ($branding['hero_cta_ar'] ?? ''),
+                'hero_cta_en' => (string) ($branding['hero_cta_en'] ?? ''),
+            ],
+            'sections' => collect((array) ($payload['sections'] ?? []))
+                ->filter(fn (mixed $item): bool => is_array($item))
+                ->map(fn (array $item): array => [
+                    'id' => (string) $item['editor_id'],
+                    'section_key' => (string) ($item['key'] ?? ''),
+                    'section_type' => (string) ($item['type'] ?? ''),
+                    'title_ar' => (string) ($item['title_ar'] ?? ''),
+                    'title_en' => (string) ($item['title_en'] ?? ''),
+                    'sort_order' => (int) ($item['sort_order'] ?? 0),
+                    'config_json' => ($item['config'] ?? []) === []
+                        ? ''
+                        : json_encode($item['config'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'is_active' => (bool) ($item['is_active'] ?? false),
+                ])
+                ->sortBy('sort_order')
+                ->values()
+                ->all(),
+            'zones' => collect((array) ($payload['service_zones'] ?? []))
+                ->filter(fn (mixed $item): bool => is_array($item))
+                ->map(fn (array $item): array => [
+                    'id' => (string) $item['editor_id'],
+                    'country_code' => (string) ($item['country_code'] ?? ''),
+                    'city' => (string) ($item['city'] ?? ''),
+                    'area' => (string) ($item['area'] ?? ''),
+                    'is_active' => (bool) ($item['is_active'] ?? false),
+                ])
+                ->values()
+                ->all(),
+            'banners' => collect((array) ($payload['banners'] ?? []))
+                ->filter(fn (mixed $item): bool => is_array($item))
+                ->map(fn (array $item): array => [
+                    'id' => (string) $item['editor_id'],
+                    '_id' => (string) $item['editor_id'],
+                    '_store_id' => $storeId,
+                    'title' => (string) ($item['title'] ?? ''),
+                    'image' => (string) ($item['image_path'] ?? ''),
+                    'target_ref' => ($item['target_type'] ?? null) !== null && ($item['target_id'] ?? null) !== null
+                        ? (string) $item['target_type'].':'.(int) $item['target_id']
+                        : '',
+                    '_target_ref' => ($item['target_type'] ?? null) !== null && ($item['target_id'] ?? null) !== null
+                        ? (string) $item['target_type'].':'.(int) $item['target_id']
+                        : '',
+                    'sort_order' => (int) ($item['sort_order'] ?? 0),
+                    'is_active' => (bool) ($item['is_active'] ?? false),
+                    'status' => (bool) ($item['is_active'] ?? false),
+                ])
+                ->sortBy('sort_order')
+                ->values()
+                ->all(),
+        ];
+    }
+
     /** @param array<string,mixed> $settings */
     public function updateSettings(
         User $actor,
