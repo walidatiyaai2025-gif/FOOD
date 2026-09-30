@@ -98,17 +98,17 @@ class DriverRuntimeInspector {
       final decoded = jsonDecode(raw);
       if (decoded is! List) return;
 
+      final restored = decoded
+          .whereType<Map>()
+          .map((event) => Map<String, dynamic>.from(event))
+          .toList(growable: false);
       _events
         ..clear()
         ..addAll(
-          decoded
-              .whereType<Map>()
-              .map((event) => Map<String, dynamic>.from(event))
-              .take(maxEvents),
+          restored.length <= maxEvents
+              ? restored
+              : restored.sublist(restored.length - maxEvents),
         );
-      if (_events.length > maxEvents) {
-        _events.removeRange(0, _events.length - maxEvents);
-      }
 
       for (final event in _events.reversed) {
         if (event['type'] == 'navigation' && event['route'] is String) {
