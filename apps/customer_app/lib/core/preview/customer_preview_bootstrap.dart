@@ -2,12 +2,24 @@ import '../auth/customer_session.dart';
 import 'customer_preview_context.dart';
 
 abstract final class CustomerPreviewHostContract {
-  static const version = 'shared-flutter-v1';
+  static const version = String.fromEnvironment(
+    'FOODEX_PREVIEW_CONTRACT_VERSION',
+    defaultValue: 'shared-flutter-v1',
+  );
 
   static const allowedParentOrigin = String.fromEnvironment(
     'FOODEX_PREVIEW_PARENT_ORIGIN',
     defaultValue: '',
   );
+
+  static bool allowsMessage({
+    required String origin,
+    required String expectedOrigin,
+    required bool fromParent,
+  }) =>
+      fromParent &&
+      expectedOrigin.trim().isNotEmpty &&
+      origin == expectedOrigin;
 }
 
 class CustomerPreviewBootstrap {
