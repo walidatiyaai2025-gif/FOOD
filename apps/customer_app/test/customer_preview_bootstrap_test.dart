@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/preview/customer_preview_bootstrap.dart';
@@ -37,8 +38,19 @@ void main() {
           'configuration': configuration,
           'locale': locale,
           'device': {
-            'profile': 'phone_standard',
+            'profile': 'android_common',
+            'platform': 'android',
             'width': 390,
+            'height': 844,
+            'safe_area': {
+              'top': 24,
+              'right': 0,
+              'bottom': 24,
+              'left': 0,
+            },
+            'text_scale': 1.0,
+            'orientation': 'portrait',
+            'keyboard_inset_bottom': 0,
           },
           'safe_mode': 'read_only',
         },
@@ -81,6 +93,43 @@ void main() {
       bootstrap.safeStatusMetadata.values,
       isNot(contains('opaque-preview-secret')),
     );
+  });
+
+  test('preserves viewport safe area text scale and keyboard inset', () {
+    final viewportMessage = message();
+    final device =
+        viewportMessage['payload']['device'] as Map<String, dynamic>;
+    device
+      ..['profile'] = 'iphone_common'
+      ..['platform'] = 'ios'
+      ..['height'] = 844
+      ..['text_scale'] = 1.25
+      ..['keyboard_inset_bottom'] = 280
+      ..['safe_area'] = {
+        'top': 47,
+        'right': 0,
+        'bottom': 34,
+        'left': 0,
+      };
+
+    final bootstrap = CustomerPreviewBootstrap.parse(
+      viewportMessage,
+      origin: origin,
+      expectedOrigin: origin,
+    );
+    final media = bootstrap.viewport.apply(const MediaQueryData());
+
+    expect(bootstrap.deviceProfile, 'iphone_common');
+    expect(bootstrap.deviceWidth, 390);
+    expect(bootstrap.deviceHeight, 844);
+    expect(bootstrap.viewport.platform, 'ios');
+    expect(bootstrap.viewport.orientation, 'portrait');
+    expect(media.size, const Size(390, 844));
+    expect(media.padding.top, 47);
+    expect(media.padding.bottom, 34);
+    expect(media.viewInsets.bottom, 280);
+    expect(media.textScaler.scale(10), 12.5);
+    expect(bootstrap.safeStatusMetadata.containsKey('credential'), isFalse);
   });
 
   test('authenticated bootstrap requires opaque preview credential', () {
@@ -230,6 +279,24 @@ void main() {
     expect(
       () => CustomerPreviewBootstrap.parse(
         invalidDevice,
+        origin: origin,
+        expectedOrigin: origin,
+      ),
+      throwsA(
+        isA<CustomerPreviewBootstrapException>().having(
+          (error) => error.code,
+          'code',
+          'preview_device_invalid',
+        ),
+      ),
+    );
+
+    final landscape = message();
+    (landscape['payload']['device'] as Map<String, dynamic>)['orientation'] =
+        'landscape';
+    expect(
+      () => CustomerPreviewBootstrap.parse(
+        landscape,
         origin: origin,
         expectedOrigin: origin,
       ),
