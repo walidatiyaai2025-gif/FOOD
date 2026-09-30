@@ -113,6 +113,7 @@ class CustomerPreviewInvalidationFeed {
     } on http.ClientException {
       throw const CustomerPreviewInvalidationException(
         'preview_invalidation_network_error',
+        runtimeState: 'disconnected',
       );
     }
 
