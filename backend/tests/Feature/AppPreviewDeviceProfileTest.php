@@ -86,7 +86,7 @@ class AppPreviewDeviceProfileTest extends TestCase
             'view_insets:',
             'text_scale:',
             "orientation: device?.selectedOptions?.[0]?.dataset?.orientation || 'portrait'",
-            "--preview-device-height",
+            '--preview-device-height',
         ] as $needle) {
             $this->assertStringContainsString($needle, $html);
         }
