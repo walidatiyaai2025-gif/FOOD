@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\AppPreviewSession;
 use App\Models\User;
 use App\Services\AppPreviewSessionService;
 use Closure;
@@ -37,8 +36,7 @@ final class ResolveCustomerPreviewSession
 
         $session = $this->sessions->resolve($credential, $request);
         abort_unless(
-            $session instanceof AppPreviewSession
-                && (string) $session->target_type === 'customer'
+            (string) $session->target_type === 'customer'
                 && (string) $session->mode === 'read_only',
             403,
             'Customer read-only preview session is required.',
