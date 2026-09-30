@@ -50,11 +50,11 @@ class _CustomerPreviewBrowserHostState
   }
 
   void _onMessage(html.MessageEvent event) async {
-    final topLevel = html.window.parent == html.window;
     if (!CustomerPreviewHostContract.allowsMessage(
       origin: event.origin,
       expectedOrigin: _allowedOrigin,
-      fromParent: topLevel || event.source == html.window.parent,
+      fromParent:
+          event.source == html.window.parent || event.source == html.window,
     )) {
       return;
     }
