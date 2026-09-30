@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminLoginController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminShellController;
+use App\Http\Controllers\Admin\AppPreviewController;
 use App\Http\Controllers\Admin\AppVersionController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
@@ -77,6 +78,7 @@ Route::prefix('admin')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
+        Route::get('/app-preview', [AppPreviewController::class, 'index'])->name('app-preview.index');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
         Route::post('/customer-360/{platformCustomer}/addresses', [Customer360Controller::class, 'storeAddress'])->whereNumber('platformCustomer')->name('customer-360.addresses.store');
