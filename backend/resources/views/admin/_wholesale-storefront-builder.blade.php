@@ -9,7 +9,7 @@
     $sfHasDraft = (bool)($sfRevision['has_draft'] ?? false);
     $sfStoreId = (int)($sfStore['id'] ?? 0);
     $sfCanPublish = $sfStoreId > 0 && ($user->hasPermission('app_preview.publish', $sfStoreId) || $user->hasPermission('app_preview.publish'));
-    $sfPreviewUrl = route('admin.app-preview.index', ['app'=>'customer','channel'=>'b2b','store_id'=>$sfStoreId,'persona'=>'guest','configuration'=>'draft']);
+    $sfPreviewUrl = route('admin.app-preview.index', ['app'=>'customer','channel'=>'b2b','store_id'=>$sfStoreId,'persona'=>'guest','mode'=>'draft']);
     $canManageStorefront = $user->hasPermission('settings.manage');
     $primary = $sfSettings['primary_color'] ?? '#5D2A91';
     $primaryDark = $sfSettings['primary_dark_color'] ?? '#35195E';
@@ -103,7 +103,7 @@
                         <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" @checked($section['is_active'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
                         <label class="wide">Config JSON<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
                     </div>
-                    <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></div>
+                    <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}</button></div>
                 </form>
                 <form method="post" action="{{ route('admin.b2b.storefront.sections.destroy',['section'=>$section['id']]) }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'حذف القسم؟':'Delete section?'))">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $sfStoreId }}"><button class="wsf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
                 @endif
