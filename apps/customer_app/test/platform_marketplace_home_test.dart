@@ -402,7 +402,10 @@ void main() {
     });
 
     Locale? requestedLocale;
-    final client = MockClient((request) async => http.Response(
+    final requests = <Uri>[];
+    final client = MockClient((request) async {
+      requests.add(request.url);
+      return http.Response(
           jsonEncode({
             'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
             'hero': null,
@@ -411,7 +414,8 @@ void main() {
             'retail_banners': const [],
           }),
           200,
-        ));
+        );
+    });
 
     await tester.pumpWidget(
       AppTranslations(
@@ -429,6 +433,7 @@ void main() {
             session: const CustomerSession.guest(),
             onPlatformRegistered: (_) {},
             onLocaleChanged: (locale) => requestedLocale = locale,
+            barcodeScanner: (_) async => '123456789',
             client: client,
           ),
         ),
@@ -455,13 +460,12 @@ void main() {
     expect(find.byKey(const ValueKey('marketplace-auth-menu')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('marketplace-scan')));
-    await tester.pump();
-    tester.testTextInput.enterText('123456789');
-    await tester.pump();
+    await tester.pumpAndSettle();
     final search = tester.widget<TextField>(
       find.byKey(const ValueKey('marketplace-search')),
     );
     expect(search.controller?.text, '123456789');
+    expect(requests.last.queryParameters['q'], '123456789');
 
     await tester.tap(find.byKey(const ValueKey('marketplace-language')));
     await tester.pump();
