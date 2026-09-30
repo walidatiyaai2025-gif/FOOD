@@ -59,6 +59,50 @@ void main() {
   }
 
   testWidgets(
+    'Customer shared runtime applies safe area text scale and keyboard inset',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final context = CustomerPreviewContext.guest(
+        channel: CustomerChannel.b2c,
+        storeId: 7,
+        targetLocale: 'en',
+      );
+      const viewport = CustomerPreviewViewport(
+        profile: 'iphone_common',
+        platform: 'ios',
+        width: 390,
+        height: 844,
+        safeAreaTop: 47,
+        safeAreaRight: 0,
+        safeAreaBottom: 34,
+        safeAreaLeft: 0,
+        textScale: 1.25,
+        orientation: 'portrait',
+        keyboardInsetBottom: 280,
+      );
+
+      await tester.pumpWidget(
+        _previewApp(
+          context: context,
+          locale: const Locale('en'),
+          viewport: viewport,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final search = find.byKey(const ValueKey('b2c-home-search'));
+      final media = MediaQuery.of(tester.element(search));
+      expect(media.size, const Size(390, 844));
+      expect(media.padding.top, 47);
+      expect(media.padding.bottom, 34);
+      expect(media.viewInsets.bottom, 280);
+      expect(media.textScaler.scale(10), 12.5);
+    },
+  );
+
+  testWidgets(
     'Guest and authenticated Retail preview use the same shared home widgets',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -225,9 +269,11 @@ void main() {
 FoodexCustomerApp _previewApp({
   required CustomerPreviewContext context,
   required Locale locale,
+  CustomerPreviewViewport? viewport,
 }) =>
     FoodexCustomerApp.preview(
       previewContext: context,
+      previewViewport: viewport,
       b2cCatalogApi: const _PreviewCatalogApi(),
       b2cAccountApi: const _PreviewAccountApi(),
       storefrontApi: const _PreviewStorefrontApi(),
