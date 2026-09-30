@@ -38,16 +38,14 @@ class _CustomerPreviewBrowserHostState
     super.initState();
     _messages = html.window.onMessage.listen(_onMessage);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_allowedOrigin.isEmpty) {
-        _setError('preview_parent_origin_missing');
-        return;
-      }
-      _post({
-        'type': 'foodex.preview.ready',
-        'version': CustomerPreviewHostContract.version,
-        'target_type': 'customer',
-      });
+    if (_allowedOrigin.isEmpty) {
+      _setError('preview_parent_origin_missing');
+      return;
+    }
+    _post({
+      'type': 'foodex.preview.ready',
+      'version': CustomerPreviewHostContract.version,
+      'target_type': 'customer',
     });
   }
 
