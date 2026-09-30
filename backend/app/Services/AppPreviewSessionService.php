@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 final class AppPreviewSessionService
 {
     private const DEFAULT_TTL_MINUTES = 15;
+
     private const MAX_TTL_MINUTES = 30;
 
     public function __construct(
