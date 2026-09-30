@@ -43,11 +43,11 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
   }
 
   void _onMessage(html.MessageEvent event) {
-    final topLevel = html.window.parent == html.window;
     if (!DriverPreviewHostContract.allowsMessage(
       origin: event.origin,
       expectedOrigin: _allowedOrigin,
-      fromParent: topLevel || event.source == html.window.parent,
+      fromParent:
+          event.source == html.window.parent || event.source == html.window,
     )) {
       return;
     }
