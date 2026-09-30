@@ -299,6 +299,15 @@ class CustomerDiagnostics {
 
   static String _redactString(String input) {
     var value = input;
+    // Strip coordinate pairs before generic key/value redaction. Otherwise a
+    // value such as "coordinates=29.375859,47.977405" can be partially
+    // consumed at the comma and leak the second coordinate.
+    value = value.replaceAll(
+      RegExp(
+        r'(?<!\d)-?\d{1,3}\.\d{4,}\s*[,/]\s*-?\d{1,3}\.\d{4,}(?!\d)',
+      ),
+      '[REDACTED_COORDINATES]',
+    );
     value = value.replaceAllMapped(
       RegExp(
         r'\b(password|passcode|token|access[_-]?token|refresh[_-]?token|fcm[_-]?token|push[_-]?token|guest[_-]?token|authorization|cookie|secret|client[_-]?secret|email|phone(?:[_-]?number)?|civil(?:[_-]?(?:id|number))?|address|latitude|longitude|coordinates|card[_-]?number|cvv)\s*[:=]\s*[^\n;,&]+',
@@ -325,12 +334,6 @@ class CustomerDiagnostics {
     value = value.replaceAll(
       RegExp(r'(?<!\d)\d{12}(?!\d)'),
       '[REDACTED_CIVIL_ID]',
-    );
-    value = value.replaceAll(
-      RegExp(
-        r'(?<!\d)-?\d{1,3}\.\d{4,}\s*[,/]\s*-?\d{1,3}\.\d{4,}(?!\d)',
-      ),
-      '[REDACTED_COORDINATES]',
     );
     return value.length > 4000 ? '${value.substring(0, 4000)}…' : value;
   }
