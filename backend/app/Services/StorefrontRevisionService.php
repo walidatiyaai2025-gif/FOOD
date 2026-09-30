@@ -15,7 +15,10 @@ final class StorefrontRevisionService
 {
     public const SCHEMA_VERSION = 1;
 
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly AppPreviewInvalidationService $invalidations,
+    ) {}
 
     public function ensurePublished(int $storeId, string $channel, ?User $actor = null): StorefrontRevision
     {
@@ -112,6 +115,7 @@ final class StorefrontRevisionService
                 $this->auditPayload($revision),
                 $request,
             );
+            $this->invalidations->emitForRevision($revision);
 
             return $revision;
         });
@@ -168,6 +172,10 @@ final class StorefrontRevisionService
                 $this->auditPayload($revision),
                 $request,
             );
+            $this->invalidations->emitForRevision(
+                $revision,
+                AppPreviewInvalidationService::STOREFRONT_UPDATED,
+            );
 
             return $revision;
         });
@@ -190,10 +198,11 @@ final class StorefrontRevisionService
         $encoded = $this->encode($normalized);
         $beforeChecksum = (string) $revision->checksum;
 
+        $newChecksum = hash('sha256', $encoded);
         $revision->forceFill([
             'schema_version' => self::SCHEMA_VERSION,
             'payload' => $normalized,
-            'checksum' => hash('sha256', $encoded),
+            'checksum' => $newChecksum,
             'created_by' => $actor->getKey(),
         ])->save();
 
@@ -205,6 +214,13 @@ final class StorefrontRevisionService
             $this->auditPayload($revision),
             $request,
         );
+
+        if (! hash_equals($beforeChecksum, $newChecksum)) {
+            $this->invalidations->emitForRevision(
+                $revision,
+                AppPreviewInvalidationService::STOREFRONT_UPDATED,
+            );
+        }
 
         return $revision->fresh();
     }
@@ -258,6 +274,7 @@ final class StorefrontRevisionService
                 $this->auditPayload($draft),
                 $request,
             );
+            $this->invalidations->emitForRevision($draft);
 
             return $draft->fresh();
         });
@@ -315,6 +332,7 @@ final class StorefrontRevisionService
                 ],
                 $request,
             );
+            $this->invalidations->emitForRevision($rolledBack);
 
             return $rolledBack;
         });
