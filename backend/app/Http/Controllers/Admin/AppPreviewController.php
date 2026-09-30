@@ -160,11 +160,41 @@ final class AppPreviewController extends Controller
     private function runtime(array $runtime): array
     {
         $url = trim((string) ($runtime['url'] ?? ''));
+        $contractVersion = trim((string) ($runtime['contract_version'] ?? ''));
+        $origin = $this->runtimeOrigin($url);
 
         return [
-            'available' => $url !== '',
+            'available' => $url !== '' && $origin !== '' && $contractVersion !== '',
             'url' => $url,
-            'contract_version' => trim((string) ($runtime['contract_version'] ?? '')),
+            'origin' => $origin,
+            'contract_version' => $contractVersion,
         ];
+    }
+
+    private function runtimeOrigin(string $url): string
+    {
+        if ($url === '') {
+            return '';
+        }
+
+        $parts = parse_url($url);
+        if (! is_array($parts)) {
+            return '';
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $port = isset($parts['port']) ? (int) $parts['port'] : null;
+
+        if ($host === '' || ! in_array($scheme, ['http', 'https'], true)) {
+            return '';
+        }
+
+        $localHost = in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+        if ($scheme !== 'https' && ! $localHost) {
+            return '';
+        }
+
+        return $scheme.'://'.$host.($port === null ? '' : ':'.$port);
     }
 }
