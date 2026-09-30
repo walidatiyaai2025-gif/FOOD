@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use RuntimeException;
+use ZipArchive;
 
 final class SystemUpdateController extends Controller
 {
@@ -61,7 +62,7 @@ final class SystemUpdateController extends Controller
             (string) $validated['minimum_current_version'],
             strtolower((string) $validated['sha256']),
             (string) ($validated['release_notes'] ?? ''),
-            $request->boolean('contains_migrations'),
+            $this->packageContainsMigrations($packagePath) || $request->boolean('contains_migrations'),
         );
 
         try {
@@ -82,6 +83,31 @@ final class SystemUpdateController extends Controller
         } finally {
             @unlink($packagePath);
         }
+    }
+
+    private function packageContainsMigrations(string $packagePath): bool
+    {
+        $archive = new ZipArchive;
+
+        if ($archive->open($packagePath) !== true) {
+            return false;
+        }
+
+        try {
+            for ($index = 0; $index < $archive->numFiles; $index++) {
+                $name = $archive->getNameIndex($index);
+
+                if (is_string($name)
+                    && str_starts_with(str_replace('\\\\', '/', $name), 'backend/database/migrations/')
+                    && str_ends_with($name, '.php')) {
+                    return true;
+                }
+            }
+        } finally {
+            $archive->close();
+        }
+
+        return false;
     }
 
     private function currentVersion(): string
