@@ -143,7 +143,7 @@ class _CustomerDiagnosticsScreenState extends State<CustomerDiagnosticsScreen> {
                 const SizedBox(height: 8),
                 TextButton.icon(
                   key: const ValueKey('customer-diagnostics-clear'),
-                  onPressed: diagnostics.clear,
+                  onPressed: () => diagnostics.clear(),
                   icon: const Icon(Icons.delete_outline),
                   label: Text(context.tr('customer.diagnostics.clear')),
                 ),
