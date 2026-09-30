@@ -1,0 +1,103 @@
+name: APP-PREVIEW Visual Runtime Parity
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  customer-runtime:
+    name: Customer preview runtime matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/customer_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Exercise Customer preview fixtures
+        run: |
+          flutter test             test/customer_preview_acceptance_test.dart             test/customer_preview_bootstrap_test.dart             test/customer_preview_host_runtime_test.dart             test/customer_preview_runtime_test.dart             test/customer_preview_configuration_test.dart
+      - name: Build authoritative Customer Web preview
+        run: |
+          flutter build web             --release             --target=lib/preview_main.dart             --no-web-resources-cdn             --pwa-strategy=none             --base-href=/customer/             --dart-define=FOODEX_API_BASE_URL=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          test -s build/web/index.html
+          test -s build/web/main.dart.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-preview-customer-web
+          path: apps/customer_app/build/web/
+          if-no-files-found: error
+          retention-days: 7
+
+  driver-runtime:
+    name: Driver preview runtime matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/driver_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+      - name: Prepare Web scaffolding
+        run: flutter create --platforms=web --project-name foodex_driver_app .
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Exercise Driver preview fixtures
+        run: |
+          flutter test             test/driver_preview_runtime_test.dart             test/driver_preview_web_contract_test.dart
+      - name: Build authoritative Driver Web preview
+        run: |
+          flutter build web             --release             --target=lib/preview_main.dart             --no-web-resources-cdn             --pwa-strategy=none             --base-href=/driver/             --dart-define=FOODEX_API_BASE_URL=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=http://127.0.0.1:4173             --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          test -s build/web/index.html
+          test -s build/web/main.dart.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-preview-driver-web
+          path: apps/driver_app/build/web/
+          if-no-files-found: error
+          retention-days: 7
+
+  embedded-vs-standalone:
+    name: Embedded vs standalone pixel parity
+    needs: [customer-runtime, driver-runtime]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-preview-customer-web
+          path: .app-preview-parity/customer
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-preview-driver-web
+          path: .app-preview-parity/driver
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install browser parity dependencies
+        run: |
+          npm install --no-save playwright@1.55.0 pixelmatch@6.0.0 pngjs@7.0.0
+          npx playwright install chromium
+      - name: Compare real shared runtimes
+        run: node scripts/app_preview_visual_parity.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: app-preview-visual-parity-evidence
+          path: .app-preview-parity/evidence/
+          if-no-files-found: warn
+          retention-days: 14

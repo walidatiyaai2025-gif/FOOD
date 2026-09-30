@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
-import 'dart:html' as html;
 import 'dart:js_interop';
 
 import 'package:flutter/material.dart';
@@ -11,6 +10,22 @@ import 'customer_preview_bootstrap.dart';
 import 'customer_preview_configuration.dart';
 import 'customer_preview_invalidation.dart';
 import 'customer_preview_runtime.dart';
+
+@JS('window')
+external _PreviewWindow get _previewWindow;
+
+extension type _PreviewWindow(JSObject _) implements JSObject {
+  external _PreviewWindow get parent;
+  external void addEventListener(String type, JSFunction listener);
+  external void removeEventListener(String type, JSFunction listener);
+  external void postMessage(JSAny? message, String targetOrigin);
+}
+
+extension type _PreviewMessageEvent(JSObject _) implements JSObject {
+  external String get origin;
+  external JSAny? get source;
+  external JSAny? get data;
+}
 
 class CustomerPreviewBrowserHost extends StatefulWidget {
   const CustomerPreviewBrowserHost({super.key});
@@ -22,7 +37,7 @@ class CustomerPreviewBrowserHost extends StatefulWidget {
 
 class _CustomerPreviewBrowserHostState
     extends State<CustomerPreviewBrowserHost> {
-  StreamSubscription<html.MessageEvent>? _messages;
+  JSFunction? _messageListener;
   CustomerPreviewRuntime? _runtime;
   CustomerPreviewInvalidationCoordinator? _invalidation;
   Timer? _invalidationTimer;
@@ -36,7 +51,10 @@ class _CustomerPreviewBrowserHostState
   @override
   void initState() {
     super.initState();
-    _messages = html.window.onMessage.listen(_onMessage);
+    _messageListener = ((JSObject rawEvent) {
+      _onMessage(_PreviewMessageEvent(rawEvent));
+    }).toJS;
+    _previewWindow.addEventListener('message', _messageListener!);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_allowedOrigin.isEmpty) {
@@ -51,11 +69,14 @@ class _CustomerPreviewBrowserHostState
     });
   }
 
-  void _onMessage(html.MessageEvent event) async {
+  void _onMessage(_PreviewMessageEvent event) async {
+    final source = event.source;
+    final fromParent = source != null &&
+        source.strictEquals(_previewWindow.parent).toDart;
     if (!CustomerPreviewHostContract.allowsMessage(
       origin: event.origin,
       expectedOrigin: _allowedOrigin,
-      fromParent: event.source == html.window.parent,
+      fromParent: fromParent,
     )) {
       return;
     }
@@ -310,7 +331,7 @@ class _CustomerPreviewBrowserHostState
   }
 
   void _post(Map<String, Object?> message) {
-    html.window.parent?.postMessage(
+    _previewWindow.parent.postMessage(
       message.jsify(),
       _allowedOrigin,
     );
@@ -320,7 +341,11 @@ class _CustomerPreviewBrowserHostState
   void dispose() {
     _bootstrapAttempt++;
     _stopInvalidation();
-    unawaited(_messages?.cancel());
+    final listener = _messageListener;
+    if (listener != null) {
+      _previewWindow.removeEventListener('message', listener);
+      _messageListener = null;
+    }
     _runtime?.close();
     super.dispose();
   }
