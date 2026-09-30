@@ -79,6 +79,11 @@ Route::prefix('admin')
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
         Route::get('/app-preview', [AppPreviewController::class, 'index'])->name('app-preview.index');
+        Route::get('/app-preview/targets', [AppPreviewController::class, 'targets'])->name('app-preview.targets');
+        Route::post('/app-preview/sessions', [AppPreviewController::class, 'storeSession'])->name('app-preview.sessions.store');
+        Route::delete('/app-preview/sessions/{sessionId}', [AppPreviewController::class, 'destroySession'])
+            ->whereUuid('sessionId')
+            ->name('app-preview.sessions.destroy');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
         Route::post('/customer-360/{platformCustomer}/addresses', [Customer360Controller::class, 'storeAddress'])->whereNumber('platformCustomer')->name('customer-360.addresses.store');
