@@ -17,7 +17,8 @@ final class StorefrontDraftEditorService
     ) {}
 
     /** @return array{revision:StorefrontRevision,payload:array<string,mixed>,has_draft:bool} */
-    public function editorState(int $storeId, string $channel): array {
+    public function editorState(int $storeId, string $channel): array
+    {
         $draft = StorefrontRevision::query()
             ->where('store_id', $storeId)
             ->where('channel', $channel)
@@ -37,7 +38,8 @@ final class StorefrontDraftEditorService
     }
 
     /** @return array<string,mixed> */
-    public function viewModel(int $storeId, string $channel): array {
+    public function viewModel(int $storeId, string $channel): array
+    {
         $state = $this->editorState($storeId, $channel);
         $revision = $state['revision'];
         $payload = $state['payload'];
@@ -440,7 +442,8 @@ final class StorefrontDraftEditorService
     }
 
     /** @return array<string,mixed> */
-    public function withEditorIds(array $payload): array {
+    public function withEditorIds(array $payload): array
+    {
         foreach (['sections' => 'section', 'banners' => 'banner', 'service_zones' => 'zone'] as $key => $kind) {
             $items = array_values((array) ($payload[$key] ?? []));
             foreach ($items as $index => $item) {
@@ -471,7 +474,7 @@ final class StorefrontDraftEditorService
     }
 
     /** @param list<mixed> $zones
-     *  @param array<string,mixed> $target
+     * @param  array<string,mixed>  $target
      */
     private function findMatchingZoneIndex(array $zones, array $target): int
     {
