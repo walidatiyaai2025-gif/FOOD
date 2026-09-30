@@ -46,6 +46,7 @@ class OpenApiContractTest extends TestCase
             '/notifications',
             '/app-version',
             '/app-preview/resolve',
+            '/app-preview/storefront-configuration',
             '/app-preview/storefront-revisions/{revision}/resolve',
             '/admin/app-preview/sessions',
             '/admin/app-preview/storefront-revisions',

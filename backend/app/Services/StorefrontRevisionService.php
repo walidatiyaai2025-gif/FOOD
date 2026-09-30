@@ -347,6 +347,32 @@ final class StorefrontRevisionService
         return $revision;
     }
 
+    public function resolveCurrentForPreview(
+        AppPreviewSession $session,
+        string $mode,
+    ): StorefrontRevision {
+        abort_unless($session->target_type === 'customer', 404);
+        abort_unless((string) $session->mode === 'read_only', 403);
+        abort_unless(in_array($mode, ['draft', 'published'], true), 422);
+
+        $revision = StorefrontRevision::query()
+            ->where('store_id', $session->store_id)
+            ->where('channel', $session->channel)
+            ->where('status', $mode)
+            ->latest('id')
+            ->first();
+
+        abort_unless(
+            $revision instanceof StorefrontRevision,
+            404,
+            $mode === 'draft'
+                ? 'No Draft storefront revision exists for this preview scope.'
+                : 'No Published storefront revision exists for this preview scope.',
+        );
+
+        return $this->resolveForPreview($session, $revision);
+    }
+
     /** @return array<string,mixed> */
     public function snapshotLive(int $storeId, string $channel): array
     {
