@@ -112,6 +112,13 @@ jobs:
           test "$actual" = "FOODEX Driver"
           bundle="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")"
           test "$bundle" = "com.fiftysolution.foodex.driver"
+          location_usage="$(/usr/libexec/PlistBuddy -c 'Print :NSLocationWhenInUseUsageDescription' "$plist")"
+          test -n "$location_usage"
+          echo "$location_usage" | grep -F "FOODEX Driver"
+          if /usr/libexec/PlistBuddy -c 'Print :NSLocationAlwaysAndWhenInUseUsageDescription' "$plist" >/dev/null 2>&1; then
+            echo "Driver foreground-only gate must not request Always location in this slice." >&2
+            exit 1
+          fi
 
       - name: Archive unsigned iOS app
         run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app build/ios/iphoneos/Runner.app.zip
