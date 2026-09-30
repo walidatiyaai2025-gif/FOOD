@@ -72,7 +72,7 @@ class _WholesaleHomeDesignScreenState
 
   @override
   Widget build(BuildContext context) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: Directionality.of(context),
         child: FutureBuilder<Map<String, dynamic>>(
           future: future,
           builder: (context, snapshot) {
@@ -834,7 +834,7 @@ class _WholesaleProductDetailsDesignScreenState
         storeId.toString();
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: Directionality.of(context),
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
@@ -1172,7 +1172,7 @@ class _WholesaleCartDesignScreenState
 
   @override
   Widget build(BuildContext context) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: Color(0xFFFBFAFD),
           body: SafeArea(
@@ -1532,7 +1532,7 @@ class _WholesaleCheckoutDesignScreenState
 
   @override
   Widget build(BuildContext context) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: Color(0xFFFBFAFD),
           body: SafeArea(
@@ -2089,7 +2089,7 @@ class _WholesaleOrdersDesignScreenState
 
   @override
   Widget build(BuildContext context) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: Color(0xFFFBFAFD),
           body: SafeArea(
@@ -2176,7 +2176,7 @@ class _WholesaleOrderDetailsDesignScreenState
 
   @override
   Widget build(BuildContext context) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: const Color(0xFFFBFAFD),
           body: SafeArea(
