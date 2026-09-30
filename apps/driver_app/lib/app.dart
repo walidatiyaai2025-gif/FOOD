@@ -207,7 +207,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
 
     final tracking = factory?.call(session, _sessionExpired) ??
         DriverLocationTrackingService(
-          locationSource: const GeolocatorDriverLocationSource(),
+          locationSource: GeolocatorDriverLocationSource(locale: session.locale),
           heartbeatClient: HttpDriverLocationHeartbeatClient(
             baseUrl: _baseUrl,
             token: session.token,
