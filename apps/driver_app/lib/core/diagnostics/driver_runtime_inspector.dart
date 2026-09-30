@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'driver_runtime_platform.dart';
 
 const driverAppVersion = '1.0.38';
 const driverAppBuild = '38';
@@ -191,9 +191,9 @@ class DriverRuntimeInspector {
         'name': 'FOODEX Driver',
         'version': _appVersion,
         'build': _appBuild,
-        'platform': Platform.operatingSystem,
+        'platform': driverOperatingSystem,
         'os_version': sanitizeForDiagnostics(
-          Platform.operatingSystemVersion,
+          driverOperatingSystemVersion,
           maxLength: 1000,
         ),
         'locale': sanitizeForDiagnostics(locale, maxLength: 20),
@@ -215,27 +215,24 @@ class DriverRuntimeInspector {
     };
   }
 
-  Future<File> writeExportFile({
+  Future<DriverDiagnosticExportFile> writeExportFile({
     required String locale,
     required bool authenticated,
   }) async {
     final generated = DateTime.now().toUtc();
     final stamp =
         generated.toIso8601String().replaceAll(RegExp(r'[:.]'), '-');
-    final file = File(
-      '${Directory.systemTemp.path}/foodex-driver-inspector-$stamp.json',
-    );
-    final encoder = const JsonEncoder.withIndent('  ');
-    await file.writeAsString(
-      encoder.convert(
+    final encoder = const JsonEncoder.withIndent(' ');
+
+    return writeDriverDiagnosticExport(
+      filename: 'foodex-driver-inspector-$stamp.json',
+      content: encoder.convert(
         exportPayload(
           locale: locale,
           authenticated: authenticated,
         ),
       ),
-      flush: true,
     );
-    return file;
   }
 
   Future<void> clear() async {

@@ -81,6 +81,14 @@ Route::prefix('v1')->group(function (): void {
     Route::patch('/cart/items/{item}', [GuestCartController::class, 'updateItem']);
     Route::delete('/cart/items/{item}', [GuestCartController::class, 'removeItem']);
 
+    Route::prefix('app-preview/driver')
+        ->middleware('preview.driver')
+        ->group(function (): void {
+            Route::get('/assignments', [DriverAssignmentController::class, 'index']);
+            Route::get('/assignments/{assignment}', [DriverAssignmentController::class, 'show'])
+                ->whereNumber('assignment');
+        });
+
     Route::prefix('app-preview/customer')
         ->middleware('preview.customer:b2c')
         ->group(function (): void {
