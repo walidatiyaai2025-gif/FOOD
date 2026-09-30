@@ -189,6 +189,59 @@ class AppPreviewDashboardBridgeTest extends TestCase
         $this->assertStringContainsString('"available":false', $insecureHtml);
     }
 
+    public function test_preview_host_sends_deterministic_real_device_viewport_semantics(): void
+    {
+        $admin = $this->roleUser('B2B_ADMIN', 'bridge-device-admin@example.test');
+
+        $html = $this->actingAs($admin)
+            ->get(route('admin.app-preview.index', ['device' => 'iphone_common']))
+            ->assertOk()
+            ->getContent();
+
+        $profiles = (array) config('app_preview.device_profiles');
+        foreach ([
+            'android_small',
+            'android_common',
+            'android_large',
+            'iphone_common',
+            'narrow_stress',
+        ] as $profile) {
+            $this->assertArrayHasKey($profile, $profiles);
+            $this->assertArrayHasKey('width', $profiles[$profile]);
+            $this->assertArrayHasKey('height', $profiles[$profile]);
+            $this->assertArrayHasKey('safe_area', $profiles[$profile]);
+            $this->assertArrayHasKey('text_scale', $profiles[$profile]);
+            $this->assertSame('portrait', $profiles[$profile]['orientation']);
+        }
+
+        $this->assertSame('ios', $profiles['iphone_common']['platform']);
+        $this->assertSame(47, $profiles['iphone_common']['safe_area']['top']);
+        $this->assertSame(34, $profiles['iphone_common']['safe_area']['bottom']);
+        $this->assertSame(320, $profiles['narrow_stress']['width']);
+
+        preg_match(
+            '/<script id="foodex-preview-bridge">(.*?)<\\/script>/s',
+            $html,
+            $bridgeMatch,
+        );
+        $this->assertArrayHasKey(1, $bridgeMatch);
+        $bridgeScript = (string) $bridgeMatch[1];
+
+        foreach ([
+            'selectedDeviceProfile',
+            'device_platform',
+            'device_height',
+            'device_safe_area',
+            'device_text_scale',
+            'device_orientation',
+            'keyboard_inset_bottom',
+            '--preview-device-height',
+        ] as $expected) {
+            $this->assertStringContainsString($expected, $html.$bridgeScript);
+        }
+        $this->assertStringContainsString("device: selectedDeviceProfile()", $bridgeScript);
+    }
+
     public function test_preview_inspector_is_source_gated_sanitized_versioned_and_localized(): void
     {
         $admin = $this->roleUser('B2B_ADMIN', 'bridge-inspector-admin@example.test');
