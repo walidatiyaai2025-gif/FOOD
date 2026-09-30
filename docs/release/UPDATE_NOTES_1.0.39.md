@@ -1,0 +1,7 @@
+# FOODEX 1.0.39 Distribution Notes
+
+This release synchronizes Dashboard, Customer and Driver artifacts on `1.0.39` / mobile build `+39`.
+
+The deployable delta since the 1.0.38 identity includes the real Customer and Driver Flutter Web preview bridges, Draft/Published preview resolution and invalidation, sanitized preview diagnostics, Dashboard live Driver tracking, Driver minimum-version policy checks, fresh-location enforcement capability, the audited OFF-by-default enforcement path, and active-delivery Driver background tracking with Android/iOS native validation.
+
+Publishing 1.0.39 is distribution only. It does not modify production AppVersion rows, does not change the production minimum-supported Driver version, and does not activate Driver location enforcement. Production heartbeat evidence and activation remain separate operational gates.
