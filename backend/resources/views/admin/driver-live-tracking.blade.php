@@ -4,8 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('admin.driver_live_tracking.title') }} · FOODEX</title>
 @include('admin._brand-components')
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIINfQ3ynJb+qmydLSVX2qYI7u7J7xI7V2c=" crossorigin="">
+<link rel="stylesheet" href="{{ asset('vendor/leaflet/1.9.4/leaflet.css') }}">
 <style>
 .tracking-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:var(--foodex-space-4)}
 .tracking-map-card,.tracking-list-card,.tracking-filter-card{padding:var(--foodex-space-4)}
@@ -101,8 +100,7 @@
     </main>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{{ asset('vendor/leaflet/1.9.4/leaflet.js') }}"></script>
 <script>
 (() => {
     const feedUrl = @json($feedUrl);
