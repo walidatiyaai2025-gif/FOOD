@@ -1,0 +1,36 @@
+.driver-live-map-shell .tracking-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:var(--foodex-space-4)}
+.driver-live-map-shell[data-show-list="0"] .tracking-grid{grid-template-columns:1fr}
+.driver-live-map-shell .tracking-map-card,.driver-live-map-shell .tracking-list-card,.driver-live-map-shell .tracking-filter-card{padding:var(--foodex-space-4)}
+.driver-live-map-shell .tracking-filters{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:10px;align-items:end}
+.driver-live-map-shell .tracking-filters label{display:grid;gap:6px;font-weight:700}
+.driver-live-map-shell .tracking-filters input,.driver-live-map-shell .tracking-filters select{width:100%}
+.driver-live-map-shell .tracking-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.driver-live-map-shell .tracking-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.driver-live-map-shell .tracking-summary>div{padding:12px;border:1px solid var(--foodex-border);border-radius:14px;background:#fff}
+.driver-live-map-shell .tracking-summary strong{display:block;font-size:1.6rem}
+.driver-live-map-shell .tracking-summary small{color:var(--foodex-muted)}
+.driver-live-map-shell .driver-live-map-canvas{height:590px;border:1px solid var(--foodex-border);border-radius:18px;overflow:hidden;background:#eef2f5}
+.driver-live-map-shell[data-mode="compact"] .driver-live-map-canvas{height:320px}
+.driver-live-map-shell .tracking-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.driver-live-map-shell .tracking-status{color:var(--foodex-muted);font-size:.9rem}
+.driver-live-map-shell .tracking-last-updated{margin-top:8px}
+.driver-live-map-shell .tracking-list{display:grid;gap:8px;max-height:590px;overflow:auto}
+.driver-live-map-shell .tracking-driver{width:100%;text-align:start;border:1px solid var(--foodex-border);background:#fff;border-radius:14px;padding:12px;cursor:pointer}
+.driver-live-map-shell .tracking-driver:hover,.driver-live-map-shell .tracking-driver:focus{border-color:var(--foodex-green);outline:none}
+.driver-live-map-shell .tracking-driver strong{display:block}
+.driver-live-map-shell .tracking-driver small{color:var(--foodex-muted)}
+.driver-live-map-shell .tracking-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:6px}
+.driver-live-map-shell .tracking-empty{padding:28px;text-align:center;color:var(--foodex-muted)}
+.driver-live-map-shell .tracking-error{padding:12px;border:1px solid #fecaca;background:#fff1f2;color:#991b1b;border-radius:12px;margin-bottom:10px}
+.driver-live-map-shell .tracking-search-label{display:grid;gap:6px;font-weight:700}
+.driver-live-map-shell .tracking-list-title{font-size:1rem;margin:16px 0 10px}
+@media(max-width:1180px){
+    .driver-live-map-shell .tracking-grid{grid-template-columns:1fr}
+    .driver-live-map-shell .tracking-list{max-height:360px}
+    .driver-live-map-shell .tracking-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+    .driver-live-map-shell .tracking-filters{grid-template-columns:1fr}
+    .driver-live-map-shell .driver-live-map-canvas{height:480px}
+    .driver-live-map-shell[data-mode="compact"] .driver-live-map-canvas{height:280px}
+}
