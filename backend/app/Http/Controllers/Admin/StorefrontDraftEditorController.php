@@ -280,8 +280,7 @@ final class StorefrontDraftEditorController extends Controller
         string $editorId,
         BannerImageService $images,
         string $channel,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         $data = $this->bannerData($request, false, $channel);
         $storeId = (int) $data['store_id'];
@@ -456,8 +455,7 @@ final class StorefrontDraftEditorController extends Controller
         string $channel,
         string $ability,
         Request $request,
-    ): void
-    {
+    ): void {
         if ($channel === 'b2b') {
             $this->authorizeWholesale($actor, $storeId, $ability);
 
@@ -472,8 +470,7 @@ final class StorefrontDraftEditorController extends Controller
         int $storeId,
         string $ability,
         Request $request,
-    ): void
-    {
+    ): void {
         $this->tenantContext->retail(
             $actor,
             $storeId,
