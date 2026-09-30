@@ -210,6 +210,24 @@ void main() {
       [7],
     );
   });
+
+  test('guest preview never creates authenticated preview transport bundle', () {
+    final context = CustomerPreviewContext.guest(
+      channel: CustomerChannel.b2c,
+      storeId: 7,
+    );
+
+    expect(
+      () => CustomerPreviewApiBundle(
+        baseUrl: 'https://foodex.example',
+        context: context,
+        credential: 'must-not-be-used-for-guest',
+        client: MockClient((_) async => http.Response('{}', 200)),
+      ),
+      throwsArgumentError,
+    );
+  });
+
 }
 
 class _StorefrontFake implements StorefrontApi {
@@ -243,22 +261,4 @@ class _StorefrontFake implements StorefrontApi {
 
   @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async => {};
-
-  test('guest preview never creates authenticated preview transport bundle', () {
-    final context = CustomerPreviewContext.guest(
-      channel: CustomerChannel.b2c,
-      storeId: 7,
-    );
-
-    expect(
-      () => CustomerPreviewApiBundle(
-        baseUrl: 'https://foodex.example',
-        context: context,
-        credential: 'must-not-be-used-for-guest',
-        client: MockClient((_) async => http.Response('{}', 200)),
-      ),
-      throwsArgumentError,
-    );
-  });
-
 }
