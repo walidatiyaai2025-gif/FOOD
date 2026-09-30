@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 
+import '../diagnostics/driver_runtime_inspector.dart';
+
 typedef DriverTranslationFetcher = Future<Map<String, String>> Function(String locale);
 
 class DriverTranslations extends InheritedWidget {
@@ -266,21 +268,26 @@ extension DriverTranslationContext on BuildContext {
 }
 
 Future<Map<String, String>> fetchDriverTranslationBundle(String baseUrl, String locale) async {
-  final response = await http.get(
-    Uri.parse('$baseUrl/api/v1/translations/$locale'),
-    headers: const {'Accept': 'application/json'},
-  );
+  final client = DriverDiagnosticHttpClient(http.Client());
+  try {
+    final response = await client.get(
+      Uri.parse('$baseUrl/api/v1/translations/$locale'),
+      headers: const {'Accept': 'application/json'},
+    );
 
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    return const {};
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      return const {};
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic> || decoded['translations'] is! Map) {
+      return const {};
+    }
+
+    return (decoded['translations'] as Map).map(
+      (key, value) => MapEntry(key.toString(), value.toString()),
+    );
+  } finally {
+    client.close();
   }
-
-  final decoded = jsonDecode(response.body);
-  if (decoded is! Map<String, dynamic> || decoded['translations'] is! Map) {
-    return const {};
-  }
-
-  return (decoded['translations'] as Map).map(
-    (key, value) => MapEntry(key.toString(), value.toString()),
-  );
 }
