@@ -43,6 +43,13 @@ RUNTIME_ALWAYS_INCLUDE = {
     "backend/routes/console.php",
 }
 
+# CI can stage pinned third-party runtimes outside Composer's protected vendor/
+# directory. Their files are copied into these application-owned locations and
+# are included deterministically in the dashboard update ZIP.
+GENERATED_RUNTIME_DIRS = (
+    "backend/app/ThirdParty/tcpdf",
+)
+
 PROTECTED_PARTS = {".git", "storage", "vendor"}
 FIXED_ZIP_TIME = (2026, 9, 27, 0, 0, 0)
 
@@ -88,7 +95,7 @@ def safe_path(path: str) -> str:
     return value
 
 
-def changed_runtime_files(base: str) -> list[str]:
+def changed_runtime_files(base: str, repo_root: Path) -> list[str]:
     diff = run_git("diff", "--name-status", "--find-renames", f"{base}..HEAD")
     selected: set[str] = set()
 
@@ -129,6 +136,15 @@ def changed_runtime_files(base: str) -> list[str]:
 
     selected.add("VERSION")
     selected.update(RUNTIME_ALWAYS_INCLUDE)
+
+    for generated_dir in GENERATED_RUNTIME_DIRS:
+        root = repo_root / generated_dir
+        if not root.is_dir():
+            continue
+
+        for source in sorted(path for path in root.rglob("*") if path.is_file()):
+            selected.add(safe_path(source.relative_to(repo_root).as_posix()))
+
     return sorted(selected)
 
 
@@ -175,7 +191,7 @@ def main() -> int:
         )
 
     run_git("cat-file", "-e", f"{args.base}^{{commit}}")
-    files = changed_runtime_files(args.base)
+    files = changed_runtime_files(args.base, repo_root)
 
     migrations = [path for path in files if path.startswith("backend/database/migrations/")]
     contains_migrations = bool(migrations)
