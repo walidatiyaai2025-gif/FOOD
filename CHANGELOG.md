@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.38 - Dashboard-only pending migration recovery
+
+- Complete the no-shell recovery path for installations where 1.0.36 files were applied while database migrations remained pending.
+- Require the 1.0.37 migration-free bootstrap first so the server receives automatic ZIP migration detection before the recovery package is executed.
+- Ship the cumulative dashboard update with the pending migration files; the 1.0.37 updater detects them automatically, takes the database backup and runs Laravel migrations without a manual checkbox.
+- Keep the recovery idempotent: Laravel executes only migrations that are still pending on the target installation.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.38.
+
+
 ## 1.0.37 - 2026-09-30
 
 - Recover dashboard installations where the 1.0.36 migration flag was omitted by shipping a new cumulative migration-bearing update.
