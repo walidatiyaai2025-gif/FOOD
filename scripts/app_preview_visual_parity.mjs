@@ -143,8 +143,8 @@ const server = http.createServer(async (req, res) => {
       'window.__foodexBootstrap=' + bootstrap + ';' +
       'const runtime=document.getElementById("runtime");' +
       'function sendBootstrap(){if(runtime.contentWindow){runtime.contentWindow.postMessage(window.__foodexBootstrap,location.origin);}}' +
-      'addEventListener("message",(event)=>{if(event.origin!==location.origin||event.source!==runtime.contentWindow)return;if(!event.data||typeof event.data!=="object")return;window.__foodexMessages.push(event.data);if(event.data.type==="foodex.preview.ready"&&event.data.version==="shared-flutter-v1"){window.__foodexHandshake=true;sendBootstrap();}});' +
-      'runtime.addEventListener("load",()=>{sendBootstrap();const retry=setInterval(()=>{const terminal=window.__foodexMessages.some((m)=>m.type==="foodex.preview.status"&&["ready","error","expired","forbidden"].includes(m.state));if(terminal){clearInterval(retry);}else{sendBootstrap();}},400);setTimeout(()=>clearInterval(retry),12000);});' +
+      'addEventListener("message",(event)=>{if(event.origin!==location.origin||event.source!==runtime.contentWindow)return;if(!event.data||typeof event.data!=="object")return;window.__foodexMessages.push(event.data);if(event.data.type==="foodex.preview.ready"&&event.data.version==="shared-flutter-v1"&&!window.__foodexHandshake){window.__foodexHandshake=true;sendBootstrap();}});' +
+      'runtime.addEventListener("load",()=>{const fallback=setTimeout(()=>{if(!window.__foodexHandshake){sendBootstrap();}},5000);const terminal=setInterval(()=>{if(window.__foodexHandshake||window.__foodexMessages.some((m)=>m.type==="foodex.preview.status"&&["ready","error","expired","forbidden"].includes(m.state))){clearTimeout(fallback);clearInterval(terminal);}},250);setTimeout(()=>{clearTimeout(fallback);clearInterval(terminal);},12000);});' +
       'runtime.src="/' + testCase.app + '/index.html";' +
       '</script></body></html>';
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
