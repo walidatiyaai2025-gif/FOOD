@@ -80,7 +80,6 @@ class _DriverLocationGateState extends State<DriverLocationGate>
     }
 
     final status = _status;
-    final serviceDisabled = status == DriverLocationGateStatus.serviceDisabled;
     final deniedForever =
         status == DriverLocationGateStatus.permissionDeniedForever;
 
@@ -136,21 +135,24 @@ class _DriverLocationGateState extends State<DriverLocationGate>
                       ),
                       const SizedBox(height: 10),
                       OutlinedButton.icon(
-                        key: const Key('driver-location-settings'),
+                        key: const Key('driver-location-app-settings'),
                         onPressed: () async {
-                          if (serviceDisabled) {
-                            await widget.service.openLocationSettings();
-                          } else {
-                            await widget.service.openAppSettings();
-                          }
+                          await widget.service.openAppSettings();
                         },
-                        icon: const Icon(Icons.settings_outlined),
+                        icon: const Icon(Icons.app_settings_alt_outlined),
                         label: Text(
-                          context.tr(
-                            serviceDisabled
-                                ? 'driver.location.open_location_settings'
-                                : 'driver.location.open_app_settings',
-                          ),
+                          context.tr('driver.location.open_app_settings'),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        key: const Key('driver-location-location-settings'),
+                        onPressed: () async {
+                          await widget.service.openLocationSettings();
+                        },
+                        icon: const Icon(Icons.location_searching_outlined),
+                        label: Text(
+                          context.tr('driver.location.open_location_settings'),
                         ),
                       ),
                       if (deniedForever) ...[
