@@ -120,9 +120,6 @@ class CustomerPreviewScopeException implements Exception {
   String toString() => code;
 }
 
-Never _blocked(String action) =>
-    throw CustomerPreviewMutationBlocked(action);
-
 void _requireStore(CustomerPreviewContext context, int storeId) {
   if (!context.allowsStore(storeId)) {
     throw const CustomerPreviewScopeException('preview_store_scope_mismatch');
