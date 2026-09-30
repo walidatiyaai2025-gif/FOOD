@@ -6,7 +6,6 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 
 final class B2cDashboardService
 {
@@ -100,7 +99,6 @@ final class B2cDashboardService
             'distribution' => $this->distribution($orders),
             'low_stock' => $this->lowStock($storeIds),
             'recent_orders' => $this->recentOrders($storeIds, $from, $to),
-            'quick_actions' => $this->quickActions($user, $storeIds),
             'mobile_apps' => $this->mobileApps(),
             'notifications_unread' => $this->unreadNotifications($user, $storeIds),
             'search' => $this->search($storeIds, trim((string) $search)),
@@ -243,27 +241,6 @@ final class B2cDashboardService
                 'items' => (int) $row->items_count,
             ])
             ->all();
-    }
-
-    /** @param list<int> $storeIds */
-    private function quickActions(User $user, array $storeIds): array
-    {
-        $actions = [];
-
-        if ($this->canAnyStore($user, $storeIds, 'catalog.create') || $this->canAnyStore($user, $storeIds, 'catalog.manage')) {
-            $actions[] = ['key' => 'add_product', 'route' => 'admin.catalog.index', 'params' => ['tab' => 'products']];
-        }
-        if ($this->canAnyStore($user, $storeIds, 'orders.view')) {
-            $actions[] = ['key' => 'manage_orders', 'route' => 'admin.b2c.module', 'params' => ['module' => 'orders']];
-        }
-        if ($this->canAnyStore($user, $storeIds, 'notifications.manage') && Route::has('admin.notification-campaigns.index')) {
-            $actions[] = ['key' => 'send_notification', 'route' => 'admin.notification-campaigns.index', 'params' => []];
-        }
-        if ($this->canAnyStore($user, $storeIds, 'reports.view')) {
-            $actions[] = ['key' => 'view_reports', 'route' => 'admin.reports.index', 'params' => ['channel' => 'b2c']];
-        }
-
-        return $actions;
     }
 
     private function mobileApps(): array

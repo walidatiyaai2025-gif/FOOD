@@ -103,14 +103,14 @@
         .badge.out_for_delivery,.badge.in_transit,.badge.assigned,.badge.picked_up{background:rgba(75,140,245,.12);color:var(--foodex-blue)}
         .badge.cancelled,.badge.refunded{background:rgba(239,83,80,.10);color:var(--foodex-red)}
         .badge.pending,.badge.processing,.badge.confirmed,.badge.paid,.badge.accepted{background:var(--foodex-orange-soft);color:var(--foodex-orange)}
-        .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-        .quick{min-height:82px;border-radius:var(--foodex-radius-md);padding:10px 8px;display:grid;place-content:center;text-align:center;font-size:.72rem;font-weight:var(--foodex-font-weight-bold);border:1px solid transparent}
+        
+        
         .quick:nth-child(4n+1){background:var(--foodex-orange-soft);color:var(--foodex-orange)}
         .quick:nth-child(4n+2){background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
         .quick:nth-child(4n+3){background:rgba(75,140,245,.12);color:var(--foodex-blue)}
         .quick:nth-child(4n){background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-        .quick i{font-style:normal;margin-bottom:5px;display:grid;place-items:center}
-        .quick .foodex-svg-icon{width:25px;height:25px}
+        
+        
 
         .apps-card{margin:var(--foodex-space-3) var(--foodex-space-4);background:var(--foodex-orange-soft);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:var(--foodex-space-3);text-align:center}
         .apps-card>strong{font-weight:var(--foodex-font-weight-bold)}
@@ -205,7 +205,7 @@
             .recent.header{display:none}
             .recent{grid-template-columns:1fr auto;gap:4px}
             .recent>*:nth-child(3),.recent>*:nth-child(4){display:none}
-            .quick-grid{grid-template-columns:1fr 1fr}
+            
         }
     </style>
 </head>
@@ -364,15 +364,6 @@
                     </div>
                 </article>
 
-                <article class="panel">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.quick_actions') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Quick Actions</small>@endif</div></div>
-                    <div class="quick-grid">
-                        @foreach($dashboard['quick_actions'] as $action)
-                            @php $icons=['add_product'=>'products','manage_orders'=>'orders','send_notification'=>'bell','view_reports'=>'reports']; @endphp
-                            <a class="quick" href="{{ route($action['route'],array_merge($action['params'],['store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}"><i>@include('admin._premium-icon',['name'=>$icons[$action['key']]??'more'])</i>{{ __('admin.b2c_dashboard.actions.'.$action['key']) }}</a>
-                        @endforeach
-                    </div>
-                </article>
             </section>
         </main>
     </section>
@@ -470,11 +461,6 @@
                     <strong>{{ __('admin.b2c_workspace.authoritative') }}</strong>
                     <p class="empty">{{ app()->getLocale()==='ar' ? 'بيانات مباشرة ضمن المتاجر المصرح بها لهذا المستخدم.' : 'Live server data restricted to this user\'s assigned stores.' }}</p>
                 </div>
-                <nav class="module-links" aria-label="{{ app()->getLocale()==='ar'?'أقسام التجزئة الأساسية':'Retail core modules' }}">
-                    @foreach(array_values(array_filter($visibleModules, fn($candidate) => $candidate !== 'dashboard')) as $core)
-                        <a class="{{ $module===$core?'active':'' }}" href="{{ route('admin.b2c.module',array_merge(['module'=>$core,'store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_workspace.modules.'.$core) }}</a>
-                    @endforeach
-                </nav>
             </div>
             @if(!empty($moduleData['actions']))
                 <div class="module-links module-actions">
