@@ -19,8 +19,6 @@
         form { display: grid; gap: 16px; }
         label { display: grid; gap: 7px; font-weight: 700; }
         input, textarea { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
-        .checkbox { display: flex; align-items: center; gap: 8px; }
-        .checkbox input { width: auto; }
         button { justify-self: start; border: 0; border-radius: 8px; padding: 11px 18px; background: #111827; color: #fff; font-weight: 700; cursor: pointer; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 10px; text-align: start; border-bottom: 1px solid #e2e8f0; }
@@ -74,10 +72,7 @@
             <label>Release notes
                 <textarea name="release_notes" rows="4"></textarea>
             </label>
-            <label class="checkbox">
-                <input type="checkbox" name="contains_migrations" value="1">
-                Package contains database migrations
-            </label>
+            <div class="notice">Database migrations are detected automatically from the ZIP package. No manual migration checkbox is required.</div>
             <button class="foodex-primary" type="submit">Validate and install update</button>
         </form>
     </section>
