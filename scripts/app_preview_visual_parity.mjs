@@ -210,14 +210,6 @@ const server = http.createServer(async (req, res) => {
 await new Promise((resolve) => server.listen(4173, '127.0.0.1', resolve));
 const browser = await chromium.launch({ headless: true });
 
-const cases = [
-  { app: 'customer', width: 360, height: 800, profile: 'small-android' },
-  { app: 'customer', width: 390, height: 844, profile: 'iphone-common' },
-  { app: 'customer', width: 430, height: 900, profile: 'large-android' },
-  { app: 'driver', width: 360, height: 800, profile: 'small-android' },
-  { app: 'driver', width: 390, height: 844, profile: 'iphone-common' },
-];
-
 async function stableScreenshot(target, page, { initialDelay = 600 } = {}) {
   await page.waitForTimeout(initialDelay);
   let previousHash = null;
