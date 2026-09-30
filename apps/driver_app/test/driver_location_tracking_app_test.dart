@@ -4,6 +4,7 @@ import 'package:foodex_driver_app/app.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/core/location/driver_location_gate_service.dart';
 import 'package:foodex_driver_app/core/location/driver_location_tracking_service.dart';
+import 'package:foodex_driver_app/core/preview/driver_preview_context.dart';
 import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
 import 'package:foodex_driver_app/navigation.dart';
 
@@ -112,4 +113,98 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets(
+      'replacing authenticated session disposes old tracking and creates exactly one new controller',
+      (tester) async {
+    final gate = _FakeGateService(DriverLocationGateStatus.ready);
+    final firstTracking = _FakeTrackingController();
+    final secondTracking = _FakeTrackingController();
+    final createdFor = <DriverSession>[];
+
+    final firstSession = DriverSession(
+      token: 'first-session-secret',
+      name: 'Driver One',
+      email: 'one@example.test',
+      locale: 'en',
+      channel: DriverChannel.b2c,
+    );
+    final secondSession = DriverSession(
+      token: 'second-session-secret',
+      name: 'Driver Two',
+      email: 'two@example.test',
+      locale: 'en',
+      channel: DriverChannel.b2c,
+    );
+
+    Widget build(DriverSession session) => FoodexDriverApp(
+          key: const ValueKey('driver-app'),
+          locale: const Locale('en'),
+          initialRoute: DriverRoutes.b2cHome,
+          initialSession: session,
+          assignmentRepositoryFactory: (_) => _EmptyAssignments(),
+          locationGateService: gate,
+          locationTrackingFactory: (resolvedSession, onSessionInvalid) {
+            createdFor.add(resolvedSession);
+            if (identical(resolvedSession, firstSession)) {
+              return firstTracking;
+            }
+            if (identical(resolvedSession, secondSession)) {
+              return secondTracking;
+            }
+            fail('Unexpected session passed to tracking factory.');
+          },
+        );
+
+    await tester.pumpWidget(build(firstSession));
+    await tester.pump();
+
+    expect(createdFor, [firstSession]);
+    expect(firstTracking.starts, 1);
+    expect(firstTracking.disposes, 0);
+
+    await tester.pumpWidget(build(secondSession));
+    await tester.pump();
+
+    expect(createdFor, [firstSession, secondSession]);
+    expect(firstTracking.stops, 1);
+    expect(firstTracking.disposes, 1);
+    expect(secondTracking.starts, 1);
+    expect(secondTracking.disposes, 0);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    expect(secondTracking.stops, 1);
+    expect(secondTracking.disposes, 1);
+  });
+
+  testWidgets('FoodexDriverApp.preview never creates location tracking',
+      (tester) async {
+    final preview = DriverPreviewContext(
+      channel: DriverChannel.b2c,
+      storeId: 7,
+      targetName: 'Preview Driver',
+      targetLocale: 'en',
+    );
+
+    final app = FoodexDriverApp.preview(
+      previewContext: preview,
+      assignmentRepository: _EmptyAssignments(),
+      initialRoute: DriverRoutes.b2cHome,
+      locale: const Locale('en'),
+    );
+
+    expect(app.previewContext, same(preview));
+    expect(app.locationGateService, isNull);
+    expect(app.locationTrackingFactory, isNull);
+
+    await tester.pumpWidget(app);
+    await tester.pump();
+
+    expect(find.byKey(const Key('driver-location-gate')), findsNothing);
+    expect(find.byKey(const Key('driver-app-version-footer')), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
 }
