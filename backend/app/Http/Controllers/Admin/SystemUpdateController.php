@@ -12,8 +12,10 @@ use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use RuntimeException;
+use Throwable;
 
 final class SystemUpdateController extends Controller
 {
@@ -52,7 +54,13 @@ final class SystemUpdateController extends Controller
         abort_if($upload === null, 422, 'Update package is required.');
 
         $directory = storage_path('app/private/updates/incoming');
-        if (! is_dir($directory) && ! @mkdir($directory, 0750, true) && ! is_dir($directory)) {
+        try {
+            File::ensureDirectoryExists($directory, 0750);
+        } catch (Throwable $exception) {
+            throw new RuntimeException('Update upload directory could not be prepared.', 0, $exception);
+        }
+
+        if (is_dir($directory) === false) {
             throw new RuntimeException('Update upload directory could not be prepared.');
         }
 
@@ -84,7 +92,9 @@ final class SystemUpdateController extends Controller
                 ->route('admin.system-update.index')
                 ->withErrors(['update' => $exception->getMessage()]);
         } finally {
-            @unlink($packagePath);
+            if (is_file($packagePath)) {
+                unlink($packagePath);
+            }
         }
     }
 
@@ -99,7 +109,10 @@ final class SystemUpdateController extends Controller
             return $version;
         }
 
-        $version = trim((string) @file_get_contents(base_path('../VERSION')));
+        $versionPath = base_path('../VERSION');
+        $version = is_readable($versionPath)
+            ? trim((string) file_get_contents($versionPath))
+            : '';
 
         if ($version === '') {
             throw new RuntimeException('Current FOODEX version could not be determined.');
