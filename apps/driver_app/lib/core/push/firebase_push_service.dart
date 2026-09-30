@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/foodex_environment.dart';
+import '../diagnostics/driver_runtime_inspector.dart';
 
 const driverBundleId = 'com.fiftysolution.foodex.driver';
 const _driverPushChannelId = 'foodex_driver_high_priority';
@@ -139,7 +140,7 @@ class DriverFirebaseConfig {
 }
 
 class DriverPushDeviceRegistry {
-  DriverPushDeviceRegistry({required this.baseUrl, http.Client? client}) : _client = client ?? http.Client();
+  DriverPushDeviceRegistry({required this.baseUrl, http.Client? client}) : _client = DriverDiagnosticHttpClient(client ?? http.Client());
   final String baseUrl;
   final http.Client _client;
 
