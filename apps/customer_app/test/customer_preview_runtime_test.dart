@@ -5,6 +5,8 @@ import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/preview/customer_preview_context.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 void main() {
   test('resolved customer preview identity never becomes a bearer token', () {
@@ -91,6 +93,31 @@ void main() {
     );
   });
 
+  test('Marketplace preview bridge allows reads and blocks writes', () async {
+    final seen = <String>[];
+    final client = PreviewReadOnlyHttpClient(
+      MockClient((request) async {
+        seen.add('${request.method} ${request.url.path}');
+        return http.Response('{"data":[]}', 200);
+      }),
+    );
+
+    final response = await client.get(
+      Uri.parse('https://ignored.example/api/v1/platform/storefront'),
+    );
+    expect(response.statusCode, 200);
+    expect(seen, ['GET /api/v1/platform/storefront']);
+
+    await expectLater(
+      client.post(
+        Uri.parse('https://ignored.example/api/v1/auth/register'),
+        body: '{}',
+      ),
+      throwsA(isA<CustomerPreviewMutationBlocked>()),
+    );
+    expect(seen, ['GET /api/v1/platform/storefront']);
+  });
+
   test('preview factory keeps native and production fallbacks disabled', () {
     final context = CustomerPreviewContext.guest(
       channel: CustomerChannel.b2c,
@@ -103,6 +130,9 @@ void main() {
       b2cCatalogApi: _CatalogFake(),
       b2cAccountApi: _AccountFake(),
       storefrontApi: _StorefrontFake(),
+      marketplaceClient: MockClient(
+        (request) async => http.Response('{"data":[]}', 200),
+      ),
     );
 
     expect(app.session.accessToken, isNull);
@@ -114,6 +144,8 @@ void main() {
     expect(app.storefrontApi, isA<PreviewStorefrontApi>());
     expect(app.locationService, isA<PreviewCustomerLocationService>());
     expect(app.mapPinPicker, same(previewCustomerMapPinPicker));
+    expect(app.marketplaceClient, isA<PreviewReadOnlyHttpClient>());
+    expect(app.marketplaceBarcodeScanner, isNotNull);
   });
 }
 
