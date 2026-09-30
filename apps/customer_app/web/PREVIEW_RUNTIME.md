@@ -17,7 +17,7 @@ The deployed runtime URL/origin is then configured on the Dashboard with:
 ```text
 FOODEX_CUSTOMER_PREVIEW_RUNTIME_URL=https://preview.example/customer/
 FOODEX_CUSTOMER_PREVIEW_ALLOWED_ORIGIN=https://preview.example
-FOODEX_CUSTOMER_PREVIEW_CONTRACT_VERSION=customer-preview-v1
+FOODEX_CUSTOMER_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
 ```
 
 Security contract:
