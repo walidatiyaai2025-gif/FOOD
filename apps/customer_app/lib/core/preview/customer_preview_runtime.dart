@@ -16,6 +16,7 @@ import 'customer_preview_bootstrap.dart';
 import 'customer_preview_configuration.dart';
 import 'customer_preview_context.dart';
 import 'customer_preview_transport.dart';
+import 'customer_preview_viewport.dart';
 
 class CustomerPreviewRuntime {
   CustomerPreviewRuntime._({
@@ -115,7 +116,7 @@ class CustomerPreviewRuntime {
         );
 
         return CustomerPreviewRuntime._(
-          app: app,
+          app: CustomerPreviewViewport(bootstrap: bootstrap, child: app),
           client: transportOwner,
           authenticatedBundle: bundle,
           configuration: configuration,
@@ -187,7 +188,7 @@ class CustomerPreviewRuntime {
       );
 
       return CustomerPreviewRuntime._(
-        app: app,
+        app: CustomerPreviewViewport(bootstrap: bootstrap, child: app),
         client: transportOwner,
         configuration: configuration,
         bootstrap: bootstrap,
