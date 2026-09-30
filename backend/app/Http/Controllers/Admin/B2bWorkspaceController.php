@@ -24,6 +24,7 @@ use App\Services\DashboardOperationalNotifier;
 use App\Services\LookupScopeService;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
+use App\Services\StorefrontDraftEditorService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
@@ -759,7 +760,7 @@ class B2bWorkspaceController extends Controller
         }
 
         $storeId = (int) $store->id;
-        $editor = app(\App\Services\StorefrontDraftEditorService::class)->viewModel($storeId, 'b2b');
+        $editor = app(StorefrontDraftEditorService::class)->viewModel($storeId, 'b2b');
 
         $targets = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
