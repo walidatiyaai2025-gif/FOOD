@@ -48,6 +48,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.theme,
     this.pushService,
     this.previewContext,
+    this.previewViewport,
     this.locationGateService,
     this.locationTrackingFactory,
     this.versionPolicyClient,
@@ -64,6 +65,7 @@ class FoodexDriverApp extends StatefulWidget {
     Map<String, String> translationOverrides = const {},
     DriverTranslationFetcher? translationFetcher,
     ThemeData? theme,
+    DriverPreviewViewport? previewViewport,
   }) {
     return FoodexDriverApp(
       key: key,
@@ -78,6 +80,7 @@ class FoodexDriverApp extends StatefulWidget {
       initialSession: previewContext.runtimeIdentity,
       theme: theme,
       previewContext: previewContext,
+      previewViewport: previewViewport,
     );
   }
 
@@ -93,6 +96,7 @@ class FoodexDriverApp extends StatefulWidget {
   final ThemeData? theme;
   final DriverFirebasePushService? pushService;
   final DriverPreviewContext? previewContext;
+  final DriverPreviewViewport? previewViewport;
   final DriverLocationGateService? locationGateService;
   final DriverLocationTrackingFactory? locationTrackingFactory;
   final DriverVersionPolicyClient? versionPolicyClient;
@@ -419,11 +423,12 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('ar'), Locale('en')],
-      builder: (context, child) => DriverTranslations(
-        locale: widget.locale,
-        overrides: _translations,
-        child: Builder(
-          builder: (translatedContext) => Stack(
+      builder: (context, child) {
+        final translated = DriverTranslations(
+          locale: widget.locale,
+          overrides: _translations,
+          child: Builder(
+            builder: (translatedContext) => Stack(
             fit: StackFit.expand,
             children: [
               child ?? const SizedBox.shrink(),
@@ -529,9 +534,16 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
                   ),
                 ),
             ],
+            ),
           ),
-        ),
-      ),
+        );
+        final viewport = widget.previewViewport;
+        if (viewport == null) return translated;
+        return MediaQuery(
+          data: viewport.apply(MediaQuery.of(context)),
+          child: translated,
+        );
+      },
       home: preview != null || widget.versionPolicyClient == null
           ? runtimeHome
           : DriverVersionPolicyGate(
