@@ -66,7 +66,6 @@ final class AppPreviewController extends Controller
         ]);
     }
 
-
     public function targets(Request $request, AppPreviewTargetService $targets): JsonResponse
     {
         $user = $request->user();
