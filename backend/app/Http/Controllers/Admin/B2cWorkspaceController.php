@@ -782,7 +782,7 @@ class B2cWorkspaceController extends Controller
         ];
     }
 
-/** @param list<int> $storeIds */
+    /** @param list<int> $storeIds */
     /** @param array<string, int> $scopeParams */
     private function incomingWholesaleOrderModuleData(int $storeId, array $scopeParams): array
     {
@@ -1012,7 +1012,7 @@ class B2cWorkspaceController extends Controller
         ];
     }
 
-private function financeModuleData(array $storeIds): array
+    private function financeModuleData(array $storeIds): array
     {
         $rows = DB::table('invoices')
             ->leftJoin('b2c_customers', 'b2c_customers.id', '=', 'invoices.b2c_customer_id')
