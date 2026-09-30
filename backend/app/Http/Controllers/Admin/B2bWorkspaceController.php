@@ -817,7 +817,7 @@ class B2bWorkspaceController extends Controller
         ];
     }
 
-private function settingsModuleData(User $user, array $storeIds): array
+    private function settingsModuleData(User $user, array $storeIds): array
     {
         $actions = [];
         if ($user->hasPermission('lookups.view')) {
