@@ -940,7 +940,6 @@ class _WholesaleHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: 150,
         margin: const EdgeInsets.fromLTRB(14, 6, 14, 2),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
@@ -967,6 +966,8 @@ class _WholesaleHero extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     context.tr('customer.marketplace.browse_guest'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Colors.white70),
                   ),
                 ],
