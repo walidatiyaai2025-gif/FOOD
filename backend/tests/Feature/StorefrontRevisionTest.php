@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\StorefrontRevision;
 use App\Models\User;
+use App\Services\StorefrontDraftEditorService;
 use App\Services\StorefrontRevisionService;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
@@ -297,7 +298,7 @@ class StorefrontRevisionTest extends TestCase
             ->assertJsonValidationErrors('schema_version');
     }
 
-    public function test_deleted_live_banner_asset_is_restorable_from_revision_archive(): void
+    public function test_draft_banner_replacement_preserves_published_history_asset(): void
     {
         Storage::fake('public');
         $storeId = $this->retailStore('REV-ASSET');
@@ -305,10 +306,19 @@ class StorefrontRevisionTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.business.banners.store'), [
             'store_id' => $storeId,
-            'title' => 'Archived Banner',
+            'title' => 'Published Banner',
             'banner_image' => UploadedFile::fake()->image('archive.jpg', 1200, 420),
             'sort_order' => 10,
             'is_active' => 1,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('banners', [
+            'store_id' => $storeId,
+            'title' => 'Published Banner',
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.b2c.storefront.publish'), [
+            'store_id' => $storeId,
         ])->assertSessionHasNoErrors();
 
         $banner = DB::table('banners')->where('store_id', $storeId)->first();
@@ -321,9 +331,14 @@ class StorefrontRevisionTest extends TestCase
             ->where('store_id', $storeId)
             ->where('channel', 'b2c')
             ->where('status', 'published')
+            ->latest('id')
             ->firstOrFail();
 
-        $this->actingAs($admin)->patch(route('admin.business.banners.update', $banner->id), [
+        $view = app(StorefrontDraftEditorService::class)->viewModel($storeId, 'b2c');
+        $editorId = (string) ($view['banners'][0]['id'] ?? '');
+        $this->assertNotSame('', $editorId);
+
+        $this->actingAs($admin)->patch(route('admin.business.banners.update', $editorId), [
             'store_id' => $storeId,
             'title' => 'Replacement Banner',
             'banner_image' => UploadedFile::fake()->image('replacement.webp', 1200, 420),
@@ -331,24 +346,40 @@ class StorefrontRevisionTest extends TestCase
             'is_active' => 1,
         ])->assertSessionHasNoErrors();
 
-        Storage::disk('public')->assertMissing($oldRelative);
+        $liveBanner = DB::table('banners')->where('store_id', $storeId)->first();
+        $this->assertNotNull($liveBanner);
+        $this->assertSame('Published Banner', (string) $liveBanner->title);
+        $this->assertSame($oldPath, (string) $liveBanner->image_path);
+        Storage::disk('public')->assertExists($oldRelative);
+
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->where('status', 'draft')
+            ->latest('id')
+            ->firstOrFail();
+        $replacement = collect($draft->payload['banners'])->firstWhere('editor_id', $editorId);
+        $this->assertNotNull($replacement);
+        $this->assertSame('Replacement Banner', $replacement['title']);
+        $this->assertNotSame($oldPath, $replacement['image_path']);
+        Storage::disk('public')->assertExists(substr((string) $replacement['image_path'], strlen('storage/')));
+
         $asset = DB::table('storefront_revision_assets')
             ->where('storefront_revision_id', $firstPublished->id)
             ->where('source_path', $oldPath)
             ->first();
         $this->assertNotNull($asset);
-        $archiveRelative = substr((string) $asset->archive_path, strlen('storage/'));
-        Storage::disk('public')->assertExists($archiveRelative);
+        Storage::disk('public')->assertExists(substr((string) $asset->archive_path, strlen('storage/')));
 
-        Sanctum::actingAs($admin);
-        $this->postJson(
-            '/api/v1/admin/app-preview/storefront-revisions/'.$firstPublished->public_id.'/rollback',
-        )->assertOk();
+        $this->actingAs($admin)->post(route('admin.b2c.storefront.publish'), [
+            'store_id' => $storeId,
+        ])->assertSessionHasNoErrors();
 
-        $restored = DB::table('banners')->where('store_id', $storeId)->first();
-        $this->assertNotNull($restored);
-        $this->assertSame((string) $asset->archive_path, (string) $restored->image_path);
-        Storage::disk('public')->assertExists($archiveRelative);
+        $publishedReplacement = DB::table('banners')->where('store_id', $storeId)->first();
+        $this->assertNotNull($publishedReplacement);
+        $this->assertSame('Replacement Banner', (string) $publishedReplacement->title);
+        $this->assertSame((string) $replacement['image_path'], (string) $publishedReplacement->image_path);
+        Storage::disk('public')->assertExists(substr((string) $asset->archive_path, strlen('storage/')));
     }
 
     public function test_semantically_identical_live_sync_is_idempotent(): void
