@@ -28,6 +28,9 @@ class DriverLiveTrackingDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('data-foodex-utility="driver-live-tracking"', false)
             ->assertSee('data-map-provider="openstreetmap"', false)
+            ->assertSee('/vendor/leaflet/1.9.4/leaflet.css', false)
+            ->assertSee('/vendor/leaflet/1.9.4/leaflet.js', false)
+            ->assertDontSee('unpkg.com', false)
             ->assertSee('/api/v1/admin/driver-live-tracking/feed', false);
     }
 
