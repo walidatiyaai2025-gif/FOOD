@@ -3,8 +3,8 @@
 use App\Http\Middleware\CorrelationId;
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureManagementDashboardAccess;
-use App\Http\Middleware\ResolveTenantContext;
 use App\Http\Middleware\ResolveCustomerPreviewSession;
+use App\Http\Middleware\ResolveTenantContext;
 use App\Http\Middleware\RunSchedulerHeartbeat;
 use App\Services\SystemInspectorRecorder;
 use Illuminate\Foundation\Application;
