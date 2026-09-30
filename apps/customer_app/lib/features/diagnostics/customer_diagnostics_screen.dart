@@ -45,9 +45,11 @@ class _CustomerDiagnosticsScreenState extends State<CustomerDiagnosticsScreen> {
         encoder.convert(diagnostics.buildExport(note: _note.text)),
         flush: true,
       );
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/json')],
-        text: 'FOODEX Customer diagnostics',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/json')],
+          text: 'FOODEX Customer diagnostics',
+        ),
       );
     } catch (error, stackTrace) {
       diagnostics.recordError('diagnostics_export_failure', error, stackTrace);
