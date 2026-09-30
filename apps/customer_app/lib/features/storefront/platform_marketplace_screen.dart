@@ -373,7 +373,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final bannerHeight = (constraints.maxHeight * .20)
-                      .clamp(150.0, 176.0)
+                      .clamp(160.0, 176.0)
                       .toDouble();
 
                   return CustomScrollView(
