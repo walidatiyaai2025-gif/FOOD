@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use TCPDF;
 
 final class InvoiceService
@@ -308,6 +309,8 @@ final class InvoiceService
         $data = $this->payload($invoice, true);
         $rtl = $locale === 'ar';
 
+        $this->ensureTcpdfAvailable();
+
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
@@ -319,6 +322,23 @@ final class InvoiceService
         $pdf->writeHTML($this->html($data, $locale), true, false, true, false, '');
 
         return (string) $pdf->Output('', 'S');
+    }
+
+    private function ensureTcpdfAvailable(): void
+    {
+        if (class_exists(TCPDF::class)) {
+            return;
+        }
+
+        $bundledRuntime = app_path('ThirdParty/tcpdf/tcpdf.php');
+
+        if (is_file($bundledRuntime)) {
+            require_once $bundledRuntime;
+        }
+
+        if (! class_exists(TCPDF::class, false)) {
+            throw new RuntimeException('Invoice PDF runtime is unavailable.');
+        }
     }
 
     /** @param array<string, mixed> $data */

@@ -30,6 +30,56 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout pinned TCPDF runtime
+        uses: actions/checkout@v4
+        with:
+          repository: tecnickcom/TCPDF
+          ref: b18f6119161019916c5bb07cb8da5205ae5c1b63
+          path: .foodex-thirdparty/tcpdf-source
+          persist-credentials: false
+
+      - name: Stage self-contained invoice PDF runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf backend/app/ThirdParty/tcpdf
+          mkdir -p backend/app/ThirdParty/tcpdf
+          rsync -a             --exclude='.git'             --exclude='examples'             --exclude='tests'             --exclude='test'             .foodex-thirdparty/tcpdf-source/             backend/app/ThirdParty/tcpdf/
+
+          # The bundled copy is an invoice-only fallback. TCPDF 6.8+ declares
+          # cURL option constants at class-load time. Remove the unused default
+          # option arrays so local-only invoice PDF rendering also works when
+          # ext-curl is unavailable on a restricted/shared host.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path("backend/app/ThirdParty/tcpdf/include/tcpdf_static.php")
+          source = path.read_text(encoding="utf-8")
+          source, defaults = re.subn(
+              r"protected const CURLOPT_DEFAULT = \[.*?\n    \];",
+              "protected const CURLOPT_DEFAULT = [];",
+              source,
+              count=1,
+              flags=re.DOTALL,
+          )
+          source, fixed = re.subn(
+              r"protected const CURLOPT_FIXED = \[.*?\n    \];",
+              "protected const CURLOPT_FIXED = [];",
+              source,
+              count=1,
+              flags=re.DOTALL,
+          )
+          if defaults != 1 or fixed != 1:
+              raise SystemExit("Could not patch TCPDF cURL defaults deterministically.")
+          path.write_text(source, encoding="utf-8")
+          PY
+
+          test -f backend/app/ThirdParty/tcpdf/tcpdf.php
+          test -f backend/app/ThirdParty/tcpdf/LICENSE.TXT
+          test -f backend/app/ThirdParty/tcpdf/fonts/dejavusans.php
+          test -f backend/app/ThirdParty/tcpdf/fonts/dejavusans.z
+
       - name: Resolve cumulative update boundary
         shell: bash
         env:
@@ -113,6 +163,10 @@ jobs:
               "backend/app/Domain/Updater/LaravelUpdateRuntime.php",
               "backend/app/Http/Middleware/RunSchedulerHeartbeat.php",
               "backend/app/Services/SchedulerRuntime.php",
+              "backend/app/ThirdParty/tcpdf/tcpdf.php",
+              "backend/app/ThirdParty/tcpdf/LICENSE.TXT",
+              "backend/app/ThirdParty/tcpdf/fonts/dejavusans.php",
+              "backend/app/ThirdParty/tcpdf/fonts/dejavusans.z",
               "backend/bootstrap/app.php",
               "backend/config/foodex.php",
               "backend/public/brand/foodex-economical-group.webp",
