@@ -18,7 +18,15 @@
 .preview-unavailable strong{display:block;font-size:1.15rem;margin-bottom:8px}.preview-unavailable p{color:var(--foodex-muted);line-height:1.65}
 .preview-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}.preview-meta div{padding:12px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}.preview-meta small{display:block;color:var(--foodex-muted);margin-bottom:4px}
 .preview-security{padding:14px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-green-soft);line-height:1.6}
-@media(max-width:1050px){.preview-layout{grid-template-columns:1fr}.preview-controls{position:static}.preview-meta{grid-template-columns:1fr}}
+.preview-inspector{margin-top:16px;padding:16px;border:1px solid var(--foodex-border);border-radius:16px;background:#fff}
+.preview-inspector-head{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.preview-inspector-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.preview-inspector-item{padding:10px 12px;border:1px solid var(--foodex-border);border-radius:12px;background:#f8fafc;min-width:0}
+.preview-inspector-item small{display:block;color:var(--foodex-muted);margin-bottom:4px}
+.preview-inspector-item strong{display:block;overflow-wrap:anywhere}
+.preview-inspector-empty{color:var(--foodex-muted);font-size:.9rem}
+.preview-export{width:auto!important}
+@media(max-width:1050px){.preview-layout{grid-template-columns:1fr}.preview-controls{position:static}.preview-meta,.preview-inspector-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -135,6 +143,42 @@
                     <div><small>{{ __('admin.preview_center.customer_runtime') }}</small><strong data-runtime-meta="customer">{{ $runtimeConfig['customer']['contract_version'] ?: __('admin.preview_center.not_connected') }}</strong></div>
                     <div><small>{{ __('admin.preview_center.driver_runtime') }}</small><strong data-runtime-meta="driver">{{ $runtimeConfig['driver']['contract_version'] ?: __('admin.preview_center.not_connected') }}</strong></div>
                 </div>
+
+                <section class="preview-inspector" id="preview-inspector" aria-label="{{ __('admin.preview_center.inspector') }}">
+                    <div class="preview-inspector-head">
+                        <div>
+                            <strong>{{ __('admin.preview_center.inspector') }}</strong>
+                            <div class="foodex-subtitle">{{ __('admin.preview_center.inspector_description') }}</div>
+                        </div>
+                        <button type="button" class="foodex-button preview-export" id="preview-inspector-export">{{ __('admin.preview_center.export_diagnostic') }}</button>
+                    </div>
+                    <div class="preview-inspector-grid" id="preview-inspector-grid">
+                        @foreach([
+                            'app' => 'inspector_app',
+                            'route' => 'inspector_route',
+                            'channel' => 'inspector_channel',
+                            'store_id' => 'inspector_store',
+                            'auth_mode' => 'inspector_auth',
+                            'locale' => 'inspector_locale',
+                            'device' => 'inspector_device',
+                            'configuration' => 'inspector_configuration',
+                            'revision' => 'inspector_revision',
+                            'runtime_version' => 'inspector_runtime_version',
+                            'state' => 'inspector_state',
+                            'error_code' => 'inspector_error',
+                            'api' => 'inspector_api',
+                            'updated_at' => 'inspector_updated',
+                            'component_key' => 'inspector_component',
+                            'capabilities' => 'inspector_capabilities',
+                        ] as $key => $label)
+                            <div class="preview-inspector-item">
+                                <small>{{ __('admin.preview_center.'.$label) }}</small>
+                                <strong data-preview-inspector="{{ $key }}">—</strong>
+                            </div>
+                        @endforeach
+                    </div>
+                    <p class="preview-inspector-empty" id="preview-inspector-note">{{ __('admin.preview_center.inspector_empty') }}</p>
+                </section>
             </section>
         </div>
     </main>
@@ -185,7 +229,13 @@
     const status = document.getElementById('preview-runtime-status');
     const launch = document.getElementById('preview-launch');
     const unavailableTemplate = document.getElementById('preview-unavailable')?.cloneNode(true);
+    const inspectorExport = document.getElementById('preview-inspector-export');
+    const inspectorNote = document.getElementById('preview-inspector-note');
+    const inspectorFields = Object.fromEntries(
+        Array.from(document.querySelectorAll('[data-preview-inspector]')).map((node) => [node.dataset.previewInspector, node]),
+    );
 
+    let inspectorRuntime = Object.freeze({});
     let activeSession = null;
     let runtimeFrame = null;
     let targetRequest = 0;
@@ -203,6 +253,203 @@
 
     const setStatus = (message) => {
         if (status) status.textContent = message;
+    };
+
+    const diagnosticSchema = 'foodex.preview.diagnostic.v1';
+    const safeText = (value, max = 160) => {
+        if (typeof value !== 'string') return null;
+        const text = value.trim();
+        if (!text || text.length > max) return null;
+        return text;
+    };
+    const safeInteger = (value, min = 0, max = Number.MAX_SAFE_INTEGER) => {
+        const parsed = Number(value);
+        return Number.isInteger(parsed) && parsed >= min && parsed <= max ? parsed : null;
+    };
+    const safeIso = (value) => {
+        const text = safeText(value, 64);
+        if (!text) return null;
+        const parsed = new Date(text);
+        return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+    };
+    const safeEndpoint = (value) => {
+        const text = safeText(value, 500);
+        if (!text) return null;
+        try {
+            return new URL(text, window.location.origin).pathname;
+        } catch (_) {
+            return null;
+        }
+    };
+    const safeCapabilities = (value) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+        const output = {};
+        for (const key of Object.keys(value).sort().slice(0, 50)) {
+            if (!/^[a-z0-9_.-]{1,64}$/i.test(key) || typeof value[key] !== 'boolean') continue;
+            output[key] = value[key];
+        }
+        return Object.keys(output).length ? output : null;
+    };
+    const firstSafeText = (...values) => {
+        for (const value of values) {
+            const text = safeText(value);
+            if (text) return text;
+        }
+        return null;
+    };
+    const sanitizeInspectorStatus = (message) => {
+        const source = message?.inspector && typeof message.inspector === 'object'
+            ? message.inspector
+            : message;
+        const sanitized = {};
+        const textFields = {
+            state: [message?.state, source?.state],
+            route: [source?.route, source?.screen],
+            screen: [source?.screen],
+            auth_mode: [source?.auth_mode],
+            runtime_version: [source?.runtime_version, source?.app_version],
+            app_version: [source?.app_version],
+            config_version: [source?.config_version],
+            revision_id: [source?.revision_id],
+            revision_checksum: [source?.revision_checksum, source?.checksum],
+            schema_version: [source?.schema_version],
+            error_code: [source?.error_code, source?.code],
+            component_key: [source?.component_key],
+            entity_id: [source?.entity_id],
+            cta_target: [source?.cta_target],
+        };
+        for (const [key, values] of Object.entries(textFields)) {
+            const value = firstSafeText(...values);
+            if (value) sanitized[key] = value;
+        }
+        const apiEndpoint = safeEndpoint(source?.last_api_endpoint ?? source?.api_endpoint);
+        if (apiEndpoint) sanitized.last_api_endpoint = apiEndpoint;
+        const apiStatus = safeInteger(source?.last_api_status ?? source?.api_status, 100, 599);
+        if (apiStatus !== null) sanitized.last_api_status = apiStatus;
+        for (const key of ['loaded_at', 'updated_at']) {
+            const value = safeIso(source?.[key]);
+            if (value) sanitized[key] = value;
+        }
+        const capabilities = safeCapabilities(source?.capability_flags ?? source?.capabilities);
+        if (capabilities) sanitized.capability_flags = capabilities;
+        return Object.freeze(sanitized);
+    };
+
+    const inspectorContext = () => {
+        const runtime = activeRuntime();
+        const width = safeInteger(device?.selectedOptions?.[0]?.dataset?.width, 240, 2000);
+        const storeId = selectedStoreId();
+        return {
+            app: app?.value === 'driver' ? 'driver' : 'customer',
+            channel: channel?.value === 'b2c' ? 'b2c' : 'b2b',
+            store_id: storeId,
+            auth_mode: app?.value === 'driver'
+                ? 'preview-driver'
+                : (persona?.value === 'authenticated' ? 'preview-customer' : 'guest'),
+            locale: locale?.value === 'en' ? 'en' : 'ar',
+            device_profile: safeText(device?.value, 64),
+            device_width: width,
+            configuration: configuration?.value === 'draft' ? 'draft' : 'published',
+            runtime_contract: safeText(runtime?.contract_version, 64),
+        };
+    };
+
+    const buildDiagnostic = () => {
+        const context = inspectorContext();
+        const runtime = inspectorRuntime;
+        return {
+            schema: diagnosticSchema,
+            context: {
+                app: context.app,
+                channel: context.channel,
+                store_id: context.store_id,
+                auth_mode: context.auth_mode,
+                locale: context.locale,
+                device_profile: context.device_profile,
+                device_width: context.device_width,
+                configuration: context.configuration,
+                runtime_contract: context.runtime_contract,
+            },
+            runtime: {
+                state: runtime.state ?? 'unavailable',
+                route: runtime.route ?? null,
+                screen: runtime.screen ?? null,
+                runtime_version: runtime.runtime_version ?? null,
+                app_version: runtime.app_version ?? null,
+                config_version: runtime.config_version ?? null,
+                revision_id: runtime.revision_id ?? null,
+                revision_checksum: runtime.revision_checksum ?? null,
+                schema_version: runtime.schema_version ?? null,
+                error_code: runtime.error_code ?? null,
+                last_api_endpoint: runtime.last_api_endpoint ?? null,
+                last_api_status: runtime.last_api_status ?? null,
+                loaded_at: runtime.loaded_at ?? null,
+                updated_at: runtime.updated_at ?? null,
+                component_key: runtime.component_key ?? null,
+                entity_id: runtime.entity_id ?? null,
+                cta_target: runtime.cta_target ?? null,
+                capability_flags: runtime.capability_flags ?? null,
+            },
+        };
+    };
+
+    const displayValue = (value) => {
+        if (value === null || value === undefined || value === '') return '—';
+        if (typeof value === 'object') return Object.entries(value).map(([key, enabled]) => key + ':' + (enabled ? 'on' : 'off')).join(', ') || '—';
+        return String(value);
+    };
+
+    const renderInspector = () => {
+        const diagnostic = buildDiagnostic();
+        const runtime = diagnostic.runtime;
+        const context = diagnostic.context;
+        const revision = [runtime.revision_id, runtime.revision_checksum].filter(Boolean).join(' · ');
+        const api = [runtime.last_api_endpoint, runtime.last_api_status].filter((value) => value !== null && value !== undefined).join(' · ');
+        const values = {
+            app: context.app,
+            route: runtime.route ?? runtime.screen,
+            channel: context.channel,
+            store_id: context.store_id,
+            auth_mode: context.auth_mode,
+            locale: context.locale,
+            device: [context.device_profile, context.device_width ? context.device_width + 'px' : null].filter(Boolean).join(' · '),
+            configuration: context.configuration,
+            revision,
+            runtime_version: runtime.runtime_version ?? runtime.app_version ?? runtime.config_version,
+            state: runtime.state,
+            error_code: runtime.error_code,
+            api,
+            updated_at: runtime.updated_at ?? runtime.loaded_at,
+            component_key: runtime.component_key,
+            capabilities: runtime.capability_flags,
+        };
+        for (const [key, node] of Object.entries(inspectorFields)) {
+            node.textContent = displayValue(values[key]);
+        }
+        if (inspectorNote) inspectorNote.hidden = Object.keys(inspectorRuntime).length > 0;
+    };
+
+    const clearInspector = (state = 'unavailable') => {
+        inspectorRuntime = Object.freeze(state ? {state} : {});
+        renderInspector();
+    };
+
+    const updateInspectorFromStatus = (message) => {
+        inspectorRuntime = sanitizeInspectorStatus(message);
+        renderInspector();
+    };
+
+    const exportDiagnostic = () => {
+        const payload = JSON.stringify(buildDiagnostic(), null, 2);
+        const blob = new Blob([payload], {type: 'application/json;charset=utf-8'});
+        const href = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = href;
+        anchor.download = 'foodex-preview-diagnostic.json';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(href);
     };
 
     const restoreUnavailable = () => {
@@ -280,6 +527,7 @@
 
     const resetSecurityContext = () => {
         void revokeActive('context_changed');
+        clearInspector('unavailable');
         restoreUnavailable();
         syncChannel();
         syncPersona();
@@ -287,8 +535,10 @@
     };
 
     const resetPresentation = () => {
+        clearInspector('unavailable');
         restoreUnavailable();
         syncDevice();
+        renderInspector();
     };
 
     async function loadTargets() {
@@ -453,7 +703,9 @@
                 if (app.value !== 'customer') throw new Error('target_required');
                 activeSession = guestSession();
             }
+            clearInspector('connecting');
             mountRuntime();
+            renderInspector();
         } catch (error) {
             activeSession = null;
             restoreUnavailable();
@@ -499,6 +751,7 @@
         }
 
         if (message.type === 'foodex.preview.status') {
+            updateInspectorFromStatus(message);
             const state = String(message.state || '');
             if (state === 'ready') setStatus(copy.connected);
             if (state === 'expired' || state === 'forbidden' || state === 'error') {
@@ -513,12 +766,14 @@
     persona?.addEventListener('change', resetSecurityContext);
     target?.addEventListener('change', () => {
         void revokeActive('target_changed');
+        clearInspector('unavailable');
         restoreUnavailable();
     });
     configuration?.addEventListener('change', resetPresentation);
     locale?.addEventListener('change', resetPresentation);
     device?.addEventListener('change', resetPresentation);
     launch?.addEventListener('click', () => void launchPreview());
+    inspectorExport?.addEventListener('click', exportDiagnostic);
 
     window.addEventListener('pagehide', () => {
         void revokeActive('page_exit', true);
@@ -527,6 +782,8 @@
     syncChannel();
     syncPersona();
     syncDevice();
+    clearInspector('unavailable');
+    renderInspector();
     void loadTargets();
 })();
 </script>
