@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/diagnostics/driver_runtime_inspector.dart';
+import 'core/location/driver_location_gate_service.dart';
 import 'core/push/firebase_push_service.dart';
 
 Future<void> main() async {
@@ -85,6 +86,6 @@ class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
 
   @override
   Widget build(BuildContext context) {
-    return FoodexDriverApp(pushService: _pushService);
+    return FoodexDriverApp(\n      pushService: _pushService,\n      locationGateService: const GeolocatorDriverLocationGateService(),\n    );
   }
 }
