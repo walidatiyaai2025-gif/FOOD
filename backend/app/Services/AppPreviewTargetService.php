@@ -87,34 +87,55 @@ final class AppPreviewTargetService
     /** @return list<array<string,mixed>> */
     private function drivers(string $channel, int $storeId, string $search): array
     {
-        $drivers = Driver::query()
-            ->with('user')
+        $driverQuery = Driver::query()
             ->where('driver_type', $channel)
             ->where('store_id', $storeId)
             ->where('is_active', true)
-            ->whereHas('user', fn ($query) => $query->where('is_active', true))
-            ->when($search !== '', fn ($query) => $query->whereHas(
-                'user',
-                fn ($userQuery) => $userQuery->where('name', 'like', '%'.$search.'%'),
-            ))
+            ->whereNotNull('user_id');
+
+        if ($search !== '') {
+            $matchingUserIds = User::query()
+                ->where('is_active', true)
+                ->where('name', 'like', '%'.$search.'%')
+                ->pluck('id');
+            if ($matchingUserIds->isEmpty()) {
+                return [];
+            }
+            $driverQuery->whereIn('user_id', $matchingUserIds->all());
+        }
+
+        $drivers = $driverQuery
             ->orderBy('id')
             ->limit(self::MAX_RESULTS * 2)
             ->get();
 
+        $users = User::query()
+            ->whereIn('id', $drivers->pluck('user_id')->filter()->all())
+            ->where('is_active', true)
+            ->get(['id', 'name', 'locale'])
+            ->keyBy('id');
         $permission = "deliveries.{$channel}.execute";
 
         return $drivers
-            ->filter(fn (Driver $driver): bool => $driver->user instanceof User
-                && $driver->user->hasPermission($permission))
+            ->filter(function (Driver $driver) use ($users, $permission): bool {
+                $user = $users->get((int) $driver->user_id);
+
+                return $user instanceof User && $user->hasPermission($permission);
+            })
             ->take(self::MAX_RESULTS)
-            ->map(fn (Driver $driver): array => [
-                'user_id' => (int) $driver->user_id,
-                'name' => (string) $driver->user->name,
-                'locale' => (string) ($driver->user->locale ?: 'ar'),
-                'driver_id' => (int) $driver->getKey(),
-                'channel' => $channel,
-                'store_id' => $storeId,
-            ])
+            ->map(function (Driver $driver) use ($users, $channel, $storeId): array {
+                /** @var User $user */
+                $user = $users->get((int) $driver->user_id);
+
+                return [
+                    'user_id' => (int) $user->getKey(),
+                    'name' => (string) $user->name,
+                    'locale' => (string) ($user->locale ?: 'ar'),
+                    'driver_id' => (int) $driver->getKey(),
+                    'channel' => $channel,
+                    'store_id' => $storeId,
+                ];
+            })
             ->values()
             ->all();
     }
