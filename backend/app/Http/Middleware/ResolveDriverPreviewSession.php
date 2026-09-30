@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Driver;
 use App\Models\User;
 use App\Services\AppPreviewSessionService;
 use Closure;
