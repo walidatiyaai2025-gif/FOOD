@@ -59,7 +59,6 @@ class AppPreviewSessionTest extends TestCase
         // Sanctum::actingAs() stores the admin on the in-memory guard for this
         // test process. Clear that state so this request proves the opaque
         // preview token cannot authenticate a normal Sanctum route.
-        $this->app['auth']->guard('sanctum')->setUser(null);
         $this->app['auth']->forgetGuards();
 
         $this->withToken($plainToken)
