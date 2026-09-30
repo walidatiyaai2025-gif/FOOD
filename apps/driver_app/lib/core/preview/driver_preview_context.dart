@@ -1,4 +1,50 @@
+import 'package:flutter/widgets.dart';
+
 import '../auth/driver_session.dart';
+
+class DriverPreviewViewport {
+  const DriverPreviewViewport({
+    required this.profile,
+    required this.platform,
+    required this.width,
+    required this.height,
+    required this.safeAreaTop,
+    required this.safeAreaRight,
+    required this.safeAreaBottom,
+    required this.safeAreaLeft,
+    required this.textScale,
+    required this.orientation,
+    required this.keyboardInsetBottom,
+  });
+
+  final String profile;
+  final String platform;
+  final int width;
+  final int height;
+  final int safeAreaTop;
+  final int safeAreaRight;
+  final int safeAreaBottom;
+  final int safeAreaLeft;
+  final double textScale;
+  final String orientation;
+  final int keyboardInsetBottom;
+
+  MediaQueryData apply(MediaQueryData base) {
+    final safeArea = EdgeInsets.fromLTRB(
+      safeAreaLeft.toDouble(),
+      safeAreaTop.toDouble(),
+      safeAreaRight.toDouble(),
+      safeAreaBottom.toDouble(),
+    );
+    return base.copyWith(
+      size: Size(width.toDouble(), height.toDouble()),
+      padding: safeArea,
+      viewPadding: safeArea,
+      viewInsets: EdgeInsets.only(bottom: keyboardInsetBottom.toDouble()),
+      textScaler: TextScaler.linear(textScale),
+    );
+  }
+}
 
 /// Host-provided context for embedding the real Driver runtime in Dashboard.
 ///
