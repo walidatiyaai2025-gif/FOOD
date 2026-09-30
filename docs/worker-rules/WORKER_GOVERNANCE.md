@@ -31,3 +31,20 @@ Required for every scheduled feature:
 - release CI must fail if the autonomous scheduling runtime is missing from an update package.
 
 This is a platform invariant, not a per-feature optional task. A schedule that can be configured but cannot execute autonomously is considered incomplete.
+
+## Application Preview parity contract
+
+For any Customer App or Driver App change that is Dashboard-managed or changes app-visible configuration/state, workers must follow `docs/architecture/APP_PREVIEW_ARCHITECTURE.md`.
+
+Mandatory worker rules:
+- do not create Dashboard-only mock copies of Flutter screens;
+- reuse the real app/shared runtime and authoritative `/api/v1` contracts;
+- preserve StoreContext/channel/role isolation in Preview;
+- include Guest/authenticated and B2B/B2C/store variants when the feature affects them;
+- update Draft/Published resolution and compatibility handling when configuration changes;
+- update API/OpenAPI when the runtime contract changes;
+- update Preview parity/regression tests in the same PR;
+- treat a Mobile-only or Dashboard-only change that causes preview/runtime drift as incomplete;
+- coordinate before editing shared preview auth/session, OpenAPI, migrations, app bootstrap or shared renderer files.
+
+For #498 work, child tracks remain one issue/owner/branch each; no worker may claim an active leased branch owned by another worker.
