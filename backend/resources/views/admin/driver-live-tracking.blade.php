@@ -106,16 +106,7 @@
 <script>
 (() => {
     const feedUrl = @json($feedUrl);
-    const i18n = @json([
-        'noDrivers' => __('admin.driver_live_tracking.no_drivers'),
-        'loading' => __('admin.driver_live_tracking.loading'),
-        'failed' => __('admin.driver_live_tracking.load_failed'),
-        'store' => __('admin.driver_live_tracking.store'),
-        'order' => __('admin.driver_live_tracking.order'),
-        'accuracy' => __('admin.driver_live_tracking.accuracy'),
-        'speed' => __('admin.driver_live_tracking.speed'),
-        'lastSeen' => __('admin.driver_live_tracking.last_seen'),
-    ]);
+    const i18n = @json($trackingI18n);
     const colors = {online:'#16a34a',stale:'#f59e0b',offline:'#64748b'};
     const map = L.map('driver-map',{zoomControl:true}).setView([29.3759,47.9774],11);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
