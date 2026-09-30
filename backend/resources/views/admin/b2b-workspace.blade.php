@@ -4,6 +4,10 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('admin.b2b_workspace.title') }} · FOODEX</title>
 @include('admin._brand-components')
+@if($module === 'dashboard' && $canViewDriverTracking)
+<link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">
+@endif
 <style>
 *{box-sizing:border-box}body{margin:0;overflow-x:hidden}.layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width);min-height:100vh;background:var(--foodex-background)}.sidebar{grid-column:2;grid-row:1;direction:rtl;padding:var(--foodex-space-5);position:sticky;inset-block-start:0;height:100vh}.main{grid-column:1;grid-row:1;direction:rtl;min-width:0;width:100%;max-width:none!important;padding:var(--foodex-space-8)}html[dir=ltr] .layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}html[dir=ltr] .sidebar{grid-column:1;direction:ltr}html[dir=ltr] .main{grid-column:2;direction:ltr}.headline{margin-bottom:var(--foodex-space-6)}.headline h1{margin:var(--foodex-space-1) 0 0}.headline .muted{max-width:760px}.muted{color:var(--foodex-muted)}.cards{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr));gap:12px;margin-bottom:var(--foodex-space-5)}.metric-card{position:relative;overflow:hidden;padding:14px!important;min-height:112px;display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:10px;align-items:center;background:linear-gradient(145deg,#fff,#fbfcfd)!important;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}.metric-card:hover{transform:translateY(-2px);box-shadow:var(--foodex-shadow)!important;border-color:#cfe5d6!important}.metric-card:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--foodex-green)}.metric-card:nth-child(2n):before{background:var(--foodex-orange)}.metric-card-copy{min-width:0}.metric-card strong{display:block;font-size:11px;color:var(--foodex-muted);font-weight:var(--foodex-font-weight-bold);line-height:1.3;min-height:29px}.metric-card p{font-family:var(--foodex-font-en);font-size:clamp(1.25rem,1.55vw,1.7rem);font-weight:var(--foodex-font-weight-bold);line-height:1.1;margin:8px 0 0;color:var(--foodex-ink);white-space:nowrap}.metric-card-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.metric-card:nth-child(2n) .metric-card-icon{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.metric-card-icon .foodex-svg-icon{width:21px;height:21px}.panel{margin-top:var(--foodex-space-4);padding:var(--foodex-space-5)}.workspace-panel{box-shadow:var(--foodex-shadow)}.toolbar{display:flex;justify-content:space-between;gap:var(--foodex-space-4);align-items:flex-start;margin-bottom:var(--foodex-space-4)}.toolbar>div:first-child{max-width:520px}.links{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center}.links a{min-height:var(--foodex-control-height);display:inline-flex;align-items:center;padding:0 var(--foodex-space-3);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold);text-decoration:none;background:var(--foodex-surface);color:var(--foodex-ink)}.links a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:#c9e7d3}.links a.active{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green);box-shadow:0 8px 20px rgba(21,138,58,.14)}.table-wrap{overflow:auto;border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-sm)}.data{min-width:760px}.data th,.data td{vertical-align:middle}.state{display:inline-flex;align-items:center;gap:6px;font-weight:var(--foodex-font-weight-medium)}.state:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--foodex-green)}.state.off:before{background:#98a2b3}.badge{display:inline-flex;align-items:center;min-height:26px;border-radius:999px;padding:3px 9px;background:var(--foodex-orange-soft);color:var(--foodex-orange);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold)}.badge.active,.badge.delivered{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.suspended,.badge.denied,.badge.cancelled{background:#fff0f0;color:var(--foodex-red)}.workspace-inline-form{padding:var(--foodex-space-4);margin-bottom:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}.workspace-inline-form input,.workspace-inline-form select{min-width:150px}.empty-state{display:grid;place-items:center;min-height:160px;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;padding:var(--foodex-space-6);color:var(--foodex-muted)}@media(max-width:1279px){.cards{grid-template-columns:repeat(4,minmax(0,1fr))}.toolbar{flex-direction:column}}@media(max-width:1023px){.layout,html[dir=ltr] .layout{grid-template-columns:1fr}.sidebar,html[dir=ltr] .sidebar{grid-column:1;grid-row:1;position:relative;height:auto;max-height:320px;overflow:auto}.main,html[dir=ltr] .main{grid-column:1;grid-row:2;padding:var(--foodex-space-6)!important}}@media(max-width:767px){.main,html[dir=ltr] .main{padding:var(--foodex-space-4)!important}.cards{grid-template-columns:1fr}.toolbar{align-items:stretch}.links a{flex:1 1 auto;justify-content:center}.workspace-inline-form{align-items:stretch}.workspace-inline-form input,.workspace-inline-form select,.workspace-inline-form button{width:100%}.data{min-width:680px}}
 
@@ -22,7 +26,7 @@
 .b2b-ref-kpi:nth-child(2) .b2b-ref-kpi-icon{background:#ebf5ff;color:#2d86dc}
 .b2b-ref-kpi:nth-child(3) .b2b-ref-kpi-icon{background:#fff5e8;color:#f59e0b}
 .b2b-ref-kpi:nth-child(4) .b2b-ref-kpi-icon{background:#fff6e9;color:#f59e0b}
-.b2b-ref-middle{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:12px}
+.b2b-ref-middle{display:grid;grid-template-columns:repeat(var(--dashboard-primary-columns,2),minmax(0,1fr));gap:12px}
 .b2b-ref-panel{padding:15px 16px}
 .b2b-ref-panel-head{direction:ltr;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
 .b2b-ref-panel-head h2{direction:rtl;text-align:start;margin:0;font-size:15px;line-height:1.2;font-weight:700}
@@ -195,8 +199,8 @@
             @endforeach
         </div>
 
-        <div class="b2b-ref-middle">
-            <article class="b2b-ref-card b2b-ref-panel">
+        <div class="b2b-ref-middle" data-dashboard-primary-row style="--dashboard-primary-columns:{{ $canViewDriverTracking ? 3 : 2 }}">
+            <article class="b2b-ref-card b2b-ref-panel" data-dashboard-primary-card="sales">
                 <div class="b2b-ref-panel-head">
                     <h2>{{ $isAr?'المبيعات':'Sales' }}</h2>
                     <form class="b2b-date-range" method="get" action="{{ route('admin.b2b.module',['module'=>'dashboard']) }}">
@@ -229,7 +233,21 @@
                 </div>
             </article>
 
-            <article class="b2b-ref-card b2b-ref-panel">
+            @if($canViewDriverTracking)
+            <article class="b2b-ref-card b2b-ref-panel dashboard-live-map-card" data-dashboard-primary-card="driver-map" data-dashboard-live-driver-map>
+                @include('admin._driver-live-map', [
+                    'feedUrl' => $driverTrackingFeedUrl,
+                    'liveMapMode' => 'compact',
+                    'showFilters' => false,
+                    'showList' => false,
+                    'showSummary' => true,
+                    'pollMs' => 5000,
+                    'ctaUrl' => $driverTrackingPageUrl,
+                ])
+            </article>
+            @endif
+
+            <article class="b2b-ref-card b2b-ref-panel" data-dashboard-primary-card="order-distribution">
                 <div class="b2b-ref-panel-head"><h2>{{ $isAr?'توزيع الطلبات':'Order distribution' }}</h2></div>
                 <div class="b2b-ref-donut-body">
                     <div class="b2b-ref-donut" style="background:{{ $distributionCount > 0 ? 'conic-gradient(#13984b 0 '.$processingEnd.'%,#73d99b '.$processingEnd.'% '.$deliveryEnd.'%,#2d86dc '.$deliveryEnd.'% 100%)' : '#edf1f5' }}"></div>
@@ -509,5 +527,9 @@
     @endif
 </main>
 </div>
+@if($module === 'dashboard' && $canViewDriverTracking)
+<script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
+<script src="{{ asset('assets/admin/driver-live-map.js') }}"></script>
+@endif
 </body>
 </html>
