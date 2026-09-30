@@ -78,7 +78,7 @@ class GeolocatorDriverLocationSource
             enableWakeLock: true,
           ),
         ),
-      TargetPlatform.iOS => const AppleSettings(
+      TargetPlatform.iOS => AppleSettings(
           accuracy: LocationAccuracy.high,
           activityType: ActivityType.automotiveNavigation,
           distanceFilter: 10,
@@ -408,8 +408,9 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
     if (source is! DriverActiveDeliveryLocationSource) {
       return;
     }
+    final backgroundSource = source as DriverActiveDeliveryLocationSource;
 
-    _backgroundSubscription = source.watchActiveDelivery().listen(
+    _backgroundSubscription = backgroundSource.watchActiveDelivery().listen(
       (sample) => unawaited(_handleBackgroundSample(sample)),
       onError: (Object error, StackTrace stack) {
         inspector.recordTrackingFailure(
