@@ -118,11 +118,11 @@ class DriverLiveTrackingController extends Controller
                     ],
                 ];
             })
-            ->when(
-                isset($data['status']),
-                fn ($collection) => $collection->where('status', (string) $data['status'])->values(),
-            )
             ->values();
+
+        if (isset($data['status'])) {
+            $rows = $rows->where('status', (string) $data['status'])->values();
+        }
 
         return response()->json([
             'data' => $rows,
