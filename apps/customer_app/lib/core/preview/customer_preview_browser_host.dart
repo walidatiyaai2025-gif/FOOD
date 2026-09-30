@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../config/foodex_environment.dart';
 import 'customer_preview_bootstrap.dart';
 import 'customer_preview_configuration.dart';
+import 'customer_preview_invalidation.dart';
 import 'customer_preview_runtime.dart';
 
 class CustomerPreviewBrowserHost extends StatefulWidget {
@@ -23,8 +24,11 @@ class _CustomerPreviewBrowserHostState
     extends State<CustomerPreviewBrowserHost> {
   StreamSubscription<html.MessageEvent>? _messages;
   CustomerPreviewRuntime? _runtime;
+  CustomerPreviewInvalidationCoordinator? _invalidation;
+  Timer? _invalidationTimer;
   String? _error;
   int _bootstrapAttempt = 0;
+  int _invalidationGeneration = 0;
 
   String get _allowedOrigin =>
       CustomerPreviewHostContract.allowedParentOrigin.trim();
@@ -70,6 +74,7 @@ class _CustomerPreviewBrowserHostState
         expectedOrigin: _allowedOrigin,
       );
 
+      _stopInvalidation();
       final previous = _runtime;
       if (mounted) {
         setState(() {
@@ -81,6 +86,7 @@ class _CustomerPreviewBrowserHostState
 
       final next = await CustomerPreviewRuntime.create(
         baseUrl: FoodexEnvironment.apiBaseUrl,
+        dashboardBaseUrl: _allowedOrigin,
         bootstrap: bootstrap,
       );
 
@@ -94,12 +100,11 @@ class _CustomerPreviewBrowserHostState
         _error = null;
       });
 
-      _post({
-        'type': 'foodex.preview.status',
-        'version': CustomerPreviewHostContract.version,
-        'state': 'ready',
-        'metadata': next.safeStatusMetadata,
-      });
+      _postStatus(
+        'ready',
+        metadata: next.safeStatusMetadata,
+      );
+      _startInvalidation(next);
     } on CustomerPreviewBootstrapException catch (error) {
       if (attempt == _bootstrapAttempt) {
         _setError(error.code);
@@ -113,6 +118,171 @@ class _CustomerPreviewBrowserHostState
         _setError('preview_bootstrap_failed');
       }
     }
+  }
+
+  void _startInvalidation(
+    CustomerPreviewRuntime runtime, {
+    int initialCursor = 0,
+  }) {
+    _stopInvalidation();
+    final generation = _invalidationGeneration;
+    final context = runtime.bootstrap.context;
+    final mode = runtime.bootstrap.configuration;
+    final feed = CustomerPreviewInvalidationFeed(
+      apiBaseUrl: runtime.baseUrl,
+      dashboardBaseUrl: runtime.dashboardBaseUrl,
+      context: context,
+      client: runtime.invalidationClient,
+    );
+
+    _invalidation = CustomerPreviewInvalidationCoordinator(
+      feed: feed,
+      context: context,
+      mode: mode,
+      currentConfiguration: runtime.configuration,
+      initialCursor: initialCursor,
+      authoritativeRefetch: () {
+        if (context.authenticated) {
+          return CustomerPreviewResolvedConfiguration.resolve(
+            baseUrl: runtime.baseUrl,
+            client: runtime.invalidationClient,
+            context: context,
+            mode: mode,
+          );
+        }
+
+        return CustomerPreviewResolvedConfiguration.resolveGuest(
+          dashboardBaseUrl: runtime.dashboardBaseUrl,
+          client: runtime.invalidationClient,
+          context: context,
+          mode: mode,
+        );
+      },
+    );
+
+    _scheduleInvalidation(Duration.zero, generation);
+  }
+
+  void _stopInvalidation() {
+    _invalidationGeneration++;
+    _invalidationTimer?.cancel();
+    _invalidationTimer = null;
+    _invalidation = null;
+  }
+
+  void _scheduleInvalidation(Duration delay, int generation) {
+    if (!mounted || generation != _invalidationGeneration) return;
+    _invalidationTimer?.cancel();
+    _invalidationTimer = Timer(
+      delay,
+      () => unawaited(_pollInvalidation(generation)),
+    );
+  }
+
+  Future<void> _pollInvalidation(int generation) async {
+    final controller = _invalidation;
+    final current = _runtime;
+    if (!mounted ||
+        controller == null ||
+        current == null ||
+        generation != _invalidationGeneration) {
+      return;
+    }
+
+    try {
+      final outcome = await controller.pollOnce();
+      if (!mounted ||
+          generation != _invalidationGeneration ||
+          !identical(current, _runtime)) {
+        return;
+      }
+
+      if (!outcome.changed) {
+        _scheduleInvalidation(outcome.retryAfter, generation);
+        return;
+      }
+
+      _postStatus(
+        'refreshing',
+        metadata: current.safeStatusMetadata,
+      );
+
+      final next = await CustomerPreviewRuntime.create(
+        baseUrl: current.baseUrl,
+        dashboardBaseUrl: current.dashboardBaseUrl,
+        bootstrap: current.bootstrap,
+        resolvedConfiguration: outcome.configuration,
+      );
+
+      if (!mounted ||
+          generation != _invalidationGeneration ||
+          !identical(current, _runtime)) {
+        next.close();
+        return;
+      }
+
+      setState(() {
+        _runtime = next;
+        _error = null;
+      });
+      current.close();
+
+      _postStatus(
+        'ready',
+        metadata: next.safeStatusMetadata,
+      );
+      _startInvalidation(next, initialCursor: outcome.cursor);
+    } on CustomerPreviewInvalidationException catch (error) {
+      if (!mounted || generation != _invalidationGeneration) return;
+      _postStatus(
+        error.runtimeState,
+        code: error.code,
+        retryable: error.retryable,
+        metadata: current.safeStatusMetadata,
+      );
+      if (error.retryable) {
+        _scheduleInvalidation(const Duration(seconds: 3), generation);
+      } else {
+        _invalidationTimer?.cancel();
+        _invalidationTimer = null;
+      }
+    } on CustomerPreviewConfigurationException catch (error) {
+      if (!mounted || generation != _invalidationGeneration) return;
+      _postStatus(
+        error.runtimeState,
+        code: error.code,
+        retryable: false,
+        metadata: current.safeStatusMetadata,
+      );
+      _invalidationTimer?.cancel();
+      _invalidationTimer = null;
+    } catch (_) {
+      if (!mounted || generation != _invalidationGeneration) return;
+      _postStatus(
+        'stale',
+        code: 'preview_invalidation_refresh_failed',
+        retryable: true,
+        metadata: current.safeStatusMetadata,
+      );
+      _scheduleInvalidation(const Duration(seconds: 3), generation);
+    }
+  }
+
+  void _postStatus(
+    String state, {
+    String? code,
+    bool? retryable,
+    Map<String, Object?>? metadata,
+  }) {
+    if (_allowedOrigin.isEmpty) return;
+    _post({
+      'type': 'foodex.preview.status',
+      'version': CustomerPreviewHostContract.version,
+      'state': state,
+      if (code != null) 'code': code,
+      if (retryable != null) 'retryable': retryable,
+      if (metadata != null) 'metadata': metadata,
+    });
   }
 
   Map<String, dynamic>? _map(JSAny? value) {
@@ -135,12 +305,7 @@ class _CustomerPreviewBrowserHostState
       });
     }
     if (_allowedOrigin.isNotEmpty) {
-      _post({
-        'type': 'foodex.preview.status',
-        'version': CustomerPreviewHostContract.version,
-        'state': state,
-        'code': code,
-      });
+      _postStatus(state, code: code, retryable: false);
     }
   }
 
@@ -154,6 +319,7 @@ class _CustomerPreviewBrowserHostState
   @override
   void dispose() {
     _bootstrapAttempt++;
+    _stopInvalidation();
     unawaited(_messages?.cancel());
     _runtime?.close();
     super.dispose();
