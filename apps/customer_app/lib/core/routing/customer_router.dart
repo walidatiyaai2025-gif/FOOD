@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../api/b2b_api.dart';
 import '../api/b2c_catalog_api.dart';
@@ -12,6 +13,7 @@ import '../location/customer_map_pin_selector.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
 import '../../features/diagnostics/customer_diagnostics_screen.dart';
 import '../../features/home/b2c_journey_screen.dart';
+import '../../features/storefront/marketplace_barcode_scanner.dart';
 import '../../features/storefront/multistore_design_screen.dart';
 import '../../shared/customer_action_widgets.dart';
 import 'customer_routes.dart';
@@ -32,6 +34,8 @@ class CustomerAppRouter {
     required this.b2cAccountApi,
     required this.locationService,
     required this.mapPinPicker,
+    this.marketplaceClient,
+    this.marketplaceBarcodeScanner,
   });
 
   final CustomerSession session;
@@ -40,6 +44,8 @@ class CustomerAppRouter {
   final B2cAccountApi b2cAccountApi;
   final CustomerLocationService locationService;
   final CustomerMapPinPicker mapPinPicker;
+  final http.Client? marketplaceClient;
+  final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
   final CustomerActionApi actionApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
@@ -163,6 +169,8 @@ class CustomerAppRouter {
             onAuthenticated: onAuthenticated,
             onPlatformRegistered: onPlatformRegistered,
             onLocaleChanged: onLocaleChanged,
+            marketplaceClient: marketplaceClient,
+            marketplaceBarcodeScanner: marketplaceBarcodeScanner,
           );
         }
 
