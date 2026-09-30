@@ -138,6 +138,7 @@ class StorefrontAdminBuilderTest extends TestCase
             ])
             ->assertSessionHasNoErrors();
 
+        $draft->refresh();
         $draftChecksum = $draft->checksum;
 
         $this->actingAs($admin)->post(route('admin.b2c.storefront.publish'), [
