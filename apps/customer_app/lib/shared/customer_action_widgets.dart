@@ -153,6 +153,15 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
                   )
                 : Text(context.tr('customer.action.login')),
           ),
+          const SizedBox(height: 6),
+          TextButton.icon(
+            key: const ValueKey('customer-login-diagnostics'),
+            onPressed: () => Navigator.of(context).pushNamed(
+              CustomerRoutePaths.diagnostics,
+            ),
+            icon: const Icon(Icons.bug_report_outlined),
+            label: Text(context.tr('customer.diagnostics.open')),
+          ),
         ],
       );
 }

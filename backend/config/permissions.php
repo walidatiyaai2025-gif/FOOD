@@ -59,6 +59,9 @@ return [
         'coupons.manage' => 'Create, edit, activate and retire coupons',
         'live_ads.view' => 'View live advertising administration',
         'live_ads.manage' => 'Create, edit, schedule and retire live ads',
+        'drivers.tracking.view' => 'View live driver locations within authorized store and channel scope',
+        'drivers.tracking.history' => 'View retained driver location history within authorized scope',
+        'drivers.tracking.manage' => 'Manage driver tracking policy and retention settings',
         'drivers.b2b.view' => 'View B2B drivers and delivery operations',
         'drivers.b2b.manage' => 'Manage B2B drivers and delivery operations',
         'drivers.b2c.view' => 'View Retail drivers and delivery operations',
@@ -79,6 +82,7 @@ return [
             'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage',
             'app_preview.view', 'app_preview.impersonate_customer', 'app_preview.impersonate_driver',
+            'drivers.tracking.view', 'drivers.tracking.history', 'drivers.tracking.manage',
             'drivers.b2b.view', 'drivers.b2b.manage', 'notifications.view', 'notifications.manage',
             'coupons.view', 'coupons.manage', 'live_ads.view', 'live_ads.manage',
         ],
@@ -92,13 +96,14 @@ return [
             'promotions.view', 'promotions.manage', 'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage',
             'app_preview.view', 'app_preview.impersonate_customer', 'app_preview.impersonate_driver',
+            'drivers.tracking.view', 'drivers.tracking.history', 'drivers.tracking.manage',
             'drivers.b2c.view', 'drivers.b2c.manage', 'notifications.view', 'notifications.manage',
             'coupons.view', 'coupons.manage', 'live_ads.view', 'live_ads.manage',
         ],
         // Global operational roles are wholesale-only. Retail counterparts are store-only.
         'OPERATIONS' => [
             'stores.view', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
-            'drivers.b2b.view', 'drivers.b2b.manage', 'reports.view',
+            'drivers.tracking.view', 'drivers.b2b.view', 'drivers.b2b.manage', 'reports.view',
         ],
         'INVENTORY' => [
             'stores.view', 'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage', 'lookups.view',
@@ -111,7 +116,7 @@ return [
         ],
         'RETAIL_OPERATIONS' => [
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
-            'drivers.b2c.view', 'drivers.b2c.manage', 'reports.view',
+            'drivers.tracking.view', 'drivers.b2c.view', 'drivers.b2c.manage', 'reports.view',
         ],
         'RETAIL_INVENTORY' => [
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage', 'lookups.view',

@@ -18,6 +18,7 @@ abstract final class CustomerRoutePaths {
   static const notifications = '/notifications';
   static const addresses = '/profile/addresses';
   static const settings = '/profile/settings';
+  static const diagnostics = '/diagnostics';
   static const cart = '/cart';
   static const checkoutAuth = '/auth/checkout';
   static const checkoutAddressPayment = '/checkout/address-payment';
@@ -171,6 +172,10 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     label: 'B2C settings',
     channel: CustomerChannel.b2c,
     requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.diagnostics,
+    label: 'Customer diagnostics',
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.cart,

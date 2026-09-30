@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:http/http.dart' as http;
 
 import 'core/api/b2b_api.dart';
 import 'core/api/b2c_catalog_api.dart';
@@ -11,6 +12,7 @@ import 'core/api/storefront_api.dart';
 import 'core/api/wholesale_commerce_api.dart';
 import 'core/auth/customer_session.dart';
 import 'core/config/foodex_environment.dart';
+import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/localization/app_translations.dart';
 import 'core/location/customer_location_service.dart';
 import 'core/location/customer_map_pin_selector.dart';
@@ -70,6 +72,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
   Timer? _versionFooterTimer;
   bool _showVersionFooter = false;
+  final CustomerDiagnostics _diagnostics = CustomerDiagnostics.instance;
+  late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
 
   static const _appVersion = '1.0.36';
 
@@ -79,6 +83,10 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _translations = Map<String, String>.from(widget.translationOverrides);
     _session = widget.session;
     _locale = widget.locale;
+    _diagnosticsHttpClient = CustomerDiagnosticsHttpClient(
+      http.Client(),
+      diagnostics: _diagnostics,
+    );
     _showVersionFooter = widget.initialRoute != CustomerRoutePaths.splash;
     if (!_showVersionFooter) {
       _versionFooterTimer = Timer(const Duration(milliseconds: 1150), () {
@@ -235,6 +243,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
 
   @override
   void dispose() {
+    _diagnosticsHttpClient.close();
     _versionFooterTimer?.cancel();
     unawaited(_pushRouteSubscription?.cancel());
     unawaited(_pushAlertSubscription?.cancel());
@@ -245,6 +254,15 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   Widget build(BuildContext context) {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
     final token = _session.accessToken;
+    _diagnostics.updateContext(
+      appVersion: _appVersion,
+      apiBaseUrl: baseUrl,
+      locale: _locale.languageCode,
+      authenticated: _session.isAuthenticated,
+      channel: _session.channel?.name,
+      platformWide: _session.platformWide,
+      retailStoreContextId: _session.b2bRetailStoreId,
+    );
     final b2bApi = widget.b2bApi ??
         (token == null
             ? null
@@ -252,18 +270,22 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                 baseUrl: baseUrl,
                 token: token,
                 retailStoreContextId: _session.b2bRetailStoreId,
+                client: _diagnosticsHttpClient,
               ));
-    final b2cCatalogApi = widget.b2cCatalogApi ?? HttpB2cCatalogApi(baseUrl: baseUrl);
+    final b2cCatalogApi = widget.b2cCatalogApi ??
+        HttpB2cCatalogApi(baseUrl: baseUrl, client: _diagnosticsHttpClient);
     final actionApi = widget.actionApi ?? HttpCustomerActionApi(
       baseUrl: baseUrl,
       token: token,
       guestSession: _guestSession,
       b2bRetailStoreId: _session.b2bRetailStoreId,
+      client: _diagnosticsHttpClient,
     );
     final b2cAccountApi = widget.b2cAccountApi ?? HttpB2cAccountApi(
       baseUrl: baseUrl,
       token: token,
       guestSession: _guestSession,
+      client: _diagnosticsHttpClient,
     );
     final storefrontApi = widget.storefrontApi ??
         (widget.b2cCatalogApi != null
@@ -272,6 +294,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                 baseUrl: baseUrl,
                 token: token,
                 retailStoreContextId: _session.b2bRetailStoreId,
+                client: _diagnosticsHttpClient,
               ));
     final wholesaleCommerceApi = widget.wholesaleCommerceApi ??
         (token == null || widget.b2bApi != null
@@ -280,6 +303,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                 baseUrl: baseUrl,
                 token: token,
                 retailStoreContextId: _session.b2bRetailStoreId,
+                client: _diagnosticsHttpClient,
               ));
     final router = CustomerAppRouter(
       _session,
@@ -302,6 +326,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     return MaterialApp(
       navigatorKey: _navigatorKey,
       scaffoldMessengerKey: _messengerKey,
+      navigatorObservers: [
+        CustomerDiagnosticsNavigatorObserver(_diagnostics),
+      ],
       debugShowCheckedModeBanner: false,
       title: 'FOODEX Customer',
       theme: widget.theme ?? FoodexTheme.light(),

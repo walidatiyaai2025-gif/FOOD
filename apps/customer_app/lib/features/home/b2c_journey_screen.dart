@@ -6,6 +6,7 @@ import '../../core/api/b2c_catalog_api.dart';
 import '../../core/api/b2c_account_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
+import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/location/customer_location_service.dart';
 import '../../core/location/customer_map_pin_selector.dart';
@@ -1006,6 +1007,15 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
           icon: const Icon(Icons.edit_outlined),
           label: Text(context.tr('customer.settings.edit_profile')),
         ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          key: const ValueKey('b2c-settings-diagnostics'),
+          onPressed: () => Navigator.of(context).pushNamed(
+            CustomerRoutePaths.diagnostics,
+          ),
+          icon: const Icon(Icons.bug_report_outlined),
+          label: Text(context.tr('customer.diagnostics.open')),
+        ),
       ],
     );
   }
@@ -1369,6 +1379,10 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                                 locating = false;
                               });
                             } on CustomerLocationException catch (error) {
+                              CustomerDiagnostics.instance.record(
+                                'location_failure',
+                                {'code': error.code},
+                              );
                               if (!dialogContext.mounted) return;
                               setDialogState(() {
                                 locationError = switch (error.code) {
@@ -1381,7 +1395,11 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
                                 };
                                 locating = false;
                               });
-                            } catch (_) {
+                            } catch (error) {
+                              CustomerDiagnostics.instance.record(
+                                'location_failure',
+                                {'error': error.toString()},
+                              );
                               if (!dialogContext.mounted) return;
                               setDialogState(() {
                                 locationError =
@@ -1606,6 +1624,12 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
         _section(
           context.tr('customer.settings.title'),
           onTap: () => Navigator.of(context).pushNamed(CustomerRoutePaths.settings),
+        ),
+        _section(
+          context.tr('customer.diagnostics.title'),
+          onTap: () => Navigator.of(context).pushNamed(
+            CustomerRoutePaths.diagnostics,
+          ),
         ),
       ],
     );
