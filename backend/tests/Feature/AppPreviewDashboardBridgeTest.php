@@ -189,6 +189,77 @@ class AppPreviewDashboardBridgeTest extends TestCase
         $this->assertStringContainsString('"available":false', $insecureHtml);
     }
 
+    public function test_preview_inspector_is_source_gated_sanitized_versioned_and_localized(): void
+    {
+        $admin = $this->roleUser('B2B_ADMIN', 'bridge-inspector-admin@example.test');
+
+        config()->set('app_preview.runtimes.customer.url', 'https://preview.example/customer');
+        config()->set('app_preview.runtimes.customer.contract_version', 'shared-flutter-v1');
+        config()->set('app_preview.runtimes.customer.allowed_origin', 'https://preview.example');
+
+        app()->setLocale('en');
+        $english = $this->actingAs($admin)
+            ->get(route('admin.app-preview.index'))
+            ->assertOk()
+            ->assertSee('Preview Inspector')
+            ->assertSee('Export diagnostic JSON')
+            ->getContent();
+
+        preg_match(
+            '/<script id="foodex-preview-bridge">(.*?)<\\/script>/s',
+            $english,
+            $bridgeMatch,
+        );
+        $this->assertArrayHasKey(1, $bridgeMatch);
+        $bridgeScript = (string) $bridgeMatch[1];
+
+        $gatePosition = strpos($bridgeScript, 'event.source !== runtimeFrame.contentWindow');
+        $statusPosition = strpos($bridgeScript, "message.type === 'foodex.preview.status'");
+        $inspectorPosition = strpos($bridgeScript, 'updateInspectorFromStatus(message)');
+
+        $this->assertNotFalse($gatePosition);
+        $this->assertNotFalse($statusPosition);
+        $this->assertNotFalse($inspectorPosition);
+        $this->assertLessThan($statusPosition, $gatePosition);
+        $this->assertLessThan($inspectorPosition, $statusPosition);
+
+        $start = strpos($bridgeScript, "const diagnosticSchema = 'foodex.preview.diagnostic.v1'");
+        $end = strpos($bridgeScript, 'const restoreUnavailable', $start);
+        $this->assertNotFalse($start);
+        $this->assertNotFalse($end);
+        $diagnosticScript = substr($bridgeScript, $start, $end - $start);
+
+        $this->assertStringContainsString('sanitizeInspectorStatus', $diagnosticScript);
+        $this->assertStringContainsString('safeEndpoint', $diagnosticScript);
+        $this->assertStringContainsString('safeCapabilities', $diagnosticScript);
+        $this->assertStringContainsString('JSON.stringify(buildDiagnostic(), null, 2)', $diagnosticScript);
+        $this->assertStringContainsString("download = 'foodex-preview-diagnostic.json'", $diagnosticScript);
+
+        foreach ([
+            'credential',
+            'authorization',
+            'password',
+            'secret',
+            'request_body',
+            'response_body',
+            'latitude',
+            'longitude',
+            'localStorage',
+            'sessionStorage',
+        ] as $forbidden) {
+            $this->assertStringNotContainsString($forbidden, $diagnosticScript);
+        }
+
+        $this->assertGreaterThanOrEqual(
+            3,
+            substr_count($bridgeScript, "clearInspector('unavailable')"),
+        );
+
+        app()->setLocale('ar');
+        $this->assertSame('فاحص المعاينة', __('admin.preview_center.inspector'));
+        $this->assertSame('تصدير JSON للتشخيص', __('admin.preview_center.export_diagnostic'));
+    }
+
     public function test_user_without_preview_permission_cannot_discover_or_create_targets(): void
     {
         $storeId = $this->retailStore('BRIDGE-DENIED');

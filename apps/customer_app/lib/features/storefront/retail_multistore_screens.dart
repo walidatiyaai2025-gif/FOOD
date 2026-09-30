@@ -106,7 +106,7 @@ class _StoreSelectionDesignScreenState
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: Directionality.of(context),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -152,7 +152,7 @@ class _StoreSelectionDesignScreenState
 
   @override
   Widget build(BuildContext context) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: const Color(0xFFFAFBFA),
           body: SafeArea(
@@ -644,14 +644,14 @@ class _RetailStorefrontDesignScreenState
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Directionality(
-              textDirection: TextDirection.rtl,
+            return Directionality(
+              textDirection: Directionality.of(context),
               child: Scaffold(body: FoodexLoading()),
             );
           }
           if (snapshot.hasError || !snapshot.hasData) {
             return Directionality(
-              textDirection: TextDirection.rtl,
+              textDirection: Directionality.of(context),
               child: Scaffold(
                 body: FoodexErrorState(
                   message: 'تعذر تحميل المتجر.',
@@ -700,7 +700,7 @@ class _RetailStorefrontDesignScreenState
           );
 
           return Directionality(
-            textDirection: TextDirection.rtl,
+            textDirection: Directionality.of(context),
             child: Scaffold(
               backgroundColor: palette.background,
               body: SafeArea(
@@ -1336,7 +1336,7 @@ class _RetailProductDetailsDesignScreenState
 
   @override
   Widget build(BuildContext context) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: Colors.white,
           body: SafeArea(

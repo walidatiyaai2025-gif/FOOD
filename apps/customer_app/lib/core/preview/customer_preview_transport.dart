@@ -76,6 +76,10 @@ class CustomerPreviewReadHttpClient extends http.BaseClient {
 
   String? _previewPath(String path) {
     const api = '/api/v1';
+    if (path == '$api/app-preview/storefront-configuration') {
+      return path;
+    }
+
     final previewPrefix = channel == CustomerChannel.b2b
         ? '$api/b2b/app-preview/customer'
         : '$api/app-preview/customer';

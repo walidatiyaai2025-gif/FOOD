@@ -13,6 +13,7 @@ import '../api/wholesale_commerce_api.dart';
 import '../auth/customer_session.dart';
 import '../routing/customer_routes.dart';
 import 'customer_preview_bootstrap.dart';
+import 'customer_preview_configuration.dart';
 import 'customer_preview_context.dart';
 import 'customer_preview_transport.dart';
 
@@ -20,23 +21,27 @@ class CustomerPreviewRuntime {
   CustomerPreviewRuntime._({
     required this.app,
     required this.client,
+    required this.safeStatusMetadata,
     this.authenticatedBundle,
+    this.configuration,
   });
 
   final Widget app;
   final http.Client client;
+  final Map<String, Object?> safeStatusMetadata;
   final CustomerPreviewApiBundle? authenticatedBundle;
+  final CustomerPreviewResolvedConfiguration? configuration;
 
   void close() {
     authenticatedBundle?.close();
     client.close();
   }
 
-  static CustomerPreviewRuntime create({
+  static Future<CustomerPreviewRuntime> create({
     required String baseUrl,
     required CustomerPreviewBootstrap bootstrap,
     http.Client? client,
-  }) {
+  }) async {
     final transportOwner = client ?? http.Client();
     final context = bootstrap.context;
     final initialRoute = context.channel == CustomerChannel.b2c
@@ -61,23 +66,47 @@ class CustomerPreviewRuntime {
         client: transportOwner,
       );
 
-      final app = FoodexCustomerApp.preview(
-        previewContext: context,
-        b2cCatalogApi: bundle.catalog,
-        b2cAccountApi: bundle.account,
-        storefrontApi: bundle.storefront,
-        marketplaceClient: bundle.transport,
-        b2bApi: bundle.b2b,
-        wholesaleCommerceApi: bundle.wholesale,
-        initialRoute: initialRoute,
-        locale: Locale(bootstrap.locale),
-      );
+      try {
+        final configuration = await CustomerPreviewResolvedConfiguration.resolve(
+          baseUrl: baseUrl,
+          client: bundle.transport,
+          context: context,
+          mode: bootstrap.configuration,
+        );
+        final storefront = PreviewRevisionStorefrontApi(
+          delegate: bundle.storefront,
+          context: context,
+          configuration: configuration,
+          baseUrl: baseUrl,
+        );
 
-      return CustomerPreviewRuntime._(
-        app: app,
-        client: transportOwner,
-        authenticatedBundle: bundle,
-      );
+        final app = FoodexCustomerApp.preview(
+          previewContext: context,
+          b2cCatalogApi: bundle.catalog,
+          b2cAccountApi: bundle.account,
+          storefrontApi: storefront,
+          marketplaceClient: bundle.transport,
+          b2bApi: bundle.b2b,
+          wholesaleCommerceApi: bundle.wholesale,
+          initialRoute: initialRoute,
+          locale: Locale(bootstrap.locale),
+        );
+
+        return CustomerPreviewRuntime._(
+          app: app,
+          client: transportOwner,
+          authenticatedBundle: bundle,
+          configuration: configuration,
+          safeStatusMetadata: {
+            ...bootstrap.safeStatusMetadata,
+            ...configuration.safeStatusMetadata,
+          },
+        );
+      } catch (_) {
+        bundle.close();
+        transportOwner.close();
+        rethrow;
+      }
     }
 
     final guestSession = CustomerGuestSession();
@@ -115,6 +144,7 @@ class CustomerPreviewRuntime {
     return CustomerPreviewRuntime._(
       app: app,
       client: transportOwner,
+      safeStatusMetadata: bootstrap.safeStatusMetadata,
     );
   }
 }

@@ -7,27 +7,24 @@ import 'dart:js_interop';
 import 'package:flutter/material.dart';
 
 import '../config/foodex_environment.dart';
-import 'customer_preview_bootstrap.dart';
-import 'customer_preview_configuration.dart';
-import 'customer_preview_runtime.dart';
+import 'driver_preview_bootstrap.dart';
+import 'driver_preview_runtime.dart';
 
-class CustomerPreviewBrowserHost extends StatefulWidget {
-  const CustomerPreviewBrowserHost({super.key});
+class DriverPreviewBrowserHost extends StatefulWidget {
+  const DriverPreviewBrowserHost({super.key});
 
   @override
-  State<CustomerPreviewBrowserHost> createState() =>
-      _CustomerPreviewBrowserHostState();
+  State<DriverPreviewBrowserHost> createState() =>
+      _DriverPreviewBrowserHostState();
 }
 
-class _CustomerPreviewBrowserHostState
-    extends State<CustomerPreviewBrowserHost> {
+class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
   StreamSubscription<html.MessageEvent>? _messages;
-  CustomerPreviewRuntime? _runtime;
+  DriverPreviewRuntime? _runtime;
   String? _error;
-  int _bootstrapAttempt = 0;
 
   String get _allowedOrigin =>
-      CustomerPreviewHostContract.allowedParentOrigin.trim();
+      DriverPreviewHostContract.allowedParentOrigin.trim();
 
   @override
   void initState() {
@@ -41,14 +38,14 @@ class _CustomerPreviewBrowserHostState
       }
       _post({
         'type': 'foodex.preview.ready',
-        'version': CustomerPreviewHostContract.version,
-        'target_type': 'customer',
+        'version': DriverPreviewHostContract.version,
+        'target_type': 'driver',
       });
     });
   }
 
-  void _onMessage(html.MessageEvent event) async {
-    if (!CustomerPreviewHostContract.allowsMessage(
+  void _onMessage(html.MessageEvent event) {
+    if (!DriverPreviewHostContract.allowsMessage(
       origin: event.origin,
       expectedOrigin: _allowedOrigin,
       fromParent: event.source == html.window.parent,
@@ -61,30 +58,19 @@ class _CustomerPreviewBrowserHostState
       return;
     }
 
-    final attempt = ++_bootstrapAttempt;
-
     try {
-      final bootstrap = CustomerPreviewBootstrap.parse(
+      final bootstrap = DriverPreviewBootstrap.parse(
         data,
         origin: event.origin,
         expectedOrigin: _allowedOrigin,
       );
-
-      final previous = _runtime;
-      if (mounted) {
-        setState(() {
-          _runtime = null;
-          _error = null;
-        });
-      }
-      previous?.close();
-
-      final next = await CustomerPreviewRuntime.create(
+      final next = DriverPreviewRuntime.create(
         baseUrl: FoodexEnvironment.apiBaseUrl,
         bootstrap: bootstrap,
       );
 
-      if (!mounted || attempt != _bootstrapAttempt) {
+      final previous = _runtime;
+      if (!mounted) {
         next.close();
         return;
       }
@@ -93,25 +79,18 @@ class _CustomerPreviewBrowserHostState
         _runtime = next;
         _error = null;
       });
+      previous?.close();
 
       _post({
         'type': 'foodex.preview.status',
-        'version': CustomerPreviewHostContract.version,
+        'version': DriverPreviewHostContract.version,
         'state': 'ready',
-        'metadata': next.safeStatusMetadata,
+        'metadata': bootstrap.safeStatusMetadata,
       });
-    } on CustomerPreviewBootstrapException catch (error) {
-      if (attempt == _bootstrapAttempt) {
-        _setError(error.code);
-      }
-    } on CustomerPreviewConfigurationException catch (error) {
-      if (attempt == _bootstrapAttempt) {
-        _setError(error.code, state: error.runtimeState);
-      }
+    } on DriverPreviewBootstrapException catch (error) {
+      _setError(error.code);
     } catch (_) {
-      if (attempt == _bootstrapAttempt) {
-        _setError('preview_bootstrap_failed');
-      }
+      _setError('preview_bootstrap_failed');
     }
   }
 
@@ -128,7 +107,7 @@ class _CustomerPreviewBrowserHostState
     return null;
   }
 
-  void _setError(String code, {String state = 'error'}) {
+  void _setError(String code) {
     if (mounted) {
       setState(() {
         _error = code;
@@ -137,8 +116,8 @@ class _CustomerPreviewBrowserHostState
     if (_allowedOrigin.isNotEmpty) {
       _post({
         'type': 'foodex.preview.status',
-        'version': CustomerPreviewHostContract.version,
-        'state': state,
+        'version': DriverPreviewHostContract.version,
+        'state': 'error',
         'code': code,
       });
     }
@@ -153,7 +132,6 @@ class _CustomerPreviewBrowserHostState
 
   @override
   void dispose() {
-    _bootstrapAttempt++;
     unawaited(_messages?.cancel());
     _runtime?.close();
     super.dispose();
@@ -174,12 +152,12 @@ class _CustomerPreviewBrowserHostState
             liveRegion: true,
             child: Text(
               _error == null
-                  ? 'FOODEX Customer preview ready'
-                  : 'FOODEX Customer preview unavailable',
+                  ? 'FOODEX Driver preview ready'
+                  : 'FOODEX Driver preview unavailable',
               key: ValueKey(
                 _error == null
-                    ? 'customer-preview-awaiting-bootstrap'
-                    : 'customer-preview-error',
+                    ? 'driver-preview-awaiting-bootstrap'
+                    : 'driver-preview-error',
               ),
             ),
           ),
