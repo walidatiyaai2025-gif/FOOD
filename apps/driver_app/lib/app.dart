@@ -10,7 +10,9 @@ import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/localization/driver_translations.dart';
 import 'core/location/driver_location_gate_service.dart';
 import 'core/location/driver_location_tracking_service.dart';
+import 'core/preview/driver_preview_bootstrap.dart';
 import 'core/preview/driver_preview_context.dart';
+import 'core/preview/driver_preview_viewport.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
 import 'core/version/driver_version_policy_client.dart';
@@ -48,6 +50,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.theme,
     this.pushService,
     this.previewContext,
+    this.previewBootstrap,
     this.locationGateService,
     this.locationTrackingFactory,
     this.versionPolicyClient,
@@ -64,6 +67,7 @@ class FoodexDriverApp extends StatefulWidget {
     Map<String, String> translationOverrides = const {},
     DriverTranslationFetcher? translationFetcher,
     ThemeData? theme,
+    DriverPreviewBootstrap? previewBootstrap,
   }) {
     return FoodexDriverApp(
       key: key,
@@ -78,6 +82,7 @@ class FoodexDriverApp extends StatefulWidget {
       initialSession: previewContext.runtimeIdentity,
       theme: theme,
       previewContext: previewContext,
+      previewBootstrap: previewBootstrap,
     );
   }
 
@@ -93,6 +98,7 @@ class FoodexDriverApp extends StatefulWidget {
   final ThemeData? theme;
   final DriverFirebasePushService? pushService;
   final DriverPreviewContext? previewContext;
+  final DriverPreviewBootstrap? previewBootstrap;
   final DriverLocationGateService? locationGateService;
   final DriverLocationTrackingFactory? locationTrackingFactory;
   final DriverVersionPolicyClient? versionPolicyClient;
@@ -355,6 +361,12 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     super.dispose();
   }
 
+  Widget _withPreviewViewport(Widget child) {
+    final bootstrap = widget.previewBootstrap;
+    if (bootstrap == null) return child;
+    return DriverPreviewViewport(bootstrap: bootstrap, child: child);
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = _session;
@@ -419,7 +431,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('ar'), Locale('en')],
-      builder: (context, child) => DriverTranslations(
+      builder: (context, child) => _withPreviewViewport(DriverTranslations(
         locale: widget.locale,
         overrides: _translations,
         child: Builder(
@@ -531,7 +543,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
             ],
           ),
         ),
-      ),
+      )),
       home: preview != null || widget.versionPolicyClient == null
           ? runtimeHome
           : DriverVersionPolicyGate(
