@@ -130,6 +130,9 @@ void main() {
       'revision-draft-1',
     );
     expect(runtime.safeStatusMetadata['configuration_checksum'], List.filled(64, 'a').join());
+    expect(runtime.safeStatusMetadata.toString(), isNot(contains(credential)));
+    expect(runtime.safeStatusMetadata.toString(), isNot(contains('Authorization')));
+    expect(runtime.safeStatusMetadata.toString(), isNot(contains('preview_token')));
 
     await runtime.authenticatedBundle!.b2b!.get('/api/v1/b2b/products');
     expect(seen, hasLength(2));
