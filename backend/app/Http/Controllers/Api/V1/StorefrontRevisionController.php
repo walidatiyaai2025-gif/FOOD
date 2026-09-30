@@ -199,6 +199,39 @@ final class StorefrontRevisionController extends Controller
         ]);
     }
 
+    public function resolveCurrentPreviewConfiguration(
+        Request $request,
+        AppPreviewSessionService $sessions,
+        StorefrontRevisionService $revisions,
+    ): JsonResponse {
+        $token = $request->header('X-Foodex-Preview-Token');
+        abort_unless(
+            is_string($token) && trim($token) !== '',
+            401,
+            'Preview token is required.',
+        );
+
+        $data = $request->validate([
+            'mode' => ['required', Rule::in(['draft', 'published'])],
+        ]);
+
+        $session = $sessions->resolve($token, $request);
+        $resolved = $revisions->resolveCurrentForPreview(
+            $session,
+            (string) $data['mode'],
+        );
+
+        return response()->json([
+            'data' => [
+                ...$revisions->metadata($resolved),
+                'payload' => $resolved->payload,
+                'preview_session_id' => (string) $session->public_id,
+                'read_only' => true,
+                'mode' => (string) $data['mode'],
+            ],
+        ]);
+    }
+
     public function resolvePreview(
         Request $request,
         string $revision,
