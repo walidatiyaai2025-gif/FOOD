@@ -10,7 +10,7 @@
     $sfRevision = $moduleData['revision'] ?? [];
     $sfHasDraft = (bool)($sfRevision['has_draft'] ?? false);
     $sfCanPublish = $storeId > 0 && ($user->hasPermission('app_preview.publish', $storeId) || $user->hasPermission('app_preview.publish'));
-    $sfPreviewUrl = route('admin.app-preview.index', ['app'=>'customer','channel'=>'b2c','store_id'=>$storeId,'persona'=>'guest','configuration'=>'draft'] + ($supportAccess ? ['support_access'=>1] : []));
+    $sfPreviewUrl = route('admin.app-preview.index', ['app'=>'customer','channel'=>'b2c','store_id'=>$storeId,'persona'=>'guest','mode'=>'draft'] + ($supportAccess ? ['support_access'=>1] : []));
     $canManageStorefront = $storeId > 0 && ($user->hasPermission('settings.manage', $storeId) || $user->hasPermission('settings.manage'));
     $canManageBanners = $storeId > 0 && ($user->hasPermission('promotions.manage', $storeId) || $user->hasPermission('promotions.manage'));
     $primary = $sfSettings['primary_color'] ?? '#078A43';
@@ -178,7 +178,7 @@
                 <label class="sf-label">{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" min="0" value="0" required></label>
                 <label class="sf-label"><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
             </div>
-            <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'رفع البانر':'Upload banner' }}</button></div>
+            <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة البانر للمسودة':'Add banner to Draft' }}</button></div>
         </form>
         @endif
 
@@ -201,7 +201,7 @@
                         <label class="sf-label">{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" min="0" value="{{ $banner['sort_order'] }}" required></label>
                         <label class="sf-label"><span><input type="checkbox" name="is_active" value="1" @checked($banner['status'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
                     </div>
-                    <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ البانر':'Save banner' }}</button></div>
+                    <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}</button></div>
                 </form>
                 <form method="post" action="{{ route('admin.business.banners.destroy',['banner'=>$banner['_id']]) }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'حذف هذا البانر وصورته؟':'Delete this banner and its image?'))">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $storeId }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="sf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف البانر':'Delete banner' }}</button></form>
                 @endif
