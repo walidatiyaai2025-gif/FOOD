@@ -303,6 +303,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                 baseUrl: baseUrl,
                 token: token,
                 retailStoreContextId: _session.b2bRetailStoreId,
+                client: _diagnosticsHttpClient,
               ));
     final router = CustomerAppRouter(
       _session,
