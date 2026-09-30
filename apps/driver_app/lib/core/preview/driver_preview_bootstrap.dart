@@ -1,4 +1,3 @@
-import '../auth/driver_session.dart';
 import 'driver_preview_context.dart';
 
 abstract final class DriverPreviewHostContract {
