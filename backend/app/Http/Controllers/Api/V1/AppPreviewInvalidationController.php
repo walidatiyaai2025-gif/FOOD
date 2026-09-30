@@ -42,10 +42,6 @@ final class AppPreviewInvalidationController extends Controller
                 echo "retry: 3000\n\n";
 
                 foreach ($events as $event) {
-                    if (! $event instanceof AppPreviewInvalidationEvent) {
-                        continue;
-                    }
-
                     $payload = json_encode(
                         $invalidations->payload($event),
                         JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
