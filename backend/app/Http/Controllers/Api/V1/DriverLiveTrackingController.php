@@ -31,21 +31,39 @@ class DriverLiveTrackingController extends Controller
             ? [(string) $data['channel']]
             : ['b2b', 'b2c'];
 
-        $allowedStoreIds = collect($channels)
-            ->flatMap(fn (string $channel): array => $tenantScope->allowedStoreIds(
+        /** @var array<string, list<int>> $allowedStoresByChannel */
+        $allowedStoresByChannel = [];
+
+        foreach ($channels as $channel) {
+            $storeIds = $tenantScope->allowedStoreIds(
                 $user,
                 'drivers.tracking.view',
                 $channel,
-            ))
-            ->unique()
-            ->values();
+            );
 
-        abort_if($allowedStoreIds->isEmpty(), 403);
+            if ($storeIds !== []) {
+                $allowedStoresByChannel[$channel] = $storeIds;
+            }
+        }
+
+        abort_if($allowedStoresByChannel === [], 403);
 
         if (isset($data['store_id'])) {
             $requestedStoreId = (int) $data['store_id'];
-            abort_unless($allowedStoreIds->contains($requestedStoreId), 404);
-            $allowedStoreIds = collect([$requestedStoreId]);
+            $matched = false;
+
+            foreach ($allowedStoresByChannel as $channel => $storeIds) {
+                if (in_array($requestedStoreId, $storeIds, true)) {
+                    $allowedStoresByChannel[$channel] = [$requestedStoreId];
+                    $matched = true;
+
+                    continue;
+                }
+
+                unset($allowedStoresByChannel[$channel]);
+            }
+
+            abort_unless($matched, 404);
         }
 
         $now = CarbonImmutable::now();
@@ -57,8 +75,15 @@ class DriverLiveTrackingController extends Controller
             ->join('users', 'users.id', '=', 'drivers.user_id')
             ->leftJoin('driver_assignments', 'driver_assignments.id', '=', 'locations.active_assignment_id')
             ->leftJoin('orders', 'orders.id', '=', 'driver_assignments.order_id')
-            ->whereIn('locations.store_id', $allowedStoreIds->all())
-            ->whereIn('locations.channel', $channels)
+            ->where(function ($query) use ($allowedStoresByChannel): void {
+                foreach ($allowedStoresByChannel as $channel => $storeIds) {
+                    $query->orWhere(function ($scope) use ($channel, $storeIds): void {
+                        $scope
+                            ->where('locations.channel', $channel)
+                            ->whereIn('locations.store_id', $storeIds);
+                    });
+                }
+            })
             ->when(
                 isset($data['driver_id']),
                 fn ($query) => $query->where('locations.driver_id', (int) $data['driver_id']),
