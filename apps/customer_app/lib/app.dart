@@ -17,9 +17,11 @@ import 'core/localization/app_translations.dart';
 import 'core/location/customer_location_service.dart';
 import 'core/location/customer_map_pin_selector.dart';
 import 'core/push/firebase_push_service.dart';
+import 'core/preview/customer_preview_context.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
 import 'core/theme/foodex_theme.dart';
+import 'features/storefront/marketplace_barcode_scanner.dart';
 
 class FoodexCustomerApp extends StatefulWidget {
   const FoodexCustomerApp({
@@ -39,7 +41,60 @@ class FoodexCustomerApp extends StatefulWidget {
     this.pushService,
     this.locationService,
     this.mapPinPicker,
+    this.previewContext,
+    this.marketplaceClient,
+    this.marketplaceBarcodeScanner,
   });
+
+  factory FoodexCustomerApp.preview({
+    Key? key,
+    required CustomerPreviewContext previewContext,
+    required B2cCatalogApi b2cCatalogApi,
+    required B2cAccountApi b2cAccountApi,
+    required StorefrontApi storefrontApi,
+    required http.Client marketplaceClient,
+    B2bApi? b2bApi,
+    WholesaleCommerceApi? wholesaleCommerceApi,
+    String initialRoute = CustomerRoutePaths.marketplace,
+    Locale? locale,
+    Map<String, String> translationOverrides = const {},
+    TranslationFetcher? translationFetcher,
+    ThemeData? theme,
+  }) {
+    if (previewContext.channel == CustomerChannel.b2b &&
+        (b2bApi == null || wholesaleCommerceApi == null)) {
+      throw ArgumentError(
+        'B2B Customer preview requires host-injected B2B and wholesale APIs.',
+      );
+    }
+
+    return FoodexCustomerApp(
+      key: key,
+      session: previewContext.runtimeIdentity,
+      initialRoute: initialRoute,
+      b2bApi: b2bApi,
+      b2cCatalogApi: PreviewB2cCatalogApi(b2cCatalogApi, previewContext),
+      b2cAccountApi: PreviewB2cAccountApi(b2cAccountApi, previewContext),
+      actionApi: const PreviewCustomerActionApi(),
+      storefrontApi: PreviewStorefrontApi(storefrontApi, previewContext),
+      wholesaleCommerceApi: wholesaleCommerceApi == null
+          ? null
+          : PreviewWholesaleCommerceApi(
+              wholesaleCommerceApi,
+              previewContext,
+            ),
+      locale: locale ??
+          Locale(previewContext.targetLocale == 'en' ? 'en' : 'ar'),
+      translationOverrides: translationOverrides,
+      translationFetcher: translationFetcher,
+      theme: theme,
+      locationService: const PreviewCustomerLocationService(),
+      mapPinPicker: previewCustomerMapPinPicker,
+      previewContext: previewContext,
+      marketplaceClient: PreviewReadOnlyHttpClient(marketplaceClient),
+      marketplaceBarcodeScanner: (context) async => null,
+    );
+  }
 
   final CustomerSession session;
   final String initialRoute;
@@ -56,6 +111,9 @@ class FoodexCustomerApp extends StatefulWidget {
   final CustomerFirebasePushService? pushService;
   final CustomerLocationService? locationService;
   final CustomerMapPinPicker? mapPinPicker;
+  final CustomerPreviewContext? previewContext;
+  final http.Client? marketplaceClient;
+  final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
 
   @override
   State<FoodexCustomerApp> createState() => _FoodexCustomerAppState();
@@ -120,8 +178,10 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   Future<void> _loadRemoteTranslations() async {
     try {
       final fetcher = widget.translationFetcher;
-      final baseUrl =
-          FoodexEnvironment.apiBaseUrl;
+      final baseUrl = FoodexEnvironment.apiBaseUrl;
+      if (widget.previewContext != null && fetcher == null) {
+        return;
+      }
       if (fetcher == null && baseUrl.isEmpty) {
         return;
       }
@@ -181,6 +241,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   }
 
   void _onAuthenticated(CustomerChannel channel, String token) {
+    if (widget.previewContext != null) return;
     setState(() {
       _session = CustomerSession.authenticated(channel, accessToken: token);
     });
@@ -188,6 +249,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   }
 
   void _onPlatformRegistered(String token) {
+    if (widget.previewContext != null) return;
     setState(() {
       _session = CustomerSession.authenticated(
         CustomerChannel.b2b,
@@ -199,13 +261,14 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   }
 
   void _enterWholesale(int? retailStoreId) {
-    if (!_session.isAuthenticated) return;
+    if (widget.previewContext != null || !_session.isAuthenticated) return;
     setState(() {
       _session = _session.asB2bRetailContext(retailStoreId);
     });
   }
 
   void _onSessionExpired() {
+    if (widget.previewContext != null) return;
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
     _guestSession.clear();
@@ -219,6 +282,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   }
 
   Future<void> _logout(CustomerActionApi actionApi) async {
+    if (widget.previewContext != null) return;
     final service = widget.pushService;
     if (service != null) {
       await service.revokeSession();
@@ -263,48 +327,85 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       platformWide: _session.platformWide,
       retailStoreContextId: _session.b2bRetailStoreId,
     );
-    final b2bApi = widget.b2bApi ??
-        (token == null
-            ? null
-            : HttpB2bApi(
-                baseUrl: baseUrl,
-                token: token,
-                retailStoreContextId: _session.b2bRetailStoreId,
-                client: _diagnosticsHttpClient,
-              ));
-    final b2cCatalogApi = widget.b2cCatalogApi ??
-        HttpB2cCatalogApi(baseUrl: baseUrl, client: _diagnosticsHttpClient);
-    final actionApi = widget.actionApi ?? HttpCustomerActionApi(
-      baseUrl: baseUrl,
-      token: token,
-      guestSession: _guestSession,
-      b2bRetailStoreId: _session.b2bRetailStoreId,
-      client: _diagnosticsHttpClient,
-    );
-    final b2cAccountApi = widget.b2cAccountApi ?? HttpB2cAccountApi(
-      baseUrl: baseUrl,
-      token: token,
-      guestSession: _guestSession,
-      client: _diagnosticsHttpClient,
-    );
-    final storefrontApi = widget.storefrontApi ??
-        (widget.b2cCatalogApi != null
-            ? null
-            : HttpStorefrontApi(
-                baseUrl: baseUrl,
-                token: token,
-                retailStoreContextId: _session.b2bRetailStoreId,
-                client: _diagnosticsHttpClient,
-              ));
-    final wholesaleCommerceApi = widget.wholesaleCommerceApi ??
-        (token == null || widget.b2bApi != null
-            ? null
-            : HttpWholesaleCommerceApi(
-                baseUrl: baseUrl,
-                token: token,
-                retailStoreContextId: _session.b2bRetailStoreId,
-                client: _diagnosticsHttpClient,
-              ));
+    final preview = widget.previewContext;
+    if (preview != null) {
+      if (widget.b2cCatalogApi == null ||
+          widget.b2cAccountApi == null ||
+          widget.actionApi == null ||
+          widget.storefrontApi == null ||
+          widget.marketplaceClient == null ||
+          widget.marketplaceBarcodeScanner == null) {
+        throw StateError(
+          'Customer preview requires host-injected Customer APIs.',
+        );
+      }
+      if (preview.channel == CustomerChannel.b2b &&
+          (widget.b2bApi == null || widget.wholesaleCommerceApi == null)) {
+        throw StateError(
+          'B2B Customer preview requires host-injected B2B APIs.',
+        );
+      }
+    }
+
+    final b2bApi = preview != null
+        ? widget.b2bApi
+        : widget.b2bApi ??
+            (token == null
+                ? null
+                : HttpB2bApi(
+                    baseUrl: baseUrl,
+                    token: token,
+                    retailStoreContextId: _session.b2bRetailStoreId,
+                    client: _diagnosticsHttpClient,
+                  ));
+    final b2cCatalogApi = preview != null
+        ? widget.b2cCatalogApi!
+        : widget.b2cCatalogApi ??
+            HttpB2cCatalogApi(
+              baseUrl: baseUrl,
+              client: _diagnosticsHttpClient,
+            );
+    final actionApi = preview != null
+        ? widget.actionApi!
+        : widget.actionApi ??
+            HttpCustomerActionApi(
+              baseUrl: baseUrl,
+              token: token,
+              guestSession: _guestSession,
+              b2bRetailStoreId: _session.b2bRetailStoreId,
+              client: _diagnosticsHttpClient,
+            );
+    final b2cAccountApi = preview != null
+        ? widget.b2cAccountApi!
+        : widget.b2cAccountApi ??
+            HttpB2cAccountApi(
+              baseUrl: baseUrl,
+              token: token,
+              guestSession: _guestSession,
+              client: _diagnosticsHttpClient,
+            );
+    final storefrontApi = preview != null
+        ? widget.storefrontApi!
+        : widget.storefrontApi ??
+            (widget.b2cCatalogApi != null
+                ? null
+                : HttpStorefrontApi(
+                    baseUrl: baseUrl,
+                    token: token,
+                    retailStoreContextId: _session.b2bRetailStoreId,
+                    client: _diagnosticsHttpClient,
+                  ));
+    final wholesaleCommerceApi = preview != null
+        ? widget.wholesaleCommerceApi
+        : widget.wholesaleCommerceApi ??
+            (token == null || widget.b2bApi != null
+                ? null
+                : HttpWholesaleCommerceApi(
+                    baseUrl: baseUrl,
+                    token: token,
+                    retailStoreContextId: _session.b2bRetailStoreId,
+                    client: _diagnosticsHttpClient,
+                  ));
     final router = CustomerAppRouter(
       _session,
       b2bApi: b2bApi,
@@ -321,6 +422,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       locationService: widget.locationService ??
           const GeolocatorCustomerLocationService(),
       mapPinPicker: widget.mapPinPicker ?? showCustomerMapPinSelector,
+      marketplaceClient: widget.marketplaceClient,
+      marketplaceBarcodeScanner: widget.marketplaceBarcodeScanner,
     );
 
     return MaterialApp(
