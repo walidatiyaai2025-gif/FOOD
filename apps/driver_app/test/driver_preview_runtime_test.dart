@@ -129,6 +129,19 @@ void main() {
           configurationRevision: 'draft-17',
           runtimeVersion: 'preview-web-1',
         ),
+        previewViewport: const DriverPreviewViewport(
+          profile: 'iphone_common',
+          platform: 'ios',
+          width: 390,
+          height: 844,
+          safeAreaTop: 47,
+          safeAreaRight: 0,
+          safeAreaBottom: 34,
+          safeAreaLeft: 0,
+          textScale: 1.2,
+          orientation: 'portrait',
+          keyboardInsetBottom: 260,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -138,6 +151,14 @@ void main() {
     expect(find.text('WHOLESALE'), findsNothing);
     expect(find.textContaining('Safe preview'), findsOneWidget);
     expect(find.textContaining('draft-17'), findsOneWidget);
+
+    final scaffold = find.byType(Scaffold).first;
+    final media = MediaQuery.of(tester.element(scaffold));
+    expect(media.size, const Size(390, 844));
+    expect(media.padding.top, 47);
+    expect(media.padding.bottom, 34);
+    expect(media.viewInsets.bottom, 260);
+    expect(media.textScaler.scale(10), 12);
   });
 
   testWidgets('safe preview renders lifecycle action but never mutates production',
