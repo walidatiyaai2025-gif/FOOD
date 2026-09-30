@@ -6,11 +6,13 @@ use App\Models\Role;
 use App\Models\StorefrontRevision;
 use App\Models\User;
 use App\Services\StorefrontRevisionService;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -153,7 +155,7 @@ class StorefrontRevisionTest extends TestCase
 
         $revisionB = app(StorefrontRevisionService::class)->ensurePublished($storeB, 'b2c');
         $draftB = StorefrontRevision::query()->create([
-            'public_id' => (string) \Illuminate\Support\Str::uuid(),
+            'public_id' => (string) Str::uuid(),
             'store_id' => $storeB,
             'channel' => 'b2c',
             'status' => 'draft',
@@ -226,7 +228,7 @@ class StorefrontRevisionTest extends TestCase
 
     public function test_b2b_admin_uses_canonical_wholesale_scope_and_retail_admin_cannot_cross_channel(): void
     {
-        $wholesaleStoreId = app(\App\Services\WholesalePrincipal::class)->storeId();
+        $wholesaleStoreId = app(WholesalePrincipal::class)->storeId();
         $b2bAdmin = $this->roleUser('B2B_ADMIN', 'revision-b2b-admin@example.test');
 
         Sanctum::actingAs($b2bAdmin);
