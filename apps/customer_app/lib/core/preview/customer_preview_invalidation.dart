@@ -119,6 +119,16 @@ class CustomerPreviewInvalidationFeed {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _fromStatus(response.statusCode);
     }
+    final contentType = response.headers['content-type']?.toLowerCase() ?? '';
+    if (!contentType.startsWith('text/event-stream')) {
+      throw CustomerPreviewInvalidationException(
+        context.authenticated
+            ? 'preview_invalidation_response_invalid'
+            : 'preview_invalidation_session_expired',
+        runtimeState: context.authenticated ? 'error' : 'expired',
+        retryable: false,
+      );
+    }
 
     return _parse(response.body, initialCursor: lastEventId);
   }
@@ -174,7 +184,7 @@ class CustomerPreviewInvalidationFeed {
           final milliseconds = int.tryParse(line.substring(6).trim());
           if (milliseconds != null) {
             retryAfter = Duration(
-              milliseconds: milliseconds.clamp(1000, 30000),
+              milliseconds: milliseconds.clamp(1000, 30000).toInt(),
             );
           }
           continue;
@@ -194,7 +204,16 @@ class CustomerPreviewInvalidationFeed {
 
       if (dataLines.isEmpty) continue;
 
-      final decoded = jsonDecode(dataLines.join('\n'));
+      Object? decoded;
+      try {
+        decoded = jsonDecode(dataLines.join('\n'));
+      } catch (_) {
+        throw const CustomerPreviewInvalidationException(
+          'preview_invalidation_payload_invalid',
+          runtimeState: 'error',
+          retryable: false,
+        );
+      }
       if (decoded is! Map) {
         throw const CustomerPreviewInvalidationException(
           'preview_invalidation_payload_invalid',
@@ -284,7 +303,8 @@ class CustomerPreviewInvalidationFeed {
   static int? _positiveInt(Object? value) {
     if (value is int && value > 0) return value;
     if (value is num && value > 0) return value.toInt();
-    return int.tryParse(value?.toString() ?? '');
+    final parsed = int.tryParse(value?.toString() ?? '');
+    return parsed != null && parsed > 0 ? parsed : null;
   }
 
   static String _join(String base, String path) {
