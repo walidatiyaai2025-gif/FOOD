@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/diagnostics/customer_diagnostics.dart';
@@ -33,13 +33,12 @@ class _CustomerDiagnosticsScreenState extends State<CustomerDiagnosticsScreen> {
     if (_exporting) return;
     setState(() => _exporting = true);
     try {
-      final directory = await getTemporaryDirectory();
       final stamp = DateTime.now()
           .toUtc()
           .toIso8601String()
           .replaceAll(RegExp(r'[^0-9A-Za-z]'), '-');
       final file = File(
-        '${directory.path}/foodex-customer-diagnostics-$stamp.json',
+        '${Directory.systemTemp.path}/foodex-customer-diagnostics-$stamp.json',
       );
       const encoder = JsonEncoder.withIndent('  ');
       await file.writeAsString(
