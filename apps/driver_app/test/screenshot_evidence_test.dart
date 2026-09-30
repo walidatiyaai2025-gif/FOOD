@@ -245,7 +245,8 @@ class _EvidenceAuthRepository implements DriverAuthRepository {
 
   @override
   Future<DriverSession> login({
-    required String username,
+    required String email,
+    required String password,
   }) async =>
       const DriverSession(
         token: 'evidence-token',
