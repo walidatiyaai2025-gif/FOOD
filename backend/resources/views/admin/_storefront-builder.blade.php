@@ -7,6 +7,10 @@
     $sfTargets = $moduleData['targets'] ?? [];
     $sfThemes = $moduleData['themes'] ?? [];
     $sfSectionTypes = $moduleData['section_types'] ?? [];
+    $sfRevision = $moduleData['revision'] ?? [];
+    $sfHasDraft = (bool)($sfRevision['has_draft'] ?? false);
+    $sfCanPublish = $storeId > 0 && ($user->hasPermission('app_preview.publish', $storeId) || $user->hasPermission('app_preview.publish'));
+    $sfPreviewUrl = route('admin.app-preview.index', ['app'=>'customer','channel'=>'b2c','store_id'=>$storeId,'persona'=>'guest','configuration'=>'draft'] + ($supportAccess ? ['support_access'=>1] : []));
     $canManageStorefront = $storeId > 0 && ($user->hasPermission('settings.manage', $storeId) || $user->hasPermission('settings.manage'));
     $canManageBanners = $storeId > 0 && ($user->hasPermission('promotions.manage', $storeId) || $user->hasPermission('promotions.manage'));
     $primary = $sfSettings['primary_color'] ?? '#078A43';
@@ -23,7 +27,7 @@
     <div class="sf-grid">
         <section class="sf-card">
             <h3>{{ app()->getLocale()==='ar' ? 'هوية وتصميم المتجر' : 'Store branding & theme' }}</h3>
-            <p class="sf-muted">{{ app()->getLocale()==='ar' ? 'الهوية هنا خاصة بهذا المتجر فقط وتظهر مباشرة في تطبيق العميل.' : 'These settings are isolated to this Retail store and feed the customer app.' }}</p>
+            <p class="sf-muted">{{ app()->getLocale()==='ar' ? 'كل تعديل هنا يُحفظ أولاً كمسودة ولا يصل للتطبيق الحقيقي إلا بعد النشر.' : 'Every change here is saved as Draft first and reaches the real app only after Publish.' }}</p>
             @if($canManageStorefront)
             <form method="post" action="{{ route('admin.b2c.storefront.settings') }}" enctype="multipart/form-data">
                 @csrf @method('PUT')
@@ -48,29 +52,32 @@
                     <label class="sf-label">{{ app()->getLocale()==='ar'?'وصف قصير بالعربية':'Arabic subtitle' }}<input name="brand_subtitle_ar" maxlength="500" value="{{ $sfSettings['brand_subtitle_ar'] ?? '' }}" placeholder="{{ app()->getLocale()==='ar'?'طازج وسريع إلى بابك':'Arabic subtitle' }}"></label>
                     <label class="sf-label">{{ app()->getLocale()==='ar'?'وصف قصير بالإنجليزية':'English subtitle' }}<input name="brand_subtitle_en" maxlength="500" value="{{ $sfSettings['brand_subtitle_en'] ?? '' }}" placeholder="Fresh and fast"></label>
                 </div>
-                <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ الهوية والتصميم':'Save branding & theme' }}</button></div>
+                <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ الهوية في المسودة':'Save branding to Draft' }}</button></div>
             </form>
             @endif
         </section>
 
         <aside class="sf-card">
-            <h3>{{ app()->getLocale()==='ar'?'معاينة فورية':'Live admin preview' }}</h3>
-            <p class="sf-muted">{{ $sfStore['name'] ?? '' }} · <span class="sf-code">{{ $sfStore['code'] ?? '' }}</span></p>
-            <div class="sf-preview" style="--sf-primary:{{ $primary }};--sf-primary-dark:{{ $primaryDark }};--sf-accent:{{ $accent }};--sf-bg:{{ $background }}">
-                <div class="sf-preview-head">
-                    <div>
-                        <strong>{{ app()->getLocale()==='ar' ? (($sfSettings['brand_title_ar'] ?? '') ?: ($sfStore['name'] ?? 'FOODEX')) : (($sfSettings['brand_title_en'] ?? '') ?: ($sfStore['name'] ?? 'FOODEX')) }}</strong>
-                        <div style="font-size:.78rem;opacity:.85">{{ $sfSettings['header_address'] ?? '' }}</div>
-                    </div>
-                    @if(!empty($sfStore['logo_path']))<img class="sf-logo" src="{{ asset(ltrim($sfStore['logo_path'],'/')) }}" alt="{{ $sfStore['name'] ?? 'Store' }}">@else<div class="sf-logo"></div>@endif
+            <h3>{{ app()->getLocale()==='ar'?'المسودة والمعاينة الحقيقية':'Draft & real app preview' }}</h3>
+            <p class="sf-muted">
+                {{ app()->getLocale()==='ar'
+                    ? 'المعاينة المعتمدة تستخدم نفس Flutter runtime ونفس العقود الخاصة بالموبايل.'
+                    : 'The authoritative preview uses the same Flutter runtime and mobile contracts.' }}
+            </p>
+            <div class="sf-item" style="margin-top:12px">
+                <div class="sf-item-head">
+                    <strong>{{ $sfHasDraft ? (app()->getLocale()==='ar'?'مسودة نشطة':'Active Draft') : (app()->getLocale()==='ar'?'النسخة المنشورة':'Published') }}</strong>
+                    <span class="sf-tab">{{ strtoupper((string)($sfRevision['status'] ?? 'published')) }}</span>
                 </div>
-                <div class="sf-hero">
-                    <strong style="position:relative;z-index:1">{{ app()->getLocale()==='ar' ? (($sfSettings['brand_subtitle_ar'] ?? '') ?: 'اكتشف عروض المتجر اليوم') : (($sfSettings['brand_subtitle_en'] ?? '') ?: 'Discover today\'s store offers') }}</strong>
-                    <div style="margin-top:8px;position:relative;z-index:1"><span style="display:inline-block;background:var(--sf-accent);color:#132016;border-radius:999px;padding:7px 12px;font-weight:800">{{ app()->getLocale()==='ar'?'تسوق الآن':'Shop now' }}</span></div>
-                </div>
-                <div class="sf-chips">
-                    @foreach(array_slice($sfSections,0,8) as $section)<span class="sf-chip">{{ $sfSectionTypes[$section['section_type']] ?? $section['section_type'] }} · {{ $section['sort_order'] }}</span>@endforeach
-                </div>
+                <div class="sf-code" style="margin-top:8px">rev {{ $sfRevision['revision_id'] ?? '—' }}</div>
+                <div class="sf-code">{{ substr((string)($sfRevision['checksum'] ?? ''),0,16) }}</div>
+            </div>
+            <div class="sf-actions">
+                <a class="foodex-primary" href="{{ $sfPreviewUrl }}">{{ app()->getLocale()==='ar'?'فتح المعاينة الحقيقية':'Open real app preview' }}</a>
+                @if($sfHasDraft && $sfCanPublish)
+                    <form method="post" action="{{ route('admin.b2c.storefront.publish') }}">@csrf<input type="hidden" name="store_id" value="{{ $storeId }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'نشر المسودة':'Publish Draft' }}</button></form>
+                    <form method="post" action="{{ route('admin.b2c.storefront.discard') }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'إرجاع المسودة إلى النسخة المنشورة؟':'Reset Draft to Published?'))">@csrf<input type="hidden" name="store_id" value="{{ $storeId }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="sf-secondary" type="submit">{{ app()->getLocale()==='ar'?'إلغاء تغييرات المسودة':'Discard Draft changes' }}</button></form>
+                @endif
             </div>
         </aside>
     </div>
@@ -93,7 +100,7 @@
                     <label class="sf-label" style="align-content:end"><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
                     <label class="sf-label wide">Config JSON <textarea name="config_json" rows="2" placeholder='{"limit":12}'></textarea></label>
                 </div>
-                <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة القسم':'Add section' }}</button></div>
+                <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة للقسم في المسودة':'Add section to Draft' }}</button></div>
             </form>
             @endif
 
@@ -115,10 +122,11 @@
                             <label class="sf-label" style="align-content:end"><span><input type="checkbox" name="is_active" value="1" @checked($section['is_active'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
                             <label class="sf-label wide">Config JSON<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
                         </div>
-                        <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ القسم':'Save section' }}</button></div>
+                        <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}</button></div>
                     </form>
                     <form method="post" action="{{ route('admin.b2c.storefront.sections.destroy',['section'=>$section['id']]) }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'حذف هذا القسم؟':'Delete this section?'))">
                         @csrf @method('DELETE')
+                        <input type="hidden" name="store_id" value="{{ $storeId }}">
                         @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                         <button class="sf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button>
                     </form>
@@ -142,14 +150,14 @@
                     <label class="sf-label">{{ app()->getLocale()==='ar'?'المنطقة':'Area' }}<input name="area" maxlength="120" placeholder="{{ app()->getLocale()==='ar'?'سموحة':'Smouha' }}"></label>
                     <label class="sf-label" style="align-content:end"><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشطة':'Active' }}</span></label>
                 </div>
-                <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة منطقة':'Add zone' }}</button></div>
+                <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة للـمسودة':'Add to Draft' }}</button></div>
             </form>
             @endif
             <div class="sf-list" style="margin-top:12px">
                 @forelse($sfZones as $zone)
                 <div class="sf-zone">
                     <span><strong>{{ $zone['country_code'] }}</strong> · {{ $zone['city'] ?: (app()->getLocale()==='ar'?'كل المدن':'All cities') }} · {{ $zone['area'] ?: (app()->getLocale()==='ar'?'كل المناطق':'All areas') }}</span>
-                    @if($canManageStorefront)<form method="post" action="{{ route('admin.b2c.storefront.zones.destroy',['zone'=>$zone['id']]) }}">@csrf @method('DELETE')@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="sf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>@endif
+                    @if($canManageStorefront)<form method="post" action="{{ route('admin.b2c.storefront.zones.destroy',['zone'=>$zone['id']]) }}">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $storeId }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="sf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>@endif
                 </div>
                 @empty<p class="sf-muted">{{ app()->getLocale()==='ar'?'لا توجد مناطق خدمة؛ المتجر غير مقيد بمنطقة محددة.' : 'No service zones; store discovery is not geographically restricted.' }}</p>@endforelse
             </div>
@@ -195,7 +203,7 @@
                     </div>
                     <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ البانر':'Save banner' }}</button></div>
                 </form>
-                <form method="post" action="{{ route('admin.business.banners.destroy',['banner'=>$banner['_id']]) }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'حذف هذا البانر وصورته؟':'Delete this banner and its image?'))">@csrf @method('DELETE')@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="sf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف البانر':'Delete banner' }}</button></form>
+                <form method="post" action="{{ route('admin.business.banners.destroy',['banner'=>$banner['_id']]) }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'حذف هذا البانر وصورته؟':'Delete this banner and its image?'))">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $storeId }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="sf-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف البانر':'Delete banner' }}</button></form>
                 @endif
             </div>
             @empty<p class="sf-muted">{{ app()->getLocale()==='ar'?'لا توجد بانرات حتى الآن.':'No storefront banners yet.' }}</p>@endforelse
