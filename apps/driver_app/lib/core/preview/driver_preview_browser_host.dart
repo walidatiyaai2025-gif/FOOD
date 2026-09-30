@@ -31,16 +31,14 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
     super.initState();
     _messages = html.window.onMessage.listen(_onMessage);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_allowedOrigin.isEmpty) {
-        _setError('preview_parent_origin_missing');
-        return;
-      }
-      _post({
-        'type': 'foodex.preview.ready',
-        'version': DriverPreviewHostContract.version,
-        'target_type': 'driver',
-      });
+    if (_allowedOrigin.isEmpty) {
+      _setError('preview_parent_origin_missing');
+      return;
+    }
+    _post({
+      'type': 'foodex.preview.ready',
+      'version': DriverPreviewHostContract.version,
+      'target_type': 'driver',
     });
   }
 
