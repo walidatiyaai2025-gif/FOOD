@@ -165,6 +165,12 @@ class CustomerPreviewApiBundle {
     http.Client? client,
   })  : _transportOwner = client ?? http.Client(),
         _ownsTransport = client == null {
+    if (!context.authenticated) {
+      throw ArgumentError(
+        'CustomerPreviewApiBundle is only for authenticated preview sessions.',
+      );
+    }
+
     transport = CustomerPreviewReadHttpClient(
       _transportOwner,
       credential: credential,
