@@ -20,30 +20,170 @@ const mime = {
   '.svg': 'image/svg+xml',
 };
 
+const contractVersion = 'shared-flutter-v1';
+
+const cases = [
+  { id: 'customer-b2b-guest-published-en', app: 'customer', channel: 'b2b', storeId: 11, authenticated: false, configuration: 'published', locale: 'en', width: 390, height: 844, profile: 'iphone-common', expectedState: 'ready' },
+  { id: 'customer-b2b-auth-draft-ar', app: 'customer', channel: 'b2b', storeId: 12, authenticated: true, configuration: 'draft', locale: 'ar', width: 360, height: 800, profile: 'small-android', expectedState: 'ready' },
+  { id: 'customer-b2c-guest-published-ar', app: 'customer', channel: 'b2c', storeId: 21, authenticated: false, configuration: 'published', locale: 'ar', width: 430, height: 900, profile: 'large-android', expectedState: 'ready' },
+  { id: 'customer-b2c-auth-draft-en', app: 'customer', channel: 'b2c', storeId: 22, authenticated: true, configuration: 'draft', locale: 'en', width: 390, height: 844, profile: 'iphone-common', expectedState: 'ready' },
+  { id: 'customer-b2c-missing-published-en', app: 'customer', channel: 'b2c', storeId: 99, authenticated: false, configuration: 'published', locale: 'en', width: 360, height: 800, profile: 'small-android', expectedState: 'error', expectedCode: 'preview_published_unavailable' },
+  { id: 'driver-b2b-auth-published-ar', app: 'driver', channel: 'b2b', storeId: 31, authenticated: true, configuration: 'published', locale: 'ar', width: 390, height: 844, profile: 'iphone-common', expectedState: 'ready' },
+  { id: 'driver-b2c-auth-draft-en', app: 'driver', channel: 'b2c', storeId: 32, authenticated: true, configuration: 'draft', locale: 'en', width: 360, height: 800, profile: 'small-android', expectedState: 'ready' },
+];
+
+function credentialFor(testCase) {
+  return 'fixture:' + testCase.id;
+}
+
+function bootstrapFor(testCase) {
+  return {
+    type: 'foodex.preview.bootstrap',
+    version: contractVersion,
+    payload: {
+      context: {
+        session_id: testCase.authenticated ? 'session-' + testCase.id : null,
+        target_type: testCase.app,
+        channel: testCase.channel,
+        store_id: testCase.storeId,
+        mode: 'read_only',
+        read_only: true,
+        support_access: false,
+        target: testCase.authenticated ? {
+          user_id: testCase.app === 'driver' ? 501 : 401,
+          ...(testCase.app === 'driver' ? { driver_id: 601 } : {}),
+          name: testCase.app === 'driver' ? 'Preview Driver' : 'Preview Customer',
+          locale: testCase.locale,
+        } : null,
+      },
+      credential: testCase.authenticated ? credentialFor(testCase) : null,
+      configuration: testCase.configuration,
+      locale: testCase.locale,
+      device: { profile: testCase.profile, width: testCase.width },
+      safe_mode: 'read_only',
+    },
+  };
+}
+
+function fixtureFromRequest(req, url) {
+  const token = req.headers['x-foodex-preview-token'];
+  if (typeof token === 'string') {
+    const byToken = cases.find((item) => item.authenticated && credentialFor(item) === token);
+    if (byToken) return byToken;
+  }
+  const storeId = Number(url.searchParams.get('store_id'));
+  const channel = url.searchParams.get('channel');
+  const mode = url.searchParams.get('mode');
+  return cases.find((item) =>
+    item.app === 'customer' &&
+    !item.authenticated &&
+    item.storeId === storeId &&
+    item.channel === channel &&
+    item.configuration === mode);
+}
+
+function configurationResponse(testCase) {
+  return {
+    data: {
+      revision_id: 'fixture-' + testCase.id,
+      checksum: crypto.createHash('sha256').update(testCase.id).digest('hex'),
+      schema_version: 1,
+      mode: testCase.configuration,
+      status: testCase.configuration,
+      channel: testCase.channel,
+      store_id: testCase.storeId,
+      read_only: true,
+      payload: {
+        schema_version: 1,
+        channel: testCase.channel,
+        store: { id: testCase.storeId, code: 'STORE-' + testCase.storeId, name: 'Fixture Store ' + testCase.storeId, is_active: true },
+        settings: { theme_code: testCase.channel === 'b2b' ? 'wholesale_b2b' : 'retail_grocery', primary_color: '#111111', background_color: '#ffffff' },
+        banners: [{ title: testCase.id, image_path: null, target_type: null, target_id: null, target_url: null, sort_order: 1, is_active: true }],
+        sections: [],
+      },
+    },
+  };
+}
+
+function json(res, status, body) {
+  res.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+    'access-control-allow-origin': '*',
+    'access-control-allow-headers': 'Accept, Content-Type, X-Foodex-Preview-Token, X-Requested-With',
+  });
+  res.end(JSON.stringify(body));
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://127.0.0.1:4173');
-  if (url.pathname === '/host.html') {
-    const app = url.searchParams.get('app');
-    const width = Number(url.searchParams.get('width') || 390);
-    const height = Number(url.searchParams.get('height') || 844);
-    if (!['customer', 'driver'].includes(app)) {
-      res.writeHead(400); res.end('bad app'); return;
-    }
-    const body = `<!doctype html><html><body style="margin:0;background:white;overflow:hidden">
-<iframe id="runtime" width="${width}" height="${height}" style="display:block;border:0"></iframe>
-<script>
-window.__foodexReady = false;
-const runtime = document.getElementById('runtime');
-addEventListener('message', (event) => {
-  if (event.origin !== location.origin || event.source !== runtime.contentWindow) return;
-  if (event.data && event.data.type === 'foodex.preview.ready' && event.data.version === 'shared-flutter-v1') {
-    window.__foodexReady = true;
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'access-control-allow-origin': '*',
+      'access-control-allow-methods': 'GET, HEAD, OPTIONS',
+      'access-control-allow-headers': 'Accept, Content-Type, X-Foodex-Preview-Token, X-Requested-With',
+    });
+    res.end();
+    return;
   }
-});
-runtime.src = "/${app}/index.html";
-</script></body></html>`;
+
+  if (url.pathname === '/host.html') {
+    const fixtureId = url.searchParams.get('fixture');
+    const testCase = cases.find((item) => item.id === fixtureId);
+    if (!testCase) {
+      res.writeHead(400);
+      res.end('bad fixture');
+      return;
+    }
+    const bootstrap = JSON.stringify(bootstrapFor(testCase)).replaceAll('<', '\\u003c');
+    const body = '<!doctype html><html><body style="margin:0;background:white;overflow:hidden">' +
+      '<iframe id="runtime" width="' + testCase.width + '" height="' + testCase.height + '" style="display:block;border:0"></iframe>' +
+      '<script>' +
+      'window.__foodexMessages=[];window.__foodexHandshake=false;' +
+      'window.__foodexBootstrap=' + bootstrap + ';' +
+      'const runtime=document.getElementById("runtime");' +
+      'function sendBootstrap(){if(runtime.contentWindow){runtime.contentWindow.postMessage(window.__foodexBootstrap,location.origin);}}' +
+      'addEventListener("message",(event)=>{if(event.origin!==location.origin||event.source!==runtime.contentWindow)return;if(!event.data||typeof event.data!=="object")return;window.__foodexMessages.push(event.data);if(event.data.type==="foodex.preview.ready"&&event.data.version==="shared-flutter-v1"){window.__foodexHandshake=true;sendBootstrap();}});' +
+      'runtime.addEventListener("load",()=>{sendBootstrap();const retry=setInterval(()=>{const terminal=window.__foodexMessages.some((m)=>m.type==="foodex.preview.status"&&["ready","error","expired","forbidden"].includes(m.state));if(terminal){clearInterval(retry);}else{sendBootstrap();}},400);setTimeout(()=>clearInterval(retry),12000);});' +
+      'runtime.src="/' + testCase.app + '/index.html";' +
+      '</script></body></html>';
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(body);
+    return;
+  }
+
+  if (url.pathname === '/admin/app-preview/storefront-configuration' ||
+      url.pathname === '/api/v1/app-preview/storefront-configuration') {
+    const testCase = fixtureFromRequest(req, url);
+    if (!testCase || testCase.app !== 'customer') {
+      json(res, 403, { message: 'fixture_scope_rejected' });
+      return;
+    }
+    if (testCase.storeId === 99) {
+      json(res, 404, { message: 'fixture_missing_configuration' });
+      return;
+    }
+    json(res, 200, configurationResponse(testCase));
+    return;
+  }
+
+  if (url.pathname === '/api/v1/app-preview/events') {
+    json(res, 200, { data: [], meta: { cursor: 0, retry_after_ms: 5000 } });
+    return;
+  }
+
+  if (url.pathname.startsWith('/api/v1/app-preview/driver/assignments')) {
+    const testCase = fixtureFromRequest(req, url);
+    if (!testCase || testCase.app !== 'driver') {
+      json(res, 403, { message: 'fixture_scope_rejected' });
+      return;
+    }
+    json(res, 200, { data: [], meta: { scope: 'all', total: 0 } });
+    return;
+  }
+
+  if (url.pathname.startsWith('/api/')) {
+    json(res, 200, { data: [], meta: { fixture: true, total: 0 } });
     return;
   }
 
@@ -96,45 +236,142 @@ async function stableScreenshot(target, page, { initialDelay = 600 } = {}) {
   throw new Error('preview_render_did_not_stabilize');
 }
 
+async function installStandaloneHarness(page, testCase) {
+  await page.addInitScript(({ bootstrap }) => {
+    window.__foodexMessages = [];
+    window.__foodexHandshake = false;
+    window.__foodexBootstrapForTest = bootstrap;
+    addEventListener('message', (event) => {
+      if (event.origin !== location.origin || event.source !== window) return;
+      if (!event.data || typeof event.data !== 'object') return;
+      window.__foodexMessages.push(event.data);
+      if (event.data.type === 'foodex.preview.ready' &&
+          event.data.version === 'shared-flutter-v1') {
+        window.__foodexHandshake = true;
+      }
+    });
+  }, { bootstrap: bootstrapFor(testCase) });
+
+  await page.goto(origin + '/' + testCase.app + '/index.html', { waitUntil: 'networkidle' });
+  await page.evaluate(() => {
+    const send = () => window.postMessage(window.__foodexBootstrapForTest, location.origin);
+    send();
+    const retry = setInterval(() => {
+      const terminal = window.__foodexMessages.some((m) =>
+        m.type === 'foodex.preview.status' &&
+        ['ready', 'error', 'expired', 'forbidden'].includes(m.state));
+      if (terminal) clearInterval(retry); else send();
+    }, 400);
+    setTimeout(() => clearInterval(retry), 12000);
+  });
+}
+
+async function waitForState(page, testCase, surface) {
+  await page.waitForFunction(({ state, code }) =>
+    (window.__foodexMessages || []).some((m) =>
+      m && m.type === 'foodex.preview.status' &&
+      m.version === 'shared-flutter-v1' &&
+      m.state === state &&
+      (code == null || m.code === code)),
+    { state: testCase.expectedState, code: testCase.expectedCode ?? null },
+    { timeout: 20000 });
+
+  const snapshot = await page.evaluate(({ state, code }) => {
+    const status = [...(window.__foodexMessages || [])].reverse().find((m) =>
+      m && m.type === 'foodex.preview.status' &&
+      m.version === 'shared-flutter-v1' &&
+      m.state === state &&
+      (code == null || m.code === code));
+    return { handshake: window.__foodexHandshake === true, status };
+  }, { state: testCase.expectedState, code: testCase.expectedCode ?? null });
+
+  if (!snapshot.handshake) {
+    throw new Error(testCase.id + ': missing ' + surface + ' shared-flutter-v1 ready handshake');
+  }
+
+  if (testCase.expectedState === 'ready') {
+    const metadata = snapshot.status?.metadata || {};
+    if (metadata.target_type !== testCase.app ||
+        metadata.channel !== testCase.channel ||
+        Number(metadata.store_id) !== testCase.storeId ||
+        metadata.locale !== testCase.locale ||
+        metadata.configuration !== testCase.configuration ||
+        metadata.device_profile !== testCase.profile ||
+        Number(metadata.device_width) !== testCase.width) {
+      throw new Error(testCase.id + ': runtime metadata does not match deterministic fixture');
+    }
+    if (testCase.app === 'customer' &&
+        metadata.authenticated !== testCase.authenticated) {
+      throw new Error(testCase.id + ': customer auth mode mismatch');
+    }
+    if (testCase.app === 'driver' && metadata.auth_mode !== 'preview-driver') {
+      throw new Error(testCase.id + ': driver auth mode mismatch');
+    }
+  }
+
+  return snapshot.status;
+}
+
 const report = [];
 try {
   for (const testCase of cases) {
-    const { app, width, height, profile } = testCase;
+    const { app, width, height, profile, id } = testCase;
+
     const standalone = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
-    await standalone.goto(`http://127.0.0.1:4173/${app}/index.html`, { waitUntil: 'networkidle' });
+    await installStandaloneHarness(standalone, testCase);
+    const standaloneStatus = await waitForState(standalone, testCase, 'standalone');
     const standalonePng = await stableScreenshot(standalone, standalone);
 
-    const embedded = await browser.newPage({ viewport: { width: width + 40, height: height + 40 }, deviceScaleFactor: 1 });
-    await embedded.goto(`http://127.0.0.1:4173/host.html?app=${app}&width=${width}&height=${height}`, { waitUntil: 'networkidle' });
-    await embedded.waitForFunction(() => window.__foodexReady === true, null, { timeout: 15000 });
+    const embedded = await browser.newPage({
+      viewport: { width: width + 40, height: height + 40 },
+      deviceScaleFactor: 1,
+    });
+    await embedded.goto(origin + '/host.html?fixture=' + encodeURIComponent(id), { waitUntil: 'networkidle' });
+    const embeddedStatus = await waitForState(embedded, testCase, 'embedded');
     const iframe = embedded.locator('#runtime');
     const embeddedPng = await stableScreenshot(iframe, embedded, { initialDelay: 250 });
 
     const a = PNG.sync.read(standalonePng);
     const b = PNG.sync.read(embeddedPng);
     if (a.width !== b.width || a.height !== b.height) {
-      throw new Error(`${app}/${profile}: viewport mismatch ${a.width}x${a.height} vs ${b.width}x${b.height}`);
+      throw new Error(id + ': viewport mismatch ' + a.width + 'x' + a.height + ' vs ' + b.width + 'x' + b.height);
     }
+
     const diff = new PNG({ width: a.width, height: a.height });
     const changed = pixelmatch(a.data, b.data, diff.data, a.width, a.height, { threshold: 0.1 });
     const ratio = changed / (a.width * a.height);
+    const prefix = id + '__' + profile + '__' + width + 'x' + height;
 
-    const prefix = `${app}__${profile}__${width}x${height}`;
-    await fs.writeFile(path.join(evidence, `${prefix}__standalone.png`), standalonePng);
-    await fs.writeFile(path.join(evidence, `${prefix}__embedded.png`), embeddedPng);
-    await fs.writeFile(path.join(evidence, `${prefix}__diff.png`), PNG.sync.write(diff));
+    await fs.writeFile(path.join(evidence, prefix + '__standalone.png'), standalonePng);
+    await fs.writeFile(path.join(evidence, prefix + '__embedded.png'), embeddedPng);
+    await fs.writeFile(path.join(evidence, prefix + '__diff.png'), PNG.sync.write(diff));
 
     const js = await fs.readFile(path.join(root, app, 'main.dart.js'));
     report.push({
-      app, profile, width, height, changed_pixels: changed, diff_ratio: ratio,
+      id,
+      app,
+      channel: testCase.channel,
+      authenticated: testCase.authenticated,
+      configuration: testCase.configuration,
+      locale: testCase.locale,
+      expected_state: testCase.expectedState,
+      expected_code: testCase.expectedCode ?? null,
+      profile,
+      width,
+      height,
+      changed_pixels: changed,
+      diff_ratio: ratio,
       runtime_sha256: crypto.createHash('sha256').update(js).digest('hex'),
-      handshake: 'shared-flutter-v1',
+      handshake: contractVersion,
+      standalone_status: standaloneStatus.state,
+      embedded_status: embeddedStatus.state,
     });
+
     await standalone.close();
     await embedded.close();
 
     if (ratio > 0.001) {
-      throw new Error(`${app}/${profile}: embedded visual drift ${(ratio * 100).toFixed(4)}%`);
+      throw new Error(id + ': embedded visual drift ' + (ratio * 100).toFixed(4) + '%');
     }
   }
 } finally {
@@ -143,7 +380,7 @@ try {
 }
 
 await fs.writeFile(path.join(evidence, 'report.json'), JSON.stringify({
-  schema: 'foodex.app-preview.visual-parity.v1',
+  schema: 'foodex.app-preview.visual-parity.v2',
   generated_at: new Date().toISOString(),
   cases: report,
 }, null, 2) + '\n');
