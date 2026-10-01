@@ -871,6 +871,7 @@ class _MarketplaceHeader extends StatelessWidget {
                           children: [
                             const Text(
                               'FOODEX',
+                              key: ValueKey('marketplace-brand-title'),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
