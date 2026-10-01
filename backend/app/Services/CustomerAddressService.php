@@ -29,15 +29,39 @@ final class CustomerAddressService
 
         if ($platformCustomer instanceof PlatformCustomer) {
             return Address::query()
-                ->where('commerce_channel', $channel)
-                ->where(function (Builder $query) use ($platformCustomer): void {
-                    $query->where('platform_customer_id', $platformCustomer->getKey())
-                        ->orWhere(function (Builder $legacy) use ($platformCustomer): void {
-                            // Backward-compatible adoption path for addresses created by
-                            // pre-unification code after the migration has already run.
-                            $legacy->whereNull('platform_customer_id')
-                                ->where('customer_id', $platformCustomer->legacy_customer_id);
-                        });
+                ->where(function (Builder $owned) use (
+                    $platformCustomer,
+                    $domainCustomer,
+                    $channel,
+                ): void {
+                    $owned->where(function (Builder $platformOwned) use (
+                        $platformCustomer,
+                        $channel,
+                    ): void {
+                        $platformOwned
+                            ->where('commerce_channel', $channel)
+                            ->where(function (Builder $query) use ($platformCustomer): void {
+                                $query->where('platform_customer_id', $platformCustomer->getKey())
+                                    ->orWhere(function (Builder $legacy) use ($platformCustomer): void {
+                                        // Backward-compatible adoption path for old
+                                        // platform rows that have no domain FK.
+                                        $legacy->whereNull('platform_customer_id')
+                                            ->whereNull('b2b_customer_id')
+                                            ->whereNull('b2c_customer_id')
+                                            ->where('customer_id', $platformCustomer->legacy_customer_id);
+                                    });
+                            });
+                    });
+
+                    // Explicit domain ownership predates commerce_channel. Preserve
+                    // those rows without trusting a defaulted/missing channel marker.
+                    if ($channel === 'b2b' && $domainCustomer instanceof B2bCustomer) {
+                        $owned->orWhere('b2b_customer_id', $domainCustomer->getKey());
+                    }
+
+                    if ($channel === 'b2c' && $domainCustomer instanceof B2cCustomer) {
+                        $owned->orWhere('b2c_customer_id', $domainCustomer->getKey());
+                    }
                 });
         }
 
