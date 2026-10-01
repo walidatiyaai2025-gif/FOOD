@@ -12,27 +12,27 @@ permissions:
 jobs:
   backend-validation:
     name: Backend + MySQL commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
     uses: ./.github/workflows/backend-ci.yml
 
   customer-validation:
     name: Customer Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
     uses: ./.github/workflows/customer-app-ci.yml
 
   driver-validation:
     name: Driver Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
     uses: ./.github/workflows/driver-app-ci.yml
 
   runtime-evidence:
     name: Runtime screenshot evidence
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
     uses: ./.github/workflows/screenshot-evidence.yml
 
   release-gate:
     name: Platform Customer commerce release gate
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-')) }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-')) }}
     needs:
       - backend-validation
       - customer-validation
@@ -87,7 +87,7 @@ jobs:
           grep -Fq "driver app renders English LTR from the bilingual catalog" apps/driver_app/test/localization_test.dart
 
       - name: Verify Customer UI V3 full-journey convergence evidence
-        if: ${{ startsWith(github.head_ref, 'test/725-') }}
+        if: ${{ startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -112,6 +112,56 @@ jobs:
           grep -Fq '/cart?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
           grep -Fq '/orders/101/track?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
           grep -Fq '/profile?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+
+      - name: Verify Commerce Isolation A-H/J convergence evidence
+        if: ${{ startsWith(github.head_ref, 'test/743-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # A — authoritative Retail Merchant identity + self-store guard.
+          grep -Fq 'test_self_store_guard_blocks_existing_customer_cart_profile_and_checkout_paths' backend/tests/Feature/RetailMerchantIdentityIsolationTest.php
+          grep -Fq 'test_owned_store_block_is_multi_store_scoped_and_platform_customer_identity_is_not_duplicated' backend/tests/Feature/RetailMerchantIdentityIsolationTest.php
+
+          # B — Platform Home Retail placement and exact Retail entry.
+          grep -Fq 'test_retail_merchant_own_store_is_hidden_and_direct_browse_is_forbidden' backend/tests/Feature/PlatformCustomerMarketplaceTest.php
+          grep -Fq 'marketplace loads guest platform storefront and opens exact retail store' apps/customer_app/test/platform_marketplace_home_test.dart
+          grep -Fq 'authenticated retail browse carries bearer token without changing guest routes' apps/customer_app/test/guest_browsing_policy_test.dart
+
+          # C — authoritative order ownership and operational inbox isolation.
+          grep -Fq 'test_super_admin_operational_inbox_defaults_to_wholesale_and_requires_explicit_retail_channel' backend/tests/Feature/OrderOperationsIsolationTest.php
+          grep -Fq 'test_retail_admin_cannot_operate_foreign_order_but_can_transition_own_order' backend/tests/Feature/OrderOperationsIsolationTest.php
+
+          # D — B2B/B2C address books and checkout options do not cross.
+          grep -Fq 'test_b2b_and_b2c_address_books_and_checkout_options_do_not_cross_over' backend/tests/Feature/PlatformCustomerAddressTest.php
+          grep -Fq 'address books are separate authenticated B2B and B2C routes' apps/customer_app/test/multistore_route_partition_test.dart
+
+          # E — authoritative Wholesale order history and delivery timeline.
+          grep -Fq 'test_b2b_order_detail_exposes_authoritative_customer_safe_delivery_timeline' backend/tests/Feature/OrderDomainTest.php
+          grep -Fq 'test_b2b_failed_delivery_exposes_reason_code_without_driver_note' backend/tests/Feature/OrderDomainTest.php
+          grep -Fq 'B2B wholesale orders list renders seller state and opens exact detail' apps/customer_app/test/b2b_journey_test.dart
+          grep -Fq 'B2B order timeline renders only authoritative events and refreshes state' apps/customer_app/test/b2b_journey_test.dart
+
+          # F — Driver channel/store tenant isolation.
+          grep -Fq 'test_retail_driver_cannot_cross_store_even_when_channel_matches' backend/tests/Feature/DriverAssignmentLifecycleTest.php
+          grep -Fq 'test_cross_channel_assignment_and_execution_are_denied' backend/tests/Feature/DriverAssignmentLifecycleTest.php
+          grep -Fq 'HTTP auth derives exact driver channel from backend roles' apps/driver_app/test/driver_runtime_integration_test.dart
+          grep -Fq 'retail preview context enforces exact store and channel scope' apps/driver_app/test/driver_preview_runtime_test.dart
+
+          # G — converged production Driver shell + authoritative Assignment Details actions.
+          grep -Fq 'Assignment Details drives authoritative accepted pickup and delivery-start states' apps/driver_app/test/driver_active_journey_test.dart
+          grep -Fq 'new journey keeps the backend channel boundary' apps/driver_app/test/driver_active_journey_test.dart
+          grep -Fq 'production Driver runtime is new-only and legacy cannot be rewired' apps/driver_app/test/driver_new_only_wiring_test.dart
+
+          # H — exact notification audience, scope, dedupe and deep-link reauthorization.
+          grep -Fq 'test_retail_operational_events_reach_exact_store_audience_not_platform_super_admin' backend/tests/Feature/NotificationAudienceIsolationTest.php
+          grep -Fq 'test_unified_customer_reads_exact_b2b_and_b2c_lifecycle_contexts' backend/tests/Feature/NotificationAudienceIsolationTest.php
+          grep -Fq 'test_revoked_driver_notification_is_visible_but_cannot_authorize_assignment_open' backend/tests/Feature/NotificationAudienceIsolationTest.php
+          grep -Fq 'revoked assignment notification never opens order detail' apps/driver_app/test/driver_notification_page_test.dart
+
+          # J — App Preview auto-launches Published Guest and exact first eligible Driver.
+          grep -Fq 'test_preview_center_defaults_to_customer_published_auto_launch_contract' backend/tests/Feature/AppPreviewDashboardTest.php
+          grep -Fq 'test_driver_discovery_is_deterministic_and_exact_store_scoped_for_auto_launch' backend/tests/Feature/AppPreviewDashboardBridgeTest.php
 
       - name: Verify PCX-09 address and lifecycle evidence contracts
         if: ${{ startsWith(github.head_ref, 'feat/436-') || startsWith(github.ref_name, 'feat/436-') }}
@@ -153,7 +203,7 @@ jobs:
           grep -Fq 'capture My Addresses edit with location' apps/customer_app/test/screenshot_evidence_test.dart
 
       - name: Verify CJ-V2 Guest integrated acceptance
-        if: ${{ startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') }}
+        if: ${{ startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -192,6 +242,7 @@ jobs:
             echo "runtime_evidence=${{ needs.runtime-evidence.result }}"
             echo "journeys=12"
             echo "pcx09_address_lifecycle_contracts=${{ startsWith(github.head_ref, 'feat/436-') || startsWith(github.ref_name, 'feat/436-') }}"
+            echo "commerce_isolation_convergence=${{ startsWith(github.head_ref, 'test/743-') }}"
             echo "release_gate=PASS"
           } > artifacts/platform-customer-commerce-e2e.txt
 
