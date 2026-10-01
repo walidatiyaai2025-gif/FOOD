@@ -162,6 +162,37 @@ class DriverRuntimeInspector {
     });
   }
 
+  void recordVersionPolicyFailure({
+    required String failureClass,
+    required Uri uri,
+    required Duration elapsed,
+    required String platform,
+    required String appVersion,
+    required String appBuild,
+    required int attempt,
+    int? statusCode,
+    String? correlationId,
+    Object? error,
+  }) {
+    _append({
+      'type': 'driver_version_policy_failure',
+      'failure_class':
+          sanitizeForDiagnostics(failureClass, maxLength: 80),
+      'operation': 'GET ${sanitizeForDiagnostics(uri.path, maxLength: 240)}',
+      'endpoint': _safeEndpoint(uri),
+      'status_code': statusCode,
+      'duration_ms': elapsed.inMilliseconds,
+      'platform': sanitizeForDiagnostics(platform, maxLength: 20),
+      'app_version': sanitizeForDiagnostics(appVersion, maxLength: 40),
+      'app_build': sanitizeForDiagnostics(appBuild, maxLength: 40),
+      'attempt': attempt,
+      if (correlationId != null && correlationId.trim().isNotEmpty)
+        'correlation_id':
+            sanitizeForDiagnostics(correlationId.trim(), maxLength: 160),
+      if (error != null) 'error_type': error.runtimeType.toString(),
+    });
+  }
+
   void recordTrackingFailure({
     required String code,
     Object? error,
