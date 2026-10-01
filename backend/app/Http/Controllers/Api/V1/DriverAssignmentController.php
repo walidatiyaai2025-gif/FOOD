@@ -347,5 +347,4 @@ class DriverAssignmentController extends Controller
 
         return [$driver, $channel];
     }
-
 }
