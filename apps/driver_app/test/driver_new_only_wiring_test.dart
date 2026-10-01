@@ -28,7 +28,7 @@ void main() {
       );
       expect(
         source,
-        isNot(contains("tasks/driver_journey.dart")),
+        isNot(contains('tasks/driver_journey.dart')),
         reason: '$path must not import the legacy Driver journey.',
       );
     }
