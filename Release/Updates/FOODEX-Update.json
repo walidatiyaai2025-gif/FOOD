@@ -4,7 +4,7 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.42",
   "minimum_current_version": "1.0.6",
-  "sha256": "4ec933b9a0bcad5649b2e5c7a9cb3dc06a95de10d655a2c83a42b9c994c70f5f",
+  "sha256": "236a4c61cf7853aae44cb973ce75a1fc2ed0be67f10d323b5bc1b45a96d7b207",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
@@ -12,7 +12,7 @@
   "dashboard_fields": {
     "target_version": "1.0.42",
     "minimum_current_version": "1.0.6",
-    "sha256": "4ec933b9a0bcad5649b2e5c7a9cb3dc06a95de10d655a2c83a42b9c994c70f5f",
+    "sha256": "236a4c61cf7853aae44cb973ce75a1fc2ed0be67f10d323b5bc1b45a96d7b207",
     "contains_migrations": true,
     "release_notes": "FOODEX 1.0.42: Publish the complete MOBILE-PROD-UX package: production static asset reliability, authoritative Driver delivery lifecycle and notifications, Driver Home/Deliveries redesign, persistent Customer sessions, Dashboard-managed retail banners, and the redesigned Customer marketplace home. Include the final integrated mobile acceptance lane with backend, Customer/Driver Flutter and iOS validation, runtime screenshot evidence, and APP-PREVIEW visual/pixel-parity gates. Ship the self-contained Customer and Driver Flutter Web preview runtimes inside the Dashboard update package so App Preview updates do not require a separate runtime deployment path. Integrate FOOD Assistant V1 as a deterministic Arabic/English conversational copilot with authoritative FOODEX business/operations data, no LLM or external AI API, disabled by default and read-only by default. Preserve production AppVersion minimum/force-update rows and Driver fresh-location enforcement activation state; this release does not activate those policies."
   }
