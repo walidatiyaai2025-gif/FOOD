@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/location/customer_location_service.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
+import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import '../../core/location/customer_map_pin_selector.dart';
 import 'customer_account_data.dart';
+import 'customer_account_v3_widgets.dart';
 
 class CustomerAddressBookScreen extends StatefulWidget {
   const CustomerAddressBookScreen({
@@ -480,160 +483,214 @@ class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const ValueKey('customer-address-book-screen'),
-      appBar: AppBar(
-        title: Text(context.tr('customer.profile.addresses')),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          _reload();
-          try {
-            await _future;
-          } catch (_) {}
-        },
-        child: FutureBuilder<Object?>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const _AddressScrollableState(
-                child: CircularProgressIndicator(),
-              );
-            }
-            if (snapshot.hasError) {
-              return _AddressScrollableState(
-                key: const ValueKey('customer-addresses-error'),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      context.tr(customerAccountErrorKey(snapshot.error)),
+      body: CustomerCurvedHeaderSurface(
+        header: CustomerAccountHeader(
+          title: context.tr('customer.profile.addresses'),
+          subtitle: context.tr('customer.addresses.subtitle'),
+        ),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            _reload();
+            try {
+              await _future;
+            } catch (_) {}
+          },
+          child: FutureBuilder<Object?>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const _AddressScrollableState(
+                  child: CustomerAccountListSkeleton(),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return _AddressScrollableState(
+                  key: const ValueKey('customer-addresses-error'),
+                  child: CustomerStateView(
+                    kind: CustomerStateKind.error,
+                    title: context.tr(
+                      customerAccountErrorKey(snapshot.error),
                     ),
-                    const SizedBox(height: 8),
-                    FilledButton.tonalIcon(
-                      onPressed: _reload,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: Text(context.tr('customer.action.retry')),
-                    ),
-                  ],
+                    actionLabel: context.tr('customer.action.retry'),
+                    onAction: _reload,
+                  ),
+                );
+              }
+
+              final rows = customerAccountRows(snapshot.data);
+
+              return ListView(
+                key: const ValueKey('customer-addresses-list'),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsetsDirectional.fromSTEB(
+                  CustomerUiSpacing.page,
+                  CustomerUiSpacing.lg,
+                  CustomerUiSpacing.page,
+                  CustomerUiSpacing.xxl,
                 ),
-              );
-            }
+                children: [
+                  FilledButton.icon(
+                    key: const ValueKey('customer-address-add'),
+                    onPressed: () => _edit(),
+                    icon: const Icon(Icons.add_location_alt_outlined),
+                    label: Text(context.tr('customer.addresses.add')),
+                  ),
+                  const SizedBox(height: CustomerUiSpacing.md),
+                  if (rows.isEmpty)
+                    CustomerStateView(
+                      kind: CustomerStateKind.empty,
+                      title: context.tr('customer.addresses.empty'),
+                      message: context.tr('customer.addresses.subtitle'),
+                      icon: Icons.location_off_outlined,
+                    )
+                  else
+                    ...rows.map((address) {
+                      final id = (address['id'] as num?)?.toInt();
+                      final isDefault = address['is_default'] == true;
+                      final label = address['label']?.toString().trim();
+                      final parts = [
+                        address['line1'],
+                        address['area'],
+                        address['city'],
+                      ]
+                          .where(
+                            (value) =>
+                                value != null &&
+                                value.toString().trim().isNotEmpty,
+                          )
+                          .map((value) => value.toString())
+                          .join(' · ');
 
-            final rows = customerAccountRows(snapshot.data);
-
-            return ListView(
-              key: const ValueKey('customer-addresses-list'),
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-              children: [
-                FilledButton.icon(
-                  key: const ValueKey('customer-address-add'),
-                  onPressed: () => _edit(),
-                  icon: const Icon(Icons.add_location_alt_outlined),
-                  label: Text(context.tr('customer.addresses.add')),
-                ),
-                const SizedBox(height: 12),
-                if (rows.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: Text(context.tr('customer.addresses.empty')),
-                    ),
-                  )
-                else
-                  ...rows.map((address) {
-                    final id = (address['id'] as num?)?.toInt();
-                    final isDefault = address['is_default'] == true;
-                    final label = address['label']?.toString().trim();
-                    final parts = [
-                      address['line1'],
-                      address['area'],
-                      address['city'],
-                    ]
-                        .where(
-                          (value) =>
-                              value != null &&
-                              value.toString().trim().isNotEmpty,
-                        )
-                        .map((value) => value.toString())
-                        .join(' · ');
-
-                    return Card(
-                      child: ListTile(
-                        key: ValueKey(
-                          'customer-address-' +
-                              (id?.toString() ?? 'unknown'),
+                      return Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: CustomerUiSpacing.sm,
                         ),
-                        title: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                label == null || label.isEmpty
-                                    ? context.tr(
-                                        'customer.addresses.address',
-                                      )
-                                    : label,
-                              ),
-                            ),
-                            if (isDefault)
-                              Chip(
-                                label: Text(
-                                  context.tr(
-                                    'customer.addresses.default_badge',
+                        child: CustomerAccountSurfaceCard(
+                          key: ValueKey(
+                            'customer-address-' +
+                                (id?.toString() ?? 'unknown'),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: isDefault
+                                      ? CustomerUiColors.limeSoft
+                                      : CustomerUiColors.mint,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const SizedBox.square(
+                                  dimension: 48,
+                                  child: Icon(
+                                    Icons.location_on_outlined,
+                                    color: CustomerUiColors.deepGreenStrong,
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
-                        subtitle: parts.isEmpty ? null : Text(parts),
-                        trailing: id == null
-                            ? null
-                            : PopupMenuButton<String>(
-                                key: ValueKey(
-                                  'customer-address-menu-' + id.toString(),
-                                ),
-                                onSelected: (action) {
-                                  if (action == 'edit') {
-                                    _edit(address);
-                                  } else if (action == 'default') {
-                                    _setDefault(id);
-                                  } else if (action == 'delete') {
-                                    _delete(id);
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  PopupMenuItem<String>(
-                                    value: 'edit',
-                                    child: Text(
-                                      context.tr(
-                                        'customer.addresses.edit',
-                                      ),
+                              const SizedBox(width: CustomerUiSpacing.sm),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Wrap(
+                                      spacing: CustomerUiSpacing.xs,
+                                      runSpacing: CustomerUiSpacing.xs,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: [
+                                        Text(
+                                          label == null || label.isEmpty
+                                              ? context.tr(
+                                                  'customer.addresses.address',
+                                                )
+                                              : label,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium,
+                                        ),
+                                        if (isDefault)
+                                          CustomerBadge(
+                                            label: context.tr(
+                                              'customer.addresses.default_badge',
+                                            ),
+                                            tone: CustomerBadgeTone.accent,
+                                          ),
+                                      ],
                                     ),
+                                    if (parts.isNotEmpty) ...[
+                                      const SizedBox(
+                                        height: CustomerUiSpacing.xs,
+                                      ),
+                                      Text(
+                                        parts,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: CustomerUiColors.muted,
+                                            ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (id != null)
+                                PopupMenuButton<String>(
+                                  key: ValueKey(
+                                    'customer-address-menu-' + id.toString(),
                                   ),
-                                  if (!isDefault)
+                                  icon: const Icon(
+                                    Icons.more_vert_rounded,
+                                    color: CustomerUiColors.inkSoft,
+                                  ),
+                                  onSelected: (action) {
+                                    if (action == 'edit') {
+                                      _edit(address);
+                                    } else if (action == 'default') {
+                                      _setDefault(id);
+                                    } else if (action == 'delete') {
+                                      _delete(id);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
                                     PopupMenuItem<String>(
-                                      value: 'default',
+                                      value: 'edit',
                                       child: Text(
                                         context.tr(
-                                          'customer.addresses.set_default',
+                                          'customer.addresses.edit',
                                         ),
                                       ),
                                     ),
-                                  PopupMenuItem<String>(
-                                    value: 'delete',
-                                    child: Text(
-                                      context.tr(
-                                        'customer.addresses.delete',
+                                    if (!isDefault)
+                                      PopupMenuItem<String>(
+                                        value: 'default',
+                                        child: Text(
+                                          context.tr(
+                                            'customer.addresses.set_default',
+                                          ),
+                                        ),
+                                      ),
+                                    PopupMenuItem<String>(
+                                      value: 'delete',
+                                      child: Text(
+                                        context.tr(
+                                          'customer.addresses.delete',
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    );
-                  }),
-              ],
-            );
-          },
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -652,11 +709,13 @@ class _AddressScrollableState extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(24),
-      children: [
-        const SizedBox(height: 80),
-        Center(child: child),
-      ],
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        CustomerUiSpacing.page,
+        CustomerUiSpacing.lg,
+        CustomerUiSpacing.page,
+        CustomerUiSpacing.xxl,
+      ),
+      children: [child],
     );
   }
 }
