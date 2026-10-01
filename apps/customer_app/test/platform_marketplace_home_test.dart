@@ -596,6 +596,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Dashboard Retail Banner'), findsOneWidget);
+    expect(tester.takeException(), isNull);
 
     await tester.drag(
       find.byType(CustomScrollView),
