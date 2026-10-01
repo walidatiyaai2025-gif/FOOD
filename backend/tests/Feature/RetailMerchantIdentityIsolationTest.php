@@ -258,7 +258,7 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         } catch (SelfStorePurchaseNotAllowed $exception) {
             $this->assertGreaterThan(0, $exception->storeId);
             $this->assertSame(
-                SelfStorePurchaseNotAllowed::ERROR_CODE,
+                'Retail merchants cannot purchase from a Retail Store they own or manage.',
                 $exception->getMessage(),
             );
 
