@@ -216,6 +216,14 @@ final class CustomerDomainResolver
 
         abort_unless(in_array($channel, ['b2b', 'b2c'], true), 404);
 
+        if ($channel === 'b2b') {
+            abort_unless(
+                $storeId === app(WholesalePrincipal::class)->storeId(),
+                404,
+                'Wholesale commerce is available only through the principal Wholesale Store.',
+            );
+        }
+
         return $channel === 'b2b'
             ? [($request === null ? $this->b2b($user) : $this->b2bFromRequest($user, $request)), 'b2b']
             : [$this->b2c($user, $storeId), 'b2c'];
