@@ -437,10 +437,11 @@ class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen> {
       ),
     );
 
-    for (final controller in controllers.values) {
-      controller.dispose();
-    }
-
+    // The dialog route can still be running its reverse transition when
+    // showDialog completes. Disposing externally-owned field controllers here
+    // races that final rebuild ("TextEditingController used after disposed").
+    // Once the route subtree is gone and this method returns, these local
+    // controllers become unreachable and are reclaimed safely.
     if (accepted != true || payload == null) return;
 
     try {
