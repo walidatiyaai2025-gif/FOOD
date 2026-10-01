@@ -475,11 +475,19 @@ class _RetailCatalogProductScreenState
                 CustomerUiSpacing.xxl,
               ),
               children: [
-                CustomerProductImage(
-                  imageUrl: image,
-                  aspectRatio:
-                      image?.trim().isNotEmpty == true ? 1.15 : 2.4,
-                ),
+                if (image?.trim().isNotEmpty == true)
+                  CustomerProductImage(
+                    imageUrl: image,
+                    aspectRatio: 1.15,
+                  )
+                else
+                  SizedBox(
+                    height: 136,
+                    child: CustomerProductImage(
+                      imageUrl: image,
+                      aspectRatio: 2.4,
+                    ),
+                  ),
                 const SizedBox(height: CustomerUiSpacing.md),
                 DecoratedBox(
                   decoration: BoxDecoration(
