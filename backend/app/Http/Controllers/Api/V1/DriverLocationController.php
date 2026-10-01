@@ -28,13 +28,16 @@ class DriverLocationController extends Controller
             'is_mocked' => ['nullable', 'boolean'],
         ]);
 
-        $activeAssignmentId = DriverAssignment::query()
+        $activeAssignment = DriverAssignment::query()
             ->where('driver_id', $driver->getKey())
             ->where('assignment_type', $channel)
             ->where('store_id', $storeId)
-            ->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned'])
+            ->whereIn('status', ['accepted', 'picked_up', 'out_for_delivery'])
+            ->whereNull('completed_at')
             ->latest('id')
-            ->value('id');
+            ->first(['id', 'status']);
+        $activeAssignmentId = $activeAssignment?->getKey();
+        $activeAssignmentStatus = $activeAssignment?->status;
 
         $incomingCapturedAt = CarbonImmutable::parse((string) $data['captured_at']);
 
@@ -55,7 +58,17 @@ class DriverLocationController extends Controller
                 $location instanceof DriverCurrentLocation
                 && CarbonImmutable::parse((string) $location->captured_at)->greaterThanOrEqualTo($incomingCapturedAt)
             ) {
-                return $location;
+                $normalizedActiveAssignmentId = $activeAssignmentId === null
+                    ? null
+                    : (int) $activeAssignmentId;
+
+                if ($location->active_assignment_id !== $normalizedActiveAssignmentId) {
+                    $location->forceFill([
+                        'active_assignment_id' => $normalizedActiveAssignmentId,
+                    ])->save();
+                }
+
+                return $location->fresh();
             }
 
             $values = [
@@ -92,7 +105,13 @@ class DriverLocationController extends Controller
                 'channel' => (string) $location->channel,
                 'captured_at' => CarbonImmutable::parse((string) $location->captured_at)->toISOString(),
                 'received_at' => CarbonImmutable::parse((string) $location->received_at)->toISOString(),
-                'active_assignment_id' => $location->active_assignment_id,
+                'active_assignment_id' => $activeAssignmentId === null
+                    ? null
+                    : (int) $activeAssignmentId,
+                'active_assignment_status' => $activeAssignmentStatus === null
+                    ? null
+                    : (string) $activeAssignmentStatus,
+                'tracking_required' => $activeAssignmentId !== null,
             ],
         ]);
     }
