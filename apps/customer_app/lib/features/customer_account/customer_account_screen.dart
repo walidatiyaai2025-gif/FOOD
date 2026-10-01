@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_interpolation_to_compose_strings
+
 import 'package:flutter/material.dart';
 
 import '../../core/api/b2c_account_api.dart';
@@ -7,6 +9,7 @@ import 'customer_account_data.dart';
 class CustomerAccountScreen extends StatefulWidget {
   const CustomerAccountScreen({
     required this.api,
+    required this.favoritesApi,
     required this.retailStoreId,
     this.onOpenAddresses,
     this.onOpenFavorites,
@@ -16,6 +19,7 @@ class CustomerAccountScreen extends StatefulWidget {
   });
 
   final B2cAccountApi api;
+  final B2cRetailFavoritesApi favoritesApi;
   final int retailStoreId;
   final VoidCallback? onOpenAddresses;
   final VoidCallback? onOpenFavorites;
@@ -38,7 +42,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
     super.initState();
     _profile = widget.api.profile();
     _addresses = widget.api.addresses();
-    _favorites = widget.api.favorites(storeId: widget.retailStoreId);
+    _favorites = widget.favoritesApi.favoritesForStore(widget.retailStoreId);
   }
 
   @override
@@ -64,7 +68,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
     setState(() {
       _profile = widget.api.profile();
       _addresses = widget.api.addresses();
-      _favorites = widget.api.favorites(storeId: widget.retailStoreId);
+      _favorites = widget.favoritesApi.favoritesForStore(widget.retailStoreId);
       _notifications = widget.api.notifications(locale: _locale);
     });
   }
@@ -215,7 +219,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
               onTap: widget.onOpenFavorites,
               onRetry: () => setState(
                 () => _favorites =
-                    widget.api.favorites(storeId: widget.retailStoreId),
+                    widget.favoritesApi.favoritesForStore(widget.retailStoreId),
               ),
             ),
             const SizedBox(height: 12),
