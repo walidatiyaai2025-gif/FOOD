@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.42 - 2026-10-01
+
+- Publish the complete MOBILE-PROD-UX package: production static asset reliability, authoritative Driver delivery lifecycle and notifications, Driver Home/Deliveries redesign, persistent Customer sessions, Dashboard-managed retail banners, and the redesigned Customer marketplace home.
+- Include the final integrated mobile acceptance lane with backend, Customer/Driver Flutter and iOS validation, runtime screenshot evidence, and APP-PREVIEW visual/pixel-parity gates.
+- Ship the self-contained Customer and Driver Flutter Web preview runtimes inside the Dashboard update package so App Preview updates do not require a separate runtime deployment path.
+- Integrate FOOD Assistant V1 as a deterministic Arabic/English conversational copilot with authoritative FOODEX business/operations data, no LLM or external AI API, disabled by default and read-only by default.
+- Preserve production AppVersion minimum/force-update rows and Driver fresh-location enforcement activation state; this release does not activate those policies.
+
 ## 1.0.41 - 2026-10-01
 
 - Publish all reliability fixes merged after the already-distributed 1.0.40 under a new immutable release identity; 1.0.40 is not reused.
