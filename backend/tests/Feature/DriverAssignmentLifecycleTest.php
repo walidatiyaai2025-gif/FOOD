@@ -998,8 +998,19 @@ class DriverAssignmentLifecycleTest extends TestCase
 
     private function order(string $channel): array
     {
-        $typeId = (int) DB::table('store_types')->where('code', strtoupper($channel))->value('id');
-        $storeId = (int) DB::table('stores')->insertGetId(['store_type_id' => $typeId, 'code' => 'DEL-'.strtoupper($channel), 'name' => 'Delivery Store', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        if ($channel === 'b2b') {
+            $storeId = app(WholesalePrincipal::class)->storeId();
+        } else {
+            $typeId = (int) DB::table('store_types')->where('code', strtoupper($channel))->value('id');
+            $storeId = (int) DB::table('stores')->insertGetId([
+                'store_type_id' => $typeId,
+                'code' => 'DEL-'.strtoupper($channel),
+                'name' => 'Delivery Store',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
         $customerUser = User::query()->create(['name' => 'Customer', 'email' => $channel.'-delivery-customer@example.test', 'password' => 'password', 'is_active' => true]);
         $customer = Customer::query()->create(['user_id' => $customerUser->id, 'type' => $channel, 'name' => 'Customer', 'email' => $customerUser->email]);
         $order = Order::query()->create(['store_id' => $storeId, 'customer_id' => $customer->id, 'order_number' => 'DEL-'.strtoupper($channel).'-1', 'channel' => $channel, 'status' => 'pending', 'currency' => 'KWD', 'subtotal' => 1, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 1]);
