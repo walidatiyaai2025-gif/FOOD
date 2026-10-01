@@ -132,27 +132,28 @@ function classify({
   if (!managed) return { status: 'ignored', reason: 'not-managed' };
 
   const blocker = workerState?.blocker || 'none';
-  if (HUMAN_BLOCKERS.has(blocker)) {
-    return {
-      status: 'human-gate',
-      reason: blocker,
-      labels: ['gate:human', ...(gateLabel(blocker) ? [gateLabel(blocker)] : [])],
-    };
-  }
-
   const explicitState = workerState?.state || '';
   if (explicitState === 'HANDOFF') {
     return { status: 'handoff-ready', reason: 'explicit-handoff' };
   }
 
   // Red repository state is actionable work, not inactivity. It bypasses the
-  // stale-worker timer even when the current worker heartbeat is fresh.
+  // stale-worker timer and also outranks an external gate until repo-local red
+  // work is cleared.
   if (hasOpenPr && RED_CI_CONCLUSIONS.has(ciConclusion)) {
     return { status: 'handoff-ready', reason: `ci-${ciConclusion}` };
   }
 
   if (hasOpenPr && mergeable === false) {
     return { status: 'handoff-ready', reason: 'merge-conflict' };
+  }
+
+  if (HUMAN_BLOCKERS.has(blocker)) {
+    return {
+      status: 'human-gate',
+      reason: blocker,
+      labels: ['gate:human', ...(gateLabel(blocker) ? [gateLabel(blocker)] : [])],
+    };
   }
 
   if (ciRunning) {
@@ -335,16 +336,87 @@ function summarizeWorkflowRuns(runs) {
   return { running: false, conclusion: meaningful[0] };
 }
 
+function summarizeCheckRuns(checkRuns) {
+  const newestByCheck = new Map();
+  for (const check of checkRuns) {
+    const key = `${check.app?.id || 'app'}:${check.name || check.id}`;
+    const ms = newestMillis(check.started_at, check.completed_at);
+    const previous = newestByCheck.get(key);
+    if (!previous || ms >= previous.ms) newestByCheck.set(key, { check, ms });
+  }
+
+  const latest = [...newestByCheck.values()].map(entry => entry.check);
+  const red = latest.find(
+    check => check.status === 'completed' && RED_CI_CONCLUSIONS.has(check.conclusion),
+  );
+  const running = latest.some(check => check.status !== 'completed');
+
+  if (red) return { running, conclusion: red.conclusion };
+  if (running) return { running: true, conclusion: null };
+  return { running: false, conclusion: null };
+}
+
+function summarizeCommitStatuses(statuses) {
+  const newestByContext = new Map();
+  for (const status of statuses) {
+    const key = status.context || status.id;
+    const ms = newestMillis(status.updated_at, status.created_at);
+    const previous = newestByContext.get(key);
+    if (!previous || ms >= previous.ms) newestByContext.set(key, { status, ms });
+  }
+
+  const latest = [...newestByContext.values()].map(entry => entry.status);
+  const red = latest.find(status => status.state === 'failure' || status.state === 'error');
+  const running = latest.some(status => status.state === 'pending');
+
+  if (red) return { running, conclusion: 'failure' };
+  if (running) return { running: true, conclusion: null };
+  return { running: false, conclusion: null };
+}
+
+function combineCiStates(states) {
+  const red = states.find(state => RED_CI_CONCLUSIONS.has(state.conclusion));
+  const running = states.some(state => state.running);
+  if (red) return { running, conclusion: red.conclusion };
+  if (running) return { running: true, conclusion: null };
+
+  const successful = states.find(state => state.conclusion === 'success');
+  return { running: false, conclusion: successful ? 'success' : null };
+}
+
 async function workflowState(github, owner, repo, pr) {
   if (!pr) return { running: false, conclusion: null };
-  const { data } = await github.rest.actions.listWorkflowRunsForRepo({
-    owner,
-    repo,
-    branch: pr.head.ref,
-    per_page: 100,
-  });
-  const matching = data.workflow_runs.filter(run => run.head_sha === pr.head.sha);
-  return summarizeWorkflowRuns(matching);
+
+  const [workflowResponse, checksResponse, statusesResponse] = await Promise.all([
+    github.rest.actions.listWorkflowRunsForRepo({
+      owner,
+      repo,
+      branch: pr.head.ref,
+      per_page: 100,
+    }),
+    github.rest.checks.listForRef({
+      owner,
+      repo,
+      ref: pr.head.sha,
+      per_page: 100,
+    }),
+    github.rest.repos.listCommitStatusesForRef({
+      owner,
+      repo,
+      ref: pr.head.sha,
+      per_page: 100,
+    }),
+  ]);
+
+  const matching = workflowResponse.data.workflow_runs.filter(
+    run => run.head_sha === pr.head.sha,
+  );
+
+  return combineCiStates([
+    summarizeWorkflowRuns(matching),
+    summarizeCheckRuns(checksResponse.data.check_runs || []),
+    summarizeCommitStatuses(statusesResponse.data || []),
+  ]);
 }
 
 async function run({ github, context, core, nowMs = Date.now() }) {
@@ -475,5 +547,7 @@ module.exports = {
   parseWorkerState,
   run,
   statusLabel,
+  summarizeCheckRuns,
+  summarizeCommitStatuses,
   summarizeWorkflowRuns,
 };
