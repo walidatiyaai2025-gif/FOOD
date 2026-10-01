@@ -139,17 +139,11 @@ jobs:
           grep -Fq 'catalog requests keep exact Retail store context at every boundary' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
           grep -Fq 'guest cart tokens never cross Retail stores' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
           grep -Fq 'guest session restores the same store cart after app restart' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
-          grep -Fq 'guest auth handoff merges the same-store cart exactly once' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
-          grep -Fq 'cart reload sends the token for the exact selected store only' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
-          grep -Fq 'checkout creates one authoritative order per guarded submission' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
+          grep -Fq 'guest Login or Register returns to checkout and merges cart exactly once' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
+          grep -Fq 'checkout uses backend-supported address and payment options' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
+          grep -Fq 'checkout retry keeps one order identity and stable idempotency key' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
           grep -Fq 'order lifecycle push refetches authoritative order state' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
-          grep -Fq 'guest auth handoff merges the same-store cart exactly once' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
-          grep -Fq 'authenticated multi-store and Wholesale contexts stay isolated' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
-          grep -Fq 'test_checkout_idempotency_replays_same_order_and_rejects_changed_payload' backend/tests/Feature/CheckoutDomainTest.php
-          grep -Fq 'test_retail_registration_notifies_only_authorized_store_audience_and_is_deduplicated' backend/tests/Feature/PlatformCustomerOperationalNotificationTest.php
-          grep -Fq 'test_wholesale_registration_notifies_b2b_audience_and_login_never_reemits_registration' backend/tests/Feature/PlatformCustomerOperationalNotificationTest.php
-          grep -Fq 'authenticated multi-store and Wholesale contexts stay isolated' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
-
+          grep -Fq 'authenticated multi-store and Wholesale smoke regressions stay isolated' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
           grep -Fq 'test_checkout_idempotency_replays_same_order_and_rejects_changed_payload' backend/tests/Feature/CheckoutDomainTest.php
           grep -Fq 'test_retail_registration_notifies_only_authorized_store_audience_and_is_deduplicated' backend/tests/Feature/PlatformCustomerOperationalNotificationTest.php
           grep -Fq 'test_wholesale_registration_notifies_b2b_audience_and_login_never_reemits_registration' backend/tests/Feature/PlatformCustomerOperationalNotificationTest.php
