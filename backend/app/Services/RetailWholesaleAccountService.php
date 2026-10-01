@@ -5,15 +5,16 @@ namespace App\Services;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\Store;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 final class RetailWholesaleAccountService
 {
     public function __construct(private readonly B2bCustomerService $customers) {}
 
-    public function ensureForStore(Store $store, ?int $priceTierId = null): B2bCustomer
+    public function ensureForStore(Store $store, ?int $priceTierId = null, ?User $owner = null): B2bCustomer
     {
-        return DB::transaction(function () use ($store, $priceTierId): B2bCustomer {
+        return DB::transaction(function () use ($store, $priceTierId, $owner): B2bCustomer {
             $locked = Store::query()->whereKey($store->getKey())->lockForUpdate()->firstOrFail();
             $this->assertRetailStore($locked);
 
@@ -22,6 +23,15 @@ final class RetailWholesaleAccountService
                 ->value('b2b_customer_id');
 
             if ($existingCustomerId !== null) {
+                if ($owner instanceof User) {
+                    DB::table('retail_wholesale_accounts')
+                        ->where('retail_store_id', $locked->getKey())
+                        ->update([
+                            'owner_user_id' => $owner->getKey(),
+                            'updated_at' => now(),
+                        ]);
+                }
+
                 $customer = B2bCustomer::query()->findOrFail((int) $existingCustomerId);
                 $this->syncIdentity($locked, $customer, $priceTierId);
 
@@ -47,6 +57,7 @@ final class RetailWholesaleAccountService
             DB::table('retail_wholesale_accounts')->insert([
                 'retail_store_id' => $locked->getKey(),
                 'b2b_customer_id' => $customer->getKey(),
+                'owner_user_id' => $owner?->getKey(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -55,9 +66,9 @@ final class RetailWholesaleAccountService
         }, 3);
     }
 
-    public function syncForStore(Store $store, ?int $priceTierId = null): B2bCustomer
+    public function syncForStore(Store $store, ?int $priceTierId = null, ?User $owner = null): B2bCustomer
     {
-        return $this->ensureForStore($store, $priceTierId);
+        return $this->ensureForStore($store, $priceTierId, $owner);
     }
 
     public function retailStoreIdForCustomer(int $b2bCustomerId): ?int

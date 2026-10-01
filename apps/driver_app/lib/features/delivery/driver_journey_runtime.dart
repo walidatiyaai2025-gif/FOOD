@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/driver_session.dart';
 import '../../core/localization/driver_translations.dart';
+import '../../core/navigation/driver_shell.dart';
 import '../../core/navigation/driver_navigation.dart';
 import '../../core/preview/driver_preview_context.dart';
 import 'active/driver_active_journey.dart';
@@ -19,6 +20,9 @@ class DriverJourneyRuntimePage extends StatelessWidget {
     this.initialAssignmentStatus,
     this.navigationLauncher = launchDriverNavigation,
     this.previewContext,
+    this.homeRoute,
+    this.deliveriesRoute,
+    this.notificationsRoute,
   });
 
   final DriverChannel channel;
@@ -28,6 +32,9 @@ class DriverJourneyRuntimePage extends StatelessWidget {
   final String? initialAssignmentStatus;
   final DriverNavigationLauncher navigationLauncher;
   final DriverPreviewContext? previewContext;
+  final String? homeRoute;
+  final String? deliveriesRoute;
+  final String? notificationsRoute;
 
   Future<void> _openCompletion(
     BuildContext context,
@@ -50,7 +57,18 @@ class DriverJourneyRuntimePage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => DriverShellScaffold(
+        destination: DriverShellDestination.deliveries,
+        homeRoute: homeRoute,
+        deliveriesRoute: deliveriesRoute,
+        notificationsRoute: notificationsRoute,
+        title: Text(
+          context.tr(
+            channel == DriverChannel.b2c
+                ? 'driver.b2c.title'
+                : 'driver.b2b.title',
+          ),
+        ),
         body: DriverActiveJourneyPage(
         channel: channel,
         repository: repository,

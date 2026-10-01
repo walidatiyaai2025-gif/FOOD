@@ -42,7 +42,7 @@
             <div class="foodex-header-actions">@include('admin._live-notifications',['user'=>$user])</div>
         </header>
 
-        <div class="preview-layout">
+        <div class="preview-layout" data-preview-entry="auto" data-preview-default-app="customer" data-preview-default-configuration="published">
             <section class="foodex-card preview-controls" aria-label="{{ __('admin.preview_center.controls') }}">
                 <label>{{ __('admin.preview_center.application') }}
                     <select id="preview-app" data-preview-control="app">
@@ -207,6 +207,10 @@
         canImpersonateCustomer: @json($canImpersonateCustomer),
         canImpersonateDriver: @json($canImpersonateDriver),
         wholesaleStoreId: @json($wholesaleStoreId),
+        wholesaleDriversUrl: @json(route('admin.b2b.module', ['module' => 'drivers'])),
+        retailDriversUrl: @json(route('admin.b2c.module', ['module' => 'drivers'])),
+        canManageWholesaleDrivers: @json($canManageWholesaleDrivers),
+        manageableRetailDriverStoreIds: @json($manageableRetailDriverStoreIds),
     };
     const copy = {
         unavailable: @json(__('admin.preview_center.unavailable')),
@@ -218,6 +222,10 @@
         selectIdentityFirst: @json(__('admin.preview_center.select_identity_first')),
         loadingTargets: @json(__('admin.preview_center.loading_targets')),
         noTargets: @json(__('admin.preview_center.no_targets')),
+        driverRequiredStatus: @json(__('admin.preview_center.driver_required_status')),
+        driverRequiredTitle: @json(__('admin.preview_center.driver_required_title')),
+        driverRequiredDescription: @json(__('admin.preview_center.driver_required_description')),
+        manageDrivers: @json(__('admin.preview_center.manage_drivers')),
         relaunch: @json(__('admin.preview_center.relaunch')),
     };
 
@@ -249,6 +257,8 @@
     let activeSession = null;
     let runtimeFrame = null;
     let targetRequest = 0;
+    let contextRequest = 0;
+    let launchRequest = 0;
 
     const selectedStoreId = () => {
         if (channel?.value === 'b2b') return Number(bridgeConfig.wholesaleStoreId || 0) || null;
@@ -523,9 +533,59 @@
     const supportAccess = () =>
         Boolean(bridgeConfig.supportAccessRequired && channel?.value === 'b2c');
 
-    const revokeActive = async (reason = 'context_changed', keepalive = false) => {
-        const snapshot = activeSession;
+    const driverManagementUrl = () => {
+        const storeId = selectedStoreId();
+        if (channel?.value === 'b2b') {
+            return bridgeConfig.canManageWholesaleDrivers ? bridgeConfig.wholesaleDriversUrl : null;
+        }
+
+        const allowedStoreIds = Array.isArray(bridgeConfig.manageableRetailDriverStoreIds)
+            ? bridgeConfig.manageableRetailDriverStoreIds.map(Number)
+            : [];
+        if (!storeId || !allowedStoreIds.includes(storeId)) return null;
+
+        try {
+            const url = new URL(bridgeConfig.retailDriversUrl, window.location.origin);
+            url.searchParams.set('store_id', String(storeId));
+            if (supportAccess()) url.searchParams.set('support_access', '1');
+            return url.toString();
+        } catch (_) {
+            return null;
+        }
+    };
+
+    const restoreDriverRequired = () => {
+        runtimeFrame = null;
         activeSession = null;
+        if (!frame) return;
+
+        const shell = document.createElement('div');
+        shell.className = 'preview-unavailable';
+
+        const body = document.createElement('div');
+        const title = document.createElement('strong');
+        title.textContent = copy.driverRequiredTitle;
+        const description = document.createElement('p');
+        description.textContent = copy.driverRequiredDescription;
+        body.append(title, description);
+
+        const manageUrl = driverManagementUrl();
+        if (manageUrl) {
+            const action = document.createElement('a');
+            action.className = 'foodex-button foodex-button-primary';
+            action.href = manageUrl;
+            action.textContent = copy.manageDrivers;
+            body.appendChild(action);
+        }
+
+        shell.appendChild(body);
+        frame.replaceChildren(shell);
+        clearInspector('driver_required');
+        setStatus(copy.driverRequiredStatus);
+        if (launch) launch.textContent = @json(__('admin.preview_center.launch'));
+    };
+
+    const revokeSession = async (snapshot, reason = 'context_changed', keepalive = false) => {
         if (!snapshot?.context?.session_id) return;
 
         try {
@@ -549,23 +609,53 @@
         }
     };
 
-    const resetSecurityContext = () => {
-        void revokeActive('context_changed');
+    const revokeActive = async (reason = 'context_changed', keepalive = false) => {
+        const snapshot = activeSession;
+        activeSession = null;
+        await revokeSession(snapshot, reason, keepalive);
+    };
+
+    const resetSecurityContext = async () => {
+        const requestId = ++contextRequest;
+        ++launchRequest;
+        await revokeActive('context_changed');
+        if (requestId !== contextRequest) return;
+
         clearInspector('unavailable');
         restoreUnavailable();
         syncChannel();
         syncPersona();
-        void loadTargets();
+
+        const discovery = await loadTargets({
+            selectFirstDriver: app?.value === 'driver',
+        });
+        if (requestId !== contextRequest || discovery?.status === 'stale') return;
+
+        if (app?.value === 'driver') {
+            if (discovery?.status === 'ok' && discovery.rows.length === 0) {
+                restoreDriverRequired();
+                return;
+            }
+            if (discovery?.status === 'ok' && target?.value) {
+                await launchPreview();
+            }
+            return;
+        }
+
+        if (persona?.value === 'guest') {
+            await launchPreview();
+        }
     };
 
     const resetPresentation = () => {
+        ++launchRequest;
         clearInspector('unavailable');
         restoreUnavailable();
         syncDevice();
         renderInspector();
     };
 
-    async function loadTargets() {
+    async function loadTargets({selectFirstDriver = false} = {}) {
         const requestId = ++targetRequest;
         syncPersona();
 
@@ -573,14 +663,14 @@
             if (target) target.disabled = true;
             targetPlaceholder(copy.selectTarget);
             if (targetState) targetState.textContent = '';
-            return;
+            return {status: 'not_required', rows: []};
         }
 
         if (!canImpersonateSelectedApp()) {
             if (target) target.disabled = true;
             targetPlaceholder(copy.noTargets);
             if (targetState) targetState.textContent = copy.noTargets;
-            return;
+            return {status: 'forbidden', rows: []};
         }
 
         if (target) target.disabled = true;
@@ -602,9 +692,10 @@
             });
             if (!response.ok) throw new Error('target_discovery_failed');
             const payload = await response.json();
-            if (requestId !== targetRequest) return;
+            if (requestId !== targetRequest) return {status: 'stale', rows: []};
 
             const rows = Array.isArray(payload?.data) ? payload.data : [];
+            const eligibleRows = [];
             targetPlaceholder(copy.selectTarget);
             for (const row of rows) {
                 const userId = Number(row?.user_id || 0);
@@ -613,29 +704,35 @@
                 option.value = String(userId);
                 option.textContent = String(row?.name || ('#' + userId));
                 target.appendChild(option);
+                eligibleRows.push(row);
             }
-            target.disabled = rows.length === 0;
-            if (targetState) targetState.textContent = rows.length === 0 ? copy.noTargets : '';
+
+            if (selectFirstDriver && app?.value === 'driver' && eligibleRows.length > 0) {
+                target.value = String(Number(eligibleRows[0].user_id));
+            }
+
+            target.disabled = eligibleRows.length === 0;
+            if (targetState) targetState.textContent = eligibleRows.length === 0 ? copy.noTargets : '';
+            return {status: 'ok', rows: eligibleRows};
         } catch (_) {
-            if (requestId !== targetRequest) return;
+            if (requestId !== targetRequest) return {status: 'stale', rows: []};
             targetPlaceholder(copy.noTargets);
             if (target) target.disabled = true;
             if (targetState) targetState.textContent = copy.sessionError;
+            return {status: 'error', rows: []};
         }
     }
 
-    async function createAuthenticatedSession() {
-        const targetUserId = Number(target?.value || 0);
-        if (targetUserId <= 0) throw new Error('target_required');
+    async function createAuthenticatedSession(snapshot) {
+        if (snapshot.targetUserId <= 0) throw new Error('target_required');
 
         const payload = {
-            target_user_id: targetUserId,
-            target_type: app.value,
-            channel: channel.value,
-            support_access: supportAccess(),
+            target_user_id: snapshot.targetUserId,
+            target_type: snapshot.app,
+            channel: snapshot.channel,
+            support_access: snapshot.supportAccess,
         };
-        const storeId = selectedStoreId();
-        if (channel.value === 'b2c' && storeId) payload.store_id = storeId;
+        if (snapshot.channel === 'b2c' && snapshot.storeId) payload.store_id = snapshot.storeId;
 
         const response = await fetch(bridgeConfig.sessionsUrl, {
             method: 'POST',
@@ -657,17 +754,16 @@
         return {context: result.data, credential: result.credential};
     }
 
-    function guestSession() {
-        const storeId = selectedStoreId();
-        if (!storeId) throw new Error('store_required');
+    function guestSession(snapshot) {
+        if (!snapshot.storeId) throw new Error('store_required');
 
         return {
             credential: null,
             context: {
                 session_id: null,
                 target_type: 'customer',
-                channel: channel.value,
-                store_id: storeId,
+                channel: snapshot.channel,
+                store_id: snapshot.storeId,
                 mode: 'read_only',
                 read_only: true,
                 support_access: false,
@@ -710,27 +806,44 @@
     }
 
     async function launchPreview() {
-        const runtime = activeRuntime();
+        const launchId = ++launchRequest;
+        const snapshot = {
+            app: app?.value === 'driver' ? 'driver' : 'customer',
+            channel: channel?.value === 'b2c' ? 'b2c' : 'b2b',
+            storeId: selectedStoreId(),
+            targetUserId: Number(target?.value || 0),
+            requiresIdentity: requiresIdentity(),
+            supportAccess: supportAccess(),
+        };
+        const runtime = runtimeConfig?.[snapshot.app] || null;
         if (!runtime?.available) {
             restoreUnavailable();
             return;
         }
 
         await revokeActive('relaunch');
-        activeSession = null;
+        if (launchId !== launchRequest) return;
 
         try {
-            if (requiresIdentity()) {
-                if (!target?.value) throw new Error('target_required');
-                activeSession = await createAuthenticatedSession();
+            let nextSession;
+            if (snapshot.requiresIdentity) {
+                nextSession = await createAuthenticatedSession(snapshot);
             } else {
-                if (app.value !== 'customer') throw new Error('target_required');
-                activeSession = guestSession();
+                if (snapshot.app !== 'customer') throw new Error('target_required');
+                nextSession = guestSession(snapshot);
             }
+
+            if (launchId !== launchRequest) {
+                await revokeSession(nextSession, 'context_changed');
+                return;
+            }
+
+            activeSession = nextSession;
             clearInspector('connecting');
             mountRuntime();
             renderInspector();
         } catch (error) {
+            if (launchId !== launchRequest) return;
             activeSession = null;
             restoreUnavailable();
             setStatus(error?.message === 'target_required' ? copy.selectIdentityFirst : copy.sessionError);
@@ -796,11 +909,15 @@
         }
     });
 
-    app?.addEventListener('change', resetSecurityContext);
-    channel?.addEventListener('change', resetSecurityContext);
-    store?.addEventListener('change', resetSecurityContext);
-    persona?.addEventListener('change', resetSecurityContext);
+    app?.addEventListener('change', () => {
+        if (app?.value === 'customer' && persona) persona.value = 'guest';
+        void resetSecurityContext();
+    });
+    channel?.addEventListener('change', () => void resetSecurityContext());
+    store?.addEventListener('change', () => void resetSecurityContext());
+    persona?.addEventListener('change', () => void resetSecurityContext());
     target?.addEventListener('change', () => {
+        ++launchRequest;
         void revokeActive('target_changed');
         clearInspector('unavailable');
         restoreUnavailable();
@@ -820,7 +937,7 @@
     syncDevice();
     clearInspector('unavailable');
     renderInspector();
-    void loadTargets();
+    void resetSecurityContext();
 })();
 </script>
 </body>

@@ -39,7 +39,23 @@ void main() {
 
     final runtime =
         File('lib/features/delivery/driver_journey_runtime.dart').readAsStringSync();
+    expect(runtime, contains('DriverShellScaffold('));
     expect(runtime, contains('DriverActiveJourneyPage('));
     expect(runtime, contains('showDriverCompletionDecisionSheet('));
+
+    final notifications =
+        File('lib/features/notifications/driver_notification_page.dart')
+            .readAsStringSync();
+    expect(notifications, contains('DriverShellScaffold('));
+
+    final active =
+        File('lib/features/delivery/active/driver_active_journey.dart')
+            .readAsStringSync();
+    expect(active, contains('driver-detail-accept-'));
+    expect(active, contains('driver-detail-pickup-'));
+    expect(active, contains('driver-detail-start-'));
+    expect(active, contains('driver-detail-delivered-'));
+    expect(active, contains('driver-detail-failed-'));
+    expect(active, contains('_fetchAuthoritativeAssignment('));
   });
 }

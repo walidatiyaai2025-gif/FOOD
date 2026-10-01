@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
+use App\Services\RetailMerchantIdentityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -476,6 +477,7 @@ class CustomerProfileController extends Controller
             'locale' => (string) $user->locale,
             'roles' => $roles,
             'store_ids' => $storeIds,
+            ...app(RetailMerchantIdentityService::class)->identityPayload($user),
             'customer' => null,
             'addresses' => [],
             'favorites' => [],
@@ -511,6 +513,7 @@ class CustomerProfileController extends Controller
             'locale' => (string) $user->locale,
             'roles' => $roles,
             'store_ids' => $storeIds,
+            ...app(RetailMerchantIdentityService::class)->identityPayload($user),
             'customer' => [
                 'id' => (int) $customer->getKey(),
                 'type' => $channel,

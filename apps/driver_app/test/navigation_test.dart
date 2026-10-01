@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
+import 'package:foodex_driver_app/core/navigation/driver_shell.dart';
 import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 import 'package:foodex_driver_app/navigation.dart';
 
@@ -91,6 +92,14 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(repo.requestedChannel, DriverChannel.b2c);
+    expect(find.byKey(const Key('driver-shell')), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
+    expect(
+      tester.widget<NavigationBar>(
+        find.byKey(const Key('driver-shell-navigation')),
+      ).selectedIndex,
+      DriverShellDestination.home.index,
+    );
     expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
     expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
@@ -146,6 +155,14 @@ void main() {
     await tester.tap(outForDeliveryTapTarget);
     await tester.pumpAndSettle();
 
+    expect(find.byKey(const Key('driver-shell')), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
+    expect(
+      tester.widget<NavigationBar>(
+        find.byKey(const Key('driver-shell-navigation')),
+      ).selectedIndex,
+      DriverShellDestination.deliveries.index,
+    );
     expect(find.byKey(const Key('driver-active-status-filter')), findsOneWidget);
     expect(find.text('OUT-1'), findsOneWidget);
     expect(find.text('ACCEPTED-1'), findsNothing);
