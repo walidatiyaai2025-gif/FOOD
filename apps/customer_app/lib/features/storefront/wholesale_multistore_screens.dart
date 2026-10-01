@@ -2522,7 +2522,7 @@ class _WholesaleOrderDetailsDesignScreenState
                                       if (occurredAt.isNotEmpty)
                                         Text(occurredAt),
                                       if (driverName.isNotEmpty)
-                                        Text('السائق: ' + driverName),
+                                        Text(driverName),
                                       if (reasonCode.isNotEmpty)
                                         Text(
                                           failureReasonLabel(reasonCode),
