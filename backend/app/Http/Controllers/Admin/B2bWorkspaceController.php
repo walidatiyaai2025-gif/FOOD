@@ -1199,7 +1199,7 @@ class B2bWorkspaceController extends Controller
                                     ->orWhereNotNull('note');
                             })
                             ->orderByDesc('id')
-                            ->first(['proof_type', 'file_path', 'reason_code', 'note', 'captured_at']);
+                            ->first(['id', 'proof_type', 'file_path', 'reason_code', 'note', 'captured_at']);
 
                         return [
                             'id' => (int) $row->id,
@@ -1212,6 +1212,7 @@ class B2bWorkspaceController extends Controller
                             'assigned_at' => (string) $row->assigned_at,
                             'completed_at' => $row->completed_at === null ? null : (string) $row->completed_at,
                             'proof' => $proof === null ? null : [
+                                'id' => (int) $proof->id,
                                 'type' => (string) $proof->proof_type,
                                 'file_path' => $proof->file_path === null ? null : (string) $proof->file_path,
                                 'reason_code' => $proof->reason_code === null ? null : (string) $proof->reason_code,
