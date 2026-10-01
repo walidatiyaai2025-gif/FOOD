@@ -7,9 +7,12 @@ Build example:
 
 ```bash
 flutter build web \
-  --target lib/preview_main.dart \
-  --dart-define=FOODEX_API_BASE_URL=https://foodex.example \
-  --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=https://foodex.example
+  --release \
+  --target=lib/preview_main.dart \
+  --base-href=/preview/customer/ \
+  --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com \
+  --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=https://foodex.50sols.com \
+  --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
 ```
 
 The deployed runtime URL/origin is then configured on the Dashboard with:
@@ -31,3 +34,10 @@ Security contract:
   parameters, local storage, status messages or visible UI.
 - Preview is read-only; mutations are blocked by the shared Customer preview
   policy.
+
+Production packaging is not a manual local-build contract. Use
+`.github/workflows/preview-runtime-distribution.yml`, which builds Customer and Driver
+preview runtimes together, produces version/commit-identified archives and a manifest,
+and validates the exact Dashboard deployment paths. See
+`docs/release/PREVIEW_RUNTIME_DISTRIBUTION.md`.
+

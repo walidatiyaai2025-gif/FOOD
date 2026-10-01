@@ -40,6 +40,12 @@ Evidence convention:
 - [x] Mobile Version Policy returns supported/minimum versions and update behavior from the backend rather than embedded business rules.
 - [x] Arabic RTL and English LTR acceptance journeys are covered by merged cross-surface/mobile tests.
 
+## Preview runtime distribution
+
+- [x] Customer and Driver shared Flutter Web preview runtimes are built through a repeatable release workflow with explicit production API/origin, `shared-flutter-v1`, and canonical base hrefs.
+- [x] Distribution artifacts are version/commit identified and include SHA-256 digests, a runtime manifest, the exact Dashboard env snippet, and local HTTP smoke validation for `index.html`, `main.dart.js`, bootstrap and assets.
+- [ ] The generated `/preview/customer/` and `/preview/driver/` trees are deployed to the production web root and the post-deployment `verify_deployed=true` HTTPS smoke gate is recorded. Repository CI does not fabricate this external evidence.
+
 ## Final release gate
 
 - [x] Repository Policy, backend validation, Customer Flutter validation, Driver Flutter validation and required-ci-gate are green on release-evidence PR #172.

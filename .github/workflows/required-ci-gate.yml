@@ -19,6 +19,7 @@ jobs:
       customer: ${{ steps.filter.outputs.customer }}
       driver: ${{ steps.filter.outputs.driver }}
       app_preview_visual: ${{ steps.filter.outputs.app_preview_visual }}
+      preview_runtime_distribution: ${{ steps.filter.outputs.preview_runtime_distribution }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,6 +41,7 @@ jobs:
           customer=false
           driver=false
           app_preview_visual=false
+          preview_runtime_distribution=false
 
           if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$)' changed-files.txt; then
             backend=true
@@ -63,11 +65,16 @@ jobs:
             app_preview_visual=true
           fi
 
+          if grep -Eq '^(VERSION$|apps/(customer_app|driver_app)/(pubspec\.yaml|lib/preview_main\.dart|lib/core/preview/|web/)|backend/\.env\.production\.example$|scripts/package-preview-runtimes\.py$|scripts/tests/test_preview_runtime_distribution\.py$|docs/release/PREVIEW_RUNTIME_DISTRIBUTION\.md$|\.github/workflows/preview-runtime-distribution\.yml$)' changed-files.txt; then
+            preview_runtime_distribution=true
+          fi
+
           {
             echo "backend=$backend"
             echo "customer=$customer"
             echo "driver=$driver"
             echo "app_preview_visual=$app_preview_visual"
+            echo "preview_runtime_distribution=$preview_runtime_distribution"
           } >> "$GITHUB_OUTPUT"
 
   repository-policy:
@@ -113,6 +120,12 @@ jobs:
     if: ${{ needs.changes.outputs.app_preview_visual == 'true' }}
     uses: ./.github/workflows/app-preview-visual-parity.yml
 
+  preview-runtime-distribution:
+    name: Preview runtime distribution
+    needs: changes
+    if: ${{ needs.changes.outputs.preview_runtime_distribution == 'true' }}
+    uses: ./.github/workflows/preview-runtime-distribution.yml
+
   screenshot-evidence:
     name: Runtime screenshot evidence
     if: ${{ github.head_ref == 'test/175-runtime-screenshot-evidence' || github.head_ref == 'ci/184-screenshot-evidence-guards' }}
@@ -130,6 +143,7 @@ jobs:
       - customer-validation
       - driver-validation
       - app-preview-visual-parity
+      - preview-runtime-distribution
       - screenshot-evidence
     runs-on: ubuntu-latest
     steps:
@@ -146,6 +160,8 @@ jobs:
           DRIVER_RESULT: ${{ needs.driver-validation.result }}
           APP_PREVIEW_VISUAL_CHANGED: ${{ needs.changes.outputs.app_preview_visual }}
           APP_PREVIEW_VISUAL_RESULT: ${{ needs.app-preview-visual-parity.result }}
+          PREVIEW_RUNTIME_DISTRIBUTION_CHANGED: ${{ needs.changes.outputs.preview_runtime_distribution }}
+          PREVIEW_RUNTIME_DISTRIBUTION_RESULT: ${{ needs.preview-runtime-distribution.result }}
           SCREENSHOT_RESULT: ${{ needs.screenshot-evidence.result }}
         run: |
           set -euo pipefail
@@ -179,6 +195,7 @@ jobs:
           require_applicable_success "$CUSTOMER_CHANGED" "Customer validation" "$CUSTOMER_RESULT"
           require_applicable_success "$DRIVER_CHANGED" "Driver validation" "$DRIVER_RESULT"
           require_applicable_success "$APP_PREVIEW_VISUAL_CHANGED" "APP-PREVIEW visual runtime parity" "$APP_PREVIEW_VISUAL_RESULT"
+          require_applicable_success "$PREVIEW_RUNTIME_DISTRIBUTION_CHANGED" "Preview runtime distribution" "$PREVIEW_RUNTIME_DISTRIBUTION_RESULT"
 
           if [[ "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" || "${{ github.head_ref }}" == "ci/184-screenshot-evidence-guards" ]]; then
             require_success "Runtime screenshot evidence" "$SCREENSHOT_RESULT"
