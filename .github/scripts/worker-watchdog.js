@@ -5,6 +5,18 @@ const MANAGED_MARKER = '<!-- foodex-worker:managed -->';
 const WATCHDOG_MARKER = '<!-- foodex-watchdog:';
 const STALE_MINUTES = 30;
 
+const RED_CI_CONCLUSIONS = new Set([
+  'failure',
+  'timed_out',
+  'cancelled',
+  'action_required',
+  'startup_failure',
+  'stale',
+]);
+
+const SELF_WATCHDOG_WORKFLOW_NAMES = new Set(['Worker Watchdog']);
+const SELF_WATCHDOG_CHECK_NAMES = new Set(['Detect stale workers and external gates']);
+
 const STATUS_LABELS = [
   'worker:ready',
   'worker:active',
@@ -34,7 +46,7 @@ const LABELS = {
   'worker:ready': ['1D76DB', 'Atomic repository-local work is ready for a worker'],
   'worker:active': ['0E8A16', 'A worker has an active lease on this issue'],
   'worker:waiting-ci': ['FBCA04', 'Worker is waiting for CI/actions on the current branch head'],
-  'worker:handoff-ready': ['F97316', 'Lease is stale or explicitly handed off; continue the same branch/PR'],
+  'worker:handoff-ready': ['F97316', 'Immediate takeover needed for red CI/conflict, stale lease, or explicit handoff; continue the same branch/PR'],
   'gate:human': ['B60205', 'Real external intervention is required; workers must not fabricate or bypass it'],
   'gate:deploy': ['D93F0B', 'Requires real deployment/environment action'],
   'gate:production': ['D93F0B', 'Requires real production evidence or production-side action'],
@@ -123,17 +135,28 @@ function classify({
   if (!managed) return { status: 'ignored', reason: 'not-managed' };
 
   const blocker = workerState?.blocker || 'none';
+  const explicitState = workerState?.state || '';
+  if (explicitState === 'HANDOFF') {
+    return { status: 'handoff-ready', reason: 'explicit-handoff' };
+  }
+
+  // Red repository state is actionable work, not inactivity. It bypasses the
+  // stale-worker timer and also outranks an external gate until repo-local red
+  // work is cleared.
+  if (hasOpenPr && RED_CI_CONCLUSIONS.has(ciConclusion)) {
+    return { status: 'handoff-ready', reason: `ci-${ciConclusion}` };
+  }
+
+  if (hasOpenPr && mergeable === false) {
+    return { status: 'handoff-ready', reason: 'merge-conflict' };
+  }
+
   if (HUMAN_BLOCKERS.has(blocker)) {
     return {
       status: 'human-gate',
       reason: blocker,
       labels: ['gate:human', ...(gateLabel(blocker) ? [gateLabel(blocker)] : [])],
     };
-  }
-
-  const explicitState = workerState?.state || '';
-  if (explicitState === 'HANDOFF') {
-    return { status: 'handoff-ready', reason: 'explicit-handoff' };
   }
 
   if (ciRunning) {
@@ -152,10 +175,6 @@ function classify({
 
   if (hasOpenPr && ciConclusion === 'success' && mergeable === true) {
     return { status: 'handoff-ready', reason: 'merge-ready-stale' };
-  }
-
-  if (hasOpenPr && ciConclusion && ciConclusion !== 'success' && ciConclusion !== 'skipped') {
-    return { status: 'handoff-ready', reason: `ci-${ciConclusion}` };
   }
 
   if (explicitState === 'READY_TO_MERGE') {
@@ -185,8 +204,9 @@ function handoffComment({ issueNumber, branch, prNumber, head, reason, ciConclus
     'stale-lease': 'there has been no repository-visible worker activity for at least 30 minutes',
     'explicit-handoff': 'the previous worker explicitly handed the task off',
     'ready-to-merge': 'the task was marked ready to merge but has no active worker',
+    'merge-conflict': 'the current PR has an immediate repository-local merge conflict/blocker',
   }[reason] || (reason.startsWith('ci-')
-    ? `the current PR needs CI follow-up (${reason.slice(3)})`
+    ? `the latest branch head is red in CI (${reason.slice(3)}); no stale-worker timeout applies`
     : reason);
 
   return `<!-- foodex-watchdog:handoff issue=${issueNumber} head=${head || 'none'} reason=${reason} -->
@@ -268,24 +288,140 @@ async function branchExists(github, owner, repo, branch) {
   }
 }
 
-async function workflowState(github, owner, repo, pr) {
-  if (!pr) return { running: false, conclusion: null };
-  const { data } = await github.rest.actions.listWorkflowRunsForRepo({
-    owner,
-    repo,
-    branch: pr.head.ref,
-    per_page: 100,
-  });
-  const matching = data.workflow_runs
-    .filter(run => run.head_sha === pr.head.sha)
-    .sort((a, b) => asMillis(b.updated_at) - asMillis(a.updated_at));
+function summarizeWorkflowRuns(runs) {
+  const newestByWorkflow = new Map();
 
-  if (matching.some(run => run.status !== 'completed')) {
+  for (const run of runs) {
+    if (SELF_WATCHDOG_WORKFLOW_NAMES.has(run.name)) continue;
+    const key = run.workflow_id ?? run.name ?? run.id;
+    const runMs = newestMillis(
+      run.run_started_at,
+      run.created_at,
+      run.updated_at,
+      typeof run.id === 'number' ? run.id : 0,
+    );
+    const previous = newestByWorkflow.get(key);
+    if (!previous || runMs >= previous.ms) {
+      newestByWorkflow.set(key, { run, ms: runMs });
+    }
+  }
+
+  const latest = [...newestByWorkflow.values()].map(entry => entry.run);
+  const red = latest.find(
+    run => run.status === 'completed' && RED_CI_CONCLUSIONS.has(run.conclusion),
+  );
+  const running = latest.some(run => run.status !== 'completed');
+
+  // A red latest run for any workflow wins immediately, even while another
+  // workflow is still queued/running on the same head.
+  if (red) {
+    return { running, conclusion: red.conclusion };
+  }
+
+  if (running) {
     return { running: true, conclusion: null };
   }
 
-  const meaningful = matching.find(run => run.conclusion && run.conclusion !== 'skipped');
-  return { running: false, conclusion: meaningful?.conclusion || null };
+  const meaningful = latest
+    .map(run => run.conclusion)
+    .filter(conclusion => conclusion && conclusion !== 'skipped');
+
+  if (meaningful.length === 0) {
+    return { running: false, conclusion: null };
+  }
+
+  if (meaningful.every(conclusion => conclusion === 'success' || conclusion === 'neutral')) {
+    return {
+      running: false,
+      conclusion: meaningful.includes('success') ? 'success' : 'neutral',
+    };
+  }
+
+  return { running: false, conclusion: meaningful[0] };
+}
+
+function summarizeCheckRuns(checkRuns) {
+  const newestByCheck = new Map();
+  for (const check of checkRuns) {
+    if (SELF_WATCHDOG_CHECK_NAMES.has(check.name)) continue;
+    const key = `${check.app?.id || 'app'}:${check.name || check.id}`;
+    const ms = newestMillis(check.started_at, check.completed_at);
+    const previous = newestByCheck.get(key);
+    if (!previous || ms >= previous.ms) newestByCheck.set(key, { check, ms });
+  }
+
+  const latest = [...newestByCheck.values()].map(entry => entry.check);
+  const red = latest.find(
+    check => check.status === 'completed' && RED_CI_CONCLUSIONS.has(check.conclusion),
+  );
+  const running = latest.some(check => check.status !== 'completed');
+
+  if (red) return { running, conclusion: red.conclusion };
+  if (running) return { running: true, conclusion: null };
+  return { running: false, conclusion: null };
+}
+
+function summarizeCommitStatuses(statuses) {
+  const newestByContext = new Map();
+  for (const status of statuses) {
+    const key = status.context || status.id;
+    const ms = newestMillis(status.updated_at, status.created_at);
+    const previous = newestByContext.get(key);
+    if (!previous || ms >= previous.ms) newestByContext.set(key, { status, ms });
+  }
+
+  const latest = [...newestByContext.values()].map(entry => entry.status);
+  const red = latest.find(status => status.state === 'failure' || status.state === 'error');
+  const running = latest.some(status => status.state === 'pending');
+
+  if (red) return { running, conclusion: 'failure' };
+  if (running) return { running: true, conclusion: null };
+  return { running: false, conclusion: null };
+}
+
+function combineCiStates(states) {
+  const red = states.find(state => RED_CI_CONCLUSIONS.has(state.conclusion));
+  const running = states.some(state => state.running);
+  if (red) return { running, conclusion: red.conclusion };
+  if (running) return { running: true, conclusion: null };
+
+  const successful = states.find(state => state.conclusion === 'success');
+  return { running: false, conclusion: successful ? 'success' : null };
+}
+
+async function workflowState(github, owner, repo, pr) {
+  if (!pr) return { running: false, conclusion: null };
+
+  const [workflowResponse, checksResponse, statusesResponse] = await Promise.all([
+    github.rest.actions.listWorkflowRunsForRepo({
+      owner,
+      repo,
+      branch: pr.head.ref,
+      per_page: 100,
+    }),
+    github.rest.checks.listForRef({
+      owner,
+      repo,
+      ref: pr.head.sha,
+      per_page: 100,
+    }),
+    github.rest.repos.listCommitStatusesForRef({
+      owner,
+      repo,
+      ref: pr.head.sha,
+      per_page: 100,
+    }),
+  ]);
+
+  const matching = workflowResponse.data.workflow_runs.filter(
+    run => run.head_sha === pr.head.sha,
+  );
+
+  return combineCiStates([
+    summarizeWorkflowRuns(matching),
+    summarizeCheckRuns(checksResponse.data.check_runs || []),
+    summarizeCommitStatuses(statusesResponse.data || []),
+  ]);
 }
 
 async function run({ github, context, core, nowMs = Date.now() }) {
@@ -348,7 +484,7 @@ async function run({ github, context, core, nowMs = Date.now() }) {
 
     const ci = await workflowState(github, owner, repo, linkedPr);
     let mergeable = null;
-    if (linkedPr && !ci.running) {
+    if (linkedPr) {
       try {
         const { data } = await github.rest.pulls.get({ owner, repo, pull_number: linkedPr.number });
         mergeable = data.mergeable;
@@ -405,6 +541,7 @@ async function run({ github, context, core, nowMs = Date.now() }) {
 module.exports = {
   HUMAN_BLOCKERS,
   MANAGED_MARKER,
+  RED_CI_CONCLUSIONS,
   STALE_MINUTES,
   STATE_MARKER,
   branchFromText,
@@ -415,4 +552,7 @@ module.exports = {
   parseWorkerState,
   run,
   statusLabel,
+  summarizeCheckRuns,
+  summarizeCommitStatuses,
+  summarizeWorkflowRuns,
 };

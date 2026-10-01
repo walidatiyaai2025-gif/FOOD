@@ -89,7 +89,9 @@ Before any long wait, tool-heavy operation, CI wait, or potentially fragile sess
 
 ### Stale lease
 
-A lease is considered stale when there has been **no repository-visible activity for 30 minutes** and there is no currently running CI/action clearly associated with that worker's latest branch head.
+A lease is considered stale when there has been **no repository-visible activity for 30 minutes**, there is no currently running CI/action clearly associated with that worker's latest branch head, **and there is no red repository state**.
+
+The 30-minute timer applies only to silent abandonment. It does **not** apply to actionable red state.
 
 A replacement worker does not need to wait for the old chat/session.
 
@@ -217,6 +219,8 @@ That worker must:
 Do not abandon a PR simply because CI is red.
 
 A helper worker may take over CI only by following the same lease/handoff protocol and using the same branch/PR.
+
+**Red CI is immediate takeover-eligible.** If the latest branch head has a failed, timed-out, cancelled, action-required, startup-failed, or stale CI result, do not wait for the 30-minute stale lease timeout. Mark/treat the task as `CI_FIX` / `worker:handoff-ready` and continue the same Issue/branch/PR immediately.
 
 ---
 
@@ -410,6 +414,8 @@ The watchdog:
 
 When a stale task is detected, it marks the existing Issue `worker:handoff-ready` and records the existing branch/PR/head when available.
 
+Red state bypasses stale detection entirely. Any current-head red CI result or merge conflict/repository merge blocker is `worker:handoff-ready` immediately, even if the current heartbeat is fresh. A newer rerun of the same workflow replaces an older failed run; old red history must not keep a healthy rerun red.
+
 The next worker must take over that exact work.
 
 ---
@@ -537,7 +543,7 @@ Classify each required lane as one of:
 - `COMPLETE` — child acceptance is satisfied and the Issue is closed/merged as required;
 - `MERGE_READY` — implementation is complete, required CI is green, and merge can proceed;
 - `TAKEOVER` — explicit handoff or stale lease on existing work;
-- `CI_FIX` — repository-local red CI/test/lint/build failure;
+- `CI_FIX` — repository-local red CI/test/lint/build failure; this is immediate takeover-eligible and overrides lease freshness;
 - `READY` — actionable and unclaimed;
 - `WAITING_CI` — valid CI is actively running on the latest head;
 - `ACTIVE_PEER` — a fresh valid lease is owned by another worker;
@@ -553,7 +559,7 @@ To minimize umbrella completion time:
 3. take over `TAKEOVER` lanes using the same Issue/branch/PR;
 4. fix `CI_FIX` lanes on their existing branch/PR;
 5. claim `READY` lanes;
-6. never steal a fresh `ACTIVE_PEER` lease;
+6. never steal a fresh `ACTIVE_PEER` lease **unless that lane is currently red/CI_FIX or merge-conflicted; red state overrides lease freshness**;
 7. never duplicate a branch/PR just to increase parallelism.
 
 Parallelism is encouraged only across file/scope-disjoint lanes.
