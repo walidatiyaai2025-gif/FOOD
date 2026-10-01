@@ -66,28 +66,28 @@ jobs:
 
 
       - name: Set up Flutter for final mobile UX runtime capture
-        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') }}
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') }}
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.47.5"
           cache: true
 
       - name: Capture current Customer runtime evidence
-        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') }}
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') }}
         working-directory: apps/customer_app
         run: |
           flutter pub get
           flutter test test/screenshot_evidence_test.dart
 
       - name: Capture current Driver runtime evidence
-        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') }}
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') }}
         working-directory: apps/driver_app
         run: |
           flutter pub get
           flutter test test/screenshot_evidence_test.dart
 
       - name: Verify refreshed mobile runtime evidence
-        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') }}
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -99,7 +99,7 @@ jobs:
           test -f ScreenShots/01_Mobile/Driver_B2C/03_driver_deliveries__populated__en.png
 
       - name: Upload final mobile UX runtime evidence
-        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') }}
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') }}
         uses: actions/upload-artifact@v4
         with:
           name: mobile-prod-ux-final-runtime-evidence
