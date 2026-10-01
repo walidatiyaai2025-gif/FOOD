@@ -235,6 +235,16 @@ jobs:
               "backend/public/assets/leaflet/1.9.4/images/marker-icon.png",
               "backend/public/assets/leaflet/1.9.4/images/marker-shadow.png",
               "backend/public/brand/foodex-economical-group.webp",
+              "assets/admin/driver-live-map.css",
+              "assets/admin/driver-live-map.js",
+              "assets/leaflet/1.9.4/leaflet.css",
+              "assets/leaflet/1.9.4/leaflet.js",
+              "assets/leaflet/1.9.4/images/layers-2x.png",
+              "assets/leaflet/1.9.4/images/layers.png",
+              "assets/leaflet/1.9.4/images/marker-icon-2x.png",
+              "assets/leaflet/1.9.4/images/marker-icon.png",
+              "assets/leaflet/1.9.4/images/marker-shadow.png",
+              "brand/foodex-economical-group.webp",
               "backend/routes/console.php",
           }
           with zipfile.ZipFile(package) as archive:
@@ -243,18 +253,23 @@ jobs:
               missing = sorted(mandatory - names)
               assert not missing, f"Update bundle is missing recovery-critical files: {missing}"
               for runtime in ("customer", "driver"):
-                  prefix = f"backend/public/preview/{runtime}"
-                  required = {
-                      f"{prefix}/index.html",
-                      f"{prefix}/main.dart.js",
-                      f"{prefix}/flutter_bootstrap.js",
-                  }
-                  runtime_missing = sorted(required - names)
-                  assert not runtime_missing, f"Update bundle is missing {runtime} preview files: {runtime_missing}"
-                  assert any(
-                      name.startswith(f"{prefix}/assets/") and not name.endswith("/")
-                      for name in names
-                  ), f"Update bundle is missing {runtime} preview assets"
+                  for prefix in (
+                      f"backend/public/preview/{runtime}",
+                      f"preview/{runtime}",
+                  ):
+                      required = {
+                          f"{prefix}/index.html",
+                          f"{prefix}/main.dart.js",
+                          f"{prefix}/flutter_bootstrap.js",
+                      }
+                      runtime_missing = sorted(required - names)
+                      assert not runtime_missing, (
+                          f"Update bundle is missing {runtime} preview files at {prefix}: {runtime_missing}"
+                      )
+                      assert any(
+                          name.startswith(f"{prefix}/assets/") and not name.endswith("/")
+                          for name in names
+                      ), f"Update bundle is missing {runtime} preview assets at {prefix}"
               has_migrations = any(name.startswith("backend/database/migrations/") for name in names)
               assert manifest["contains_migrations"] is has_migrations
               assert not any(name.startswith(("apps/", "Release/", "docs/", ".github/")) for name in names)
