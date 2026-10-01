@@ -319,7 +319,7 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
       if (storeId == null || storeId <= 0) return;
       Navigator.of(context).pushNamed(
         Uri(
-          path: '/b2b/orders/' + target.orderId.toString(),
+          path: '/b2b/orders/${target.orderId}',
           queryParameters: <String, String>{
             'channel': 'wholesale',
             'store_id': storeId.toString(),
@@ -354,7 +354,7 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
     CustomerCommerceContext context,
   ) =>
       Uri(
-        path: '/orders/' + orderId.toString() + '/track',
+        path: '/orders/$orderId/track',
         queryParameters: context.toQueryParameters(),
       ).toString();
 }
