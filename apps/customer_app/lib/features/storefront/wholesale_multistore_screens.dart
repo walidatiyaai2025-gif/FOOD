@@ -8,7 +8,9 @@ import '../../core/api/b2b_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/api/wholesale_commerce_api.dart';
+import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/engagement/live_ad_service.dart';
+import '../../core/localization/app_translations.dart';
 import 'storefront_design_system.dart';
 
 class WholesaleHomeDesignScreen extends StatefulWidget {
@@ -824,23 +826,49 @@ class _WholesaleProductDetailsDesignScreenState
     extends State<WholesaleProductDetailsDesignScreen> {
   late final int storeId = wholesaleStoreId(widget.location);
   late final int productId = productIdFromLocation(widget.location);
+  late Future<Object?> future = _loadProduct();
   double? quantity;
+
+  String get endpoint =>
+      '/api/v1/b2b/products/' +
+      productId.toString() +
+      '?store_id=' +
+      storeId.toString();
+
+  Future<Object?> _loadProduct() async {
+    final api = widget.api;
+    if (api == null) return null;
+
+    try {
+      return await api.get(endpoint);
+    } catch (error, stack) {
+      final failure = _wholesaleProductFailureInfo(error);
+      CustomerDiagnostics.instance.recordRuntimeFailure(
+        operation: 'b2b_product_load',
+        path: endpoint,
+        category: failure.category,
+        statusCode: failure.statusCode,
+        supportReference: failure.supportReference,
+      );
+      Error.throwWithStackTrace(error, stack);
+    }
+  }
+
+  void _retry() {
+    setState(() {
+      future = _loadProduct();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final endpoint = '/api/v1/b2b/products/' +
-        productId.toString() +
-        '?store_id=' +
-        storeId.toString();
-
     return Directionality(
       textDirection: Directionality.of(context),
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
           child: FutureBuilder<Object?>(
-            future:
-                widget.api?.get(endpoint) ?? Future<Object?>.value(null),
+            future: future,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
                 return const FoodexLoading(
@@ -848,9 +876,41 @@ class _WholesaleProductDetailsDesignScreenState
                 );
               }
               if (snapshot.hasError) {
-                return const FoodexErrorState(
-                  key: ValueKey('b2b-error'),
-                  message: 'تعذر تحميل المنتج.',
+                final failure = _wholesaleProductFailureInfo(snapshot.error);
+                return ListView(
+                  key: ValueKey(
+                    failure.forbiddenVisual ? 'b2b-forbidden' : 'b2b-error',
+                  ),
+                  padding: const EdgeInsets.fromLTRB(15, 10, 15, 22),
+                  children: [
+                    FoodexTopBar(title: context.tr('b2b.product.title')),
+                    const SizedBox(height: 18),
+                    FoodexErrorState(
+                      message: context.tr(failure.messageKey),
+                      onRetry: _retry,
+                      retryLabel: context.tr('customer.action.retry'),
+                      retryKey: const ValueKey('b2b-error-retry'),
+                    ),
+                    if (failure.supportReference != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '${context.tr('b2b.remote.support_reference')}: '
+                        '${failure.supportReference}',
+                        key: const ValueKey('b2b-error-support-reference'),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      key: const ValueKey('b2b-error-back-products'),
+                      onPressed: () => Navigator.of(context).pushReplacementNamed(
+                        '/b2b/products?store_id=' + storeId.toString(),
+                      ),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: Text(context.tr('b2b.remote.back_products')),
+                    ),
+                  ],
                 );
               }
 
@@ -858,10 +918,10 @@ class _WholesaleProductDetailsDesignScreenState
                   ? Map<String, dynamic>.from(snapshot.data as Map)
                   : <String, dynamic>{};
               if (row.isEmpty) {
-                return const FoodexEmptyState(
-                  key: ValueKey('b2b-empty'),
-                  title: 'المنتج غير متاح',
-                  subtitle: 'لا تتوفر بيانات لهذا المنتج.',
+                return FoodexEmptyState(
+                  key: const ValueKey('b2b-empty'),
+                  title: context.tr('b2b.remote.not_found'),
+                  subtitle: context.tr('b2b.remote.empty'),
                 );
               }
 
@@ -889,7 +949,7 @@ class _WholesaleProductDetailsDesignScreenState
                 padding: const EdgeInsets.fromLTRB(15, 10, 15, 22),
                 children: [
                   FoodexTopBar(
-                    title: 'تفاصيل المنتج',
+                    title: context.tr('b2b.product.title'),
                     actions: [
                       IconButton(
                         onPressed: () {},
@@ -1001,6 +1061,83 @@ class _WholesaleProductDetailsDesignScreenState
       ),
     );
   }
+}
+
+class _WholesaleProductFailureInfo {
+  const _WholesaleProductFailureInfo({
+    required this.category,
+    required this.messageKey,
+    required this.forbiddenVisual,
+    this.statusCode,
+    this.supportReference,
+  });
+
+  final String category;
+  final String messageKey;
+  final bool forbiddenVisual;
+  final int? statusCode;
+  final String? supportReference;
+}
+
+_WholesaleProductFailureInfo _wholesaleProductFailureInfo(Object? error) {
+  if (error is B2bApiException) {
+    final status = error.statusCode;
+    final supportReference =
+        _safeWholesaleSupportReference(error.supportReference);
+
+    if (status == 401) {
+      return _WholesaleProductFailureInfo(
+        category: 'unauthorized',
+        messageKey: 'customer.error.session_expired',
+        forbiddenVisual: false,
+        statusCode: status,
+        supportReference: supportReference,
+      );
+    }
+    if (status == 403 || (status == null && error.code == 'not_authorized')) {
+      return _WholesaleProductFailureInfo(
+        category: 'forbidden',
+        messageKey: 'customer.error.forbidden',
+        forbiddenVisual: true,
+        statusCode: status,
+        supportReference: supportReference,
+      );
+    }
+    if (status == 404) {
+      return _WholesaleProductFailureInfo(
+        category: 'not_found',
+        messageKey: 'b2b.remote.not_found',
+        forbiddenVisual: false,
+        statusCode: status,
+        supportReference: supportReference,
+      );
+    }
+    if (status != null && status >= 500) {
+      return _WholesaleProductFailureInfo(
+        category: 'server_failure',
+        messageKey: 'b2b.remote.error',
+        forbiddenVisual: false,
+        statusCode: status,
+        supportReference: supportReference,
+      );
+    }
+  }
+
+  return const _WholesaleProductFailureInfo(
+    category: 'network_or_client_failure',
+    messageKey: 'b2b.remote.error',
+    forbiddenVisual: false,
+  );
+}
+
+String? _safeWholesaleSupportReference(String? value) {
+  final reference = value?.trim();
+  if (reference == null || reference.isEmpty || reference.length > 128) {
+    return null;
+  }
+  return RegExp(r'^[A-Za-z0-9._:/-]+$').hasMatch(reference)
+      ? reference
+      : null;
 }
 
 class _PricingPanel extends StatelessWidget {
