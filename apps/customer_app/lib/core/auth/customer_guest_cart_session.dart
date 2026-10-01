@@ -142,6 +142,9 @@ class CustomerGuestCartSession {
 
   Future<void> activateStore(int storeId) async {
     _requirePositiveStoreId(storeId);
+    if (!_tokens.containsKey(storeId)) {
+      throw StateError('No guest cart token exists for store $storeId');
+    }
     _activeStoreId = storeId;
     await _persist();
   }
