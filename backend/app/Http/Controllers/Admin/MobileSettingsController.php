@@ -7,6 +7,7 @@ use App\Models\MobileAppSetting;
 use App\Models\PushDeliveryLog;
 use App\Models\PushDeviceToken;
 use App\Models\PushProviderSetting;
+use App\Models\SystemVersion;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DriverLocationEnforcementPolicy;
@@ -22,8 +23,24 @@ final class MobileSettingsController extends Controller
     {
         $this->authorizeAny($request);
 
+        $settings = MobileAppSetting::query()->orderBy('app')->orderBy('environment')->get();
+        $selectedApp = in_array((string) $request->query('app'), ['customer', 'driver'], true)
+            ? (string) $request->query('app')
+            : 'customer';
+        $selectedEnvironment = in_array((string) $request->query('environment'), ['development', 'staging', 'production'], true)
+            ? (string) $request->query('environment')
+            : 'production';
+        $selectedSetting = $settings->first(
+            fn (MobileAppSetting $setting): bool => $setting->app === $selectedApp
+                && $setting->environment === $selectedEnvironment,
+        );
+
         return view('admin.mobile-settings', [
-            'settings' => MobileAppSetting::query()->orderBy('app')->orderBy('environment')->get(),
+            'settings' => $settings,
+            'selectedApp' => $selectedApp,
+            'selectedEnvironment' => $selectedEnvironment,
+            'selectedSetting' => $selectedSetting,
+            'currentReleaseVersion' => $this->currentReleaseVersion(),
             'providers' => PushProviderSetting::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
             'devices' => PushDeviceToken::query()->whereNull('revoked_at')->latest()->limit(100)->get(),
             'logs' => PushDeliveryLog::query()->latest()->limit(100)->get(),
@@ -37,26 +54,26 @@ final class MobileSettingsController extends Controller
         $data = $request->validate([
             'app' => ['required', 'in:customer,driver'],
             'environment' => ['required', 'in:development,staging,production'],
-            'display_name' => ['required', 'string', 'max:255'],
-            'android_package_id' => ['nullable', 'string', 'max:255'],
-            'ios_bundle_id' => ['nullable', 'string', 'max:255'],
-            'published_version' => ['nullable', 'string', 'max:64'],
-            'published_build' => ['nullable', 'string', 'max:64'],
-            'minimum_supported_version' => ['nullable', 'string', 'max:64'],
-            'recommended_version' => ['nullable', 'string', 'max:64'],
-            'force_update' => ['nullable', 'boolean'],
-            'maintenance_mode' => ['nullable', 'boolean'],
-            'maintenance_message_ar' => ['nullable', 'string', 'max:5000'],
-            'maintenance_message_en' => ['nullable', 'string', 'max:5000'],
-            'google_play_url' => ['nullable', 'url', 'max:2048'],
-            'app_store_url' => ['nullable', 'url', 'max:2048'],
-            'privacy_url' => ['nullable', 'url', 'max:2048'],
-            'terms_url' => ['nullable', 'url', 'max:2048'],
-            'support_url' => ['nullable', 'url', 'max:2048'],
-            'release_notes_ar' => ['nullable', 'string', 'max:10000'],
-            'release_notes_en' => ['nullable', 'string', 'max:10000'],
-            'deep_link_json' => ['nullable', 'json'],
-            'store_readiness_json' => ['nullable', 'json'],
+            'display_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'android_package_id' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'ios_bundle_id' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'published_version' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'published_build' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'minimum_supported_version' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'recommended_version' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'force_update' => ['sometimes', 'boolean'],
+            'maintenance_mode' => ['sometimes', 'boolean'],
+            'maintenance_message_ar' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'maintenance_message_en' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'google_play_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'app_store_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'privacy_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'terms_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'support_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'release_notes_ar' => ['sometimes', 'nullable', 'string', 'max:10000'],
+            'release_notes_en' => ['sometimes', 'nullable', 'string', 'max:10000'],
+            'deep_link_json' => ['sometimes', 'nullable', 'json'],
+            'store_readiness_json' => ['sometimes', 'nullable', 'json'],
         ]);
 
         $before = MobileAppSetting::query()
@@ -64,13 +81,51 @@ final class MobileSettingsController extends Controller
             ->where('environment', $data['environment'])
             ->first();
 
-        $values = collect($data)
-            ->except(['app', 'environment', 'deep_link_json', 'store_readiness_json'])
-            ->all();
-        $values['force_update'] = $request->boolean('force_update');
-        $values['maintenance_mode'] = $request->boolean('maintenance_mode');
-        $values['deep_link_config'] = $this->decode($data['deep_link_json'] ?? null);
-        $values['store_readiness'] = $this->decode($data['store_readiness_json'] ?? null);
+        if (! $before instanceof MobileAppSetting && trim((string) ($data['display_name'] ?? '')) === '') {
+            throw ValidationException::withMessages([
+                'display_name' => [app()->getLocale() === 'ar'
+                    ? 'اسم العرض مطلوب عند إنشاء إعداد تطبيق جديد.'
+                    : 'Display name is required when creating a new app setting.'],
+            ]);
+        }
+
+        $values = [];
+        foreach ([
+            'display_name',
+            'android_package_id',
+            'ios_bundle_id',
+            'published_version',
+            'published_build',
+            'minimum_supported_version',
+            'recommended_version',
+            'maintenance_message_ar',
+            'maintenance_message_en',
+            'google_play_url',
+            'app_store_url',
+            'privacy_url',
+            'terms_url',
+            'support_url',
+            'release_notes_ar',
+            'release_notes_en',
+        ] as $key) {
+            if (array_key_exists($key, $data)) {
+                $values[$key] = $data[$key];
+            }
+        }
+
+        foreach (['force_update', 'maintenance_mode'] as $key) {
+            if (array_key_exists($key, $data)) {
+                $values[$key] = $request->boolean($key);
+            }
+        }
+
+        if (array_key_exists('deep_link_json', $data)) {
+            $values['deep_link_config'] = $this->decode($data['deep_link_json']);
+        }
+
+        if (array_key_exists('store_readiness_json', $data)) {
+            $values['store_readiness'] = $this->decode($data['store_readiness_json']);
+        }
 
         $setting = MobileAppSetting::query()->updateOrCreate(
             ['app' => $data['app'], 'environment' => $data['environment']],
@@ -86,7 +141,12 @@ final class MobileSettingsController extends Controller
             $request,
         );
 
-        return back()->with('status', __('mobile_settings.saved'));
+        return redirect()
+            ->route('admin.mobile-settings.index', [
+                'app' => $data['app'],
+                'environment' => $data['environment'],
+            ])
+            ->with('status', __('mobile_settings.saved'));
     }
 
     public function updateDriverLocationPolicy(
@@ -106,8 +166,8 @@ final class MobileSettingsController extends Controller
             if (! $readiness['ready']) {
                 throw ValidationException::withMessages([
                     'enabled' => [app()->getLocale() === 'ar'
-                        ? 'لا يمكن تفعيل فرض الموقع قبل اكتمال سياسة إصدار السائق 1.0.38 أو أحدث لأندرويد وآي أو إس مع روابط تحديث صالحة.'
-                        : 'Driver location enforcement cannot be enabled until Android and iOS Driver policies require version 1.0.38 or newer and provide valid update URLs.'],
+                        ? 'لا يمكن تفعيل فرض الموقع قبل اكتمال سياسة إصدار السائق الداعمة لإرسال الموقع لأندرويد وآي أو إس مع روابط تحديث صالحة.'
+                        : 'Driver location enforcement cannot be enabled until Android and iOS Driver policies require a heartbeat-capable version and provide valid update URLs.'],
                 ]);
             }
         }
@@ -339,6 +399,22 @@ final class MobileSettingsController extends Controller
         abort_unless($actor->hasPermission($permission), 403);
 
         return $actor;
+    }
+
+    private function currentReleaseVersion(): string
+    {
+        $installed = SystemVersion::query()
+            ->orderByDesc('installed_at')
+            ->orderByDesc('id')
+            ->value('version');
+
+        if (is_string($installed) && trim($installed) !== '') {
+            return trim($installed);
+        }
+
+        $repository = trim((string) @file_get_contents(base_path('../VERSION')));
+
+        return $repository !== '' ? $repository : 'unavailable';
     }
 
     private function decode(?string $json): ?array

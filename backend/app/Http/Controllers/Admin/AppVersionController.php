@@ -16,12 +16,27 @@ use InvalidArgumentException;
 
 final class AppVersionController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         Gate::authorize('platform.manage');
 
+        $policies = AppVersion::query()->orderBy('app')->orderBy('platform')->get();
+        $selectedApp = in_array((string) $request->query('app'), ['customer', 'driver'], true)
+            ? (string) $request->query('app')
+            : 'customer';
+        $selectedPlatform = in_array((string) $request->query('platform'), ['android', 'ios'], true)
+            ? (string) $request->query('platform')
+            : 'android';
+        $selectedPolicy = $policies->first(
+            fn (AppVersion $policy): bool => $policy->app === $selectedApp
+                && $policy->platform === $selectedPlatform,
+        );
+
         return view('admin.app-versions', [
-            'policies' => AppVersion::query()->orderBy('app')->orderBy('platform')->get(),
+            'policies' => $policies,
+            'selectedApp' => $selectedApp,
+            'selectedPlatform' => $selectedPlatform,
+            'selectedPolicy' => $selectedPolicy,
         ]);
     }
 
@@ -81,6 +96,8 @@ final class AppVersionController extends Controller
 
         $audit->record('app_version_policy.updated', $actor, $policy, $before?->toArray(), $policy->toArray(), $request);
 
-        return redirect()->route('admin.app-versions.index')->with('status', __('app_versions.saved'));
+        return redirect()
+            ->route('admin.app-versions.index')
+            ->with('status', __('app_versions.saved'));
     }
 }
