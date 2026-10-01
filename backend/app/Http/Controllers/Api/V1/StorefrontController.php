@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 final class StorefrontController extends Controller
@@ -262,12 +263,24 @@ final class StorefrontController extends Controller
             ->values()
             ->all();
 
-        $hero = DB::table('banners')
+        $banners = DB::table('banners')
             ->where('store_id', $store)
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('id')
-            ->first();
+            ->get()
+            ->map(fn (object $banner): array => [
+                'id' => (int) $banner->id,
+                'title' => (string) $banner->title,
+                'image_url' => $this->bannerImageUrl($banner->image_path),
+                'target_type' => $banner->target_type,
+                'target_id' => $banner->target_id === null ? null : (int) $banner->target_id,
+                'target_url' => $banner->target_url,
+                'sort_order' => (int) $banner->sort_order,
+            ])
+            ->values()
+            ->all();
+        $hero = $banners[0] ?? null;
 
         return response()->json([
             'store' => $this->retailStorePayload($storeRow),
@@ -283,12 +296,8 @@ final class StorefrontController extends Controller
                 'address' => $settings->header_address ?? null,
                 'custom' => $this->decodedJson($settings->branding ?? null),
             ],
-            'hero' => $hero === null ? null : [
-                'id' => (int) $hero->id,
-                'title' => (string) $hero->title,
-                'image_url' => $this->assetUrl($hero->image_path),
-                'target_url' => $hero->target_url,
-            ],
+            'hero' => $hero,
+            'banners' => $banners,
             'sections' => $sections,
         ]);
     }
@@ -548,6 +557,23 @@ final class StorefrontController extends Controller
         $decoded = json_decode($value, true);
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private function bannerImageUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $value = ltrim(trim($path), '/');
+        if (str_starts_with($value, 'storage/')) {
+            $relative = substr($value, strlen('storage/'));
+            if ($relative === '' || ! Storage::disk('public')->exists($relative)) {
+                return null;
+            }
+        }
+
+        return $this->assetUrl($path);
     }
 
     private function assetUrl(mixed $path): ?string
