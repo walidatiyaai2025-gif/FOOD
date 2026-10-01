@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.41",
-  "minimum_current_version": "1.0.40",
-  "sha256": "f7e94dcd585f650bfe7d0a90fb5914ce9add558fc4f7770c5226f598c2ea697b",
-  "contains_migrations": false,
+  "target_version": "1.0.42",
+  "minimum_current_version": "1.0.41",
+  "sha256": "ecd6adc7156171faaa4befada7df22d7cb807357ea330d394aaade2cd3b42828",
+  "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release(#634): FOODEX 1.0.41 post-1.0.40 reliability distribution (#635)",
+  "release_notes": "release(#662): FOODEX 1.0.42 integrated mobile UX + Assistant distribution (#665)",
   "dashboard_fields": {
-    "target_version": "1.0.41",
-    "minimum_current_version": "1.0.40",
-    "sha256": "f7e94dcd585f650bfe7d0a90fb5914ce9add558fc4f7770c5226f598c2ea697b",
-    "contains_migrations": false,
-    "release_notes": "release(#634): FOODEX 1.0.41 post-1.0.40 reliability distribution (#635)"
+    "target_version": "1.0.42",
+    "minimum_current_version": "1.0.41",
+    "sha256": "ecd6adc7156171faaa4befada7df22d7cb807357ea330d394aaade2cd3b42828",
+    "contains_migrations": true,
+    "release_notes": "release(#662): FOODEX 1.0.42 integrated mobile UX + Assistant distribution (#665)"
   }
 }
