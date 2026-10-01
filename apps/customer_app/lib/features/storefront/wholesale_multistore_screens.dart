@@ -2491,45 +2491,47 @@ class _WholesaleOrderDetailsDesignScreenState
                               ),
                             ),
                             const SizedBox(height: 8),
-                            ...timeline.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final event = entry.value;
-                              final stage =
-                                  event['stage']?.toString() ?? 'unknown';
-                              final occurredAt =
-                                  event['occurred_at']?.toString() ?? '';
-                              final driverName =
-                                  event['driver_name']?.toString() ?? '';
-                              final reasonCode =
-                                  event['reason_code']?.toString() ?? '';
+                            Column(
+                              children: timeline.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final event = entry.value;
+                                final stage =
+                                    event['stage']?.toString() ?? 'unknown';
+                                final occurredAt =
+                                    event['occurred_at']?.toString() ?? '';
+                                final driverName =
+                                    event['driver_name']?.toString() ?? '';
+                                final reasonCode =
+                                    event['reason_code']?.toString() ?? '';
 
-                              return ListTile(
-                                key: ValueKey(
-                                  'b2b-timeline-' +
-                                      index.toString() +
-                                      '-' +
-                                      stage,
-                                ),
-                                contentPadding: EdgeInsets.zero,
-                                leading:
-                                    const Icon(Icons.timeline_rounded),
-                                title: Text(orderStatusLabel(stage)),
-                                subtitle: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    if (occurredAt.isNotEmpty)
-                                      Text(occurredAt),
-                                    if (driverName.isNotEmpty)
-                                      Text('السائق: ' + driverName),
-                                    if (reasonCode.isNotEmpty)
-                                      Text(
-                                        failureReasonLabel(reasonCode),
-                                      ),
-                                  ],
-                                ),
-                              );
-                            }),
+                                return ListTile(
+                                  key: ValueKey(
+                                    'b2b-timeline-' +
+                                        index.toString() +
+                                        '-' +
+                                        stage,
+                                  ),
+                                  contentPadding: EdgeInsets.zero,
+                                  leading:
+                                      const Icon(Icons.timeline_rounded),
+                                  title: Text(orderStatusLabel(stage)),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (occurredAt.isNotEmpty)
+                                        Text(occurredAt),
+                                      if (driverName.isNotEmpty)
+                                        Text('السائق: ' + driverName),
+                                      if (reasonCode.isNotEmpty)
+                                        Text(
+                                          failureReasonLabel(reasonCode),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(growable: false),
+                            ),
                           ],
                           if (items.isNotEmpty) ...[
                             const SizedBox(height: 12),
