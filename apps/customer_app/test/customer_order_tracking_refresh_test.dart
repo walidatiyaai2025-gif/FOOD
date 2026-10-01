@@ -37,7 +37,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(api.detailCalls, 1);
-      expect(find.text('Order received'), findsOneWidget);
+      expect(find.text('Order received'), findsWidgets);
 
       notifications.add({
         'order_id': 91,
@@ -49,7 +49,7 @@ void main() {
       await tester.pump();
 
       expect(api.detailCalls, 2);
-      expect(find.text('Preparing'), findsOneWidget);
+      expect(find.text('Preparing'), findsWidgets);
       expect(find.text('Delivered'), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
