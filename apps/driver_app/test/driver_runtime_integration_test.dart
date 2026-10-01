@@ -56,6 +56,11 @@ void main() {
             'email': 'driver@example.test',
             'locale': 'en',
             'roles': ['B2C_DRIVER'],
+            'driver_scope': {
+              'driver_id': 17,
+              'channel': 'b2c',
+              'store_id': 41,
+            },
           },
         }),
         200,
@@ -72,6 +77,7 @@ void main() {
       password: 'secret-password',
     );
     expect(result.channel, DriverChannel.b2c);
+    expect(result.storeId, 41);
     expect(result.token, 'abc');
   });
 
