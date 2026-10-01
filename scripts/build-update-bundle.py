@@ -56,6 +56,18 @@ RUNTIME_ALWAYS_INCLUDE_DIRS = (
     "backend/public/preview/driver",
 )
 
+# Some supported shared-host/cPanel installs expose the repository release root as
+# the HTTP document root while Laravel itself lives under backend/. Keep the
+# canonical backend/public tree, but also emit safe static-only aliases at the
+# release root so same-origin /assets, /brand, /demo and /preview URLs work
+# without a second manual deployment path. Never mirror index.php or .htaccess.
+PUBLIC_ROOT_MIRROR_PREFIXES = (
+    "assets/",
+    "brand/",
+    "demo/",
+    "preview/",
+)
+
 # CI can stage pinned third-party runtimes outside Composer's protected vendor/
 # directory. Their files are copied into these application-owned locations and
 # are included deterministically in the dashboard update ZIP.
@@ -169,6 +181,32 @@ def changed_runtime_files(base: str, repo_root: Path) -> list[str]:
     return sorted(selected)
 
 
+def package_entries(files: list[str]) -> list[tuple[str, str]]:
+    entries: dict[str, str] = {}
+
+    for source in files:
+        canonical = safe_path(source)
+        entries[canonical] = canonical
+
+        public_prefix = "backend/public/"
+        if not canonical.startswith(public_prefix):
+            continue
+
+        public_relative = canonical[len(public_prefix):]
+        if not public_relative.startswith(PUBLIC_ROOT_MIRROR_PREFIXES):
+            continue
+
+        alias = safe_path(public_relative)
+        existing = entries.get(alias)
+        if existing is not None and existing != canonical:
+            raise RuntimeError(
+                f"Shared-host public alias collision: {alias} maps to both {existing} and {canonical}"
+            )
+        entries[alias] = canonical
+
+    return sorted(entries.items())
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -177,23 +215,24 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def build_zip(repo_root: Path, files: list[str], output: Path) -> None:
+def build_zip(repo_root: Path, entries: list[tuple[str, str]], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
 
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-        for relative in files:
-            source = repo_root / relative
+        for archive_name, source_relative in entries:
+            source = repo_root / source_relative
             if not source.is_file():
-                raise RuntimeError(f"Selected update file is missing: {relative}")
+                raise RuntimeError(f"Selected update file is missing: {source_relative}")
 
-            info = zipfile.ZipInfo(relative, date_time=FIXED_ZIP_TIME)
+            info = zipfile.ZipInfo(archive_name, date_time=FIXED_ZIP_TIME)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = (0o100644 & 0xFFFF) << 16
             archive.writestr(info, source.read_bytes())
 
     with zipfile.ZipFile(output, "r") as archive:
         names = archive.namelist()
-        if names != files:
+        expected_names = [archive_name for archive_name, _ in entries]
+        if names != expected_names:
             raise RuntimeError("Update ZIP file list does not match the deterministic selection.")
         for name in names:
             safe_path(name)
@@ -213,6 +252,7 @@ def main() -> int:
 
     run_git("cat-file", "-e", f"{args.base}^{{commit}}")
     files = changed_runtime_files(args.base, repo_root)
+    entries = package_entries(files)
 
     migrations = [path for path in files if path.startswith("backend/database/migrations/")]
     contains_migrations = bool(migrations)
@@ -225,7 +265,7 @@ def main() -> int:
     files_path = output_dir / "FOODEX-Update.files.txt"
     hash_path = output_dir / "FOODEX-Update.sha256.txt"
 
-    build_zip(repo_root, files, package)
+    build_zip(repo_root, entries, package)
     package_hash = sha256(package)
 
     manifest = {
@@ -252,14 +292,15 @@ def main() -> int:
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    files_path.write_text("\n".join(files) + "\n", encoding="utf-8")
+    files_path.write_text("\n".join(name for name, _ in entries) + "\n", encoding="utf-8")
     hash_path.write_text(f"{package_hash}  {package.name}\n", encoding="utf-8")
 
     print(f"FOODEX update package: {package}")
     print(f"target_version={args.target_version}")
     print(f"minimum_current_version={args.minimum_current_version}")
     print(f"contains_migrations={str(contains_migrations).lower()}")
-    print(f"file_count={len(files)}")
+    print(f"file_count={len(entries)}")
+    print(f"source_file_count={len(files)}")
     print(f"migration_count={len(migrations)}")
     print(f"sha256={package_hash}")
 
