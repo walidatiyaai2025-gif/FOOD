@@ -13,6 +13,7 @@ use App\Models\OrderStatusHistory;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\DriverDeliveryEvidenceService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Support\AdminNavigation;
@@ -38,6 +39,7 @@ final class OrderOperationsController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly OperationalTenantScope $scope,
+        private readonly DriverDeliveryEvidenceService $deliveryEvidence,
     ) {}
 
     public function index(Request $request): View
@@ -115,7 +117,7 @@ final class OrderOperationsController extends Controller
                 ->whereKey((int) $data['order'])
                 ->whereIn('store_id', $storeIds)
                 ->firstOrFail();
-            $detail = $this->detail($detailOrder);
+            $detail = $this->detail($actor, $detailOrder);
         }
 
         return view('admin.order-operations', [
@@ -331,7 +333,7 @@ final class OrderOperationsController extends Controller
     }
 
     /** @return array<string,mixed> */
-    private function detail(Order $order): array
+    private function detail(User $actor, Order $order): array
     {
         $row = $this->row($order);
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
@@ -372,6 +374,7 @@ final class OrderOperationsController extends Controller
             'delivery_address' => $deliveryAddress,
             'history' => $history,
             'assignments' => $assignments,
+            'delivery_evidence' => $this->deliveryEvidence->order($actor, $order),
         ];
     }
 
