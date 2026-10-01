@@ -7,6 +7,7 @@ class DriverSession {
     required this.email,
     required this.locale,
     required this.channel,
+    this.storeId,
   });
 
   final String token;
@@ -14,6 +15,7 @@ class DriverSession {
   final String email;
   final String locale;
   final DriverChannel channel;
+  final int? storeId;
 }
 
 abstract interface class DriverAuthRepository {
