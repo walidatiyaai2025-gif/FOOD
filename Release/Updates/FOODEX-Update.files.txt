@@ -90,6 +90,7 @@ backend/app/Http/Controllers/Api/V1/OrderController.php
 backend/app/Http/Controllers/Api/V1/PlatformMarketplaceController.php
 backend/app/Http/Controllers/Api/V1/PushDeviceController.php
 backend/app/Http/Controllers/Api/V1/QuoteController.php
+backend/app/Http/Controllers/Api/V1/RetailCheckoutOptionsController.php
 backend/app/Http/Controllers/Api/V1/RetailWholesaleProductMappingController.php
 backend/app/Http/Controllers/Api/V1/SecurityController.php
 backend/app/Http/Controllers/Api/V1/StorefrontController.php
@@ -102,6 +103,7 @@ backend/app/Jobs/DispatchPushNotification.php
 backend/app/Models/Address.php
 backend/app/Models/AppPreviewInvalidationEvent.php
 backend/app/Models/AppPreviewSession.php
+backend/app/Models/DeliveryProof.php
 backend/app/Models/DriverAssignment.php
 backend/app/Models/DriverCurrentLocation.php
 backend/app/Models/Invoice.php
@@ -135,6 +137,7 @@ backend/app/Services/CustomerDomainResolver.php
 backend/app/Services/CustomerImageService.php
 backend/app/Services/DashboardOperationalNotifier.php
 backend/app/Services/DemoDataManager.php
+backend/app/Services/DriverDeliveryEvidenceService.php
 backend/app/Services/DriverLocationEnforcementPolicy.php
 backend/app/Services/DriverOrderService.php
 backend/app/Services/DriverRuntimeContextResolver.php
@@ -428,6 +431,7 @@ backend/database/migrations/2026_10_01_071100_create_assistant_conversations.php
 backend/database/migrations/2026_10_01_071110_create_assistant_messages.php
 backend/database/migrations/2026_10_01_071120_create_assistant_conversation_state.php
 backend/database/migrations/2026_10_01_071130_grant_assistant_use_permission.php
+backend/database/migrations/2026_10_01_123500_harden_driver_delivery_proof_ledger.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/ProductDemoSeeder.php

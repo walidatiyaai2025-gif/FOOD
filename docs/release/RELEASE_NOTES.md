@@ -1,46 +1,48 @@
-# FOODEX 1.0.43 Release Notes
+# FOODEX 1.0.44 Release Notes
 
-Status: synchronized repair distribution for installed 1.0.42 systems affected by shared-host/cPanel public document-root 404s.
+Status: synchronized Customer + Driver Journey V2 production distribution.
 
 ## Release identity
 
-- Dashboard: `1.0.43`
-- Customer app: `1.0.43+43`
-- Driver app: `1.0.43+43`
-- Customer runtime/footer identity: `1.0.43`
-- Driver runtime/footer identity: `1.0.43`
-- Driver diagnostics current identity: `1.0.43`
-- Driver diagnostics build identity: `43`
+- Dashboard: `1.0.44`
+- Customer app: `1.0.44+44`
+- Driver app: `1.0.44+44`
+- Customer runtime/footer identity: `1.0.44`
+- Driver runtime/footer identity: `1.0.44`
+- Driver diagnostics current identity: `1.0.44`
+- Driver diagnostics build identity: `44`
 
-## Deployable delta since distributed 1.0.42
+## Deployable delta since distributed 1.0.43
 
-### Shared-host public runtime repair
-- Deliver the #670/#671 production fix under a new immutable release identity.
-- Keep canonical Laravel static files under `backend/public/**`.
-- Also ship safe release-root aliases for `assets/**`, `brand/**`, `demo/**`, and `preview/**` for supported shared-host/cPanel document roots.
-- Normalize mirrored static file permissions to `0644` and directories to `0755` during update extraction.
-- Do not mirror the Laravel front controller or `.htaccess` into the release root.
+### Customer Journey V2
+- Converge production B2C navigation on the NEW Retail journey only.
+- Preserve authoritative Retail store/channel context across guest browsing, authentication/registration return, checkout, deep links, notifications and orders.
+- Ship NEW account/profile, addresses, favorites, notification center and authoritative order/tracking surfaces.
+- Verify the mandatory guest Retail journey end to end, including same-store cart merge and operational order/registration notifications.
+- Remove the obsolete legacy Customer runtime and keep an anti-regression guard against reintroduction.
 
-### Affected production surfaces
-- FOODEX Economical Group branding.
-- Leaflet runtime and Driver Live Tracking map.
-- Customer Flutter Web App Preview runtime.
-- Driver Flutter Web App Preview runtime.
+### Driver Journey V2
+- Converge ordinary launch, delivery navigation, push/deep links and notification-center assignment opens on the NEW Driver runtime.
+- Ship authoritative active-assignment actions and shared start/delivered/failed completion flow with notes and required delivery proof.
+- Keep Dashboard delivery evidence and lifecycle notifications synchronized with the authoritative assignment state.
+- Verify assignment-to-proof E2E acceptance.
+- Remove the obsolete legacy Driver runtime and keep an anti-regression guard against reintroduction.
 
 ## Dashboard update bundle
 
-- Target version: `1.0.43`
+- Target version: `1.0.44`
 - Minimum current version: `1.0.6`
 - Contains migrations: `true`
 - Requires full redeploy: `false`
-- SHA-256: `03c50ab87e8819b2e6e9128b29a06218dcdacaf439f5b715a419d102361baf5e`
-- Package files: `675`
-- Package size: `72,999,571` bytes
+- SHA-256: `586210c0d29c28eb9313449e340cf244fb05abc81b9ab42c7dd62d570da9c10d`
+- Package files: `679`
+- Package size: `73,056,557` bytes
 
 ## Explicit non-activation statement
 
 This release does **not**:
 - change production minimum-supported AppVersion rows;
+- enable force-update;
 - enable Driver fresh-location enforcement;
 - enable the Assistant in production by default;
 - change the Assistant from read-only by default.

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.43",
+  "current_version": "1.0.44",
   "releases": [
     {
       "version": "1.0.40",
@@ -50,6 +50,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "03c50ab87e8819b2e6e9128b29a06218dcdacaf439f5b715a419d102361baf5e",
       "note": "Post-1.0.42 shared-host public-runtime repair distribution; canonical and mirrored static runtime paths ship in the same Dashboard update package."
+    },
+    {
+      "version": "1.0.44",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.44.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "586210c0d29c28eb9313449e340cf244fb05abc81b9ab42c7dd62d570da9c10d",
+      "note": "Post-1.0.43 Customer Journey V2 + Driver Journey V2 NEW-only production convergence; legacy customer/driver runtimes removed with integrated E2E and anti-regression coverage."
     }
   ]
 }
