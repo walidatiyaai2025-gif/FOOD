@@ -81,7 +81,6 @@ return [
             'lookups.view', 'lookups.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage', 'inventory.replenishment_mapping.manage',
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
-            'assistant.use',
             'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage', 'assistant.use',
             'app_preview.view', 'app_preview.impersonate_customer', 'app_preview.impersonate_driver', 'app_preview.publish',
@@ -117,10 +116,10 @@ return [
         'FINANCE' => ['assistant.use', 'stores.view', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
         'CUSTOMER_SUPPORT' => [
             'assistant.use', 'stores.view', 'b2b.accounts.view', 'b2b.accounts.manage',
-            'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
+            'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
         ],
         'RETAIL_OPERATIONS' => [
-            'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
+            'assistant.use', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
             'drivers.tracking.view', 'drivers.b2c.view', 'drivers.b2c.manage', 'reports.view',
         ],
         'RETAIL_INVENTORY' => [
@@ -130,7 +129,7 @@ return [
         ],
         'RETAIL_FINANCE' => ['assistant.use', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
         'RETAIL_CUSTOMER_SUPPORT' => [
-            'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
+            'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
         ],
         'B2B_DRIVER' => ['deliveries.b2b.execute'],
         'B2C_DRIVER' => ['deliveries.b2c.execute'],
