@@ -11,6 +11,7 @@ const {
   linkedIssueNumbers,
   parseWorkerState,
   statusLabel,
+  summarizeWorkflowRuns,
 } = require('./worker-watchdog');
 
 const NOW = Date.parse('2026-10-01T06:00:00Z');
@@ -104,20 +105,111 @@ test('running CI is never declared stale', () => {
   );
 });
 
-test('stale red CI becomes handoff-ready, not human-blocked', () => {
+test('fresh red CI becomes handoff-ready immediately without stale timeout', () => {
+  for (const conclusion of [
+    'failure',
+    'timed_out',
+    'cancelled',
+    'action_required',
+    'startup_failure',
+    'stale',
+  ]) {
+    assert.deepEqual(
+      classify({
+        nowMs: NOW,
+        managed: true,
+        workerState: { state: 'WORKING', blocker: 'none' },
+        hasOpenPr: true,
+        hasBranch: true,
+        latestActivityMs: Date.parse('2026-10-01T05:59:30Z'),
+        ciRunning: false,
+        ciConclusion: conclusion,
+        mergeable: true,
+      }),
+      { status: 'handoff-ready', reason: `ci-${conclusion}` },
+    );
+  }
+});
+
+test('red CI beats another running workflow on the same head', () => {
   assert.deepEqual(
     classify({
       nowMs: NOW,
       managed: true,
-      workerState: { state: 'WAITING_CI', blocker: 'ci' },
+      workerState: { state: 'WORKING', blocker: 'none' },
       hasOpenPr: true,
       hasBranch: true,
-      latestActivityMs: Date.parse('2026-10-01T05:00:00Z'),
-      ciRunning: false,
+      latestActivityMs: Date.parse('2026-10-01T05:59:30Z'),
+      ciRunning: true,
       ciConclusion: 'failure',
-      mergeable: false,
+      mergeable: true,
     }),
     { status: 'handoff-ready', reason: 'ci-failure' },
+  );
+});
+
+test('fresh merge conflict becomes handoff-ready immediately', () => {
+  assert.deepEqual(
+    classify({
+      nowMs: NOW,
+      managed: true,
+      workerState: { state: 'WORKING', blocker: 'none' },
+      hasOpenPr: true,
+      hasBranch: true,
+      latestActivityMs: Date.parse('2026-10-01T05:59:30Z'),
+      ciRunning: false,
+      ciConclusion: 'success',
+      mergeable: false,
+    }),
+    { status: 'handoff-ready', reason: 'merge-conflict' },
+  );
+});
+
+test('newer rerun replaces old red run for the same workflow', () => {
+  assert.deepEqual(
+    summarizeWorkflowRuns([
+      {
+        id: 1,
+        workflow_id: 10,
+        status: 'completed',
+        conclusion: 'failure',
+        created_at: '2026-10-01T05:00:00Z',
+        updated_at: '2026-10-01T05:10:00Z',
+      },
+      {
+        id: 2,
+        workflow_id: 10,
+        status: 'in_progress',
+        conclusion: null,
+        created_at: '2026-10-01T05:50:00Z',
+        updated_at: '2026-10-01T05:55:00Z',
+      },
+    ]),
+    { running: true, conclusion: null },
+  );
+});
+
+test('red latest workflow is surfaced even while another workflow is running', () => {
+  assert.deepEqual(
+    summarizeWorkflowRuns([
+      {
+        id: 3,
+        workflow_id: 10,
+        status: 'completed',
+        conclusion: 'failure',
+        created_at: '2026-10-01T05:55:00Z',
+        updated_at: '2026-10-01T05:56:00Z',
+      },
+      {
+        id: 4,
+        workflow_id: 11,
+        status: 'in_progress',
+        conclusion: null,
+        created_at: '2026-10-01T05:57:00Z',
+        updated_at: '2026-10-01T05:58:00Z',
+      },
+    ]),
+    { running: true, conclusion: 'failure' },
   );
 });
 
