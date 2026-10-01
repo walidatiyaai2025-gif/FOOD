@@ -35,6 +35,7 @@ void main() {
           locale: const Locale('en'),
           home: CustomerAccountScreen(
             api: api,
+            favoritesApi: api,
             retailStoreId: 19,
           ),
         ),
@@ -183,17 +184,19 @@ class _LocationFake implements CustomerLocationService {
       );
 }
 
-class _AccountFakeApi implements B2cAccountApi {
+class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   _AccountFakeApi({
-    this.profileValue = const {'name': 'Customer', 'email': 'c@example.test'},
     this.profileError,
     this.addressesValue = const {'data': []},
     this.favoritesValue = const {'data': []},
     this.notificationsValue = const {'data': []},
   });
 
-  final Object? profileValue;
   final Object? profileError;
+  final Object? profileValue = const {
+    'name': 'Customer',
+    'email': 'c@example.test',
+  };
   final Object? addressesValue;
   final Object? favoritesValue;
   final Object? notificationsValue;
@@ -214,13 +217,24 @@ class _AccountFakeApi implements B2cAccountApi {
   Future<Object?> addresses() async => addressesValue;
 
   @override
-  Future<Object?> favorites({int? storeId}) async {
+  Future<Object?> favorites() async => favoritesValue;
+
+  @override
+  Future<void> removeFavorite(int productId) async {
+    removedFavorites.add((productId, null));
+  }
+
+  @override
+  Future<Object?> favoritesForStore(int storeId) async {
     favoriteLoads.add(storeId);
     return favoritesValue;
   }
 
   @override
-  Future<void> removeFavorite(int productId, {int? storeId}) async {
+  Future<void> addFavoriteForStore(int storeId, int productId) async {}
+
+  @override
+  Future<void> removeFavoriteForStore(int storeId, int productId) async {
     removedFavorites.add((productId, storeId));
   }
 
