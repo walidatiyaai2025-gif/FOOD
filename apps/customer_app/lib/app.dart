@@ -139,7 +139,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   final CustomerDiagnostics _diagnostics = CustomerDiagnostics.instance;
   late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
 
-  static const _appVersion = '1.0.40';
+  static const _appVersion = '1.0.41';
 
   @override
   void initState() {

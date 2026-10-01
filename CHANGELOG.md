@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.41 - 2026-10-01
+
+- Publish all reliability fixes merged after the already-distributed 1.0.40 under a new immutable release identity; 1.0.40 is not reused.
+- Ship production distribution support for the real Customer and Driver Flutter Web preview runtimes with versioned artifacts and deployment validation.
+- Add Driver version-policy failure observability with safe timeout/network/HTTP/parse/policy classifications, retry context and correlation IDs.
+- Make protected Customer B2B authentication return channel-aware while preserving exact safe internal destination/query semantics.
+- Harden Customer runtime/product error UX with retry/back recovery, safe support references and sanitized diagnostics instead of raw internal route text.
+- Harden Dashboard live Driver map initialization/feed failure handling, empty-feed timestamps and local Leaflet asset completeness.
+- Unify Mobile Settings with authoritative AppVersion/location-rollout readiness and surface exact safe blockers without changing production enforcement.
+- Preserve existing production AppVersion minimums, force-update state and Driver fresh-location enforcement activation state.
+
 ## 1.0.40 - 2026-10-01
 
 - Synchronize Dashboard, Customer and Driver release identities at 1.0.40 / mobile build 1.0.40+40.

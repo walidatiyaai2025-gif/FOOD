@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.34",
-  "minimum_current_version": "1.0.33",
-  "sha256": "7b77c2f4769cd94acb52265001edd9a3e357bae13455911740ef2563b127fb0d",
+  "target_version": "1.0.41",
+  "minimum_current_version": "1.0.6",
+  "sha256": "a97936f888f8f959f742f89f7e0549356984bca8f87c291e4f11bf6710d754e0",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "#431 Refresh FOODEX 1.0.34 trial distribution",
+  "release_notes": "FOODEX 1.0.41: Publish all reliability fixes merged after the already-distributed 1.0.40 under a new immutable release identity; 1.0.40 is not reused. Ship production distribution support for the real Customer and Driver Flutter Web preview runtimes with versioned artifacts and deployment validation. Add Driver version-policy failure observability with safe timeout/network/HTTP/parse/policy classifications, retry context and correlation IDs. Make protected Customer B2B authentication return channel-aware while preserving exact safe internal destination/query semantics. Harden Customer runtime/product error UX with retry/back recovery, safe support references and sanitized diagnostics instead of raw internal route text. Harden Dashboard live Driver map initialization/feed failure handling, empty-feed timestamps and local Leaflet asset completeness. Unify Mobile Settings with authoritative AppVersion/location-rollout readiness and surface exact safe blockers without changing production enforcement. Preserve existing production AppVersion minimums, force-update state and Driver fresh-location enforcement activation state.",
   "dashboard_fields": {
-    "target_version": "1.0.34",
-    "minimum_current_version": "1.0.33",
-    "sha256": "7b77c2f4769cd94acb52265001edd9a3e357bae13455911740ef2563b127fb0d",
+    "target_version": "1.0.41",
+    "minimum_current_version": "1.0.6",
+    "sha256": "a97936f888f8f959f742f89f7e0549356984bca8f87c291e4f11bf6710d754e0",
     "contains_migrations": true,
-    "release_notes": "#431 Refresh FOODEX 1.0.34 trial distribution"
+    "release_notes": "FOODEX 1.0.41: Publish all reliability fixes merged after the already-distributed 1.0.40 under a new immutable release identity; 1.0.40 is not reused. Ship production distribution support for the real Customer and Driver Flutter Web preview runtimes with versioned artifacts and deployment validation. Add Driver version-policy failure observability with safe timeout/network/HTTP/parse/policy classifications, retry context and correlation IDs. Make protected Customer B2B authentication return channel-aware while preserving exact safe internal destination/query semantics. Harden Customer runtime/product error UX with retry/back recovery, safe support references and sanitized diagnostics instead of raw internal route text. Harden Dashboard live Driver map initialization/feed failure handling, empty-feed timestamps and local Leaflet asset completeness. Unify Mobile Settings with authoritative AppVersion/location-rollout readiness and surface exact safe blockers without changing production enforcement. Preserve existing production AppVersion minimums, force-update state and Driver fresh-location enforcement activation state."
   }
 }
