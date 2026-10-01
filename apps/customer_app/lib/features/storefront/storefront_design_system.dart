@@ -286,11 +286,15 @@ class FoodexErrorState extends StatelessWidget {
   const FoodexErrorState({
     required this.message,
     this.onRetry,
+    this.retryLabel = 'إعادة المحاولة',
+    this.retryKey,
     super.key,
   });
 
   final String message;
   final VoidCallback? onRetry;
+  final String retryLabel;
+  final Key? retryKey;
 
   @override
   Widget build(BuildContext context) => Center(
@@ -309,9 +313,10 @@ class FoodexErrorState extends StatelessWidget {
               if (onRetry != null) ...[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
+                  key: retryKey,
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('إعادة المحاولة'),
+                  label: Text(retryLabel),
                 ),
               ],
             ],
