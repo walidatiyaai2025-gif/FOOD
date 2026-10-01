@@ -179,7 +179,8 @@ jobs:
             test/driver_preview_runtime_test.dart \
             test/driver_preview_web_contract_test.dart \
             test/navigation_test.dart \
-            test/driver_journey_test.dart \
+            test/driver_active_journey_test.dart \
+            test/driver_new_only_wiring_test.dart \
             test/localization_test.dart
       - name: Compile real Driver Preview Web runtime
         run: |
