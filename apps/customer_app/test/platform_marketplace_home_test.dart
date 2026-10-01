@@ -484,4 +484,128 @@ void main() {
     expect(requestedLocale, const Locale('en'));
   });
 
+
+
+  testWidgets(
+      'marketplace reference home binds authoritative API content at narrow phone width',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 780);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final client = MockClient((request) async => http.Response(
+          jsonEncode({
+            'store': {
+              'id': 70,
+              'name': 'FOODEX Wholesale',
+              'channel': 'b2b',
+            },
+            'hero': {
+              'title': 'October Wholesale',
+              'image_url': null,
+            },
+            'categories': [
+              {'id': 9, 'name': 'Beverages'},
+              {'id': 10, 'name': 'Pantry'},
+            ],
+            'offers': const [],
+            'products': {
+              'data': [
+                {
+                  'id': 42,
+                  'name': 'API Water',
+                  'sku': 'API-WATER-42',
+                  'unit_price': 12.5,
+                  'currency': 'KWD',
+                  'image_url': null,
+                },
+                {
+                  'id': 43,
+                  'name': 'API Rice',
+                  'sku': 'API-RICE-43',
+                  'account_price': 8.75,
+                  'currency': 'KWD',
+                  'image_url': null,
+                },
+              ],
+            },
+            'retail_banners': [
+              {
+                'id': 7,
+                'name': 'Retail Seven',
+                'title': 'Dashboard Retail Banner',
+                'banner_url': null,
+                'logo_url': null,
+                'channel': 'b2c',
+              },
+            ],
+          }),
+          200,
+          headers: const {'content-type': 'application/json'},
+        ));
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('en'),
+        overrides: const {},
+        child: MaterialApp(
+          locale: const Locale('en'),
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.guest(),
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const ValueKey('marketplace-categories')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('marketplace-banner-carousel')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('marketplace-banner-indicators')),
+      findsOneWidget,
+    );
+    expect(find.text('October Wholesale'), findsOneWidget);
+
+    final categoriesTop = tester
+        .getTopLeft(find.byKey(const ValueKey('marketplace-categories')))
+        .dy;
+    final bannerTop = tester
+        .getTopLeft(find.byKey(const ValueKey('marketplace-banner-carousel')))
+        .dy;
+    expect(categoriesTop, lessThan(bannerTop));
+
+    await tester.drag(
+      find.byKey(const ValueKey('marketplace-retail-carousel')),
+      const Offset(-320, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('marketplace-retail-banner-title-7')),
+      findsOneWidget,
+    );
+    expect(find.text('Dashboard Retail Banner'), findsOneWidget);
+
+    await tester.drag(
+      find.byType(CustomScrollView),
+      const Offset(0, -650),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('marketplace-product-card-42')),
+      findsOneWidget,
+    );
+    expect(find.text('API Water'), findsOneWidget);
+    expect(find.text('12.5 KWD'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
