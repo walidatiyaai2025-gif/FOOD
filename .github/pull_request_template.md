@@ -1,3 +1,8 @@
+## Track / release isolation
+Track: PLATFORM / HOTFIX / AI-V1 / AI-BUG / AI-GOV
+Production release blocker: Yes / No
+Target branch rationale:
+
 ## Issue
 Closes #
 
