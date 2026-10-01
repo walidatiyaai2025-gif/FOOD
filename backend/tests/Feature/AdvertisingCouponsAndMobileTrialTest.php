@@ -49,6 +49,24 @@ class AdvertisingCouponsAndMobileTrialTest extends TestCase
         );
     }
 
+    public function test_coupon_index_renders_coupons_without_optional_dates(): void
+    {
+        $admin = $this->globalRoleUser('B2B_ADMIN', 'coupon-null-dates@example.test');
+
+        $this->actingAs($admin)->post('/admin/coupons', $this->couponPayload([
+            'channel' => 'b2b',
+            'store_id' => null,
+            'code' => 'NO-DATES',
+            'starts_at' => null,
+            'ends_at' => null,
+        ]))->assertRedirect();
+
+        $this->actingAs($admin)
+            ->get('/admin/coupons')
+            ->assertOk()
+            ->assertSee('NO-DATES');
+    }
+
     public function test_coupon_codes_are_isolated_between_wholesale_and_each_retail_store(): void
     {
         $storeA = $this->store('B2C', 'COUPON-A');

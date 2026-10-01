@@ -25,6 +25,15 @@ class DashboardCustomer360Test extends TestCase
         config(['foodex.platform_wholesale_store_code' => 'WHOLESALE-MAIN']);
     }
 
+    public function test_malformed_customer_360_placeholder_redirects_to_index(): void
+    {
+        $admin = $this->globalAdmin('SUPER_ADMIN');
+
+        $this->actingAs($admin)
+            ->get('/admin/customer-360/%7BcustomerId')
+            ->assertRedirect(route('admin.customer-360.index'));
+    }
+
     public function test_retail_scope_hides_foreign_customer_store_and_invoice(): void
     {
         $storeA = $this->store('B2C', 'RETAIL-A', 'Retail A');

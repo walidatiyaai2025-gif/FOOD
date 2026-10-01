@@ -79,8 +79,8 @@
 <label>{{ __('coupons.maximum_discount_amount') }}<input name="maximum_discount_amount" type="number" min="0" step=".001" value="{{ $coupon->maximum_discount_amount }}"></label>
 <label>{{ __('coupons.usage_limit_total') }}<input name="usage_limit_total" type="number" min="1" value="{{ $coupon->usage_limit_total }}"></label>
 <label>{{ __('coupons.usage_limit_per_user') }}<input name="usage_limit_per_user" type="number" min="1" value="{{ $coupon->usage_limit_per_user }}"></label>
-<label>{{ __('coupons.starts_at') }}<input name="starts_at" type="datetime-local" value="{{ optional($coupon->starts_at)->timezone('Asia/Kuwait')->format('Y-m-d\TH:i') }}"></label>
-<label>{{ __('coupons.ends_at') }}<input name="ends_at" type="datetime-local" value="{{ optional($coupon->ends_at)->timezone('Asia/Kuwait')->format('Y-m-d\TH:i') }}"></label>
+<label>{{ __('coupons.starts_at') }}<input name="starts_at" type="datetime-local" value="{{ $coupon->starts_at?->timezone('Asia/Kuwait')?->format('Y-m-d\TH:i') ?? '' }}"></label>
+<label>{{ __('coupons.ends_at') }}<input name="ends_at" type="datetime-local" value="{{ $coupon->ends_at?->timezone('Asia/Kuwait')?->format('Y-m-d\TH:i') ?? '' }}"></label>
 <label class="wide">{{ __('coupons.description_ar') }}<textarea name="description_ar">{{ $coupon->description_ar }}</textarea></label><label class="wide">{{ __('coupons.description_en') }}<textarea name="description_en">{{ $coupon->description_en }}</textarea></label>
 <label><span>{{ __('coupons.first_order_only') }}</span><span><input type="hidden" name="first_order_only" value="0"><input type="checkbox" name="first_order_only" value="1" @checked($coupon->first_order_only)> {{ __('coupons.first_order_only') }}</span></label>
 <label><span>{{ __('coupons.active') }}</span><span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($coupon->is_active)> {{ __('coupons.active') }}</span></label>

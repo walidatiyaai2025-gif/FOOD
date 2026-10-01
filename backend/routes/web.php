@@ -93,6 +93,9 @@ Route::prefix('admin')
         Route::get('/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed'])->name('driver-live-tracking.feed');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
+        Route::get('/customer-360/{invalidCustomerReference}', [Customer360Controller::class, 'invalidReference'])
+            ->where('invalidCustomerReference', '[^0-9]+')
+            ->name('customer-360.invalid-reference');
         Route::post('/customer-360/{platformCustomer}/addresses', [Customer360Controller::class, 'storeAddress'])->whereNumber('platformCustomer')->name('customer-360.addresses.store');
         Route::patch('/customer-360/{platformCustomer}/addresses/{address}', [Customer360Controller::class, 'updateAddress'])->whereNumber('platformCustomer')->whereNumber('address')->name('customer-360.addresses.update');
         Route::post('/customer-360/{platformCustomer}/addresses/{address}/default', [Customer360Controller::class, 'setDefaultAddress'])->whereNumber('platformCustomer')->whereNumber('address')->name('customer-360.addresses.default');

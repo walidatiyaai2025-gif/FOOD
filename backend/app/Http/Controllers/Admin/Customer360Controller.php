@@ -100,6 +100,11 @@ final class Customer360Controller extends Controller
         ]);
     }
 
+    public function invalidReference(string $invalidCustomerReference): RedirectResponse
+    {
+        return redirect()->route('admin.customer-360.index');
+    }
+
     public function show(Request $request, int $platformCustomer): View
     {
         $actor = $this->actor($request);
