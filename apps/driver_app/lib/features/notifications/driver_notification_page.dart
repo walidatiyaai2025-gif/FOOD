@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/localization/driver_translations.dart';
+import '../../core/navigation/driver_shell.dart';
 import 'notification_feed.dart';
 
 class DriverNotificationPage extends StatefulWidget {
@@ -9,11 +10,17 @@ class DriverNotificationPage extends StatefulWidget {
     required this.repository,
     required this.onOpenAssignment,
     this.onSessionExpired,
+    this.homeRoute,
+    this.deliveriesRoute,
+    this.notificationsRoute,
   });
 
   final DriverNotificationRepository repository;
   final ValueChanged<int> onOpenAssignment;
   final VoidCallback? onSessionExpired;
+  final String? homeRoute;
+  final String? deliveriesRoute;
+  final String? notificationsRoute;
 
   @override
   State<DriverNotificationPage> createState() => _DriverNotificationPageState();
@@ -108,7 +115,11 @@ class _DriverNotificationPageState extends State<DriverNotificationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return DriverShellScaffold(
+      destination: DriverShellDestination.notifications,
+      homeRoute: widget.homeRoute,
+      deliveriesRoute: widget.deliveriesRoute,
+      notificationsRoute: widget.notificationsRoute,
       appBar: AppBar(
         title: Text(context.tr('driver.notifications.title')),
         actions: [
