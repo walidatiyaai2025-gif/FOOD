@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../core/api/b2c_account_api.dart';
 import '../../../core/api/customer_action_api.dart';
+import '../../../core/routing/customer_commerce_context_store.dart';
 
 class RetailCommerceException implements Exception {
   const RetailCommerceException(
@@ -259,18 +260,22 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
     required this.actionApi,
     required this.checkoutOptionsApi,
     required this.guestSession,
+    required this.guestCartTokenStore,
   });
 
   final B2cAccountApi accountApi;
   final CustomerActionApi actionApi;
   final RetailCheckoutOptionsApi checkoutOptionsApi;
   final CustomerGuestSession guestSession;
+  final CustomerGuestCartTokenStore guestCartTokenStore;
 
   @override
   Future<RetailCartSnapshot> loadCart({required int storeId}) async {
     _requireStore(storeId);
+    await _hydrateGuestToken(storeId);
     guestSession.activateStore(storeId);
     final value = await accountApi.cart(storeId: storeId);
+    await _persistGuestToken(storeId);
     return RetailCartSnapshot.fromPayload(value, expectedStoreId: storeId);
   }
 
@@ -279,12 +284,14 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
     required int storeId,
   }) async {
     _requireStore(storeId);
+    await _hydrateGuestToken(storeId);
     final guestToken = guestSession.tokenForStore(storeId);
     final cart = await loadCart(storeId: storeId);
 
     if (guestToken != null && guestToken.trim().isNotEmpty) {
       guestSession.activateStore(storeId);
       guestSession.token = null;
+      await guestCartTokenStore.removeToken(storeId);
     }
 
     return cart;
@@ -300,8 +307,10 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
     if (itemId <= 0 || quantity <= 0) {
       throw const RetailCommerceException('invalid_cart_item');
     }
+    await _hydrateGuestToken(storeId);
     guestSession.activateStore(storeId);
     final value = await accountApi.updateCartItem(itemId, quantity);
+    await _persistGuestToken(storeId);
     return RetailCartSnapshot.fromPayload(value, expectedStoreId: storeId);
   }
 
@@ -311,8 +320,10 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
     required int itemId,
   }) async {
     _requireStore(storeId);
+    await _hydrateGuestToken(storeId);
     guestSession.activateStore(storeId);
     await accountApi.removeCartItem(itemId);
+    await _persistGuestToken(storeId);
     return loadCart(storeId: storeId);
   }
 
@@ -349,6 +360,24 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
       );
     } on CustomerActionException catch (error) {
       throw RetailCommerceException.fromCustomerAction(error);
+    }
+  }
+
+  Future<void> _hydrateGuestToken(int storeId) async {
+    if (guestSession.tokenForStore(storeId) != null) {
+      return;
+    }
+
+    final persisted = await guestCartTokenStore.readToken(storeId);
+    if (persisted != null && persisted.trim().isNotEmpty) {
+      guestSession.captureStoreToken(storeId, persisted.trim());
+    }
+  }
+
+  Future<void> _persistGuestToken(int storeId) async {
+    final token = guestSession.tokenForStore(storeId);
+    if (token != null && token.trim().isNotEmpty) {
+      await guestCartTokenStore.writeToken(storeId, token.trim());
     }
   }
 
