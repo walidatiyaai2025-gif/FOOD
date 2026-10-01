@@ -120,7 +120,7 @@ class CustomerAccountAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trimmed = name?.trim() ?? '';
-    final initial = trimmed.isEmpty ? null : trimmed.characters.first;
+    final initial = trimmed.isEmpty ? null : trimmed.substring(0, 1);
 
     return Semantics(
       image: true,
