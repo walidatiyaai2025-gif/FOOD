@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/auth/driver_session.dart';
 import '../../../core/localization/driver_translations.dart';
-import '../../tasks/driver_journey.dart';
+import '../../../core/preview/driver_preview_context.dart';
+import '../driver_assignment_contract.dart';
 
 typedef DriverActiveAssignmentCallback = Future<void> Function(
   DriverAssignment assignment,
@@ -22,6 +23,9 @@ class DriverActiveJourneyPage extends StatefulWidget {
     required this.onFailedDeliveryRequested,
     required this.onDeliveredRequested,
     this.onSessionExpired,
+    this.focusAssignmentId,
+    this.initialAssignmentStatus,
+    this.previewContext,
   });
 
   final DriverChannel channel;
@@ -30,6 +34,9 @@ class DriverActiveJourneyPage extends StatefulWidget {
   final DriverActiveFailureCallback onFailedDeliveryRequested;
   final DriverActiveAssignmentCallback onDeliveredRequested;
   final VoidCallback? onSessionExpired;
+  final int? focusAssignmentId;
+  final String? initialAssignmentStatus;
+  final DriverPreviewContext? previewContext;
 
   @override
   State<DriverActiveJourneyPage> createState() =>
@@ -51,6 +58,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   List<DriverAssignment> _assignments = const [];
   final Set<int> _busyAssignments = <int>{};
   String? _actionError;
+  bool _focusedAssignmentOpened = false;
 
   @override
   void initState() {
@@ -73,20 +81,38 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       final rows = await widget.repository.list(widget.channel);
       if (!mounted) return;
 
-      final active = rows
-          .where(
-            (row) =>
-                row.channel == widget.channel &&
-                !_terminalStatuses.contains(row.status),
-          )
+      final visible = rows
+          .where((row) => row.channel == widget.channel)
+          .where((row) {
+            final preview = widget.previewContext;
+            return preview == null ||
+                preview.allowsAssignment(
+                  assignmentChannel: row.channel,
+                  assignmentStoreId: row.storeId,
+                );
+          })
+          .where((row) {
+            final focusAssignmentId = widget.focusAssignmentId;
+            if (focusAssignmentId != null) {
+              return row.id == focusAssignmentId;
+            }
+
+            final status = widget.initialAssignmentStatus;
+            if (status != null && status.trim().isNotEmpty) {
+              return row.status == status;
+            }
+
+            return !_terminalStatuses.contains(row.status);
+          })
           .toList(growable: false);
 
       setState(() {
-        _assignments = active;
-        _state = active.isEmpty
+        _assignments = visible;
+        _state = visible.isEmpty
             ? _DriverActiveLoadState.empty
             : _DriverActiveLoadState.ready;
       });
+      _openFocusedAssignmentIfNeeded();
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
       if (mounted && widget.onSessionExpired == null) {
@@ -101,6 +127,26 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         setState(() => _state = _DriverActiveLoadState.error);
       }
     }
+  }
+
+  void _openFocusedAssignmentIfNeeded() {
+    final focusAssignmentId = widget.focusAssignmentId;
+    if (focusAssignmentId == null ||
+        _focusedAssignmentOpened ||
+        _assignments.isEmpty) {
+      return;
+    }
+
+    final assignment = _assignments.firstWhere(
+      (row) => row.id == focusAssignmentId,
+      orElse: () => _assignments.first,
+    );
+    _focusedAssignmentOpened = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _showDetail(assignment);
+      }
+    });
   }
 
   Future<void> _transition(
@@ -597,6 +643,17 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
               ),
             ),
           ),
+        if (assignment.invoice != null) ...[
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            key: Key('driver-active-open-invoice-${assignment.id}'),
+            onPressed: () => _showInvoice(context, assignment.invoice!),
+            icon: const Icon(Icons.receipt_long_rounded),
+            label: Text(
+              '${context.tr('driver.invoice.open')} · ${assignment.invoice!.number}',
+            ),
+          ),
+        ],
         if (onNavigationRequested != null) ...[
           const SizedBox(height: 16),
           FilledButton.icon(
@@ -609,6 +666,109 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
       ],
     );
   }
+}
+
+Future<void> _showInvoice(
+  BuildContext context,
+  DriverInvoice invoice,
+) async {
+  String label(String namespace, String value) {
+    if (value.trim().isEmpty) return context.tr('driver.detail.unknown');
+    final key = '$namespace.${value.toLowerCase()}';
+    final translated = context.tr(key);
+    return translated == key ? value : translated;
+  }
+
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text('${context.tr('driver.invoice.title')} ${invoice.number}'),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          key: Key('driver-active-invoice-detail-${invoice.id}'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _DetailRow(
+                label: context.tr('driver.invoice.status'),
+                value: label('driver.invoice_status', invoice.status),
+              ),
+              _DetailRow(
+                label: context.tr('driver.invoice.revision'),
+                value: invoice.revision.toString(),
+              ),
+              if (invoice.issuedAt.isNotEmpty)
+                _DetailRow(
+                  label: context.tr('driver.invoice.issued_at'),
+                  value: invoice.issuedAt,
+                ),
+              const Divider(height: 24),
+              ...invoice.items.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.sku.isEmpty
+                              ? item.name
+                              : '${item.sku} · ${item.name}',
+                        ),
+                      ),
+                      Text(
+                        '${item.quantity.toStringAsFixed(3)} · '
+                        '${item.lineTotal.toStringAsFixed(3)} '
+                        '${invoice.currency}',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(height: 24),
+              _DetailRow(
+                label: context.tr('driver.invoice.subtotal'),
+                value:
+                    '${invoice.subtotal.toStringAsFixed(3)} ${invoice.currency}',
+              ),
+              _DetailRow(
+                label: context.tr('driver.invoice.discount'),
+                value:
+                    '${invoice.discountTotal.toStringAsFixed(3)} ${invoice.currency}',
+              ),
+              _DetailRow(
+                label: context.tr('driver.invoice.delivery'),
+                value:
+                    '${invoice.deliveryTotal.toStringAsFixed(3)} ${invoice.currency}',
+              ),
+              _DetailRow(
+                label: context.tr('driver.invoice.tax'),
+                value:
+                    '${invoice.taxTotal.toStringAsFixed(3)} ${invoice.currency}',
+              ),
+              _DetailRow(
+                label: context.tr('driver.invoice.total'),
+                value:
+                    '${invoice.grandTotal.toStringAsFixed(3)} ${invoice.currency}',
+              ),
+              _DetailRow(
+                label: context.tr('driver.invoice.payment'),
+                value:
+                    '${label('driver.payment_method', invoice.paymentMethod)} · '
+                    '${label('driver.payment_status', invoice.paymentStatus)}',
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(context.tr('driver.dismiss')),
+        ),
+      ],
+    ),
+  );
 }
 
 class _DetailRow extends StatelessWidget {
