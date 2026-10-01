@@ -1,6 +1,7 @@
 name: FOODEX Mobile Screenshot Capture
 
 on:
+  workflow_call:
   pull_request:
     paths:
       - "apps/customer_app/lib/app.dart"
