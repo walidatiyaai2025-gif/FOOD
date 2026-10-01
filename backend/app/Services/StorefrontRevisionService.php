@@ -581,6 +581,7 @@ final class StorefrontRevisionService
                 'image_path' => (string) $this->restorableAssetPath(
                     $assetRevision,
                     (string) ($banner['image_path'] ?? ''),
+                    allowMissing: $channel === 'b2c',
                 ),
                 'target_type' => $banner['target_type'] ?? null,
                 'target_id' => $banner['target_id'] ?? null,
@@ -908,6 +909,7 @@ final class StorefrontRevisionService
     private function restorableAssetPath(
         ?StorefrontRevision $revision,
         ?string $sourcePath,
+        bool $allowMissing = false,
     ): ?string {
         if ($sourcePath === null || trim($sourcePath) === '') {
             return null;
@@ -942,6 +944,13 @@ final class StorefrontRevisionService
             $candidate = $candidate->parent_revision_id === null
                 ? null
                 : StorefrontRevision::query()->find($candidate->parent_revision_id);
+        }
+
+        if ($allowMissing) {
+            // Retail storefront media is allowed to degrade to the API's
+            // explicit null-image fallback instead of blocking unrelated
+            // Draft publication because an older optional file disappeared.
+            return $sourcePath;
         }
 
         throw ValidationException::withMessages([
