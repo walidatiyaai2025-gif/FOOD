@@ -322,7 +322,13 @@ final class DashboardOperationalNotifier
         );
 
         foreach ($recipients as $recipient) {
-            $dedupeKey = hash('sha256', $type.'|'.$eventKey);
+            $dedupeKey = $this->dedupeKey(
+                $recipient,
+                $type,
+                $eventKey,
+                $channel,
+                $storeId,
+            );
 
             Notification::query()->firstOrCreate(
                 [
