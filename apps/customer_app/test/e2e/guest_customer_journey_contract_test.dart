@@ -197,7 +197,7 @@ void main() {
       expect(restartedSession.tokenForStore(7), 'persisted-store-7-token');
     });
 
-    test('guest auth handoff merges the same-store cart exactly once', () async {
+    test('guest Login or Register returns to checkout and merges cart exactly once', () async {
       final storage = _MemorySecureStore();
       await SecureCustomerGuestCartTokenStore(storage: storage)
           .writeToken(7, 'guest-before-auth-token');
@@ -242,8 +242,56 @@ void main() {
       expect(seenGuestTokens, ['guest-before-auth-token', null]);
     });
 
-    test('checkout creates one authoritative order per guarded submission', () async {
+    test('checkout uses backend-supported address and payment options', () async {
+      late http.Request captured;
+      final optionsApi = HttpRetailCheckoutOptionsApi(
+        baseUrl: 'https://foodex.example',
+        token: 'platform-token',
+        client: MockClient((request) async {
+          captured = request;
+          return http.Response(
+            jsonEncode({
+              'store_id': 7,
+              'addresses': [
+                {
+                  'id': 55,
+                  'label': 'Home',
+                  'line1': 'Street 1',
+                  'city': 'Kuwait City',
+                  'is_default': true,
+                },
+              ],
+              'payment_methods': ['cash', 'card'],
+            }),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        }),
+      );
+      final commerce = DefaultRetailCommerceApi(
+        accountApi: _NoopB2cAccountApi(),
+        actionApi: _NoopCustomerActionApi(),
+        checkoutOptionsApi: optionsApi,
+        guestSession: CustomerGuestSession(),
+        guestCartTokenStore: _MemoryGuestCartTokenStore(),
+      );
+
+      final options = await commerce.checkoutOptions(storeId: 7);
+
+      expect(captured.url.path, '/api/v1/checkout/options');
+      expect(captured.url.queryParameters['store_id'], '7');
+      expect(captured.headers['Authorization'], 'Bearer platform-token');
+      expect(captured.headers['X-FOODEX-Store-ID'], '7');
+      expect(captured.headers['X-FOODEX-Customer-Domain'], 'b2c');
+      expect(options.storeId, 7);
+      expect(options.addresses.single.id, 55);
+      expect(options.addresses.single.isDefault, isTrue);
+      expect(options.paymentMethods, ['cash', 'card']);
+    });
+
+    test('checkout retry keeps one order identity and stable idempotency key', () async {
       var checkoutCalls = 0;
+      final seenKeys = <String?>[];
       final actionApi = HttpCustomerActionApi(
         baseUrl: 'https://foodex.example',
         token: 'platform-token',
@@ -251,9 +299,16 @@ void main() {
           ..captureStoreToken(7, 'guest-merge-token'),
         client: MockClient((request) async {
           checkoutCalls++;
+          seenKeys.add(request.headers['Idempotency-Key']);
           expect(request.url.path, '/api/v1/checkout');
           expect(request.headers['X-FOODEX-Store-ID'], '7');
-          expect(request.headers['Idempotency-Key'], 'journey-7-key-000001');
+          if (checkoutCalls == 1) {
+            return http.Response(
+              jsonEncode({'message': 'temporary_failure'}),
+              503,
+              headers: const {'content-type': 'application/json'},
+            );
+          }
           return http.Response(
             jsonEncode({'id': 9001, 'store_id': 7}),
             201,
@@ -273,6 +328,15 @@ void main() {
         idempotencyKeyFactory: (_) => 'journey-7-key-000001',
       );
 
+      await expectLater(
+        guard.submit(
+          storeId: 7,
+          addressId: 55,
+          paymentMethod: 'cash',
+        ),
+        throwsA(isA<RetailCommerceException>()),
+      );
+
       final order = await guard.submit(
         storeId: 7,
         addressId: 55,
@@ -281,7 +345,8 @@ void main() {
 
       expect(order.id, 9001);
       expect(order.storeId, 7);
-      expect(checkoutCalls, 1);
+      expect(checkoutCalls, 2);
+      expect(seenKeys, ['journey-7-key-000001', 'journey-7-key-000001']);
     });
 
     test('order lifecycle push refetches authoritative order state', () async {
@@ -333,7 +398,7 @@ void main() {
       expect(authoritative.summary.status, isNot('delivered'));
     });
 
-    test('authenticated multi-store and Wholesale contexts stay isolated', () async {
+    test('authenticated multi-store and Wholesale smoke regressions stay isolated', () async {
       const session = CustomerSession.platformCustomer(
         accessToken: 'platform-token',
       );
