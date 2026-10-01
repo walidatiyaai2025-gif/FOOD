@@ -34,6 +34,23 @@ class AppPreviewDashboardTest extends TestCase
             ->assertDontSee('X-Foodex-Preview-Token', false);
     }
 
+    public function test_preview_center_defaults_to_customer_published_auto_launch_contract(): void
+    {
+        $user = $this->globalUser('B2B_ADMIN', 'preview-auto-entry@example.test');
+
+        $html = $this->actingAs($user)
+            ->get('/admin/app-preview')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('data-preview-entry="auto"', $html);
+        $this->assertStringContainsString('data-preview-default-app="customer"', $html);
+        $this->assertStringContainsString('data-preview-default-configuration="published"', $html);
+        $this->assertStringContainsString("selectFirstDriver: app?.value === 'driver'", $html);
+        $this->assertStringContainsString('restoreDriverRequired()', $html);
+        $this->assertStringContainsString('/admin/b2b/drivers', $html);
+    }
+
     public function test_retail_admin_sees_only_assigned_retail_store_in_preview_center(): void
     {
         $allowedStore = $this->store('B2C', 'PREVIEW-ALLOWED');

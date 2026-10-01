@@ -45,6 +45,12 @@ final class AppPreviewController extends Controller
         abort_unless($wholesaleAvailable || $retailAvailable, 403);
 
         $runtimeConfig = (array) config('app_preview.runtimes', []);
+        $wholesaleStoreId = $wholesaleAvailable ? $this->wholesalePrincipal->storeId() : null;
+        $manageableRetailDriverStoreIds = $retailStores
+            ->filter(fn (Store $store): bool => $user->hasPermission('drivers.b2c.manage', (int) $store->getKey()))
+            ->map(fn (Store $store): int => (int) $store->getKey())
+            ->values()
+            ->all();
 
         return view('admin.app-preview', [
             'user' => $user,
@@ -52,11 +58,14 @@ final class AppPreviewController extends Controller
             'navContext' => 'app_preview',
             'retailStores' => $retailStores,
             'wholesaleAvailable' => $wholesaleAvailable,
-            'wholesaleStoreId' => $wholesaleAvailable ? $this->wholesalePrincipal->storeId() : null,
+            'wholesaleStoreId' => $wholesaleStoreId,
             'retailAvailable' => $retailAvailable,
             'supportAccessRequired' => $user->hasRole('SUPER_ADMIN'),
             'canImpersonateCustomer' => $this->canImpersonate($user, 'customer', $retailStores->pluck('id')->all()),
             'canImpersonateDriver' => $this->canImpersonate($user, 'driver', $retailStores->pluck('id')->all()),
+            'canManageWholesaleDrivers' => $wholesaleStoreId !== null
+                && $user->hasPermission('drivers.b2b.manage', $wholesaleStoreId),
+            'manageableRetailDriverStoreIds' => $manageableRetailDriverStoreIds,
             'runtimeConfig' => [
                 'customer' => $this->runtime((array) ($runtimeConfig['customer'] ?? [])),
                 'driver' => $this->runtime((array) ($runtimeConfig['driver'] ?? [])),
