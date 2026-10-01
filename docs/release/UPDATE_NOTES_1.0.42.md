@@ -14,7 +14,7 @@ Dashboard Update Center metadata:
 - minimum current version: `1.0.6`;
 - contains migrations: `true`;
 - requires full redeploy: `false`;
-- SHA-256: `4ec933b9a0bcad5649b2e5c7a9cb3dc06a95de10d655a2c83a42b9c994c70f5f`;
+- SHA-256: `d7cb34aaab10d7d5322fb074e078f2ca93f10e1c62074e30660dfd03c8848a70`;
 - packaged file count: `578`.
 
 Publishing 1.0.42 does not modify production minimum-supported AppVersion rows, does not activate Driver fresh-location enforcement, and does not enable the Assistant by default.

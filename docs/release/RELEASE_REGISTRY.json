@@ -36,7 +36,7 @@
       "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
-      "dashboard_update_sha256": "4ec933b9a0bcad5649b2e5c7a9cb3dc06a95de10d655a2c83a42b9c994c70f5f",
+      "dashboard_update_sha256": "d7cb34aaab10d7d5322fb074e078f2ca93f10e1c62074e30660dfd03c8848a70",
       "note": "Post-1.0.41 integrated mobile production UX, self-contained preview runtime and Assistant V1 distribution. Assistant remains disabled/read-only by default."
     }
   ]
