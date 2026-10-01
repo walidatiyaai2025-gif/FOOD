@@ -121,6 +121,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byKey(const Key('driver-home-driver-name')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-status-grid')), findsOneWidget);
+    expect(find.text('قناة العمل'), findsNothing);
     expect(find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-picked_up')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-out_for_delivery')), findsOneWidget);
