@@ -152,9 +152,11 @@ void main() {
       find.byKey(const ValueKey('customer-address-line1')),
       'Test Street',
     );
-    await tester.tap(
-      find.byKey(const ValueKey('customer-address-current-location')),
+    final currentLocation = find.byKey(
+      const ValueKey('customer-address-current-location'),
     );
+    await tester.ensureVisible(currentLocation);
+    await tester.tap(currentLocation);
     await tester.pumpAndSettle();
 
     expect(
