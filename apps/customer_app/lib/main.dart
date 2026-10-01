@@ -32,7 +32,7 @@ Future<void> main() async {
   final sessionStore = SecureCustomerSessionStore();
   CustomerSession session = const CustomerSession.guest();
   try {
-    session = await sessionStore.read() ?? const CustomerSession.guest();
+    session = await restoreCustomerSession(sessionStore);
   } catch (error) {
     diagnostics.record('session_restore_error', {
       'error_type': error.runtimeType.toString(),
