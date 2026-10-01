@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 
 class CustomerAccountHeader extends StatelessWidget {
