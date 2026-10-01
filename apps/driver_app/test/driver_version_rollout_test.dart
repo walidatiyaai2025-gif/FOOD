@@ -11,7 +11,7 @@ import 'package:foodex_driver_app/core/diagnostics/driver_runtime_inspector.dart
 import 'package:foodex_driver_app/core/localization/driver_translations.dart';
 import 'package:foodex_driver_app/core/preview/driver_preview_context.dart';
 import 'package:foodex_driver_app/core/version/driver_version_policy_client.dart';
-import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
+import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 import 'package:foodex_driver_app/features/version/driver_version_policy_gate.dart';
 import 'package:foodex_driver_app/navigation.dart';
 import 'package:foodex_driver_app/version_policy.dart';

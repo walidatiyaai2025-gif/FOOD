@@ -19,8 +19,8 @@ import 'core/version/driver_version_policy_client.dart';
 import 'features/auth/driver_login.dart';
 import 'features/inspector/driver_inspector_panel.dart';
 import 'features/location/driver_location_gate.dart';
+import 'features/delivery/driver_assignment_contract.dart';
 import 'features/notifications/notification_feed.dart';
-import 'features/tasks/driver_journey.dart';
 import 'features/version/driver_version_policy_gate.dart';
 import 'navigation.dart';
 

@@ -6,8 +6,9 @@ import 'core/localization/driver_translations.dart';
 import 'core/preview/driver_preview_context.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/notifications/driver_notification_page.dart';
+import 'features/delivery/driver_assignment_contract.dart';
+import 'features/delivery/driver_journey_runtime.dart';
 import 'features/notifications/notification_feed.dart';
-import 'features/tasks/driver_journey.dart';
 
 export 'core/auth/driver_session.dart' show DriverChannel;
 
@@ -67,7 +68,7 @@ class DriverNavigator {
         final initialAssignmentStatus =
             settings.arguments is String ? settings.arguments as String : null;
         return _page(
-          DriverJourneyPage(
+          DriverJourneyRuntimePage(
             channel: channel,
             repository: repository,
             onSessionExpired: onSessionExpired,

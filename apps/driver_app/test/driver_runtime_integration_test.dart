@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
 import 'package:foodex_driver_app/core/api/http_driver_api.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
-import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
+import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 

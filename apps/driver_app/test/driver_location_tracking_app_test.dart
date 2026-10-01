@@ -5,7 +5,7 @@ import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/core/location/driver_location_gate_service.dart';
 import 'package:foodex_driver_app/core/location/driver_location_tracking_service.dart';
 import 'package:foodex_driver_app/core/preview/driver_preview_context.dart';
-import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
+import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 import 'package:foodex_driver_app/navigation.dart';
 
 class _FakeGateService implements DriverLocationGateService {
