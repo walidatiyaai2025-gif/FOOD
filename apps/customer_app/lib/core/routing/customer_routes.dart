@@ -40,6 +40,7 @@ abstract final class CustomerRoutePaths {
   static const b2bOrderDetails = '/b2b/orders/:id';
   static const b2bCart = '/b2b/cart';
   static const b2bCheckout = '/b2b/checkout';
+  static const b2bAddresses = '/b2b/profile/addresses';
   static const b2bProfile = '/b2b/profile';
 }
 
@@ -109,6 +110,11 @@ abstract final class CustomerRouteLocations {
   static String wholesaleCart(CustomerCommerceContext context) {
     _requireChannel(context, CustomerCommerceChannel.wholesale);
     return _scoped(CustomerRoutePaths.b2bCart, context);
+  }
+
+  static String wholesaleAddresses(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.wholesale);
+    return _scoped(CustomerRoutePaths.b2bAddresses, context);
   }
 
   static String authHandoff({
@@ -471,6 +477,12 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bCheckout,
     label: 'B2B checkout',
+    channel: CustomerChannel.b2b,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.b2bAddresses,
+    label: 'B2B addresses',
     channel: CustomerChannel.b2b,
     requiresAuth: true,
   ),

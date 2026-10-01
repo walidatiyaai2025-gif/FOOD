@@ -352,7 +352,10 @@ class _CheckoutActionState extends State<CheckoutAction> {
   }
 
   Future<void> _openAddresses() async {
-    await Navigator.of(context).pushNamed(CustomerRoutePaths.addresses);
+    final route = widget.channel == CustomerChannel.b2b
+        ? CustomerRoutePaths.b2bAddresses
+        : CustomerRoutePaths.addresses;
+    await Navigator.of(context).pushNamed(route);
     if (mounted) _reloadAddresses();
   }
 

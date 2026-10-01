@@ -7,6 +7,7 @@ import '../../core/auth/customer_session.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_routes.dart';
+import '../customer_account/customer_address_book_screen.dart';
 import '../../shared/customer_action_widgets.dart';
 
 class B2bJourneyScreen extends StatelessWidget {
@@ -36,6 +37,11 @@ class B2bJourneyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (definition.pattern == CustomerRoutePaths.b2bAddresses &&
+        accountApi != null) {
+      return CustomerAddressBookScreen(api: accountApi!);
+    }
+
     final content = _contentFor(context, definition.pattern);
     final hasRemoteState = api != null && _endpoint() != null;
     final keepLocalActions =
@@ -210,6 +216,12 @@ class B2bJourneyScreen extends StatelessWidget {
             ),
           ],
         );
+      case CustomerRoutePaths.b2bAddresses:
+        return (
+          context.tr('customer.profile.addresses'),
+          context.tr('customer.addresses.empty'),
+          [_empty(context.tr('customer.addresses.empty'))],
+        );
       case CustomerRoutePaths.b2bProfile:
         return (
           context.tr('b2b.profile.title'),
@@ -219,7 +231,7 @@ class B2bJourneyScreen extends StatelessWidget {
             _button(
               context,
               context.tr('customer.profile.addresses'),
-              CustomerRoutePaths.addresses,
+              CustomerRoutePaths.b2bAddresses,
             ),
             _section(context.tr('b2b.profile.settings')),
           ],

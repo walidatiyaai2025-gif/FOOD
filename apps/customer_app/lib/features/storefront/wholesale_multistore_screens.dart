@@ -11,6 +11,7 @@ import '../../core/api/wholesale_commerce_api.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/engagement/live_ad_service.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/routing/customer_routes.dart';
 import 'storefront_design_system.dart';
 
 class WholesaleHomeDesignScreen extends StatefulWidget {
@@ -1653,6 +1654,22 @@ class _WholesaleCheckoutDesignScreenState
     super.dispose();
   }
 
+  Future<void> _openAddressBook() async {
+    await Navigator.of(context).pushNamed(
+      Uri(
+        path: CustomerRoutePaths.b2bAddresses,
+        queryParameters: storeId > 0
+            ? <String, String>{'store_id': storeId.toString()}
+            : null,
+      ).toString(),
+    );
+    if (!mounted) return;
+    setState(() {
+      addressId = null;
+      future = _load();
+    });
+  }
+
   Future<_CheckoutPayload> _load() async {
     final options = widget.storefrontApi == null
         ? const <String, dynamic>{}
@@ -1729,13 +1746,22 @@ class _WholesaleCheckoutDesignScreenState
                       ),
                     ),
                     const SizedBox(height: 8),
-                    if (addresses.isEmpty)
+                    if (addresses.isEmpty) ...[
                       const FoodexEmptyState(
                         title: 'لا يوجد عنوان',
                         subtitle:
                             'أضف عنوانًا لحساب الجملة قبل إتمام الطلب.',
-                      )
-                    else
+                      ),
+                      const SizedBox(height: 10),
+                      FilledButton.icon(
+                        key: const ValueKey(
+                          'wholesale-checkout-add-address',
+                        ),
+                        onPressed: _openAddressBook,
+                        icon: const Icon(Icons.add_location_alt_outlined),
+                        label: const Text('إضافة عنوان'),
+                      ),
+                    ] else ...[
                       ...addresses.map(
                         (address) => _SelectCard(
                           selected: addressId ==
@@ -1764,6 +1790,18 @@ class _WholesaleCheckoutDesignScreenState
                           ),
                         ),
                       ),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton.icon(
+                          key: const ValueKey(
+                            'wholesale-checkout-manage-addresses',
+                          ),
+                          onPressed: _openAddressBook,
+                          icon: const Icon(Icons.edit_location_alt_outlined),
+                          label: const Text('إدارة العناوين'),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: deliveryDate,

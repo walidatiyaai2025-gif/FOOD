@@ -40,6 +40,7 @@ class CustomerAppRouter {
     this.favoritesApi,
     required this.b2cCatalogApi,
     required this.b2cAccountApi,
+    this.b2bAccountApi,
     required this.locationService,
     required this.mapPinPicker,
     this.marketplaceClient,
@@ -50,6 +51,7 @@ class CustomerAppRouter {
   final B2bApi? b2bApi;
   final B2cCatalogApi b2cCatalogApi;
   final B2cAccountApi b2cAccountApi;
+  final B2cAccountApi? b2bAccountApi;
   final CustomerLocationService locationService;
   final CustomerMapPinPicker mapPinPicker;
   final http.Client? marketplaceClient;
@@ -299,7 +301,7 @@ class CustomerAppRouter {
             definition: definition,
             location: requestedLocation,
             api: b2bApi,
-            accountApi: b2cAccountApi,
+            accountApi: b2bAccountApi,
             actionApi: actionApi,
             onAuthenticated: onAuthenticated,
             onPlatformAuthenticated: onPlatformRegistered,
