@@ -30,6 +30,7 @@ class DriverLocationHeartbeatTest extends TestCase
 
         $driver = Driver::query()->create([
             'user_id' => $user->id,
+            'store_id' => app(WholesalePrincipal::class)->storeId(),
             'driver_type' => 'b2b',
             'is_available' => true,
             'is_active' => true,
@@ -83,6 +84,7 @@ class DriverLocationHeartbeatTest extends TestCase
 
         $driver = Driver::query()->create([
             'user_id' => $user->id,
+            'store_id' => app(WholesalePrincipal::class)->storeId(),
             'driver_type' => 'b2b',
             'is_available' => true,
             'is_active' => true,
@@ -138,6 +140,7 @@ class DriverLocationHeartbeatTest extends TestCase
         $user->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
         Driver::query()->create([
             'user_id' => $user->id,
+            'store_id' => app(WholesalePrincipal::class)->storeId(),
             'driver_type' => 'b2b',
             'is_available' => true,
             'is_active' => true,
@@ -167,6 +170,7 @@ class DriverLocationHeartbeatTest extends TestCase
         $user->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
         Driver::query()->create([
             'user_id' => $user->id,
+            'store_id' => app(WholesalePrincipal::class)->storeId(),
             'driver_type' => 'b2b',
             'is_available' => true,
             'is_active' => true,
