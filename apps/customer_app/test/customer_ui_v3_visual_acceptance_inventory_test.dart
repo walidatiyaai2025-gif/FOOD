@@ -150,6 +150,22 @@ void main() {
       );
     });
 
+    test('keeps categories and offers as distinct V3 production surfaces', () {
+      final source = File(
+        'lib/features/retail/retail_customer_journey_screen.dart',
+      ).readAsStringSync();
+
+      expect(source, contains('RetailCatalogCategoriesScreen('));
+      expect(source, contains('RetailCatalogOffersScreen('));
+      expect(
+        source,
+        isNot(contains(
+          'case CustomerRoutePaths.categories:\n'
+          '      case CustomerRoutePaths.offers:',
+        )),
+      );
+    });
+
     test('binds convergence to the AR/EN runtime screenshot harness', () {
       final source =
           File('test/screenshot_evidence_test.dart').readAsStringSync();
