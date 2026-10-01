@@ -744,7 +744,10 @@ final class StorefrontRevisionService
             }
 
             $targetType = $banner['target_type'] ?? null;
-            if ($targetType !== null && ! in_array($targetType, ['product', 'category'], true)) {
+            $allowedTargetTypes = $channel === 'b2b'
+                ? ['product', 'category', 'retail_store']
+                : ['product', 'category'];
+            if ($targetType !== null && ! in_array($targetType, $allowedTargetTypes, true)) {
                 throw ValidationException::withMessages([
                     "payload.banners.{$index}.target_type" => ['Storefront banner target type is invalid.'],
                 ]);

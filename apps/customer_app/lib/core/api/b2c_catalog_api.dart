@@ -139,10 +139,14 @@ abstract interface class B2cCatalogApi {
 }
 
 class HttpB2cCatalogApi implements B2cCatalogApi {
-  HttpB2cCatalogApi({required this.baseUrl, http.Client? client})
-      : _client = client ?? http.Client();
+  HttpB2cCatalogApi({
+    required this.baseUrl,
+    this.token,
+    http.Client? client,
+  }) : _client = client ?? http.Client();
 
   final String baseUrl;
+  final String? token;
   final http.Client _client;
 
   @override
@@ -247,6 +251,8 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
       uri,
       headers: {
         'Accept': 'application/json',
+        if (token != null && token!.isNotEmpty)
+          'Authorization': 'Bearer $token',
         if (storeId != null) 'X-FOODEX-Store-ID': '$storeId',
       },
     );

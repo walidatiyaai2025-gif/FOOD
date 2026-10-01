@@ -115,7 +115,10 @@
     </section>
 
     <section class="wsf-card">
-        <h3>{{ app()->getLocale()==='ar'?'بانرات متجر الجملة':'Wholesale banners' }}</h3>
+        <h3>{{ app()->getLocale()==='ar'?'بانرات المنصة والجملة':'Platform & Wholesale banners' }}</h3>
+        <p class="wsf-muted">{{ app()->getLocale()==='ar'
+            ? 'اختيار منتج/تصنيف يبقي البانر داخل رحلة الجملة. اختيار متجر تجزئة ينشر Placement على Platform Home لفتح ذلك المتجر، ولا يصبح بانر داخلياً للمتجر.'
+            : 'Product/category targets stay in the Wholesale journey. A Retail Store target publishes a Platform Home placement that opens that exact store; it never becomes an internal Retail Store banner.' }}</p>
         @if($canManageStorefront)
         <form method="post" action="{{ route('admin.b2b.storefront.banners.store') }}" enctype="multipart/form-data" class="wsf-item" style="margin-bottom:12px">
             @csrf

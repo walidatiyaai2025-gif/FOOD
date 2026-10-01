@@ -4,11 +4,15 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Store;
+use App\Models\User;
+use App\Services\RetailMerchantIdentityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class GuestStoreController extends Controller
 {
+    public function __construct(private readonly RetailMerchantIdentityService $retailMerchants) {}
+
     public function index(Request $request): JsonResponse
     {
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
@@ -17,7 +21,7 @@ class GuestStoreController extends Controller
         $city = trim((string) $request->query('city', ''));
         $area = trim((string) $request->query('area', ''));
 
-        $stores = Store::query()
+        $query = Store::query()
             ->select('stores.*', 'storefront_settings.theme_code', 'storefront_settings.header_address')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->leftJoin('storefront_settings', 'storefront_settings.store_id', '=', 'stores.id')
@@ -43,8 +47,17 @@ class GuestStoreController extends Controller
                     });
                 });
             })
-            ->orderBy('stores.id')
-            ->paginate($perPage);
+            ->orderBy('stores.id');
+
+        $user = $request->user('sanctum');
+        if ($request->bearerToken() !== null && $user instanceof User) {
+            $excludedStoreIds = $this->retailMerchants->retailStoreIds($user);
+            if ($excludedStoreIds !== []) {
+                $query->whereNotIn('stores.id', $excludedStoreIds);
+            }
+        }
+
+        $stores = $query->paginate($perPage);
 
         return response()->json([
             'data' => collect($stores->items())

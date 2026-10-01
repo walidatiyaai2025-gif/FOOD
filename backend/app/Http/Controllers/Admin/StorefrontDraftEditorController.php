@@ -416,11 +416,15 @@ final class StorefrontDraftEditorController extends Controller
     /** @return array<string,mixed> */
     private function bannerData(Request $request, bool $imageRequired, string $channel): array
     {
+        $targetPattern = $channel === 'b2b'
+            ? '/^(product|category|retail_store):[1-9][0-9]*$/'
+            : '/^(product|category):[1-9][0-9]*$/';
+
         $data = $request->validate([
             'store_id' => ['required', 'integer', 'exists:stores,id'],
             'title' => ['required', 'string', 'max:255'],
             'banner_image' => [$imageRequired ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144'],
-            'target_ref' => ['nullable', 'string', 'regex:/^(product|category):[1-9][0-9]*$/'],
+            'target_ref' => ['nullable', 'string', 'regex:'.$targetPattern],
             'sort_order' => ['required', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -441,7 +445,9 @@ final class StorefrontDraftEditorController extends Controller
                 ? ($channel === 'b2b' ? '/b2b/products/' : '/products/').$targetId
                 : ($targetType === 'category'
                     ? ($channel === 'b2b' ? '/b2b/categories/' : '/categories/').$targetId
-                    : null),
+                    : ($targetType === 'retail_store'
+                        ? '/retail/'.$targetId.'/home'
+                        : null)),
             'sort_order' => (int) $data['sort_order'],
             'is_active' => $request->boolean('is_active'),
         ];

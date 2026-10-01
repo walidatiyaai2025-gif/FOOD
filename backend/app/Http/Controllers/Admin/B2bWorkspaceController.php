@@ -794,6 +794,19 @@ class B2bWorkspaceController extends Controller
             ->values()
             ->all();
 
+        $retailStoreTargets = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C')
+            ->orderBy('stores.name')
+            ->get(['stores.id', 'stores.name'])
+            ->map(fn ($row) => [
+                'ref' => 'retail_store:'.(int) $row->id,
+                'label' => $this->msg('متجر تجزئة · '.$row->name, 'Retail Store · '.$row->name),
+            ])
+            ->values()
+            ->all();
+
         return [
             'columns' => [],
             'rows' => [],
@@ -814,7 +827,7 @@ class B2bWorkspaceController extends Controller
             ],
             'sections' => $editor['sections'],
             'banners' => $editor['banners'],
-            'targets' => [...$categoryTargets, ...$targets],
+            'targets' => [...$retailStoreTargets, ...$categoryTargets, ...$targets],
         ];
     }
 

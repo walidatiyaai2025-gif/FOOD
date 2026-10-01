@@ -520,6 +520,25 @@ final class StorefrontDraftEditorService
             return;
         }
 
+        if ($targetType === 'retail_store') {
+            abort_unless($channel === 'b2b', 422);
+
+            $exists = DB::table('stores')
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->where('stores.id', (int) $targetId)
+                ->where('stores.is_active', true)
+                ->where('store_types.code', 'B2C')
+                ->exists();
+
+            if (! $exists) {
+                throw ValidationException::withMessages([
+                    'target_ref' => ['Selected Retail Store is not an active platform Retail storefront.'],
+                ]);
+            }
+
+            return;
+        }
+
         abort_unless(in_array($targetType, ['product', 'category'], true), 422);
         $table = $targetType === 'product' ? 'products' : 'categories';
         $exists = DB::table($table)

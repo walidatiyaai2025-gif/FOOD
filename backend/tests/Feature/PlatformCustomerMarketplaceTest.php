@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\SelfStorePurchaseNotAllowed;
 use App\Models\User;
 use App\Services\CustomerDomainResolver;
 use Database\Seeders\CoreReferenceSeeder;
@@ -20,7 +21,7 @@ class PlatformCustomerMarketplaceTest extends TestCase
         config(['foodex.platform_wholesale_store_code' => 'MAIN-B2B']);
     }
 
-    public function test_guest_platform_home_exposes_principal_wholesale_catalog_and_retail_store_banners(): void
+    public function test_guest_platform_home_exposes_platform_retail_placements_without_leaking_store_internal_banners(): void
     {
         [$wholesaleStore, $retailStore, $wholesaleProduct] = $this->marketplaceFixture();
         $wholesaleCategory = (int) DB::table('products')
@@ -39,15 +40,107 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertJsonPath('offers.0.value', 2.5)
             ->assertJsonCount(1, 'offers')
             ->assertJsonMissing(['name' => 'Expired Wholesale Offer'])
+            ->assertJsonPath('hero.title', 'Platform Wholesale Hero')
+            ->assertJsonCount(1, 'banners')
             ->assertJsonPath('retail_banners.0.id', $retailStore)
             ->assertJsonPath('retail_banners.0.store_id', $retailStore)
-            ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/retail-home.jpg'))
+            ->assertJsonPath('retail_banners.0.placement_scope', 'platform_retail_store')
+            ->assertJsonPath('retail_banners.0.target_type', 'retail_store')
+            ->assertJsonPath('retail_banners.0.target_id', $retailStore)
+            ->assertJsonPath('retail_banners.0.target_url', '/retail/'.$retailStore.'/home')
+            ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/platform-retail.jpg'))
             ->assertJsonPath('retail_banners.0.sort_order', 1)
-            ->assertJsonPath('retail_banners.1.id', $retailStore)
-            ->assertJsonPath('retail_banners.1.banner_url', url('/storage/banners/retail-second.jpg'))
-            ->assertJsonPath('retail_banners.1.sort_order', 2)
-            ->assertJsonCount(2, 'retail_banners')
-            ->assertJsonMissing(['title' => 'Retail Inactive Banner']);
+            ->assertJsonCount(1, 'retail_banners')
+            ->assertJsonMissing(['title' => 'Retail Home Banner'])
+            ->assertJsonMissing(['title' => 'Retail Second Banner']);
+
+        $this->getJson('/api/v1/stores/'.$retailStore.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('banners.0.title', 'Retail Home Banner')
+            ->assertJsonPath('banners.1.title', 'Retail Second Banner')
+            ->assertJsonCount(2, 'banners')
+            ->assertJsonMissing(['title' => 'Platform Retail Placement']);
+
+        $this->getJson('/api/v1/stores/'.$retailStore.'/products')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_retail_merchant_own_store_is_hidden_and_direct_browse_is_forbidden(): void
+    {
+        [$wholesaleStore, $ownedStore] = $this->marketplaceFixture();
+        $b2cType = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $now = now();
+
+        $foreignStore = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cType,
+            'code' => 'RETAIL-FOREIGN',
+            'name' => 'Retail Foreign',
+            'is_active' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        DB::table('banners')->insert([
+            'store_id' => $wholesaleStore,
+            'title' => 'Foreign Retail Placement',
+            'image_path' => 'storage/banners/platform-retail-foreign.jpg',
+            'target_type' => 'retail_store',
+            'target_id' => $foreignStore,
+            'target_url' => '/retail/'.$foreignStore.'/home',
+            'sort_order' => 2,
+            'is_active' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $merchant = User::query()->create([
+            'name' => 'Retail Merchant',
+            'email' => 'retail-merchant@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $managerRoleId = (int) DB::table('roles')
+            ->where('code', 'B2C_STORE_ADMIN')
+            ->where('is_active', true)
+            ->value('id');
+
+        DB::table('user_store_roles')->insert([
+            'user_id' => $merchant->id,
+            'store_id' => $ownedStore,
+            'role_id' => $managerRoleId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $this->withToken($merchant->createToken('customer-app')->plainTextToken);
+
+        $this->getJson('/api/v1/platform/storefront')
+            ->assertOk()
+            ->assertJsonCount(1, 'retail_banners')
+            ->assertJsonPath('retail_banners.0.store_id', $foreignStore)
+            ->assertJsonMissing(['store_id' => $ownedStore]);
+
+        $this->getJson('/api/v1/store-selector')
+            ->assertOk()
+            ->assertJsonMissing(['id' => $ownedStore])
+            ->assertJsonPath('retail_stores.0.id', $foreignStore);
+
+        $this->getJson('/api/v1/stores')
+            ->assertOk()
+            ->assertJsonMissing(['id' => $ownedStore])
+            ->assertJsonPath('data.0.id', $foreignStore);
+
+        foreach ([
+            '/api/v1/stores/'.$ownedStore.'/storefront',
+            '/api/v1/stores/'.$ownedStore.'/products',
+        ] as $url) {
+            $this->getJson($url)
+                ->assertForbidden()
+                ->assertJsonPath('code', SelfStorePurchaseNotAllowed::ERROR_CODE)
+                ->assertJsonPath('store_id', $ownedStore);
+        }
     }
 
     public function test_registered_customer_identity_materializes_per_store_and_routes_carts_by_purchase_store(): void
@@ -238,9 +331,35 @@ class PlatformCustomerMarketplaceTest extends TestCase
 
         DB::table('banners')->insert([
             [
+                'store_id' => $wholesaleStore,
+                'title' => 'Platform Wholesale Hero',
+                'image_path' => 'storage/banners/platform-wholesale.jpg',
+                'target_type' => null,
+                'target_id' => null,
+                'target_url' => null,
+                'sort_order' => 0,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'store_id' => $wholesaleStore,
+                'title' => 'Platform Retail Placement',
+                'image_path' => 'storage/banners/platform-retail.jpg',
+                'target_type' => 'retail_store',
+                'target_id' => $retailStore,
+                'target_url' => '/retail/'.$retailStore.'/home',
+                'sort_order' => 1,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
                 'store_id' => $retailStore,
                 'title' => 'Retail Home Banner',
                 'image_path' => 'storage/banners/retail-home.jpg',
+                'target_type' => null,
+                'target_id' => null,
                 'target_url' => null,
                 'sort_order' => 1,
                 'is_active' => true,
@@ -251,6 +370,8 @@ class PlatformCustomerMarketplaceTest extends TestCase
                 'store_id' => $retailStore,
                 'title' => 'Retail Second Banner',
                 'image_path' => 'storage/banners/retail-second.jpg',
+                'target_type' => null,
+                'target_id' => null,
                 'target_url' => null,
                 'sort_order' => 2,
                 'is_active' => true,
@@ -261,6 +382,8 @@ class PlatformCustomerMarketplaceTest extends TestCase
                 'store_id' => $retailStore,
                 'title' => 'Retail Inactive Banner',
                 'image_path' => 'storage/banners/retail-inactive.jpg',
+                'target_type' => null,
+                'target_id' => null,
                 'target_url' => null,
                 'sort_order' => 0,
                 'is_active' => false,
