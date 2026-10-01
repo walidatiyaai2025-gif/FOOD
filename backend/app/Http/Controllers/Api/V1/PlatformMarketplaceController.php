@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Services\RetailMerchantIdentityService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -10,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 final class PlatformMarketplaceController extends Controller
 {
+    public function __construct(private readonly RetailMerchantIdentityService $retailMerchants) {}
+
     public function home(Request $request): JsonResponse
     {
         $store = $this->principalStore();
@@ -269,6 +273,14 @@ final class PlatformMarketplaceController extends Controller
             ->where('banners.is_active', true)
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2C');
+
+        $user = $request->user('sanctum');
+        if ($user instanceof User) {
+            $excludedStoreIds = $this->retailMerchants->retailStoreIds($user);
+            if ($excludedStoreIds !== []) {
+                $query->whereNotIn('stores.id', $excludedStoreIds);
+            }
+        }
 
         if ($countryCode !== '' || $city !== '' || $area !== '') {
             $query->where(function (Builder $scope) use ($countryCode, $city, $area): void {
