@@ -265,7 +265,6 @@ void main() {
     expect(find.text('/b2b/dashboard'), findsOneWidget);
   });
 }
-}
 
 class _SuccessfulCustomerActionApi implements CustomerActionApi {
   const _SuccessfulCustomerActionApi();
