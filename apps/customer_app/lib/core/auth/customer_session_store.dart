@@ -24,10 +24,7 @@ class FlutterCustomerSecureKeyValueStore
     implements CustomerSecureKeyValueStore {
   FlutterCustomerSecureKeyValueStore({
     FlutterSecureStorage? storage,
-  }) : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-            );
+  }) : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
 
