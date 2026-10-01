@@ -43,10 +43,10 @@
                     <td>{{ $assignment['assigned_at'] }}</td>
                     <td style="min-width:210px">
                         @if(!empty($assignment['proof']))
-                            @if(!empty($assignment['proof']['file_path']))
+                            @if(!empty($assignment['proof']['file_path']) && !empty($assignment['proof']['id']))
                                 <a
                                     class="btn"
-                                    href="{{ asset('storage/'.$assignment['proof']['file_path']) }}"
+                                    href="{{ route('admin.driver-live-tracking.proofs.show', ['proof' => $assignment['proof']['id']]) }}"
                                     target="_blank"
                                     rel="noopener"
                                 >
