@@ -317,16 +317,13 @@ async function run({ github, context, core, nowMs = Date.now() }) {
     });
 
     const nonWatchdogComments = comments.filter(comment => !isWatchdogComment(comment.body));
-    const stateSources = [
-      issue.body || '',
-      ...nonWatchdogComments.map(comment => comment.body || ''),
-      linkedPr?.body || '',
-    ];
     let workerState = null;
-    for (let i = stateSources.length - 1; i >= 0; i -= 1) {
-      workerState = parseWorkerState(stateSources[i]);
+    for (let i = nonWatchdogComments.length - 1; i >= 0; i -= 1) {
+      workerState = parseWorkerState(nonWatchdogComments[i].body || '');
       if (workerState) break;
     }
+    if (!workerState) workerState = parseWorkerState(linkedPr?.body || '');
+    if (!workerState) workerState = parseWorkerState(issue.body || '');
 
     const managed = Boolean(
       (issue.body || '').includes(MANAGED_MARKER)
