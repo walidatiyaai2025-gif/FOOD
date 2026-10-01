@@ -2,8 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Driver;
+use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -28,7 +32,8 @@ class AuthFoundationTest extends TestCase
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('user.email', $user->email)
             ->assertJsonPath('user.roles', [])
-            ->assertJsonPath('user.store_ids', []);
+            ->assertJsonPath('user.store_ids', [])
+            ->assertJsonPath('user.driver_scope', null);
 
         $token = $login->json('token');
 
@@ -42,6 +47,45 @@ class AuthFoundationTest extends TestCase
         $this->assertDatabaseMissing('personal_access_tokens', [
             'tokenable_id' => $user->id,
         ]);
+    }
+
+    public function test_driver_login_exposes_persisted_authoritative_scope(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'AUTH-DRIVER-B2C',
+            'name' => 'Auth Driver Retail Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'Scoped Driver',
+            'email' => 'scoped-driver@example.test',
+            'password' => Hash::make('correct-password'),
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $user->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
+        $driver = Driver::query()->create([
+            'user_id' => $user->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+        ])->assertOk()
+            ->assertJsonPath('user.driver_scope.driver_id', $driver->id)
+            ->assertJsonPath('user.driver_scope.channel', 'b2c')
+            ->assertJsonPath('user.driver_scope.store_id', $storeId);
     }
 
     public function test_invalid_or_inactive_credentials_are_rejected(): void
