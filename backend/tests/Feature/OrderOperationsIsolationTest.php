@@ -51,6 +51,153 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('Order status timeline');
     }
 
+    public function test_retail_driver_candidates_are_limited_to_exact_store_channel_and_active_profile(): void
+    {
+        $mine = $this->store('OPS-DRIVER-MINE');
+        $foreign = $this->store('OPS-DRIVER-FOREIGN');
+        $admin = $this->storeAdmin($mine, 'ops-driver-filter@example.test');
+
+        $validUser = User::query()->create([
+            'name' => 'Valid Retail Driver',
+            'email' => 'valid-retail-driver@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $validDriver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $validUser->id,
+            'store_id' => $mine,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $foreignUser = User::query()->create([
+            'name' => 'Foreign Retail Driver',
+            'email' => 'foreign-retail-driver@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        DB::table('drivers')->insert([
+            'user_id' => $foreignUser->id,
+            'store_id' => $foreign,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $wrongChannelUser = User::query()->create([
+            'name' => 'Wrong Channel Driver',
+            'email' => 'wrong-channel-driver@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        DB::table('drivers')->insert([
+            'user_id' => $wrongChannelUser->id,
+            'store_id' => $mine,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $inactiveUser = User::query()->create([
+            'name' => 'Inactive Retail Driver',
+            'email' => 'inactive-retail-driver@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        DB::table('drivers')->insert([
+            'user_id' => $inactiveUser->id,
+            'store_id' => $mine,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertViewHas('drivers', function ($drivers) use ($validDriver): bool {
+                return collect($drivers)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$validDriver];
+            });
+    }
+
+    public function test_wholesale_driver_candidates_are_limited_to_principal_store(): void
+    {
+        $principal = app(WholesalePrincipal::class)->storeId();
+        $rogueWholesale = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'OPS-DRIVER-ROGUE-B2B',
+            'name' => 'Rogue Wholesale Driver Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $validUser = User::query()->create([
+            'name' => 'Principal Wholesale Driver',
+            'email' => 'principal-wholesale-driver@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $validDriver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $validUser->id,
+            'store_id' => $principal,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $rogueUser = User::query()->create([
+            'name' => 'Rogue Wholesale Driver',
+            'email' => 'rogue-wholesale-driver@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        DB::table('drivers')->insert([
+            'user_id' => $rogueUser->id,
+            'store_id' => $rogueWholesale,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $super = User::query()->create([
+            'name' => 'Wholesale Operations Owner',
+            'email' => 'wholesale-driver-operations@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $super->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2b')
+            ->assertOk()
+            ->assertViewHas('drivers', function ($drivers) use ($validDriver): bool {
+                return collect($drivers)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$validDriver];
+            });
+    }
+
     public function test_super_admin_operational_inbox_defaults_to_wholesale_and_requires_explicit_retail_channel(): void
     {
         $retailStore = $this->store('OPS-SUPER-RETAIL');
