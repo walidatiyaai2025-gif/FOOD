@@ -147,7 +147,7 @@ final class CustomerOrderTimelineService
             },
         );
 
-        return array_values($events);
+        return $events;
     }
 
     private function timestamp(mixed $value): ?string
