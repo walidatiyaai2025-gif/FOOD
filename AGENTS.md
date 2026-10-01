@@ -80,7 +80,7 @@ A worker MUST leave a repository-visible checkpoint at least every **10 minutes*
 
 - pushing a coherent commit/checkpoint;
 - updating/opening the PR;
-- adding an Issue/PR progress/heartbeat comment;
+- adding/updating a machine-readable `foodex-worker-state:v1` block with a fresh `HEARTBEAT`;
 - producing a workflow/CI run tied to the branch.
 
 The 10-minute checkpoint SLA exists so a chat/session failure cannot hide a large amount of unpushed work. The 30-minute stale timeout is a takeover detector, not a recommended checkpoint interval.
@@ -89,7 +89,14 @@ Before any long wait, tool-heavy operation, CI wait, or potentially fragile sess
 
 ### Stale lease
 
-A lease is considered stale when there has been **no repository-visible activity for 30 minutes**, there is no currently running CI/action clearly associated with that worker's latest branch head, **and there is no red repository state**.
+A lease is considered stale when there has been **no execution activity for 30 minutes**, there is no currently running CI/action clearly associated with that worker's latest branch head, **and there is no red repository state**.
+
+For lease freshness, execution activity means only:
+- a new commit/current branch-head movement;
+- a fresh machine-readable `HEARTBEAT` in `foodex-worker-state:v1`;
+- running/queued CI on the exact current head.
+
+Ordinary Issue comments, coordinator checkpoints, "please continue" messages, label changes, review chatter, and PR metadata timestamps **do not renew the lease**.
 
 The 30-minute timer applies only to silent abandonment. It does **not** apply to actionable red state.
 
@@ -597,7 +604,7 @@ Keep a concise coordinator checkpoint on the umbrella whenever the queue materia
 - human gates;
 - next actionable lane(s).
 
-The checkpoint exists so a replacement chat can continue the mission from GitHub only.
+The checkpoint exists so a replacement chat can continue the mission from GitHub only. Umbrella/coordinator checkpoints are informational and must never be treated as worker lease heartbeats unless they contain an explicit machine-readable `HEARTBEAT` state block.
 
 ### Mission terminal states
 
