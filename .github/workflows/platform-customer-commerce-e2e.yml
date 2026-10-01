@@ -12,27 +12,27 @@ permissions:
 jobs:
   backend-validation:
     name: Backend + MySQL commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') }}
     uses: ./.github/workflows/backend-ci.yml
 
   customer-validation:
     name: Customer Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') }}
     uses: ./.github/workflows/customer-app-ci.yml
 
   driver-validation:
     name: Driver Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') }}
     uses: ./.github/workflows/driver-app-ci.yml
 
   runtime-evidence:
     name: Runtime screenshot evidence
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') }}
     uses: ./.github/workflows/screenshot-evidence.yml
 
   release-gate:
     name: Platform Customer commerce release gate
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-')) }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-')) }}
     needs:
       - backend-validation
       - customer-validation
@@ -124,6 +124,28 @@ jobs:
           grep -Fq 'device registry revokes authenticated driver push device' apps/driver_app/test/firebase_push_service_test.dart
 
           grep -Fq 'capture My Addresses edit with location' apps/customer_app/test/screenshot_evidence_test.dart
+
+      - name: Verify CJ-V2 Guest journey acceptance scaffold
+        if: ${{ startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
+          grep -Fq 'catalog requests keep exact Retail store context at every boundary' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
+          grep -Fq 'guest cart tokens never cross Retail stores' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
+          grep -Fq 'checkout preserves store context and one stable idempotency key' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
+          grep -Fq 'guest session restores the same store cart after app restart' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
+          grep -Fq 'order lifecycle push deep-link forces authoritative order refresh' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
+
+      - name: Block final integration while CJ-V2 acceptance remains skipped
+        if: ${{ startsWith(github.head_ref, 'feat/683-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -Fq 'skip:' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart; then
+            echo "::error::CJ-V2 Guest acceptance still contains pending skipped gates from #682"
+            exit 1
+          fi
 
       - name: Write exact release evidence manifest
         shell: bash
