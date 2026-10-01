@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\DriverAssignment;
 use App\Models\DriverCurrentLocation;
 use App\Services\DriverLocationEnforcementPolicy;
 use App\Services\DriverRuntimeContextResolver;
@@ -26,6 +27,10 @@ final class EnsureFreshDriverLocation
 
         [$driver, $channel, $storeId] = $this->driverContext->resolve($request);
         $freshnessSeconds = $this->policy->freshnessSeconds();
+
+        if ($this->allowsFailureRecovery($request, (int) $driver->getKey(), $channel, $storeId)) {
+            return $next($request);
+        }
 
         $location = DriverCurrentLocation::query()
             ->where('driver_id', $driver->getKey())
@@ -52,6 +57,35 @@ final class EnsureFreshDriverLocation
         }
 
         return $next($request);
+    }
+
+    private function allowsFailureRecovery(
+        Request $request,
+        int $driverId,
+        string $channel,
+        int $storeId,
+    ): bool {
+        if (
+            ! $request->isMethod('post')
+            || strtolower(trim((string) $request->input('status'))) !== 'failed'
+            || trim((string) $request->input('failure_reason')) === ''
+        ) {
+            return false;
+        }
+
+        $assignmentId = (int) $request->route('assignment');
+        if ($assignmentId <= 0) {
+            return false;
+        }
+
+        return DriverAssignment::query()
+            ->whereKey($assignmentId)
+            ->where('driver_id', $driverId)
+            ->where('assignment_type', $channel)
+            ->where('store_id', $storeId)
+            ->whereIn('status', ['accepted', 'picked_up', 'out_for_delivery'])
+            ->whereNull('completed_at')
+            ->exists();
     }
 
     private function blocked(string $reason, int $freshnessSeconds): JsonResponse
