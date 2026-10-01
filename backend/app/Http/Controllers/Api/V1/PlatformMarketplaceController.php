@@ -275,7 +275,7 @@ final class PlatformMarketplaceController extends Controller
             ->where('store_types.code', 'B2C');
 
         $user = $request->user('sanctum');
-        if ($user instanceof User) {
+        if ($request->bearerToken() !== null && $user instanceof User) {
             $excludedStoreIds = $this->retailMerchants->retailStoreIds($user);
             if ($excludedStoreIds !== []) {
                 $query->whereNotIn('stores.id', $excludedStoreIds);

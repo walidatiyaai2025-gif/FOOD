@@ -115,7 +115,7 @@ class PlatformCustomerMarketplaceTest extends TestCase
             'updated_at' => $now,
         ]);
 
-        Sanctum::actingAs($merchant);
+        $this->withToken($merchant->createToken('customer-app')->plainTextToken);
 
         $this->getJson('/api/v1/platform/storefront')
             ->assertOk()

@@ -259,7 +259,7 @@ class GuestCatalogController extends Controller
     private function assertCanBrowse(Request $request, int $storeId): void
     {
         $user = $request->user('sanctum');
-        if ($user instanceof User) {
+        if ($request->bearerToken() !== null && $user instanceof User) {
             $this->retailMerchants->assertCanPurchaseFromRetailStore($user, $storeId);
         }
     }

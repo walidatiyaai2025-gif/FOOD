@@ -243,7 +243,7 @@ final class StorefrontController extends Controller
     public function show(Request $request, int $store): JsonResponse
     {
         $user = $request->user('sanctum');
-        if ($user instanceof User) {
+        if ($request->bearerToken() !== null && $user instanceof User) {
             $this->retailMerchants->assertCanPurchaseFromRetailStore($user, $store);
         }
 
@@ -514,7 +514,7 @@ final class StorefrontController extends Controller
             ]);
 
         $user = $request->user('sanctum');
-        if ($user instanceof User) {
+        if ($request->bearerToken() !== null && $user instanceof User) {
             $excludedStoreIds = $this->retailMerchants->retailStoreIds($user);
             if ($excludedStoreIds !== []) {
                 $query->whereNotIn('stores.id', $excludedStoreIds);

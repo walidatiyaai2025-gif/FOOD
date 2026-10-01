@@ -50,7 +50,7 @@ class GuestStoreController extends Controller
             ->orderBy('stores.id');
 
         $user = $request->user('sanctum');
-        if ($user instanceof User) {
+        if ($request->bearerToken() !== null && $user instanceof User) {
             $excludedStoreIds = $this->retailMerchants->retailStoreIds($user);
             if ($excludedStoreIds !== []) {
                 $query->whereNotIn('stores.id', $excludedStoreIds);
