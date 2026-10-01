@@ -4,6 +4,7 @@ import '../../core/api/b2b_api.dart';
 import '../../core/api/b2c_account_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
+import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
@@ -79,11 +80,6 @@ class B2bJourneyScreen extends StatelessWidget {
                       endpoint: _endpoint()!,
                       routePattern: definition.pattern,
                     ),
-            Text(
-              location,
-              key: const ValueKey('customer-route-location'),
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
             ],
           ),
         ),
@@ -318,7 +314,7 @@ class B2bJourneyScreen extends StatelessWidget {
 }
 
 
-class _B2bProductDetailRemoteState extends StatelessWidget {
+class _B2bProductDetailRemoteState extends StatefulWidget {
   const _B2bProductDetailRemoteState({
     required this.api,
     required this.endpoint,
@@ -328,8 +324,37 @@ class _B2bProductDetailRemoteState extends StatelessWidget {
   final String endpoint;
 
   @override
+  State<_B2bProductDetailRemoteState> createState() =>
+      _B2bProductDetailRemoteStateState();
+}
+
+class _B2bProductDetailRemoteStateState
+    extends State<_B2bProductDetailRemoteState> {
+  late Future<Object?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _loadB2bRemote(widget.api, widget.endpoint);
+  }
+
+  @override
+  void didUpdateWidget(covariant _B2bProductDetailRemoteState oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.api != widget.api || oldWidget.endpoint != widget.endpoint) {
+      _future = _loadB2bRemote(widget.api, widget.endpoint);
+    }
+  }
+
+  void _retry() {
+    setState(() {
+      _future = _loadB2bRemote(widget.api, widget.endpoint);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) => FutureBuilder<Object?>(
-        future: api.get(endpoint),
+        future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(
@@ -339,21 +364,10 @@ class _B2bProductDetailRemoteState extends StatelessWidget {
           }
 
           if (snapshot.hasError) {
-            final error = snapshot.error;
-            final forbidden = error is B2bApiException &&
-                error.code == 'not_authorized';
-            return Card(
-              key: ValueKey(forbidden ? 'b2b-forbidden' : 'b2b-error'),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  context.tr(
-                    forbidden
-                        ? 'b2b.remote.forbidden'
-                        : 'b2b.remote.error',
-                  ),
-                ),
-              ),
+            return _B2bRemoteErrorCard(
+              error: snapshot.error,
+              onRetry: _retry,
+              backRoute: _productsBackRoute(widget.endpoint),
             );
           }
 
@@ -461,15 +475,42 @@ class _B2bCatalogImage extends StatelessWidget {
       );
 }
 
-class _TopProductsRemoteState extends StatelessWidget {
+class _TopProductsRemoteState extends StatefulWidget {
   const _TopProductsRemoteState({required this.api, required this.endpoint});
 
   final B2bApi api;
   final String endpoint;
 
   @override
+  State<_TopProductsRemoteState> createState() => _TopProductsRemoteStateState();
+}
+
+class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
+  late Future<Object?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _loadB2bRemote(widget.api, widget.endpoint);
+  }
+
+  @override
+  void didUpdateWidget(covariant _TopProductsRemoteState oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.api != widget.api || oldWidget.endpoint != widget.endpoint) {
+      _future = _loadB2bRemote(widget.api, widget.endpoint);
+    }
+  }
+
+  void _retry() {
+    setState(() {
+      _future = _loadB2bRemote(widget.api, widget.endpoint);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) => FutureBuilder<Object?>(
-        future: api.get(endpoint),
+        future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(
@@ -478,12 +519,9 @@ class _TopProductsRemoteState extends StatelessWidget {
             );
           }
           if (snapshot.hasError) {
-            return Card(
-              key: const ValueKey('b2b-error'),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(context.tr('b2b.remote.error')),
-              ),
+            return _B2bRemoteErrorCard(
+              error: snapshot.error,
+              onRetry: _retry,
             );
           }
 
@@ -523,7 +561,7 @@ class _TopProductsRemoteState extends StatelessWidget {
       );
 }
 
-class _RemoteState extends StatelessWidget {
+class _RemoteState extends StatefulWidget {
   const _RemoteState({
     required this.api,
     required this.endpoint,
@@ -537,8 +575,35 @@ class _RemoteState extends StatelessWidget {
   final bool showEmpty;
 
   @override
+  State<_RemoteState> createState() => _RemoteStateState();
+}
+
+class _RemoteStateState extends State<_RemoteState> {
+  late Future<Object?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _loadB2bRemote(widget.api, widget.endpoint);
+  }
+
+  @override
+  void didUpdateWidget(covariant _RemoteState oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.api != widget.api || oldWidget.endpoint != widget.endpoint) {
+      _future = _loadB2bRemote(widget.api, widget.endpoint);
+    }
+  }
+
+  void _retry() {
+    setState(() {
+      _future = _loadB2bRemote(widget.api, widget.endpoint);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) => FutureBuilder<Object?>(
-        future: api.get(endpoint),
+        future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(
@@ -548,21 +613,9 @@ class _RemoteState extends StatelessWidget {
           }
 
           if (snapshot.hasError) {
-            final error = snapshot.error;
-            final forbidden =
-                error is B2bApiException && error.code == 'not_authorized';
-            return Card(
-              key: ValueKey(forbidden ? 'b2b-forbidden' : 'b2b-error'),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  context.tr(
-                    forbidden
-                        ? 'customer.error.forbidden'
-                        : 'b2b.remote.error',
-                  ),
-                ),
-              ),
+            return _B2bRemoteErrorCard(
+              error: snapshot.error,
+              onRetry: _retry,
             );
           }
 
@@ -577,7 +630,7 @@ class _RemoteState extends StatelessWidget {
                   ));
 
           if (empty) {
-            return showEmpty
+            return widget.showEmpty
                 ? Card(
                     key: const ValueKey('b2b-empty'),
                     child: Padding(
@@ -590,10 +643,171 @@ class _RemoteState extends StatelessWidget {
 
           return _AuthoritativeDataView(
             value: value,
-            routePattern: routePattern,
+            routePattern: widget.routePattern,
           );
         },
       );
+}
+
+class _B2bFailureInfo {
+  const _B2bFailureInfo({
+    required this.category,
+    required this.messageKey,
+    required this.forbiddenVisual,
+    this.statusCode,
+    this.supportReference,
+  });
+
+  final String category;
+  final String messageKey;
+  final bool forbiddenVisual;
+  final int? statusCode;
+  final String? supportReference;
+}
+
+_B2bFailureInfo _b2bFailureInfo(Object? error) {
+  if (error is B2bApiException) {
+    final status = error.statusCode;
+    if (status == 401) {
+      return _B2bFailureInfo(
+        category: 'unauthorized',
+        messageKey: 'customer.error.session_expired',
+        forbiddenVisual: false,
+        statusCode: status,
+        supportReference: _safeSupportReference(error.supportReference),
+      );
+    }
+    if (status == 403 || (status == null && error.code == 'not_authorized')) {
+      return _B2bFailureInfo(
+        category: 'forbidden',
+        messageKey: 'customer.error.forbidden',
+        forbiddenVisual: true,
+        statusCode: status,
+        supportReference: _safeSupportReference(error.supportReference),
+      );
+    }
+    if (status == 404) {
+      return _B2bFailureInfo(
+        category: 'not_found',
+        messageKey: 'b2b.remote.not_found',
+        forbiddenVisual: false,
+        statusCode: status,
+        supportReference: _safeSupportReference(error.supportReference),
+      );
+    }
+    if (status != null && status >= 500) {
+      return _B2bFailureInfo(
+        category: 'server_failure',
+        messageKey: 'b2b.remote.error',
+        forbiddenVisual: false,
+        statusCode: status,
+        supportReference: _safeSupportReference(error.supportReference),
+      );
+    }
+  }
+
+  return const _B2bFailureInfo(
+    category: 'network_or_client_failure',
+    messageKey: 'b2b.remote.error',
+    forbiddenVisual: false,
+  );
+}
+
+String? _safeSupportReference(String? value) {
+  final reference = value?.trim();
+  if (reference == null || reference.isEmpty || reference.length > 128) {
+    return null;
+  }
+  return RegExp(r'^[A-Za-z0-9._:/-]+$').hasMatch(reference)
+      ? reference
+      : null;
+}
+
+Future<Object?> _loadB2bRemote(B2bApi api, String endpoint) async {
+  try {
+    return await api.get(endpoint);
+  } catch (error, stack) {
+    final failure = _b2bFailureInfo(error);
+    CustomerDiagnostics.instance.recordRuntimeFailure(
+      operation: 'b2b_remote_load',
+      path: endpoint,
+      category: failure.category,
+      statusCode: failure.statusCode,
+      supportReference: failure.supportReference,
+    );
+    Error.throwWithStackTrace(error, stack);
+  }
+}
+
+String _productsBackRoute(String endpoint) {
+  final uri = Uri.parse(endpoint);
+  final storeId =
+      uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+  if (storeId == null || storeId.isEmpty) {
+    return CustomerRoutePaths.b2bProducts;
+  }
+  return Uri(
+    path: CustomerRoutePaths.b2bProducts,
+    queryParameters: {'store_id': storeId},
+  ).toString();
+}
+
+class _B2bRemoteErrorCard extends StatelessWidget {
+  const _B2bRemoteErrorCard({
+    required this.error,
+    required this.onRetry,
+    this.backRoute,
+  });
+
+  final Object? error;
+  final VoidCallback onRetry;
+  final String? backRoute;
+
+  @override
+  Widget build(BuildContext context) {
+    final failure = _b2bFailureInfo(error);
+    return Card(
+      key: ValueKey(failure.forbiddenVisual ? 'b2b-forbidden' : 'b2b-error'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(context.tr(failure.messageKey)),
+            if (failure.supportReference != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                '${context.tr('b2b.remote.support_reference')}: ${failure.supportReference}',
+                key: const ValueKey('b2b-error-support-reference'),
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ],
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonalIcon(
+                  key: const ValueKey('b2b-error-retry'),
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: Text(context.tr('customer.action.retry')),
+                ),
+                if (backRoute != null)
+                  OutlinedButton.icon(
+                    key: const ValueKey('b2b-error-back-products'),
+                    onPressed: () =>
+                        Navigator.of(context).pushReplacementNamed(backRoute!),
+                    icon: const Icon(Icons.arrow_back),
+                    label: Text(context.tr('b2b.remote.back_products')),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _AuthoritativeDataView extends StatelessWidget {
