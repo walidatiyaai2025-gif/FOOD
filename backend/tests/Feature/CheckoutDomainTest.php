@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Address;
 use App\Models\B2cCustomer;
 use App\Models\Customer;
+use App\Models\Notification;
+use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -305,6 +307,24 @@ class CheckoutDomainTest extends TestCase
 
     public function test_checkout_idempotency_replays_same_order_and_rejects_changed_payload(): void
     {
+        $dashboardUser = User::query()->create([
+            'name' => 'Checkout Store Admin',
+            'email' => 'checkout-store-admin@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $dashboardRole = Role::query()
+            ->where('code', 'B2C_STORE_ADMIN')
+            ->firstOrFail();
+        DB::table('user_store_roles')->insert([
+            'user_id' => $dashboardUser->id,
+            'store_id' => $this->storeId,
+            'role_id' => $dashboardRole->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->addCartItem(1);
 
         $payload = [
@@ -319,6 +339,26 @@ class CheckoutDomainTest extends TestCase
 
         $orderId = (int) $first->json('id');
 
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $dashboardUser->id,
+            'app' => 'dashboard',
+            'type' => 'order.created',
+            'target_channel' => 'b2c',
+            'store_id' => $this->storeId,
+        ]);
+
+        $orderNotification = Notification::query()
+            ->where('user_id', $dashboardUser->id)
+            ->where('type', 'order.created')
+            ->firstOrFail();
+        $this->assertSame($orderId, (int) $orderNotification->data['order_id']);
+        $this->assertSame($this->storeId, (int) $orderNotification->data['store_id']);
+        $this->assertSame('b2c', $orderNotification->data['channel']);
+        $this->assertStringContainsString(
+            '#order-'.$orderId,
+            (string) $orderNotification->data['deep_link'],
+        );
+
         $this->withHeader('Idempotency-Key', 'checkout-key-000002')
             ->postJson('/api/v1/checkout', $payload)
             ->assertOk()
@@ -327,6 +367,13 @@ class CheckoutDomainTest extends TestCase
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('payments', 1);
         $this->assertDatabaseCount('invoices', 1);
+        $this->assertSame(
+            1,
+            Notification::query()
+                ->where('user_id', $dashboardUser->id)
+                ->where('type', 'order.created')
+                ->count(),
+        );
 
         $this->withHeader('Idempotency-Key', 'checkout-key-000002')
             ->postJson('/api/v1/checkout', [
