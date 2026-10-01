@@ -14,6 +14,10 @@ final class B2cCustomerService
     {
         $this->assertRetailStore($storeId);
 
+        if ($user instanceof User) {
+            app(RetailMerchantIdentityService::class)->assertCanPurchaseFromRetailStore($user, $storeId);
+        }
+
         return DB::transaction(function () use ($storeId, $data, $user): B2cCustomer {
             $legacy = $user === null
                 ? null
