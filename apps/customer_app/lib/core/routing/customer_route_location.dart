@@ -189,7 +189,7 @@ abstract final class CustomerRouteLocation {
           'must be a positive identifier',
         );
       }
-      path = path.replaceAll(':' + entry.key, entry.value.toString());
+      path = path.replaceAll(':${entry.key}', entry.value.toString());
     }
 
     if (path.contains(':')) {
