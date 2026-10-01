@@ -17,7 +17,9 @@ class RetailCheckoutOptionsTest extends TestCase
     use RefreshDatabase;
 
     private int $storeId;
+
     private User $user;
+
     private B2cCustomer $customer;
 
     protected function setUp(): void
