@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.44 - 2026-10-01
+
+- Publish the completed Customer Journey V2 (#675) as NEW-only production runtime: store-scoped Retail catalog/cart/checkout, guest-to-auth cart continuity, account surfaces, authoritative orders/tracking, operational notifications, integrated guest E2E acceptance, legacy B2C purge and anti-regression guard.
+- Publish the completed Driver Journey V2 (#686) as NEW-only production runtime: authoritative active-assignment flow, start/delivered/failed completion sheets, notes/proof handling, Dashboard delivery evidence, lifecycle notifications, assignment-to-proof E2E acceptance, legacy Driver journey purge and anti-regression guard.
+- Keep Customer and Driver commerce/delivery context authoritative across navigation, deep links, notifications and release preview gates, with the converged shared APP-PREVIEW and Platform Customer Commerce CI coverage.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.44 / mobile build 1.0.44+44 without changing production force-update, minimum-version, Driver location-enforcement or Assistant activation settings.
+
 ## 1.0.43 - 2026-10-01
 
 - Republish the Dashboard update under a new immutable version so installed 1.0.42 systems receive the shared-host public-runtime repair from #670/#671.
