@@ -154,9 +154,7 @@ void main() {
           source,
           contains(routeFragment),
           reason:
-              'runtime screenshot harness must retain ' +
-              routeFragment +
-              ' for #725',
+              'runtime screenshot harness must retain $routeFragment for #725',
         );
       }
     });
