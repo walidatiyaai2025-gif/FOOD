@@ -6,6 +6,9 @@ on:
       - "release/**-update"
     paths-ignore:
       - "Release/Updates/**"
+      - "docs/release/RELEASE_NOTES.md"
+      - "docs/release/UPDATE_NOTES_*.md"
+      - "docs/release/RELEASE_REGISTRY.json"
   pull_request:
     branches:
       - main
