@@ -30,6 +30,7 @@ class _FakeTrackingController implements DriverLocationTrackingController {
   int disposes = 0;
   final List<bool> gateStates = <bool>[];
   final List<bool> foregroundStates = <bool>[];
+  final List<String?> assignmentStatuses = <String?>[];
 
   @override
   void start() => starts++;
@@ -39,6 +40,9 @@ class _FakeTrackingController implements DriverLocationTrackingController {
 
   @override
   void setGateReady(bool ready) => gateStates.add(ready);
+
+  @override
+  void setAssignmentStatus(String? status) => assignmentStatuses.add(status);
 
   @override
   void stop({bool clearQueue = true}) => stops++;
