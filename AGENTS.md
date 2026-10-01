@@ -770,3 +770,69 @@ Mandatory rules:
 Normal feature/bug PRs may merge without immediately bumping `VERSION`; however, the next distribution/release task must allocate a new version and register it before any new package is promoted.
 
 This policy is enforced by repository CI and must not be bypassed to publish a release.
+
+
+---
+
+## 23. CUSTOMER JOURNEY V2 mission keyword
+
+The single-word repository-owner command:
+
+```text
+JOURNEY
+```
+
+is an alias for continuous Umbrella Mission / Drain Mode on **#675**:
+
+`[PLATFORM-BUG][CUSTOMER-JOURNEY-V2][UMBRELLA] New-only Customer App end-to-end journey`.
+
+When `JOURNEY` is received in any chat/session, the worker must:
+
+1. reconstruct #675 and child lanes #676-#683 from GitHub state;
+2. apply Section 20 Mission/Drain Mode without asking the owner to repeat context;
+3. select the highest-priority safe non-conflicting lane;
+4. reuse its existing Issue/branch/PR if present;
+5. respect current-head CI and fresh peer ownership;
+6. take over red/stalled/handoff-ready work on the same branch/PR according to this policy;
+7. continue draining #675 after the first child completes;
+8. stop only when #675 is COMPLETE or genuinely HUMAN-GATED.
+
+### NEW-only invariant
+
+For #675 and every child lane:
+
+- the production Customer App destination is the **new** Customer journey only;
+- old Customer journey code may be read as a behavioral reference while parity is being migrated;
+- workers must not fix, expand, or retain a legacy Customer screen as the final runtime solution;
+- once parity exists, obsolete legacy routes/screens/widgets/tests/assets must be deleted, not merely hidden;
+- no fallback switch may silently return production users to the legacy journey;
+- Lane #683 owns final shared wiring and legacy deletion after prerequisite lanes converge;
+- #675 cannot close while production routing still intentionally renders the legacy B2C journey.
+
+### Parallel lane ownership
+
+The authoritative child lanes are:
+
+- #676 Context/Auth/guest-session kernel;
+- #677 NEW Retail catalog;
+- #678 NEW Retail commerce/checkout;
+- #679 NEW Customer account surfaces;
+- #680 NEW Orders/tracking;
+- #681 Dashboard registration + order-created operational notifications;
+- #682 Guest full-journey E2E acceptance;
+- #683 final integration + legacy purge.
+
+Lanes #676-#681 are designed to run in parallel. #682 may scaffold concurrently but closes only against integrated behavior. #683 is the convergence lane and must not race shared routing/wiring files owned by an active prerequisite lane.
+
+### Mandatory Guest acceptance
+
+#675 is not complete unless automated acceptance covers a real guest journey from Marketplace through Retail browse/product/cart, Login-or-Register handoff, same-store guest-cart merge, saved address, backend-supported payment, checkout, created order and order details/tracking, with exact store context preserved at every boundary and cross-store isolation verified.
+
+### Dashboard notification acceptance
+
+#675 is not complete unless automated tests prove:
+
+- successful new Platform Customer registration/subscription creates one deduplicated Dashboard operational notification;
+- ordinary login does not create that registration notification;
+- successful checkout/order creation creates one deduplicated Dashboard order-created operational notification;
+- notification audience, store/channel scope and deep links obey existing authorization conventions.
