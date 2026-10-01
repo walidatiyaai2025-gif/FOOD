@@ -162,6 +162,186 @@ class OrderDomainTest extends TestCase
         $this->getJson('/api/v1/orders')->assertForbidden();
     }
 
+    public function test_b2b_order_detail_exposes_authoritative_customer_safe_delivery_timeline(): void
+    {
+        $this->assertSame($this->b2bStoreId, app(WholesalePrincipal::class)->storeId());
+
+        $order = $this->makeOrder($this->b2bCustomer, $this->b2bStoreId, 'b2b');
+        $base = now()->subHour()->startOfSecond();
+
+        DB::table('orders')->where('id', $order->id)->update([
+            'status' => 'delivered',
+            'created_at' => $base,
+            'updated_at' => $base->copy()->addMinutes(8),
+        ]);
+        DB::table('order_status_history')->where('order_id', $order->id)->delete();
+
+        foreach ([
+            ['confirmed', 1],
+            ['preparing', 2],
+            ['ready', 3],
+            ['out_for_delivery', 7],
+            ['delivered', 8],
+        ] as [$status, $minutes]) {
+            DB::table('order_status_history')->insert([
+                'order_id' => $order->id,
+                'store_id' => $this->b2bStoreId,
+                'user_id' => null,
+                'from_status' => null,
+                'to_status' => $status,
+                'note' => 'INTERNAL ORDER NOTE '.$status,
+                'created_at' => $base->copy()->addMinutes($minutes),
+                'updated_at' => $base->copy()->addMinutes($minutes),
+            ]);
+        }
+
+        $driverUser = User::query()->create([
+            'name' => 'Wholesale Driver',
+            'email' => 'wholesale-timeline-driver@example.test',
+            'password' => 'secret-password',
+            'is_active' => true,
+        ]);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $this->b2bStoreId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => $base,
+            'updated_at' => $base,
+        ]);
+        $assignmentId = (int) DB::table('driver_assignments')->insertGetId([
+            'driver_id' => $driverId,
+            'order_id' => $order->id,
+            'store_id' => $this->b2bStoreId,
+            'assignment_type' => 'b2b',
+            'status' => 'delivered',
+            'assigned_at' => $base->copy()->addMinutes(4),
+            'completed_at' => $base->copy()->addMinutes(8),
+            'created_at' => $base->copy()->addMinutes(4),
+            'updated_at' => $base->copy()->addMinutes(8),
+        ]);
+
+        foreach ([
+            ['accepted', 5, 'status_note'],
+            ['picked_up', 6, 'status_note'],
+            ['out_for_delivery', 7, 'status_note'],
+            ['delivered', 8, 'delivery_image'],
+        ] as [$status, $minutes, $proofType]) {
+            DB::table('delivery_proofs')->insert([
+                'driver_assignment_id' => $assignmentId,
+                'order_id' => $order->id,
+                'user_id' => $driverUser->id,
+                'proof_type' => $proofType,
+                'from_status' => null,
+                'to_status' => $status,
+                'file_path' => $status === 'delivered'
+                    ? 'delivery-proofs/PRIVATE-CUSTOMER-PROOF.jpg'
+                    : null,
+                'otp_hash' => null,
+                'reason_code' => null,
+                'note' => 'PRIVATE DRIVER NOTE '.$status,
+                'captured_at' => $base->copy()->addMinutes($minutes),
+                'created_at' => $base->copy()->addMinutes($minutes),
+                'updated_at' => $base->copy()->addMinutes($minutes),
+            ]);
+        }
+
+        Sanctum::actingAs($this->b2bUser);
+
+        $list = $this->getJson('/api/v1/b2b/orders')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $order->id)
+            ->assertJsonPath('data.0.timeline', null);
+        $this->assertStringNotContainsString(
+            'PRIVATE DRIVER NOTE',
+            (string) $list->getContent(),
+        );
+
+        $response = $this->getJson("/api/v1/b2b/orders/{$order->id}")
+            ->assertOk()
+            ->assertJsonPath('channel', 'b2b')
+            ->assertJsonPath('status', 'delivered')
+            ->assertJsonPath('timeline.0.stage', 'placed')
+            ->assertJsonPath('timeline.1.stage', 'confirmed')
+            ->assertJsonPath('timeline.2.stage', 'preparing')
+            ->assertJsonPath('timeline.3.stage', 'ready')
+            ->assertJsonPath('timeline.4.stage', 'driver_assigned')
+            ->assertJsonPath('timeline.4.driver_name', 'Wholesale Driver')
+            ->assertJsonPath('timeline.5.stage', 'accepted')
+            ->assertJsonPath('timeline.6.stage', 'picked_up')
+            ->assertJsonPath('timeline.7.stage', 'out_for_delivery')
+            ->assertJsonPath('timeline.8.stage', 'delivered');
+
+        $payload = (string) $response->getContent();
+        $this->assertStringNotContainsString('INTERNAL ORDER NOTE', $payload);
+        $this->assertStringNotContainsString('PRIVATE DRIVER NOTE', $payload);
+        $this->assertStringNotContainsString('PRIVATE-CUSTOMER-PROOF.jpg', $payload);
+        $this->assertStringNotContainsString('"note"', $payload);
+    }
+
+    public function test_b2b_failed_delivery_exposes_reason_code_without_driver_note(): void
+    {
+        $this->assertSame($this->b2bStoreId, app(WholesalePrincipal::class)->storeId());
+
+        $order = $this->makeOrder($this->b2bCustomer, $this->b2bStoreId, 'b2b', 'failed');
+        $base = now()->subMinutes(20)->startOfSecond();
+
+        $driverUser = User::query()->create([
+            'name' => 'Failed Wholesale Driver',
+            'email' => 'failed-wholesale-driver@example.test',
+            'password' => 'secret-password',
+            'is_active' => true,
+        ]);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $this->b2bStoreId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => $base,
+            'updated_at' => $base,
+        ]);
+        $assignmentId = (int) DB::table('driver_assignments')->insertGetId([
+            'driver_id' => $driverId,
+            'order_id' => $order->id,
+            'store_id' => $this->b2bStoreId,
+            'assignment_type' => 'b2b',
+            'status' => 'failed',
+            'assigned_at' => $base->copy()->addMinute(),
+            'completed_at' => $base->copy()->addMinutes(2),
+            'created_at' => $base->copy()->addMinute(),
+            'updated_at' => $base->copy()->addMinutes(2),
+        ]);
+        DB::table('delivery_proofs')->insert([
+            'driver_assignment_id' => $assignmentId,
+            'order_id' => $order->id,
+            'user_id' => $driverUser->id,
+            'proof_type' => 'failure_note',
+            'from_status' => 'out_for_delivery',
+            'to_status' => 'failed',
+            'file_path' => null,
+            'otp_hash' => null,
+            'reason_code' => 'customer_no_answer',
+            'note' => 'DO NOT SHOW THIS FAILURE NOTE',
+            'captured_at' => $base->copy()->addMinutes(2),
+            'created_at' => $base->copy()->addMinutes(2),
+            'updated_at' => $base->copy()->addMinutes(2),
+        ]);
+
+        Sanctum::actingAs($this->b2bUser);
+
+        $response = $this->getJson("/api/v1/b2b/orders/{$order->id}")
+            ->assertOk()
+            ->assertJsonPath('timeline.2.stage', 'failed')
+            ->assertJsonPath('timeline.2.reason_code', 'customer_no_answer');
+
+        $this->assertStringNotContainsString(
+            'DO NOT SHOW THIS FAILURE NOTE',
+            (string) $response->getContent(),
+        );
+    }
+
     public function test_customer_cannot_transition_order_and_invalid_admin_transition_conflicts(): void
     {
         $order = $this->makeOrder($this->b2cCustomer, $this->b2cStoreId, 'b2c');
