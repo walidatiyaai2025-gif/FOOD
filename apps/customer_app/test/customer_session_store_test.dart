@@ -62,7 +62,7 @@ void main() {
       expect(restored.platformWide, isFalse);
     });
 
-    test('preserves platform-wide B2B session', () async {
+    test('normalizes legacy platform-wide B2B payload to platform Customer identity', () async {
       final storage = _MemorySecureStore();
       final store = SecureCustomerSessionStore(storage: storage);
 
@@ -75,7 +75,7 @@ void main() {
       );
       final restored = await restoreCustomerSession(store);
 
-      expect(restored.channel, CustomerChannel.b2b);
+      expect(restored.channel, CustomerChannel.b2c);
       expect(restored.platformWide, isTrue);
       expect(restored.accessToken, 'platform-token');
     });
