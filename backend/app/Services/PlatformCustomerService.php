@@ -123,7 +123,7 @@ final class PlatformCustomerService
 
         abort_unless($exists, 404);
 
-        app(RetailMerchantIdentityService::class)->assertCanPurchaseFromRetailStore($user, $storeId);
+        app(CommerceIdentityResolver::class)->assertCanPurchaseFromRetailStore($user, $storeId);
 
         return B2cCustomer::query()->firstOrCreate(
             [
