@@ -68,12 +68,32 @@ class _FakeActiveRepo implements DriverAssignmentRepository {
   }
 }
 
+class _StaticActiveRepo implements DriverAssignmentRepository {
+  const _StaticActiveRepo(this.rows);
+
+  final List<DriverAssignment> rows;
+
+  @override
+  Future<List<DriverAssignment>> list(DriverChannel channel) async => rows;
+
+  @override
+  Future<void> transition(
+    int id,
+    DriverChannel channel,
+    String status, {
+    String? note,
+    String? failureReason,
+  }) async {}
+}
+
 Widget _host(
   DriverAssignmentRepository repository, {
   DriverActiveAssignmentCallback? onNavigationRequested,
   DriverActiveFailureCallback? onFailedDeliveryRequested,
   DriverActiveAssignmentCallback? onDeliveredRequested,
   Locale locale = const Locale('en'),
+  int? focusAssignmentId,
+  String? initialAssignmentStatus,
 }) {
   return MaterialApp(
     locale: locale,
@@ -89,6 +109,8 @@ Widget _host(
             onFailedDeliveryRequested ?? (assignment, {note}) async {},
         onDeliveredRequested:
             onDeliveredRequested ?? (assignment) async {},
+        focusAssignmentId: focusAssignmentId,
+        initialAssignmentStatus: initialAssignmentStatus,
       ),
     ),
   );
@@ -329,6 +351,118 @@ void main() {
     expect(find.text('No connection. Try again when the network is back.'),
         findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
+  });
+
+  testWidgets('exact status route filters the authoritative assignment list',
+      (tester) async {
+    const repo = _StaticActiveRepo([
+      DriverAssignment(
+        id: 20,
+        channel: DriverChannel.b2c,
+        reference: 'ACCEPTED-20',
+        status: 'accepted',
+      ),
+      DriverAssignment(
+        id: 21,
+        channel: DriverChannel.b2c,
+        reference: 'OUT-21',
+        status: 'out_for_delivery',
+      ),
+      DriverAssignment(
+        id: 22,
+        channel: DriverChannel.b2c,
+        reference: 'DONE-22',
+        status: 'delivered',
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      _host(repo, initialAssignmentStatus: 'out_for_delivery'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-active-status-filter')), findsOneWidget);
+    expect(find.text('OUT-21'), findsOneWidget);
+    expect(find.text('ACCEPTED-20'), findsNothing);
+    expect(find.text('DONE-22'), findsNothing);
+  });
+
+  testWidgets('push focus refetches and opens only the exact assignment',
+      (tester) async {
+    const repo = _StaticActiveRepo([
+      DriverAssignment(
+        id: 30,
+        channel: DriverChannel.b2c,
+        reference: 'PUSH-30',
+        status: 'assigned',
+      ),
+      DriverAssignment(
+        id: 31,
+        channel: DriverChannel.b2c,
+        reference: 'PUSH-31',
+        status: 'assigned',
+      ),
+    ]);
+
+    await tester.pumpWidget(_host(repo, focusAssignmentId: 31));
+    await tester.pumpAndSettle();
+
+    expect(find.text('PUSH-30'), findsNothing);
+    expect(find.text('PUSH-31'), findsWidgets);
+    expect(find.byKey(const Key('driver-active-detail-31')), findsOneWidget);
+  });
+
+  testWidgets('new detail preserves assigned invoice access', (tester) async {
+    final repo = _FakeActiveRepo(
+      const DriverAssignment(
+        id: 40,
+        channel: DriverChannel.b2c,
+        reference: 'INV-ORDER-40',
+        status: 'accepted',
+        invoice: DriverInvoice(
+          id: 91,
+          number: 'INV-B2C-40',
+          status: 'issued',
+          currency: 'KWD',
+          subtotal: 25,
+          grandTotal: 27,
+          deliveryTotal: 2,
+          paymentMethod: 'cash_on_delivery',
+          paymentStatus: 'pending',
+          items: [
+            DriverOrderItem(
+              name: 'Rice',
+              sku: 'RICE-1',
+              quantity: 2,
+              lineTotal: 25,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('driver-active-assignment-40')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('driver-active-open-invoice-40')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('driver-active-open-invoice-40')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('driver-active-invoice-detail-91')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('INV-B2C-40'), findsWidgets);
+    expect(find.textContaining('27.000 KWD'), findsWidgets);
   });
 
   testWidgets('Arabic host keeps the new journey RTL', (tester) async {
