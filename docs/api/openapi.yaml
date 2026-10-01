@@ -2295,7 +2295,7 @@ components:
 
     UserIdentity:
       type: object
-      required: [id, name, email, roles, store_ids, platform_customer, retail_merchant, b2b_customer_ids, owned_retail_store_ids, managed_retail_store_ids, retail_store_ids, retail_wholesale_accounts]
+      required: [id, name, email, roles, store_ids, driver_scope, platform_customer, retail_merchant, b2b_customer_ids, owned_retail_store_ids, managed_retail_store_ids, retail_store_ids, retail_wholesale_accounts]
       properties:
         id:
           type: integer
@@ -2319,6 +2319,23 @@ components:
           uniqueItems: true
           items:
             type: integer
+        driver_scope:
+          description: Persisted authoritative Driver runtime scope. Null for non-Driver identities; never inferred from assignment history.
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties: false
+              required: [driver_id, channel, store_id]
+              properties:
+                driver_id:
+                  type: integer
+                  minimum: 1
+                channel:
+                  type: string
+                  enum: [b2c, b2b]
+                store_id:
+                  type: [integer, "null"]
+                  minimum: 1
         platform_customer:
           type: boolean
         retail_merchant:
