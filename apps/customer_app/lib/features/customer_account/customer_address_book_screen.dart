@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/location/customer_location_service.dart';
-import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import '../../core/location/customer_map_pin_selector.dart';
 import 'customer_account_data.dart';
