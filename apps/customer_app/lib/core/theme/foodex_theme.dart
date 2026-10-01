@@ -1,30 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
+import 'customer_ui_v3_tokens.dart';
+
+/// Backward-compatible brand aliases.
+///
+/// Existing Customer Journey V2 screens can keep using [FoodexBrand] while the
+/// V3 feature lanes migrate screen composition to the shared primitives.
 abstract final class FoodexBrand {
-  static const green = Color(0xFF158A3A);
-  static const greenDark = Color(0xFF165D2D);
-  static const greenBright = Color(0xFF27B658);
-  static const greenSoft = Color(0xFFEAF7EF);
-  static const orange = Color(0xFFEE731C);
-  static const orangeBright = Color(0xFFFC8F33);
-  static const orangeSoft = Color(0xFFFFF1E6);
-  static const blue = Color(0xFF4B8CF5);
-  static const red = Color(0xFFEF5350);
-  static const ink = Color(0xFF172033);
-  static const muted = Color(0xFF667085);
-  static const surface = Color(0xFFFFFFFF);
-  static const background = Color(0xFFF6F8F6);
-  static const border = Color(0xFFE3E8E4);
-  static const surfaceMuted = Color(0xFFF0F5F1);
-  static const inkSoft = Color(0xFF344054);
+  static const green = CustomerUiColors.deepGreen;
+  static const greenDark = CustomerUiColors.deepGreenStrong;
+  static const greenBright = CustomerUiColors.deepGreenSoft;
+  static const greenSoft = CustomerUiColors.mint;
+  static const accent = CustomerUiColors.lime;
+  static const accentSoft = CustomerUiColors.limeSoft;
+  static const strongMint = CustomerUiColors.mintStrong;
+  static const orange = CustomerUiColors.warning;
+  static const orangeBright = Color(0xFFFBBF24);
+  static const orangeSoft = Color(0xFFFFF6DD);
+  static const blue = CustomerUiColors.info;
+  static const red = CustomerUiColors.destructive;
+  static const ink = CustomerUiColors.ink;
+  static const muted = CustomerUiColors.muted;
+  static const surface = CustomerUiColors.white;
+  static const background = CustomerUiColors.mint;
+  static const border = CustomerUiColors.border;
+  static const surfaceMuted = CustomerUiColors.mint;
+  static const inkSoft = CustomerUiColors.inkSoft;
 
   static Color statusColor(String status) {
     switch (status.toLowerCase()) {
       case 'delivered':
       case 'completed':
       case 'success':
-        return green;
+        return CustomerUiColors.success;
       case 'assigned':
       case 'picked_up':
       case 'out_for_delivery':
@@ -53,7 +61,7 @@ abstract final class FoodexBrand {
       case 'delivered':
       case 'completed':
       case 'success':
-        return greenSoft;
+        return const Color(0xFFE8F7EE);
       case 'assigned':
       case 'picked_up':
       case 'out_for_delivery':
@@ -81,140 +89,162 @@ abstract final class FoodexBrand {
 abstract final class FoodexTheme {
   static ThemeData light({String? fontFamily}) {
     const scheme = ColorScheme.light(
-      primary: FoodexBrand.green,
-      onPrimary: Colors.white,
-      secondary: FoodexBrand.orange,
-      onSecondary: Colors.white,
-      surface: FoodexBrand.surface,
-      onSurface: FoodexBrand.ink,
-      error: FoodexBrand.red,
-      onError: Colors.white,
+      primary: CustomerUiColors.deepGreen,
+      onPrimary: CustomerUiColors.white,
+      secondary: CustomerUiColors.lime,
+      onSecondary: CustomerUiColors.deepGreenStrong,
+      surface: CustomerUiColors.white,
+      onSurface: CustomerUiColors.ink,
+      error: CustomerUiColors.destructive,
+      onError: CustomerUiColors.white,
     );
 
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
     );
-    final textTheme = (fontFamily == null
-            ? GoogleFonts.alexandriaTextTheme(base.textTheme)
-            : base.textTheme.apply(fontFamily: fontFamily))
-        .apply(
-      bodyColor: FoodexBrand.ink,
-      displayColor: FoodexBrand.ink,
+    final textTheme = CustomerUiTypography.build(
+      base.textTheme,
+      fontFamily: fontFamily,
     );
-    final primaryTextTheme = fontFamily == null
-        ? GoogleFonts.alexandriaTextTheme(base.primaryTextTheme)
-        : base.primaryTextTheme.apply(fontFamily: fontFamily);
+    final primaryTextTheme = CustomerUiTypography.build(
+      base.primaryTextTheme,
+      fontFamily: fontFamily,
+    ).apply(
+      bodyColor: CustomerUiColors.white,
+      displayColor: CustomerUiColors.white,
+    );
 
     return base.copyWith(
       textTheme: textTheme,
       primaryTextTheme: primaryTextTheme,
-      scaffoldBackgroundColor: FoodexBrand.background,
-      cardColor: FoodexBrand.surface,
-      dividerColor: FoodexBrand.border,
+      scaffoldBackgroundColor: CustomerUiColors.mint,
+      cardColor: CustomerUiColors.white,
+      dividerColor: CustomerUiColors.border,
       appBarTheme: const AppBarTheme(
-        backgroundColor: FoodexBrand.surface,
-        foregroundColor: FoodexBrand.ink,
+        backgroundColor: CustomerUiColors.deepGreen,
+        foregroundColor: CustomerUiColors.white,
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+        elevation: CustomerUiElevation.flat,
+        scrolledUnderElevation: CustomerUiElevation.flat,
         centerTitle: false,
         toolbarHeight: 64,
         titleTextStyle: TextStyle(
-          color: FoodexBrand.ink,
+          color: CustomerUiColors.white,
           fontSize: 19,
           fontWeight: FontWeight.w800,
         ),
+        iconTheme: IconThemeData(color: CustomerUiColors.white),
+        actionsIconTheme: IconThemeData(color: CustomerUiColors.white),
       ),
       navigationBarTheme: const NavigationBarThemeData(
         height: 74,
-        backgroundColor: FoodexBrand.surface,
-        indicatorColor: FoodexBrand.greenSoft,
+        backgroundColor: CustomerUiColors.white,
+        indicatorColor: CustomerUiColors.limeSoft,
         surfaceTintColor: Colors.transparent,
-        elevation: 8,
-        shadowColor: Color(0x1A172033),
+        elevation: CustomerUiElevation.floating,
+        shadowColor: CustomerUiColors.shadow,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: FoodexBrand.green,
-          foregroundColor: Colors.white,
+          backgroundColor: CustomerUiColors.deepGreen,
+          foregroundColor: CustomerUiColors.white,
           minimumSize: const Size(0, 52),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: CustomerUiSpacing.lg,
+            vertical: CustomerUiSpacing.sm,
+          ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(CustomerUiRadii.md),
           ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: FoodexBrand.greenDark,
+          foregroundColor: CustomerUiColors.deepGreenStrong,
           minimumSize: const Size(44, 44),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(CustomerUiRadii.md),
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: FoodexBrand.greenDark,
+          foregroundColor: CustomerUiColors.deepGreenStrong,
           minimumSize: const Size(0, 50),
-          side: const BorderSide(color: FoodexBrand.border),
+          side: const BorderSide(color: CustomerUiColors.border),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(CustomerUiRadii.md),
           ),
         ),
       ),
       listTileTheme: const ListTileThemeData(
-        minVerticalPadding: 12,
-        iconColor: FoodexBrand.greenDark,
-        textColor: FoodexBrand.ink,
+        minVerticalPadding: CustomerUiSpacing.sm,
+        iconColor: CustomerUiColors.deepGreenStrong,
+        textColor: CustomerUiColors.ink,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: FoodexBrand.ink,
-        contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
+        backgroundColor: CustomerUiColors.ink,
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: CustomerUiColors.white,
+        ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(CustomerUiRadii.md),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: FoodexBrand.surface,
-        selectedColor: FoodexBrand.greenSoft,
-        side: const BorderSide(color: FoodexBrand.border),
+        backgroundColor: CustomerUiColors.white,
+        selectedColor: CustomerUiColors.limeSoft,
+        side: const BorderSide(color: CustomerUiColors.border),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
         ),
         labelStyle: textTheme.labelLarge,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: CustomerUiSpacing.xs,
+          vertical: CustomerUiSpacing.xs,
+        ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: FoodexBrand.green,
+        color: CustomerUiColors.deepGreen,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: FoodexBrand.orange,
-        foregroundColor: Colors.white,
+        backgroundColor: CustomerUiColors.lime,
+        foregroundColor: CustomerUiColors.deepGreenStrong,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: FoodexBrand.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-        hintStyle: textTheme.bodyMedium?.copyWith(color: FoodexBrand.muted),
+        fillColor: CustomerUiColors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: CustomerUiSpacing.md,
+          vertical: 15,
+        ),
+        hintStyle: textTheme.bodyMedium?.copyWith(
+          color: CustomerUiColors.muted,
+        ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: FoodexBrand.border),
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+          borderSide: const BorderSide(color: CustomerUiColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: FoodexBrand.green, width: 1.5),
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+          borderSide: const BorderSide(
+            color: CustomerUiColors.lime,
+            width: CustomerUiStroke.emphasis,
+          ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: FoodexBrand.red),
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+          borderSide: const BorderSide(color: CustomerUiColors.destructive),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: FoodexBrand.red, width: 1.5),
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+          borderSide: const BorderSide(
+            color: CustomerUiColors.destructive,
+            width: CustomerUiStroke.emphasis,
+          ),
         ),
       ),
     );
