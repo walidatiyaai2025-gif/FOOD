@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Driver;
 use App\Models\User;
 use App\Services\CredentialAuthenticator;
 use App\Services\PlatformCustomerService;
@@ -139,7 +140,7 @@ class AuthController extends Controller
         return response()->json($this->identity($user));
     }
 
-    /** @return array{id:int,name:string,username:?string,email:string,locale:string,roles:list<string>,store_ids:list<int>,platform_customer:bool,retail_merchant:bool,b2b_customer_ids:list<int>,owned_retail_store_ids:list<int>,managed_retail_store_ids:list<int>,retail_store_ids:list<int>,retail_wholesale_accounts:list<array{retail_store_id:int,b2b_customer_id:int}>} */
+    /** @return array{id:int,name:string,username:?string,email:string,locale:string,roles:list<string>,store_ids:list<int>,driver_scope:?array{driver_id:int,channel:string,store_id:?int},platform_customer:bool,retail_merchant:bool,b2b_customer_ids:list<int>,owned_retail_store_ids:list<int>,managed_retail_store_ids:list<int>,retail_store_ids:list<int>,retail_wholesale_accounts:list<array{retail_store_id:int,b2b_customer_id:int}>} */
     private function identity(User $user): array
     {
         $roles = $user->roles()
@@ -158,6 +159,17 @@ class AuthController extends Controller
             ->values()
             ->all();
 
+        $driver = Driver::query()
+            ->where('user_id', $user->getKey())
+            ->where('is_active', true)
+            ->first();
+
+        $driverScope = $driver instanceof Driver ? [
+            'driver_id' => (int) $driver->getKey(),
+            'channel' => strtolower((string) $driver->driver_type),
+            'store_id' => $driver->store_id === null ? null : (int) $driver->store_id,
+        ] : null;
+
         return [
             'id' => (int) $user->getKey(),
             'name' => (string) $user->name,
@@ -166,6 +178,7 @@ class AuthController extends Controller
             'locale' => (string) $user->locale,
             'roles' => $roles,
             'store_ids' => $storeIds,
+            'driver_scope' => $driverScope,
             'platform_customer' => $this->platformCustomers->isPlatformCustomer($user),
             ...$this->retailMerchants->identityPayload($user),
         ];

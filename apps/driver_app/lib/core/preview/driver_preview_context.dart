@@ -89,9 +89,11 @@ class DriverPreviewContext {
         email: '',
         locale: targetLocale,
         channel: channel,
+        storeId: storeId,
       );
 
-  bool matchesSession(DriverSession session) => session.channel == channel;
+  bool matchesSession(DriverSession session) =>
+      session.channel == channel && session.storeId == storeId;
 
   bool allowsAssignment({
     required DriverChannel assignmentChannel,

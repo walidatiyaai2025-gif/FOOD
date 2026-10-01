@@ -12,6 +12,7 @@ use App\Services\BannerImageService;
 use App\Services\CustomerImageService;
 use App\Services\OperationalTenantScope;
 use App\Services\StorefrontRevisionService;
+use App\Services\WholesalePrincipal;
 use App\Support\TenantContextResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -428,6 +429,13 @@ final class BusinessManagementController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
         $storeId = (int) $data['store_id'];
+        if ($data['driver_type'] === 'b2b') {
+            abort_unless(
+                $storeId === app(WholesalePrincipal::class)->storeId(),
+                422,
+                'Wholesale drivers must belong to the principal Wholesale store.',
+            );
+        }
         $ability = $data['driver_type'] === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage';
         app(OperationalTenantScope::class)->assertStore($actor, $storeId, $ability, $data['driver_type']);
 
@@ -477,6 +485,13 @@ final class BusinessManagementController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
         $storeId = (int) $data['store_id'];
+        if ($data['driver_type'] === 'b2b') {
+            abort_unless(
+                $storeId === app(WholesalePrincipal::class)->storeId(),
+                422,
+                'Wholesale drivers must belong to the principal Wholesale store.',
+            );
+        }
         $ability = $data['driver_type'] === 'b2b' ? 'drivers.b2b.manage' : 'drivers.b2c.manage';
         app(OperationalTenantScope::class)->assertStore($actor, $storeId, $ability, $data['driver_type']);
 

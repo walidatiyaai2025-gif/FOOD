@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\OrderDeliveryAddressSnapshotService;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -729,7 +730,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
-    public function test_legacy_driver_store_and_assignment_scope_are_reconciled_for_visibility(): void
+    public function test_legacy_unscoped_driver_and_assignment_are_not_reconciled_from_history(): void
     {
         $this->seed(CoreReferenceSeeder::class);
         [$storeId, $order] = $this->order('b2c');
@@ -756,18 +757,15 @@ class DriverAssignmentLifecycleTest extends TestCase
 
         Sanctum::actingAs($driverUser);
         $this->getJson('/api/v1/driver/assignments?scope=active')
-            ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $assignmentId)
-            ->assertJsonPath('data.0.order.number', $order->order_number);
+            ->assertConflict();
 
         $this->assertDatabaseHas('drivers', [
             'id' => $driver->id,
-            'store_id' => $storeId,
+            'store_id' => null,
         ]);
         $this->assertDatabaseHas('driver_assignments', [
             'id' => $assignmentId,
-            'store_id' => $storeId,
+            'store_id' => null,
         ]);
     }
 
@@ -855,23 +853,161 @@ class DriverAssignmentLifecycleTest extends TestCase
         ])->assertNotFound();
     }
 
+    public function test_unscoped_driver_cannot_be_claimed_by_first_assignment_or_runtime_request(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+        $admin = $this->roleUser('B2C_STORE_ADMIN', 'unscoped-driver-admin@example.test');
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+            'role_id' => $roleId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $driverUser = $this->roleUser('B2C_DRIVER', 'unscoped-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+        $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertConflict();
+        $this->assertNull($driver->fresh()->store_id);
+
+        Sanctum::actingAs($driverUser);
+        $this->getJson('/api/v1/driver/assignments')->assertConflict();
+        $this->assertNull($driver->fresh()->store_id);
+    }
+
+    public function test_retail_driver_cannot_cross_store_even_when_channel_matches(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $otherStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'DEL-B2C-OTHER',
+            'name' => 'Other Retail Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = $this->roleUser('B2C_STORE_ADMIN', 'cross-store-admin@example.test');
+        $roleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+            'role_id' => $roleId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $driverUser = $this->roleUser('B2C_DRIVER', 'cross-store-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $otherStoreId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+        $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertConflict();
+
+        $this->assertDatabaseMissing('driver_assignments', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ]);
+    }
+
+    public function test_b2b_driver_runtime_rejects_non_principal_wholesale_store(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        $typeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $otherStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'DEL-B2B-NONPRINCIPAL',
+            'name' => 'Non Principal Wholesale',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->assertNotSame($principalStoreId, $otherStoreId);
+
+        $driverUser = $this->roleUser('B2B_DRIVER', 'non-principal-b2b-driver@example.test');
+        Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $otherStoreId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($driverUser);
+        $this->getJson('/api/v1/driver/assignments')->assertConflict();
+    }
+
     public function test_cross_channel_assignment_and_execution_are_denied(): void
     {
         $this->seed(CoreReferenceSeeder::class);
         [, $order] = $this->order('b2b');
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $retailStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'DEL-CROSS-RETAIL',
+            'name' => 'Cross Channel Retail',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $admin = $this->roleUser('B2B_ADMIN', 'b2b-delivery-admin@example.test');
         $driverUser = $this->roleUser('B2C_DRIVER', 'wrong-driver@example.test');
-        $driver = Driver::query()->create(['user_id' => $driverUser->id, 'driver_type' => 'b2c', 'is_available' => true, 'is_active' => true]);
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $retailStoreId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
         Sanctum::actingAs($admin);
-        $this->postJson('/api/v1/admin/deliveries/assign', ['driver_id' => $driver->id, 'order_id' => $order->id])->assertConflict();
+        $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertConflict();
+
         Sanctum::actingAs($driverUser);
-        $this->getJson('/api/v1/driver/assignments')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/v1/driver/assignments')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
     }
 
     private function order(string $channel): array
     {
-        $typeId = (int) DB::table('store_types')->where('code', strtoupper($channel))->value('id');
-        $storeId = (int) DB::table('stores')->insertGetId(['store_type_id' => $typeId, 'code' => 'DEL-'.strtoupper($channel), 'name' => 'Delivery Store', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        if ($channel === 'b2b') {
+            $storeId = app(WholesalePrincipal::class)->storeId();
+        } else {
+            $typeId = (int) DB::table('store_types')->where('code', strtoupper($channel))->value('id');
+            $storeId = (int) DB::table('stores')->insertGetId([
+                'store_type_id' => $typeId,
+                'code' => 'DEL-'.strtoupper($channel),
+                'name' => 'Delivery Store',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
         $customerUser = User::query()->create(['name' => 'Customer', 'email' => $channel.'-delivery-customer@example.test', 'password' => 'password', 'is_active' => true]);
         $customer = Customer::query()->create(['user_id' => $customerUser->id, 'type' => $channel, 'name' => 'Customer', 'email' => $customerUser->email]);
         $order = Order::query()->create(['store_id' => $storeId, 'customer_id' => $customer->id, 'order_number' => 'DEL-'.strtoupper($channel).'-1', 'channel' => $channel, 'status' => 'pending', 'currency' => 'KWD', 'subtotal' => 1, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 1]);

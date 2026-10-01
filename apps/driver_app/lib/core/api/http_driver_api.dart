@@ -71,12 +71,26 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
     final channel =
         roles.single == 'B2C_DRIVER' ? DriverChannel.b2c : DriverChannel.b2b;
 
+    final scopeRaw = user['driver_scope'];
+    if (scopeRaw is! Map) {
+      throw const DriverRoleDeniedException();
+    }
+    final scope = Map<String, dynamic>.from(scopeRaw);
+    final scopeChannel = (scope['channel'] ?? '').toString().toLowerCase();
+    final storeId = (scope['store_id'] as num?)?.toInt() ?? 0;
+    final expectedChannel =
+        channel == DriverChannel.b2c ? 'b2c' : 'b2b';
+    if (scopeChannel != expectedChannel || storeId <= 0) {
+      throw const DriverRoleDeniedException();
+    }
+
     return DriverSession(
       token: decoded['token'] as String,
       name: (user['name'] ?? '').toString(),
       email: (user['email'] ?? email).toString(),
       locale: (user['locale'] ?? 'ar').toString(),
       channel: channel,
+      storeId: storeId,
     );
   }
 
