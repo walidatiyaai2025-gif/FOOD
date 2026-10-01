@@ -14,6 +14,8 @@ import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
+import 'package:foodex_customer_app/features/customer_orders/customer_order_models.dart';
+import 'package:foodex_customer_app/features/customer_orders/customer_orders_api.dart';
 
 const _b2b = CustomerSession.authenticated(
   CustomerChannel.b2b,
@@ -69,6 +71,11 @@ void main() {
     const _CaptureCase('01_Mobile/B2C_Customer/11_تتبع_الطلب__populated__ar.png', '/orders/101/track?channel=retail&store_id=7', session: _b2c),
     const _CaptureCase('01_Mobile/B2C_Customer/12_الملف_الشخصي_والمفضلة__populated__ar.png', '/profile?channel=retail&store_id=7', session: _b2c),
     const _CaptureCase('01_Mobile/B2C_Customer/13_عناويني__populated__ar.png', '/profile/addresses?channel=retail&store_id=7', session: _b2c),
+    const _CaptureCase('01_Mobile/B2C_Customer/15_التصنيفات__populated__ar.png', '/categories?channel=retail&store_id=7', session: _b2c),
+    const _CaptureCase('01_Mobile/B2C_Customer/16_المفضلة__populated__ar.png', '/favorites?channel=retail&store_id=7', session: _b2c),
+    const _CaptureCase('01_Mobile/B2C_Customer/17_طلباتي__populated__ar.png', '/orders?channel=retail&store_id=7', session: _b2c),
+    const _CaptureCase('01_Mobile/B2C_Customer/18_الإشعارات__populated__ar.png', '/notifications?channel=retail&store_id=7', session: _b2c),
+    const _CaptureCase('01_Mobile/B2C_Customer/19_الإعدادات_والمساعدة__populated__ar.png', '/profile/settings?channel=retail&store_id=7', session: _b2c),
   ];
 
   for (final locale in const [Locale('ar'), Locale('en')]) {
@@ -98,6 +105,7 @@ void main() {
               actionApi: const _EvidenceActionApi(),
               storefrontApi: const _EvidenceStorefrontApi(),
               wholesaleCommerceApi: const _EvidenceWholesaleCommerceApi(),
+              customerOrdersApi: const _EvidenceOrdersApi(),
               locale: locale,
             ),
           ),
@@ -141,6 +149,7 @@ void main() {
             actionApi: const _EvidenceActionApi(),
             storefrontApi: const _EvidenceStorefrontApi(),
             wholesaleCommerceApi: const _EvidenceWholesaleCommerceApi(),
+            customerOrdersApi: const _EvidenceOrdersApi(),
             locale: locale,
           ),
         ),
@@ -397,7 +406,7 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
       );
 }
 
-class _EvidenceAccountApi implements B2cAccountApi {
+class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
   const _EvidenceAccountApi();
 
   @override
@@ -508,6 +517,26 @@ class _EvidenceAccountApi implements B2cAccountApi {
   Future<void> removeFavorite(int productId) async {}
 
   @override
+  Future<Object?> favoritesForStore(int storeId) async => {
+        'data': [
+          {
+            'id': 42,
+            'name': 'صندوق طماطم طازج',
+            'sku': 'TOM-42',
+            'store_id': storeId,
+            'price': 3.25,
+            'currency': 'KWD',
+          }
+        ],
+      };
+
+  @override
+  Future<void> addFavoriteForStore(int storeId, int productId) async {}
+
+  @override
+  Future<void> removeFavoriteForStore(int storeId, int productId) async {}
+
+  @override
   Future<Object?> notifications({String locale = 'ar'}) async => {
         'data': [
           {
@@ -521,6 +550,96 @@ class _EvidenceAccountApi implements B2cAccountApi {
 
   @override
   Future<void> markNotificationRead(int notificationId) async {}
+}
+
+
+class _EvidenceOrdersApi implements CustomerOrdersApi {
+  const _EvidenceOrdersApi();
+
+  CustomerOrderSummary _summary(int orderId) => CustomerOrderSummary(
+        id: orderId,
+        orderNumber: 'FOODEX-$orderId',
+        storeId: 7,
+        storeName: 'FOODEX Fresh Market',
+        storeLogoUrl: null,
+        channel: 'b2c',
+        status: 'out_for_delivery',
+        currency: 'KWD',
+        grandTotal: 18.5,
+        createdAt: DateTime.utc(2026, 10, 1, 10, 30),
+      );
+
+  @override
+  Future<CustomerOrderPage> orders({
+    int page = 1,
+    int perPage = 20,
+    String? status,
+    CustomerOrderContext? context,
+  }) async =>
+      CustomerOrderPage(
+        orders: [_summary(101)],
+        currentPage: page,
+        perPage: perPage,
+        total: 1,
+        scope: context == null
+            ? 'all'
+            : '${context.normalizedChannel}:${context.storeId}',
+      );
+
+  @override
+  Future<CustomerOrderDetails> order({
+    required int orderId,
+    CustomerOrderContext? context,
+  }) async =>
+      CustomerOrderDetails(
+        summary: _summary(orderId),
+        subtotal: 16.5,
+        discountTotal: 0,
+        deliveryTotal: 2,
+        paymentMethod: 'cash_on_delivery',
+        deliveryAddress: const {
+          'label': 'المنزل',
+          'line1': 'قطعة 1 شارع تجريبي',
+          'area': 'بيان',
+          'city': 'Kuwait City',
+          'country_code': 'KW',
+        },
+        items: const [
+          CustomerOrderItem(
+            id: 1,
+            productId: 42,
+            sku: 'TOM-42',
+            name: 'صندوق طماطم طازج',
+            quantity: 2,
+            unitPrice: 8.25,
+            lineTotal: 16.5,
+          ),
+        ],
+        history: [
+          CustomerOrderHistoryEntry(
+            id: 1,
+            fromStatus: 'confirmed',
+            toStatus: 'preparing',
+            note: null,
+            createdAt: DateTime.utc(2026, 10, 1, 10, 35),
+          ),
+          CustomerOrderHistoryEntry(
+            id: 2,
+            fromStatus: 'preparing',
+            toStatus: 'out_for_delivery',
+            note: 'FOODEX Driver assigned',
+            createdAt: DateTime.utc(2026, 10, 1, 11),
+          ),
+        ],
+        payment: const CustomerOrderPayment(
+          id: 1,
+          provider: 'cash',
+          status: 'pending',
+          amount: 18.5,
+          currency: 'KWD',
+        ),
+        requestedDeliveryDate: '2026-10-01',
+      );
 }
 
 class _EvidenceActionApi implements CustomerActionApi {
