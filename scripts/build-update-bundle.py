@@ -39,9 +39,18 @@ RUNTIME_ALWAYS_INCLUDE = {
     "backend/app/Services/SchedulerRuntime.php",
     "backend/bootstrap/app.php",
     "backend/config/foodex.php",
+    "backend/public/.htaccess",
     "backend/public/brand/foodex-economical-group.webp",
     "backend/routes/console.php",
 }
+
+# Public static assets are intentionally cumulative/self-healing. Production
+# shared-host installs may have received an older incomplete asset tree or
+# directories with non-web-readable permissions.
+RUNTIME_ALWAYS_INCLUDE_DIRS = (
+    "backend/public/assets/admin",
+    "backend/public/assets/leaflet/1.9.4",
+)
 
 # CI can stage pinned third-party runtimes outside Composer's protected vendor/
 # directory. Their files are copied into these application-owned locations and
@@ -136,6 +145,14 @@ def changed_runtime_files(base: str, repo_root: Path) -> list[str]:
 
     selected.add("VERSION")
     selected.update(RUNTIME_ALWAYS_INCLUDE)
+
+    for required_dir in RUNTIME_ALWAYS_INCLUDE_DIRS:
+        root = repo_root / required_dir
+        if not root.is_dir():
+            raise RuntimeError(f"Required public runtime directory is missing: {required_dir}")
+
+        for source in sorted(path for path in root.rglob("*") if path.is_file()):
+            selected.add(safe_path(source.relative_to(repo_root).as_posix()))
 
     for generated_dir in GENERATED_RUNTIME_DIRS:
         root = repo_root / generated_dir

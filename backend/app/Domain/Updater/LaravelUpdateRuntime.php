@@ -217,6 +217,8 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                     @unlink($temporary);
                     throw new RuntimeException('Update file could not be activated.');
                 }
+
+                $this->normalizePublicAssetPermissions($relativePath, $target);
             }
         } finally {
             $archive->close();
@@ -467,6 +469,37 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $this->ensureDirectory($path);
 
         return $path;
+    }
+
+    private function normalizePublicAssetPermissions(string $relativePath, string $target): void
+    {
+        if (! str_starts_with($relativePath, 'backend/public/')) {
+            return;
+        }
+
+        if (! @chmod($target, 0644)) {
+            throw new RuntimeException('Updated public asset permissions could not be normalized.');
+        }
+
+        $publicRoot = rtrim(public_path(), DIRECTORY_SEPARATOR);
+        $directory = dirname($target);
+
+        while (str_starts_with($directory.DIRECTORY_SEPARATOR, $publicRoot.DIRECTORY_SEPARATOR)) {
+            if (! @chmod($directory, 0755)) {
+                throw new RuntimeException('Public asset directory permissions could not be normalized.');
+            }
+
+            if ($directory === $publicRoot) {
+                break;
+            }
+
+            $parent = dirname($directory);
+            if ($parent === $directory) {
+                break;
+            }
+
+            $directory = $parent;
+        }
     }
 
     private function ensureDirectory(string $path): void

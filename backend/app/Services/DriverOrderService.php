@@ -34,11 +34,12 @@ final class DriverOrderService
         return match ($assignmentStatus) {
             'assigned' => ['accepted'],
             'accepted' => match ($orderStatus) {
-                'ready' => ['picked_up'],
+                'ready' => ['out_for_delivery', 'failed', 'picked_up'],
+                'failed' => ['out_for_delivery'],
                 'out_for_delivery' => ['delivered', 'failed'],
                 default => [],
             },
-            'picked_up' => $orderStatus === 'ready' ? ['out_for_delivery'] : [],
+            'picked_up' => $orderStatus === 'ready' ? ['out_for_delivery', 'failed'] : [],
             'out_for_delivery' => $orderStatus === 'out_for_delivery' ? ['delivered', 'failed'] : [],
             'failed' => [],
             default => [],
@@ -280,6 +281,9 @@ final class DriverOrderService
         $beforeAssignment = (string) $assignment->status;
         $beforeOrder = null;
         $afterOrder = null;
+        $normalizedFailureReason = $targetStatus === 'failed'
+            ? (trim((string) $failureReason) !== '' ? trim((string) $failureReason) : 'driver_reported')
+            : null;
 
         $updated = DB::transaction(function () use (
             $assignment,
@@ -289,7 +293,7 @@ final class DriverOrderService
             $note,
             $request,
             $proofImage,
-            $failureReason,
+            $normalizedFailureReason,
             &$beforeAssignment,
             &$beforeOrder,
             &$afterOrder,
@@ -329,21 +333,19 @@ final class DriverOrderService
                 $this->updateOrderStatus($order, $actor, 'delivered', $note, $request);
                 $afterOrder = 'delivered';
             } elseif ($targetStatus === 'failed') {
-                abort_unless((string) $order->status === 'out_for_delivery', 409);
-                abort_unless($failureReason !== null && trim($failureReason) !== '', 422, 'Failure reason is required.');
-                $failureAuditNote = trim($failureReason)
+                abort_unless(in_array((string) $order->status, ['ready', 'out_for_delivery'], true), 409);
+                $failureAuditNote = (string) $normalizedFailureReason
                     .($note !== null && trim($note) !== '' ? ': '.trim($note) : '');
                 $this->updateOrderStatus($order, $actor, 'failed', $failureAuditNote, $request);
-                $this->updateOrderStatus($order->fresh(), $actor, 'ready', $failureAuditNote, $request);
-                $afterOrder = 'ready';
+                $afterOrder = 'failed';
             } elseif ($targetStatus === 'picked_up') {
                 abort_unless((string) $order->status === 'ready', 409);
             }
 
-            $locked->status = $targetStatus === 'failed' ? 'picked_up' : $targetStatus;
-            if ($targetStatus === 'delivered') {
+            $locked->status = $targetStatus;
+            if (in_array($targetStatus, ['delivered', 'failed'], true)) {
                 $locked->completed_at = now();
-            } elseif ($targetStatus !== 'delivered') {
+            } else {
                 $locked->completed_at = null;
             }
             $locked->save();
@@ -356,7 +358,7 @@ final class DriverOrderService
             if (
                 ($note !== null && trim($note) !== '')
                 || $proofPath !== null
-                || ($targetStatus === 'failed' && $failureReason !== null && trim($failureReason) !== '')
+                || ($targetStatus === 'failed' && $normalizedFailureReason !== null)
             ) {
                 DB::table('delivery_proofs')->insert([
                     'driver_assignment_id' => $locked->getKey(),
@@ -368,7 +370,7 @@ final class DriverOrderService
                     'to_status' => $targetStatus,
                     'file_path' => $proofPath,
                     'otp_hash' => null,
-                    'reason_code' => $targetStatus === 'failed' ? trim((string) $failureReason) : null,
+                    'reason_code' => $targetStatus === 'failed' ? $normalizedFailureReason : null,
                     'note' => $note === null ? null : trim($note),
                     'captured_at' => now(),
                     'created_at' => now(),
@@ -381,7 +383,7 @@ final class DriverOrderService
                 $actor,
                 $locked,
                 ['status' => (string) $assignment->status],
-                ['status' => $targetStatus, 'failure_reason' => $failureReason, 'note' => $note],
+                ['status' => $targetStatus, 'failure_reason' => $normalizedFailureReason, 'note' => $note],
                 $request,
             );
 
@@ -390,16 +392,19 @@ final class DriverOrderService
 
         $fresh = $updated->fresh();
         $order = Order::query()->findOrFail($fresh->order_id);
-        $this->notifier->deliveryChanged(
-            $order,
-            (string) $fresh->status,
-            $fresh,
-            $note,
-            $beforeAssignment,
-        );
-
         if ($beforeOrder !== null && $afterOrder !== null && $beforeOrder !== $afterOrder) {
+            // Order-changing delivery actions are one logical transition. Route them
+            // through the order lifecycle notifier once so Dashboard + Customer each
+            // receive one authoritative notification rather than delivery+order duplicates.
             $this->notifier->orderStatusChanged($order, $beforeOrder, $afterOrder);
+        } else {
+            $this->notifier->deliveryChanged(
+                $order,
+                (string) $fresh->status,
+                $fresh,
+                $note,
+                $beforeAssignment,
+            );
         }
 
         return $fresh;
