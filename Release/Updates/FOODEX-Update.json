@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.43",
-  "minimum_current_version": "1.0.42",
-  "sha256": "13780fdcc7f5288565b150f5775663a85f1c7ee2c5304d1a086a80def48d61e2",
-  "contains_migrations": false,
+  "target_version": "1.0.44",
+  "minimum_current_version": "1.0.43",
+  "sha256": "9c6524b6f3fedaf568f740284f4e35b5e171be6026b3d1505bf109d203db7e8a",
+  "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release(#672): FOODEX 1.0.43 shared-host runtime repair (#673)",
+  "release_notes": "release(#714): FOODEX 1.0.44 Customer + Driver Journey V2 (#717)",
   "dashboard_fields": {
-    "target_version": "1.0.43",
-    "minimum_current_version": "1.0.42",
-    "sha256": "13780fdcc7f5288565b150f5775663a85f1c7ee2c5304d1a086a80def48d61e2",
-    "contains_migrations": false,
-    "release_notes": "release(#672): FOODEX 1.0.43 shared-host runtime repair (#673)"
+    "target_version": "1.0.44",
+    "minimum_current_version": "1.0.43",
+    "sha256": "9c6524b6f3fedaf568f740284f4e35b5e171be6026b3d1505bf109d203db7e8a",
+    "contains_migrations": true,
+    "release_notes": "release(#714): FOODEX 1.0.44 Customer + Driver Journey V2 (#717)"
   }
 }
