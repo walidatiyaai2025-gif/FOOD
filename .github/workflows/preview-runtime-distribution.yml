@@ -1,0 +1,156 @@
+name: Preview Runtime Distribution
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      verify_deployed:
+        description: "Verify the configured production runtime URLs after an external deployment"
+        required: false
+        default: false
+        type: boolean
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  FOODEX_PREVIEW_API_BASE_URL: https://foodex.50sols.com
+  FOODEX_PREVIEW_PARENT_ORIGIN: https://foodex.50sols.com
+  FOODEX_PREVIEW_RUNTIME_ORIGIN: https://foodex.50sols.com
+  FOODEX_PREVIEW_CONTRACT_VERSION: shared-flutter-v1
+  FOODEX_CUSTOMER_PREVIEW_BASE_HREF: /preview/customer/
+  FOODEX_DRIVER_PREVIEW_BASE_HREF: /preview/driver/
+
+jobs:
+  package:
+    name: Build and package shared Flutter preview runtimes
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Validate preview distribution packager
+        run: python3 -m unittest discover -s scripts/tests -p 'test_preview_runtime_distribution.py'
+
+      - name: Resolve release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "FOODEX_VERSION=$version" >> "$GITHUB_ENV"
+          echo "FOODEX_COMMIT=${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Build Customer shared preview runtime
+        working-directory: apps/customer_app
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter build web \
+            --release \
+            --target=lib/preview_main.dart \
+            --base-href="${FOODEX_CUSTOMER_PREVIEW_BASE_HREF}" \
+            --dart-define=FOODEX_API_BASE_URL="${FOODEX_PREVIEW_API_BASE_URL}" \
+            --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN="${FOODEX_PREVIEW_PARENT_ORIGIN}" \
+            --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION="${FOODEX_PREVIEW_CONTRACT_VERSION}"
+
+      - name: Build Driver shared preview runtime
+        working-directory: apps/driver_app
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --platforms=web --project-name foodex_driver_app .
+          flutter pub get
+          flutter build web \
+            --release \
+            --target=lib/preview_main.dart \
+            --base-href="${FOODEX_DRIVER_PREVIEW_BASE_HREF}" \
+            --dart-define=FOODEX_API_BASE_URL="${FOODEX_PREVIEW_API_BASE_URL}" \
+            --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN="${FOODEX_PREVIEW_PARENT_ORIGIN}" \
+            --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION="${FOODEX_PREVIEW_CONTRACT_VERSION}"
+
+      - name: Package immutable preview runtime artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/package-preview-runtimes.py \
+            --customer-build apps/customer_app/build/web \
+            --driver-build apps/driver_app/build/web \
+            --output-dir dist/preview-runtime \
+            --version "${FOODEX_VERSION}" \
+            --commit "${FOODEX_COMMIT}" \
+            --api-base-url "${FOODEX_PREVIEW_API_BASE_URL}" \
+            --parent-origin "${FOODEX_PREVIEW_PARENT_ORIGIN}" \
+            --runtime-origin "${FOODEX_PREVIEW_RUNTIME_ORIGIN}" \
+            --contract-version "${FOODEX_PREVIEW_CONTRACT_VERSION}" \
+            --customer-base-href "${FOODEX_CUSTOMER_PREVIEW_BASE_HREF}" \
+            --driver-base-href "${FOODEX_DRIVER_PREVIEW_BASE_HREF}"
+
+      - name: Smoke packaged Dashboard runtime targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --directory dist/preview-runtime/www >/tmp/foodex-preview-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          for _ in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8765/preview/customer/ >/dev/null; then
+              break
+            fi
+            sleep 0.25
+          done
+
+          for runtime in customer driver; do
+            curl -fsSI "http://127.0.0.1:8765/preview/${runtime}/" | grep -Eiq '^Content-Type: text/html'
+            curl -fsSI "http://127.0.0.1:8765/preview/${runtime}/main.dart.js" | grep -Eiq '^Content-Type: (text|application)/(javascript|x-javascript)'
+            curl -fsSI "http://127.0.0.1:8765/preview/${runtime}/flutter_bootstrap.js" >/dev/null
+            curl -fsSI "http://127.0.0.1:8765/preview/${runtime}/assets/" >/dev/null
+          done
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("dist/preview-runtime/preview-runtime-manifest.json").read_text(encoding="utf-8"))
+          assert manifest["contract_version"] == "shared-flutter-v1"
+          assert manifest["runtimes"]["customer"]["runtime_url"] == "https://foodex.50sols.com/preview/customer/"
+          assert manifest["runtimes"]["driver"]["runtime_url"] == "https://foodex.50sols.com/preview/driver/"
+          assert manifest["runtimes"]["customer"]["archive"]["sha256"]
+          assert manifest["runtimes"]["driver"]["archive"]["sha256"]
+          PY
+
+      - name: Upload preview runtime distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOODEX-Preview-Runtimes-${{ env.FOODEX_VERSION }}-${{ github.sha }}
+          path: dist/preview-runtime/
+          if-no-files-found: error
+          retention-days: 30
+
+  deployed-smoke:
+    name: Verify externally deployed production runtime targets
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.verify_deployed }}
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production Customer and Driver runtime assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for runtime in customer driver; do
+            base="${FOODEX_PREVIEW_RUNTIME_ORIGIN}/preview/${runtime}/"
+            curl --fail --silent --show-error --location --head "${base}" | grep -Eiq '^content-type: text/html'
+            curl --fail --silent --show-error --location --head "${base}main.dart.js" | grep -Eiq '^content-type: (text|application)/(javascript|x-javascript)'
+            curl --fail --silent --show-error --location --head "${base}flutter_bootstrap.js" >/dev/null
+          done

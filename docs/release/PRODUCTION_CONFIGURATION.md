@@ -60,3 +60,23 @@ tokens, APNs keys, signing keystores, Apple certificates, or provisioning profil
 
 Real-time Management Dashboard notifications are tracked by #211 and are part of the
 usable-product completion scope.
+
+## Dashboard shared preview runtimes
+
+The supported production distribution target is same-origin static hosting:
+
+- Customer runtime: `https://foodex.50sols.com/preview/customer/`
+- Driver runtime: `https://foodex.50sols.com/preview/driver/`
+- Runtime/allowed origin: `https://foodex.50sols.com`
+- Contract: `shared-flutter-v1`
+
+The release package is built by `.github/workflows/preview-runtime-distribution.yml`.
+It compiles the real Customer and Driver `preview_main.dart` entrypoints with explicit
+base hrefs, packages immutable version/commit-identified archives, and produces the exact
+Dashboard environment snippet. See `docs/release/PREVIEW_RUNTIME_DISTRIBUTION.md`.
+
+These documented URLs are configuration targets, not deployment evidence. After the
+generated static assets are deployed, the workflow must be manually re-run with
+`verify_deployed=true` (or equivalent production evidence recorded) before the runtime
+URLs are considered live.
+
