@@ -338,7 +338,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   }
 
   String _statusLabel(String status) {
-    final key = 'driver.status.' + status;
+    final key = 'driver.status.$status';
     final translated = context.tr(key);
     return translated == key ? status : translated;
   }
@@ -568,9 +568,8 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
         ),
         _DetailRow(
           label: context.tr('driver.detail.total'),
-          value: assignment.currency +
-              ' ' +
-              assignment.grandTotal.toStringAsFixed(3),
+          value: '${assignment.currency} '
+              '${assignment.grandTotal.toStringAsFixed(3)}',
         ),
         _DetailRow(
           label: context.tr('driver.detail.note'),
