@@ -46,7 +46,7 @@
                             @if(!empty($assignment['proof']['file_path']) && !empty($assignment['proof']['id']))
                                 <a
                                     class="btn"
-                                    href="{{ route('admin.driver-live-tracking.proofs.show', ['proof' => $assignment['proof']['id']]) }}"
+                                    href="{{ route('admin.driver-live-tracking.proofs.show', ['assignment' => $assignment['id'], 'proof' => $assignment['proof']['id']]) }}"
                                     target="_blank"
                                     rel="noopener"
                                 >
