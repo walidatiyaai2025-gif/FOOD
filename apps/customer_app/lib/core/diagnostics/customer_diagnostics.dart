@@ -152,6 +152,30 @@ class CustomerDiagnostics {
     });
   }
 
+  void recordRuntimeFailure({
+    required String operation,
+    required String path,
+    required String category,
+    int? statusCode,
+    String? supportReference,
+  }) {
+    String safePath;
+    try {
+      safePath = _sanitizeUri(Uri.parse(path));
+    } catch (_) {
+      safePath = _redactString(path.split('#').first);
+    }
+
+    record('runtime_failure', {
+      'operation': operation,
+      'path': safePath,
+      'category': category,
+      if (statusCode != null) 'status_code': statusCode,
+      if (supportReference != null && supportReference.trim().isNotEmpty)
+        'support_reference': supportReference.trim(),
+    });
+  }
+
   Future<void> clear() async {
     _events.clear();
     await _preferences?.remove(_storageKey);

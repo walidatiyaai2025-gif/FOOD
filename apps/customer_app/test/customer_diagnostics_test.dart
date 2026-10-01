@@ -52,6 +52,25 @@ void main() {
     expect(json, isNot(contains('29.375859,47.977405')));
   });
 
+  test('runtime failure diagnostics sanitize paths and retain safe support refs', () {
+    final diagnostics = CustomerDiagnostics(maxEvents: 10)
+      ..recordRuntimeFailure(
+        operation: 'b2b_remote_load',
+        path: '/api/v1/b2b/products/42?store_id=7&token=secret-token',
+        category: 'server_failure',
+        statusCode: 503,
+        supportReference: 'req-safe-503',
+      );
+
+    final json = diagnostics.exportJson();
+    expect(json, contains('server_failure'));
+    expect(json, contains('503'));
+    expect(json, contains('store_id=7'));
+    expect(json, contains('req-safe-503'));
+    expect(json, contains('token=[REDACTED]'));
+    expect(json, isNot(contains('secret-token')));
+  });
+
   test('diagnostics retains only the configured rolling event window', () {
     final diagnostics = CustomerDiagnostics(maxEvents: 3);
 

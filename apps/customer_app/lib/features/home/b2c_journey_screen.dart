@@ -282,11 +282,6 @@ class _B2cJourneyScreenState extends State<B2cJourneyScreen> {
             ),
             const SizedBox(height: 18),
             ...content.$3,
-            Text(
-              widget.location,
-              key: const ValueKey('customer-route-location'),
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
           ],
         ),
       ),

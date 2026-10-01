@@ -299,7 +299,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Tomato Box'), findsWidgets);
-    expect(find.textContaining('category=3'), findsOneWidget);
+    expect(find.textContaining('category=3'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('customer-route-location')),
+      findsNothing,
+    );
   });
 
   testWidgets('B2C notifications persist per-user read action', (tester) async {

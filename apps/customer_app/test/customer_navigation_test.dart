@@ -120,7 +120,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('تفاصيل المنتج'), findsOneWidget);
-    expect(find.text('/products/42'), findsOneWidget);
+    expect(find.text('/products/42'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('customer-route-location')),
+      findsNothing,
+    );
   });
 
   testWidgets('guest B2C protected route redirects to checkout login',
@@ -131,8 +135,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('تسجيل الدخول'), findsWidgets);
-    expect(find.textContaining('/auth/checkout'), findsOneWidget);
-    expect(find.textContaining('next='), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-login-submit')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('/auth/checkout'), findsNothing);
+    expect(find.textContaining('next='), findsNothing);
   });
 
   testWidgets('guest B2B protected route redirects to B2B-aware login',
@@ -143,8 +151,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('دخول عميل الأعمال'), findsOneWidget);
-    expect(find.textContaining('/b2b/login'), findsOneWidget);
-    expect(find.textContaining('next='), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-login-submit')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('/b2b/login'), findsNothing);
+    expect(find.textContaining('next='), findsNothing);
     expect(find.textContaining('/auth/checkout'), findsNothing);
   });
 
@@ -165,8 +177,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('دخول عميل الأعمال'), findsOneWidget);
-    expect(find.textContaining('/b2b/login'), findsOneWidget);
-    expect(find.textContaining('next='), findsOneWidget);
+    expect(find.textContaining('/b2b/login'), findsNothing);
+    expect(find.textContaining('next='), findsNothing);
 
     await tester.enterText(
       find.byKey(const ValueKey('customer-login-username')),
@@ -196,7 +208,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('حسابي'), findsWidgets);
-    expect(find.text('/profile'), findsOneWidget);
+    expect(find.text('/profile'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('customer-route-location')),
+      findsNothing,
+    );
   });
 
   testWidgets('authenticated B2B session reaches B2B protected routes',
@@ -227,7 +243,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('دخول عميل الأعمال'), findsOneWidget);
-    expect(find.text('/b2b/login'), findsOneWidget);
+    expect(find.text('/b2b/login'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('customer-route-location')),
+      findsNothing,
+    );
   });
 
   testWidgets('platform-wide customer can enter Retail protected routes from one Wholesale session',
@@ -262,7 +282,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('لوحة الأعمال'), findsOneWidget);
-    expect(find.text('/b2b/dashboard'), findsOneWidget);
+    expect(find.text('/b2b/dashboard'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('customer-route-location')),
+      findsNothing,
+    );
   });
 }
 
