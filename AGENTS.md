@@ -667,3 +667,76 @@ FOOD #589 AUTO-HANDOFF
 ```
 
 means: keep draining #589's required lanes and their existing Issue/branch/PR state until #589's own Completion section is satisfied. Do not create an implementation branch for #589 itself.
+
+
+---
+
+## 21. FOOD Assistant V1 isolated feature-train policy
+
+The authoritative Assistant V1 plan is `docs/architecture/FOODEX_ASSISTANT_V1_CHARTER.md`.
+
+Assistant V1 is a deliberately isolated development track.
+
+### Mandatory classifications
+
+Use these title prefixes:
+
+- `[PLATFORM-BUG]` for normal FOODEX defects;
+- `[HOTFIX]` for production-critical FOODEX defects;
+- `[AI-V1]` for Assistant V1 implementation;
+- `[AI-BUG]` for Assistant-specific defects;
+- `[AI-GOV]` for Assistant governance/coordination.
+
+Assistant child Issues/PRs must state `Production release blocker: NO` unless the repository owner explicitly reclassifies the exact Issue.
+
+### Assistant integration target
+
+Assistant child implementation branches target the dedicated integration branch:
+
+`feat/assistant-v1-integration`
+
+They do not target `main`.
+
+The integration branch is a feature-train target and is not itself an atomic implementation Issue/worker lease.
+
+Only the explicit final Assistant integration Issue may open the integration branch toward `main`.
+
+### Platform release precedence
+
+Platform bugs, production hotfixes and normal releases always proceed independently from `main`.
+
+If platform work and Assistant work need the same file, the platform work wins on `main`. Release it first when required. Assistant work then absorbs latest `main` and owns its adaptation/conflict.
+
+Never delay a platform release because:
+
+- an Assistant child Issue is unfinished;
+- Assistant CI is red;
+- the Assistant integration branch is behind `main`;
+- an Assistant worker/chat is interrupted.
+
+### Release identity fence
+
+Assistant child work must not modify `VERSION`, Customer/Driver release identity, normal release artifacts/distribution or production activation unless the exact Issue is the final Assistant integration/release task.
+
+### Assistant mission autonomy
+
+`FOOD #<assistant-umbrella> AUTO-HANDOFF` means drain the complete Assistant umbrella continuously under Section 20.
+
+Repository-local blockers are not reasons to ask the owner for help. Workers must fix CI/tests/lint/conflicts/drift on the existing Issue/branch/PR and continue.
+
+Assistant mission workers stay inside the Assistant umbrella. They do not consume unrelated platform-bug work merely because it is available.
+
+A broken chat/session never owns authoritative state; GitHub state must be sufficient for immediate same-branch takeover.
+
+### Shared-file fence
+
+When an unrelated platform Issue has active ownership of a shared file, the Assistant lane must continue all disjoint work it can perform, then absorb the platform change after merge. It must not block or compete with the platform worker for that file.
+
+### AI bugs vs platform bugs
+
+A defect that reproduces with the Assistant disabled is a platform bug and is fixed on the platform track.
+
+A defect confined to Assistant behavior is an AI bug and stays on the Assistant track.
+
+If Assistant usage reveals an underlying platform defect, fix the platform defect on `main` first, then adapt the Assistant integration branch.
+
