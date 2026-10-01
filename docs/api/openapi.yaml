@@ -2295,7 +2295,7 @@ components:
 
     UserIdentity:
       type: object
-      required: [id, name, email, roles, store_ids, platform_customer]
+      required: [id, name, email, roles, store_ids, platform_customer, retail_merchant, managed_retail_store_ids, retail_wholesale_accounts]
       properties:
         id:
           type: integer
@@ -2321,6 +2321,26 @@ components:
             type: integer
         platform_customer:
           type: boolean
+        retail_merchant:
+          type: boolean
+          description: True when the authenticated Dashboard account manages at least one active Retail Store as B2C_STORE_ADMIN.
+        managed_retail_store_ids:
+          type: array
+          uniqueItems: true
+          description: Active Retail Store IDs owned/managed by this Retail Merchant identity. These stores are forbidden B2C purchase targets for the same account.
+          items:
+            type: integer
+        retail_wholesale_accounts:
+          type: array
+          description: Authoritative Retail Store to Wholesale B2B customer identities available to this merchant account.
+          items:
+            type: object
+            required: [retail_store_id, b2b_customer_id]
+            properties:
+              retail_store_id:
+                type: integer
+              b2b_customer_id:
+                type: integer
 
     Store:
       type: object
