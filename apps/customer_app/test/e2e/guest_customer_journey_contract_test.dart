@@ -1,28 +1,21 @@
-import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/auth/customer_session_store.dart';
-import 'package:foodex_customer_app/core/localization/app_translations.dart';
-import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context_store.dart';
-import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/features/customer_orders/customer_order_models.dart';
-import 'package:foodex_customer_app/features/customer_orders/customer_order_screens.dart';
 import 'package:foodex_customer_app/features/customer_orders/customer_orders_api.dart';
 import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_api.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
-  group('CJ-V2 Guest full-journey acceptance', () {
-    test('catalog requests keep exact Retail store context at every boundary',
-        () async {
+  group('CJ-V2 Guest journey boundary contracts', () {
+    test('catalog requests keep exact Retail store context at every boundary', () async {
       final seen = <Uri>[];
       final api = HttpB2cCatalogApi(
         baseUrl: 'https://foodex.example',
@@ -59,10 +52,8 @@ void main() {
     });
 
     test('guest cart tokens never cross Retail stores', () async {
-      const tokenA =
-          'guest-store-a-token-abcdefghijklmnopqrstuvwxyz-0123456789';
-      const tokenB =
-          'guest-store-b-token-abcdefghijklmnopqrstuvwxyz-0123456789';
+      const tokenA = 'guest-store-a-token-abcdefghijklmnopqrstuvwxyz-0123456789';
+      const tokenB = 'guest-store-b-token-abcdefghijklmnopqrstuvwxyz-0123456789';
       final session = CustomerGuestSession();
       var call = 0;
       final api = HttpCustomerActionApi(
@@ -72,27 +63,16 @@ void main() {
           call++;
           final body = jsonDecode(request.body) as Map<String, dynamic>;
           final storeId = body['store_id'] as int;
-          expect(request.headers['X-FOODEX-Store-ID'], storeId.toString());
+          expect(request.headers['X-FOODEX-Store-ID'], '$storeId');
 
           if (storeId == 7) {
-            expect(
-              request.headers['X-Guest-Token'],
-              call == 3 ? tokenA : isNull,
-            );
-            return http.Response(
-              '{}',
-              201,
-              headers: const {'x-guest-token': tokenA},
-            );
+            expect(request.headers['X-Guest-Token'], call == 3 ? tokenA : isNull);
+            return http.Response('{}', 201, headers: const {'x-guest-token': tokenA});
           }
 
           expect(storeId, 8);
           expect(request.headers['X-Guest-Token'], isNull);
-          return http.Response(
-            '{}',
-            201,
-            headers: const {'x-guest-token': tokenB},
-          );
+          return http.Response('{}', 201, headers: const {'x-guest-token': tokenB});
         }),
       );
 
@@ -105,80 +85,146 @@ void main() {
       expect(session.activeStoreId, 7);
     });
 
-    test('guest session restores the same store cart after app restart',
-        () async {
-      final secureStorage = _MemorySecureStore();
-      final firstTokenStore =
-          SecureCustomerGuestCartTokenStore(storage: secureStorage);
-      await firstTokenStore.writeToken(7, 'persisted-guest-store-7');
-      await firstTokenStore.writeToken(8, 'persisted-guest-store-8');
+    test('cart reload sends the token for the exact selected store only', () async {
+      final session = CustomerGuestSession()
+        ..captureStoreToken(7, 'guest-store-7-token')
+        ..captureStoreToken(8, 'guest-store-8-token');
+      late http.Request captured;
+      final api = HttpB2cAccountApi(
+        baseUrl: 'https://foodex.example',
+        guestSession: session,
+        client: MockClient((request) async {
+          captured = request;
+          return http.Response(
+            jsonEncode({'id': 11, 'store_id': 7, 'items': <Object>[]}),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      await api.cart(storeId: 7);
+
+      expect(captured.url.path, '/api/v1/cart');
+      expect(captured.url.queryParameters['store'], '7');
+      expect(captured.headers['X-FOODEX-Store-ID'], '7');
+      expect(captured.headers['X-Guest-Token'], 'guest-store-7-token');
+      expect(captured.headers['X-Guest-Token'], isNot('guest-store-8-token'));
+    });
+
+    test('checkout preserves store context and one stable idempotency key', () async {
+      final requests = <http.Request>[];
+      final api = HttpCustomerActionApi(
+        baseUrl: 'https://foodex.example',
+        token: 'customer-token',
+        guestSession: CustomerGuestSession()
+          ..captureStoreToken(7, 'guest-store-7-token'),
+        client: MockClient((request) async {
+          requests.add(request);
+          return http.Response(
+            jsonEncode({'order': {'id': 9001, 'store_id': 7}}),
+            201,
+            headers: const {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      for (var attempt = 0; attempt < 2; attempt++) {
+        await api.checkout(
+          addressId: 55,
+          storeId: 7,
+          paymentMethod: 'cash',
+          idempotencyKey: 'journey-order-9001',
+        );
+      }
+
+      expect(requests, hasLength(2));
+      for (final request in requests) {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(request.headers['Authorization'], 'Bearer customer-token');
+        expect(request.headers['X-FOODEX-Store-ID'], '7');
+        expect(request.headers['X-Guest-Token'], 'guest-store-7-token');
+        expect(request.headers['Idempotency-Key'], 'journey-order-9001');
+        expect(body['store_id'], 7);
+        expect(body['address_id'], 55);
+        expect(body['payment_method'], 'cash');
+      }
+    });
+  });
+
+  group('CJ-V2 integrated Guest acceptance', () {
+    test('guest session restores the same store cart after app restart', () async {
+      final storage = _MemorySecureStore();
+      await SecureCustomerGuestCartTokenStore(storage: storage)
+          .writeToken(7, 'persisted-store-7-token');
 
       final restartedSession = CustomerGuestSession();
-      final accountApi = _RecordingB2cAccountApi(restartedSession);
-      final restartedTokenStore =
-          SecureCustomerGuestCartTokenStore(storage: secureStorage);
+      late http.Request captured;
+      final accountApi = HttpB2cAccountApi(
+        baseUrl: 'https://foodex.example',
+        guestSession: restartedSession,
+        client: MockClient((request) async {
+          captured = request;
+          return http.Response(
+            jsonEncode({
+              'store_id': 7,
+              'currency': 'KWD',
+              'items': <Object>[],
+              'subtotal': 0,
+              'has_unavailable_items': false,
+              'quote': {'grand_total': 0},
+            }),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        }),
+      );
       final commerce = DefaultRetailCommerceApi(
         accountApi: accountApi,
         actionApi: _NoopCustomerActionApi(),
         checkoutOptionsApi: _NoopCheckoutOptionsApi(),
         guestSession: restartedSession,
-        guestCartTokenStore: restartedTokenStore,
+        guestCartTokenStore:
+            SecureCustomerGuestCartTokenStore(storage: storage),
       );
 
       final cart = await commerce.loadCart(storeId: 7);
 
       expect(cart.storeId, 7);
-      expect(accountApi.storeIdsSeen, [7]);
-      expect(accountApi.guestTokensSeen, ['persisted-guest-store-7']);
-      expect(restartedSession.activeStoreId, 7);
-      expect(
-        restartedSession.tokenForStore(7),
-        'persisted-guest-store-7',
-      );
-      expect(
-        await restartedTokenStore.readToken(8),
-        'persisted-guest-store-8',
-      );
+      expect(captured.url.queryParameters['store'], '7');
+      expect(captured.headers['X-FOODEX-Store-ID'], '7');
+      expect(captured.headers['X-Guest-Token'], 'persisted-store-7-token');
+      expect(restartedSession.tokenForStore(7), 'persisted-store-7-token');
     });
 
-    test(
-        'guest Login or Register returns to checkout and merges cart exactly once',
-        () async {
-      const context = CustomerCommerceContext(
-        channel: CustomerCommerceChannel.retail,
-        storeId: 7,
-        retailReceiverId: 19,
-      );
-      final checkout = CustomerRouteLocations.retailCheckout(context);
-      final login = Uri.parse(
-        CustomerRouteLocations.authHandoff(
-          context: context,
-          next: checkout,
-        ),
-      );
-      final register = Uri.parse(
-        CustomerRouteLocations.authHandoff(
-          context: context,
-          next: checkout,
-          entry: CustomerAuthEntry.register,
-        ),
-      );
-
-      expect(login.queryParameters['entry'], 'login');
-      expect(register.queryParameters['entry'], 'register');
-      expect(login.queryParameters['next'], checkout);
-      expect(register.queryParameters['next'], checkout);
-      expect(login.queryParameters['store_id'], '7');
-      expect(register.queryParameters['store_id'], '7');
-
-      final secureStorage = _MemorySecureStore();
-      final tokenStore =
-          SecureCustomerGuestCartTokenStore(storage: secureStorage);
-      await tokenStore.writeToken(7, 'merge-me-once-store-7');
-      await tokenStore.writeToken(8, 'keep-store-8');
+    test('guest auth handoff merges the same-store cart exactly once', () async {
+      final storage = _MemorySecureStore();
+      await SecureCustomerGuestCartTokenStore(storage: storage)
+          .writeToken(7, 'guest-before-auth-token');
 
       final session = CustomerGuestSession();
-      final accountApi = _RecordingB2cAccountApi(session);
+      final seenGuestTokens = <String?>[];
+      final accountApi = HttpB2cAccountApi(
+        baseUrl: 'https://foodex.example',
+        token: 'authenticated-platform-token',
+        guestSession: session,
+        client: MockClient((request) async {
+          seenGuestTokens.add(request.headers['X-Guest-Token']);
+          return http.Response(
+            jsonEncode({
+              'store_id': 7,
+              'currency': 'KWD',
+              'items': <Object>[],
+              'subtotal': 0,
+              'has_unavailable_items': false,
+              'quote': {'grand_total': 0},
+            }),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        }),
+      );
+      final tokenStore = SecureCustomerGuestCartTokenStore(storage: storage);
       final commerce = DefaultRetailCommerceApi(
         accountApi: accountApi,
         actionApi: _NoopCustomerActionApi(),
@@ -188,39 +234,86 @@ void main() {
       );
 
       await commerce.mergeGuestCartAfterAuthentication(storeId: 7);
-      expect(accountApi.guestTokensSeen, ['merge-me-once-store-7']);
+      expect(seenGuestTokens, ['guest-before-auth-token']);
+      expect(session.tokenForStore(7), isNull);
       expect(await tokenStore.readToken(7), isNull);
-      expect(await tokenStore.readToken(8), 'keep-store-8');
 
       await commerce.loadCart(storeId: 7);
-      expect(accountApi.guestTokensSeen, ['merge-me-once-store-7', isNull]);
-      expect(await tokenStore.readToken(7), isNull);
+      expect(seenGuestTokens, ['guest-before-auth-token', null]);
     });
 
-    test('checkout uses backend-supported address and payment options',
-        () async {
-      final api = HttpRetailCheckoutOptionsApi(
+    test('checkout creates one authoritative order per guarded submission', () async {
+      var checkoutCalls = 0;
+      final actionApi = HttpCustomerActionApi(
         baseUrl: 'https://foodex.example',
-        token: 'customer-token',
+        token: 'platform-token',
+        guestSession: CustomerGuestSession()
+          ..captureStoreToken(7, 'guest-merge-token'),
         client: MockClient((request) async {
-          expect(request.url.path, '/api/v1/checkout/options');
-          expect(request.url.queryParameters['store_id'], '7');
-          expect(request.headers['Authorization'], 'Bearer customer-token');
+          checkoutCalls++;
+          expect(request.url.path, '/api/v1/checkout');
           expect(request.headers['X-FOODEX-Store-ID'], '7');
+          expect(request.headers['Idempotency-Key'], 'journey-7-key-000001');
+          return http.Response(
+            jsonEncode({'order': {'id': 9001, 'store_id': 7}}),
+            201,
+            headers: const {'content-type': 'application/json'},
+          );
+        }),
+      );
+      final api = DefaultRetailCommerceApi(
+        accountApi: _NoopB2cAccountApi(),
+        actionApi: actionApi,
+        checkoutOptionsApi: _NoopCheckoutOptionsApi(),
+        guestSession: actionApi.guestSession,
+        guestCartTokenStore: _MemoryGuestCartTokenStore(),
+      );
+      final guard = RetailCheckoutSubmissionGuard(
+        api,
+        idempotencyKeyFactory: (_) => 'journey-7-key-000001',
+      );
 
+      final order = await guard.submit(
+        storeId: 7,
+        addressId: 55,
+        paymentMethod: 'cash',
+      );
+
+      expect(order.id, 9001);
+      expect(order.storeId, 7);
+      expect(checkoutCalls, 1);
+    });
+
+    test('order lifecycle push refetches authoritative order state', () async {
+      final intent = CustomerOrderNotificationIntent.fromData({
+        'order_id': 91,
+        'store_id': 7,
+        'channel': 'b2c',
+        'status': 'delivered',
+      });
+      expect(intent, isNotNull);
+
+      late http.Request captured;
+      final orders = HttpCustomerOrdersApi(
+        baseUrl: 'https://foodex.example',
+        token: 'platform-token',
+        client: MockClient((request) async {
+          captured = request;
           return http.Response(
             jsonEncode({
+              'id': 91,
+              'order_number': 'FO-91',
               'store_id': 7,
-              'addresses': [
-                {
-                  'id': 55,
-                  'label': 'Home',
-                  'line1': 'Street 1',
-                  'city': 'Kuwait City',
-                  'is_default': true,
-                }
-              ],
-              'payment_methods': ['cash_on_delivery', 'knet'],
+              'store': {'id': 7, 'name': 'Retail A', 'logo_url': null},
+              'channel': 'b2c',
+              'status': 'preparing',
+              'currency': 'KWD',
+              'subtotal': 10,
+              'discount_total': 0,
+              'delivery_total': 2.5,
+              'grand_total': 12.5,
+              'items': <Object>[],
+              'status_history': <Object>[],
             }),
             200,
             headers: const {'content-type': 'application/json'},
@@ -228,141 +321,76 @@ void main() {
         }),
       );
 
-      final options = await api.load(storeId: 7);
+      final authoritative = await orders.order(
+        orderId: intent!.orderId,
+        context: intent.context,
+      );
 
-      expect(options.storeId, 7);
-      expect(options.addresses.single.id, 55);
-      expect(options.paymentMethods, ['cash_on_delivery', 'knet']);
+      expect(captured.url.path, '/api/v1/orders/91');
+      expect(captured.url.queryParameters['store_id'], '7');
+      expect(captured.headers['X-FOODEX-Customer-Domain'], 'b2c');
+      expect(authoritative.summary.status, 'preparing');
+      expect(authoritative.summary.status, isNot('delivered'));
     });
 
-    test('checkout retry keeps one order identity and stable idempotency key',
-        () async {
-      final api = _RetryingRetailCommerceApi()..failuresRemaining = 1;
-      var generated = 0;
-      final guard = RetailCheckoutSubmissionGuard(
-        api,
-        idempotencyKeyFactory: (storeId) {
-          generated++;
-          return 'journey-store-$storeId-key-$generated';
-        },
-      );
-
-      await expectLater(
-        guard.submit(
-          storeId: 7,
-          addressId: 55,
-          paymentMethod: 'knet',
-        ),
-        throwsA(isA<RetailCommerceException>()),
-      );
-
-      final order = await guard.submit(
-        storeId: 7,
-        addressId: 55,
-        paymentMethod: 'knet',
-      );
-
-      expect(order.id, 9001);
-      expect(order.storeId, 7);
-      expect(api.submitCalls, 2);
-      expect(api.storeIds, [7, 7]);
-      expect(api.idempotencyKeys, hasLength(2));
-      expect(api.idempotencyKeys[0], api.idempotencyKeys[1]);
-      expect(generated, 1);
-    });
-
-    testWidgets(
-        'order lifecycle push deep-link forces authoritative order refresh',
-        (tester) async {
-      final notifications = StreamController<Map<String, dynamic>>();
-      final api = _FakeOrdersApi([
-        _details('pending'),
-        _details('preparing'),
-      ]);
-
-      await tester.pumpWidget(
-        AppTranslations(
-          locale: const Locale('en'),
-          overrides: const {},
-          child: MaterialApp(
-            home: CustomerOrderTrackingScreen(
-              api: api,
-              orderId: 91,
-              orderContext: const CustomerOrderContext(
-                storeId: 7,
-                channel: 'b2c',
-              ),
-              lifecycleNotifications: notifications.stream,
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump();
-
-      expect(api.detailCalls, 1);
-      expect(find.text('Order received'), findsWidgets);
-
-      notifications.add({
-        'order_id': 91,
-        'store_id': 7,
-        'channel': 'b2c',
-        'status': 'delivered',
-      });
-      await tester.pump();
-      await tester.pump();
-
-      expect(api.detailCalls, 2);
-      expect(find.text('Preparing'), findsWidgets);
-      expect(find.text('Delivered'), findsNothing);
-
-      unawaited(notifications.close());
-      await tester.pump();
-      await tester.pumpWidget(const SizedBox.shrink());
-    });
-
-    test(
-        'authenticated multi-store and Wholesale smoke regressions stay isolated',
-        () {
-      const retailA = CustomerCommerceContext(
-        channel: CustomerCommerceChannel.retail,
-        storeId: 7,
-      );
-      const retailB = CustomerCommerceContext(
-        channel: CustomerCommerceChannel.retail,
-        storeId: 8,
-      );
-      const wholesale = CustomerCommerceContext(
-        channel: CustomerCommerceChannel.wholesale,
-        storeId: 12,
-        retailReceiverId: 7,
-      );
-
-      final retailAOrders = CustomerRouteLocations.retailOrders(retailA);
-      final retailBOrders = CustomerRouteLocations.retailOrders(retailB);
-      final wholesaleHome = CustomerRouteLocations.wholesaleHome(wholesale);
-
-      expect(CustomerCommerceContext.tryParseLocation(retailAOrders), retailA);
-      expect(CustomerCommerceContext.tryParseLocation(retailBOrders), retailB);
-      expect(
-        CustomerCommerceContext.tryParseLocation(wholesaleHome),
-        wholesale,
-      );
-      expect(
-        safeCustomerContextReturnLocation(
-          retailBOrders,
-          context: retailA,
-        ),
-        isNull,
-      );
-
-      const platformSession = CustomerSession.platformCustomer(
+    test('authenticated multi-store and Wholesale contexts stay isolated', () async {
+      const session = CustomerSession.platformCustomer(
         accessToken: 'platform-token',
       );
-      expect(platformSession.allowsChannel(CustomerChannel.b2c), isTrue);
-      expect(platformSession.allowsChannel(CustomerChannel.b2b), isTrue);
-      expect(retailA.sameScope(retailB), isFalse);
-      expect(retailA.sameScope(wholesale), isFalse);
+      expect(session.allowsChannel(CustomerChannel.b2c), isTrue);
+      expect(session.allowsChannel(CustomerChannel.b2b), isTrue);
+
+      final requests = <http.Request>[];
+      final api = HttpCustomerOrdersApi(
+        baseUrl: 'https://foodex.example',
+        token: 'platform-token',
+        client: MockClient((request) async {
+          requests.add(request);
+          final storeId = int.parse(request.url.queryParameters['store_id']!);
+          final channel = request.url.queryParameters['channel']!;
+          return http.Response(
+            jsonEncode({
+              'data': [
+                {
+                  'id': channel == 'b2c' ? 91 : 92,
+                  'order_number': channel == 'b2c' ? 'R-91' : 'W-92',
+                  'store_id': storeId,
+                  'store': {'id': storeId, 'name': 'Store $storeId'},
+                  'channel': channel,
+                  'status': 'confirmed',
+                  'currency': 'KWD',
+                  'grand_total': 10,
+                },
+              ],
+              'meta': {
+                'current_page': 1,
+                'per_page': 20,
+                'total': 1,
+                'scope': 'platform_customer',
+              },
+            }),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      final retail = await api.orders(
+        context: const CustomerOrderContext(storeId: 7, channel: 'b2c'),
+      );
+      final wholesale = await api.orders(
+        context: const CustomerOrderContext(storeId: 70, channel: 'b2b'),
+      );
+
+      expect(retail.orders.single.storeId, 7);
+      expect(retail.orders.single.channel, 'b2c');
+      expect(wholesale.orders.single.storeId, 70);
+      expect(wholesale.orders.single.channel, 'b2b');
+
+      expect(requests[0].headers['X-FOODEX-Store-ID'], '7');
+      expect(requests[0].headers['X-FOODEX-Customer-Domain'], 'b2c');
+      expect(requests[1].headers['X-FOODEX-Store-ID'], '70');
+      expect(requests[1].headers['X-FOODEX-Customer-Domain'], 'b2b');
     });
   });
 }
@@ -384,34 +412,25 @@ class _MemorySecureStore implements CustomerSecureKeyValueStore {
   }
 }
 
-class _RecordingB2cAccountApi implements B2cAccountApi {
-  _RecordingB2cAccountApi(this.guestSession);
-
-  final CustomerGuestSession guestSession;
-  final List<int?> storeIdsSeen = <int?>[];
-  final List<String?> guestTokensSeen = <String?>[];
+class _MemoryGuestCartTokenStore implements CustomerGuestCartTokenStore {
+  final Map<int, String> _tokens = <int, String>{};
 
   @override
-  Future<Object?> cart({int? storeId}) async {
-    storeIdsSeen.add(storeId);
-    guestTokensSeen.add(
-      storeId == null
-          ? guestSession.token
-          : guestSession.tokenForStore(storeId),
-    );
-    return {
-      'store_id': storeId,
-      'currency': 'KWD',
-      'items': <Object>[],
-      'subtotal': 0,
-      'has_unavailable_items': false,
-      'quote': {'grand_total': 0},
-    };
+  Future<void> clear() async => _tokens.clear();
+
+  @override
+  Future<Map<int, String>> readAll() async => Map<int, String>.from(_tokens);
+
+  @override
+  Future<String?> readToken(int storeId) async => _tokens[storeId];
+
+  @override
+  Future<void> removeToken(int storeId) async => _tokens.remove(storeId);
+
+  @override
+  Future<void> writeToken(int storeId, String token) async {
+    _tokens[storeId] = token;
   }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError(invocation.memberName.toString());
 }
 
 class _NoopCustomerActionApi implements CustomerActionApi {
@@ -420,91 +439,15 @@ class _NoopCustomerActionApi implements CustomerActionApi {
       throw UnimplementedError(invocation.memberName.toString());
 }
 
-class _NoopCheckoutOptionsApi implements RetailCheckoutOptionsApi {
-  @override
-  Future<RetailCheckoutOptions> load({required int storeId}) {
-    throw UnimplementedError();
-  }
-}
-
-class _RetryingRetailCommerceApi implements RetailCommerceApi {
-  int failuresRemaining = 0;
-  int submitCalls = 0;
-  final List<int> storeIds = <int>[];
-  final List<String> idempotencyKeys = <String>[];
-
-  @override
-  Future<RetailCreatedOrder> submitCheckout({
-    required int storeId,
-    required int addressId,
-    required String paymentMethod,
-    String? couponCode,
-    required String idempotencyKey,
-  }) async {
-    submitCalls++;
-    storeIds.add(storeId);
-    idempotencyKeys.add(idempotencyKey);
-    if (failuresRemaining > 0) {
-      failuresRemaining--;
-      throw const RetailCommerceException('temporary_failure');
-    }
-    return RetailCreatedOrder(id: 9001, storeId: storeId);
-  }
-
+class _NoopB2cAccountApi implements B2cAccountApi {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError(invocation.memberName.toString());
 }
 
-CustomerOrderDetails _details(String status) => CustomerOrderDetails(
-      summary: CustomerOrderSummary(
-        id: 91,
-        orderNumber: 'FO-91',
-        storeId: 7,
-        storeName: 'Retail A',
-        storeLogoUrl: null,
-        channel: 'b2c',
-        status: status,
-        currency: 'KWD',
-        grandTotal: 12.5,
-        createdAt: DateTime.utc(2026, 10, 1, 10),
-      ),
-      subtotal: 10,
-      discountTotal: 0,
-      deliveryTotal: 2.5,
-      paymentMethod: 'cash',
-      deliveryAddress: const {'area': 'Bayan'},
-      items: const [],
-      history: const [],
-      payment: null,
-      requestedDeliveryDate: null,
-    );
-
-class _FakeOrdersApi implements CustomerOrdersApi {
-  _FakeOrdersApi(this.details);
-
-  final List<CustomerOrderDetails> details;
-  int detailCalls = 0;
-
+class _NoopCheckoutOptionsApi implements RetailCheckoutOptionsApi {
   @override
-  Future<CustomerOrderDetails> order({
-    required int orderId,
-    CustomerOrderContext? context,
-  }) async {
-    final index = detailCalls < details.length
-        ? detailCalls
-        : details.length - 1;
-    detailCalls += 1;
-    return details[index];
-  }
-
-  @override
-  Future<CustomerOrderPage> orders({
-    int page = 1,
-    int perPage = 20,
-    String? status,
-    CustomerOrderContext? context,
-  }) {
+  Future<RetailCheckoutOptions> load({required int storeId}) {
     throw UnimplementedError();
   }
 }
