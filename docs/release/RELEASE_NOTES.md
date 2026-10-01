@@ -1,52 +1,41 @@
-# FOODEX 1.0.42 Release Notes
+# FOODEX 1.0.43 Release Notes
 
-Status: synchronized production distribution built from the completed post-1.0.41 mobile production UX, self-contained App Preview runtime and Assistant V1 integration.
+Status: synchronized repair distribution for installed 1.0.42 systems affected by shared-host/cPanel public document-root 404s.
 
 ## Release identity
 
-- Dashboard: `1.0.42`
-- Customer app: `1.0.42+42`
-- Driver app: `1.0.42+42`
-- Customer runtime/footer identity: `1.0.42`
-- Driver runtime/footer identity: `1.0.42`
-- Driver diagnostics current identity: `1.0.42`
-- Driver diagnostics build identity: `42`
+- Dashboard: `1.0.43`
+- Customer app: `1.0.43+43`
+- Driver app: `1.0.43+43`
+- Customer runtime/footer identity: `1.0.43`
+- Driver runtime/footer identity: `1.0.43`
+- Driver diagnostics current identity: `1.0.43`
+- Driver diagnostics build identity: `43`
 
-## Deployable delta since distributed 1.0.41
+## Deployable delta since distributed 1.0.42
 
-### Driver production UX
-- Restore production Dashboard static assets required by Driver Live Tracking.
-- Add authoritative accepted → out-for-delivery → delivered/failed Driver lifecycle handling with notes/proof and Dashboard/Customer notifications.
-- Ship the redesigned Driver Home, Deliveries and action modals while preserving location/session/version/diagnostics gates.
+### Shared-host public runtime repair
+- Deliver the #670/#671 production fix under a new immutable release identity.
+- Keep canonical Laravel static files under `backend/public/**`.
+- Also ship safe release-root aliases for `assets/**`, `brand/**`, `demo/**`, and `preview/**` for supported shared-host/cPanel document roots.
+- Normalize mirrored static file permissions to `0644` and directories to `0755` during update extraction.
+- Do not mirror the Laravel front controller or `.htaccess` into the release root.
 
-### Customer production UX
-- Persist authenticated Customer sessions across restart and shopping navigation, with logout/expiry cleanup.
-- Restore Dashboard-managed Retail banner/media delivery.
-- Ship the redesigned Customer marketplace home using real Dashboard categories, products, banners and media.
-
-### App Preview distribution
-- Bundle Customer and Driver Flutter Web preview runtimes inside the Dashboard update package.
-- Keep Preview deployment on the same Dashboard update path instead of requiring a separate runtime publication step.
-
-### FOOD Assistant V1
-- Integrate the deterministic Arabic/English FOOD Assistant using authoritative FOODEX business and operations data.
-- No LLM, paid/external AI API or AI API key is required.
-- Production defaults remain `ASSISTANT_ENABLED=false` and `ASSISTANT_READ_ONLY=true`.
-
-## Validation
-- Final #648 integrated acceptance merged green.
-- Backend + MySQL/Redis acceptance passed.
-- Customer/Driver Flutter and iOS no-codesign validation passed.
-- Runtime screenshot evidence and APP-PREVIEW visual/pixel parity passed.
+### Affected production surfaces
+- FOODEX Economical Group branding.
+- Leaflet runtime and Driver Live Tracking map.
+- Customer Flutter Web App Preview runtime.
+- Driver Flutter Web App Preview runtime.
 
 ## Dashboard update bundle
 
-- Target version: `1.0.42`
+- Target version: `1.0.43`
 - Minimum current version: `1.0.6`
 - Contains migrations: `true`
 - Requires full redeploy: `false`
-- SHA-256: `d7cb34aaab10d7d5322fb074e078f2ca93f10e1c62074e30660dfd03c8848a70`
-- Package files: `578`
+- SHA-256: `03c50ab87e8819b2e6e9128b29a06218dcdacaf439f5b715a419d102361baf5e`
+- Package files: `675`
+- Package size: `72,999,571` bytes
 
 ## Explicit non-activation statement
 
