@@ -16,6 +16,7 @@ import '../../features/home/b2c_journey_screen.dart';
 import '../../features/storefront/marketplace_barcode_scanner.dart';
 import '../../features/storefront/multistore_design_screen.dart';
 import '../../shared/customer_action_widgets.dart';
+import 'customer_commerce_context.dart';
 import 'customer_routes.dart';
 
 class CustomerAppRouter {
@@ -137,9 +138,14 @@ class CustomerAppRouter {
         requested.requiresAuth &&
         (redirect.pattern == CustomerRoutePaths.checkoutAuth ||
             redirect.pattern == CustomerRoutePaths.b2bLogin)) {
+      final context =
+          CustomerCommerceContext.tryParseLocation(requestedLocation);
       return Uri(
         path: redirect.pattern,
-        queryParameters: {'next': requestedLocation},
+        queryParameters: <String, String>{
+          if (context != null) ...context.toQueryParameters(),
+          'next': requestedLocation,
+        },
       ).toString();
     }
 
