@@ -126,7 +126,7 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final code = decoded is Map && decoded['message'] is String
           ? decoded['message'] as String
-          : 'http_\${response.statusCode}';
+          : 'http_' + response.statusCode.toString();
       throw CustomerOrdersException(code);
     }
     if (decoded is! Map) {
