@@ -6,4 +6,6 @@ branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
 if [[ -n "$branch" && "$branch" != "main" ]]; then
   [[ "$branch" =~ ^((feat|fix|chore|docs|refactor|test|ci)/[0-9]+-[a-z0-9-]+|release/([0-9]+|[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+)$ ]] || { echo "Invalid issue branch name: $branch"; exit 1; }
 fi
-node .github/scripts/release-registry.js validate\nnode --test .github/scripts/release-registry.test.js\necho "Repository foundation policy check passed."
+node .github/scripts/release-registry.js validate
+node --test .github/scripts/release-registry.test.js
+echo "Repository foundation policy check passed."
