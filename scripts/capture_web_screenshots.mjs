@@ -130,7 +130,7 @@ async function captureLocale(browser, locale) {
   );
 
   await page.goto(
-    `${baseUrl}/admin/operations/orders?order_number=FOODEX-EVID-LOC-1`,
+    `${baseUrl}/admin/operations/orders?channel=b2c&order_number=FOODEX-EVID-LOC-1`,
     { waitUntil: 'networkidle' },
   );
   const orderLocationLink = page.locator(
