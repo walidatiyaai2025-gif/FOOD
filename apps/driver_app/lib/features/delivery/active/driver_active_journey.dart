@@ -158,6 +158,13 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         _busyAssignments.contains(assignment.id)) {
       return;
     }
+    if (widget.previewContext != null &&
+        !widget.previewContext!.mutationsAllowed) {
+      setState(() {
+        _actionError = context.tr('driver.preview.mutation_blocked');
+      });
+      return;
+    }
 
     setState(() {
       _busyAssignments.add(assignment.id);
@@ -197,6 +204,13 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         _busyAssignments.contains(assignment.id)) {
       return;
     }
+    if (widget.previewContext != null &&
+        !widget.previewContext!.mutationsAllowed) {
+      setState(() {
+        _actionError = context.tr('driver.preview.mutation_blocked');
+      });
+      return;
+    }
 
     setState(() {
       _busyAssignments.add(assignment.id);
@@ -229,6 +243,13 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   Future<void> _requestDelivered(DriverAssignment assignment) async {
     if (!_allows(assignment, 'delivered') ||
         _busyAssignments.contains(assignment.id)) {
+      return;
+    }
+    if (widget.previewContext != null &&
+        !widget.previewContext!.mutationsAllowed) {
+      setState(() {
+        _actionError = context.tr('driver.preview.mutation_blocked');
+      });
       return;
     }
 
@@ -539,6 +560,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       children: [
         if (_actionError != null)
           MaterialBanner(
+            key: const Key('driver-action-error'),
             content: Text(_actionError!),
             actions: [
               TextButton(
