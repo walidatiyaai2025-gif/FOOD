@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/core/preview/driver_preview_context.dart';
-import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
+import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
+import 'package:foodex_driver_app/features/delivery/driver_journey_runtime.dart';
 import 'package:foodex_driver_app/navigation.dart';
 
 class _PreviewRepo implements DriverAssignmentRepository {
@@ -156,7 +157,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('en'),
-        home: DriverJourneyPage(
+        home: DriverJourneyRuntimePage(
           channel: DriverChannel.b2c,
           repository: repo,
           previewContext: const DriverPreviewContext(
@@ -168,14 +169,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('assignment-7')));
+    await tester.tap(find.byKey(const Key('driver-active-assignment-7')));
     await tester.pumpAndSettle();
     expect(
-      find.byKey(const Key('assignment-status-7-accepted')),
+      find.byKey(const Key('driver-active-accept-7')),
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const Key('assignment-status-7-accepted')));
+    await tester.tap(find.byKey(const Key('driver-active-accept-7')));
     await tester.pumpAndSettle();
 
     expect(repo.transitionCount, 0);
@@ -201,7 +202,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('en'),
-        home: DriverJourneyPage(
+        home: DriverJourneyRuntimePage(
           channel: DriverChannel.b2c,
           repository: repo,
           previewContext: const DriverPreviewContext(
@@ -216,9 +217,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('assignment-9')));
+    await tester.tap(find.byKey(const Key('driver-active-assignment-9')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('driver-navigate-9')));
+    await tester.tap(find.byKey(const Key('driver-active-navigate-9')));
     await tester.pump();
 
     expect(launched, isFalse);
