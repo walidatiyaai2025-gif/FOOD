@@ -56,7 +56,7 @@ void main() {
       await session.restore();
       await session.captureToken(7, 'guest-store-7');
 
-      expect(() => session.activateStore(8), throwsStateError);
+      await expectLater(session.activateStore(8), throwsStateError);
       expect(session.tokenForStore(8), isNull);
       expect(session.activeStoreId, 7);
     });
