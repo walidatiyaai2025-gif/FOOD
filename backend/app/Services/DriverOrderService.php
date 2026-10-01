@@ -381,9 +381,24 @@ final class DriverOrderService
                 }
 
                 if ($targetStatus === 'failed') {
-                    if ($normalizedFailureReason === null || $normalizedFailureReason === '') {
+                    if (
+                        $normalizedFailureReason === null
+                        || ! in_array(
+                            $normalizedFailureReason,
+                            [
+                                'customer_no_answer',
+                                'wrong_address',
+                                'customer_refused',
+                                'customer_absent',
+                                'payment_issue',
+                                'order_issue',
+                                'other',
+                            ],
+                            true,
+                        )
+                    ) {
                         throw ValidationException::withMessages([
-                            'failure_reason' => ['A failure reason is required for failed delivery.'],
+                            'failure_reason' => ['A valid failure reason is required for failed delivery.'],
                         ]);
                     }
 
