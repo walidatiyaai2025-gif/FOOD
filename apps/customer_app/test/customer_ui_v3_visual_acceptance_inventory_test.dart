@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/core/theme/customer_ui_v3_tokens.dart';
+import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/customer_retail_shell.dart';
 
 /// Final #725 Customer UI V3 convergence contract.
@@ -93,6 +94,16 @@ void main() {
           _VisualMilestone.addresses,
           _VisualMilestone.settingsHelp,
         }),
+      );
+    });
+
+    test('AppBar titles keep the bilingual V3 font instead of platform fallback', () {
+      final theme = FoodexTheme.light();
+
+      expect(theme.appBarTheme.titleTextStyle?.fontFamily, isNotNull);
+      expect(
+        theme.appBarTheme.titleTextStyle?.fontFamily,
+        theme.primaryTextTheme.titleLarge?.fontFamily,
       );
     });
 
