@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import '../../core/auth/customer_session.dart';
 import '../../core/config/foodex_environment.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/routing/customer_commerce_context.dart';
+import '../../core/routing/customer_routes.dart';
 import 'marketplace_barcode_scanner.dart';
 
 class PlatformMarketplaceScreen extends StatefulWidget {
@@ -125,9 +127,14 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   }
 
   Future<Map<String, dynamic>> _get(String url) async {
+    final token = widget.session.accessToken;
     final response = await _client.get(
       Uri.parse(url),
-      headers: const {'Accept': 'application/json'},
+      headers: {
+        'Accept': 'application/json',
+        if (token != null && token.isNotEmpty)
+          'Authorization': 'Bearer $token',
+      },
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _MarketplaceException('http_${response.statusCode}');
@@ -188,10 +195,17 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     }
   }
 
-  void _openRetail(Map<String, dynamic> store) {
-    final id = _int(store['id']);
-    if (id <= 0) return;
-    Navigator.of(context).pushNamed('/retail/$id/home');
+  void _openRetail(Map<String, dynamic> placement) {
+    final storeId = _int(placement['store_id'] ?? placement['id']);
+    if (storeId <= 0) return;
+
+    final commerceContext = CustomerCommerceContext(
+      channel: CustomerCommerceChannel.retail,
+      storeId: storeId,
+    );
+    Navigator.of(context).pushNamed(
+      CustomerRouteLocations.retailHome(commerceContext),
+    );
   }
 
   Future<void> _openWholesaleProduct(int storeId, int productId) async {
