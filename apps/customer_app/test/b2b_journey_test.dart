@@ -260,6 +260,167 @@ void main() {
     expect(find.text('B2B-77'), findsOneWidget);
   });
 
+
+  testWidgets(
+      'B2B wholesale orders list renders seller state and opens exact detail',
+      (tester) async {
+    final api = _PathB2bApi({
+      '/api/v1/b2b/orders': {
+        'data': [
+          {
+            'id': 91,
+            'order_number': 'B2B-91',
+            'status': 'ready',
+            'grand_total': 42.5,
+            'currency': 'KWD',
+            'created_at': '2026-10-01T20:00:00+00:00',
+            'store': {'id': 1, 'name': 'FOODEX Wholesale'},
+          },
+        ],
+      },
+      '/api/v1/b2b/orders/91': {
+        'id': 91,
+        'order_number': 'B2B-91',
+        'status': 'ready',
+        'grand_total': 42.5,
+        'currency': 'KWD',
+        'payment_method': 'account_credit',
+        'store': {'id': 1, 'name': 'FOODEX Wholesale'},
+        'timeline': [
+          {
+            'stage': 'placed',
+            'occurred_at': '2026-10-01T20:00:00+00:00',
+          },
+          {
+            'stage': 'ready',
+            'occurred_at': '2026-10-01T20:10:00+00:00',
+          },
+        ],
+        'items': const <Object>[],
+      },
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/orders',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2b-orders-data')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-order-row-91')), findsOneWidget);
+    expect(find.text('B2B-91'), findsOneWidget);
+    expect(find.text('FOODEX Wholesale'), findsOneWidget);
+    expect(find.text('جاهز'), findsOneWidget);
+    expect(find.text('42.5 KWD'), findsOneWidget);
+
+    await tester.tap(find.text('B2B-91'));
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/orders/91');
+    expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-timeline-0-placed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsOneWidget);
+  });
+
+  testWidgets(
+      'B2B order timeline renders only authoritative events and refreshes state',
+      (tester) async {
+    final api = _SequenceB2bApi([
+      {
+        'id': 77,
+        'order_number': 'B2B-77',
+        'status': 'out_for_delivery',
+        'grand_total': 101.0,
+        'currency': 'KWD',
+        'payment_method': 'cash_on_delivery',
+        'store': {'id': 1, 'name': 'FOODEX Wholesale'},
+        'delivery_address': {
+          'label': 'Warehouse',
+          'line1': 'Street 1',
+          'city': 'Kuwait City',
+        },
+        'timeline': [
+          {
+            'stage': 'placed',
+            'occurred_at': '2026-10-01T20:00:00+00:00',
+          },
+          {
+            'stage': 'ready',
+            'occurred_at': '2026-10-01T20:10:00+00:00',
+          },
+          {
+            'stage': 'driver_assigned',
+            'occurred_at': '2026-10-01T20:12:00+00:00',
+            'driver_name': 'Ahmed Driver',
+          },
+          {
+            'stage': 'out_for_delivery',
+            'occurred_at': '2026-10-01T20:20:00+00:00',
+            'driver_name': 'Ahmed Driver',
+          },
+        ],
+        'items': const <Object>[],
+      },
+      {
+        'id': 77,
+        'order_number': 'B2B-77',
+        'status': 'delivered',
+        'grand_total': 101.0,
+        'currency': 'KWD',
+        'payment_method': 'cash_on_delivery',
+        'store': {'id': 1, 'name': 'FOODEX Wholesale'},
+        'timeline': [
+          {
+            'stage': 'placed',
+            'occurred_at': '2026-10-01T20:00:00+00:00',
+          },
+          {
+            'stage': 'delivered',
+            'occurred_at': '2026-10-01T20:30:00+00:00',
+            'driver_name': 'Ahmed Driver',
+          },
+        ],
+        'items': const <Object>[],
+      },
+    ]);
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/orders/77',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2b-timeline-0-placed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-timeline-2-driver_assigned')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-timeline-3-out_for_delivery')),
+      findsOneWidget,
+    );
+    expect(find.text('Ahmed Driver'), findsWidgets);
+    expect(find.text('تم التأكيد'), findsNothing);
+    expect(find.text('جاري التجهيز'), findsNothing);
+    expect(find.text('تم التسليم'), findsNothing);
+    expect(find.text('الدفع عند الاستلام'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('b2b-order-refresh')));
+    await tester.pumpAndSettle();
+
+    expect(api.calls, 2);
+    expect(find.byKey(const ValueKey('b2b-timeline-1-delivered')), findsOneWidget);
+    expect(find.text('تم التسليم'), findsWidgets);
+    expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsNothing);
+  });
+
   testWidgets('B2C session cannot enter B2B protected journey', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(session: CustomerSession.authenticated(CustomerChannel.b2c), initialRoute: '/b2b/invoices'));
     await tester.pumpAndSettle();
@@ -686,6 +847,34 @@ class _FakeB2bApi implements B2bApi {
   String? lastPath;
   @override
   Future<Object?> get(String path) async { lastPath = path; return value; }
+}
+
+
+class _PathB2bApi implements B2bApi {
+  _PathB2bApi(this.responses);
+
+  final Map<String, Object?> responses;
+  String? lastPath;
+
+  @override
+  Future<Object?> get(String path) async {
+    lastPath = path;
+    return responses[path];
+  }
+}
+
+class _SequenceB2bApi implements B2bApi {
+  _SequenceB2bApi(this.values);
+
+  final List<Object?> values;
+  int calls = 0;
+
+  @override
+  Future<Object?> get(String path) async {
+    final index = calls < values.length ? calls : values.length - 1;
+    calls++;
+    return values[index];
+  }
 }
 
 class _FailingB2bApi implements B2bApi {
