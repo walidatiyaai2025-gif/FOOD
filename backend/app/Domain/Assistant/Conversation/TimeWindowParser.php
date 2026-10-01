@@ -14,7 +14,7 @@ final class TimeWindowParser
         $now ??= CarbonImmutable::now();
 
         foreach ([
-            'last_week' => ['last week', 'previous week', 'الاسبوع اللي فات', 'الاسبوع الماضي', 'الاسبوع السابق'],
+            'last_week' => ['last week', 'previous week', 'الاسبوع اللي فات', 'بالاسبوع اللي فات', 'الاسبوع الماضي', 'بالاسبوع الماضي', 'الاسبوع السابق'],
             'this_week' => ['this week', 'current week', 'هذا الاسبوع', 'الاسبوع الحالي'],
             'yesterday' => ['yesterday', 'امس'],
             'today' => ['today', 'اليوم'],
