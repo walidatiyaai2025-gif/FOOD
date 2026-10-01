@@ -1,19 +1,329 @@
-name: Cleanup Merged Branch
+name: Cleanup Obsolete Branches
+
 on:
   pull_request:
     types: [closed]
+  schedule:
+    # Daily at 03:23 UTC. Scheduled sweep catches old branches whose close event
+    # was missed or whose immediate deletion failed.
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report candidates only; do not delete branches"
+        required: true
+        default: true
+        type: boolean
+
 permissions:
   contents: write
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: cleanup-obsolete-branches
+  cancel-in-progress: false
+
 jobs:
-  delete-branch:
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref != 'main'
+  delete-merged-branch:
+    name: Delete branch after merge
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.base.ref == github.event.repository.default_branch
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v7
+      - name: Delete safely merged branch
+        uses: actions/github-script@v7
         with:
           script: |
+            const branchName = context.payload.pull_request.head.ref;
+            const defaultBranch = context.payload.repository.default_branch;
+
+            const keepNames = new Set([
+              defaultBranch,
+              'develop',
+              'development',
+              'staging',
+              'production',
+              'prod',
+            ]);
+            const keepPrefixes = ['release/'];
+
+            if (
+              keepNames.has(branchName) ||
+              keepPrefixes.some(prefix => branchName.startsWith(prefix))
+            ) {
+              core.info(`Keeping long-lived branch ${branchName}`);
+              return;
+            }
+
+            let branch;
+            try {
+              ({ data: branch } = await github.rest.repos.getBranch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                branch: branchName,
+              }));
+            } catch (error) {
+              if (error.status === 404) {
+                core.info(`Branch ${branchName} is already deleted`);
+                return;
+              }
+              throw error;
+            }
+
+            if (branch.protected) {
+              core.info(`Keeping protected branch ${branchName}`);
+              return;
+            }
+
             await github.rest.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: `heads/${context.payload.pull_request.head.ref}`
+              ref: `heads/${branchName}`,
             });
+            core.notice(`Deleted merged branch ${branchName}`);
+
+  scheduled-garbage-collection:
+    name: Scheduled safe branch garbage collection
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sweep obsolete branches
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const defaultBranch = context.payload.repository.default_branch;
+            const dryRun =
+              context.eventName === 'workflow_dispatch'
+                ? String(context.payload.inputs?.dry_run ?? 'true') !== 'false'
+                : false;
+
+            const GRACE_HOURS = 24;
+            const graceMs = GRACE_HOURS * 60 * 60 * 1000;
+            const now = Date.now();
+
+            const keepNames = new Set([
+              defaultBranch,
+              'develop',
+              'development',
+              'staging',
+              'production',
+              'prod',
+            ]);
+            const keepPrefixes = ['release/'];
+
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const openPulls = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+
+            const openPrBranches = new Set(
+              openPulls
+                .filter(pr => pr.head.repo?.full_name === `${owner}/${repo}`)
+                .map(pr => pr.head.ref),
+            );
+
+            // Any branch named in an open Issue's worker/handoff state is resumable
+            // work and must survive garbage collection, even when the worker is stale.
+            const activeIssueBranches = new Set();
+            const rememberBranchRefs = text => {
+              if (!text) return;
+              const regex = /^\s*BRANCH\s*:\s*`?([A-Za-z0-9._/-]+)`?\s*$/gim;
+              let match;
+              while ((match = regex.exec(text)) !== null) {
+                activeIssueBranches.add(match[1]);
+              }
+            };
+
+            const openIssues = (
+              await github.paginate(github.rest.issues.listForRepo, {
+                owner,
+                repo,
+                state: 'open',
+                per_page: 100,
+              })
+            ).filter(issue => !issue.pull_request);
+
+            for (const issue of openIssues) {
+              rememberBranchRefs(issue.body || '');
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number: issue.number,
+                per_page: 100,
+              });
+              for (const comment of comments) {
+                rememberBranchRefs(comment.body || '');
+              }
+            }
+
+            const deleted = [];
+            const candidates = [];
+            const kept = [];
+
+            for (const branch of branches) {
+              const name = branch.name;
+
+              if (keepNames.has(name)) {
+                kept.push([name, 'long-lived-name']);
+                continue;
+              }
+              if (keepPrefixes.some(prefix => name.startsWith(prefix))) {
+                kept.push([name, 'long-lived-prefix']);
+                continue;
+              }
+              if (branch.protected) {
+                kept.push([name, 'protected']);
+                continue;
+              }
+              if (openPrBranches.has(name)) {
+                kept.push([name, 'open-pr']);
+                continue;
+              }
+              if (activeIssueBranches.has(name)) {
+                kept.push([name, 'open-issue-worker-state']);
+                continue;
+              }
+
+              let commit;
+              try {
+                ({ data: commit } = await github.rest.repos.getCommit({
+                  owner,
+                  repo,
+                  ref: branch.commit.sha,
+                }));
+              } catch (error) {
+                core.warning(`Could not inspect ${name}: ${error.message}`);
+                kept.push([name, 'commit-inspection-failed']);
+                continue;
+              }
+
+              const committedAt =
+                commit.commit?.committer?.date ||
+                commit.commit?.author?.date ||
+                null;
+              const ageMs = committedAt ? now - Date.parse(committedAt) : 0;
+
+              if (!committedAt || ageMs < graceMs) {
+                kept.push([name, `grace-period(<${GRACE_HOURS}h)`]);
+                continue;
+              }
+
+              let safeReason = null;
+
+              // Fast path: branch has no commits that are not already reachable
+              // from the default branch.
+              try {
+                const { data: comparison } = await github.rest.repos.compareCommits({
+                  owner,
+                  repo,
+                  base: defaultBranch,
+                  head: name,
+                });
+                if (comparison.ahead_by === 0) {
+                  safeReason = 'fully-contained-in-default';
+                }
+              } catch (error) {
+                core.warning(`Compare failed for ${name}: ${error.message}`);
+              }
+
+              // Squash/rebase merges may leave the original branch commits outside
+              // main's ancestry. In that case, only accept an exact current HEAD that
+              // was merged into the default branch.
+              if (!safeReason) {
+                try {
+                  const mergedPulls = await github.paginate(github.rest.pulls.list, {
+                    owner,
+                    repo,
+                    state: 'closed',
+                    head: `${owner}:${name}`,
+                    per_page: 100,
+                  });
+                  const exactMerged = mergedPulls.find(
+                    pr =>
+                      pr.merged_at &&
+                      pr.base.ref === defaultBranch &&
+                      pr.head.sha === branch.commit.sha,
+                  );
+                  if (exactMerged) {
+                    safeReason = `exact-merged-pr#${exactMerged.number}`;
+                  }
+                } catch (error) {
+                  core.warning(`Merged-PR lookup failed for ${name}: ${error.message}`);
+                }
+              }
+
+              if (!safeReason) {
+                kept.push([name, 'unique-or-unverified-commits']);
+                continue;
+              }
+
+              candidates.push([name, safeReason]);
+
+              if (dryRun) {
+                core.notice(`DRY RUN: would delete ${name} (${safeReason})`);
+                continue;
+              }
+
+              try {
+                await github.rest.git.deleteRef({
+                  owner,
+                  repo,
+                  ref: `heads/${name}`,
+                });
+                deleted.push([name, safeReason]);
+                core.notice(`Deleted obsolete branch ${name} (${safeReason})`);
+              } catch (error) {
+                if (error.status === 404) {
+                  core.info(`Branch ${name} disappeared before deletion`);
+                  continue;
+                }
+                core.warning(`Failed to delete ${name}: ${error.message}`);
+              }
+            }
+
+            core.info(`Dry run: ${dryRun}`);
+            core.info(`Candidates: ${candidates.length}`);
+            core.info(`Deleted: ${deleted.length}`);
+            core.info(`Kept: ${kept.length}`);
+
+            await core.summary
+              .addHeading('Branch garbage collection')
+              .addTable([
+                [
+                  { data: 'Mode', header: true },
+                  { data: 'Candidates', header: true },
+                  { data: 'Deleted', header: true },
+                  { data: 'Kept', header: true },
+                ],
+                [
+                  dryRun ? 'dry-run' : 'delete',
+                  String(candidates.length),
+                  String(deleted.length),
+                  String(kept.length),
+                ],
+              ])
+              .addHeading(dryRun ? 'Would delete' : 'Deleted', 3)
+              .addList((dryRun ? candidates : deleted).map(([name, reason]) => `${name} — ${reason}`))
+              .addHeading('Safety rules', 3)
+              .addList([
+                'never delete default/protected/long-lived branches',
+                'never delete branches with open PRs',
+                'never delete branches referenced by open Issue worker/handoff state',
+                `wait at least ${GRACE_HOURS} hours`,
+                'delete only if fully contained in default or exact current HEAD was merged into default',
+              ])
+              .write();
