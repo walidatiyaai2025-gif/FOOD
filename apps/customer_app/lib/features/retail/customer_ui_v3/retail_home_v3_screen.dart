@@ -531,7 +531,7 @@ class _RetailHomeSkeleton extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: 4,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: CustomerUiSpacing.sm,
               mainAxisSpacing: CustomerUiSpacing.sm,
