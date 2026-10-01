@@ -7,6 +7,8 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\Store;
+use App\Models\User;
+use App\Services\RetailMerchantIdentityService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,8 +17,11 @@ use Illuminate\Support\Facades\Storage;
 
 class GuestCatalogController extends Controller
 {
+    public function __construct(private readonly RetailMerchantIdentityService $retailMerchants) {}
+
     public function categories(Request $request, int $store): JsonResponse
     {
+        $this->assertCanBrowse($request, $store);
         $this->activeB2cStore($store);
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
 
@@ -62,6 +67,7 @@ class GuestCatalogController extends Controller
 
     public function products(Request $request, int $store): JsonResponse
     {
+        $this->assertCanBrowse($request, $store);
         $this->activeB2cStore($store);
 
         $validated = $request->validate([
@@ -139,6 +145,7 @@ class GuestCatalogController extends Controller
             'store' => ['required', 'integer', 'min:1'],
         ]);
         $storeId = (int) $validated['store'];
+        $this->assertCanBrowse($request, $storeId);
         $this->activeB2cStore($storeId);
 
         $item = Product::query()
@@ -175,6 +182,7 @@ class GuestCatalogController extends Controller
 
     public function offers(Request $request, int $store): JsonResponse
     {
+        $this->assertCanBrowse($request, $store);
         $this->activeB2cStore($store);
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
         $now = now();
@@ -216,6 +224,7 @@ class GuestCatalogController extends Controller
 
     public function banners(Request $request, int $store): JsonResponse
     {
+        $this->assertCanBrowse($request, $store);
         $this->activeB2cStore($store);
         $perPage = min(max($request->integer('per_page', 10), 1), 50);
 
@@ -245,6 +254,14 @@ class GuestCatalogController extends Controller
                 'total' => $banners->total(),
             ],
         ]);
+    }
+
+    private function assertCanBrowse(Request $request, int $storeId): void
+    {
+        $user = $request->user('sanctum');
+        if ($user instanceof User) {
+            $this->retailMerchants->assertCanPurchaseFromRetailStore($user, $storeId);
+        }
     }
 
     private function activeB2cStore(int $storeId): Store
