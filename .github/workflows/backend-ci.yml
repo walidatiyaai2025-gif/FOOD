@@ -57,6 +57,43 @@ jobs:
       - name: Test live-map runtime and local static assets
         run: node --test tests/Browser/driver-live-map.test.cjs
 
+      - name: Probe production public document-root assets over HTTP
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -S 127.0.0.1:8099 -t public >/tmp/foodex-public-assets.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          for _ in {1..20}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8099/assets/admin/driver-live-map.js >/dev/null; then
+              break
+            fi
+            sleep 0.25
+          done
+
+          assets=(
+            assets/admin/driver-live-map.js
+            assets/admin/driver-live-map.css
+            assets/leaflet/1.9.4/leaflet.js
+            assets/leaflet/1.9.4/leaflet.css
+            assets/leaflet/1.9.4/images/marker-icon.png
+            assets/leaflet/1.9.4/images/marker-shadow.png
+            brand/foodex-economical-group.webp
+          )
+
+          for asset in "${assets[@]}"; do
+            status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' "http://127.0.0.1:8099/$asset")"
+            test "$status" = "200" || {
+              echo "::error::$asset returned HTTP $status from backend/public document root"
+              cat /tmp/foodex-public-assets.log
+              exit 1
+            }
+          done
+
+          grep -F 'RewriteCond %{REQUEST_FILENAME} !-f' public/.htaccess
+          grep -F 'RewriteCond %{REQUEST_FILENAME} !-d' public/.htaccess
+
       - name: Run backend tests
         run: composer test
 
