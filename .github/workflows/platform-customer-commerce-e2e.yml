@@ -86,6 +86,33 @@ jobs:
           grep -Fq "customer app renders English LTR from the bilingual catalog" apps/customer_app/test/localization_test.dart
           grep -Fq "driver app renders English LTR from the bilingual catalog" apps/driver_app/test/localization_test.dart
 
+      - name: Verify Customer UI V3 full-journey convergence evidence
+        if: ${{ startsWith(github.head_ref, 'test/725-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f apps/customer_app/test/customer_ui_v3_visual_acceptance_inventory_test.dart
+          grep -Fq 'locks AR/EN, phone widths, text scale, state and motion coverage' apps/customer_app/test/customer_ui_v3_visual_acceptance_inventory_test.dart
+
+          grep -Fq 'Customer UI V3 exposes the approved central visual tokens' apps/customer_app/test/customer_ui_v3_design_system_test.dart
+          grep -Fq 'reduced-motion media settings collapse V3 motion durations' apps/customer_app/test/customer_ui_v3_design_system_test.dart
+          grep -Fq 'Customer UI V3 home keeps store-scoped actions usable on narrow RTL layout' apps/customer_app/test/customer_ui_v3_shell_home_test.dart
+          grep -Fq 'V3 product browse is RTL-safe at 360px and preserves store/query intents' apps/customer_app/test/customer_ui_v3_browse_test.dart
+          grep -Fq 'cart V3 fits narrow RTL layout with larger text' apps/customer_app/test/retail_commerce_test.dart
+          grep -Fq 'orders cards keep V3 hierarchy under RTL and larger text' apps/customer_app/test/customer_orders_ui_v3_test.dart
+          grep -Fq 'notification and address empty states use V3 state primitives' apps/customer_app/test/customer_account_surfaces_test.dart
+
+          grep -Fq 'CustomerRetailShell(' apps/customer_app/lib/features/retail/retail_customer_journey_screen.dart
+          grep -Fq 'RetailHomeV3Screen(' apps/customer_app/lib/features/retail/retail_customer_journey_screen.dart
+          grep -Fq 'CustomerProductCard(' apps/customer_app/lib/features/retail/catalog/retail_catalog_screens.dart
+
+          grep -Fq '/home?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+          grep -Fq '/products?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+          grep -Fq '/cart?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+          grep -Fq '/orders/101/track?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+          grep -Fq '/profile?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+
       - name: Verify PCX-09 address and lifecycle evidence contracts
         if: ${{ startsWith(github.head_ref, 'feat/436-') || startsWith(github.ref_name, 'feat/436-') }}
         shell: bash
