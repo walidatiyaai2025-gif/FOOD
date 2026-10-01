@@ -446,6 +446,123 @@ class StorefrontAdminBuilderTest extends TestCase
         ]);
     }
 
+    public function test_retail_banner_media_contract_is_published_scoped_ordered_and_safe(): void
+    {
+        $storeA = $this->retailStore('BANNER-CONTRACT-A');
+        $storeB = $this->retailStore('BANNER-CONTRACT-B');
+        $admin = $this->storeAdmin($storeA, 'banner-contract@example.test');
+
+        Storage::disk('public')->put('banners/'.$storeA.'/published.jpg', 'published');
+        Storage::disk('public')->put('banners/'.$storeB.'/foreign.jpg', 'foreign');
+
+        DB::table('banners')->insert([
+            [
+                'store_id' => $storeA,
+                'title' => 'Published hero',
+                'image_path' => 'storage/banners/'.$storeA.'/published.jpg',
+                'target_type' => null,
+                'target_id' => null,
+                'target_url' => null,
+                'sort_order' => 10,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'store_id' => $storeA,
+                'title' => 'Missing optional media',
+                'image_path' => 'storage/banners/'.$storeA.'/missing.jpg',
+                'target_type' => null,
+                'target_id' => null,
+                'target_url' => null,
+                'sort_order' => 20,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'store_id' => $storeA,
+                'title' => 'Inactive banner',
+                'image_path' => 'storage/banners/'.$storeA.'/inactive.jpg',
+                'target_type' => null,
+                'target_id' => null,
+                'target_url' => null,
+                'sort_order' => 1,
+                'is_active' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'store_id' => $storeB,
+                'title' => 'Foreign banner',
+                'image_path' => 'storage/banners/'.$storeB.'/foreign.jpg',
+                'target_type' => null,
+                'target_id' => null,
+                'target_url' => null,
+                'sort_order' => 1,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $published = $this->getJson('/api/v1/stores/'.$storeA.'/banners')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.title', 'Published hero')
+            ->assertJsonPath('data.1.title', 'Missing optional media')
+            ->assertJsonPath('data.1.image_url', null)
+            ->assertJsonMissing(['title' => 'Inactive banner'])
+            ->assertJsonMissing(['title' => 'Foreign banner']);
+
+        $publishedImage = $published->json('data.0.image_url');
+        $this->assertIsString($publishedImage);
+        $this->assertStringContainsString('/storage/banners/'.$storeA.'/published.jpg', $publishedImage);
+
+        $this->getJson('/api/v1/stores/'.$storeA.'/storefront')
+            ->assertOk()
+            ->assertJsonCount(2, 'banners')
+            ->assertJsonPath('hero.title', 'Published hero')
+            ->assertJsonPath('banners.1.image_url', null);
+
+        $this->actingAs($admin)->post(route('admin.business.banners.store'), [
+            'store_id' => $storeA,
+            'title' => 'Draft hero',
+            'banner_image' => UploadedFile::fake()->image('draft-hero.jpg', 800, 400),
+            'sort_order' => 5,
+            'is_active' => 1,
+        ])->assertSessionHasNoErrors();
+
+        $this->getJson('/api/v1/stores/'.$storeA.'/banners')
+            ->assertOk()
+            ->assertJsonMissing(['title' => 'Draft hero']);
+
+        $this->actingAs($admin)->post(route('admin.b2c.storefront.publish'), [
+            'store_id' => $storeA,
+        ])->assertSessionHasNoErrors();
+
+        $afterPublish = $this->getJson('/api/v1/stores/'.$storeA.'/banners')
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('data.0.title', 'Draft hero')
+            ->assertJsonMissing(['title' => 'Foreign banner']);
+
+        $draftImage = $afterPublish->json('data.0.image_url');
+        $this->assertIsString($draftImage);
+        $this->assertStringContainsString('/storage/banners/'.$storeA.'/', $draftImage);
+
+        $this->getJson('/api/v1/stores/'.$storeA.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('hero.title', 'Draft hero')
+            ->assertJsonPath('banners.0.title', 'Draft hero');
+
+        $this->assertDatabaseHas('banners', [
+            'store_id' => $storeB,
+            'title' => 'Foreign banner',
+            'is_active' => true,
+        ]);
+    }
+
     private function storeAdmin(int $storeId, string $email): User
     {
         $user = User::query()->create([
