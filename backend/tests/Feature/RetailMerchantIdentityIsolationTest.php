@@ -95,9 +95,25 @@ class RetailMerchantIdentityIsolationTest extends TestCase
             ], $user),
         );
 
+        $guestCart = $this->getJson('/api/v1/cart?store='.$store->id)->assertOk();
+        $guestToken = (string) $guestCart->headers->get('X-Guest-Token');
+        $this->assertNotSame('', $guestToken);
+
         Sanctum::actingAs($user);
 
-        $this->getJson('/api/v1/cart?store='.$store->id)
+        $this->withHeader('X-Guest-Token', $guestToken)
+            ->getJson('/api/v1/cart?store='.$store->id)
+            ->assertForbidden()
+            ->assertJsonPath('message', RetailMerchantIdentityService::SELF_STORE_PURCHASE_NOT_ALLOWED);
+
+        $this->assertDatabaseHas('carts', [
+            'store_id' => $store->id,
+            'guest_token' => $guestToken,
+            'channel' => 'b2c',
+        ]);
+
+        $this->withHeader('X-Guest-Token', '')
+            ->getJson('/api/v1/cart?store='.$store->id)
             ->assertForbidden()
             ->assertJsonPath('message', RetailMerchantIdentityService::SELF_STORE_PURCHASE_NOT_ALLOWED);
 
