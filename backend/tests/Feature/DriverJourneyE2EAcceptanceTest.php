@@ -370,7 +370,7 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
             ->where('type', $type)
             ->get()
             ->contains(fn (Notification $notification): bool =>
-                ($notification->data ?? [])[$key] ?? null === $expected);
+                ((($notification->data ?? [])[$key] ?? null) === $expected));
 
         $this->assertTrue(
             $matches,
