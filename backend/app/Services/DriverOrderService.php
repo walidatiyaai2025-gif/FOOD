@@ -365,6 +365,13 @@ final class DriverOrderService
                     }
                 }
 
+                $allowed = $this->availableStatuses($locked, $order);
+                abort_unless(
+                    in_array($targetStatus, $allowed, true),
+                    409,
+                    'The delivery action is not available for the current order state.',
+                );
+
                 if ($targetStatus === 'delivered') {
                     if (! $proofImage instanceof UploadedFile || ! $proofImage->isValid()) {
                         throw ValidationException::withMessages([
@@ -392,13 +399,6 @@ final class DriverOrderService
                         'proof_image' => ['The delivery proof image could not be read.'],
                     ]);
                 }
-
-                $allowed = $this->availableStatuses($locked, $order);
-                abort_unless(
-                    in_array($targetStatus, $allowed, true),
-                    409,
-                    'The delivery action is not available for the current order state.',
-                );
 
                 $beforeOrder = (string) $order->status;
 
