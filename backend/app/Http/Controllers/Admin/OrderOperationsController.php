@@ -16,6 +16,7 @@ use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverDeliveryEvidenceService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,6 +64,13 @@ final class OrderOperationsController extends Controller
         $data['channel'] = $operationalChannel;
 
         $storeIds = $this->scope->allowedStoreIds($actor, 'orders.view', $operationalChannel);
+        if ($operationalChannel === 'b2b') {
+            $principalStoreId = app(WholesalePrincipal::class)->storeId();
+            $storeIds = array_values(array_filter(
+                $storeIds,
+                static fn (int $storeId): bool => $storeId === $principalStoreId,
+            ));
+        }
         abort_if($storeIds === [], 403);
 
         $selectedStoreId = isset($data['store_id']) ? (int) $data['store_id'] : null;
