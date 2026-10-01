@@ -146,12 +146,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('b2c-address-menu-8')));
+      await tester.tap(find.byKey(const ValueKey('customer-address-menu-8')));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(PopupMenuItem<String>).first);
       await tester.pumpAndSettle();
       expect(
-        find.byKey(const ValueKey('b2c-address-location-preview')),
+        find.byKey(const ValueKey('customer-address-coordinates')),
         findsOneWidget,
       );
 
