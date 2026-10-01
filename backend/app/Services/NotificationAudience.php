@@ -10,21 +10,54 @@ final class NotificationAudience
 {
     public function apply(Builder $query, User $user): Builder
     {
-        $customerType = DB::table('customers')->where('user_id', $user->id)->value('type');
-        $driverType = DB::table('drivers')->where('user_id', $user->id)->value('driver_type');
+        $customerChannels = collect(
+            DB::table('customers')
+                ->where('user_id', $user->id)
+                ->pluck('type'),
+        )
+            ->when(
+                DB::table('b2b_customers')->where('user_id', $user->id)->exists(),
+                fn ($channels) => $channels->push('b2b'),
+            )
+            ->when(
+                DB::table('b2c_customers')->where('user_id', $user->id)->exists(),
+                fn ($channels) => $channels->push('b2c'),
+            )
+            ->filter(fn ($channel): bool => is_string($channel)
+                && in_array(strtolower($channel), ['b2b', 'b2c'], true))
+            ->map(static fn (string $channel): string => strtolower($channel))
+            ->unique()
+            ->values();
+
+        $driverChannels = collect(
+            DB::table('drivers')
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->pluck('driver_type'),
+        )
+            ->filter(fn ($channel): bool => is_string($channel)
+                && in_array(strtolower($channel), ['b2b', 'b2c'], true))
+            ->map(static fn (string $channel): string => strtolower($channel))
+            ->unique()
+            ->values();
 
         $apps = [];
-        $channels = [];
+        $channels = $customerChannels
+            ->merge($driverChannels)
+            ->unique()
+            ->values()
+            ->all();
         $dashboardStoreIds = [];
 
-        if (is_string($customerType)) {
+        $isCustomer = $customerChannels->isNotEmpty();
+        $isDriver = $driverChannels->isNotEmpty();
+
+        if ($isCustomer) {
             $apps[] = 'customer';
-            $channels[] = strtolower($customerType);
         }
 
-        if (is_string($driverType)) {
+        if ($isDriver) {
             $apps[] = 'driver';
-            $channels[] = strtolower($driverType);
         }
 
         $dashboardRoles = array_values((array) config('admin.dashboard_roles', []));
@@ -77,15 +110,15 @@ final class NotificationAudience
             ->where('status', 'published')
             ->whereNotNull('published_at')
             ->where('published_at', '<=', now())
-            ->where(function (Builder $audience) use ($user, $customerType, $driverType): void {
+            ->where(function (Builder $audience) use ($user, $isCustomer, $isDriver): void {
                 $audience->where('audience', 'all')
                     ->orWhere('user_id', $user->id);
 
-                if ($customerType !== null) {
+                if ($isCustomer) {
                     $audience->orWhere('audience', 'customer');
                 }
 
-                if ($driverType !== null) {
+                if ($isDriver) {
                     $audience->orWhere('audience', 'driver');
                 }
             })

@@ -15,6 +15,7 @@ final class DashboardOperationalNotifier
 {
     public function __construct(
         private readonly OrderLifecycleNotificationService $lifecycle,
+        private readonly OperationalTenantScope $tenantScope,
     ) {}
 
     public function platformCustomerRegistered(PlatformCustomer $customer): void
@@ -40,20 +41,22 @@ final class DashboardOperationalNotifier
             false,
         );
 
-        $recipients = User::query()
-            ->where('is_active', true)
-            ->get()
-            ->filter(
-                fn (User $user): bool => $user->hasPermission(
-                    $permission,
-                    $storeId,
-                ),
-            );
+        $recipients = $this->dashboardOperationalRecipients(
+            $permission,
+            $storeId,
+            $channel,
+        );
 
         foreach ($recipients as $recipient) {
             $type = 'customer.registered';
             $eventKey = 'platform-customer-registered:'.$customer->getKey();
-            $dedupeKey = hash('sha256', $type.'|'.$eventKey);
+            $dedupeKey = $this->dedupeKey(
+                $recipient,
+                $type,
+                $eventKey,
+                $channel,
+                $storeId,
+            );
 
             Notification::query()->firstOrCreate(
                 [
@@ -312,13 +315,20 @@ final class DashboardOperationalNotifier
         $storeId = (int) $order->store_id;
         $deepLink = $extraData['deep_link'] ?? $this->orderDeepLink($order);
 
-        $recipients = User::query()
-            ->where('is_active', true)
-            ->get()
-            ->filter(fn (User $user): bool => $user->hasPermission($permission, $storeId));
+        $recipients = $this->dashboardOperationalRecipients(
+            $permission,
+            $storeId,
+            $channel,
+        );
 
         foreach ($recipients as $recipient) {
-            $dedupeKey = hash('sha256', $type.'|'.$eventKey);
+            $dedupeKey = $this->dedupeKey(
+                $recipient,
+                $type,
+                $eventKey,
+                $channel,
+                $storeId,
+            );
 
             Notification::query()->firstOrCreate(
                 [
@@ -351,6 +361,49 @@ final class DashboardOperationalNotifier
                 ],
             );
         }
+    }
+
+    private function dashboardOperationalRecipients(
+        string $permission,
+        int $storeId,
+        string $channel,
+    ) {
+        return User::query()
+            ->where('is_active', true)
+            ->get()
+            ->filter(function (User $user) use ($permission, $storeId, $channel): bool {
+                // SUPER_ADMIN retains platform oversight/reporting access, but Retail
+                // operational events belong to the exact Retail Store audience only.
+                if ($channel === 'b2c' && $user->hasRole('SUPER_ADMIN')) {
+                    return false;
+                }
+
+                return in_array(
+                    $storeId,
+                    $this->tenantScope->allowedStoreIds(
+                        $user,
+                        $permission,
+                        $channel,
+                    ),
+                    true,
+                );
+            });
+    }
+
+    private function dedupeKey(
+        User $recipient,
+        string $type,
+        string $eventKey,
+        string $channel,
+        int $storeId,
+    ): string {
+        return hash('sha256', implode('|', [
+            'recipient:'.$recipient->getKey(),
+            'channel:'.$channel,
+            'store:'.$storeId,
+            'type:'.$type,
+            'event:'.$eventKey,
+        ]));
     }
 
     private function orderDeepLink(Order $order): string
