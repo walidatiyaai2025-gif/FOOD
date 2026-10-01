@@ -83,7 +83,8 @@ final class DriverDeliveryEvidenceService
             ->where('order_id', $assignment->order_id)
             ->orderBy('id')
             ->get()
-            ->map(function (DeliveryProof $proof) use ($assignment): array {
+            ->map(function ($proof) use ($assignment): array {
+                /** @var DeliveryProof $proof */
                 $hasImage = is_string($proof->file_path) && trim($proof->file_path) !== '';
 
                 return [
@@ -93,7 +94,9 @@ final class DriverDeliveryEvidenceService
                     'proof_type' => $proof->proof_type,
                     'reason_code' => $proof->reason_code,
                     'note' => $proof->note,
-                    'captured_at' => $proof->captured_at?->toISOString(),
+                    'captured_at' => $proof->captured_at === null
+                        ? null
+                        : (string) $proof->captured_at,
                     'proof' => $hasImage ? [
                         'available' => true,
                         'url' => route('admin.driver-live-tracking.proofs.show', [
