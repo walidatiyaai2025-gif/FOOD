@@ -17,14 +17,20 @@ abstract interface class B2cAccountApi {
   Future<Object?> updateAddress(int addressId, Map<String, dynamic> values);
   Future<Object?> setDefaultAddress(int addressId);
   Future<void> removeAddress(int addressId);
-  Future<Object?> favorites({int? storeId});
-  Future<void> addFavorite(int productId, {int? storeId});
-  Future<void> removeFavorite(int productId, {int? storeId});
+  Future<Object?> favorites();
+  Future<void> addFavorite(int productId);
+  Future<void> removeFavorite(int productId);
   Future<Object?> notifications({String locale = 'ar'});
   Future<void> markNotificationRead(int notificationId);
 }
 
-class HttpB2cAccountApi implements B2cAccountApi {
+abstract interface class B2cRetailFavoritesApi {
+  Future<Object?> favoritesForStore(int storeId);
+  Future<void> addFavoriteForStore(int storeId, int productId);
+  Future<void> removeFavoriteForStore(int storeId, int productId);
+}
+
+class HttpB2cAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
   HttpB2cAccountApi({
     required this.baseUrl,
     this.token,
@@ -161,13 +167,47 @@ class HttpB2cAccountApi implements B2cAccountApi {
   }
 
   @override
-  Future<Object?> favorites({int? storeId}) async {
+  Future<Object?> favorites() async {
+    _requireToken();
+    return _get('/api/v1/profile/favorites');
+  }
+
+  @override
+  Future<void> addFavorite(int productId) async {
+    _requireToken();
+    final response = await _send(
+      () => _client.post(
+        Uri.parse('$baseUrl/api/v1/profile/favorites/$productId'),
+        headers: _headers,
+      ),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
+  }
+
+  @override
+  Future<void> removeFavorite(int productId) async {
+    _requireToken();
+    final response = await _send(
+      () => _client.delete(
+        Uri.parse('$baseUrl/api/v1/profile/favorites/$productId'),
+        headers: _headers,
+      ),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
+  }
+
+  @override
+  Future<Object?> favoritesForStore(int storeId) async {
     _requireToken();
     return _get('/api/v1/profile/favorites', storeId: storeId);
   }
 
   @override
-  Future<void> addFavorite(int productId, {int? storeId}) async {
+  Future<void> addFavoriteForStore(int storeId, int productId) async {
     _requireToken();
     final response = await _send(
       () => _client.post(
@@ -181,7 +221,7 @@ class HttpB2cAccountApi implements B2cAccountApi {
   }
 
   @override
-  Future<void> removeFavorite(int productId, {int? storeId}) async {
+  Future<void> removeFavoriteForStore(int storeId, int productId) async {
     _requireToken();
     final response = await _send(
       () => _client.delete(
