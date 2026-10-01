@@ -12,22 +12,49 @@ abstract interface class CustomerSessionStore {
   Future<void> clear();
 }
 
-class SecureCustomerSessionStore implements CustomerSessionStore {
-  SecureCustomerSessionStore({
+abstract interface class CustomerSecureKeyValueStore {
+  Future<String?> read(String key);
+
+  Future<void> write(String key, String value);
+
+  Future<void> delete(String key);
+}
+
+class FlutterCustomerSecureKeyValueStore
+    implements CustomerSecureKeyValueStore {
+  FlutterCustomerSecureKeyValueStore({
     FlutterSecureStorage? storage,
   }) : _storage = storage ??
             const FlutterSecureStorage(
               aOptions: AndroidOptions(encryptedSharedPreferences: true),
             );
 
-  static const _key = 'foodex.customer.auth_session.v1';
-  static const _schemaVersion = 1;
-
   final FlutterSecureStorage _storage;
 
   @override
+  Future<String?> read(String key) => _storage.read(key: key);
+
+  @override
+  Future<void> write(String key, String value) =>
+      _storage.write(key: key, value: value);
+
+  @override
+  Future<void> delete(String key) => _storage.delete(key: key);
+}
+
+class SecureCustomerSessionStore implements CustomerSessionStore {
+  SecureCustomerSessionStore({
+    CustomerSecureKeyValueStore? storage,
+  }) : _storage = storage ?? FlutterCustomerSecureKeyValueStore();
+
+  static const _key = 'foodex.customer.auth_session.v1';
+  static const _schemaVersion = 1;
+
+  final CustomerSecureKeyValueStore _storage;
+
+  @override
   Future<CustomerSession?> read() async {
-    final raw = await _storage.read(key: _key);
+    final raw = await _storage.read(_key);
     if (raw == null || raw.trim().isEmpty) {
       return null;
     }
@@ -97,8 +124,8 @@ class SecureCustomerSessionStore implements CustomerSessionStore {
     }
 
     await _storage.write(
-      key: _key,
-      value: jsonEncode({
+      _key,
+      jsonEncode({
         'version': _schemaVersion,
         'channel': channel.name,
         'access_token': token,
@@ -109,5 +136,5 @@ class SecureCustomerSessionStore implements CustomerSessionStore {
   }
 
   @override
-  Future<void> clear() => _storage.delete(key: _key);
+  Future<void> clear() => _storage.delete(_key);
 }
