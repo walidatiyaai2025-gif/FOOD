@@ -150,8 +150,14 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
       _collection('/api/v1/stores', B2cStore.fromJson);
 
   @override
-  Future<List<B2cCategory>> categories(int storeId) async =>
-      _collection('/api/v1/stores/$storeId/categories', B2cCategory.fromJson);
+  Future<List<B2cCategory>> categories(int storeId) async {
+    _requireStoreId(storeId);
+    return _collection(
+      '/api/v1/stores/$storeId/categories',
+      B2cCategory.fromJson,
+      storeId: storeId,
+    );
+  }
 
   @override
   Future<List<B2cProduct>> products(
@@ -168,26 +174,45 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
       if (direction != null && direction.trim().isNotEmpty)
         'direction': direction.trim(),
     };
+    _requireStoreId(storeId);
     return _collection(
       '/api/v1/stores/$storeId/products',
       B2cProduct.fromJson,
       query: params,
+      storeId: storeId,
     );
   }
 
   @override
-  Future<List<B2cOffer>> offers(int storeId) async =>
-      _collection('/api/v1/stores/$storeId/offers', B2cOffer.fromJson);
+  Future<List<B2cOffer>> offers(int storeId) async {
+    _requireStoreId(storeId);
+    return _collection(
+      '/api/v1/stores/$storeId/offers',
+      B2cOffer.fromJson,
+      storeId: storeId,
+    );
+  }
 
   @override
-  Future<List<B2cBanner>> banners(int storeId) async =>
-      _collection('/api/v1/stores/$storeId/banners', B2cBanner.fromJson);
+  Future<List<B2cBanner>> banners(int storeId) async {
+    _requireStoreId(storeId);
+    return _collection(
+      '/api/v1/stores/$storeId/banners',
+      B2cBanner.fromJson,
+      storeId: storeId,
+    );
+  }
 
   @override
   Future<B2cProduct> product(int productId, {required int storeId}) async {
+    _requireStoreId(storeId);
+    if (productId <= 0) {
+      throw ArgumentError.value(productId, 'productId', 'must be positive');
+    }
     final body = await _get(
       '/api/v1/products/$productId',
       query: {'store': '$storeId'},
+      storeId: storeId,
     );
     if (body is! Map<String, dynamic>) {
       throw const B2cCatalogException('invalid_product_response');
@@ -199,8 +224,9 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
     String path,
     T Function(Map<String, dynamic>) factory, {
     Map<String, String> query = const {},
+    int? storeId,
   }) async {
-    final body = await _get(path, query: query);
+    final body = await _get(path, query: query, storeId: storeId);
     if (body is! Map || body['data'] is! List) {
       throw const B2cCatalogException('invalid_collection_response');
     }
@@ -213,11 +239,17 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
   Future<Object?> _get(
     String path, {
     Map<String, String> query = const {},
+    int? storeId,
   }) async {
     final base = Uri.parse('$baseUrl$path');
     final uri = query.isEmpty ? base : base.replace(queryParameters: query);
-    final response =
-        await _client.get(uri, headers: const {'Accept': 'application/json'});
+    final response = await _client.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (storeId != null) 'X-FOODEX-Store-ID': '$storeId',
+      },
+    );
 
     Object? body;
     if (response.body.isNotEmpty) {
@@ -232,6 +264,12 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
       throw B2cCatalogException('http_${response.statusCode}');
     }
     return body;
+  }
+
+  static void _requireStoreId(int storeId) {
+    if (storeId <= 0) {
+      throw ArgumentError.value(storeId, 'storeId', 'must be positive');
+    }
   }
 }
 

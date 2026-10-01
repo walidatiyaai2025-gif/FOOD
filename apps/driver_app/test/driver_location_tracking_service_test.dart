@@ -121,6 +121,40 @@ DriverLocationSample _sample(int second) => DriverLocationSample(
     );
 
 void main() {
+  test('tracking lifecycle policy is active only for delivery execution states', () {
+    for (final status in ['accepted', 'picked_up', 'out_for_delivery']) {
+      expect(
+        DriverLocationTrackingLifecyclePolicy.requiresActiveTracking(status),
+        isTrue,
+        reason: status,
+      );
+      expect(
+        DriverLocationTrackingLifecyclePolicy.stopsTracking(status),
+        isFalse,
+        reason: status,
+      );
+    }
+
+    expect(
+      DriverLocationTrackingLifecyclePolicy.requiresActiveTracking('assigned'),
+      isFalse,
+    );
+
+    for (final status in [
+      'delivered',
+      'failed',
+      'cancelled',
+      'unassigned',
+      'reassigned',
+    ]) {
+      expect(
+        DriverLocationTrackingLifecyclePolicy.stopsTracking(status),
+        isTrue,
+        reason: status,
+      );
+    }
+  });
+
   test('tracking waits for gate readiness and switches active/idle cadence',
       () async {
     final scheduler = _FakeScheduler();
@@ -194,6 +228,45 @@ void main() {
     expect(heartbeat.successful.map((sample) => sample.capturedAt.second), [1, 2, 3]);
     expect(service.activeDelivery, isFalse);
     expect(service.backgroundTracking, isFalse);
+
+    service.dispose();
+    await source.close();
+  });
+
+  test('terminal assignment status stops active tracking until new work arrives',
+      () async {
+    final scheduler = _FakeScheduler();
+    final source = _FakeBackgroundLocationSource([_sample(1), _sample(2)]);
+    final service = DriverLocationTrackingService(
+      locationSource: source,
+      heartbeatClient: _FakeHeartbeatClient(),
+      scheduler: scheduler,
+      inspector: DriverRuntimeInspector(maxEvents: 20),
+    );
+
+    service.start();
+    service.setGateReady(true);
+    service.setAssignmentStatus('accepted');
+    expect(service.activeDelivery, isTrue);
+    expect(service.terminalAssignment, isFalse);
+
+    service.setAppInForeground(false);
+    expect(service.backgroundTracking, isTrue);
+
+    service.setAssignmentStatus('delivered');
+    expect(service.activeDelivery, isFalse);
+    expect(service.terminalAssignment, isTrue);
+    expect(service.backgroundTracking, isFalse);
+    expect(scheduler.callback, isNull);
+    expect(service.queuedSamples, 0);
+
+    service.setAppInForeground(true);
+    expect(scheduler.callback, isNull);
+
+    service.setAssignmentStatus('assigned');
+    expect(service.terminalAssignment, isFalse);
+    expect(service.activeDelivery, isFalse);
+    expect(scheduler.delay, Duration.zero);
 
     service.dispose();
     await source.close();
@@ -387,6 +460,8 @@ void main() {
               'store_id': 5,
               'channel': 'b2c',
               'active_assignment_id': 77,
+              'active_assignment_status': 'out_for_delivery',
+              'tracking_required': true,
             },
           }),
           200,
@@ -398,6 +473,8 @@ void main() {
     final receipt = await client.send(_sample(1));
 
     expect(receipt.activeAssignmentId, 77);
+    expect(receipt.activeAssignmentStatus, 'out_for_delivery');
+    expect(receipt.trackingRequired, isTrue);
     expect(payload['captured_at'], '2026-09-30T06:00:01.000Z');
     expect(payload['app_version'], driverAppVersion);
     expect(payload['accuracy'], 5);

@@ -31,9 +31,25 @@ class DriverLocationSample {
 }
 
 class DriverHeartbeatReceipt {
-  const DriverHeartbeatReceipt({this.activeAssignmentId});
+  const DriverHeartbeatReceipt({
+    this.activeAssignmentId,
+    this.activeAssignmentStatus,
+  });
 
   final int? activeAssignmentId;
+  final String? activeAssignmentStatus;
+
+  bool get trackingRequired {
+    final status = DriverLocationTrackingLifecyclePolicy.normalize(
+      activeAssignmentStatus,
+    );
+    if (status != null) {
+      return DriverLocationTrackingLifecyclePolicy.requiresActiveTracking(
+        status,
+      );
+    }
+    return activeAssignmentId != null;
+  }
 }
 
 abstract interface class DriverLocationSource {
@@ -183,15 +199,50 @@ class HttpDriverLocationHeartbeatClient implements DriverLocationHeartbeatClient
 
     final data = Map<String, dynamic>.from(decoded['data'] as Map);
     final activeAssignment = data['active_assignment_id'];
+    final activeAssignmentStatus = data['active_assignment_status'];
 
     return DriverHeartbeatReceipt(
       activeAssignmentId: activeAssignment is num
           ? activeAssignment.toInt()
           : null,
+      activeAssignmentStatus: activeAssignmentStatus is String
+          ? activeAssignmentStatus
+          : null,
     );
   }
 
   void close() => _client.close();
+}
+
+abstract final class DriverLocationTrackingLifecyclePolicy {
+  static const Set<String> activeStatuses = <String>{
+    'accepted',
+    'picked_up',
+    'out_for_delivery',
+  };
+
+  static const Set<String> terminalStatuses = <String>{
+    'delivered',
+    'failed',
+    'cancelled',
+    'unassigned',
+    'reassigned',
+  };
+
+  static String? normalize(String? status) {
+    final value = status?.trim().toLowerCase();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  static bool requiresActiveTracking(String? status) {
+    final value = normalize(status);
+    return value != null && activeStatuses.contains(value);
+  }
+
+  static bool stopsTracking(String? status) {
+    final value = normalize(status);
+    return value != null && terminalStatuses.contains(value);
+  }
 }
 
 class DriverTrackingCadencePolicy {
@@ -235,6 +286,7 @@ class TimerDriverTrackingScheduler implements DriverTrackingScheduler {
 abstract interface class DriverLocationTrackingController {
   void start();
   void setGateReady(bool ready);
+  void setAssignmentStatus(String? status);
   void setAppInForeground(bool foreground);
   void stop({bool clearQueue = true});
   void dispose();
@@ -270,12 +322,16 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
   bool _backgroundFlushRunning = false;
   bool _disposed = false;
   bool _activeDelivery = false;
+  bool _terminalAssignment = false;
+  String? _assignmentStatus;
   bool _appInForeground = true;
   StreamSubscription<DriverLocationSample>? _backgroundSubscription;
 
   bool get isStarted => _started;
   bool get gateReady => _gateReady;
   bool get activeDelivery => _activeDelivery;
+  bool get terminalAssignment => _terminalAssignment;
+  String? get assignmentStatus => _assignmentStatus;
   bool get appInForeground => _appInForeground;
   bool get backgroundTracking => _backgroundSubscription != null;
   int get queuedSamples => _queue.length;
@@ -295,6 +351,35 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
   }
 
   @override
+  void setAssignmentStatus(String? status) {
+    if (_disposed) return;
+
+    final normalized = DriverLocationTrackingLifecyclePolicy.normalize(status);
+    final nextTerminal =
+        DriverLocationTrackingLifecyclePolicy.stopsTracking(normalized);
+    final nextActive =
+        DriverLocationTrackingLifecyclePolicy.requiresActiveTracking(
+      normalized,
+    );
+
+    if (_assignmentStatus == normalized &&
+        _terminalAssignment == nextTerminal &&
+        _activeDelivery == nextActive) {
+      return;
+    }
+
+    _assignmentStatus = normalized;
+    _terminalAssignment = nextTerminal;
+    _activeDelivery = nextActive;
+
+    if (_terminalAssignment) {
+      _queue.clear();
+    }
+
+    _reconcileTrackingMode();
+  }
+
+  @override
   void setAppInForeground(bool foreground) {
     if (_disposed || _appInForeground == foreground) return;
     _appInForeground = foreground;
@@ -306,6 +391,8 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
     _started = false;
     _gateReady = false;
     _activeDelivery = false;
+    _terminalAssignment = false;
+    _assignmentStatus = null;
     scheduler.cancel();
     _stopBackgroundStream();
     if (clearQueue) {
@@ -361,7 +448,8 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
     }
   }
 
-  bool get _canRun => _started && _gateReady && !_disposed;
+  bool get _canRun =>
+      _started && _gateReady && !_disposed && !_terminalAssignment;
 
   void _schedule(Duration delay) {
     if (!_canRun || !_appInForeground) return;
@@ -393,8 +481,27 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
 
   void _applyReceipt(DriverHeartbeatReceipt? receipt) {
     if (receipt == null) return;
+
+    final normalizedStatus = DriverLocationTrackingLifecyclePolicy.normalize(
+      receipt.activeAssignmentStatus,
+    );
     final wasActive = _activeDelivery;
-    _activeDelivery = receipt.activeAssignmentId != null;
+
+    if (normalizedStatus != null) {
+      _assignmentStatus = normalizedStatus;
+      _terminalAssignment =
+          DriverLocationTrackingLifecyclePolicy.stopsTracking(normalizedStatus);
+      _activeDelivery =
+          DriverLocationTrackingLifecyclePolicy.requiresActiveTracking(
+        normalizedStatus,
+      );
+    } else {
+      _activeDelivery = receipt.trackingRequired;
+      if (receipt.activeAssignmentId == null) {
+        _assignmentStatus = null;
+      }
+    }
+
     if (wasActive != _activeDelivery || !_appInForeground) {
       _reconcileTrackingMode();
     }

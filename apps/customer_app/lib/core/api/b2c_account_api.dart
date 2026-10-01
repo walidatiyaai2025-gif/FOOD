@@ -24,7 +24,13 @@ abstract interface class B2cAccountApi {
   Future<void> markNotificationRead(int notificationId);
 }
 
-class HttpB2cAccountApi implements B2cAccountApi {
+abstract interface class B2cRetailFavoritesApi {
+  Future<Object?> favoritesForStore(int storeId);
+  Future<void> addFavoriteForStore(int storeId, int productId);
+  Future<void> removeFavoriteForStore(int storeId, int productId);
+}
+
+class HttpB2cAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
   HttpB2cAccountApi({
     required this.baseUrl,
     this.token,
@@ -195,6 +201,40 @@ class HttpB2cAccountApi implements B2cAccountApi {
   }
 
   @override
+  Future<Object?> favoritesForStore(int storeId) async {
+    _requireToken();
+    return _get('/api/v1/profile/favorites', storeId: storeId);
+  }
+
+  @override
+  Future<void> addFavoriteForStore(int storeId, int productId) async {
+    _requireToken();
+    final response = await _send(
+      () => _client.post(
+        Uri.parse('$baseUrl/api/v1/profile/favorites/$productId'),
+        headers: _headersForStore(storeId),
+      ),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
+  }
+
+  @override
+  Future<void> removeFavoriteForStore(int storeId, int productId) async {
+    _requireToken();
+    final response = await _send(
+      () => _client.delete(
+        Uri.parse('$baseUrl/api/v1/profile/favorites/$productId'),
+        headers: _headersForStore(storeId),
+      ),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
+  }
+
+  @override
   Future<Object?> notifications({String locale = 'ar'}) async {
     _requireToken();
     final uri = Uri.parse('$baseUrl/api/v1/notifications').replace(
@@ -218,9 +258,12 @@ class HttpB2cAccountApi implements B2cAccountApi {
     }
   }
 
-  Future<Object?> _get(String path) async {
+  Future<Object?> _get(String path, {int? storeId}) async {
     final response = await _send(
-      () => _client.get(Uri.parse('$baseUrl$path'), headers: _headers),
+      () => _client.get(
+        Uri.parse('$baseUrl$path'),
+        headers: _headersForStore(storeId),
+      ),
     );
     return _decode(response);
   }
