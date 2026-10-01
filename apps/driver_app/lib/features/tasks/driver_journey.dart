@@ -506,7 +506,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
   }
 
   String? _primaryActionStatus(DriverAssignment assignment) {
-    if (assignment.status == 'accepted' &&
+    if (const ['accepted', 'picked_up'].contains(assignment.status) &&
         assignment.availableStatuses.contains('out_for_delivery')) {
       return 'out_for_delivery';
     }
