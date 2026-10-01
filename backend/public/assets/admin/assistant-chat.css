@@ -1,0 +1,61 @@
+.foodex-assistant{position:relative;margin-top:auto;padding-top:10px}
+.foodex-assistant-launcher{width:100%;min-height:58px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface,#fff);color:var(--foodex-ink);display:grid;grid-template-columns:42px minmax(0,1fr) 10px;align-items:center;gap:10px;padding:8px 10px;text-align:start;cursor:pointer;box-shadow:var(--foodex-shadow-sm);transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.foodex-assistant-launcher:hover,.foodex-assistant-launcher:focus-visible{border-color:var(--foodex-green);box-shadow:var(--foodex-shadow);transform:translateY(-1px);outline:none}
+.foodex-assistant-launcher-copy{min-width:0;display:grid;gap:2px}
+.foodex-assistant-launcher-copy strong{font-size:.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foodex-assistant-launcher-copy small{font-size:.67rem;color:var(--foodex-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foodex-assistant-launcher-status{width:9px;height:9px;border-radius:999px;background:var(--foodex-green);box-shadow:0 0 0 3px rgba(21,138,58,.12)}
+.foodex-assistant-avatar{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark);border:1px solid var(--foodex-border);flex:0 0 auto}
+.foodex-assistant-avatar svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.foodex-assistant-avatar-lg{width:42px;height:42px}
+aside.foodex-sidebar-collapsed .foodex-assistant-launcher{grid-template-columns:1fr;place-items:center;padding:8px}
+aside.foodex-sidebar-collapsed .foodex-assistant-launcher-copy,aside.foodex-sidebar-collapsed .foodex-assistant-launcher-status{display:none}
+.foodex-assistant-drawer{position:fixed;z-index:1200;inset-block:0;inset-inline-end:0;width:min(410px,calc(100vw - 24px));display:grid;grid-template-rows:auto auto minmax(0,1fr) auto auto;background:var(--foodex-surface,#fff);border-inline-start:1px solid var(--foodex-border);box-shadow:0 22px 55px rgba(15,23,42,.20);color:var(--foodex-ink);direction:inherit}
+.foodex-assistant-drawer[hidden]{display:none!important}
+.foodex-assistant-header{min-height:72px;padding:12px 14px;border-bottom:1px solid var(--foodex-border);display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--foodex-surface,#fff)}
+.foodex-assistant-heading{min-width:0;display:flex;align-items:center;gap:10px}
+.foodex-assistant-heading>span:last-child{min-width:0;display:grid;gap:2px}
+.foodex-assistant-heading strong{font-size:.95rem}
+.foodex-assistant-heading small{font-size:.72rem;color:var(--foodex-muted)}
+.foodex-assistant-header-actions{display:flex;align-items:center;gap:6px}
+.foodex-assistant-icon-button{width:38px;height:38px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface,#fff);color:var(--foodex-ink);cursor:pointer;font-size:1.08rem}
+.foodex-assistant-icon-button:hover,.foodex-assistant-icon-button:focus-visible{border-color:var(--foodex-green);color:var(--foodex-green-dark);outline:none}
+.foodex-assistant-status{min-height:0;padding:0 14px;font-size:.72rem;color:var(--foodex-muted)}
+.foodex-assistant-status:not(:empty){min-height:34px;padding-block:8px;border-bottom:1px solid var(--foodex-border);background:var(--foodex-green-soft)}
+.foodex-assistant-status[data-state=error]{color:#9f2d20;background:#fff5f3}
+.foodex-assistant-messages{min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px 14px;display:flex;flex-direction:column;gap:12px;scrollbar-gutter:stable}
+.foodex-assistant-empty{margin:auto;max-width:290px;text-align:center;color:var(--foodex-muted);display:grid;justify-items:center;gap:10px;line-height:1.6}
+.foodex-assistant-empty p{margin:0}
+.foodex-assistant-message{max-width:88%;display:grid;gap:5px}
+.foodex-assistant-message[data-role=user]{align-self:flex-end}
+.foodex-assistant-message[data-role=assistant]{align-self:flex-start}
+.foodex-assistant-message-meta{font-size:.66rem;color:var(--foodex-muted)}
+.foodex-assistant-message[data-role=user] .foodex-assistant-message-meta{text-align:end}
+.foodex-assistant-bubble{padding:10px 12px;border-radius:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.foodex-assistant-message[data-role=user] .foodex-assistant-bubble{background:var(--foodex-green);color:#fff;border-end-end-radius:5px}
+.foodex-assistant-message[data-role=assistant] .foodex-assistant-bubble{background:var(--foodex-green-soft);color:var(--foodex-ink);border:1px solid var(--foodex-border);border-end-start-radius:5px}
+.foodex-assistant-message[data-state=error] .foodex-assistant-bubble{background:#fff5f3;border-color:#f0c4bc;color:#84291d}
+.foodex-assistant-typing{display:inline-flex;align-items:center;gap:4px;min-height:18px}
+.foodex-assistant-typing span{width:6px;height:6px;border-radius:999px;background:currentColor;opacity:.35;animation:foodex-assistant-dot 1s infinite ease-in-out}
+.foodex-assistant-typing span:nth-child(2){animation-delay:.15s}.foodex-assistant-typing span:nth-child(3){animation-delay:.3s}
+@keyframes foodex-assistant-dot{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-3px);opacity:.8}}
+.foodex-assistant-cards{display:grid;gap:8px;margin-top:7px}
+.foodex-assistant-card{border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface,#fff);padding:10px;display:grid;gap:6px}
+.foodex-assistant-card-title{font-size:.76rem;font-weight:700;color:var(--foodex-green-dark)}
+.foodex-assistant-card-row{display:flex;justify-content:space-between;gap:12px;font-size:.72rem}
+.foodex-assistant-card-row span:first-child{color:var(--foodex-muted)}
+.foodex-assistant-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}
+.foodex-assistant-action{min-height:36px;border:1px solid var(--foodex-border);border-radius:10px;padding:7px 10px;background:var(--foodex-surface,#fff);color:var(--foodex-green-dark);font-size:.72rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.foodex-assistant-action:hover,.foodex-assistant-action:focus-visible{border-color:var(--foodex-green);outline:none}
+.foodex-assistant-prompts{padding:8px 14px;display:flex;gap:7px;overflow-x:auto;border-top:1px solid var(--foodex-border);scrollbar-width:thin}
+.foodex-assistant-prompt{flex:0 0 auto;min-height:36px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface,#fff);color:var(--foodex-green-dark);padding:6px 10px;cursor:pointer;font-size:.72rem}
+.foodex-assistant-prompt:hover,.foodex-assistant-prompt:focus-visible{border-color:var(--foodex-green);background:var(--foodex-green-soft);outline:none}
+.foodex-assistant-composer{padding:10px 14px 14px;border-top:1px solid var(--foodex-border);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;background:var(--foodex-surface,#fff)}
+.foodex-assistant-composer textarea{width:100%;min-height:44px;max-height:130px;resize:none;border:1px solid var(--foodex-border);border-radius:12px;padding:10px 11px;font:inherit;line-height:1.4;color:var(--foodex-ink);background:var(--foodex-surface,#fff)}
+.foodex-assistant-composer textarea:focus{border-color:var(--foodex-green);box-shadow:0 0 0 3px rgba(21,138,58,.10);outline:none}
+.foodex-assistant-send{min-height:44px;border:0;border-radius:12px;background:var(--foodex-green);color:#fff;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}
+.foodex-assistant-send:disabled,.foodex-assistant-composer textarea:disabled{opacity:.55;cursor:not-allowed}
+.foodex-assistant .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(max-width:1023px){.foodex-assistant{margin-top:10px}.foodex-assistant-launcher{grid-template-columns:42px minmax(0,1fr) 10px}.foodex-assistant-launcher-copy,.foodex-assistant-launcher-status{display:grid}.foodex-assistant-drawer{width:100vw;max-width:none;border-inline-start:0}}
+@media(max-width:767px){.foodex-assistant-drawer{width:100vw;height:100dvh}.foodex-assistant-header{padding:10px 12px}.foodex-assistant-messages{padding:14px 12px}.foodex-assistant-prompts{padding-inline:12px}.foodex-assistant-composer{padding:9px 12px calc(9px + env(safe-area-inset-bottom))}}
+@media(prefers-reduced-motion:reduce){.foodex-assistant-launcher,.foodex-assistant-typing span{transition:none;animation:none}}

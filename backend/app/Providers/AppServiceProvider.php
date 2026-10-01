@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Domain\Assistant\Business\AssistantBusinessToolSet;
+use App\Domain\Assistant\Contracts\AssistantBrainInterface;
+use App\Domain\Assistant\Conversation\DeterministicBrain;
+use App\Domain\Assistant\Operations\AssistantOperationsToolSet;
+use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Domain\Updater\LaravelUpdateRuntime;
 use App\Domain\Updater\UpdateRuntime;
 use App\Models\B2bCustomer;
@@ -23,6 +28,13 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(AssistantToolRegistry::class, function ($app): AssistantToolRegistry {
+            return new AssistantToolRegistry([
+                ...$app->make(AssistantBusinessToolSet::class)->all(),
+                ...$app->make(AssistantOperationsToolSet::class)->all(),
+            ]);
+        });
+        $this->app->bind(AssistantBrainInterface::class, DeterministicBrain::class);
         $this->app->scoped(StoreContext::class, static fn (): StoreContext => new StoreContext);
         $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
         $this->app->extend(
@@ -43,6 +55,13 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(20)->by('login-ip:'.$request->ip()),
                 Limit::perMinute(5)->by('login:'.$email.'|'.$request->ip()),
             ];
+        });
+
+        RateLimiter::for('assistant', function (Request $request): Limit {
+            $userId = $request->user()?->getAuthIdentifier();
+            $key = $userId === null ? 'assistant:ip:'.$request->ip() : 'assistant:user:'.$userId;
+
+            return Limit::perMinute(max(1, (int) config('assistant.rate_limit', 30)))->by($key);
         });
 
         foreach (array_keys((array) config('permissions.abilities', [])) as $ability) {
