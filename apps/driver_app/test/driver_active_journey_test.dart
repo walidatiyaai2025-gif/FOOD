@@ -285,11 +285,27 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('driver-active-detail-5')), findsOneWidget);
-    expect(find.text('Store Eight'), findsOneWidget);
-    expect(find.text('Customer Name'), findsOneWidget);
-    expect(find.text('Immutable delivery snapshot'), findsOneWidget);
-    expect(find.text('Product A'), findsOneWidget);
+    final detail = find.byKey(const Key('driver-active-detail-5'));
+    expect(detail, findsOneWidget);
+    expect(
+      find.descendant(of: detail, matching: find.text('Store Eight')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: detail, matching: find.text('Customer Name')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: detail,
+        matching: find.text('Immutable delivery snapshot'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: detail, matching: find.text('Product A')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const Key('driver-active-navigate-5')));
     await tester.pumpAndSettle();
