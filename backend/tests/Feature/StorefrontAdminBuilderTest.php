@@ -453,6 +453,7 @@ class StorefrontAdminBuilderTest extends TestCase
         $admin = $this->storeAdmin($storeA, 'banner-contract@example.test');
 
         Storage::disk('public')->put('banners/'.$storeA.'/published.jpg', 'published');
+        Storage::disk('public')->put('banners/'.$storeA.'/inactive.jpg', 'inactive');
         Storage::disk('public')->put('banners/'.$storeB.'/foreign.jpg', 'foreign');
 
         DB::table('banners')->insert([
