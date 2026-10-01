@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/auth/driver_session.dart';
+import '../../core/localization/driver_translations.dart';
 import '../../core/navigation/driver_navigation.dart';
 import '../../core/preview/driver_preview_context.dart';
 import 'active/driver_active_journey.dart';
@@ -57,10 +58,29 @@ class DriverJourneyRuntimePage extends StatelessWidget {
         previewContext: previewContext,
         onSessionExpired: onSessionExpired,
         onNavigationRequested: (assignment) async {
+          final preview = previewContext;
+          if (preview != null && !preview.nativeNavigationEnabled) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  context.tr('driver.preview.navigation_simulated'),
+                ),
+              ),
+            );
+            return;
+          }
+
           final latitude = assignment.navigationLatitude;
           final longitude = assignment.navigationLongitude;
           if (latitude == null || longitude == null) return;
-          await navigationLauncher(latitude, longitude);
+          final opened = await navigationLauncher(latitude, longitude);
+          if (!opened && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(context.tr('driver.navigation.unavailable')),
+              ),
+            );
+          }
         },
         onFailedDeliveryRequested: (assignment, {note}) => _openCompletion(
           context,
