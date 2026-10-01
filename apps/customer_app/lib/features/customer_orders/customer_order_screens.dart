@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/localization/app_translations.dart';
+import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_order_models.dart';
 import 'customer_orders_api.dart';
 
@@ -56,6 +57,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('customer-orders-screen'),
+        backgroundColor: CustomerUiColors.mint,
         appBar: AppBar(
           title: Text(context.tr('customer.profile.orders')),
           actions: [
@@ -75,14 +77,18 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
 
   Widget _body(BuildContext context) {
     if (_loading && _page == null) {
-      return const _ScrollableState(child: CircularProgressIndicator());
+      return const _OrdersListSkeleton();
     }
 
     if (_error != null && _page == null) {
       return _ScrollableState(
-        child: _ErrorState(
+        child: CustomerStateView(
+          kind: CustomerStateKind.error,
+          title: context.tr('customer.error.action_failed'),
           message: _errorText(context, _error!),
-          onRetry: _load,
+          actionLabel: context.tr('customer.action.retry'),
+          onAction: () => unawaited(_load()),
+          icon: Icons.receipt_long_outlined,
         ),
       );
     }
@@ -90,9 +96,11 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
     final orders = _page?.orders ?? const <CustomerOrderSummary>[];
     if (orders.isEmpty) {
       return _ScrollableState(
-        child: _EmptyState(
+        child: CustomerStateView(
+          kind: CustomerStateKind.empty,
           title: context.tr('customer.orders.empty'),
-          subtitle: context.tr('customer.orders.subtitle'),
+          message: context.tr('customer.orders.subtitle'),
+          icon: Icons.receipt_long_outlined,
         ),
       );
     }
@@ -276,6 +284,7 @@ class _CustomerOrderDetailsScreenState
             ? 'customer-order-tracking-${widget.orderId}'
             : 'customer-order-details-${widget.orderId}',
       ),
+      backgroundColor: CustomerUiColors.mint,
       appBar: AppBar(
         title: Text(title),
         actions: [
@@ -296,14 +305,18 @@ class _CustomerOrderDetailsScreenState
 
   Widget _body(BuildContext context) {
     if (_loading && _order == null) {
-      return const _ScrollableState(child: CircularProgressIndicator());
+      return const _OrderDetailsSkeleton();
     }
 
     if (_error != null && _order == null) {
       return _ScrollableState(
-        child: _ErrorState(
+        child: CustomerStateView(
+          kind: CustomerStateKind.error,
+          title: context.tr('customer.error.action_failed'),
           message: _errorText(context, _error!),
-          onRetry: _load,
+          actionLabel: context.tr('customer.action.retry'),
+          onAction: () => unawaited(_load()),
+          icon: Icons.location_searching_rounded,
         ),
       );
     }
@@ -311,9 +324,11 @@ class _CustomerOrderDetailsScreenState
     final order = _order;
     if (order == null) {
       return _ScrollableState(
-        child: _EmptyState(
+        child: CustomerStateView(
+          kind: CustomerStateKind.empty,
           title: context.tr('customer.empty'),
-          subtitle: context.tr('customer.orders.subtitle'),
+          message: context.tr('customer.orders.subtitle'),
+          icon: Icons.location_searching_rounded,
         ),
       );
     }
@@ -376,66 +391,115 @@ class _OrderCard extends StatelessWidget {
         ? context.tr('customer.orders.channel.wholesale')
         : context.tr('customer.orders.channel.retail');
     final store = order.storeName?.trim();
+    final title = order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber;
 
-    return Card(
+    return Material(
       key: ValueKey('customer-order-${order.id}'),
+      color: CustomerUiColors.white,
+      borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 23,
-                backgroundImage: order.storeLogoUrl == null
-                    ? null
-                    : NetworkImage(order.storeLogoUrl!),
-                child: order.storeLogoUrl == null
-                    ? Icon(
-                        order.channel == 'b2b'
-                            ? Icons.warehouse_outlined
-                            : Icons.storefront_outlined,
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      order.orderNumber.isEmpty
-                          ? '#${order.id}'
-                          : order.orderNumber,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+            border: Border.all(color: CustomerUiColors.border),
+            boxShadow: CustomerUiElevation.cardShadow,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(CustomerUiSpacing.md),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: CustomerUiColors.mint,
+                    shape: BoxShape.circle,
+                  ),
+                  child: SizedBox.square(
+                    dimension: 54,
+                    child: ClipOval(
+                      child: order.storeLogoUrl == null
+                          ? Icon(
+                              order.channel == 'b2b'
+                                  ? Icons.warehouse_outlined
+                                  : Icons.storefront_outlined,
+                              color: CustomerUiColors.deepGreenStrong,
+                            )
+                          : Image.network(
+                              order.storeLogoUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Icon(
+                                order.channel == 'b2b'
+                                    ? Icons.warehouse_outlined
+                                    : Icons.storefront_outlined,
+                                color: CustomerUiColors.deepGreenStrong,
+                              ),
+                            ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${store == null || store.isEmpty ? channel : store} · $channel',
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        _StatusChip(status: order.status),
-                        Text(
-                          '${order.grandTotal.toStringAsFixed(3)} ${order.currency}',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              if (onTap != null) const Icon(Icons.chevron_right_rounded),
-            ],
+                const SizedBox(width: CustomerUiSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                          const SizedBox(width: CustomerUiSpacing.xs),
+                          _StatusChip(status: order.status),
+                        ],
+                      ),
+                      const SizedBox(height: CustomerUiSpacing.xs),
+                      Text(
+                        store == null || store.isEmpty ? channel : store,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: CustomerUiColors.muted,
+                            ),
+                      ),
+                      const SizedBox(height: CustomerUiSpacing.sm),
+                      Wrap(
+                        spacing: CustomerUiSpacing.xs,
+                        runSpacing: CustomerUiSpacing.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          CustomerBadge(label: channel),
+                          Text(
+                            '${order.grandTotal.toStringAsFixed(3)} ${order.currency}',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: CustomerUiColors.deepGreenStrong,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (onTap != null) ...[
+                  const SizedBox(width: CustomerUiSpacing.xs),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 18,
+                      color: CustomerUiColors.deepGreenStrong,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
@@ -455,29 +519,43 @@ class _OrderHeader extends StatelessWidget {
         ? context.tr('customer.orders.channel.wholesale')
         : context.tr('customer.orders.channel.retail');
 
-    return Card(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CustomerUiColors.deepGreen,
+        borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(CustomerUiSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text('${order.storeName ?? channel} · $channel'),
-            const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: _StatusChip(status: order.status)),
-                Text(
-                  '${order.grandTotal.toStringAsFixed(3)} ${order.currency}',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                Expanded(
+                  child: Text(
+                    order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: CustomerUiColors.white,
+                        ),
+                  ),
                 ),
+                _StatusChip(status: order.status, inverted: true),
               ],
+            ),
+            const SizedBox(height: CustomerUiSpacing.xs),
+            Text(
+              '${order.storeName ?? channel} · $channel',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: CustomerUiColors.white.withValues(alpha: .82),
+                  ),
+            ),
+            const SizedBox(height: CustomerUiSpacing.lg),
+            Text(
+              '${order.grandTotal.toStringAsFixed(3)} ${order.currency}',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: CustomerUiColors.lime,
+                    fontWeight: FontWeight.w800,
+                  ),
             ),
           ],
         ),
@@ -487,20 +565,48 @@ class _OrderHeader extends StatelessWidget {
 }
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
+  const _StatusChip({required this.status, this.inverted = false});
 
   final String status;
+  final bool inverted;
 
   @override
-  Widget build(BuildContext context) => Chip(
-        avatar: Icon(
-          CustomerOrderRefreshPolicy.isTerminal(status)
-              ? Icons.check_circle_outline_rounded
-              : Icons.timelapse_rounded,
-          size: 18,
-        ),
-        label: Text(_statusText(context, status)),
+  Widget build(BuildContext context) {
+    final tone = _statusTone(status);
+    if (!inverted) {
+      return CustomerBadge(
+        label: _statusText(context, status),
+        tone: tone,
       );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CustomerUiColors.white.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+        border: Border.all(
+          color: CustomerUiColors.white.withValues(alpha: .18),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(10, 6, 10, 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_statusIcon(status), size: 16, color: CustomerUiColors.lime),
+            const SizedBox(width: CustomerUiSpacing.xxs),
+            Text(
+              _statusText(context, status),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: CustomerUiColors.white,
+                    fontSize: 12,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _OrderTimeline extends StatelessWidget {
@@ -510,37 +616,118 @@ class _OrderTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (details.history.isEmpty) {
-      return ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.radio_button_checked_rounded),
-        title: Text(_statusText(context, details.summary.status)),
+    final entries = details.history;
+    if (entries.isEmpty) {
+      return _TimelineRow(
+        status: details.summary.status,
+        isLast: true,
       );
     }
 
     return Column(
-      children: details.history
-          .map(
-            (entry) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.radio_button_checked_rounded, size: 18),
-              title: Text(_statusText(context, entry.toStatus)),
-              subtitle: entry.note == null
-                  ? null
-                  : Text(
-                      entry.note!,
+      children: [
+        for (var index = 0; index < entries.length; index++)
+          _TimelineRow(
+            status: entries[index].toStatus,
+            note: entries[index].note,
+            createdAt: entries[index].createdAt,
+            isLast: index == entries.length - 1,
+          ),
+      ],
+    );
+  }
+}
+
+class _TimelineRow extends StatelessWidget {
+  const _TimelineRow({
+    required this.status,
+    required this.isLast,
+    this.note,
+    this.createdAt,
+  });
+
+  final String status;
+  final String? note;
+  final DateTime? createdAt;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(status);
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 30,
+            child: Column(
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: .12),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: color),
+                  ),
+                  child: SizedBox.square(
+                    dimension: 26,
+                    child: Icon(_statusIcon(status), size: 15, color: color),
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      color: CustomerUiColors.border,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: CustomerUiSpacing.sm),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: isLast ? 0 : CustomerUiSpacing.md,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: CustomerUiSpacing.xs,
+                    runSpacing: CustomerUiSpacing.xxs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        _statusText(context, status),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      if (createdAt != null)
+                        Text(
+                          _formatDateTime(createdAt!),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: CustomerUiColors.muted,
+                              ),
+                        ),
+                    ],
+                  ),
+                  if (note?.trim().isNotEmpty == true) ...[
+                    const SizedBox(height: CustomerUiSpacing.xxs),
+                    Text(
+                      note!,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: CustomerUiColors.muted,
+                          ),
                     ),
-              trailing: entry.createdAt == null
-                  ? null
-                  : Text(
-                      _formatDateTime(entry.createdAt!),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                  ],
+                ],
+              ),
             ),
-          )
-          .toList(growable: false),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -644,23 +831,104 @@ class _Section extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: CustomerUiColors.white,
+          borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+          border: Border.all(color: CustomerUiColors.border),
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(CustomerUiSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
+                      color: CustomerUiColors.deepGreenStrong,
                     ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: CustomerUiSpacing.sm),
               child,
             ],
           ),
         ),
+      );
+}
+
+class _OrdersListSkeleton extends StatelessWidget {
+  const _OrdersListSkeleton();
+
+  @override
+  Widget build(BuildContext context) => ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          CustomerUiSpacing.page,
+          CustomerUiSpacing.sm,
+          CustomerUiSpacing.page,
+          CustomerUiSpacing.xl,
+        ),
+        itemCount: 4,
+        separatorBuilder: (_, __) =>
+            const SizedBox(height: CustomerUiSpacing.sm),
+        itemBuilder: (_, __) => const _OrderCardSkeleton(),
+      );
+}
+
+class _OrderCardSkeleton extends StatelessWidget {
+  const _OrderCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: CustomerUiColors.white,
+          borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+          border: Border.all(color: CustomerUiColors.border),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.all(CustomerUiSpacing.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CustomerSkeletonBox(height: 54, width: 54, radius: 27),
+              SizedBox(width: CustomerUiSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomerSkeletonBox(height: 18, width: 120, radius: 9),
+                    SizedBox(height: CustomerUiSpacing.xs),
+                    CustomerSkeletonBox(height: 14, width: 170, radius: 7),
+                    SizedBox(height: CustomerUiSpacing.sm),
+                    CustomerSkeletonBox(height: 24, width: 145, radius: 12),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _OrderDetailsSkeleton extends StatelessWidget {
+  const _OrderDetailsSkeleton();
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          CustomerUiSpacing.page,
+          CustomerUiSpacing.sm,
+          CustomerUiSpacing.page,
+          CustomerUiSpacing.xl,
+        ),
+        children: const [
+          CustomerSkeletonBox(height: 152, radius: CustomerUiRadii.xl),
+          SizedBox(height: CustomerUiSpacing.md),
+          CustomerSkeletonBox(height: 178, radius: CustomerUiRadii.xl),
+          SizedBox(height: CustomerUiSpacing.md),
+          CustomerSkeletonBox(height: 108, radius: CustomerUiRadii.xl),
+        ],
       );
 }
 
@@ -681,57 +949,70 @@ class _ScrollableState extends StatelessWidget {
       );
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.title, required this.subtitle});
 
-  final String title;
-  final String subtitle;
 
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.receipt_long_outlined, size: 48),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            Text(subtitle, textAlign: TextAlign.center),
-          ],
-        ),
-      );
+CustomerBadgeTone _statusTone(String status) {
+  switch (status.toLowerCase()) {
+    case 'delivered':
+    case 'completed':
+      return CustomerBadgeTone.success;
+    case 'cancelled':
+    case 'refunded':
+    case 'failed':
+      return CustomerBadgeTone.discount;
+    case 'pending':
+    case 'confirmed':
+    case 'processing':
+    case 'paid':
+    case 'accepted':
+      return CustomerBadgeTone.accent;
+    default:
+      return CustomerBadgeTone.neutral;
+  }
 }
 
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, required this.onRetry});
+Color _statusColor(String status) {
+  switch (status.toLowerCase()) {
+    case 'delivered':
+    case 'completed':
+      return CustomerUiColors.success;
+    case 'cancelled':
+    case 'refunded':
+    case 'failed':
+      return CustomerUiColors.destructive;
+    case 'out_for_delivery':
+    case 'picked_up':
+    case 'assigned':
+      return CustomerUiColors.info;
+    case 'pending':
+    case 'confirmed':
+    case 'processing':
+    case 'paid':
+    case 'accepted':
+      return CustomerUiColors.warning;
+    default:
+      return CustomerUiColors.deepGreenSoft;
+  }
+}
 
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline_rounded, size: 48),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              key: const ValueKey('customer-orders-retry'),
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: Text(context.tr('customer.action.retry')),
-            ),
-          ],
-        ),
-      );
+IconData _statusIcon(String status) {
+  switch (status.toLowerCase()) {
+    case 'delivered':
+    case 'completed':
+      return Icons.check_rounded;
+    case 'cancelled':
+    case 'refunded':
+    case 'failed':
+      return Icons.close_rounded;
+    case 'out_for_delivery':
+      return Icons.local_shipping_outlined;
+    case 'picked_up':
+      return Icons.inventory_2_outlined;
+    case 'assigned':
+      return Icons.assignment_ind_outlined;
+    default:
+      return Icons.schedule_rounded;
+  }
 }
 
 String _statusText(BuildContext context, String status) {
