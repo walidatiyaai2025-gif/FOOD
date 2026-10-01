@@ -11,6 +11,8 @@ import 'core/api/customer_action_api.dart';
 import 'core/api/storefront_api.dart';
 import 'core/api/wholesale_commerce_api.dart';
 import 'core/auth/customer_session.dart';
+import 'core/auth/customer_session_http_client.dart';
+import 'core/auth/customer_session_store.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/localization/app_translations.dart';
@@ -29,6 +31,7 @@ class FoodexCustomerApp extends StatefulWidget {
   const FoodexCustomerApp({
     super.key,
     this.session = const CustomerSession.guest(),
+    this.sessionStore,
     this.initialRoute = CustomerRoutePaths.marketplace,
     this.b2bApi,
     this.b2cCatalogApi,
@@ -102,6 +105,7 @@ class FoodexCustomerApp extends StatefulWidget {
   }
 
   final CustomerSession session;
+  final CustomerSessionStore? sessionStore;
   final String initialRoute;
   final B2bApi? b2bApi;
   final B2cCatalogApi? b2cCatalogApi;
@@ -138,6 +142,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   bool _showVersionFooter = false;
   final CustomerDiagnostics _diagnostics = CustomerDiagnostics.instance;
   late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
+  late final CustomerSessionHttpClient _sessionHttpClient;
 
   static const _appVersion = '1.0.41';
 
@@ -150,6 +155,10 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _diagnosticsHttpClient = CustomerDiagnosticsHttpClient(
       http.Client(),
       diagnostics: _diagnostics,
+    );
+    _sessionHttpClient = CustomerSessionHttpClient(
+      _diagnosticsHttpClient,
+      onUnauthorized: _onSessionExpired,
     );
     _showVersionFooter = widget.initialRoute != CustomerRoutePaths.splash;
     if (!_showVersionFooter) {
@@ -246,37 +255,77 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _persistSession(CustomerSession session) async {
+    final store = widget.sessionStore;
+    if (widget.previewContext != null || store == null) return;
+
+    try {
+      await store.write(session);
+    } catch (error) {
+      _diagnostics.record('session_persist_error', {
+        'error_type': error.runtimeType.toString(),
+      });
+    }
+  }
+
+  Future<void> _clearPersistedSession() async {
+    final store = widget.sessionStore;
+    if (widget.previewContext != null || store == null) return;
+
+    try {
+      await store.clear();
+    } catch (error) {
+      _diagnostics.record('session_clear_error', {
+        'error_type': error.runtimeType.toString(),
+      });
+    }
+  }
+
   void _onAuthenticated(CustomerChannel channel, String token) {
     if (widget.previewContext != null) return;
+    final session = CustomerSession.authenticated(
+      channel,
+      accessToken: token,
+    );
     setState(() {
-      _session = CustomerSession.authenticated(channel, accessToken: token);
+      _session = session;
     });
+    unawaited(_persistSession(session));
     _bindPushSession();
   }
 
   void _onPlatformRegistered(String token) {
     if (widget.previewContext != null) return;
+    final session = CustomerSession.authenticated(
+      CustomerChannel.b2b,
+      accessToken: token,
+      platformWide: true,
+    );
     setState(() {
-      _session = CustomerSession.authenticated(
-        CustomerChannel.b2b,
-        accessToken: token,
-        platformWide: true,
-      );
+      _session = session;
     });
+    unawaited(_persistSession(session));
     _bindPushSession();
   }
 
   void _enterWholesale(int? retailStoreId) {
     if (widget.previewContext != null || !_session.isAuthenticated) return;
+    final session = _session.asB2bRetailContext(retailStoreId);
     setState(() {
-      _session = _session.asB2bRetailContext(retailStoreId);
+      _session = session;
     });
+    unawaited(_persistSession(session));
   }
 
   void _onSessionExpired() {
-    if (widget.previewContext != null) return;
+    if (widget.previewContext != null ||
+        !mounted ||
+        !_session.isAuthenticated) {
+      return;
+    }
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
+    unawaited(_clearPersistedSession());
     _guestSession.clear();
     setState(() {
       _session = const CustomerSession.guest();
@@ -289,6 +338,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
 
   Future<void> _logout(CustomerActionApi actionApi) async {
     if (widget.previewContext != null) return;
+    await _clearPersistedSession();
     final service = widget.pushService;
     if (service != null) {
       await service.revokeSession();
@@ -313,7 +363,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
 
   @override
   void dispose() {
-    _diagnosticsHttpClient.close();
+    _sessionHttpClient.close();
     _versionFooterTimer?.cancel();
     unawaited(_pushRouteSubscription?.cancel());
     unawaited(_pushAlertSubscription?.cancel());
@@ -368,14 +418,14 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                     baseUrl: baseUrl,
                     token: token,
                     retailStoreContextId: _session.b2bRetailStoreId,
-                    client: _diagnosticsHttpClient,
+                    client: _sessionHttpClient,
                   ));
     final b2cCatalogApi = preview != null
         ? widget.b2cCatalogApi!
         : widget.b2cCatalogApi ??
             HttpB2cCatalogApi(
               baseUrl: baseUrl,
-              client: _diagnosticsHttpClient,
+              client: _sessionHttpClient,
             );
     final actionApi = preview != null
         ? widget.actionApi!
@@ -385,7 +435,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
               token: token,
               guestSession: _guestSession,
               b2bRetailStoreId: _session.b2bRetailStoreId,
-              client: _diagnosticsHttpClient,
+              client: _sessionHttpClient,
             );
     final b2cAccountApi = preview != null
         ? widget.b2cAccountApi!
@@ -394,7 +444,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
               baseUrl: baseUrl,
               token: token,
               guestSession: _guestSession,
-              client: _diagnosticsHttpClient,
+              client: _sessionHttpClient,
             );
     final storefrontApi = preview != null
         ? widget.storefrontApi!
@@ -405,7 +455,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                     baseUrl: baseUrl,
                     token: token,
                     retailStoreContextId: _session.b2bRetailStoreId,
-                    client: _diagnosticsHttpClient,
+                    client: _sessionHttpClient,
                   ));
     final wholesaleCommerceApi = preview != null
         ? widget.wholesaleCommerceApi
@@ -416,7 +466,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                     baseUrl: baseUrl,
                     token: token,
                     retailStoreContextId: _session.b2bRetailStoreId,
-                    client: _diagnosticsHttpClient,
+                    client: _sessionHttpClient,
                   ));
     final router = CustomerAppRouter(
       _session,
