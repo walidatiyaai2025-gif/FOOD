@@ -10,6 +10,9 @@ Future<DriverCompletionResult?> showDriverCompletionDecisionSheet({
   required List<String> availableStatuses,
   required DriverCompletionGateway gateway,
   DriverProofPicker? proofPicker,
+  DriverCompletionTarget initialTarget = DriverCompletionTarget.delivered,
+  String initialNote = '',
+  VoidCallback? onSessionExpired,
 }) =>
     showModalBottomSheet<DriverCompletionResult>(
       context: context,
@@ -20,6 +23,9 @@ Future<DriverCompletionResult?> showDriverCompletionDecisionSheet({
         availableStatuses: availableStatuses,
         gateway: gateway,
         proofPicker: proofPicker ?? ImagePickerDriverProofPicker(),
+        initialTarget: initialTarget,
+        initialNote: initialNote,
+        onSessionExpired: onSessionExpired,
       ),
     );
 
@@ -29,6 +35,9 @@ class DriverCompletionDecisionSheet extends StatefulWidget {
     required this.availableStatuses,
     required this.gateway,
     required this.proofPicker,
+    this.initialTarget = DriverCompletionTarget.delivered,
+    this.initialNote = '',
+    this.onSessionExpired,
     this.onSubmitted,
     super.key,
   });
@@ -37,6 +46,9 @@ class DriverCompletionDecisionSheet extends StatefulWidget {
   final List<String> availableStatuses;
   final DriverCompletionGateway gateway;
   final DriverProofPicker proofPicker;
+  final DriverCompletionTarget initialTarget;
+  final String initialNote;
+  final VoidCallback? onSessionExpired;
   final ValueChanged<DriverCompletionResult>? onSubmitted;
 
   @override
@@ -46,12 +58,19 @@ class DriverCompletionDecisionSheet extends StatefulWidget {
 
 class _DriverCompletionDecisionSheetState
     extends State<DriverCompletionDecisionSheet> {
-  DriverCompletionDraft _draft = const DriverCompletionDraft(
-    target: DriverCompletionTarget.delivered,
-  );
+  late DriverCompletionDraft _draft;
   DriverCompletionValidationError? _validationError;
   Object? _submitError;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _draft = DriverCompletionDraft(
+      target: widget.initialTarget,
+      note: widget.initialNote,
+    );
+  }
 
   bool get _canDeliver =>
       widget.availableStatuses.contains(DriverCompletionTarget.delivered.status);
@@ -131,6 +150,13 @@ class _DriverCompletionDecisionSheetState
       Navigator.of(context).pop(result);
     } catch (error) {
       if (!mounted) return;
+      if (error is DriverCompletionException &&
+          error.code == 'session_expired' &&
+          widget.onSessionExpired != null) {
+        widget.onSessionExpired!.call();
+        Navigator.of(context).pop();
+        return;
+      }
       setState(() {
         _submitting = false;
         _submitError = error;
