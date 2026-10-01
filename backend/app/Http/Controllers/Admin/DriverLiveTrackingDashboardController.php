@@ -4,16 +4,21 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\DriverDeliveryEvidenceService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class DriverLiveTrackingDashboardController extends Controller
 {
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly TenantContextResolver $tenantResolver,
+        private readonly DriverDeliveryEvidenceService $evidence,
     ) {}
 
     public function index(Request $request): View
@@ -44,6 +49,34 @@ final class DriverLiveTrackingDashboardController extends Controller
                 'speed' => __('admin.driver_live_tracking.speed'),
                 'lastSeen' => __('admin.driver_live_tracking.last_seen'),
             ],
+        ]);
+    }
+
+    public function evidence(Request $request, int $assignment): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        return response()->json([
+            'data' => $this->evidence->assignment($user, $assignment),
+        ]);
+    }
+
+    public function proof(Request $request, int $assignment, int $proof): StreamedResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $record = $this->evidence->proof($user, $assignment, $proof);
+        $path = trim((string) $record->file_path);
+        abort_unless($path !== '' && Storage::disk('public')->exists($path), 404);
+
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+        $filename = 'delivery-proof-'.$record->getKey().($extension === '' ? '' : '.'.$extension);
+
+        return Storage::disk('public')->response($path, $filename, [
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
