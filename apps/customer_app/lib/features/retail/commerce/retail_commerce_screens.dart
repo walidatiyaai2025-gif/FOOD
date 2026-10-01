@@ -690,69 +690,77 @@ class _CartItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _CommerceSectionCard(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: CustomerUiColors.mint,
-                borderRadius: BorderRadius.circular(CustomerUiRadii.md),
-              ),
-              child: const SizedBox.square(
-                dimension: 58,
-                child: Icon(
-                  Icons.shopping_basket_outlined,
-                  color: CustomerUiColors.deepGreenSoft,
-                ),
-              ),
-            ),
-            const SizedBox(width: CustomerUiSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: CustomerUiColors.mint,
+                    borderRadius: BorderRadius.circular(CustomerUiRadii.md),
                   ),
-                  const SizedBox(height: CustomerUiSpacing.xxs),
-                  Text(
-                    '${item.lineTotal.toStringAsFixed(3)} $currency',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: CustomerUiColors.deepGreenStrong,
-                          fontWeight: FontWeight.w700,
-                        ),
+                  child: const SizedBox.square(
+                    dimension: 58,
+                    child: Icon(
+                      Icons.shopping_basket_outlined,
+                      color: CustomerUiColors.deepGreenSoft,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: CustomerUiSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: CustomerUiSpacing.xxs),
+                      Text(
+                        '${item.lineTotal.toStringAsFixed(3)} $currency',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: CustomerUiColors.deepGreenStrong,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: CustomerUiSpacing.sm),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CustomerOutlineIconButton(
+                    key: ValueKey('retail-cart-minus-${item.id}'),
+                    icon: Icons.remove_rounded,
+                    onPressed: busy ? null : onMinus,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: CustomerUiSpacing.xs,
+                    ),
+                    child: Text(
+                      item.quantity.toStringAsFixed(0),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  CustomerOutlineIconButton(
+                    key: ValueKey('retail-cart-plus-${item.id}'),
+                    icon: Icons.add_rounded,
+                    selected: true,
+                    onPressed: busy ? null : onPlus,
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: CustomerUiSpacing.xs),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CustomerOutlineIconButton(
-                  key: ValueKey('retail-cart-minus-${item.id}'),
-                  icon: Icons.remove_rounded,
-                  onPressed: busy ? null : onMinus,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: CustomerUiSpacing.xs,
-                  ),
-                  child: Text(
-                    item.quantity.toStringAsFixed(0),
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                CustomerOutlineIconButton(
-                  key: ValueKey('retail-cart-plus-${item.id}'),
-                  icon: Icons.add_rounded,
-                  selected: true,
-                  onPressed: busy ? null : onPlus,
-                ),
-              ],
             ),
           ],
         ),
@@ -807,7 +815,6 @@ class _CheckoutLoadingSkeleton extends StatelessWidget {
           ),
         ],
       );
-}
 }
 
 class _ErrorBanner extends StatelessWidget {
