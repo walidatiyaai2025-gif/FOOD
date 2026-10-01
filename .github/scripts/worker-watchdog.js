@@ -115,6 +115,12 @@ function minutesSince(nowMs, activityMs) {
   return Math.max(0, (nowMs - activityMs) / 60000);
 }
 
+function executionActivityMillis({ commitActivity, stateHeartbeat }) {
+  // Deliberately exclude ordinary Issue/PR comments and PR metadata timestamps.
+  // Coordination chatter must not renew a worker lease.
+  return newestMillis(commitActivity, stateHeartbeat);
+}
+
 function gateLabel(blocker) {
   return HUMAN_BLOCKERS.has(blocker) && blocker !== 'human'
     ? `gate:${blocker}`
@@ -477,10 +483,11 @@ async function run({ github, context, core, nowMs = Date.now() }) {
 
     const hasBranch = await branchExists(github, owner, repo, branch);
     const commitActivity = await latestCommitMillis(github, owner, repo, linkedPr?.head?.sha || branch);
-    const commentActivity = newestMillis(nonWatchdogComments.map(comment => comment.updated_at || comment.created_at));
     const stateHeartbeat = asMillis(workerState?.heartbeat);
-    const prActivity = linkedPr ? newestMillis(linkedPr.created_at, linkedPr.updated_at) : 0;
-    const latestActivityMs = newestMillis(commitActivity, commentActivity, stateHeartbeat, prActivity);
+    const latestActivityMs = executionActivityMillis({
+      commitActivity,
+      stateHeartbeat,
+    });
 
     const ci = await workflowState(github, owner, repo, linkedPr);
     let mergeable = null;
@@ -546,6 +553,7 @@ module.exports = {
   STATE_MARKER,
   branchFromText,
   classify,
+  executionActivityMillis,
   handoffComment,
   linkedIssueNumbers,
   minutesSince,
