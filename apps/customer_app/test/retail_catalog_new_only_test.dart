@@ -113,9 +113,9 @@ void main() {
 
   testWidgets('NEW product add-to-cart entry carries exact store and product',
       (tester) async {
-    int? storeId;
-    int? productId;
-    double? quantity;
+    int? capturedStoreId;
+    int? capturedProductId;
+    double? capturedQuantity;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -129,35 +129,9 @@ void main() {
             required int productId,
             required double quantity,
           }) async {
-            storeId = storeId;
-          },
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // Rebuild with a recording callback after proving the surface loaded.
-    await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('en'),
-        home: RetailCatalogProductScreen(
-          storeId: 7,
-          productId: 42,
-          catalogApi: _FakeCatalogApi(),
-          onAddToCart: ({
-            required int storeId,
-            required int productId,
-            required double quantity,
-          }) async {
-            // Named parameters deliberately copied before assertions below.
-            final capturedStore = storeId;
-            final capturedProduct = productId;
-            final capturedQuantity = quantity;
-            Future<void>.microtask(() {
-              storeId = capturedStore;
-              productId = capturedProduct;
-              quantity = capturedQuantity;
-            });
+            capturedStoreId = storeId;
+            capturedProductId = productId;
+            capturedQuantity = quantity;
           },
         ),
       ),
@@ -169,9 +143,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('retail-product-add-cart')));
     await tester.pumpAndSettle();
 
-    expect(storeId, 7);
-    expect(productId, 42);
-    expect(quantity, 2);
+    expect(capturedStoreId, 7);
+    expect(capturedProductId, 42);
+    expect(capturedQuantity, 2);
   });
 
   test('HTTP catalog API sends authoritative Retail store header', () async {
