@@ -111,6 +111,7 @@ final class CustomerAddressService
             403,
             'Customer profile is required.',
         );
+
         return [
             'customer_id' => app(CustomerDomainResolver::class)->legacyId($domainCustomer),
             'platform_customer_id' => null,
