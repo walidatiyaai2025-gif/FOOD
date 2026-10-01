@@ -785,7 +785,8 @@ class _MarketplaceHeader extends StatelessWidget {
                     ),
                   );
 
-              return Row(
+              final brand = Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     width: compact ? 38 : 44,
@@ -800,13 +801,14 @@ class _MarketplaceHeader extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: compact ? 8 : 10),
-                  Expanded(
+                  Flexible(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
                           'FOODEX',
+                          key: ValueKey('marketplace-brand-title'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -831,53 +833,55 @@ class _MarketplaceHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                  action(
-                    key: const ValueKey('marketplace-scan'),
-                    icon: Icons.qr_code_scanner_rounded,
-                    tooltip: context.tr('customer.marketplace.scan'),
-                    onPressed: onScan,
+                ],
+              );
+
+              final scanAction = action(
+                key: const ValueKey('marketplace-scan'),
+                icon: Icons.qr_code_scanner_rounded,
+                tooltip: context.tr('customer.marketplace.scan'),
+                onPressed: onScan,
+              );
+              final languageAction = SizedBox(
+                width: actionSize,
+                height: actionSize,
+                child: TextButton(
+                  key: const ValueKey('marketplace-language'),
+                  onPressed: onLanguageToggle,
+                  style: TextButton.styleFrom(
+                    minimumSize: Size(actionSize, actionSize),
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  SizedBox(
-                    width: actionSize,
-                    height: actionSize,
-                    child: TextButton(
-                      key: const ValueKey('marketplace-language'),
-                      onPressed: onLanguageToggle,
-                      style: TextButton.styleFrom(
-                        minimumSize: Size(actionSize, actionSize),
-                        padding: EdgeInsets.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        localeCode.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
+                  child: Text(
+                    localeCode.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  action(
-                    key: const ValueKey('marketplace-cart'),
-                    icon: Icons.shopping_bag_outlined,
-                    tooltip: context.tr('customer.nav.cart'),
-                    onPressed: onCart,
-                  ),
-                  action(
-                    key: const ValueKey('marketplace-notifications'),
-                    icon: Icons.notifications_none_rounded,
-                    tooltip: context.tr('customer.nav.notifications'),
-                    onPressed: onNotifications,
-                  ),
-                  if (authenticated)
-                    action(
+                ),
+              );
+              final cartAction = action(
+                key: const ValueKey('marketplace-cart'),
+                icon: Icons.shopping_bag_outlined,
+                tooltip: context.tr('customer.nav.cart'),
+                onPressed: onCart,
+              );
+              final notificationsAction = action(
+                key: const ValueKey('marketplace-notifications'),
+                icon: Icons.notifications_none_rounded,
+                tooltip: context.tr('customer.nav.notifications'),
+                onPressed: onNotifications,
+              );
+              final accountAction = authenticated
+                  ? action(
                       key: const ValueKey('marketplace-profile'),
                       icon: Icons.person_outline_rounded,
                       onPressed: () =>
                           Navigator.of(context).pushNamed('/profile'),
                     )
-                  else
-                    SizedBox(
+                  : SizedBox(
                       width: actionSize,
                       height: actionSize,
                       child: PopupMenuButton<String>(
@@ -905,7 +909,40 @@ class _MarketplaceHeader extends StatelessWidget {
                           ),
                         ],
                       ),
+                    );
+
+              if (constraints.maxWidth < 340) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: brand),
+                        accountAction,
+                      ],
                     ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        scanAction,
+                        languageAction,
+                        cartAction,
+                        notificationsAction,
+                      ],
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: brand),
+                  scanAction,
+                  languageAction,
+                  cartAction,
+                  notificationsAction,
+                  accountAction,
                 ],
               );
             },
