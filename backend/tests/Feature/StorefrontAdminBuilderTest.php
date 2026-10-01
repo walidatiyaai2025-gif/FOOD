@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\StorefrontRevision;
 use App\Models\User;
+use App\Services\StorefrontRevisionService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -531,7 +532,7 @@ class StorefrontAdminBuilderTest extends TestCase
         // Recover the source and let the existing published revision archive it
         // before creating a Draft that may later need that historical asset.
         Storage::disk('public')->put('banners/'.$storeA.'/missing.jpg', 'recovered');
-        app(\App\Services\StorefrontRevisionService::class)
+        app(StorefrontRevisionService::class)
             ->synchronizePublishedFromLive($admin, $storeA, 'b2c');
 
         $this->actingAs($admin)->post(route('admin.business.banners.store'), [
