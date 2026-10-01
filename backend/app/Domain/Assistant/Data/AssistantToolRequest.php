@@ -5,8 +5,8 @@ namespace App\Domain\Assistant\Data;
 final readonly class AssistantToolRequest
 {
     /**
-     * @param array<string, mixed> $entities
-     * @param array<string, mixed> $context
+     * @param  array<string, mixed>  $entities
+     * @param  array<string, mixed>  $context
      */
     public function __construct(
         public int $actorUserId,
@@ -15,5 +15,7 @@ final readonly class AssistantToolRequest
         public ?int $storeId = null,
         public array $entities = [],
         public array $context = [],
-    ) {}
+    ) {
+        // Promoted properties define the complete immutable payload.
+    }
 }
