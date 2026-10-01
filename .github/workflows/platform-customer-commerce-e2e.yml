@@ -81,8 +81,8 @@ jobs:
           grep -Fq 'test_retail_operational_notifications_are_store_scoped_deduplicated_and_have_authorized_deep_links' backend/tests/Feature/DriverInvoiceNotificationTest.php
           grep -Fq "B2B product details render authoritative account pricing and inventory" apps/customer_app/test/b2b_journey_test.dart
           grep -Fq "B2C store selection propagates store context to home" apps/customer_app/test/b2c_journey_test.dart
-          grep -Fq "driver can open assigned invoice receipt from order detail" apps/driver_app/test/driver_journey_test.dart
-          grep -Fq "detail action uses backend supplied status and channel boundary" apps/driver_app/test/driver_journey_test.dart
+          grep -Fq "new detail preserves assigned invoice access" apps/driver_app/test/driver_active_journey_test.dart
+          grep -Fq "new journey keeps the backend channel boundary" apps/driver_app/test/driver_active_journey_test.dart
           grep -Fq "customer app renders English LTR from the bilingual catalog" apps/customer_app/test/localization_test.dart
           grep -Fq "driver app renders English LTR from the bilingual catalog" apps/driver_app/test/localization_test.dart
 
@@ -118,8 +118,8 @@ jobs:
           grep -Fq 'notification routes are constrained to authorized customer destinations' apps/customer_app/test/firebase_push_service_test.dart
           grep -Fq 'device registry revokes authenticated customer push device' apps/customer_app/test/firebase_push_service_test.dart
 
-          grep -Fq 'driver can launch immutable order coordinates from detail' apps/driver_app/test/driver_journey_test.dart
-          grep -Fq 'push-targeted assignment opens its detail after load' apps/driver_app/test/driver_journey_test.dart
+          grep -Fq 'detail renders authoritative data and immutable navigation target' apps/driver_app/test/driver_active_journey_test.dart
+          grep -Fq 'push focus refetches and opens only the exact assignment' apps/driver_app/test/driver_active_journey_test.dart
           grep -Fq 'driver local notification payload restores safe assignment routing' apps/driver_app/test/firebase_push_service_test.dart
           grep -Fq 'device registry revokes authenticated driver push device' apps/driver_app/test/firebase_push_service_test.dart
 
