@@ -219,10 +219,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
 
     var note = '';
     await showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        isScrollControlled: true,
-        builder: (sheetContext) {
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
           return SafeArea(
             top: false,
             child: Padding(
@@ -309,8 +309,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
               ),
             ),
           );
-        },
-      );
+      },
+    );
   }
 
   Future<void> _showDetail(DriverAssignment assignment) async {
