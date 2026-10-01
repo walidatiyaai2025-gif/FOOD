@@ -57,6 +57,7 @@ class RetailStoreProvisioningTest extends TestCase
         ]);
         $link = DB::table('retail_wholesale_accounts')->where('retail_store_id', $storeId)->first();
         $this->assertNotNull($link);
+        $this->assertSame($manager->id, (int) $link->owner_user_id);
         $this->assertDatabaseHas('b2b_customers', [
             'id' => $link->b2b_customer_id,
             'name' => 'Shop A',
