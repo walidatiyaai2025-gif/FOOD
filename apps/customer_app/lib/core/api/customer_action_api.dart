@@ -214,6 +214,14 @@ class HttpCustomerActionApi implements CustomerActionApi {
     required String idempotencyKey,
   }) async {
     _requireToken();
+    if (storeId == null || storeId <= 0) {
+      throw const CustomerActionException(
+        'store_required',
+        fieldErrors: <String, List<String>>{
+          'store_id': <String>['A Retail store is required for checkout.'],
+        },
+      );
+    }
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/checkout'),
       headers: {
@@ -254,15 +262,37 @@ class HttpCustomerActionApi implements CustomerActionApi {
       if (body is Map && body['message'] is String) {
         code = body['message'] as String;
       }
-      throw CustomerActionException(code);
+      throw CustomerActionException(
+        code,
+        fieldErrors: _validationErrors(body),
+      );
     }
 
     return body;
   }
+
+  Map<String, List<String>> _validationErrors(Object? body) {
+    if (body is! Map || body['errors'] is! Map) {
+      return const <String, List<String>>{};
+    }
+
+    final result = <String, List<String>>{};
+    for (final entry in (body['errors'] as Map).entries) {
+      final value = entry.value;
+      result[entry.key.toString()] = value is List
+          ? value.map((item) => item.toString()).toList(growable: false)
+          : <String>[value.toString()];
+    }
+    return result;
+  }
 }
 
 class CustomerActionException implements Exception {
-  const CustomerActionException(this.code);
+  const CustomerActionException(
+    this.code, {
+    this.fieldErrors = const <String, List<String>>{},
+  });
 
   final String code;
+  final Map<String, List<String>> fieldErrors;
 }
