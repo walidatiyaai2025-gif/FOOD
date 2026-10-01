@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\CredentialAuthenticator;
 use App\Services\PlatformCustomerService;
-use App\Services\CommerceIdentityResolver;
+use App\Services\RetailMerchantIdentityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +19,7 @@ class AuthController extends Controller
     public function __construct(
         private readonly CredentialAuthenticator $credentials,
         private readonly PlatformCustomerService $platformCustomers,
-        private readonly CommerceIdentityResolver $commerceIdentity,
+        private readonly RetailMerchantIdentityService $retailMerchants,
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -139,7 +139,7 @@ class AuthController extends Controller
         return response()->json($this->identity($user));
     }
 
-    /** @return array{id:int,name:string,username:?string,email:string,locale:string,roles:list<string>,store_ids:list<int>,platform_customer:bool,is_retail_merchant:bool,b2b_customer_ids:list<int>,owned_retail_store_ids:list<int>,managed_retail_store_ids:list<int>,retail_store_ids:list<int>,retail_store_b2b_customers:list<array{store_id:int,b2b_customer_id:int}>} */
+    /** @return array{id:int,name:string,username:?string,email:string,locale:string,roles:list<string>,store_ids:list<int>,platform_customer:bool,retail_merchant:bool,b2b_customer_ids:list<int>,owned_retail_store_ids:list<int>,managed_retail_store_ids:list<int>,retail_store_ids:list<int>,retail_wholesale_accounts:list<array{retail_store_id:int,b2b_customer_id:int}>} */
     private function identity(User $user): array
     {
         $roles = $user->roles()
@@ -167,7 +167,7 @@ class AuthController extends Controller
             'roles' => $roles,
             'store_ids' => $storeIds,
             'platform_customer' => $this->platformCustomers->isPlatformCustomer($user),
-            ...$this->commerceIdentity->resolve($user),
+            ...$this->retailMerchants->identityPayload($user),
         ];
     }
 }
