@@ -8,6 +8,7 @@ import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context_store.dart';
 import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_api.dart';
 import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_screens.dart';
+import 'package:foodex_customer_app/shared/customer_ui_v3/customer_ui_v3.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
@@ -153,6 +154,72 @@ void main() {
     expect(api.submitCalls, 1);
   });
 
+  testWidgets('cart uses geometry skeleton while backend is loading',
+      (tester) async {
+    final api = _FakeRetailCommerceApi()
+      ..cartCompleter = Completer<RetailCartSnapshot>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailCartScreen(
+          storeId: 7,
+          api: api,
+          isAuthenticated: true,
+          onCheckout: (_) {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(CustomerSkeletonBox), findsNWidgets(3));
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    api.cartCompleter!.complete(api.cart);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('retail-cart-summary')), findsOneWidget);
+  });
+
+  testWidgets('cart V3 fits narrow RTL layout with larger text', (tester) async {
+    final api = _FakeRetailCommerceApi();
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ar'),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(1.35),
+          ),
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: child!,
+          ),
+        ),
+        home: RetailCartScreen(
+          storeId: 7,
+          api: api,
+          isAuthenticated: true,
+          onCheckout: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(const ValueKey('retail-cart-minus-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('retail-cart-plus-1')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('guest auth handoff preserves store and merges once', (tester) async {
     final guestApi = _FakeRetailCommerceApi();
     final authenticatedApi = _FakeRetailCommerceApi();
@@ -212,6 +279,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
+      find.byKey(const ValueKey('retail-checkout-address-section')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('retail-checkout-payment-section')),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const ValueKey('retail-checkout-payment-method')),
       findsOneWidget,
     );
@@ -236,6 +311,7 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
   String? lastPaymentMethod;
   int checkoutFailures = 0;
   Completer<RetailCreatedOrder>? checkoutCompleter;
+  Completer<RetailCartSnapshot>? cartCompleter;
   final List<String> idempotencyKeys = <String>[];
 
   RetailCartSnapshot get cart => const RetailCartSnapshot(
@@ -273,7 +349,11 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
       );
 
   @override
-  Future<RetailCartSnapshot> loadCart({required int storeId}) async => cart;
+  Future<RetailCartSnapshot> loadCart({required int storeId}) async {
+    final pending = cartCompleter;
+    if (pending != null) return pending.future;
+    return cart;
+  }
 
   @override
   Future<RetailCartSnapshot> mergeGuestCartAfterAuthentication({
