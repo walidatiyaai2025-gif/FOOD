@@ -107,7 +107,8 @@ class AssistantFoundationTest extends TestCase
 
     public function test_tool_registry_is_typed_and_rejects_duplicates(): void
     {
-        $tool = new class implements AssistantToolInterface {
+        $tool = new class implements AssistantToolInterface
+        {
             public function key(): string
             {
                 return 'foundation.test';

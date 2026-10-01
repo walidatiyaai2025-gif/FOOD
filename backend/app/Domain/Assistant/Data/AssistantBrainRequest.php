@@ -9,6 +9,6 @@ final readonly class AssistantBrainRequest
         public string $locale,
         public array $context = [],
         public array $state = [],
-    ) {
-    }
+    ) {}
 }
+

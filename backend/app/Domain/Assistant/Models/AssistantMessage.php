@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AssistantMessage extends Model
 {
     public const ROLE_USER = 'user';
+
     public const ROLE_ASSISTANT = 'assistant';
 
     protected $table = 'assistant_messages';
