@@ -13,6 +13,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CustomerDomainResolver;
+use App\Services\CustomerOrderTimelineService;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\InvoiceService;
 use App\Services\OperationalTenantScope;
@@ -130,7 +131,7 @@ class OrderController extends Controller
 
             $this->assertRequestedOrderContext($request, $model);
 
-            return response()->json($this->orderPayload($model));
+            return response()->json($this->orderPayload($model, true));
         }
 
         [$customer, $channel] = $this->customerContext($request);
@@ -144,7 +145,7 @@ class OrderController extends Controller
 
         $this->assertRequestedOrderContext($request, $model);
 
-        return response()->json($this->orderPayload($model));
+        return response()->json($this->orderPayload($model, true));
     }
 
     public function transition(
@@ -362,7 +363,7 @@ class OrderController extends Controller
         );
     }
 
-    private function orderPayload(Order $order): array
+    private function orderPayload(Order $order, bool $includeTimeline = false): array
     {
         $items = OrderItem::query()
             ->where('order_id', $order->getKey())
@@ -390,7 +391,6 @@ class OrderController extends Controller
                 'id' => (int) $entry->getKey(),
                 'from_status' => $entry->from_status,
                 'to_status' => (string) $entry->to_status,
-                'note' => $entry->note,
                 'created_at' => $entry->created_at?->toAtomString(),
             ])
             ->values()
@@ -430,6 +430,9 @@ class OrderController extends Controller
             'payment_method' => $order->payment_method,
             'items' => $items,
             'status_history' => $history,
+            'timeline' => $includeTimeline
+                ? app(CustomerOrderTimelineService::class)->forOrder($order)
+                : null,
             'payment' => $payment instanceof Payment ? [
                 'id' => (int) $payment->getKey(),
                 'provider' => (string) $payment->provider,
