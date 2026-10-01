@@ -1,0 +1,21 @@
+{
+  "schema": "foodex.customer-ui-v3.assets.v1",
+  "policy": {
+    "proprietary_reference_assets_allowed": false,
+    "product_images": "backend_authoritative",
+    "store_images": "backend_authoritative",
+    "missing_visual_assets": "deterministic_placeholder_allowed"
+  },
+  "existing": {
+    "splash": "assets/branding/splash_full.png",
+    "brand_lockup": "assets/branding/foodex-economical-group.webp",
+    "store_selector_root": "assets/store_selector/"
+  },
+  "reserved_namespaces": {
+    "categories": "assets/customer_ui_v3/categories/",
+    "heroes": "assets/customer_ui_v3/heroes/",
+    "states": "assets/customer_ui_v3/states/",
+    "fallbacks": "assets/customer_ui_v3/fallbacks/",
+    "avatars": "assets/customer_ui_v3/avatars/"
+  }
+}
