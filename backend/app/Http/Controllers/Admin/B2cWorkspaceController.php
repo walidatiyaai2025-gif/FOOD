@@ -81,7 +81,12 @@ class B2cWorkspaceController extends Controller
         $counts = [
             'products' => DB::table('store_products')->whereIn('store_id', $storeIds)->count(),
             'orders' => DB::table('orders')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
-            'incoming_orders' => DB::table('orders')->where('channel', 'b2b')->whereIn('b2b_customer_id', DB::table('retail_wholesale_accounts')->where('retail_store_id', $storeId)->select('b2b_customer_id'))->count(),
+            'incoming_orders' => DB::table('orders')
+                ->where('store_id', $storeId)
+                ->where('channel', 'b2c')
+                ->whereNotNull('b2c_customer_id')
+                ->whereNotIn('status', ['delivered', 'cancelled'])
+                ->count(),
             'finance' => DB::table('invoices')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
             'customers' => DB::table('b2c_customers')->whereIn('store_id', $storeIds)->count(),
             'inventory' => DB::table('inventories')->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')->whereIn('warehouses.store_id', $storeIds)->count(),
@@ -592,7 +597,7 @@ class B2cWorkspaceController extends Controller
                     ])->all(),
             ],
             'inventory' => $this->inventoryModuleData($storeIds),
-            'incoming_orders' => $this->incomingWholesaleOrderModuleData($selectedStoreId, $scopeParams),
+            'incoming_orders' => $this->orderModuleData($storeIds, true),
             'orders' => $this->orderModuleData($storeIds),
             'finance' => $this->financeModuleData($storeIds),
             'customers' => $this->customerModuleData($storeIds),
@@ -785,68 +790,6 @@ class B2cWorkspaceController extends Controller
     }
 
     /** @param list<int> $storeIds */
-    /** @param array<string, int> $scopeParams */
-    private function incomingWholesaleOrderModuleData(int $storeId, array $scopeParams): array
-    {
-        $customerId = DB::table('retail_wholesale_accounts')
-            ->where('retail_store_id', $storeId)
-            ->value('b2b_customer_id');
-
-        if ($customerId === null) {
-            return ['actions' => [], 'columns' => ['number', 'status', 'amount', 'created', 'received', 'warehouse', 'tracking', 'actions'], 'rows' => []];
-        }
-
-        $rows = DB::table('orders')
-            ->where('channel', 'b2b')
-            ->where('b2b_customer_id', $customerId)
-            ->orderByDesc('created_at')
-            ->limit(100)
-            ->get(['id', 'order_number', 'status', 'currency', 'grand_total', 'created_at'])
-            ->map(function ($row) use ($storeId, $scopeParams): array {
-                $replenishment = DB::table('retail_replenishments')
-                    ->where('retail_store_id', $storeId)
-                    ->where('source_order_id', $row->id)
-                    ->first(['id', 'received_at']);
-                $warehouse = null;
-                if ($replenishment !== null) {
-                    $warehouse = DB::table('stock_movements')
-                        ->join('inventories', 'inventories.id', '=', 'stock_movements.inventory_id')
-                        ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-                        ->where('stock_movements.store_id', $storeId)
-                        ->where('stock_movements.reference_type', 'retail_replenishment')
-                        ->where('stock_movements.reference_id', $replenishment->id)
-                        ->value('warehouses.name');
-                }
-                $tracking = DB::table('order_status_history')
-                    ->where('order_id', $row->id)
-                    ->orderBy('id')
-                    ->get(['to_status', 'created_at'])
-                    ->map(fn ($h) => $h->to_status.' · '.$h->created_at)
-                    ->implode(' | ');
-
-                return [
-                    '_id' => (int) $row->id,
-                    'number' => $row->order_number,
-                    'status' => $row->status,
-                    'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
-                    'created' => (string) $row->created_at,
-                    'received' => $replenishment?->received_at === null ? '-' : (string) $replenishment->received_at,
-                    'warehouse' => $warehouse ?: '-',
-                    'tracking' => $tracking !== '' ? $tracking : $this->msg('لم تسجل حركة حالة بعد', 'No status movement recorded yet'),
-                    'actions' => $replenishment === null ? [] : [[
-                        'label' => $this->msg('إدارة المخزون المستلم', 'Manage received inventory'),
-                        'url' => route('admin.b2c.module', array_merge(['module' => 'inventory'], $scopeParams)),
-                    ]],
-                ];
-            })->all();
-
-        return [
-            'actions' => [],
-            'columns' => ['number', 'status', 'amount', 'created', 'received', 'warehouse', 'tracking', 'actions'],
-            'rows' => $rows,
-        ];
-    }
-
     private function inventoryModuleData(array $storeIds): array
     {
         return [
@@ -1067,7 +1010,7 @@ class B2cWorkspaceController extends Controller
         ];
     }
 
-    private function orderModuleData(array $storeIds): array
+    private function orderModuleData(array $storeIds, bool $openOnly = false): array
     {
         $customers = DB::table('b2c_customers')
             ->whereIn('store_id', $storeIds)
@@ -1086,6 +1029,10 @@ class B2cWorkspaceController extends Controller
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2c')
             ->whereNotNull('orders.b2c_customer_id')
+            ->when(
+                $openOnly,
+                fn ($query) => $query->whereNotIn('orders.status', ['delivered', 'cancelled']),
+            )
             ->orderByDesc('orders.created_at')
             ->limit(100)
             ->get([

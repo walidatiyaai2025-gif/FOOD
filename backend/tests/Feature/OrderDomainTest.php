@@ -10,10 +10,13 @@ use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\StockMovement;
 use App\Models\User;
+use App\Services\CustomerDomainResolver;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 
 class OrderDomainTest extends TestCase
@@ -257,6 +260,28 @@ class OrderDomainTest extends TestCase
             'type' => 'release',
             'quantity' => 3,
         ]);
+    }
+
+    public function test_b2b_customer_commerce_rejects_non_principal_wholesale_store(): void
+    {
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        $this->assertSame($this->b2bStoreId, $principalStoreId);
+
+        $rogueWholesaleStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'ORD-B2B-ROGUE',
+            'name' => 'Non Principal Wholesale',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->expectException(NotFoundHttpException::class);
+
+        app(CustomerDomainResolver::class)->forStore(
+            $this->b2bUser,
+            $rogueWholesaleStoreId,
+        );
     }
 
     public function test_b2c_store_admin_is_limited_to_assigned_store_and_b2b_admin_to_b2b_channel(): void

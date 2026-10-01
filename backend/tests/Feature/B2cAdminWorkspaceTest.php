@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\Store;
 use App\Models\User;
+use App\Services\RetailWholesaleAccountService;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -118,6 +121,104 @@ class B2cAdminWorkspaceTest extends TestCase
         $this->actingAs($user)->get('/admin/b2c/inventory')->assertOk()->assertSee('Mine Warehouse')->assertSee('6.000')->assertDontSee('Other Warehouse');
         $this->actingAs($user)->get('/admin/b2c/orders')->assertOk()->assertSee('MINE-ORDER')->assertSee('Mine Customer')->assertDontSee('OTHER-ORDER');
         $this->actingAs($user)->get('/admin/b2c/customers')->assertOk()->assertSee('Mine Customer')->assertSee('EGP 5.000')->assertDontSee('Other Customer');
+    }
+
+    public function test_retail_incoming_orders_contains_only_open_b2c_orders_and_never_wholesale_orders(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $type = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $retailStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $type,
+            'code' => 'ORDER-ISOLATION-RETAIL',
+            'name' => 'Order Isolation Retail',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $retailStore = Store::query()->findOrFail($retailStoreId);
+
+        $admin = User::query()->create([
+            'name' => 'Order Isolation Admin',
+            'email' => 'order-isolation-admin@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $admin->roles()->attach($role);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id,
+            'store_id' => $retailStoreId,
+            'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $retailLegacyCustomer = (int) DB::table('customers')->insertGetId([
+            'type' => 'b2c',
+            'name' => 'Retail Buyer',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $retailCustomer = (int) DB::table('b2c_customers')->insertGetId([
+            'legacy_customer_id' => $retailLegacyCustomer,
+            'store_id' => $retailStoreId,
+            'name' => 'Retail Buyer',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('orders')->insert([
+            'store_id' => $retailStoreId,
+            'customer_id' => $retailLegacyCustomer,
+            'b2c_customer_id' => $retailCustomer,
+            'order_number' => 'RETAIL-INCOMING-1001',
+            'channel' => 'b2c',
+            'status' => 'pending',
+            'currency' => 'EGP',
+            'subtotal' => 12,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 12,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $wholesaleCustomer = app(RetailWholesaleAccountService::class)->ensureForStore(
+            $retailStore,
+            null,
+            $admin,
+        );
+        $wholesaleStoreId = app(WholesalePrincipal::class)->storeId();
+
+        DB::table('orders')->insert([
+            'store_id' => $wholesaleStoreId,
+            'customer_id' => (int) $wholesaleCustomer->legacy_customer_id,
+            'b2b_customer_id' => (int) $wholesaleCustomer->getKey(),
+            'order_number' => 'WHOLESALE-MERCHANT-2001',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'EGP',
+            'subtotal' => 25,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 25,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/b2c/incoming_orders')
+            ->assertOk()
+            ->assertSee('RETAIL-INCOMING-1001')
+            ->assertDontSee('WHOLESALE-MERCHANT-2001');
+
+        $this->actingAs($admin)
+            ->get('/admin/b2c/orders')
+            ->assertOk()
+            ->assertSee('RETAIL-INCOMING-1001')
+            ->assertDontSee('WHOLESALE-MERCHANT-2001');
     }
 
     public function test_experience_modules_are_store_scoped_and_storefront_preview_is_compatible(): void
