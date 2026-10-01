@@ -478,46 +478,49 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
                             child: Column(
                               children: [
                                 for (final address in options.addresses)
-                                  Container(
-                                    margin: const EdgeInsets.only(
+                                  Padding(
+                                    padding: const EdgeInsets.only(
                                       bottom: CustomerUiSpacing.xs,
                                     ),
-                                    decoration: BoxDecoration(
+                                    child: Material(
                                       color: CustomerUiColors.white,
-                                      borderRadius: BorderRadius.circular(
-                                        CustomerUiRadii.md,
+                                      clipBehavior: Clip.antiAlias,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          CustomerUiRadii.md,
+                                        ),
+                                        side: BorderSide(
+                                          color: _addressId == address.id
+                                              ? CustomerUiColors.lime
+                                              : CustomerUiColors.border,
+                                          width: _addressId == address.id
+                                              ? CustomerUiStroke.emphasis
+                                              : CustomerUiStroke.hairline,
+                                        ),
                                       ),
-                                      border: Border.all(
-                                        color: _addressId == address.id
-                                            ? CustomerUiColors.lime
-                                            : CustomerUiColors.border,
-                                        width: _addressId == address.id
-                                            ? CustomerUiStroke.emphasis
-                                            : CustomerUiStroke.hairline,
-                                      ),
-                                    ),
-                                    child: RadioListTile<int>(
-                                      key: ValueKey(
-                                        'retail-checkout-address-${address.id}',
-                                      ),
-                                      value: address.id,
-                                      title: Text(
-                                        address.label.isEmpty
-                                            ? strings.address
-                                            : address.label,
-                                      ),
-                                      subtitle: Text(
-                                        '${address.line1} · ${address.city}',
-                                      ),
-                                      secondary: widget.onEditAddress == null
-                                          ? null
-                                          : IconButton(
-                                              onPressed: () =>
-                                                  _editAddress(address.id),
-                                              icon: const Icon(
-                                                Icons.edit_outlined,
+                                      child: RadioListTile<int>(
+                                        key: ValueKey(
+                                          'retail-checkout-address-${address.id}',
+                                        ),
+                                        value: address.id,
+                                        title: Text(
+                                          address.label.isEmpty
+                                              ? strings.address
+                                              : address.label,
+                                        ),
+                                        subtitle: Text(
+                                          '${address.line1} · ${address.city}',
+                                        ),
+                                        secondary: widget.onEditAddress == null
+                                            ? null
+                                            : IconButton(
+                                                onPressed: () =>
+                                                    _editAddress(address.id),
+                                                icon: const Icon(
+                                                  Icons.edit_outlined,
+                                                ),
                                               ),
-                                            ),
+                                      ),
                                     ),
                                   ),
                               ],
