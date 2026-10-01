@@ -85,6 +85,46 @@ class CustomerRouteDefinition {
   }
 }
 
+
+String? safeCustomerReturnLocation(
+  String? value, {
+  required CustomerChannel channel,
+}) {
+  if (value == null || value.isEmpty || value != value.trim()) {
+    return null;
+  }
+
+  final uri = Uri.tryParse(value);
+  if (uri == null ||
+      uri.hasScheme ||
+      uri.hasAuthority ||
+      uri.fragment.isNotEmpty ||
+      !uri.path.startsWith('/') ||
+      uri.path.startsWith('//') ||
+      uri.path.contains(r'\')) {
+    return null;
+  }
+
+  CustomerRouteDefinition? destination;
+  for (final definition in customerRouteDefinitions) {
+    if (definition.matches(value)) {
+      destination = definition;
+      break;
+    }
+  }
+
+  if (destination == null || destination.channel != channel) {
+    return null;
+  }
+
+  if (destination.pattern == CustomerRoutePaths.checkoutAuth ||
+      destination.pattern == CustomerRoutePaths.b2bLogin) {
+    return null;
+  }
+
+  return value;
+}
+
 const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.splash,

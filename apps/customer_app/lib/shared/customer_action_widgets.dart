@@ -77,7 +77,10 @@ class _CustomerLoginActionState extends State<CustomerLoginAction> {
       } else {
         widget.onAuthenticated(widget.channel, result.token);
       }
-      Navigator.of(context).pushReplacementNamed(widget.successRoute);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacementNamed(widget.successRoute);
+      });
     } catch (_) {
       if (mounted) setState(() => _error = 'customer.error.action_failed');
     } finally {
