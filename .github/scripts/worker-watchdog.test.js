@@ -266,6 +266,23 @@ test('check-run red state is detected immediately', () => {
   );
 });
 
+test('watchdog self-cancellation is ignored and cannot create a handoff loop', () => {
+  assert.deepEqual(
+    summarizeCheckRuns([
+      {
+        id: 99,
+        name: 'Detect stale workers and external gates',
+        app: { id: 10 },
+        status: 'completed',
+        conclusion: 'cancelled',
+        started_at: '2026-10-01T05:50:00Z',
+        completed_at: '2026-10-01T05:51:00Z',
+      },
+    ]),
+    { running: false, conclusion: null },
+  );
+});
+
 test('commit status failure is detected immediately', () => {
   assert.deepEqual(
     summarizeCommitStatuses([
