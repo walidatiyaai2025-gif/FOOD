@@ -353,6 +353,30 @@ void main() {
     expect(find.text('Retry'), findsOneWidget);
   });
 
+  testWidgets('new journey keeps the backend channel boundary',
+      (tester) async {
+    const repo = _StaticActiveRepo([
+      DriverAssignment(
+        id: 18,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-18',
+        status: 'assigned',
+      ),
+      DriverAssignment(
+        id: 19,
+        channel: DriverChannel.b2b,
+        reference: 'B2B-19',
+        status: 'assigned',
+      ),
+    ]);
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text('B2C-18'), findsOneWidget);
+    expect(find.text('B2B-19'), findsNothing);
+  });
+
   testWidgets('exact status route filters the authoritative assignment list',
       (tester) async {
     const repo = _StaticActiveRepo([
