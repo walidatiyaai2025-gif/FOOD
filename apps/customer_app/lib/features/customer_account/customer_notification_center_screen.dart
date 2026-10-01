@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
+import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_account_data.dart';
+import 'customer_account_v3_widgets.dart';
 
 class CustomerNotificationCenterScreen extends StatefulWidget {
   const CustomerNotificationCenterScreen({
@@ -94,102 +97,178 @@ class _CustomerNotificationCenterScreenState
   @override
   Widget build(BuildContext context) {
     final future = _future;
+
     return Scaffold(
       key: const ValueKey('customer-notification-center-screen'),
-      appBar: AppBar(
-        title: Text(context.tr('customer.notifications.title')),
-      ),
-      body: future == null
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () async {
-                _reload();
-                try {
-                  await (_future ?? Future<Object?>.value(null));
-                } catch (_) {}
-              },
-              child: FutureBuilder<Object?>(
-                future: future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const _NotificationScrollableState(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-                  if (snapshot.hasError) {
-                    return _NotificationScrollableState(
-                      key: const ValueKey('customer-notifications-error'),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            context.tr(
-                              customerAccountErrorKey(snapshot.error),
-                            ),
+      body: CustomerCurvedHeaderSurface(
+        header: CustomerAccountHeader(
+          title: context.tr('customer.notifications.title'),
+          subtitle: context.tr('customer.notifications.subtitle'),
+        ),
+        child: future == null
+            ? const _NotificationScrollableState(
+                child: CustomerAccountListSkeleton(),
+              )
+            : RefreshIndicator(
+                onRefresh: () async {
+                  _reload();
+                  try {
+                    await (_future ?? Future<Object?>.value(null));
+                  } catch (_) {}
+                },
+                child: FutureBuilder<Object?>(
+                  future: future,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const _NotificationScrollableState(
+                        child: CustomerAccountListSkeleton(),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return _NotificationScrollableState(
+                        key: const ValueKey('customer-notifications-error'),
+                        child: CustomerStateView(
+                          kind: CustomerStateKind.error,
+                          title: context.tr(
+                            customerAccountErrorKey(snapshot.error),
                           ),
-                          const SizedBox(height: 8),
-                          FilledButton.tonalIcon(
-                            onPressed: _reload,
-                            icon: const Icon(Icons.refresh_rounded),
-                            label: Text(context.tr('customer.action.retry')),
-                          ),
-                        ],
+                          actionLabel: context.tr('customer.action.retry'),
+                          onAction: _reload,
+                        ),
+                      );
+                    }
+
+                    final rows = customerAccountRows(snapshot.data);
+                    if (rows.isEmpty) {
+                      return _NotificationScrollableState(
+                        key: const ValueKey('customer-notifications-empty'),
+                        child: CustomerStateView(
+                          kind: CustomerStateKind.empty,
+                          title: context.tr('customer.notifications.empty'),
+                          message:
+                              context.tr('customer.notifications.subtitle'),
+                          icon: Icons.notifications_none_rounded,
+                        ),
+                      );
+                    }
+
+                    return ListView.separated(
+                      key: const ValueKey('customer-notifications-list'),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        CustomerUiSpacing.page,
+                        CustomerUiSpacing.lg,
+                        CustomerUiSpacing.page,
+                        CustomerUiSpacing.xxl,
                       ),
-                    );
-                  }
+                      itemCount: rows.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: CustomerUiSpacing.sm),
+                      itemBuilder: (context, index) {
+                        final item = rows[index];
+                        final id = (item['id'] as num?)?.toInt();
+                        final unread = item['read_at'] == null;
+                        final title = item['title']?.toString() ?? '';
+                        final body = item['body']?.toString() ?? '';
 
-                  final rows = customerAccountRows(snapshot.data);
-                  if (rows.isEmpty) {
-                    return _NotificationScrollableState(
-                      key: const ValueKey('customer-notifications-empty'),
-                      child: Text(
-                        context.tr('customer.notifications.empty'),
-                      ),
-                    );
-                  }
-
-                  return ListView.separated(
-                    key: const ValueKey('customer-notifications-list'),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-                    itemCount: rows.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final item = rows[index];
-                      final id = (item['id'] as num?)?.toInt();
-                      final unread = item['read_at'] == null;
-                      final title = item['title']?.toString() ?? '';
-                      final body = item['body']?.toString() ?? '';
-
-                      return Card(
-                        child: ListTile(
+                        return CustomerAccountSurfaceCard(
                           key: ValueKey(
                             'customer-notification-' +
                                 (id?.toString() ?? index.toString()),
                           ),
-                          leading: Icon(
-                            unread
-                                ? Icons.notifications_active_outlined
-                                : Icons.notifications_none_rounded,
-                          ),
-                          title: Text(
-                            title,
-                            style: unread
-                                ? const TextStyle(fontWeight: FontWeight.w700)
-                                : null,
-                          ),
-                          subtitle: body.isEmpty ? null : Text(body),
-                          trailing: widget.onOpenOrder == null
-                              ? null
-                              : const Icon(Icons.chevron_right_rounded),
                           onTap: id == null ? null : () => _open(item),
-                        ),
-                      );
-                    },
-                  );
-                },
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: unread
+                                      ? CustomerUiColors.limeSoft
+                                      : CustomerUiColors.mint,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: SizedBox.square(
+                                  dimension: 48,
+                                  child: Icon(
+                                    unread
+                                        ? Icons.notifications_active_outlined
+                                        : Icons.notifications_none_rounded,
+                                    color: CustomerUiColors.deepGreenStrong,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: CustomerUiSpacing.sm),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            title,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: unread
+                                                      ? FontWeight.w800
+                                                      : FontWeight.w600,
+                                                ),
+                                          ),
+                                        ),
+                                        if (unread) ...[
+                                          const SizedBox(
+                                            width: CustomerUiSpacing.xs,
+                                          ),
+                                          const DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              color: CustomerUiColors.lime,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: SizedBox.square(
+                                              dimension: 10,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    if (body.isNotEmpty) ...[
+                                      const SizedBox(
+                                        height: CustomerUiSpacing.xs,
+                                      ),
+                                      Text(
+                                        body,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: CustomerUiColors.muted,
+                                            ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (widget.onOpenOrder != null) ...[
+                                const SizedBox(width: CustomerUiSpacing.xs),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: CustomerUiColors.muted,
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
+      ),
     );
   }
 }
@@ -206,11 +285,13 @@ class _NotificationScrollableState extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(24),
-      children: [
-        const SizedBox(height: 80),
-        Center(child: child),
-      ],
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        CustomerUiSpacing.page,
+        CustomerUiSpacing.lg,
+        CustomerUiSpacing.page,
+        CustomerUiSpacing.xxl,
+      ),
+      children: [child],
     );
   }
 }
