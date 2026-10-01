@@ -605,7 +605,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Dashboard Retail Banner'), findsOneWidget);
-    expect(find.text('Retail Area'), findsOneWidget);
+    expect(find.text('Retail Area'), findsNothing);
     expect(tester.takeException(), isNull);
 
     await tester.drag(
