@@ -230,7 +230,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
       },
       body: jsonEncode({
         'address_id': addressId,
-        if (storeId != null) 'store_id': storeId,
+        'store_id': storeId,
         if (paymentMethod != null && paymentMethod.trim().isNotEmpty)
           'payment_method': paymentMethod.trim(),
         if (couponCode != null && couponCode.trim().isNotEmpty)
