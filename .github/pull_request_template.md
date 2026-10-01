@@ -27,7 +27,13 @@ Describe authorization, store scope and audit impact.
 
 ## Rollback notes
 
-## Worker lease
+## Worker lease / handoff
 Owner:
 Branch:
 Lease last renewed:
+Latest head SHA:
+Takeover from previous worker: No / Yes — link/comment:
+Current CI state:
+Next action / blocker:
+
+> Follow the repository-wide worker policy in `AGENTS.md`. If this PR already exists, continue it in place; do not create a replacement PR for the same Issue.
