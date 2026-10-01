@@ -2,20 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\SelfStorePurchaseNotAllowed;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\B2cCustomerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\PlatformCustomerService;
-use App\Services\RetailMerchantIdentityService;
+use App\Services\CommerceIdentityResolver;
 use App\Services\RetailWholesaleAccountService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class RetailMerchantIdentityIsolationTest extends TestCase
@@ -31,28 +31,33 @@ class RetailMerchantIdentityIsolationTest extends TestCase
     public function test_dashboard_retail_manager_resolves_authoritative_wholesale_identity_for_multiple_stores(): void
     {
         $manager = $this->user('merchant-multi@example.test');
-        [$storeA, $b2bCustomerA] = $this->managedStore($manager, 'MERCHANT-A');
-        [$storeB, $b2bCustomerB] = $this->managedStore($manager, 'MERCHANT-B');
+        [$storeA, $b2bCustomerA] = $this->managedStore($manager, 'MERCHANT-A', true);
+        [$storeB, $b2bCustomerB] = $this->managedStore($manager, 'MERCHANT-B', false);
 
-        $identity = app(RetailMerchantIdentityService::class)->identityPayload($manager);
+        $identity = app(CommerceIdentityResolver::class)->resolve($manager);
 
-        $this->assertTrue($identity['retail_merchant']);
+        $this->assertTrue($identity['is_retail_merchant']);
+        $this->assertSame([$storeA->id], $identity['owned_retail_store_ids']);
         $this->assertSame([$storeA->id, $storeB->id], $identity['managed_retail_store_ids']);
+        $this->assertSame([$storeA->id, $storeB->id], $identity['retail_store_ids']);
+        $this->assertSame([$b2bCustomerA, $b2bCustomerB], $identity['b2b_customer_ids']);
         $this->assertSame([
-            ['retail_store_id' => $storeA->id, 'b2b_customer_id' => $b2bCustomerA],
-            ['retail_store_id' => $storeB->id, 'b2b_customer_id' => $b2bCustomerB],
-        ], $identity['retail_wholesale_accounts']);
+            ['store_id' => $storeA->id, 'b2b_customer_id' => $b2bCustomerA],
+            ['store_id' => $storeB->id, 'b2b_customer_id' => $b2bCustomerB],
+        ], $identity['retail_store_b2b_customers']);
 
         $login = $this->postJson('/api/v1/auth/login', [
             'email' => $manager->email,
             'password' => 'password123',
         ])->assertOk()
-            ->assertJsonPath('user.retail_merchant', true)
+            ->assertJsonPath('user.is_retail_merchant', true)
+            ->assertJsonPath('user.owned_retail_store_ids', [$storeA->id])
             ->assertJsonPath('user.managed_retail_store_ids', [$storeA->id, $storeB->id])
-            ->assertJsonPath('user.retail_wholesale_accounts.0.retail_store_id', $storeA->id)
-            ->assertJsonPath('user.retail_wholesale_accounts.0.b2b_customer_id', $b2bCustomerA)
-            ->assertJsonPath('user.retail_wholesale_accounts.1.retail_store_id', $storeB->id)
-            ->assertJsonPath('user.retail_wholesale_accounts.1.b2b_customer_id', $b2bCustomerB);
+            ->assertJsonPath('user.retail_store_ids', [$storeA->id, $storeB->id])
+            ->assertJsonPath('user.retail_store_b2b_customers.0.store_id', $storeA->id)
+            ->assertJsonPath('user.retail_store_b2b_customers.0.b2b_customer_id', $b2bCustomerA)
+            ->assertJsonPath('user.retail_store_b2b_customers.1.store_id', $storeB->id)
+            ->assertJsonPath('user.retail_store_b2b_customers.1.b2b_customer_id', $b2bCustomerB);
 
         $this->assertNotEmpty($login->json('token'));
 
@@ -104,7 +109,7 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         $this->withHeader('X-Guest-Token', $guestToken)
             ->getJson('/api/v1/cart?store='.$store->id)
             ->assertForbidden()
-            ->assertJsonPath('message', RetailMerchantIdentityService::SELF_STORE_PURCHASE_NOT_ALLOWED);
+            ->assertJsonPath('code', SelfStorePurchaseNotAllowed::ERROR_CODE);
 
         $this->assertDatabaseHas('carts', [
             'store_id' => $store->id,
@@ -115,25 +120,25 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         $this->withHeader('X-Guest-Token', '')
             ->getJson('/api/v1/cart?store='.$store->id)
             ->assertForbidden()
-            ->assertJsonPath('message', RetailMerchantIdentityService::SELF_STORE_PURCHASE_NOT_ALLOWED);
+            ->assertJsonPath('code', SelfStorePurchaseNotAllowed::ERROR_CODE);
 
         $this->postJson('/api/v1/cart/items', [
             'store_id' => $store->id,
             'product_id' => 1,
             'quantity' => 1,
         ])->assertForbidden()
-            ->assertJsonPath('message', RetailMerchantIdentityService::SELF_STORE_PURCHASE_NOT_ALLOWED);
+            ->assertJsonPath('code', SelfStorePurchaseNotAllowed::ERROR_CODE);
 
         $this->getJson('/api/v1/profile?store_id='.$store->id)
             ->assertForbidden()
-            ->assertJsonPath('message', RetailMerchantIdentityService::SELF_STORE_PURCHASE_NOT_ALLOWED);
+            ->assertJsonPath('code', SelfStorePurchaseNotAllowed::ERROR_CODE);
 
         $this->withHeader('Idempotency-Key', 'self-store-checkout-0001')
             ->postJson('/api/v1/checkout', [
                 'store_id' => $store->id,
                 'address_id' => 1,
             ])->assertForbidden()
-            ->assertJsonPath('message', RetailMerchantIdentityService::SELF_STORE_PURCHASE_NOT_ALLOWED);
+            ->assertJsonPath('code', SelfStorePurchaseNotAllowed::ERROR_CODE);
 
         $this->assertDatabaseHas('b2c_customers', [
             'id' => $projection->id,
@@ -160,7 +165,7 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         [$ownedA] = $this->managedStore($user, 'OWNED-A');
         [$ownedB] = $this->managedStore($user, 'OWNED-B');
 
-        $identity = app(RetailMerchantIdentityService::class);
+        $identity = app(CommerceIdentityResolver::class);
         $this->assertSame([$ownedA->id, $ownedB->id], $identity->managedRetailStoreIds($user));
 
         $this->assertSelfStoreForbidden(
@@ -181,13 +186,13 @@ class RetailMerchantIdentityIsolationTest extends TestCase
     }
 
     /** @return array{0:Store,1:int} */
-    private function managedStore(User $manager, string $code): array
+    private function managedStore(User $manager, string $code, bool $owner = true): array
     {
         $store = $this->retailStore($code);
         $this->assignManager($manager, $store);
 
         $tierId = (int) DB::table('b2b_price_tiers')->where('code', 'STANDARD')->value('id');
-        $customer = app(RetailWholesaleAccountService::class)->ensureForStore($store, $tierId);
+        $customer = app(RetailWholesaleAccountService::class)->ensureForStore($store, $tierId, $owner ? $manager : null);
 
         return [$store, (int) $customer->getKey()];
     }
@@ -248,10 +253,10 @@ class RetailMerchantIdentityIsolationTest extends TestCase
     {
         try {
             $callback();
-        } catch (HttpException $exception) {
-            $this->assertSame(403, $exception->getStatusCode());
+        } catch (SelfStorePurchaseNotAllowed $exception) {
+            $this->assertGreaterThan(0, $exception->storeId);
             $this->assertSame(
-                RetailMerchantIdentityService::SELF_STORE_PURCHASE_NOT_ALLOWED,
+                'Retail merchants cannot purchase from a Retail Store they own or manage.',
                 $exception->getMessage(),
             );
 
