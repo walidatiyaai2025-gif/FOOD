@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/auth/driver_session.dart';
 import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/localization/driver_translations.dart';
+import 'core/navigation/driver_shell.dart';
 import 'core/preview/driver_preview_context.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/notifications/driver_notification_page.dart';
@@ -75,6 +76,15 @@ class DriverNavigator {
             focusAssignmentId: focusAssignmentId,
             initialAssignmentStatus: initialAssignmentStatus,
             previewContext: previewContext,
+            homeRoute: channel == DriverChannel.b2c
+                ? DriverRoutes.b2cHome
+                : DriverRoutes.b2bHome,
+            deliveriesRoute: channel == DriverChannel.b2c
+                ? DriverRoutes.b2cDeliveries
+                : DriverRoutes.b2bDeliveries,
+            notificationsRoute: channel == DriverChannel.b2c
+                ? DriverRoutes.b2cNotifications
+                : DriverRoutes.b2bNotifications,
           ),
           settings,
         );
@@ -92,6 +102,13 @@ class DriverNavigator {
             builder: (context) => DriverNotificationPage(
               repository: notifications,
               onSessionExpired: onSessionExpired,
+              homeRoute: channel == DriverChannel.b2c
+                  ? DriverRoutes.b2cHome
+                  : DriverRoutes.b2bHome,
+              deliveriesRoute: deliveriesRoute,
+              notificationsRoute: channel == DriverChannel.b2c
+                  ? DriverRoutes.b2cNotifications
+                  : DriverRoutes.b2bNotifications,
               onOpenAssignment: (assignmentId) {
                 Navigator.of(context).pushNamed(
                   deliveriesRoute,
@@ -108,6 +125,9 @@ class DriverNavigator {
   }
 
   Widget _homeFor(DriverChannel channel) {
+    final home = channel == DriverChannel.b2c
+        ? DriverRoutes.b2cHome
+        : DriverRoutes.b2bHome;
     final deliveries = channel == DriverChannel.b2c
         ? DriverRoutes.b2cDeliveries
         : DriverRoutes.b2bDeliveries;
@@ -116,6 +136,7 @@ class DriverNavigator {
         : DriverRoutes.b2bNotifications;
 
     return _DriverHomePage(
+      homeRoute: home,
       deliveriesRoute: deliveries,
       driverName: driverName,
       notificationsRoute: notifications,
@@ -134,6 +155,7 @@ class DriverNavigator {
 
 class _DriverHomePage extends StatefulWidget {
   const _DriverHomePage({
+    required this.homeRoute,
     required this.deliveriesRoute,
     required this.driverName,
     required this.notificationsRoute,
@@ -144,6 +166,7 @@ class _DriverHomePage extends StatefulWidget {
     this.previewContext,
   });
 
+  final String homeRoute;
   final String deliveriesRoute;
   final String driverName;
   final String notificationsRoute;
@@ -227,7 +250,11 @@ class _DriverHomePageState extends State<_DriverHomePage> {
   Widget build(BuildContext context) {
     final driverName = widget.driverName.trim();
 
-    return Scaffold(
+    return DriverShellScaffold(
+      destination: DriverShellDestination.home,
+      homeRoute: widget.homeRoute,
+      deliveriesRoute: widget.deliveriesRoute,
+      notificationsRoute: widget.notificationsRoute,
       appBar: AppBar(
         titleSpacing: 16,
         title: Row(
