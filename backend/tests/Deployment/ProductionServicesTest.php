@@ -26,6 +26,8 @@ class ProductionServicesTest extends TestCase
 
     private bool $publicStorageLinkExisted;
 
+    private string $publicAssetProbeDirectory;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -41,6 +43,8 @@ class ProductionServicesTest extends TestCase
         $this->migrationPath = database_path('migrations/2999_01_01_000000_deployment_failure_probe.php');
         $this->assertFileDoesNotExist($this->migrationPath);
         $this->publicStorageLinkExisted = is_link(public_path('storage')) || is_dir(public_path('storage'));
+        $this->publicAssetProbeDirectory = public_path('assets/updater-permission-probe');
+        File::deleteDirectory($this->publicAssetProbeDirectory);
         copy(base_path('.env'), $this->directory.'/.env');
         config([
             'foodex.installer_env_path' => $this->directory.'/.env',
@@ -66,6 +70,9 @@ class ProductionServicesTest extends TestCase
             && $this->publicStorageLinkExisted === false
             && is_link(public_path('storage'))) {
             @unlink(public_path('storage'));
+        }
+        if (isset($this->publicAssetProbeDirectory)) {
+            File::deleteDirectory($this->publicAssetProbeDirectory);
         }
 
         parent::tearDown();
@@ -112,7 +119,10 @@ class ProductionServicesTest extends TestCase
         ]));
         $this->assertSame('processed', Cache::store('redis')->pull('deployment-queue-probe'));
 
-        $package = $this->package('success.zip', ['VERSION' => "99.0.0\n"]);
+        $package = $this->package('success.zip', [
+            'VERSION' => "99.0.0\n",
+            'backend/public/assets/updater-permission-probe/probe.js' => 'window.foodexUpdaterProbe = true;',
+        ]);
         $history = app(UpdateManager::class)->execute(
             $this->manifest($package, '99.0.0', $installed), $installed, $package,
         );
@@ -123,6 +133,11 @@ class ProductionServicesTest extends TestCase
             is_link(public_path('storage')) || is_dir(public_path('storage')),
             'Updater must guarantee that public/storage is available after a successful update.',
         );
+
+        $publicProbe = $this->publicAssetProbeDirectory.'/probe.js';
+        $this->assertFileExists($publicProbe);
+        $this->assertSame('0755', substr(sprintf('%o', fileperms($this->publicAssetProbeDirectory)), -4));
+        $this->assertSame('0644', substr(sprintf('%o', fileperms($publicProbe)), -4));
 
         $migration = <<<'PHP'
 <?php
