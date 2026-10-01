@@ -68,6 +68,7 @@ void main() {
         locale: const Locale('en'),
         home: CustomerFavoritesScreen(
           api: api,
+          favoritesApi: api,
           retailStoreId: 19,
         ),
       ),
