@@ -2,6 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const {
   STATE_MARKER,
@@ -443,4 +445,22 @@ test('handoff comment forces reuse of existing branch and PR', () => {
   assert.match(body, /#599/);
   assert.match(body, /fix\/591-driver-version-policy-observability/);
   assert.match(body, /fix the failing test/);
+});
+
+
+test('watchdog workflow avoids false-red cancellation fan-out', () => {
+  const workflowPath = path.join(__dirname, '..', 'workflows', 'worker-watchdog.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+
+  assert.match(workflow, /cron: "\*\/10 \* \* \* \*"/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /types: \[completed\]/);
+  assert.doesNotMatch(workflow, /types: \[[^\]]*requested[^\]]*\]/);
+  assert.doesNotMatch(workflow, /types: \[[^\]]*in_progress[^\]]*\]/);
+  assert.doesNotMatch(workflow, /types: \[[^\]]*labeled[^\]]*\]/);
+  assert.doesNotMatch(workflow, /types: \[[^\]]*unlabeled[^\]]*\]/);
+  assert.doesNotMatch(workflow, /\n\s*push:\s*\n/);
+  assert.match(workflow, /cancel-in-progress:\s*false/);
+  assert.doesNotMatch(workflow, /cancel-in-progress:\s*true/);
+  assert.match(workflow, /group: worker-watchdog-\$\{\{ github\.event_name \}\}/);
 });
