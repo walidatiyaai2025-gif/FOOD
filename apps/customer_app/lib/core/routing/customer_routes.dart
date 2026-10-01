@@ -1,4 +1,5 @@
 import '../auth/customer_session.dart';
+import 'customer_commerce_context.dart';
 
 abstract final class CustomerRoutePaths {
   static const splash = '/splash';
@@ -40,6 +41,130 @@ abstract final class CustomerRoutePaths {
   static const b2bCart = '/b2b/cart';
   static const b2bCheckout = '/b2b/checkout';
   static const b2bProfile = '/b2b/profile';
+}
+
+
+enum CustomerAuthEntry { login, register }
+
+abstract final class CustomerRouteLocations {
+  static String retailHome(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    return _scoped('/retail/${context.storeId}/home', context);
+  }
+
+  static String retailProduct(
+    CustomerCommerceContext context,
+    int productId,
+  ) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    if (productId <= 0) {
+      throw ArgumentError.value(productId, 'productId', 'must be positive');
+    }
+    return _scoped(
+      '/retail/${context.storeId}/products/$productId',
+      context,
+    );
+  }
+
+  static String retailCart(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    return _scoped(CustomerRoutePaths.cart, context);
+  }
+
+  static String retailCheckout(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    return _scoped(CustomerRoutePaths.checkoutAddressPayment, context);
+  }
+
+  static String retailProfile(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    return _scoped(CustomerRoutePaths.profile, context);
+  }
+
+  static String retailOrders(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    return _scoped(CustomerRoutePaths.orders, context);
+  }
+
+  static String retailAddresses(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    return _scoped(CustomerRoutePaths.addresses, context);
+  }
+
+  static String retailFavorites(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    return _scoped(CustomerRoutePaths.favorites, context);
+  }
+
+  static String retailNotifications(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    return _scoped(CustomerRoutePaths.notifications, context);
+  }
+
+  static String wholesaleHome(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.wholesale);
+    return _scoped(CustomerRoutePaths.b2bHome, context);
+  }
+
+  static String wholesaleCart(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.wholesale);
+    return _scoped(CustomerRoutePaths.b2bCart, context);
+  }
+
+  static String authHandoff({
+    required CustomerCommerceContext context,
+    required String next,
+    CustomerAuthEntry entry = CustomerAuthEntry.login,
+  }) {
+    final safeNext = safeCustomerContextReturnLocation(
+      next,
+      context: context,
+    );
+    if (safeNext == null) {
+      throw ArgumentError.value(
+        next,
+        'next',
+        'must be a safe route in the same commerce context',
+      );
+    }
+
+    return Uri(
+      path: context.isWholesale
+          ? CustomerRoutePaths.b2bLogin
+          : CustomerRoutePaths.checkoutAuth,
+      queryParameters: <String, String>{
+        ...context.toQueryParameters(),
+        'entry': entry.name,
+        'next': safeNext,
+      },
+    ).toString();
+  }
+
+  static String _scoped(
+    String path,
+    CustomerCommerceContext context, [
+    Map<String, String> extra = const <String, String>{},
+  ]) =>
+      Uri(
+        path: path,
+        queryParameters: <String, String>{
+          ...context.toQueryParameters(),
+          ...extra,
+        },
+      ).toString();
+
+  static void _requireChannel(
+    CustomerCommerceContext context,
+    CustomerCommerceChannel expected,
+  ) {
+    if (context.channel != expected) {
+      throw ArgumentError.value(
+        context.channel,
+        'context.channel',
+        'expected ${expected.name}',
+      );
+    }
+  }
 }
 
 class CustomerRouteDefinition {
@@ -123,6 +248,27 @@ String? safeCustomerReturnLocation(
   }
 
   return value;
+}
+
+
+String? safeCustomerContextReturnLocation(
+  String? value, {
+  required CustomerCommerceContext context,
+}) {
+  final channel = context.isWholesale
+      ? CustomerChannel.b2b
+      : CustomerChannel.b2c;
+  final safe = safeCustomerReturnLocation(value, channel: channel);
+  if (safe == null) {
+    return null;
+  }
+
+  final parsedContext = CustomerCommerceContext.tryParseLocation(safe);
+  if (parsedContext == null || !context.sameScope(parsedContext)) {
+    return null;
+  }
+
+  return safe;
 }
 
 const customerRouteDefinitions = <CustomerRouteDefinition>[
