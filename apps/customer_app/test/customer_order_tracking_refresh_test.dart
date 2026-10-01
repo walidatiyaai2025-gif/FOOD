@@ -34,7 +34,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      // The tracking screen deliberately keeps an open-order polling timer.
+      // Pump only the bounded async load instead of waiting for the scheduler
+      // to settle, which cannot happen while polling remains enabled.
+      await tester.pump();
+      await tester.pump();
 
       expect(api.detailCalls, 1);
       expect(find.text('Order received'), findsWidgets);
