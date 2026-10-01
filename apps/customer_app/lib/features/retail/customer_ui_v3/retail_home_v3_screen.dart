@@ -199,7 +199,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
             )
           else
             SizedBox(
-              height: 112,
+              height: 144,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: data.categories.length,
@@ -506,7 +506,7 @@ class _RetailHomeSkeleton extends StatelessWidget {
           const CustomerSkeletonBox(height: 24, width: 130, radius: 12),
           const SizedBox(height: CustomerUiSpacing.sm),
           SizedBox(
-            height: 106,
+            height: 144,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: 4,
