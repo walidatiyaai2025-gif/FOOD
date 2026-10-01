@@ -11,6 +11,8 @@ const {
   linkedIssueNumbers,
   parseWorkerState,
   statusLabel,
+  summarizeCheckRuns,
+  summarizeCommitStatuses,
   summarizeWorkflowRuns,
 } = require('./worker-watchdog');
 
@@ -230,7 +232,56 @@ test('stale green mergeable PR becomes handoff-ready for another worker', () => 
   );
 });
 
-test('real deployment gate is reserved for human intervention', () => {
+test('red CI overrides a nominal external gate until repo-local red is fixed', () => {
+  assert.deepEqual(
+    classify({
+      nowMs: NOW,
+      managed: true,
+      workerState: { state: 'BLOCKED_EXTERNAL', blocker: 'deploy' },
+      hasOpenPr: true,
+      hasBranch: true,
+      latestActivityMs: Date.parse('2026-10-01T05:59:30Z'),
+      ciRunning: false,
+      ciConclusion: 'failure',
+      mergeable: true,
+    }),
+    { status: 'handoff-ready', reason: 'ci-failure' },
+  );
+});
+
+test('check-run red state is detected immediately', () => {
+  assert.deepEqual(
+    summarizeCheckRuns([
+      {
+        id: 1,
+        name: 'lint',
+        app: { id: 10 },
+        status: 'completed',
+        conclusion: 'failure',
+        started_at: '2026-10-01T05:50:00Z',
+        completed_at: '2026-10-01T05:51:00Z',
+      },
+    ]),
+    { running: false, conclusion: 'failure' },
+  );
+});
+
+test('commit status failure is detected immediately', () => {
+  assert.deepEqual(
+    summarizeCommitStatuses([
+      {
+        id: 1,
+        context: 'external-ci',
+        state: 'failure',
+        created_at: '2026-10-01T05:50:00Z',
+        updated_at: '2026-10-01T05:51:00Z',
+      },
+    ]),
+    { running: false, conclusion: 'failure' },
+  );
+});
+
+test('real deployment gate is reserved for human intervention after repo-local state is clear', () => {
   assert.deepEqual(
     classify({
       nowMs: NOW,
