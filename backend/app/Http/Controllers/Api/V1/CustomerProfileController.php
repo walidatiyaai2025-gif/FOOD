@@ -445,7 +445,21 @@ class CustomerProfileController extends Controller
         abort_unless($user instanceof User, 401);
 
         if (app(CustomerAddressService::class)->platformCustomer($user) !== null) {
-            return [$user, null, null];
+            $channel = strtolower(trim((string) $request->header(
+                'X-FOODEX-Customer-Domain',
+                'b2c',
+            )));
+            abort_unless(
+                in_array($channel, ['b2b', 'b2c'], true),
+                400,
+                'Unsupported customer address commerce channel.',
+            );
+
+            $customer = $channel === 'b2b'
+                ? app(CustomerDomainResolver::class)->b2bFromRequest($user, $request)
+                : null;
+
+            return [$user, $customer, $channel];
         }
 
         [$customer, $channel] = app(CustomerDomainResolver::class)->profile($user, $request);
@@ -649,6 +663,7 @@ class CustomerProfileController extends Controller
     {
         return [
             'id' => (int) $address->getKey(),
+            'commerce_channel' => (string) $address->commerce_channel,
             'label' => $address->label,
             'recipient_name' => $address->recipient_name,
             'delivery_phone' => $address->delivery_phone,

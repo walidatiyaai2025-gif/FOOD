@@ -15,6 +15,8 @@ class PlatformCustomerAddressTest extends TestCase
 
     private int $retailStoreId;
 
+    private int $wholesaleStoreId;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -24,7 +26,7 @@ class PlatformCustomerAddressTest extends TestCase
         $b2bTypeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
 
-        DB::table('stores')->insert([
+        $this->wholesaleStoreId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $b2bTypeId,
             'code' => 'MAIN-B2B',
             'name' => 'Main Wholesale',
@@ -45,7 +47,7 @@ class PlatformCustomerAddressTest extends TestCase
         config(['foodex.platform_wholesale_store_code' => 'MAIN-B2B']);
     }
 
-    public function test_platform_customer_has_one_cross_channel_address_book_with_precise_location(): void
+    public function test_platform_customer_has_scoped_b2c_address_book_with_precise_location(): void
     {
         $user = $this->registerPlatformCustomer(
             'address-owner@example.test',
@@ -88,6 +90,7 @@ class PlatformCustomerAddressTest extends TestCase
             'platform_customer_id' => $platformCustomerId,
             'b2b_customer_id' => null,
             'b2c_customer_id' => null,
+            'commerce_channel' => 'b2c',
             'location_source' => 'current_location',
             'is_default' => true,
         ]);
@@ -156,6 +159,66 @@ class PlatformCustomerAddressTest extends TestCase
             'id' => $secondId,
             'is_default' => true,
         ]);
+    }
+
+    public function test_b2b_and_b2c_address_books_and_checkout_options_do_not_cross_over(): void
+    {
+        $this->registerPlatformCustomer(
+            'address-context-owner@example.test',
+            '+201000001116',
+        );
+
+        $retail = $this->postJson('/api/v1/profile/addresses', [
+            'label' => 'Retail Home',
+            'line1' => 'Retail Street',
+            'city' => 'Cairo',
+            'country_code' => 'EG',
+        ])->assertCreated()
+            ->assertJsonPath('commerce_channel', 'b2c');
+
+        $wholesale = $this->withHeader('X-FOODEX-Customer-Domain', 'b2b')
+            ->postJson('/api/v1/profile/addresses', [
+                'label' => 'Wholesale Office',
+                'line1' => 'Wholesale Street',
+                'city' => 'Cairo',
+                'country_code' => 'EG',
+            ])->assertCreated()
+            ->assertJsonPath('commerce_channel', 'b2b');
+
+        $retailId = (int) $retail->json('id');
+        $wholesaleId = (int) $wholesale->json('id');
+
+        $this->withHeader('X-FOODEX-Customer-Domain', 'b2c')
+            ->getJson('/api/v1/profile/addresses')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $retailId);
+
+        $this->withHeader('X-FOODEX-Customer-Domain', 'b2b')
+            ->getJson('/api/v1/profile/addresses')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $wholesaleId);
+
+        $this->withHeader('X-FOODEX-Customer-Domain', 'b2b')
+            ->getJson("/api/v1/profile/addresses/{$retailId}")
+            ->assertNotFound();
+
+        $this->withHeader('X-FOODEX-Customer-Domain', 'b2c')
+            ->getJson("/api/v1/profile/addresses/{$wholesaleId}")
+            ->assertNotFound();
+
+        $this->withHeader('X-FOODEX-Customer-Domain', 'b2c')
+            ->getJson('/api/v1/checkout/options?store_id='.$this->retailStoreId)
+            ->assertOk()
+            ->assertJsonCount(1, 'addresses')
+            ->assertJsonPath('addresses.0.id', $retailId);
+
+        $this->withHeader('X-FOODEX-Customer-Domain', 'b2b')
+            ->getJson('/api/v1/b2b/checkout/options?store_id='.$this->wholesaleStoreId)
+            ->assertOk()
+            ->assertJsonCount(1, 'addresses')
+            ->assertJsonPath('addresses.0.id', $wholesaleId);
     }
 
     public function test_geographic_location_sources_require_real_coordinate_pairs(): void

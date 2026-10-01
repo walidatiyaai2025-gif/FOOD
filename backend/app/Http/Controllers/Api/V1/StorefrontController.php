@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
 use App\Models\User;
+use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
@@ -401,6 +402,7 @@ final class StorefrontController extends Controller
     public function b2bCheckoutOptions(
         Request $request,
         CustomerDomainResolver $customers,
+        CustomerAddressService $customerAddresses,
     ): JsonResponse {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
@@ -426,8 +428,8 @@ final class StorefrontController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
-        $addresses = DB::table('addresses')
-            ->where('b2b_customer_id', $customer->getKey())
+        $addresses = $customerAddresses
+            ->queryFor($user, $customer, 'b2b')
             ->orderByDesc('is_default')
             ->orderBy('id')
             ->get([

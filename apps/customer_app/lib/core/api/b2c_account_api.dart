@@ -35,12 +35,17 @@ class HttpB2cAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
     required this.baseUrl,
     this.token,
     required this.guestSession,
+    this.customerDomain = 'b2c',
+    this.retailStoreContextId,
     http.Client? client,
-  }) : _client = client ?? http.Client();
+  })  : assert(customerDomain == 'b2c' || customerDomain == 'b2b'),
+        _client = client ?? http.Client();
 
   final String baseUrl;
   final String? token;
   final CustomerGuestSession guestSession;
+  final String customerDomain;
+  final int? retailStoreContextId;
   final http.Client _client;
 
   Map<String, String> get _headers => _headersForStore(null);
@@ -56,7 +61,9 @@ class HttpB2cAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
       if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
       if (guestToken != null) 'X-Guest-Token': guestToken,
       if (storeId != null) 'X-FOODEX-Store-ID': storeId.toString(),
-      'X-FOODEX-Customer-Domain': 'b2c',
+      if (retailStoreContextId != null)
+        'X-FOODEX-Retail-Store-ID': retailStoreContextId.toString(),
+      'X-FOODEX-Customer-Domain': customerDomain,
     };
   }
 
