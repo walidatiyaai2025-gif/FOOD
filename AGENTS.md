@@ -277,6 +277,8 @@ The phrases:
 
 are shorthand for this policy across the entire repository.
 
+When the numeric target is a coordination/umbrella Issue, `FOOD #<umbrella> AUTO-HANDOFF` activates **Umbrella Mission / Drain Mode** defined below. It is not a one-lane command.
+
 **Bare `HANDOFF` is intentionally sufficient.** The user does not need to repeat the Issue, branch, PR, SHA, CI status, or previous prompt.
 
 When `HANDOFF` is received, the replacement worker must reconstruct the task from GitHub authoritative state. Selection order is:
@@ -475,3 +477,163 @@ That command means:
 - stop only at a genuine external/human gate or when no safe actionable managed work remains.
 
 The user may still provide `HANDOFF #<issue>` when they want to force a specific task, but the longer AUTO-HANDOFF prompt is no longer required.
+
+
+---
+
+## 20. Umbrella AUTO-HANDOFF Mission / Drain Mode
+
+The command:
+
+```text
+FOOD #<umbrella> AUTO-HANDOFF
+```
+
+is a persistent **mission command**, not a request to perform one child task and stop.
+
+### Mission objective
+
+Drain the named umbrella Issue to its own completion criteria in the shortest safe time possible, while preserving:
+
+- One Task = One Owner = One Branch = One PR;
+- existing branch/PR ownership;
+- required CI;
+- file/scope ownership fences;
+- real external/human gates;
+- no fabricated production/deployment/device evidence.
+
+A coordination-only umbrella must **never** get an implementation branch merely because Mission Mode is active.
+
+### Build the authoritative mission queue
+
+At the start of every cycle, reconstruct the queue from current GitHub state, not chat history.
+
+Include only work that belongs to the named umbrella, using:
+
+1. explicit child/checklist Issue references in the umbrella body;
+2. GitHub sub-issues, when present;
+3. Issues/PRs explicitly declaring `Parent: #<umbrella>`;
+4. existing Issues explicitly named by the umbrella completion criteria.
+
+Do not broaden Mission Mode into unrelated repository work.
+
+For every required lane, determine:
+
+- Issue state;
+- current branch;
+- current PR;
+- latest head SHA;
+- latest worker-state/handoff;
+- lease freshness;
+- CI state/result;
+- mergeability/conflicts;
+- dependency blockers;
+- human/external gates.
+
+### Mission lane states
+
+Classify each required lane as one of:
+
+- `COMPLETE` — child acceptance is satisfied and the Issue is closed/merged as required;
+- `MERGE_READY` — implementation is complete, required CI is green, and merge can proceed;
+- `TAKEOVER` — explicit handoff or stale lease on existing work;
+- `CI_FIX` — repository-local red CI/test/lint/build failure;
+- `READY` — actionable and unclaimed;
+- `WAITING_CI` — valid CI is actively running on the latest head;
+- `ACTIVE_PEER` — a fresh valid lease is owned by another worker;
+- `BLOCKED_DEP` — blocked only by another required umbrella lane;
+- `HUMAN_GATE` — genuine deployment/production/credential/device/approval intervention.
+
+### Fastest-safe scheduling
+
+To minimize umbrella completion time:
+
+1. unblock dependency-critical lanes first when they block multiple other lanes;
+2. close `MERGE_READY` lanes immediately;
+3. take over `TAKEOVER` lanes using the same Issue/branch/PR;
+4. fix `CI_FIX` lanes on their existing branch/PR;
+5. claim `READY` lanes;
+6. never steal a fresh `ACTIVE_PEER` lease;
+7. never duplicate a branch/PR just to increase parallelism.
+
+Parallelism is encouraged only across file/scope-disjoint lanes.
+
+If multiple worker chats receive the same umbrella command, each worker must re-run preflight immediately before claiming work and skip lanes that gained a fresh claim. This makes repeated identical commands self-distribute across available lanes instead of duplicating implementation.
+
+After posting a claim, re-fetch the Issue's latest comments/PR state before the first code edit. If another valid claim won the race, release the lane and select another.
+
+### Continuous drain loop
+
+A Mission Mode worker does **not** stop after its first child Issue/PR completes.
+
+After every merge/closure:
+
+1. return to the umbrella;
+2. refresh all required lane states;
+3. update the umbrella progress checkpoint;
+4. select the next highest-priority safe lane;
+5. claim/take over it;
+6. continue.
+
+Repeat until the umbrella itself reaches one of the terminal states below.
+
+Waiting for CI is not a reason to abandon the mission. Record `WAITING_CI`, then inspect other independent umbrella lanes that can progress safely. Return to the CI lane when its result is available.
+
+### Umbrella progress checkpoint
+
+Keep a concise coordinator checkpoint on the umbrella whenever the queue materially changes, including:
+
+- complete lanes;
+- active lanes;
+- handoff/takeover lanes;
+- CI failures/waits;
+- dependency blockers;
+- human gates;
+- next actionable lane(s).
+
+The checkpoint exists so a replacement chat can continue the mission from GitHub only.
+
+### Mission terminal states
+
+Mission Mode ends only when one of these is true:
+
+#### COMPLETE
+
+All requirements in the umbrella's own Completion section are satisfied.
+
+Then:
+
+- verify required child Issues are closed/merged as specified;
+- verify any explicitly required existing Issue residual is resolved or separated exactly as allowed by the umbrella;
+- add final evidence/checkpoint;
+- close the umbrella Issue if it is still open.
+
+#### HUMAN-GATED
+
+No repository-local action remains and every incomplete required lane is blocked by a genuine external/human gate.
+
+Then:
+
+- leave exact `BLOCKED_EXTERNAL` state on affected lane(s);
+- leave a consolidated umbrella checkpoint stating precisely what human action is required;
+- do not fabricate completion;
+- do not close the umbrella unless its own completion text explicitly permits that separation.
+
+A worker must **not** stop merely because:
+
+- one lane merged;
+- one PR is waiting for CI;
+- another lane has red CI;
+- a merge conflict exists;
+- the previous worker/chat disconnected;
+- another independent umbrella lane is still actionable.
+
+### Exact #589 behavior
+
+For the current umbrella `#589`, the command:
+
+```text
+FOOD #589 AUTO-HANDOFF
+```
+
+means: keep draining #589's required lanes and their existing Issue/branch/PR state until #589's own Completion section is satisfied. Do not create an implementation branch for #589 itself.
