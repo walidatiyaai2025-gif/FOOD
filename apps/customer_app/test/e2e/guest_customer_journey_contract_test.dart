@@ -255,7 +255,7 @@ void main() {
           expect(request.headers['X-FOODEX-Store-ID'], '7');
           expect(request.headers['Idempotency-Key'], 'journey-7-key-000001');
           return http.Response(
-            jsonEncode({'order': {'id': 9001, 'store_id': 7}}),
+            jsonEncode({'id': 9001, 'store_id': 7}),
             201,
             headers: const {'content-type': 'application/json'},
           );
