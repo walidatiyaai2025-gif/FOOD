@@ -2699,9 +2699,8 @@ class _OrderCard extends StatelessWidget {
         '';
     final currency = row['currency']?.toString() ?? 'KWD';
     final total = row['grand_total'] ?? row['total'];
-    final totalLabel = total == null
-        ? '—'
-        : compactNumber(doubleValue(total)) + ' ' + currency;
+    final totalLabel =
+        total == null ? '—' : total.toString() + ' ' + currency;
 
     return Material(
       key: ValueKey('b2b-order-row-' + id.toString()),
