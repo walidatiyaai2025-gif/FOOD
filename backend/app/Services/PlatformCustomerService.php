@@ -24,7 +24,7 @@ final class PlatformCustomerService
         $registrationSource = $this->normalizeRegistrationSource($registrationSource);
         $tierId = $this->resolveInitialWholesaleTierId($origin['channel'], $origin['store_id']);
 
-        return DB::transaction(function () use ($data, $origin, $registrationSource, $tierId): User {
+        $user = DB::transaction(function () use ($data, $origin, $registrationSource, $tierId): User {
             $email = strtolower(trim((string) $data['email']));
             if (User::query()->whereRaw('LOWER(email) = ?', [$email])->exists()) {
                 throw ValidationException::withMessages([
@@ -72,6 +72,14 @@ final class PlatformCustomerService
 
             return $user;
         });
+
+        $platform = $this->forUser($user);
+        if ($platform instanceof PlatformCustomer) {
+            app(DashboardOperationalNotifier::class)
+                ->platformCustomerRegistered($platform);
+        }
+
+        return $user;
     }
 
     public function forUser(User $user): ?PlatformCustomer

@@ -73,7 +73,18 @@ class DriverLiveTrackingController extends Controller
         $rows = DB::table('driver_current_locations as locations')
             ->join('drivers', 'drivers.id', '=', 'locations.driver_id')
             ->join('users', 'users.id', '=', 'drivers.user_id')
-            ->leftJoin('driver_assignments', 'driver_assignments.id', '=', 'locations.active_assignment_id')
+            ->leftJoin('driver_assignments', function ($join): void {
+                $join
+                    ->on('driver_assignments.id', '=', 'locations.active_assignment_id')
+                    ->on('driver_assignments.driver_id', '=', 'locations.driver_id')
+                    ->on('driver_assignments.store_id', '=', 'locations.store_id')
+                    ->on('driver_assignments.assignment_type', '=', 'locations.channel')
+                    ->whereNull('driver_assignments.completed_at')
+                    ->whereIn(
+                        'driver_assignments.status',
+                        ['accepted', 'picked_up', 'out_for_delivery'],
+                    );
+            })
             ->leftJoin('orders', 'orders.id', '=', 'driver_assignments.order_id')
             ->where(function ($query) use ($allowedStoresByChannel): void {
                 foreach ($allowedStoresByChannel as $channel => $storeIds) {
@@ -110,7 +121,8 @@ class DriverLiveTrackingController extends Controller
                 'locations.received_at',
                 'locations.app_version',
                 'locations.is_mocked',
-                'locations.active_assignment_id',
+                'driver_assignments.id as active_assignment_id',
+                'driver_assignments.status as active_assignment_status',
                 'users.name as driver_name',
                 'orders.id as order_id',
                 'orders.order_number',
@@ -137,6 +149,10 @@ class DriverLiveTrackingController extends Controller
                     'app_version' => $row->app_version,
                     'is_mocked' => $row->is_mocked === null ? null : (bool) $row->is_mocked,
                     'active_assignment_id' => $row->active_assignment_id === null ? null : (int) $row->active_assignment_id,
+                    'active_assignment_status' => $row->active_assignment_status === null
+                        ? null
+                        : (string) $row->active_assignment_status,
+                    'tracking_required' => $row->active_assignment_id !== null,
                     'order' => $row->order_id === null ? null : [
                         'id' => (int) $row->order_id,
                         'number' => (string) $row->order_number,

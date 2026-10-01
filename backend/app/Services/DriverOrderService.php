@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\DeliveryProof;
 use App\Models\Driver;
 use App\Models\DriverAssignment;
 use App\Models\Order;
@@ -11,6 +12,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 final class DriverOrderService
 {
@@ -26,22 +29,23 @@ final class DriverOrderService
         $assignmentStatus = (string) $assignment->status;
         $orderStatus = (string) $order->status;
 
-        if ($assignment->completed_at !== null
-            || in_array($orderStatus, ['cancelled', 'delivered'], true)) {
+        if (
+            $assignment->completed_at !== null
+            || in_array(
+                $assignmentStatus,
+                ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned'],
+                true,
+            )
+            || in_array($orderStatus, ['cancelled', 'delivered'], true)
+        ) {
             return [];
         }
 
         return match ($assignmentStatus) {
             'assigned' => ['accepted'],
-            'accepted' => match ($orderStatus) {
-                'ready' => ['out_for_delivery', 'failed', 'picked_up'],
-                'failed' => ['out_for_delivery'],
-                'out_for_delivery' => ['delivered', 'failed'],
-                default => [],
-            },
+            'accepted' => $orderStatus === 'ready' ? ['picked_up', 'failed'] : [],
             'picked_up' => $orderStatus === 'ready' ? ['out_for_delivery', 'failed'] : [],
             'out_for_delivery' => $orderStatus === 'out_for_delivery' ? ['delivered', 'failed'] : [],
-            'failed' => [],
             default => [],
         };
     }
@@ -146,7 +150,7 @@ final class DriverOrderService
         $driverHistory = DB::table('delivery_proofs')
             ->leftJoin('users', 'users.id', '=', 'delivery_proofs.user_id')
             ->where('driver_assignment_id', $assignment->getKey())
-            ->whereIn('proof_type', ['status_note', 'failure_note', 'delivery_image'])
+            ->whereIn('proof_type', ['status_note', 'failure_note', 'failure_image', 'delivery_image'])
             ->orderByDesc('delivery_proofs.id')
             ->limit(50)
             ->get([
@@ -277,137 +281,289 @@ final class DriverOrderService
         Request $request,
         ?UploadedFile $proofImage = null,
         ?string $failureReason = null,
+        ?string $idempotencyKey = null,
     ): DriverAssignment {
         $beforeAssignment = (string) $assignment->status;
         $beforeOrder = null;
         $afterOrder = null;
+        $normalizedNote = trim((string) $note);
+        $normalizedNote = $normalizedNote === '' ? null : $normalizedNote;
         $normalizedFailureReason = $targetStatus === 'failed'
-            ? (trim((string) $failureReason) !== '' ? trim((string) $failureReason) : 'driver_reported')
+            ? trim((string) $failureReason)
             : null;
-
-        $updated = DB::transaction(function () use (
-            $assignment,
-            $driver,
-            $actor,
-            $targetStatus,
-            $note,
-            $request,
-            $proofImage,
-            $normalizedFailureReason,
-            &$beforeAssignment,
-            &$beforeOrder,
-            &$afterOrder,
-        ): DriverAssignment {
-            $locked = DriverAssignment::query()
-                ->whereKey($assignment->getKey())
-                ->where('driver_id', $driver->getKey())
-                ->where('assignment_type', strtolower((string) $driver->driver_type))
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $beforeAssignment = (string) $locked->status;
-            $order = Order::query()->whereKey($locked->order_id)->lockForUpdate()->firstOrFail();
-            abort_unless(
-                (int) $order->store_id === (int) $locked->store_id
-                    && (int) $order->store_id === (int) $driver->store_id
-                    && strtolower((string) $order->channel) === strtolower((string) $locked->assignment_type),
-                404,
+        $idempotencyKey = trim((string) $idempotencyKey);
+        $idempotencyKey = $idempotencyKey === '' ? null : $idempotencyKey;
+        $requestFingerprint = $idempotencyKey === null
+            ? null
+            : $this->transitionFingerprint(
+                $targetStatus,
+                $normalizedNote,
+                $normalizedFailureReason,
+                $proofImage,
             );
+        $proofPath = null;
+        $replayed = false;
 
-            $allowed = $this->availableStatuses($locked, $order);
-            abort_unless(
-                in_array($targetStatus, $allowed, true),
-                409,
-                'The delivery action is not available for the current order state.',
-            );
+        try {
+            $updated = DB::transaction(function () use (
+                $assignment,
+                $driver,
+                $actor,
+                $targetStatus,
+                $normalizedNote,
+                $request,
+                $proofImage,
+                $normalizedFailureReason,
+                $idempotencyKey,
+                $requestFingerprint,
+                &$beforeAssignment,
+                &$beforeOrder,
+                &$afterOrder,
+                &$proofPath,
+                &$replayed,
+            ): DriverAssignment {
+                $locked = DriverAssignment::query()
+                    ->whereKey($assignment->getKey())
+                    ->where('driver_id', $driver->getKey())
+                    ->where('assignment_type', strtolower((string) $driver->driver_type))
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $beforeOrder = (string) $order->status;
+                $beforeAssignment = (string) $locked->status;
+                $order = Order::query()
+                    ->whereKey($locked->order_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            if ($targetStatus === 'out_for_delivery') {
-                abort_unless(in_array((string) $order->status, ['ready', 'failed'], true), 409);
-                $this->updateOrderStatus($order, $actor, 'out_for_delivery', $note, $request);
-                $afterOrder = 'out_for_delivery';
-            } elseif ($targetStatus === 'delivered') {
-                abort_unless((string) $order->status === 'out_for_delivery', 409);
-                $this->reservations->consume($order, $actor);
-                $this->updateOrderStatus($order, $actor, 'delivered', $note, $request);
-                $afterOrder = 'delivered';
-            } elseif ($targetStatus === 'failed') {
-                abort_unless(in_array((string) $order->status, ['ready', 'out_for_delivery'], true), 409);
-                $failureAuditNote = (string) $normalizedFailureReason
-                    .($note !== null && trim($note) !== '' ? ': '.trim($note) : '');
-                $this->updateOrderStatus($order, $actor, 'failed', $failureAuditNote, $request);
-                $afterOrder = 'failed';
-            } elseif ($targetStatus === 'picked_up') {
-                abort_unless((string) $order->status === 'ready', 409);
-            }
+                abort_unless(
+                    (int) $order->store_id === (int) $locked->store_id
+                        && (int) $order->store_id === (int) $driver->store_id
+                        && strtolower((string) $order->channel) === strtolower((string) $locked->assignment_type),
+                    404,
+                );
 
-            $locked->status = $targetStatus;
-            if (in_array($targetStatus, ['delivered', 'failed'], true)) {
-                $locked->completed_at = now();
-            } else {
-                $locked->completed_at = null;
-            }
-            $locked->save();
+                if ($idempotencyKey !== null) {
+                    $prior = DeliveryProof::query()
+                        ->where('driver_assignment_id', $locked->getKey())
+                        ->where('idempotency_key', $idempotencyKey)
+                        ->lockForUpdate()
+                        ->first();
 
-            $proofPath = null;
-            if ($proofImage !== null && in_array($targetStatus, ['delivered', 'failed'], true)) {
-                $proofPath = $proofImage->store('delivery-proofs', 'public');
-            }
+                    if ($prior instanceof DeliveryProof) {
+                        abort_unless(
+                            (string) $prior->to_status === $targetStatus
+                                && is_string($prior->request_fingerprint)
+                                && is_string($requestFingerprint)
+                                && hash_equals($prior->request_fingerprint, $requestFingerprint),
+                            409,
+                            'Idempotency-Key was already used for a different delivery transition request.',
+                        );
 
-            if (
-                ($note !== null && trim($note) !== '')
-                || $proofPath !== null
-                || ($targetStatus === 'failed' && $normalizedFailureReason !== null)
-            ) {
-                DB::table('delivery_proofs')->insert([
+                        $replayed = true;
+
+                        return $locked;
+                    }
+                }
+
+                $allowed = $this->availableStatuses($locked, $order);
+                abort_unless(
+                    in_array($targetStatus, $allowed, true),
+                    409,
+                    'The delivery action is not available for the current order state.',
+                );
+
+                if ($targetStatus === 'delivered') {
+                    if (! $proofImage instanceof UploadedFile || ! $proofImage->isValid()) {
+                        throw ValidationException::withMessages([
+                            'proof_image' => ['A valid delivery proof image is required before completing delivery.'],
+                        ]);
+                    }
+                }
+
+                if ($targetStatus === 'failed') {
+                    if (
+                        $normalizedFailureReason === null
+                        || ! in_array(
+                            $normalizedFailureReason,
+                            [
+                                'customer_no_answer',
+                                'wrong_address',
+                                'customer_refused',
+                                'customer_absent',
+                                'payment_issue',
+                                'order_issue',
+                                'other',
+                            ],
+                            true,
+                        )
+                    ) {
+                        throw ValidationException::withMessages([
+                            'failure_reason' => ['A valid failure reason is required for failed delivery.'],
+                        ]);
+                    }
+
+                    if ($normalizedFailureReason === 'other' && $normalizedNote === null) {
+                        throw ValidationException::withMessages([
+                            'note' => ['A note is required when the failure reason is other.'],
+                        ]);
+                    }
+                }
+
+                if ($proofImage !== null && ! $proofImage->isValid()) {
+                    throw ValidationException::withMessages([
+                        'proof_image' => ['The delivery proof image could not be read.'],
+                    ]);
+                }
+
+                $beforeOrder = (string) $order->status;
+
+                if ($targetStatus === 'out_for_delivery') {
+                    abort_unless((string) $order->status === 'ready', 409);
+                    $this->updateOrderStatus(
+                        $order,
+                        $actor,
+                        'out_for_delivery',
+                        $normalizedNote,
+                        $request,
+                    );
+                    $afterOrder = 'out_for_delivery';
+                } elseif ($targetStatus === 'delivered') {
+                    abort_unless((string) $order->status === 'out_for_delivery', 409);
+                    $this->reservations->consume($order, $actor);
+                    $this->updateOrderStatus(
+                        $order,
+                        $actor,
+                        'delivered',
+                        $normalizedNote,
+                        $request,
+                    );
+                    $afterOrder = 'delivered';
+                } elseif ($targetStatus === 'failed') {
+                    abort_unless(
+                        in_array((string) $order->status, ['ready', 'out_for_delivery'], true),
+                        409,
+                    );
+                    $failureAuditNote = $normalizedFailureReason
+                        .($normalizedNote !== null ? ': '.$normalizedNote : '');
+                    $this->updateOrderStatus(
+                        $order,
+                        $actor,
+                        'failed',
+                        $failureAuditNote,
+                        $request,
+                    );
+                    $afterOrder = 'failed';
+                } elseif ($targetStatus === 'picked_up') {
+                    abort_unless((string) $order->status === 'ready', 409);
+                }
+
+                $locked->status = $targetStatus;
+                $locked->completed_at = in_array($targetStatus, ['delivered', 'failed'], true)
+                    ? now()
+                    : null;
+                $locked->save();
+
+                if ($proofImage !== null && in_array($targetStatus, ['delivered', 'failed'], true)) {
+                    $storedPath = $proofImage->store('delivery-proofs', 'public');
+                    if (! is_string($storedPath) || $storedPath === '') {
+                        throw ValidationException::withMessages([
+                            'proof_image' => ['The delivery proof image could not be stored.'],
+                        ]);
+                    }
+                    $proofPath = $storedPath;
+                }
+
+                $proofType = match (true) {
+                    $targetStatus === 'delivered' => 'delivery_image',
+                    $targetStatus === 'failed' && $proofPath !== null => 'failure_image',
+                    $targetStatus === 'failed' => 'failure_note',
+                    default => 'status_note',
+                };
+
+                DeliveryProof::query()->create([
                     'driver_assignment_id' => $locked->getKey(),
+                    'order_id' => $order->getKey(),
+                    'idempotency_key' => $idempotencyKey,
+                    'request_fingerprint' => $requestFingerprint,
                     'user_id' => $actor->getKey(),
-                    'proof_type' => $targetStatus === 'failed'
-                        ? 'failure_note'
-                        : ($proofPath !== null ? 'delivery_image' : 'status_note'),
+                    'proof_type' => $proofType,
                     'from_status' => $beforeAssignment,
                     'to_status' => $targetStatus,
                     'file_path' => $proofPath,
                     'otp_hash' => null,
-                    'reason_code' => $targetStatus === 'failed' ? $normalizedFailureReason : null,
-                    'note' => $note === null ? null : trim($note),
+                    'reason_code' => $targetStatus === 'failed'
+                        ? $normalizedFailureReason
+                        : null,
+                    'note' => $normalizedNote,
                     'captured_at' => now(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
                 ]);
+
+                $this->audit->record(
+                    'delivery.assignment.status_changed',
+                    $actor,
+                    $locked,
+                    ['status' => $beforeAssignment],
+                    [
+                        'status' => $targetStatus,
+                        'failure_reason' => $normalizedFailureReason,
+                        'note' => $normalizedNote,
+                        'idempotency_key' => $idempotencyKey,
+                    ],
+                    $request,
+                );
+
+                return $locked;
+            }, 3);
+        } catch (\Throwable $exception) {
+            if ($proofPath !== null) {
+                Storage::disk('public')->delete($proofPath);
             }
 
-            $this->audit->record(
-                'delivery.assignment.status_changed',
-                $actor,
-                $locked,
-                ['status' => (string) $assignment->status],
-                ['status' => $targetStatus, 'failure_reason' => $normalizedFailureReason, 'note' => $note],
-                $request,
-            );
-
-            return $locked;
-        }, 3);
+            throw $exception;
+        }
 
         $fresh = $updated->fresh();
+        if ($replayed) {
+            return $fresh;
+        }
+
         $order = Order::query()->findOrFail($fresh->order_id);
         if ($beforeOrder !== null && $afterOrder !== null && $beforeOrder !== $afterOrder) {
-            // Order-changing delivery actions are one logical transition. Route them
-            // through the order lifecycle notifier once so Dashboard + Customer each
-            // receive one authoritative notification rather than delivery+order duplicates.
             $this->notifier->orderStatusChanged($order, $beforeOrder, $afterOrder);
         } else {
             $this->notifier->deliveryChanged(
                 $order,
                 (string) $fresh->status,
                 $fresh,
-                $note,
+                $normalizedNote,
                 $beforeAssignment,
             );
         }
 
         return $fresh;
+    }
+
+    private function transitionFingerprint(
+        string $targetStatus,
+        ?string $note,
+        ?string $failureReason,
+        ?UploadedFile $proofImage,
+    ): string {
+        $proofHash = null;
+        if ($proofImage instanceof UploadedFile && $proofImage->isValid()) {
+            $realPath = $proofImage->getRealPath();
+            if (is_string($realPath) && $realPath !== '') {
+                $hash = hash_file('sha256', $realPath);
+                $proofHash = $hash === false ? null : $hash;
+            }
+        }
+
+        return hash('sha256', json_encode([
+            'status' => $targetStatus,
+            'failure_reason' => $failureReason,
+            'note' => $note,
+            'proof_sha256' => $proofHash,
+        ], JSON_THROW_ON_ERROR));
     }
 
     private function updateOrderStatus(

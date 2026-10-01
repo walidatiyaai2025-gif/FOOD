@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PlatformCustomer;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -15,6 +16,77 @@ final class DashboardOperationalNotifier
     public function __construct(
         private readonly OrderLifecycleNotificationService $lifecycle,
     ) {}
+
+    public function platformCustomerRegistered(PlatformCustomer $customer): void
+    {
+        $channel = strtolower((string) $customer->origin_channel);
+        if (! in_array($channel, ['b2b', 'b2c'], true)) {
+            return;
+        }
+
+        $storeId = $customer->origin_store_id === null
+            ? null
+            : (int) $customer->origin_store_id;
+        if ($storeId === null || $storeId <= 0) {
+            return;
+        }
+
+        $permission = $channel === 'b2c'
+            ? 'customers.view'
+            : 'b2b.accounts.view';
+        $deepLink = route(
+            'admin.customer-360.show',
+            ['platformCustomer' => $customer->getKey()],
+            false,
+        );
+
+        $recipients = User::query()
+            ->where('is_active', true)
+            ->get()
+            ->filter(
+                fn (User $user): bool => $user->hasPermission(
+                    $permission,
+                    $storeId,
+                ),
+            );
+
+        foreach ($recipients as $recipient) {
+            $type = 'customer.registered';
+            $eventKey = 'platform-customer-registered:'.$customer->getKey();
+            $dedupeKey = hash('sha256', $type.'|'.$eventKey);
+
+            Notification::query()->firstOrCreate(
+                [
+                    'user_id' => $recipient->id,
+                    'dedupe_key' => $dedupeKey,
+                ],
+                [
+                    'channel' => 'in_app',
+                    'type' => $type,
+                    'title' => 'تسجيل عميل منصة جديد',
+                    'body' => 'تم تسجيل '.$customer->name.' بنجاح.',
+                    'title_ar' => 'تسجيل عميل منصة جديد',
+                    'title_en' => 'New platform customer registration',
+                    'body_ar' => 'تم تسجيل '.$customer->name.' بنجاح.',
+                    'body_en' => $customer->name.' registered successfully.',
+                    'audience' => 'user',
+                    'app' => 'dashboard',
+                    'target_channel' => $channel,
+                    'store_id' => $storeId,
+                    'status' => 'published',
+                    'published_at' => now(),
+                    'data' => [
+                        'platform_customer_id' => (int) $customer->getKey(),
+                        'user_id' => (int) $customer->user_id,
+                        'store_id' => $storeId,
+                        'channel' => $channel,
+                        'registration_source' => (string) $customer->registration_source,
+                        'deep_link' => $deepLink,
+                    ],
+                ],
+            );
+        }
+    }
 
     public function orderCreated(Order $order): void
     {

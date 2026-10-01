@@ -252,7 +252,6 @@ final class OrderLifecycleNotificationService
                 'driver_id' => (int) $assignment->driver_id,
                 'from_delivery_status' => $from,
                 'delivery_status' => $to,
-                'note' => $note,
             ],
         );
     }

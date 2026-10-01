@@ -45,7 +45,8 @@ class SecureCustomerSessionStore implements CustomerSessionStore {
   }) : _storage = storage ?? FlutterCustomerSecureKeyValueStore();
 
   static const _key = 'foodex.customer.auth_session.v1';
-  static const _schemaVersion = 1;
+  static const _schemaVersion = 2;
+  static const _legacySchemaVersion = 1;
 
   final CustomerSecureKeyValueStore _storage;
 
@@ -64,26 +65,29 @@ class SecureCustomerSessionStore implements CustomerSessionStore {
       }
 
       final payload = Map<String, dynamic>.from(decoded);
-      if (payload['version'] != _schemaVersion) {
+      final version = payload['version'];
+      if (version != _schemaVersion && version != _legacySchemaVersion) {
         await clear();
         return null;
       }
 
-      final channelName = payload['channel'];
       final accessToken = payload['access_token'];
-      if (channelName is! String ||
-          accessToken is! String ||
-          accessToken.trim().isEmpty) {
+      if (accessToken is! String || accessToken.trim().isEmpty) {
         await clear();
         return null;
       }
 
+      final platformWide = payload['platform_wide'] == true;
+      final channelName = payload['channel'];
       final channel = switch (channelName) {
         'b2c' => CustomerChannel.b2c,
         'b2b' => CustomerChannel.b2b,
+        null => null,
         _ => null,
       };
-      if (channel == null) {
+
+      if ((!platformWide && channel == null) ||
+          (channelName != null && channel == null)) {
         await clear();
         return null;
       }
@@ -93,11 +97,23 @@ class SecureCustomerSessionStore implements CustomerSessionStore {
           ? retailStoreValue
           : int.tryParse(retailStoreValue?.toString() ?? '');
 
+      if (retailStoreId != null && retailStoreId <= 0) {
+        await clear();
+        return null;
+      }
+
+      if (channel == null) {
+        return CustomerSession.platformCustomer(
+          accessToken: accessToken.trim(),
+          b2bRetailStoreId: retailStoreId,
+        );
+      }
+
       return CustomerSession.authenticated(
         channel,
-        accessToken: accessToken,
+        accessToken: accessToken.trim(),
         b2bRetailStoreId: retailStoreId,
-        platformWide: payload['platform_wide'] == true,
+        platformWide: platformWide,
       );
     } on FormatException {
       await clear();
@@ -113,18 +129,18 @@ class SecureCustomerSessionStore implements CustomerSessionStore {
     final token = session.accessToken?.trim();
     final channel = session.channel;
     if (!session.isAuthenticated ||
-        channel == null ||
         token == null ||
-        token.isEmpty) {
+        token.isEmpty ||
+        (!session.platformWide && channel == null)) {
       await clear();
       return;
     }
 
     await _storage.write(
       _key,
-      jsonEncode({
+      jsonEncode(<String, Object?>{
         'version': _schemaVersion,
-        'channel': channel.name,
+        'channel': channel?.name,
         'access_token': token,
         'b2b_retail_store_id': session.b2bRetailStoreId,
         'platform_wide': session.platformWide,

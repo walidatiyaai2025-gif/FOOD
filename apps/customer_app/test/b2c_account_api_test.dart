@@ -69,4 +69,29 @@ void main() {
     expect(captured?.headers['Authorization'], 'Bearer customer-token');
     expect(result, isA<Map<String, dynamic>>());
   });
+
+  test('B2C favorites carry explicit retail store context', () async {
+    http.Request? captured;
+    final api = HttpB2cAccountApi(
+      baseUrl: 'https://foodex.example',
+      token: 'customer-token',
+      guestSession: CustomerGuestSession(),
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response(
+          '{"data":[]}',
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
+
+    await api.favoritesForStore(19);
+
+    expect(captured?.url.path, '/api/v1/profile/favorites');
+    expect(captured?.headers['Authorization'], 'Bearer customer-token');
+    expect(captured?.headers['X-FOODEX-Store-ID'], '19');
+    expect(captured?.headers['X-FOODEX-Customer-Domain'], 'b2c');
+  });
+
 }
