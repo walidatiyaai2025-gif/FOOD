@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "policy": "main-authoritative-append-only",
+  "current_version": "1.0.40",
+  "releases": [
+    {
+      "version": "1.0.40",
+      "state": "published",
+      "registration": "baseline",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.40.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "81fbc6f0a49d60d78284bf100d015a0a4ae5c916191e7d68392713a7fbb8cb7d",
+      "note": "Baseline registration added after 1.0.40 had already been distributed. This version is immutable and must never be reused for later fixes."
+    }
+  ]
+}

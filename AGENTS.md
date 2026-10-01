@@ -740,3 +740,30 @@ A defect confined to Assistant behavior is an AI bug and stays on the Assistant 
 
 If Assistant usage reveals an underlying platform defect, fix the platform defect on `main` first, then adapt the Assistant integration branch.
 
+
+
+---
+
+## 22. Release identity registry and immutable version policy
+
+`main` is the only authoritative source of FOODEX release identity.
+
+The machine-readable registry is:
+
+`docs/release/RELEASE_REGISTRY.json`
+
+Mandatory rules:
+
+- every promoted FOODEX version must be merged to `main` before it is treated as released;
+- every promoted version must append exactly one immutable entry to the release registry;
+- `VERSION`, Customer/Driver package identity, release notes, Dashboard update manifest, package checksum and registry current version must agree;
+- a version that already exists in the `main` registry is permanently consumed and must never be regenerated for later fixes;
+- post-release fixes require the next semantic version (for example, fixes after published 1.0.40 must ship as 1.0.41);
+- published registry history is append-only: old entries may not be edited, reordered or removed;
+- a release branch may generate a Dashboard update only when its target `VERSION` is not already registered on `main`;
+- generated release artifacts are not authoritative merely because a workflow artifact or branch exists; promotion is complete only after the release metadata/artifacts are merged and registered on `main`;
+- workers must never tell the owner to deploy a package whose version is already registered for a different release payload.
+
+Normal feature/bug PRs may merge without immediately bumping `VERSION`; however, the next distribution/release task must allocate a new version and register it before any new package is promoted.
+
+This policy is enforced by repository CI and must not be bypassed to publish a release.
