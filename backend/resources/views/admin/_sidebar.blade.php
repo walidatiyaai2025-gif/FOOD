@@ -89,6 +89,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
         @endforeach
     </nav>
 
+    @include('admin._assistant-chat')
 </div>
 
 <script>
