@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 final class CustomerOrderTimelineService
@@ -59,9 +60,7 @@ final class CustomerOrderTimelineService
                 'stage' => $status,
                 'status' => $status,
                 'source' => 'driver',
-                'occurred_at' => $event->captured_at === null
-                    ? null
-                    : (string) $event->captured_at,
+                'occurred_at' => $this->timestamp($event->captured_at),
                 'assignment_id' => (int) $event->assignment_id,
                 'driver_id' => (int) $event->driver_id,
                 'driver_name' => $event->driver_name === null
@@ -124,7 +123,7 @@ final class CustomerOrderTimelineService
                     'stage' => 'driver_assigned',
                     'status' => 'assigned',
                     'source' => 'driver_assignment',
-                    'occurred_at' => (string) $assignment->assigned_at,
+                    'occurred_at' => $this->timestamp($assignment->assigned_at),
                     'assignment_id' => (int) $assignment->id,
                     'driver_id' => (int) $assignment->driver_id,
                     'driver_name' => $assignment->driver_name === null
@@ -149,5 +148,14 @@ final class CustomerOrderTimelineService
         );
 
         return array_values($events);
+    }
+
+    private function timestamp(mixed $value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        return CarbonImmutable::parse((string) $value)->toAtomString();
     }
 }
