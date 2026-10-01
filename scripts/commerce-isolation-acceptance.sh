@@ -50,6 +50,7 @@ require_text apps/driver_app/test/navigation_test.dart   'B2C driver cannot navi
 require_text apps/driver_app/test/navigation_test.dart   'B2B driver cannot navigate into B2C routes'
 require_text apps/driver_app/test/driver_active_journey_test.dart   'Assignment Details drives authoritative accepted pickup and delivery-start states'
 require_text apps/driver_app/test/driver_active_journey_test.dart   'new journey keeps the backend channel boundary'
+require_text apps/driver_app/test/driver_new_only_wiring_test.dart   'production Driver runtime is new-only and legacy cannot be rewired'
 
 # Lane H — exact notification audience/store/channel scope and deep-link reauthorization.
 require_text backend/tests/Feature/NotificationAudienceIsolationTest.php   'test_retail_operational_events_reach_exact_store_audience_not_platform_super_admin'
@@ -59,6 +60,13 @@ require_text backend/tests/Feature/NotificationAudienceIsolationTest.php   'test
 # Lane J — App Preview must auto-launch Customer Published and deterministic eligible Driver.
 require_text backend/tests/Feature/AppPreviewDashboardTest.php   'test_preview_center_defaults_to_customer_published_auto_launch_contract'
 require_text backend/tests/Feature/AppPreviewDashboardBridgeTest.php   'test_driver_discovery_is_deterministic_and_exact_store_scoped_for_auto_launch'
+
+# Final integrated Customer journey must have no skipped contract gates.
+require_file apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart
+if grep -Fq 'skip:' apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart; then
+  fail "Guest Customer integrated acceptance still contains skipped gates"
+fi
+require_text apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart   'authenticated multi-store and Wholesale smoke regressions stay isolated'
 
 echo "#734 commerce-isolation acceptance contracts: PASS"
 echo "current_version=$current_version"
