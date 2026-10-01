@@ -188,7 +188,8 @@ class PlatformCustomerAddressTest extends TestCase
         $retailId = (int) $retail->json('id');
         $wholesaleId = (int) $wholesale->json('id');
 
-        $this->getJson('/api/v1/profile/addresses')
+        $this->withHeader('X-FOODEX-Customer-Domain', 'b2c')
+            ->getJson('/api/v1/profile/addresses')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $retailId);
@@ -203,10 +204,12 @@ class PlatformCustomerAddressTest extends TestCase
             ->getJson("/api/v1/profile/addresses/{$retailId}")
             ->assertNotFound();
 
-        $this->getJson("/api/v1/profile/addresses/{$wholesaleId}")
+        $this->withHeader('X-FOODEX-Customer-Domain', 'b2c')
+            ->getJson("/api/v1/profile/addresses/{$wholesaleId}")
             ->assertNotFound();
 
-        $this->getJson('/api/v1/checkout/options?store_id='.$this->retailStoreId)
+        $this->withHeader('X-FOODEX-Customer-Domain', 'b2c')
+            ->getJson('/api/v1/checkout/options?store_id='.$this->retailStoreId)
             ->assertOk()
             ->assertJsonCount(1, 'addresses')
             ->assertJsonPath('addresses.0.id', $retailId);

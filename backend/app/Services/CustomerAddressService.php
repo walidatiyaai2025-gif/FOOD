@@ -46,8 +46,10 @@ final class CustomerAddressService
             403,
             'Customer profile is required.',
         );
+        // Domain-owned legacy rows are already partitioned by their explicit
+        // B2B/B2C foreign key. Do not require the new marker here so existing
+        // integrations that insert those rows directly remain compatible.
         return Address::query()
-            ->where('commerce_channel', $channel)
             ->where(
                 $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id',
                 $domainCustomer->getKey(),
