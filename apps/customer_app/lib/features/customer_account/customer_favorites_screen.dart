@@ -37,6 +37,7 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen> {
   void didUpdateWidget(covariant CustomerFavoritesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.api != widget.api ||
+        oldWidget.favoritesApi != widget.favoritesApi ||
         oldWidget.retailStoreId != widget.retailStoreId) {
       _reload();
     }
