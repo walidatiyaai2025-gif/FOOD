@@ -50,7 +50,8 @@ class DriverJourneyRuntimePage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => DriverActiveJourneyPage(
+  Widget build(BuildContext context) => Scaffold(
+        body: DriverActiveJourneyPage(
         channel: channel,
         repository: repository,
         focusAssignmentId: focusAssignmentId,
@@ -93,7 +94,8 @@ class DriverJourneyRuntimePage extends StatelessWidget {
           assignment,
           target: DriverCompletionTarget.delivered,
         ),
-      );
+      ),
+    );
 }
 
 class _DriverRepositoryCompletionGateway implements DriverCompletionGateway {
