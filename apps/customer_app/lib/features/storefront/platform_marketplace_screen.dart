@@ -1049,82 +1049,110 @@ class _RetailStoreBanner extends StatelessWidget {
                 start: 16,
                 end: 16,
                 bottom: 14,
-                child: Row(
-                  children: [
-                    if (logo != null && logo.isNotEmpty) ...[
-                      ClipOval(
-                        child: SizedBox(
-                          width: 38,
-                          height: 38,
-                          child: Image.network(
-                            logo,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const ColoredBox(
-                              color: Colors.white,
-                              child: Icon(
-                                Icons.storefront_rounded,
-                                color: Color(0xFF087347),
-                                size: 21,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 280;
+                    return Row(
+                      children: [
+                        if (logo != null && logo.isNotEmpty) ...[
+                          ClipOval(
+                            child: SizedBox(
+                              width: compact ? 34 : 38,
+                              height: compact ? 34 : 38,
+                              child: Image.network(
+                                logo,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    const ColoredBox(
+                                  color: Colors.white,
+                                  child: Icon(
+                                    Icons.storefront_rounded,
+                                    color: Color(0xFF087347),
+                                    size: 21,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                    ],
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            title != null && title.isNotEmpty ? title : name,
-                            key: ValueKey('marketplace-retail-banner-title-$id'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 17,
-                              height: 1.2,
-                            ),
+                          SizedBox(width: compact ? 7 : 10),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                title != null && title.isNotEmpty
+                                    ? title
+                                    : name,
+                                key: ValueKey(
+                                  'marketplace-retail-banner-title-$id',
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: compact ? 15 : 17,
+                                  height: 1.2,
+                                ),
+                              ),
+                              if (address.isNotEmpty && !compact) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  address,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFFDCE5E1),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                          if (address.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            Text(
-                              address,
+                        ),
+                        const SizedBox(width: 8),
+                        if (compact)
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Color(0xFF087347),
+                              size: 18,
+                            ),
+                          )
+                        else
+                          Container(
+                            constraints: const BoxConstraints(maxWidth: 110),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              context.tr('customer.marketplace.shop_now'),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: Color(0xFFDCE5E1),
+                                color: Color(0xFF087347),
+                                fontWeight: FontWeight.w900,
                                 fontSize: 11,
-                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        context.tr('customer.marketplace.shop_now'),
-                        style: const TextStyle(
-                          color: Color(0xFF087347),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ],
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
