@@ -11,6 +11,7 @@ FOODEX v1 uses Laravel Sanctum personal access tokens for first-party mobile and
 - Inactive users and invalid credentials receive the same validation response.
 - A successful login revokes previous API tokens for that user so the baseline behaves as a single active API session.
 - B2B self-registration is deliberately not exposed. B2B accounts are provisioned from the management dashboard only.
+- Authenticated identity also exposes the Retail Merchant commerce kernel: direct/linked B2B customer IDs, explicitly owned Retail Store IDs, B2C_STORE_ADMIN managed Store IDs, their union, and authoritative Retail Store → Wholesale customer mappings. Backend authorization remains authoritative and rejects B2C commerce against any owned/managed Retail Store with `SELF_STORE_PURCHASE_NOT_ALLOWED`.
 
 ## Authorization boundary
 
