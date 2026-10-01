@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.43 - 2026-10-01
+
+- Republish the Dashboard update under a new immutable version so installed 1.0.42 systems receive the shared-host public-runtime repair from #670/#671.
+- Ship canonical `backend/public/**` files and safe shared-host aliases for `/assets/**`, `/brand/**`, `/demo/**`, and `/preview/**` in the same Dashboard update package.
+- Repair public static-file and directory permissions during update extraction so Leaflet, Driver live tracking, FOODEX branding, and Customer/Driver App Preview runtimes resolve from the production document root.
+- Preserve production AppVersion minimum/force-update rows, Driver fresh-location enforcement state, and Assistant disabled/read-only defaults.
+
 ## 1.0.42 - 2026-10-01
 
 - Publish the complete MOBILE-PROD-UX package: production static asset reliability, authoritative Driver delivery lifecycle and notifications, Driver Home/Deliveries redesign, persistent Customer sessions, Dashboard-managed retail banners, and the redesigned Customer marketplace home.

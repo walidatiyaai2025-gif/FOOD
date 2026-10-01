@@ -361,7 +361,7 @@ void main() {
       expect(find.byKey(const Key('runtime')), findsNothing);
       expect(find.text('1.0.38'), findsOneWidget);
       expect(find.text('1.0.40'), findsOneWidget);
-      expect(find.text('1.0.42'), findsOneWidget);
+      expect(find.text('1.0.43'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('driver-version-update-now')));
       await tester.pump();
