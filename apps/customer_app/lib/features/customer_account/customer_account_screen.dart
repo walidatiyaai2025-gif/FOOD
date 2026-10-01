@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
+import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_account_data.dart';
+import 'customer_account_v3_widgets.dart';
 
 class CustomerAccountScreen extends StatefulWidget {
   const CustomerAccountScreen({
@@ -92,7 +95,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
                 labelText: context.tr('customer.settings.name'),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: CustomerUiSpacing.sm),
             TextField(
               key: const ValueKey('customer-account-email'),
               controller: email,
@@ -144,106 +147,168 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const ValueKey('customer-account-screen'),
-      appBar: AppBar(
-        title: Text(context.tr('customer.profile.title')),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          _reloadAll();
-          await Future.wait<Object?>([
-            _profile.catchError((_) => null),
-            _addresses.catchError((_) => null),
-            _favorites.catchError((_) => null),
-            (_notifications ?? Future<Object?>.value(null))
-                .catchError((_) => null),
-          ]);
-        },
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-          children: [
-            Text(
-              context.tr('customer.profile.subtitle'),
-              style: Theme.of(context).textTheme.bodyLarge,
+      body: CustomerCurvedHeaderSurface(
+        header: CustomerAccountHeader(
+          title: context.tr('customer.profile.title'),
+          subtitle: context.tr('customer.settings.subtitle'),
+        ),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            _reloadAll();
+            await Future.wait<Object?>([
+              _profile.catchError((_) => null),
+              _addresses.catchError((_) => null),
+              _favorites.catchError((_) => null),
+              (_notifications ?? Future<Object?>.value(null))
+                  .catchError((_) => null),
+            ]);
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              CustomerUiSpacing.page,
+              CustomerUiSpacing.lg,
+              CustomerUiSpacing.page,
+              CustomerUiSpacing.xxl,
             ),
-            const SizedBox(height: 14),
-            _sectionCard(
-              key: const ValueKey('customer-account-profile-section'),
-              future: _profile,
-              title: context.tr('customer.settings.title'),
-              icon: Icons.person_outline_rounded,
-              builder: (data) {
-                final profile = customerAccountMap(data);
-                final name = profile['name']?.toString().trim();
-                final email = profile['email']?.toString().trim();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _profileCard(),
+              const SizedBox(height: CustomerUiSpacing.sm),
+              _countCard(
+                key: const ValueKey('customer-account-addresses-section'),
+                future: _addresses,
+                title: context.tr('customer.profile.addresses'),
+                icon: Icons.location_on_outlined,
+                onTap: widget.onOpenAddresses,
+                onRetry: () =>
+                    setState(() => _addresses = widget.api.addresses()),
+              ),
+              const SizedBox(height: CustomerUiSpacing.sm),
+              _countCard(
+                key: const ValueKey('customer-account-favorites-section'),
+                future: _favorites,
+                title: context.tr('customer.profile.favorites'),
+                icon: Icons.favorite_border_rounded,
+                onTap: widget.onOpenFavorites,
+                onRetry: () => setState(
+                  () => _favorites = widget.favoritesApi
+                      .favoritesForStore(widget.retailStoreId),
+                ),
+              ),
+              const SizedBox(height: CustomerUiSpacing.sm),
+              _countCard(
+                key: const ValueKey('customer-account-notifications-section'),
+                future: _notifications ?? Future<Object?>.value(null),
+                title: context.tr('customer.notifications.title'),
+                icon: Icons.notifications_none_rounded,
+                onTap: widget.onOpenNotifications,
+                onRetry: () => setState(
+                  () =>
+                      _notifications = widget.api.notifications(locale: _locale),
+                ),
+              ),
+              if (widget.onOpenOrders != null) ...[
+                const SizedBox(height: CustomerUiSpacing.sm),
+                CustomerAccountShortcutCard(
+                  key: const ValueKey('customer-account-orders-section'),
+                  title: context.tr('customer.profile.orders'),
+                  icon: Icons.receipt_long_outlined,
+                  onTap: widget.onOpenOrders,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _profileCard() {
+    const key = ValueKey('customer-account-profile-section');
+    return CustomerAccountSurfaceCard(
+      key: key,
+      child: FutureBuilder<Object?>(
+        future: _profile,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Row(
+              children: [
+                CustomerSkeletonBox(height: 72, width: 72, radius: 36),
+                SizedBox(width: CustomerUiSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CustomerSkeletonBox(height: 18, radius: 9),
+                      SizedBox(height: CustomerUiSpacing.xs),
+                      CustomerSkeletonBox(
+                        height: 14,
+                        width: 180,
+                        radius: 7,
+                      ),
+                      SizedBox(height: CustomerUiSpacing.md),
+                      CustomerSkeletonBox(
+                        height: 44,
+                        width: 150,
+                        radius: CustomerUiRadii.md,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+
+          if (snapshot.hasError) {
+            return _sectionError(
+              key: const ValueKey('customer-account-profile-section-error'),
+              error: snapshot.error,
+              onRetry: () => setState(() => _profile = widget.api.profile()),
+            );
+          }
+
+          final profile = customerAccountMap(snapshot.data);
+          final name = profile['name']?.toString().trim();
+          final email = profile['email']?.toString().trim();
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CustomerAccountAvatar(name: name),
+              const SizedBox(width: CustomerUiSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (name != null && name.isNotEmpty)
+                    Text(
+                      name == null || name.isEmpty
+                          ? context.tr('customer.profile.title')
+                          : name,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    if (email != null && email.isNotEmpty) ...[
+                      const SizedBox(height: CustomerUiSpacing.xxs),
                       Text(
-                        name,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        email,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: CustomerUiColors.muted,
+                            ),
                       ),
-                    if (email != null && email.isNotEmpty) Text(email),
-                    const SizedBox(height: 10),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: FilledButton.tonalIcon(
-                        key: const ValueKey('customer-account-edit-profile'),
-                        onPressed: () => _editProfile(profile),
-                        icon: const Icon(Icons.edit_outlined),
-                        label:
-                            Text(context.tr('customer.settings.edit_profile')),
-                      ),
+                    ],
+                    const SizedBox(height: CustomerUiSpacing.md),
+                    OutlinedButton.icon(
+                      key: const ValueKey('customer-account-edit-profile'),
+                      onPressed: () => _editProfile(profile),
+                      icon: const Icon(Icons.edit_outlined),
+                      label:
+                          Text(context.tr('customer.settings.edit_profile')),
                     ),
                   ],
-                );
-              },
-              onRetry: () => setState(() => _profile = widget.api.profile()),
-            ),
-            const SizedBox(height: 12),
-            _countCard(
-              key: const ValueKey('customer-account-addresses-section'),
-              future: _addresses,
-              title: context.tr('customer.profile.addresses'),
-              icon: Icons.location_on_outlined,
-              onTap: widget.onOpenAddresses,
-              onRetry: () =>
-                  setState(() => _addresses = widget.api.addresses()),
-            ),
-            const SizedBox(height: 12),
-            _countCard(
-              key: const ValueKey('customer-account-favorites-section'),
-              future: _favorites,
-              title: context.tr('customer.profile.favorites'),
-              icon: Icons.favorite_border_rounded,
-              onTap: widget.onOpenFavorites,
-              onRetry: () => setState(
-                () => _favorites =
-                    widget.favoritesApi.favoritesForStore(widget.retailStoreId),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _countCard(
-              key: const ValueKey('customer-account-notifications-section'),
-              future: _notifications ?? Future<Object?>.value(null),
-              title: context.tr('customer.notifications.title'),
-              icon: Icons.notifications_none_rounded,
-              onTap: widget.onOpenNotifications,
-              onRetry: () => setState(
-                () => _notifications = widget.api.notifications(locale: _locale),
-              ),
-            ),
-            if (widget.onOpenOrders != null) ...[
-              const SizedBox(height: 12),
-              _navCard(
-                title: context.tr('customer.profile.orders'),
-                icon: Icons.receipt_long_outlined,
-                onTap: widget.onOpenOrders!,
+                ),
               ),
             ],
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -256,117 +321,71 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
     required VoidCallback onRetry,
     VoidCallback? onTap,
   }) {
-    return _sectionCard(
-      key: key,
+    return FutureBuilder<Object?>(
       future: future,
-      title: title,
-      icon: icon,
-      onRetry: onRetry,
-      builder: (data) {
-        final count = customerAccountRows(data).length;
-        final body = Row(
-          children: [
-            Text(
-              count.toString(),
-              key: ValueKey(key.toString() + '-count'),
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const Spacer(),
-            if (onTap != null) const Icon(Icons.chevron_right_rounded),
-          ],
-        );
-        return onTap == null
-            ? body
-            : InkWell(
-                onTap: onTap,
-                borderRadius: BorderRadius.circular(14),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: body,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return CustomerAccountSurfaceCard(
+            key: key,
+            child: const Row(
+              children: [
+                CustomerSkeletonBox(height: 48, width: 48, radius: 24),
+                SizedBox(width: CustomerUiSpacing.sm),
+                Expanded(
+                  child: CustomerSkeletonBox(height: 18, radius: 9),
                 ),
-              );
+                SizedBox(width: CustomerUiSpacing.sm),
+                CustomerSkeletonBox(height: 28, width: 42, radius: 14),
+              ],
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return CustomerAccountSurfaceCard(
+            key: key,
+            child: _sectionError(
+              key: ValueKey(key.toString() + '-error'),
+              error: snapshot.error,
+              onRetry: onRetry,
+            ),
+          );
+        }
+
+        final count = customerAccountRows(snapshot.data).length;
+        return CustomerAccountShortcutCard(
+          key: key,
+          title: title,
+          icon: icon,
+          value: count.toString(),
+          onTap: onTap,
+        );
       },
     );
   }
 
-  Widget _navCard({
-    required String title,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: onTap,
-      ),
-    );
-  }
-
-  Widget _sectionCard({
+  Widget _sectionError({
     required Key key,
-    required Future<Object?> future,
-    required String title,
-    required IconData icon,
-    required Widget Function(Object? data) builder,
+    required Object? error,
     required VoidCallback onRetry,
   }) {
-    return Card(
+    return Column(
       key: key,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: FutureBuilder<Object?>(
-          future: future,
-          builder: (context, snapshot) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Icon(icon),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (snapshot.connectionState != ConnectionState.done)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(10),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (snapshot.hasError)
-                  Column(
-                    key: ValueKey(key.toString() + '-error'),
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        context.tr(customerAccountErrorKey(snapshot.error)),
-                      ),
-                      Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: TextButton.icon(
-                          onPressed: onRetry,
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: Text(context.tr('customer.action.retry')),
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  builder(snapshot.data),
-              ],
-            );
-          },
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(
+          Icons.error_outline_rounded,
+          color: CustomerUiColors.destructive,
         ),
-      ),
+        const SizedBox(height: CustomerUiSpacing.xs),
+        Text(context.tr(customerAccountErrorKey(error))),
+        const SizedBox(height: CustomerUiSpacing.xs),
+        TextButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh_rounded),
+          label: Text(context.tr('customer.action.retry')),
+        ),
+      ],
     );
   }
 }
