@@ -129,7 +129,11 @@ void main() {
     expect(find.byKey(const Key('driver-home-status-out_for_delivery')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-delivered')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('driver-home-status-out_for_delivery')));
+    final outForDeliveryCard =
+        find.byKey(const Key('driver-home-status-out_for_delivery'));
+    await tester.ensureVisible(outForDeliveryCard);
+    await tester.pumpAndSettle();
+    await tester.tap(outForDeliveryCard);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('driver-exact-status-filter')), findsOneWidget);
