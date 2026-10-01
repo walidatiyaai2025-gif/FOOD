@@ -3,6 +3,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
+import 'package:foodex_customer_app/core/api/customer_action_api.dart';
+import 'package:foodex_customer_app/core/routing/customer_commerce_context_store.dart';
 import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_api.dart';
 import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_screens.dart';
 import 'package:http/http.dart' as http;
@@ -43,6 +46,43 @@ void main() {
     expect(options.addresses.single.id, 9);
     expect(options.paymentMethods, ['cash_on_delivery', 'knet']);
   });
+
+
+  test(
+    'authenticated merge hydrates persisted guest token and retires it once',
+    () async {
+      const guestToken =
+          'guest-token-store-7-abcdefghijklmnopqrstuvwxyz-0123456789';
+      final guestSession = CustomerGuestSession();
+      final tokenStore = _MemoryGuestCartTokenStore({
+        7: guestToken,
+      });
+      final accountApi = _RecordingB2cAccountApi(guestSession);
+
+      final api = DefaultRetailCommerceApi(
+        accountApi: accountApi,
+        actionApi: _NoopCustomerActionApi(),
+        checkoutOptionsApi: _NoopCheckoutOptionsApi(),
+        guestSession: guestSession,
+        guestCartTokenStore: tokenStore,
+      );
+
+      final cart = await api.mergeGuestCartAfterAuthentication(storeId: 7);
+
+      expect(cart.storeId, 7);
+      expect(accountApi.cartCalls, 1);
+      expect(accountApi.lastStoreId, 7);
+      expect(accountApi.guestTokenSeen, guestToken);
+      expect(guestSession.tokenForStore(7), isNull);
+      expect(await tokenStore.readToken(7), isNull);
+      expect(tokenStore.removeCalls, 1);
+
+      await api.loadCart(storeId: 7);
+      expect(accountApi.cartCalls, 2);
+      expect(accountApi.guestTokenSeen, isNull);
+      expect(tokenStore.removeCalls, 1);
+    },
+  );
 
   test('idempotency key is reused after retry and changes with payload', () async {
     final api = _FakeRetailCommerceApi();
@@ -282,3 +322,76 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
   }) async =>
       cart;
 }
+
+class _MemoryGuestCartTokenStore implements CustomerGuestCartTokenStore {
+  _MemoryGuestCartTokenStore([Map<int, String>? seed])
+      : _tokens = <int, String>{...?seed};
+
+  final Map<int, String> _tokens;
+  int removeCalls = 0;
+
+  @override
+  Future<void> clear() async => _tokens.clear();
+
+  @override
+  Future<Map<int, String>> readAll() async => Map<int, String>.from(_tokens);
+
+  @override
+  Future<String?> readToken(int storeId) async => _tokens[storeId];
+
+  @override
+  Future<void> removeToken(int storeId) async {
+    removeCalls++;
+    _tokens.remove(storeId);
+  }
+
+  @override
+  Future<void> writeToken(int storeId, String token) async {
+    _tokens[storeId] = token;
+  }
+}
+
+class _RecordingB2cAccountApi implements B2cAccountApi {
+  _RecordingB2cAccountApi(this.guestSession);
+
+  final CustomerGuestSession guestSession;
+  int cartCalls = 0;
+  int? lastStoreId;
+  String? guestTokenSeen;
+
+  @override
+  Future<Object?> cart({int? storeId}) async {
+    cartCalls++;
+    lastStoreId = storeId;
+    guestTokenSeen =
+        storeId == null ? guestSession.token : guestSession.tokenForStore(storeId);
+    return {
+      'store_id': storeId,
+      'currency': 'KWD',
+      'items': <Object>[],
+      'subtotal': 0,
+      'has_unavailable_items': false,
+      'quote': {
+        'grand_total': 0,
+      },
+    };
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError(invocation.memberName.toString());
+}
+
+class _NoopCustomerActionApi implements CustomerActionApi {
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError(invocation.memberName.toString());
+}
+
+class _NoopCheckoutOptionsApi implements RetailCheckoutOptionsApi {
+  @override
+  Future<RetailCheckoutOptions> load({required int storeId}) {
+    throw UnimplementedError();
+  }
+}
+
