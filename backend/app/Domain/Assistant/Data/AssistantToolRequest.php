@@ -15,8 +15,10 @@ final readonly class AssistantToolRequest
         public ?int $storeId = null,
         public array $entities = [],
         public array $context = [],
-    )
-    {}
+    ) {
+        // Constructor promotion defines the complete immutable payload.
+    }
 }
+
 
 

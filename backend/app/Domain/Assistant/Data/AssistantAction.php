@@ -11,8 +11,10 @@ final readonly class AssistantAction
         public string $label,
         public string $routeName,
         public array $routeParameters = [],
-    )
-    {}
+    ) {
+        // Constructor promotion defines the complete immutable payload.
+    }
 }
+
 
 
