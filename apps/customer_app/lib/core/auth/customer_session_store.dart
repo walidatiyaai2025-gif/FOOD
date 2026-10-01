@@ -138,3 +138,8 @@ class SecureCustomerSessionStore implements CustomerSessionStore {
   @override
   Future<void> clear() => _storage.delete(_key);
 }
+
+Future<CustomerSession> restoreCustomerSession(
+  CustomerSessionStore store,
+) async =>
+    await store.read() ?? const CustomerSession.guest();
