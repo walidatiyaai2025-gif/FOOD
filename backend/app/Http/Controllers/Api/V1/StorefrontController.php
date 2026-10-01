@@ -90,6 +90,10 @@ final class StorefrontController extends Controller
         $banners = DB::table('banners')
             ->where('store_id', $store)
             ->where('is_active', true)
+            ->where(function (Builder $query): void {
+                $query->whereNull('target_type')
+                    ->orWhere('target_type', '!=', 'retail_store');
+            })
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
@@ -354,6 +358,10 @@ final class StorefrontController extends Controller
         $banners = DB::table('banners')
             ->where('store_id', $store)
             ->where('is_active', true)
+            ->where(function (Builder $query): void {
+                $query->whereNull('target_type')
+                    ->orWhere('target_type', '!=', 'retail_store');
+            })
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
