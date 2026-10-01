@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 void main() {
   test('B2C browsing routes stay public while account and checkout stay gated', () {
@@ -35,5 +38,27 @@ void main() {
         reason: '$protectedRoute must remain authentication-gated',
       );
     }
+  });
+
+  test('authenticated retail browse carries bearer token without changing guest routes', () async {
+    http.Request? captured;
+    final api = HttpB2cCatalogApi(
+      baseUrl: 'https://foodex.example',
+      token: 'merchant-token',
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response(
+          '{"data":[]}',
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
+
+    await api.products(19);
+
+    expect(captured?.url.path, '/api/v1/stores/19/products');
+    expect(captured?.headers['Authorization'], 'Bearer merchant-token');
+    expect(captured?.headers['X-FOODEX-Store-ID'], '19');
   });
 }
