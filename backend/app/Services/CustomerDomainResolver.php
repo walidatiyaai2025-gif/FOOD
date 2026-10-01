@@ -82,13 +82,13 @@ final class CustomerDomainResolver
     /** @return list<int> */
     public function entitledRetailStoreIds(User $user): array
     {
-        return app(CommerceIdentityResolver::class)->wholesaleEntitledRetailStoreIds($user);
+        return app(RetailMerchantIdentityService::class)->wholesaleEntitledRetailStoreIds($user);
     }
 
     public function b2c(User $user, int $storeId): B2cCustomer
     {
         $this->assertStoreChannel($storeId, 'B2C');
-        app(CommerceIdentityResolver::class)->assertCanPurchaseFromRetailStore($user, $storeId);
+        app(RetailMerchantIdentityService::class)->assertCanPurchaseFromRetailStore($user, $storeId);
 
         $customer = $this->b2c->forUserAndStore($user, $storeId);
 
