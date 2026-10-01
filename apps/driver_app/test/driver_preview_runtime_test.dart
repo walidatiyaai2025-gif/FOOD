@@ -169,8 +169,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('driver-active-assignment-7')));
-    await tester.pumpAndSettle();
     expect(
       find.byKey(const Key('driver-active-accept-7')),
       findsOneWidget,
