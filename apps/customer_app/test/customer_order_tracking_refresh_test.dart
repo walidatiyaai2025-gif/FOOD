@@ -56,8 +56,13 @@ void main() {
       expect(find.text('Preparing'), findsWidgets);
       expect(find.text('Delivered'), findsNothing);
 
+      // Close the notification stream while the widget is still subscribed and
+      // advance fake async once so the done event is delivered. Awaiting
+      // StreamController.close() after widget disposal can deadlock the widget
+      // test because subscription cancellation is itself scheduled in fake time.
+      unawaited(notifications.close());
+      await tester.pump();
       await tester.pumpWidget(const SizedBox.shrink());
-      await notifications.close();
     },
   );
 }
