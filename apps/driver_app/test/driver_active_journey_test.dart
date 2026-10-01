@@ -377,11 +377,23 @@ void main() {
       ),
       findsOneWidget,
     );
+    await tester.scrollUntilVisible(
+      find.text('Product A'),
+      160,
+      scrollable: detail,
+    );
+    await tester.pumpAndSettle();
     expect(
       find.descendant(of: detail, matching: find.text('Product A')),
       findsOneWidget,
     );
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('driver-active-navigate-5')),
+      -160,
+      scrollable: detail,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('driver-active-navigate-5')));
     await tester.pumpAndSettle();
     expect(navigatedId, 5);
