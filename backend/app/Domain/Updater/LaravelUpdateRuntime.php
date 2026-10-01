@@ -473,18 +473,38 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
     private function normalizePublicAssetPermissions(string $relativePath, string $target): void
     {
-        if (! str_starts_with($relativePath, 'backend/public/')) {
+        if (str_starts_with($relativePath, 'backend/public/')) {
+            $this->normalizePublicAssetTree($target, rtrim(public_path(), DIRECTORY_SEPARATOR), true);
+
             return;
         }
 
+        if (preg_match('#^(assets|brand|demo|preview)/#', $relativePath) === 1) {
+            // Supported shared-host deployments may serve the release root
+            // directly while Laravel remains under backend/. The update bundle
+            // mirrors static-only public files there; never mirror PHP/front
+            // controller or .htaccess files.
+            $this->normalizePublicAssetTree(
+                $target,
+                rtrim($this->releaseRoot(), DIRECTORY_SEPARATOR),
+                false,
+            );
+        }
+    }
+
+    private function normalizePublicAssetTree(string $target, string $publicRoot, bool $normalizeRoot): void
+    {
         if (! @chmod($target, 0644)) {
             throw new RuntimeException('Updated public asset permissions could not be normalized.');
         }
 
-        $publicRoot = rtrim(public_path(), DIRECTORY_SEPARATOR);
         $directory = dirname($target);
 
         while (str_starts_with($directory.DIRECTORY_SEPARATOR, $publicRoot.DIRECTORY_SEPARATOR)) {
+            if ($directory === $publicRoot && ! $normalizeRoot) {
+                break;
+            }
+
             if (! @chmod($directory, 0755)) {
                 throw new RuntimeException('Public asset directory permissions could not be normalized.');
             }
