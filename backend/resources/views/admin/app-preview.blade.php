@@ -258,6 +258,7 @@
     let runtimeFrame = null;
     let targetRequest = 0;
     let contextRequest = 0;
+    let launchRequest = 0;
 
     const selectedStoreId = () => {
         if (channel?.value === 'b2b') return Number(bridgeConfig.wholesaleStoreId || 0) || null;
@@ -584,9 +585,7 @@
         if (launch) launch.textContent = @json(__('admin.preview_center.launch'));
     };
 
-    const revokeActive = async (reason = 'context_changed', keepalive = false) => {
-        const snapshot = activeSession;
-        activeSession = null;
+    const revokeSession = async (snapshot, reason = 'context_changed', keepalive = false) => {
         if (!snapshot?.context?.session_id) return;
 
         try {
@@ -610,8 +609,15 @@
         }
     };
 
+    const revokeActive = async (reason = 'context_changed', keepalive = false) => {
+        const snapshot = activeSession;
+        activeSession = null;
+        await revokeSession(snapshot, reason, keepalive);
+    };
+
     const resetSecurityContext = async () => {
         const requestId = ++contextRequest;
+        ++launchRequest;
         await revokeActive('context_changed');
         if (requestId !== contextRequest) return;
 
@@ -642,6 +648,7 @@
     };
 
     const resetPresentation = () => {
+        ++launchRequest;
         clearInspector('unavailable');
         restoreUnavailable();
         syncDevice();
@@ -716,18 +723,16 @@
         }
     }
 
-    async function createAuthenticatedSession() {
-        const targetUserId = Number(target?.value || 0);
-        if (targetUserId <= 0) throw new Error('target_required');
+    async function createAuthenticatedSession(snapshot) {
+        if (snapshot.targetUserId <= 0) throw new Error('target_required');
 
         const payload = {
-            target_user_id: targetUserId,
-            target_type: app.value,
-            channel: channel.value,
-            support_access: supportAccess(),
+            target_user_id: snapshot.targetUserId,
+            target_type: snapshot.app,
+            channel: snapshot.channel,
+            support_access: snapshot.supportAccess,
         };
-        const storeId = selectedStoreId();
-        if (channel.value === 'b2c' && storeId) payload.store_id = storeId;
+        if (snapshot.channel === 'b2c' && snapshot.storeId) payload.store_id = snapshot.storeId;
 
         const response = await fetch(bridgeConfig.sessionsUrl, {
             method: 'POST',
@@ -749,17 +754,16 @@
         return {context: result.data, credential: result.credential};
     }
 
-    function guestSession() {
-        const storeId = selectedStoreId();
-        if (!storeId) throw new Error('store_required');
+    function guestSession(snapshot) {
+        if (!snapshot.storeId) throw new Error('store_required');
 
         return {
             credential: null,
             context: {
                 session_id: null,
                 target_type: 'customer',
-                channel: channel.value,
-                store_id: storeId,
+                channel: snapshot.channel,
+                store_id: snapshot.storeId,
                 mode: 'read_only',
                 read_only: true,
                 support_access: false,
@@ -802,27 +806,44 @@
     }
 
     async function launchPreview() {
-        const runtime = activeRuntime();
+        const launchId = ++launchRequest;
+        const snapshot = {
+            app: app?.value === 'driver' ? 'driver' : 'customer',
+            channel: channel?.value === 'b2c' ? 'b2c' : 'b2b',
+            storeId: selectedStoreId(),
+            targetUserId: Number(target?.value || 0),
+            requiresIdentity: requiresIdentity(),
+            supportAccess: supportAccess(),
+        };
+        const runtime = runtimeConfig?.[snapshot.app] || null;
         if (!runtime?.available) {
             restoreUnavailable();
             return;
         }
 
         await revokeActive('relaunch');
-        activeSession = null;
+        if (launchId !== launchRequest) return;
 
         try {
-            if (requiresIdentity()) {
-                if (!target?.value) throw new Error('target_required');
-                activeSession = await createAuthenticatedSession();
+            let nextSession;
+            if (snapshot.requiresIdentity) {
+                nextSession = await createAuthenticatedSession(snapshot);
             } else {
-                if (app.value !== 'customer') throw new Error('target_required');
-                activeSession = guestSession();
+                if (snapshot.app !== 'customer') throw new Error('target_required');
+                nextSession = guestSession(snapshot);
             }
+
+            if (launchId !== launchRequest) {
+                await revokeSession(nextSession, 'context_changed');
+                return;
+            }
+
+            activeSession = nextSession;
             clearInspector('connecting');
             mountRuntime();
             renderInspector();
         } catch (error) {
+            if (launchId !== launchRequest) return;
             activeSession = null;
             restoreUnavailable();
             setStatus(error?.message === 'target_required' ? copy.selectIdentityFirst : copy.sessionError);
@@ -896,6 +917,7 @@
     store?.addEventListener('change', () => void resetSecurityContext());
     persona?.addEventListener('change', () => void resetSecurityContext());
     target?.addEventListener('change', () => {
+        ++launchRequest;
         void revokeActive('target_changed');
         clearInspector('unavailable');
         restoreUnavailable();
