@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/location/customer_location_service.dart';
+import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_account_data.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_account_screen.dart';
+import 'package:foodex_customer_app/features/customer_account/customer_account_v3_widgets.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_address_book_screen.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_favorites_screen.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_notification_center_screen.dart';
+import 'package:foodex_customer_app/shared/customer_ui_v3/customer_ui_v3.dart';
 
 void main() {
   testWidgets(
@@ -173,6 +176,90 @@ void main() {
     expect(api.createdAddresses.single['longitude'], 47.9774);
     expect(api.createdAddresses.single['location_source'], 'gps');
   });
+
+  testWidgets(
+    'account V3 stays coherent in RTL on a narrow phone with enlarged text',
+    (tester) async {
+      final api = _AccountFakeApi(
+        addressesValue: {
+          'data': [
+            {
+              'id': 1,
+              'label': 'Home',
+              'line1': 'Street 1',
+              'city': 'Kuwait City',
+              'is_default': true,
+            },
+          ],
+        },
+        favoritesValue: const {'data': []},
+        notificationsValue: const {'data': []},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: FoodexTheme.light(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              size: const Size(360, 760),
+              textScaler: const TextScaler.linear(1.3),
+            ),
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: child!,
+            ),
+          ),
+          home: CustomerAccountScreen(
+            api: api,
+            favoritesApi: api,
+            retailStoreId: 19,
+            onOpenAddresses: () {},
+            onOpenFavorites: () {},
+            onOpenNotifications: () {},
+            onOpenOrders: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+      expect(find.byType(CustomerAccountAvatar), findsOneWidget);
+      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(4));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('notification and address empty states use V3 state primitives',
+      (tester) async {
+    final api = _AccountFakeApi(
+      addressesValue: const {'data': []},
+      notificationsValue: const {'data': []},
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: FoodexTheme.light(),
+        home: CustomerNotificationCenterScreen(api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+    expect(find.byType(CustomerStateView), findsOneWidget);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: FoodexTheme.light(),
+        home: CustomerAddressBookScreen(api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+    expect(find.byType(CustomerStateView), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
 }
 
 class _LocationFake implements CustomerLocationService {
