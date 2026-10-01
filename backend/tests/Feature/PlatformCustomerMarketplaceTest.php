@@ -8,7 +8,6 @@ use App\Services\CustomerDomainResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class PlatformCustomerMarketplaceTest extends TestCase
