@@ -24,7 +24,7 @@ class CustomerSkeletonBox extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: CustomerUiColors.mintStrong.withOpacity(0.58),
+          color: CustomerUiColors.mintStrong.withValues(alpha: 0.58),
           borderRadius: BorderRadius.circular(radius),
         ),
       );
@@ -127,7 +127,7 @@ class CustomerStateView extends StatelessWidget {
             children: [
               DecoratedBox(
                 decoration: BoxDecoration(
-                  color: stateColor.withOpacity(0.10),
+                  color: stateColor.withValues(alpha: 0.10),
                   shape: BoxShape.circle,
                 ),
                 child: SizedBox.square(
