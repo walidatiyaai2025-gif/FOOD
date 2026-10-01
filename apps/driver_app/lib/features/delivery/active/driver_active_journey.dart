@@ -217,9 +217,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       return;
     }
 
-    final noteController = TextEditingController();
-    try {
-      await showModalBottomSheet<void>(
+    var note = '';
+    await showModalBottomSheet<void>(
         context: context,
         showDragHandle: true,
         isScrollControlled: true,
@@ -252,7 +251,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                   const SizedBox(height: 16),
                   TextField(
                     key: const Key('driver-active-start-note'),
-                    controller: noteController,
+                    onChanged: (value) => note = value,
                     minLines: 2,
                     maxLines: 4,
                     decoration: InputDecoration(
@@ -270,9 +269,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                               'driver-active-failed-${assignment.id}',
                             ),
                             onPressed: () {
-                              final note = noteController.text;
+                              final capturedNote = note;
                               Navigator.of(sheetContext).pop();
-                              _requestFailure(assignment, note);
+                              _requestFailure(assignment, capturedNote);
                             },
                             child: Text(
                               context.tr('driver.action.delivery_failed'),
@@ -287,12 +286,14 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                             'driver-active-confirm-start-${assignment.id}',
                           ),
                           onPressed: () {
-                            final note = noteController.text.trim();
+                            final normalizedNote = note.trim();
                             Navigator.of(sheetContext).pop();
                             _transition(
                               assignment,
                               'out_for_delivery',
-                              note: note.isEmpty ? null : note,
+                              note: normalizedNote.isEmpty
+                                  ? null
+                                  : normalizedNote,
                             );
                           },
                           child: Text(
@@ -310,9 +311,6 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
           );
         },
       );
-    } finally {
-      noteController.dispose();
-    }
   }
 
   Future<void> _showDetail(DriverAssignment assignment) async {
