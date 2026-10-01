@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Jobs\DispatchPushNotification;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\B2bCustomerService;
 use App\Services\B2cCustomerService;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +49,67 @@ class OrderOperationsIsolationTest extends TestCase
             ->get('/admin/operations/orders?order='.$mineOrder)
             ->assertOk()
             ->assertSee('Order status timeline');
+    }
+
+    public function test_super_admin_operational_inbox_defaults_to_wholesale_and_requires_explicit_retail_channel(): void
+    {
+        $retailStore = $this->store('OPS-SUPER-RETAIL');
+        $retailCustomer = app(B2cCustomerService::class)->create($retailStore, ['name' => 'Retail Buyer']);
+        $retailOrder = $this->order(
+            $retailStore,
+            (int) $retailCustomer->legacy_customer_id,
+            (int) $retailCustomer->id,
+            'OPS-RETAIL-ONLY-1001',
+        );
+
+        $wholesaleStore = app(WholesalePrincipal::class)->storeId();
+        $wholesaleCustomer = app(B2bCustomerService::class)->create([
+            'name' => 'Wholesale Buyer',
+        ]);
+        $wholesaleOrder = (int) DB::table('orders')->insertGetId([
+            'store_id' => $wholesaleStore,
+            'customer_id' => (int) $wholesaleCustomer->legacy_customer_id,
+            'b2b_customer_id' => (int) $wholesaleCustomer->getKey(),
+            'order_number' => 'OPS-WHOLESALE-ONLY-2001',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 20,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 20,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $super = User::query()->create([
+            'name' => 'Platform Operations Owner',
+            'email' => 'platform-operations-owner@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $super->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders')
+            ->assertOk()
+            ->assertSee('OPS-WHOLESALE-ONLY-2001')
+            ->assertDontSee('OPS-RETAIL-ONLY-1001');
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2c&store_id='.$retailStore)
+            ->assertOk()
+            ->assertSee('OPS-RETAIL-ONLY-1001')
+            ->assertDontSee('OPS-WHOLESALE-ONLY-2001');
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2c&order='.$wholesaleOrder)
+            ->assertNotFound();
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2b&order='.$retailOrder)
+            ->assertNotFound();
     }
 
     public function test_order_detail_renders_driver_assignment_timestamps_without_500(): void
