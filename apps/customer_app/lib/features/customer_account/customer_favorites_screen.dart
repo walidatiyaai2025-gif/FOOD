@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_interpolation_to_compose_strings
+
 import 'package:flutter/material.dart';
 
 import '../../core/api/b2c_account_api.dart';
@@ -7,12 +9,14 @@ import 'customer_account_data.dart';
 class CustomerFavoritesScreen extends StatefulWidget {
   const CustomerFavoritesScreen({
     required this.api,
+    required this.favoritesApi,
     required this.retailStoreId,
     this.onOpenProduct,
     super.key,
   });
 
   final B2cAccountApi api;
+  final B2cRetailFavoritesApi favoritesApi;
   final int retailStoreId;
   final ValueChanged<int>? onOpenProduct;
 
@@ -39,15 +43,15 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen> {
   }
 
   Future<Object?> _load() =>
-      widget.api.favorites(storeId: widget.retailStoreId);
+      widget.favoritesApi.favoritesForStore(widget.retailStoreId);
 
   void _reload() => setState(() => _future = _load());
 
   Future<void> _remove(int productId) async {
     try {
-      await widget.api.removeFavorite(
+      await widget.favoritesApi.removeFavoriteForStore(
+        widget.retailStoreId,
         productId,
-        storeId: widget.retailStoreId,
       );
       if (mounted) _reload();
     } catch (error) {
