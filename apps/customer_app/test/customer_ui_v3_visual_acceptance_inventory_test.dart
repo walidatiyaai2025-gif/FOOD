@@ -1,5 +1,11 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
+import 'package:foodex_customer_app/core/theme/customer_ui_v3_tokens.dart';
+import 'package:foodex_customer_app/features/retail/customer_ui_v3/customer_retail_shell.dart';
 
 /// Final #725 Customer UI V3 convergence contract.
 ///
@@ -132,6 +138,92 @@ void main() {
         isNotEmpty,
       );
     });
+
+    test('binds convergence to the AR/EN runtime screenshot harness', () {
+      final source =
+          File('test/screenshot_evidence_test.dart').readAsStringSync();
+
+      expect(
+        source,
+        contains("for (final locale in const [Locale('ar'), Locale('en')])"),
+      );
+      expect(source, contains('Size(430, 932)'));
+
+      for (final routeFragment in _requiredRuntimeScreenshotRoutes) {
+        expect(
+          source,
+          contains(routeFragment),
+          reason:
+              'runtime screenshot harness must retain ' +
+              routeFragment +
+              ' for #725',
+        );
+      }
+    });
+
+    testWidgets(
+      'floating navigation honors reduced motion without changing geometry',
+      (tester) async {
+        const commerceContext = CustomerCommerceContext(
+          channel: CustomerCommerceChannel.retail,
+          storeId: 7,
+        );
+
+        Future<void> pumpShell({required bool disableAnimations}) async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: MediaQuery(
+                data: MediaQueryData(
+                  size: const Size(390, 844),
+                  disableAnimations: disableAnimations,
+                ),
+                child: const CustomerRetailShell(
+                  commerceContext: commerceContext,
+                  activeDestination: CustomerRetailDestination.home,
+                  isAuthenticated: true,
+                  child: Scaffold(body: SizedBox.expand()),
+                ),
+              ),
+            ),
+          );
+          await tester.pump();
+        }
+
+        await pumpShell(disableAnimations: false);
+        final normal = tester
+            .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+            .toList();
+        expect(normal, hasLength(5));
+        expect(
+          normal.map((widget) => widget.duration).toSet(),
+          <Duration>{CustomerUiMotion.standard},
+        );
+        final normalSizes = normal
+            .map((widget) => <double?>[
+                  widget.constraints?.maxWidth,
+                  widget.constraints?.maxHeight,
+                ])
+            .toList();
+
+        await pumpShell(disableAnimations: true);
+        final reduced = tester
+            .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+            .toList();
+        expect(reduced, hasLength(5));
+        expect(
+          reduced.map((widget) => widget.duration).toSet(),
+          <Duration>{Duration.zero},
+        );
+        final reducedSizes = reduced
+            .map((widget) => <double?>[
+                  widget.constraints?.maxWidth,
+                  widget.constraints?.maxHeight,
+                ])
+            .toList();
+        expect(reducedSizes, normalSizes);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 }
 
@@ -432,3 +524,22 @@ const _journeyCases = <_VisualCase>[
     ownerLane: _VisualOwnerLane.account,
   ),
 ];
+
+
+const _requiredRuntimeScreenshotRoutes = <String>{
+  '/retail/7/home',
+  '/categories?channel=retail&store_id=7',
+  '/offers?channel=retail&store_id=7',
+  '/products?channel=retail&store_id=7',
+  '/retail/7/products/42',
+  '/favorites?channel=retail&store_id=7',
+  '/cart?channel=retail&store_id=7',
+  '/auth/checkout?channel=retail&store_id=7',
+  '/checkout/address-payment?channel=retail&store_id=7',
+  '/orders?channel=retail&store_id=7',
+  '/orders/101/track?channel=retail&store_id=7',
+  '/notifications?channel=retail&store_id=7',
+  '/profile?channel=retail&store_id=7',
+  '/profile/addresses?channel=retail&store_id=7',
+  '/profile/settings?channel=retail&store_id=7',
+};
