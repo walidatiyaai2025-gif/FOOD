@@ -231,20 +231,33 @@ jobs:
           - Driver Android APK: $CURRENT_VERSION+$MOBILE_BUILD_NUMBER
           EOF
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -f "$tag" "$GITHUB_SHA"
-          git push --force origin "refs/tags/$tag"
+          # Version tags are immutable release identities. A workflow-only rerun
+          # at the same VERSION must never move an already-published tag or replace
+          # release assets with artifacts from a different source commit.
+          git fetch --force origin "refs/tags/$tag:refs/tags/$tag" 2>/dev/null || true
+          published_sha="$(git rev-list -n 1 "$tag" 2>/dev/null || true)"
+          if [[ -n "$published_sha" && "$published_sha" != "$GITHUB_SHA" ]]; then
+            echo "FOODEX $CURRENT_VERSION is already published from $published_sha; refusing to move $tag to $GITHUB_SHA."
+            echo "RELEASE_PUBLICATION_SKIPPED=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "RELEASE_PUBLICATION_SKIPPED=false" >> "$GITHUB_ENV"
 
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$tag" \
               --repo "$GITHUB_REPOSITORY" \
               --title "FOODEX $CURRENT_VERSION" \
               --notes-file "$notes_file"
-          else
+          elif [[ -n "$published_sha" ]]; then
             gh release create "$tag" \
               --repo "$GITHUB_REPOSITORY" \
               --verify-tag \
+              --title "FOODEX $CURRENT_VERSION" \
+              --notes-file "$notes_file"
+          else
+            gh release create "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
               --title "FOODEX $CURRENT_VERSION" \
               --notes-file "$notes_file"
           fi
@@ -305,6 +318,7 @@ jobs:
           unzip -l Release/FOODEX-Laravel-Setup.zip | grep -F 'VERSION'
 
       - name: Upload distribution artifact
+        if: env.RELEASE_PUBLICATION_SKIPPED != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: foodex-trial-distribution-${{ env.CURRENT_VERSION }}
@@ -313,13 +327,42 @@ jobs:
           retention-days: 30
 
       - name: Publish generated bundle branch
+        if: env.RELEASE_PUBLICATION_SKIPPED != 'true'
         shell: bash
         run: |
           set -euo pipefail
           generated_branch="release/221-generated-trial-bundle"
+          bundle_stage="$(mktemp -d)"
+          mkdir -p "$bundle_stage/Release/Updates"
+          cp Release/FOODEX-Customer.apk Release/FOODEX-Driver.apk Release/FOODEX-Laravel-Setup.zip Release/BUILD_INFO.json "$bundle_stage/Release/"
+          cp Release/Updates/FOODEX-Update.json "$bundle_stage/Release/Updates/"
+          if [[ -f Release/Updates/FOODEX-Update.zip ]]; then
+            cp Release/Updates/FOODEX-Update.zip "$bundle_stage/Release/Updates/"
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -C "$generated_branch"
+          git reset --hard
+          git clean -fdx Release
+          if git ls-remote --exit-code --heads origin "refs/heads/$generated_branch" >/dev/null 2>&1; then
+            git fetch origin "$generated_branch"
+            git switch -C "$generated_branch" "origin/$generated_branch"
+          else
+            git switch -C "$generated_branch" "$GITHUB_SHA"
+          fi
+
+          mkdir -p Release/Updates
+          cp "$bundle_stage/Release/FOODEX-Customer.apk" Release/FOODEX-Customer.apk
+          cp "$bundle_stage/Release/FOODEX-Driver.apk" Release/FOODEX-Driver.apk
+          cp "$bundle_stage/Release/FOODEX-Laravel-Setup.zip" Release/FOODEX-Laravel-Setup.zip
+          cp "$bundle_stage/Release/BUILD_INFO.json" Release/BUILD_INFO.json
+          cp "$bundle_stage/Release/Updates/FOODEX-Update.json" Release/Updates/FOODEX-Update.json
+          if [[ -f "$bundle_stage/Release/Updates/FOODEX-Update.zip" ]]; then
+            cp "$bundle_stage/Release/Updates/FOODEX-Update.zip" Release/Updates/FOODEX-Update.zip
+          else
+            rm -f Release/Updates/FOODEX-Update.zip
+          fi
+
           git add -f Release/FOODEX-Customer.apk Release/FOODEX-Driver.apk Release/FOODEX-Laravel-Setup.zip Release/BUILD_INFO.json Release/Updates/FOODEX-Update.json
           if [[ -f Release/Updates/FOODEX-Update.zip ]]; then
             git add -f Release/Updates/FOODEX-Update.zip
@@ -331,4 +374,4 @@ jobs:
             exit 0
           fi
           git commit -m "release: refresh FOODEX trial distribution ${CURRENT_VERSION}"
-          git push --force origin "HEAD:refs/heads/$generated_branch"
+          git push origin "HEAD:refs/heads/$generated_branch"
