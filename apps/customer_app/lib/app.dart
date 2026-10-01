@@ -434,6 +434,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
         : widget.b2cCatalogApi ??
             HttpB2cCatalogApi(
               baseUrl: baseUrl,
+              token: token,
               client: _sessionHttpClient,
             );
     final actionApi = preview != null
