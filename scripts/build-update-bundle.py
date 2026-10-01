@@ -50,6 +50,10 @@ RUNTIME_ALWAYS_INCLUDE = {
 RUNTIME_ALWAYS_INCLUDE_DIRS = (
     "backend/public/assets/admin",
     "backend/public/assets/leaflet/1.9.4",
+    # The real shared Flutter Web previews are part of every Dashboard update.
+    # The release workflow builds these trees before invoking this packager.
+    "backend/public/preview/customer",
+    "backend/public/preview/driver",
 )
 
 # CI can stage pinned third-party runtimes outside Composer's protected vendor/

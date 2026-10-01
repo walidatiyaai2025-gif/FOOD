@@ -4,7 +4,6 @@ import 'dart:js_interop';
 
 import 'package:flutter/material.dart';
 
-import '../config/foodex_environment.dart';
 import 'driver_preview_bootstrap.dart';
 import 'driver_preview_runtime.dart';
 
@@ -13,9 +12,14 @@ external _PreviewWindow get _previewWindow;
 
 extension type _PreviewWindow(JSObject _) implements JSObject {
   external _PreviewWindow get parent;
+  external _PreviewLocation get location;
   external void addEventListener(String type, JSFunction listener);
   external void removeEventListener(String type, JSFunction listener);
   external void postMessage(JSAny? message, String targetOrigin);
+}
+
+extension type _PreviewLocation(JSObject _) implements JSObject {
+  external String get origin;
 }
 
 extension type _PreviewMessageEvent(JSObject _) implements JSObject {
@@ -37,8 +41,22 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
   DriverPreviewRuntime? _runtime;
   String? _error;
 
-  String get _allowedOrigin =>
-      DriverPreviewHostContract.allowedParentOrigin.trim();
+  static const _configuredApiBaseUrl = String.fromEnvironment(
+    'FOODEX_PREVIEW_API_BASE_URL',
+    defaultValue: '',
+  );
+
+  String get _runtimeOrigin => _previewWindow.location.origin.trim();
+
+  String get _allowedOrigin {
+    final configured = DriverPreviewHostContract.allowedParentOrigin.trim();
+    return configured.isNotEmpty ? configured : _runtimeOrigin;
+  }
+
+  String get _apiBaseUrl {
+    final configured = _configuredApiBaseUrl.trim();
+    return configured.isNotEmpty ? configured : _runtimeOrigin;
+  }
 
   @override
   void initState() {
@@ -85,7 +103,7 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
         expectedOrigin: _allowedOrigin,
       );
       final next = DriverPreviewRuntime.create(
-        baseUrl: FoodexEnvironment.apiBaseUrl,
+        baseUrl: _apiBaseUrl,
         bootstrap: bootstrap,
       );
 

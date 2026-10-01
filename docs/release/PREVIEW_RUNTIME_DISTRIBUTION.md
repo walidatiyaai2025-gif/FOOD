@@ -1,74 +1,63 @@
-# Preview Runtime Production Distribution
+# Preview Runtime Distribution
 
-Issue: #590  
-Parent coordination: #589
+Issues: #590, #657
 
-FOODEX ships the Customer and Driver Dashboard previews as the real shared Flutter Web runtimes. This document defines the production distribution contract. It does not claim that a deployment has occurred.
+FOODEX previews the real shared Customer and Driver Flutter applications. A Dashboard update must never replace them with a Blade/HTML mock renderer.
 
-## Canonical production targets
+## Standard Update Center path
 
-- API base URL: `https://foodex.50sols.com`
-- Dashboard parent origin: `https://foodex.50sols.com`
-- Preview runtime origin: `https://foodex.50sols.com`
-- Contract: `shared-flutter-v1`
-- Customer base href/runtime path: `/preview/customer/`
-- Driver base href/runtime path: `/preview/driver/`
-
-The Dashboard configuration must therefore resolve to:
+The standard production path is self-contained. `.github/workflows/release-update-bundle.yml` builds both Flutter Web preview entrypoints before creating `FOODEX-Update.zip` and stages them at:
 
 ```text
-FOODEX_CUSTOMER_PREVIEW_RUNTIME_URL=https://foodex.50sols.com/preview/customer/
-FOODEX_CUSTOMER_PREVIEW_ALLOWED_ORIGIN=https://foodex.50sols.com
-FOODEX_CUSTOMER_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
-
-FOODEX_DRIVER_PREVIEW_RUNTIME_URL=https://foodex.50sols.com/preview/driver/
-FOODEX_DRIVER_PREVIEW_ALLOWED_ORIGIN=https://foodex.50sols.com
-FOODEX_DRIVER_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+backend/public/preview/customer/
+backend/public/preview/driver/
 ```
 
-These values are a supported production configuration contract, not evidence that the URLs are already deployed.
+The normal updater extracts those files with the rest of the Dashboard release, backs up any previous copies, normalizes public-asset permissions, rebuilds Laravel caches, and restores the previous files on rollback.
 
-## Build and package path
+The update bundle is invalid unless both runtime trees contain:
 
-`.github/workflows/preview-runtime-distribution.yml` is the authoritative build/distribution workflow. Required CI calls it when distribution files change. Version tags also generate the package, and an operator can run it manually.
+- `index.html`
+- `main.dart.js`
+- `flutter_bootstrap.js`
+- a non-empty `assets/` payload
 
-The workflow:
+The runtime base hrefs are fixed to `/preview/customer/` and `/preview/driver/`, so the files must remain at those public paths inside the FOODEX installation.
 
-1. Builds `apps/customer_app/lib/preview_main.dart` with the Customer base href.
-2. Builds `apps/driver_app/lib/preview_main.dart` with the Driver base href.
-3. Uses the production API URL, production Dashboard parent origin, and `shared-flutter-v1`.
-4. Packages both runtime trees with `scripts/package-preview-runtimes.py`.
-5. Generates deterministic, version-and-commit identified archives and SHA-256 digests.
-6. Generates `preview-runtime-manifest.json` and `preview-runtime.env`.
-7. Serves the packaged tree locally and fails if `index.html`, `main.dart.js`, Flutter bootstrap, or assets do not resolve at the exact Dashboard target paths.
+## Same-origin configuration
 
-The artifact layout is:
+For the standard installation no preview-specific environment variables are required.
+
+`backend/config/app_preview.php` derives the defaults from `APP_URL`:
 
 ```text
-dist/preview-runtime/
-  README.txt
-  preview-runtime.env
-  preview-runtime-manifest.json
-  foodex-customer-preview-<version>-<commit>.tar.gz
-  foodex-driver-preview-<version>-<commit>.tar.gz
-  www/
-    preview/
-      customer/
-      driver/
+Customer runtime = {APP_URL}/preview/customer/
+Driver runtime   = {APP_URL}/preview/driver/
+Allowed origin   = origin(APP_URL)
+Contract         = shared-flutter-v1
 ```
 
-Do not rename the deployed `preview/customer/` or `preview/driver/` directories without rebuilding with matching base hrefs and updating Dashboard configuration.
+The bundled browser hosts also default their API and parent-message origin to the runtime page's own origin. This keeps a normal installation portable across the configured `APP_URL` while preserving exact-origin message validation.
 
-## Deployment
+Explicit overrides remain supported for advanced deployments:
 
-The generated `www/` contents are deployment-ready static assets. Copy them to the production web root so the canonical paths remain unchanged. Apply the generated `preview-runtime.env` values to the Dashboard environment and refresh Laravel configuration using the normal production deployment procedure.
+```text
+FOODEX_CUSTOMER_PREVIEW_RUNTIME_URL
+FOODEX_CUSTOMER_PREVIEW_ALLOWED_ORIGIN
+FOODEX_CUSTOMER_PREVIEW_CONTRACT_VERSION
+FOODEX_DRIVER_PREVIEW_RUNTIME_URL
+FOODEX_DRIVER_PREVIEW_ALLOWED_ORIGIN
+FOODEX_DRIVER_PREVIEW_CONTRACT_VERSION
+```
 
-Do not place preview-session tokens, Customer/Driver credentials, database secrets, or API keys in the static bundle, runtime URL, or manifest.
+An externally hosted preview build can additionally compile `FOODEX_PREVIEW_API_BASE_URL` and `FOODEX_PREVIEW_PARENT_ORIGIN`.
 
-## Production smoke evidence
+## Optional standalone distribution
 
-Repository CI proves the package layout and HTTP contract locally. It does not prove production deployment.
+`.github/workflows/preview-runtime-distribution.yml` remains available when the preview runtimes intentionally need to be hosted outside the standard Dashboard update tree. It builds version/commit-identified archives, a manifest, checksums, and an environment snippet and can run an external HTTPS smoke check.
 
-After the static files are externally deployed, run the **Preview Runtime Distribution** workflow manually with `verify_deployed=true`. That gate verifies both production runtime URLs and their `main.dart.js`/Flutter bootstrap assets over HTTPS.
+That standalone workflow is optional. The supported default is Update Center deployment from the same `FOODEX-Update.zip` as the Dashboard.
 
-Only a successful post-deployment smoke run (or equivalent captured production evidence) may be recorded as proof that production runtime URLs are live.
+## Release invariant
+
+Do not publish a Dashboard update when either preview runtime failed to compile or is missing from the generated package. The release workflow must fail before publication rather than leave App Preview in an unbound state.
