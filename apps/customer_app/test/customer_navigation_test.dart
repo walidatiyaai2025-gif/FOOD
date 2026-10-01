@@ -266,7 +266,7 @@ void main() {
           accessToken: 'token',
           platformWide: true,
         ),
-        initialRoute: '/profile',
+        initialRoute: '/profile?channel=retail&store_id=7',
       ),
     );
     await tester.pumpAndSettle();
