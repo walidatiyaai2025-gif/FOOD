@@ -490,7 +490,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       _DriverActiveLoadState.ready => RefreshIndicator(
           onRefresh: _load,
           child: ListView.separated(
-            key: const Key('driver-active-assignment-list'),
+            key: widget.initialAssignmentStatus != null
+                ? const Key('driver-active-status-filter')
+                : const Key('driver-active-assignment-list'),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             itemCount: _assignments.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
