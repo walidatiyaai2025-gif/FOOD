@@ -34,9 +34,9 @@ Status: synchronized Customer + Driver Journey V2 production distribution.
 - Minimum current version: `1.0.6`
 - Contains migrations: `true`
 - Requires full redeploy: `false`
-- SHA-256: `5bab27f6d07942ebaabdb2d1d045a810c618941c304a5c01edc2fcee981454a2`
+- SHA-256: `586210c0d29c28eb9313449e340cf244fb05abc81b9ab42c7dd62d570da9c10d`
 - Package files: `679`
-- Package size: `73,056,555` bytes
+- Package size: `73,056,557` bytes
 
 ## Explicit non-activation statement
 
