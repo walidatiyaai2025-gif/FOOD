@@ -30,16 +30,46 @@ class HttpB2bApi implements B2bApi {
       },
     );
     if (response.statusCode == 401 || response.statusCode == 403) {
-      throw const B2bApiException('not_authorized');
+      throw B2bApiException(
+        'not_authorized',
+        statusCode: response.statusCode,
+        supportReference: _supportReference(response.headers),
+      );
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw B2bApiException('http_${response.statusCode}');
+      throw B2bApiException(
+        'http_${response.statusCode}',
+        statusCode: response.statusCode,
+        supportReference: _supportReference(response.headers),
+      );
     }
     return response.body.isEmpty ? null : jsonDecode(response.body);
   }
 }
 
 class B2bApiException implements Exception {
-  const B2bApiException(this.code);
+  const B2bApiException(
+    this.code, {
+    this.statusCode,
+    this.supportReference,
+  });
+
   final String code;
+  final int? statusCode;
+  final String? supportReference;
+}
+
+String? _supportReference(Map<String, String> headers) {
+  for (final key in const [
+    'x-request-id',
+    'x-correlation-id',
+    'request-id',
+    'traceparent',
+  ]) {
+    final value = headers[key];
+    if (value != null && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+  }
+  return null;
 }
