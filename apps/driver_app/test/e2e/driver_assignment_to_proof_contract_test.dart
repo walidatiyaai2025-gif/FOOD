@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/features/delivery/active/driver_active_journey.dart';
 import 'package:foodex_driver_app/features/delivery/completion/driver_completion_contract.dart';
-import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
+import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 
 class _JourneyRepository implements DriverAssignmentRepository {
   DriverAssignment current = const DriverAssignment(
