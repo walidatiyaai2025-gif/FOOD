@@ -17,8 +17,8 @@ void main() {
 
       int? searchStore;
       String? searchQuery;
-      int? categoryId;
-      int? productId;
+      int? capturedCategoryId;
+      int? capturedProductId;
       int? addedProductId;
 
       final navigation = RetailCatalogNavigation(
@@ -30,7 +30,7 @@ void main() {
         }) {
           searchStore = storeId;
           searchQuery = query;
-          thisCategoryId(categoryId, (value) => categoryId = value);
+          capturedCategoryId = categoryId;
         },
         openProduct: (
           BuildContext context, {
@@ -38,7 +38,7 @@ void main() {
           required int productId,
         }) {
           searchStore = storeId;
-          thisProductId(productId, (value) => productId = value);
+          capturedProductId = productId;
         },
       );
 
@@ -107,13 +107,13 @@ void main() {
       await tester.ensureVisible(category);
       await tester.tap(category);
       await tester.pump();
-      expect(categoryId, 3);
+      expect(capturedCategoryId, 3);
 
       final product = find.byKey(const ValueKey('retail-product-42'));
       await tester.ensureVisible(product);
       await tester.tap(product);
       await tester.pump();
-      expect(productId, 42);
+      expect(capturedProductId, 42);
 
       final add = find.descendant(
         of: product,
@@ -173,10 +173,6 @@ void main() {
     expect(uri.queryParameters['channel'], 'retail');
   });
 }
-
-void thisCategoryId(int? value, ValueChanged<int?> assign) => assign(value);
-
-void thisProductId(int value, ValueChanged<int> assign) => assign(value);
 
 class _FakeCatalogApi implements B2cCatalogApi {
   @override
