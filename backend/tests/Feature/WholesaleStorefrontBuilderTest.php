@@ -260,6 +260,10 @@ class WholesaleStorefrontBuilderTest extends TestCase
         $this->getJson('/api/v1/stores/'.$retailStoreId.'/storefront')
             ->assertOk()
             ->assertJsonCount(0, 'banners');
+
+        $this->getJson('/api/v1/wholesale/stores/'.$platformStoreId.'/storefront')
+            ->assertOk()
+            ->assertJsonMissing(['title' => 'Retail Merchant Placement']);
     }
 
     public function test_wholesale_discard_restores_draft_from_published_without_changing_live(): void
