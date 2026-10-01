@@ -805,6 +805,38 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
           label: context.tr('driver.detail.address'),
           value: _value(context, assignment.address),
         ),
+        if (onNavigationRequested != null) ...[
+          const SizedBox(height: 6),
+          FilledButton.icon(
+            key: Key('driver-active-navigate-${assignment.id}'),
+            onPressed: onNavigationRequested,
+            icon: const Icon(Icons.navigation_rounded),
+            label: Text(context.tr('driver.navigation.open')),
+          ),
+        ],
+        if (actions != null) ...[
+          const SizedBox(height: 14),
+          Text(
+            context.tr('driver.detail.actions'),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 10),
+          actions!,
+        ],
+        if (assignment.invoice != null) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            key: Key('driver-active-open-invoice-${assignment.id}'),
+            onPressed: () => _showInvoice(context, assignment.invoice!),
+            icon: const Icon(Icons.receipt_long_rounded),
+            label: Text(
+              '${context.tr('driver.invoice.open')} · ${assignment.invoice!.number}',
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
         _DetailRow(
           label: context.tr('driver.detail.payment'),
           value: _value(context, payment),
@@ -842,37 +874,6 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
               ),
             ),
           ),
-        if (actions != null) ...[
-          const SizedBox(height: 16),
-          Text(
-            context.tr('driver.detail.actions'),
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          const SizedBox(height: 10),
-          actions!,
-        ],
-        if (assignment.invoice != null) ...[
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            key: Key('driver-active-open-invoice-${assignment.id}'),
-            onPressed: () => _showInvoice(context, assignment.invoice!),
-            icon: const Icon(Icons.receipt_long_rounded),
-            label: Text(
-              '${context.tr('driver.invoice.open')} · ${assignment.invoice!.number}',
-            ),
-          ),
-        ],
-        if (onNavigationRequested != null) ...[
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            key: Key('driver-active-navigate-${assignment.id}'),
-            onPressed: onNavigationRequested,
-            icon: const Icon(Icons.navigation_rounded),
-            label: Text(context.tr('driver.navigation.open')),
-          ),
-        ],
       ],
     );
   }
