@@ -59,16 +59,16 @@ void main() {
     const _CaptureCase('01_Mobile/B2C_Customer/01_الشاشة_الافتتاحية__default__ar.png', '/splash'),
     const _CaptureCase('01_Mobile/B2C_Customer/02_تصفح_كضيف_او_تسجيل_الدخول__default__ar.png', '/entry'),
     const _CaptureCase('01_Mobile/B2C_Customer/03_اختيار_المتجر__populated__ar.png', '/stores'),
-    const _CaptureCase('01_Mobile/B2C_Customer/04_الصفحة_الرئيسية_للمتجر__populated__ar.png', '/home?store=7'),
-    const _CaptureCase('01_Mobile/B2C_Customer/05_عروض_وتخفيضات__populated__ar.png', '/offers?store=7'),
-    const _CaptureCase('01_Mobile/B2C_Customer/06_قائمة_المنتجات_والفلاتر__populated__ar.png', '/products?store=7'),
-    const _CaptureCase('01_Mobile/B2C_Customer/07_تفاصيل_المنتج__populated__ar.png', '/products/42?store=7'),
-    const _CaptureCase('01_Mobile/B2C_Customer/08_سلة_التسوق__populated__ar.png', '/cart?store=7'),
-    const _CaptureCase('01_Mobile/B2C_Customer/09_تسجيل_الدخول_لإتمام_الطلب__default__ar.png', '/auth/checkout'),
-    const _CaptureCase('01_Mobile/B2C_Customer/10_العنوان_والدفع__default__ar.png', '/checkout/address-payment', session: _b2c),
-    const _CaptureCase('01_Mobile/B2C_Customer/11_تتبع_الطلب__populated__ar.png', '/orders/101/track', session: _b2c),
-    const _CaptureCase('01_Mobile/B2C_Customer/12_الملف_الشخصي_والمفضلة__populated__ar.png', '/profile', session: _b2c),
-    const _CaptureCase('01_Mobile/B2C_Customer/13_عناويني__populated__ar.png', '/profile/addresses', session: _b2c),
+    const _CaptureCase('01_Mobile/B2C_Customer/04_الصفحة_الرئيسية_للمتجر__populated__ar.png', '/home?channel=retail&store_id=7'),
+    const _CaptureCase('01_Mobile/B2C_Customer/05_عروض_وتخفيضات__populated__ar.png', '/offers?channel=retail&store_id=7'),
+    const _CaptureCase('01_Mobile/B2C_Customer/06_قائمة_المنتجات_والفلاتر__populated__ar.png', '/products?channel=retail&store_id=7'),
+    const _CaptureCase('01_Mobile/B2C_Customer/07_تفاصيل_المنتج__populated__ar.png', '/products/42?channel=retail&store_id=7'),
+    const _CaptureCase('01_Mobile/B2C_Customer/08_سلة_التسوق__populated__ar.png', '/cart?channel=retail&store_id=7'),
+    const _CaptureCase('01_Mobile/B2C_Customer/09_تسجيل_الدخول_لإتمام_الطلب__default__ar.png', '/auth/checkout?channel=retail&store_id=7&next=%2Fcheckout%2Faddress-payment%3Fchannel%3Dretail%26store_id%3D7'),
+    const _CaptureCase('01_Mobile/B2C_Customer/10_العنوان_والدفع__default__ar.png', '/checkout/address-payment?channel=retail&store_id=7', session: _b2c),
+    const _CaptureCase('01_Mobile/B2C_Customer/11_تتبع_الطلب__populated__ar.png', '/orders/101/track?channel=retail&store_id=7', session: _b2c),
+    const _CaptureCase('01_Mobile/B2C_Customer/12_الملف_الشخصي_والمفضلة__populated__ar.png', '/profile?channel=retail&store_id=7', session: _b2c),
+    const _CaptureCase('01_Mobile/B2C_Customer/13_عناويني__populated__ar.png', '/profile/addresses?channel=retail&store_id=7', session: _b2c),
   ];
 
   for (final locale in const [Locale('ar'), Locale('en')]) {
@@ -134,7 +134,7 @@ void main() {
           child: FoodexCustomerApp(
             theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
             session: _b2c,
-            initialRoute: '/profile/addresses',
+            initialRoute: '/profile/addresses?channel=retail&store_id=7',
             b2bApi: const _EvidenceB2bApi(),
             b2cCatalogApi: const _EvidenceCatalogApi(),
             b2cAccountApi: const _EvidenceAccountApi(),
@@ -315,7 +315,7 @@ class _EvidenceB2bApi implements B2bApi {
         ],
       };
     }
-    if (path.endsWith('/profile')) {
+    if (path.endsWith('/profile?channel=retail&store_id=7')) {
       return {'company_name': 'FOODEX Business Demo', 'email': 'buyer@foodex.test', 'tax_number': 'TX-900'};
     }
     return {'status': 'ok'};
