@@ -76,12 +76,16 @@ A claim is a **lease**, not permanent ownership.
 
 ### Lease heartbeat
 
-A worker should renew visible activity at least every **20 minutes** while actively working by one of:
+A worker MUST leave a repository-visible checkpoint at least every **10 minutes** while actively working. A checkpoint may be any of:
 
-- pushing a commit;
+- pushing a coherent commit/checkpoint;
 - updating/opening the PR;
-- adding an Issue/PR progress comment;
+- adding an Issue/PR progress/heartbeat comment;
 - producing a workflow/CI run tied to the branch.
+
+The 10-minute checkpoint SLA exists so a chat/session failure cannot hide a large amount of unpushed work. The 30-minute stale timeout is a takeover detector, not a recommended checkpoint interval.
+
+Before any long wait, tool-heavy operation, CI wait, or potentially fragile session step, checkpoint first when safe.
 
 ### Stale lease
 
@@ -254,7 +258,9 @@ Therefore:
 - record blockers/next actions in GitHub;
 - a new worker should be able to resume without asking the user to reconstruct history.
 
-If a worker/session hangs, another worker should take over the same task after the stale-lease check, using the same branch/PR.
+If a worker/session hangs, another worker should take over the same task using the same branch/PR.
+
+If the repository owner explicitly sends `HANDOFF`, `AUTO-HANDOFF`, or otherwise states that the previous chat/worker is interrupted, that is an **immediate lease transfer**. Do not wait for the 30-minute stale timeout. The replacement worker must inspect GitHub first, reuse the existing Issue/branch/PR/head, and the previous worker must stop if it later returns.
 
 ---
 
@@ -262,11 +268,27 @@ If a worker/session hangs, another worker should take over the same task after t
 
 The phrases:
 
+- `HANDOFF`
+- `AUTO-HANDOFF`
 - `FOOD AUTO-HANDOFF`
+- `HANDOFF #<issue>`
 - `FOOD #<issue> AUTO-HANDOFF`
 - `FOOD #<umbrella> AUTO-HANDOFF`
 
-are shorthand for this policy.
+are shorthand for this policy across the entire repository.
+
+**Bare `HANDOFF` is intentionally sufficient.** The user does not need to repeat the Issue, branch, PR, SHA, CI status, or previous prompt.
+
+When `HANDOFF` is received, the replacement worker must reconstruct the task from GitHub authoritative state. Selection order is:
+
+1. the Issue/branch/PR explicitly associated with the current conversation, when available;
+2. otherwise an existing `worker:handoff-ready` task, preferring the most recently updated resumable handoff;
+3. otherwise a task whose latest machine-readable state is `HANDOFF`;
+4. never steal a fresh non-stale `worker:active` lease merely because multiple workers exist.
+
+If an explicit repository-owner `HANDOFF` identifies the interrupted work through current conversation context, takeover is immediate and does not wait for stale detection.
+
+No replacement branch or duplicate PR may be created just because the prior chat disconnected.
 
 But this policy applies even when those phrases are **not** present.
 
@@ -307,3 +329,149 @@ When instructions conflict, use this order:
 5. older Issue comments / historical plans.
 
 Do not use an old worker claim to override a newer explicit takeover or repository-owner instruction.
+
+
+---
+
+## 15. Machine-readable worker state
+
+Every active implementation Issue/PR should maintain a current machine-readable state block. It may live in the PR body or in the latest Issue progress/handoff comment.
+
+Use exactly this shape:
+
+```text
+<!-- foodex-worker-state:v1 -->
+STATE: WORKING
+OWNER: worker-name-or-role
+BRANCH: feat/123-stable-branch-name
+PR: #456
+HEAD: full-or-short-head-sha
+HEARTBEAT: 2026-10-01T06:00:00Z
+BLOCKER: none
+NEXT_ACTION: next concrete repository action
+```
+
+Allowed `STATE` values:
+
+- `WORKING`
+- `WAITING_CI`
+- `BLOCKED_REPO`
+- `BLOCKED_EXTERNAL`
+- `READY_TO_MERGE`
+- `HANDOFF`
+
+Allowed `BLOCKER` semantics:
+
+- `none` — normal work;
+- `ci` — tests/checks/action failure or wait; repository-local;
+- `repo` — code/conflict/test/docs/rebase or other repository-local blocker;
+- `deploy` — real deployment action is required;
+- `production` — production-side verification/evidence/action is required;
+- `credentials` — required secret/credential is unavailable;
+- `device` — required real device/execution environment is unavailable;
+- `approval` — explicit human approval is required;
+- `human` — other genuine external intervention.
+
+Do **not** classify CI failures, merge conflicts, test failures, missing code, branch drift, or ordinary debugging as human blockers.
+
+The Worker Watchdog may use this block plus GitHub branch/PR/CI activity to classify the task.
+
+---
+
+## 16. Worker Watchdog and automatic takeover
+
+The repository runs a scheduled/event-driven Worker Watchdog.
+
+It maintains these queue states:
+
+- `worker:ready` — atomic repository-local work with no active claim;
+- `worker:active` — a fresh worker lease exists;
+- `worker:waiting-ci` — CI/actions are currently running;
+- `worker:handoff-ready` — worker lease is stale, CI needs takeover, a merge-ready PR was abandoned, or handoff was explicit;
+- `gate:human` — real intervention outside normal repository work is required.
+
+Specific human gates may also be labeled:
+
+- `gate:deploy`
+- `gate:production`
+- `gate:credentials`
+- `gate:device`
+- `gate:approval`
+
+The watchdog:
+
+- does not create replacement implementation branches;
+- does not create replacement PRs;
+- does not bypass required CI;
+- does not enable production toggles;
+- does not fabricate deployment/production/device evidence.
+
+When a stale task is detected, it marks the existing Issue `worker:handoff-ready` and records the existing branch/PR/head when available.
+
+The next worker must take over that exact work.
+
+---
+
+## 17. Continuous queue drain
+
+Workers should not stop merely because their first Issue merged.
+
+Unless the repository owner explicitly says **only this Issue/task**, after finishing a task a worker must inspect the managed queue and continue with the next safe repository-local item in this order:
+
+1. `worker:handoff-ready` — resume abandoned/stalled existing work first;
+2. `worker:ready` — claim new atomic work second.
+
+Before claiming the next item, still perform the full preflight and dependency/ownership checks.
+
+A worker must **not** consume Issues labeled `gate:human` until the external requirement has actually been satisfied.
+
+The desired steady state is:
+
+> no repository-local actionable work left; any remaining managed Issues are blocked only by genuine deployment, production, credential, device, or approval gates.
+
+A worker may stop earlier only when:
+
+- the user explicitly restricted it to one exact task;
+- there is no safe actionable Issue;
+- all remaining managed work is human-gated;
+- an external service/tool required for the next action is unavailable and the Issue has been classified accordingly.
+
+---
+
+## 18. Managed Issue marker
+
+New atomic implementation Issues should include:
+
+```html
+<!-- foodex-worker:managed -->
+```
+
+This opts the Issue into watchdog queue classification even before a branch/PR exists.
+
+Do not put this marker on coordination-only umbrella Issues unless they are intended to be directly executable.
+
+
+---
+
+## 19. Minimal user command contract
+
+The normal recovery command for an interrupted worker is simply:
+
+```text
+HANDOFF
+```
+
+That command means:
+
+- previous chat/session may be treated as interrupted;
+- GitHub is authoritative;
+- inspect current Issue/branch/PR/head/CI before editing;
+- continue existing work in place;
+- do not ask the user to reconstruct prior chat state;
+- do not create a new branch/PR when an existing one belongs to the task;
+- fix repository-local failures and drive CI to completion;
+- merge/close when permitted;
+- continue draining repository-local managed work when the task completes;
+- stop only at a genuine external/human gate or when no safe actionable managed work remains.
+
+The user may still provide `HANDOFF #<issue>` when they want to force a specific task, but the longer AUTO-HANDOFF prompt is no longer required.

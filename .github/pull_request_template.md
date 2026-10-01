@@ -37,3 +37,16 @@ Current CI state:
 Next action / blocker:
 
 > Follow the repository-wide worker policy in `AGENTS.md`. If this PR already exists, continue it in place; do not create a replacement PR for the same Issue.
+
+
+## Machine-readable worker state
+<!-- Keep this block current enough for Worker Watchdog takeover. -->
+<!-- foodex-worker-state:v1 -->
+STATE: WORKING
+OWNER:
+BRANCH:
+PR:
+HEAD:
+HEARTBEAT:
+BLOCKER: none
+NEXT_ACTION:

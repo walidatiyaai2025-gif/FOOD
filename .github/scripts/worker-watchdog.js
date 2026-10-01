@@ -1,0 +1,418 @@
+'use strict';
+
+const STATE_MARKER = '<!-- foodex-worker-state:v1 -->';
+const MANAGED_MARKER = '<!-- foodex-worker:managed -->';
+const WATCHDOG_MARKER = '<!-- foodex-watchdog:';
+const STALE_MINUTES = 30;
+
+const STATUS_LABELS = [
+  'worker:ready',
+  'worker:active',
+  'worker:waiting-ci',
+  'worker:handoff-ready',
+];
+
+const GATE_LABELS = [
+  'gate:human',
+  'gate:deploy',
+  'gate:production',
+  'gate:credentials',
+  'gate:device',
+  'gate:approval',
+];
+
+const HUMAN_BLOCKERS = new Set([
+  'deploy',
+  'production',
+  'credentials',
+  'device',
+  'approval',
+  'human',
+]);
+
+const LABELS = {
+  'worker:ready': ['1D76DB', 'Atomic repository-local work is ready for a worker'],
+  'worker:active': ['0E8A16', 'A worker has an active lease on this issue'],
+  'worker:waiting-ci': ['FBCA04', 'Worker is waiting for CI/actions on the current branch head'],
+  'worker:handoff-ready': ['F97316', 'Lease is stale or explicitly handed off; continue the same branch/PR'],
+  'gate:human': ['B60205', 'Real external intervention is required; workers must not fabricate or bypass it'],
+  'gate:deploy': ['D93F0B', 'Requires real deployment/environment action'],
+  'gate:production': ['D93F0B', 'Requires real production evidence or production-side action'],
+  'gate:credentials': ['B60205', 'Requires credentials or secrets unavailable to repository workers'],
+  'gate:device': ['B60205', 'Requires a real device/environment not available to repository workers'],
+  'gate:approval': ['B60205', 'Requires explicit human approval before proceeding'],
+};
+
+function parseWorkerState(text) {
+  if (!text || !text.includes(STATE_MARKER)) return null;
+  const after = text.slice(text.lastIndexOf(STATE_MARKER) + STATE_MARKER.length);
+  const fields = {};
+  for (const rawLine of after.split(/\r?\n/)) {
+    const match = rawLine.match(/^\s*([A-Z_]+)\s*:\s*(.*?)\s*$/);
+    if (!match) continue;
+    fields[match[1]] = match[2];
+  }
+  return {
+    state: (fields.STATE || '').toUpperCase(),
+    owner: fields.OWNER || '',
+    branch: fields.BRANCH || '',
+    pr: fields.PR || '',
+    head: fields.HEAD || '',
+    heartbeat: fields.HEARTBEAT || '',
+    blocker: (fields.BLOCKER || 'none').toLowerCase(),
+    nextAction: fields.NEXT_ACTION || '',
+  };
+}
+
+function linkedIssueNumbers(body) {
+  const text = body || '';
+  const result = new Set();
+  const closing = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/gi;
+  let match;
+  while ((match = closing.exec(text)) !== null) result.add(Number(match[1]));
+  return [...result];
+}
+
+function branchFromText(text) {
+  if (!text) return '';
+  const patterns = [
+    /\bBranch\s*:\s*[`'"]?([A-Za-z0-9._/-]+)[`'"]?/i,
+    /\bbranch\s+[`'"]([A-Za-z0-9._/-]+)[`'"]/i,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return match[1].replace(/[.,;:]$/, '');
+  }
+  return '';
+}
+
+function asMillis(value) {
+  const ms = Date.parse(value || '');
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function newestMillis(...values) {
+  return Math.max(0, ...values.flat().map(value => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    return asMillis(value);
+  }));
+}
+
+function minutesSince(nowMs, activityMs) {
+  if (!activityMs) return Infinity;
+  return Math.max(0, (nowMs - activityMs) / 60000);
+}
+
+function gateLabel(blocker) {
+  return HUMAN_BLOCKERS.has(blocker) && blocker !== 'human'
+    ? `gate:${blocker}`
+    : null;
+}
+
+function classify({
+  nowMs,
+  managed,
+  workerState,
+  hasOpenPr,
+  hasBranch,
+  latestActivityMs,
+  ciRunning,
+  ciConclusion,
+  mergeable,
+}) {
+  if (!managed) return { status: 'ignored', reason: 'not-managed' };
+
+  const blocker = workerState?.blocker || 'none';
+  if (HUMAN_BLOCKERS.has(blocker)) {
+    return {
+      status: 'human-gate',
+      reason: blocker,
+      labels: ['gate:human', ...(gateLabel(blocker) ? [gateLabel(blocker)] : [])],
+    };
+  }
+
+  const explicitState = workerState?.state || '';
+  if (explicitState === 'HANDOFF') {
+    return { status: 'handoff-ready', reason: 'explicit-handoff' };
+  }
+
+  if (ciRunning) {
+    return { status: 'waiting-ci', reason: 'ci-running' };
+  }
+
+  const hasClaim = Boolean(workerState || hasOpenPr || hasBranch);
+  if (!hasClaim) {
+    return { status: 'ready', reason: 'unclaimed' };
+  }
+
+  const stale = minutesSince(nowMs, latestActivityMs) >= STALE_MINUTES;
+  if (!stale) {
+    return { status: 'active', reason: 'fresh-lease' };
+  }
+
+  if (hasOpenPr && ciConclusion === 'success' && mergeable === true) {
+    return { status: 'handoff-ready', reason: 'merge-ready-stale' };
+  }
+
+  if (hasOpenPr && ciConclusion && ciConclusion !== 'success' && ciConclusion !== 'skipped') {
+    return { status: 'handoff-ready', reason: `ci-${ciConclusion}` };
+  }
+
+  if (explicitState === 'READY_TO_MERGE') {
+    return { status: 'handoff-ready', reason: 'ready-to-merge' };
+  }
+
+  return { status: 'handoff-ready', reason: 'stale-lease' };
+}
+
+function statusLabel(status) {
+  const mapping = {
+    ready: 'worker:ready',
+    active: 'worker:active',
+    'waiting-ci': 'worker:waiting-ci',
+    'handoff-ready': 'worker:handoff-ready',
+  };
+  return mapping[status] || null;
+}
+
+function isWatchdogComment(body) {
+  return Boolean(body && body.includes(WATCHDOG_MARKER));
+}
+
+function handoffComment({ issueNumber, branch, prNumber, head, reason, ciConclusion, nextAction }) {
+  const reasonText = {
+    'merge-ready-stale': 'the existing PR is green/mergeable but the worker lease went stale',
+    'stale-lease': 'there has been no repository-visible worker activity for at least 30 minutes',
+    'explicit-handoff': 'the previous worker explicitly handed the task off',
+    'ready-to-merge': 'the task was marked ready to merge but has no active worker',
+  }[reason] || (reason.startsWith('ci-')
+    ? `the current PR needs CI follow-up (${reason.slice(3)})`
+    : reason);
+
+  return `<!-- foodex-watchdog:handoff issue=${issueNumber} head=${head || 'none'} reason=${reason} -->
+## Worker Watchdog — AUTO-HANDOFF READY
+
+This task is repository-local and is ready for another worker to continue because **${reasonText}**.
+
+- Issue: #${issueNumber}
+- Existing branch: \`${branch || 'resolve from the existing Issue/PR before creating anything'}\`
+- Existing PR: ${prNumber ? `#${prNumber}` : 'none yet'}
+- Latest head: \`${head || 'unknown'}\`
+- Last CI conclusion: \`${ciConclusion || 'none'}\`
+- Next action: ${nextAction || 'continue from the latest remote head, inspect CI/current state, and finish the same task'}
+
+**Takeover rule:** continue the same Issue/branch/PR. Do not create a replacement branch or duplicate PR. Add/update a \`${STATE_MARKER}\` state block when taking over.
+`;
+}
+
+async function ensureLabels(github, owner, repo, core) {
+  for (const [name, [color, description]] of Object.entries(LABELS)) {
+    try {
+      await github.rest.issues.getLabel({ owner, repo, name });
+    } catch (error) {
+      if (error.status !== 404) throw error;
+      core.info(`Creating label ${name}`);
+      await github.rest.issues.createLabel({ owner, repo, name, color, description });
+    }
+  }
+}
+
+async function replaceStatusLabels(github, owner, repo, issue, desired) {
+  const current = new Set(issue.labels.map(label => typeof label === 'string' ? label : label.name).filter(Boolean));
+  const desiredSet = new Set(desired);
+
+  for (const label of STATUS_LABELS) {
+    if (current.has(label) && !desiredSet.has(label)) {
+      try {
+        await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: label });
+      } catch (error) {
+        if (error.status !== 404) throw error;
+      }
+    }
+  }
+
+  for (const label of desiredSet) {
+    if (!current.has(label)) {
+      await github.rest.issues.addLabels({ owner, repo, issue_number: issue.number, labels: [label] });
+    }
+  }
+
+  for (const label of GATE_LABELS) {
+    if (!current.has(label) || desiredSet.has(label)) continue;
+    try {
+      await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: label });
+    } catch (error) {
+      if (error.status !== 404) throw error;
+    }
+  }
+}
+
+async function latestCommitMillis(github, owner, repo, ref) {
+  if (!ref) return 0;
+  try {
+    const { data } = await github.rest.repos.getCommit({ owner, repo, ref });
+    return newestMillis(data.commit?.committer?.date, data.commit?.author?.date);
+  } catch (_) {
+    return 0;
+  }
+}
+
+async function branchExists(github, owner, repo, branch) {
+  if (!branch) return false;
+  try {
+    await github.rest.repos.getBranch({ owner, repo, branch });
+    return true;
+  } catch (error) {
+    if (error.status === 404) return false;
+    throw error;
+  }
+}
+
+async function workflowState(github, owner, repo, pr) {
+  if (!pr) return { running: false, conclusion: null };
+  const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+    owner,
+    repo,
+    branch: pr.head.ref,
+    per_page: 100,
+  });
+  const matching = data.workflow_runs
+    .filter(run => run.head_sha === pr.head.sha)
+    .sort((a, b) => asMillis(b.updated_at) - asMillis(a.updated_at));
+
+  if (matching.some(run => run.status !== 'completed')) {
+    return { running: true, conclusion: null };
+  }
+
+  const meaningful = matching.find(run => run.conclusion && run.conclusion !== 'skipped');
+  return { running: false, conclusion: meaningful?.conclusion || null };
+}
+
+async function run({ github, context, core, nowMs = Date.now() }) {
+  const { owner, repo } = context.repo;
+  await ensureLabels(github, owner, repo, core);
+
+  const [issues, pulls] = await Promise.all([
+    github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 }),
+    github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 }),
+  ]);
+
+  const openIssues = issues.filter(issue => !issue.pull_request);
+  const prByIssue = new Map();
+  for (const pr of pulls) {
+    for (const issueNumber of linkedIssueNumbers(pr.body)) {
+      if (!prByIssue.has(issueNumber)) prByIssue.set(issueNumber, pr);
+    }
+  }
+
+  for (const issue of openIssues) {
+    const labelNames = issue.labels.map(label => typeof label === 'string' ? label : label.name).filter(Boolean);
+    const linkedPr = prByIssue.get(issue.number) || null;
+
+    const comments = await github.paginate(github.rest.issues.listComments, {
+      owner,
+      repo,
+      issue_number: issue.number,
+      per_page: 100,
+    });
+
+    const nonWatchdogComments = comments.filter(comment => !isWatchdogComment(comment.body));
+    let workerState = null;
+    for (let i = nonWatchdogComments.length - 1; i >= 0; i -= 1) {
+      workerState = parseWorkerState(nonWatchdogComments[i].body || '');
+      if (workerState) break;
+    }
+    if (!workerState) workerState = parseWorkerState(linkedPr?.body || '');
+    if (!workerState) workerState = parseWorkerState(issue.body || '');
+
+    const managed = Boolean(
+      (issue.body || '').includes(MANAGED_MARKER)
+      || workerState
+      || linkedPr
+      || labelNames.some(label => STATUS_LABELS.includes(label))
+    );
+    if (!managed) continue;
+
+    let branch = workerState?.branch || linkedPr?.head?.ref || '';
+    if (!branch) {
+      const searchable = [...nonWatchdogComments].reverse().map(comment => comment.body || '');
+      branch = searchable.map(branchFromText).find(Boolean) || '';
+    }
+
+    const hasBranch = await branchExists(github, owner, repo, branch);
+    const commitActivity = await latestCommitMillis(github, owner, repo, linkedPr?.head?.sha || branch);
+    const commentActivity = newestMillis(nonWatchdogComments.map(comment => comment.updated_at || comment.created_at));
+    const stateHeartbeat = asMillis(workerState?.heartbeat);
+    const prActivity = linkedPr ? newestMillis(linkedPr.created_at, linkedPr.updated_at) : 0;
+    const latestActivityMs = newestMillis(commitActivity, commentActivity, stateHeartbeat, prActivity);
+
+    const ci = await workflowState(github, owner, repo, linkedPr);
+    let mergeable = null;
+    if (linkedPr && !ci.running) {
+      try {
+        const { data } = await github.rest.pulls.get({ owner, repo, pull_number: linkedPr.number });
+        mergeable = data.mergeable;
+      } catch (_) {
+        mergeable = null;
+      }
+    }
+
+    const outcome = classify({
+      nowMs,
+      managed,
+      workerState,
+      hasOpenPr: Boolean(linkedPr),
+      hasBranch,
+      latestActivityMs,
+      ciRunning: ci.running,
+      ciConclusion: ci.conclusion,
+      mergeable,
+    });
+
+    core.info(`#${issue.number}: ${outcome.status} (${outcome.reason})`);
+
+    if (outcome.status === 'human-gate') {
+      await replaceStatusLabels(github, owner, repo, issue, outcome.labels);
+      continue;
+    }
+
+    const desiredLabel = statusLabel(outcome.status);
+    await replaceStatusLabels(github, owner, repo, issue, desiredLabel ? [desiredLabel] : []);
+
+    if (outcome.status !== 'handoff-ready') continue;
+
+    const head = linkedPr?.head?.sha || workerState?.head || '';
+    const marker = `<!-- foodex-watchdog:handoff issue=${issue.number} head=${head || 'none'} reason=${outcome.reason} -->`;
+    if (comments.some(comment => (comment.body || '').includes(marker))) continue;
+
+    await github.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: issue.number,
+      body: handoffComment({
+        issueNumber: issue.number,
+        branch,
+        prNumber: linkedPr?.number,
+        head,
+        reason: outcome.reason,
+        ciConclusion: ci.conclusion,
+        nextAction: workerState?.nextAction,
+      }),
+    });
+  }
+}
+
+module.exports = {
+  HUMAN_BLOCKERS,
+  MANAGED_MARKER,
+  STALE_MINUTES,
+  STATE_MARKER,
+  branchFromText,
+  classify,
+  handoffComment,
+  linkedIssueNumbers,
+  minutesSince,
+  parseWorkerState,
+  run,
+  statusLabel,
+};

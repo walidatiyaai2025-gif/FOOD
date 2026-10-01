@@ -11,6 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: ./scripts/validate-repo.sh
+      - name: Validate Worker Watchdog policy logic
+        run: node --test .github/scripts/worker-watchdog.test.js
+
+      - name: Syntax-check Worker Watchdog
+        run: node --check .github/scripts/worker-watchdog.js
+
       - name: Require issue-style PR branch
         if: github.event_name == 'pull_request'
         run: |
