@@ -322,7 +322,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: const Color(0xFFF8FAF8),
+        backgroundColor: const Color(0xFFF6F7F8),
         body: SafeArea(
           child: FutureBuilder<Map<String, dynamic>>(
             future: _future,
@@ -372,9 +372,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final bannerHeight = (constraints.maxHeight * .20)
-                      .clamp(160.0, 176.0)
-                      .toDouble();
+                  final bannerHeight = (constraints.maxHeight * .22)
+                       .clamp(176.0, 204.0)
+                       .toDouble();
 
                   return CustomScrollView(
                     slivers: [
@@ -403,7 +403,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
                           child: TextField(
                             key: const ValueKey('marketplace-search'),
                             controller: _searchController,
@@ -413,53 +413,166 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                             decoration: InputDecoration(
                               hintText: context.tr('customer.marketplace.search_hint'),
                               prefixIcon: const Icon(Icons.search_rounded),
-                              suffixIcon: IconButton(
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _submitSearch('');
-                                },
-                                icon: const Icon(Icons.close_rounded),
+                              suffixIcon: _searchController.text.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _submitSearch('');
+                                      },
+                                      icon: const Icon(Icons.close_rounded),
+                                    ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE6E9EC),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE6E9EC),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF0B7A4B),
+                                  width: 1.4,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
+                      if (categories.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            height: 54,
+                            child: ListView(
+                              key: const ValueKey('marketplace-categories'),
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 7,
+                              ),
+                              children: [
+                                ChoiceChip(
+                                  key: const ValueKey('marketplace-category-all'),
+                                  label: Text(
+                                    context.tr('customer.marketplace.all_categories'),
+                                  ),
+                                  selected: _selectedCategoryId == null,
+                                  showCheckmark: false,
+                                  onSelected: (_) => _selectCategory(null),
+                                ),
+                                const SizedBox(width: 8),
+                                ...categories.map(
+                                  (category) => Padding(
+                                    padding: const EdgeInsetsDirectional.only(
+                                      end: 8,
+                                    ),
+                                    child: ChoiceChip(
+                                      key: ValueKey(
+                                        'marketplace-category-${category['id']}',
+                                      ),
+                                      label: Text(
+                                        category['name']?.toString() ?? '',
+                                      ),
+                                      selected: _selectedCategoryId ==
+                                          _int(category['id']),
+                                      showCheckmark: false,
+                                      onSelected: (_) => _selectCategory(
+                                        _int(category['id']),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       SliverToBoxAdapter(
                         child: SizedBox(
                           key: const ValueKey('marketplace-banner-carousel'),
                           height: bannerHeight,
-                          child: PageView.builder(
-                            key: const ValueKey('marketplace-retail-carousel'),
-                            controller: _bannerController,
-                            itemCount: retail.length + 1,
-                            onPageChanged: (index) => _bannerIndex = index,
-                            itemBuilder: (_, index) {
-                              if (index == 0) {
-                                final configuredTitle =
-                                    hero['title']?.toString().trim() ?? '';
-                                return _WholesaleHero(
-                                  title: configuredTitle.isNotEmpty
-                                      ? configuredTitle
-                                      : 'FOODEX Wholesale',
-                                  imageUrl: hero['image_url']?.toString(),
-                                );
-                              }
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: PageView.builder(
+                                  key: const ValueKey('marketplace-retail-carousel'),
+                                  controller: _bannerController,
+                                  itemCount: retail.length + 1,
+                                  onPageChanged: (index) {
+                                    if (_bannerIndex == index) return;
+                                    setState(() => _bannerIndex = index);
+                                  },
+                                  itemBuilder: (_, index) {
+                                    if (index == 0) {
+                                      final configuredTitle =
+                                          hero['title']?.toString().trim() ?? '';
+                                      return _WholesaleHero(
+                                        title: configuredTitle.isNotEmpty
+                                            ? configuredTitle
+                                            : 'FOODEX Wholesale',
+                                        imageUrl: hero['image_url']?.toString(),
+                                      );
+                                    }
 
-                              final store = retail[index - 1];
-                              return Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                  14,
-                                  6,
-                                  14,
-                                  2,
+                                    final store = retail[index - 1];
+                                    return Padding(
+                                      padding:
+                                          const EdgeInsetsDirectional.fromSTEB(
+                                        14,
+                                        6,
+                                        14,
+                                        2,
+                                      ),
+                                      child: _RetailStoreBanner(
+                                        store: store,
+                                        width: double.infinity,
+                                        onTap: () => _openRetail(store),
+                                      ),
+                                    );
+                                  },
                                 ),
-                                child: _RetailStoreBanner(
-                                  store: store,
-                                  width: double.infinity,
-                                  onTap: () => _openRetail(store),
+                              ),
+                              if (retail.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Row(
+                                    key: const ValueKey(
+                                      'marketplace-banner-indicators',
+                                    ),
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(
+                                      retail.length + 1,
+                                      (index) => AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 180),
+                                        width: _bannerIndex == index ? 18 : 6,
+                                        height: 6,
+                                        margin: const EdgeInsets.symmetric(
+                                          horizontal: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _bannerIndex == index
+                                              ? const Color(0xFF0B7A4B)
+                                              : const Color(0xFFD7DDE1),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              );
-                            },
+                            ],
                           ),
                         ),
                       ),
@@ -541,50 +654,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                             ),
                           ),
                         ),
-                      if (categories.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            height: 54,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 7,
-                              ),
-                              children: [
-                                ChoiceChip(
-                                  key: const ValueKey('marketplace-category-all'),
-                                  label: Text(
-                                    context.tr('customer.marketplace.all_categories'),
-                                  ),
-                                  selected: _selectedCategoryId == null,
-                                  onSelected: (_) => _selectCategory(null),
-                                ),
-                                const SizedBox(width: 8),
-                                ...categories.map(
-                                  (category) => Padding(
-                                    padding: const EdgeInsetsDirectional.only(
-                                      end: 8,
-                                    ),
-                                    child: ChoiceChip(
-                                      key: ValueKey(
-                                        'marketplace-category-${category['id']}',
-                                      ),
-                                      label: Text(
-                                        category['name']?.toString() ?? '',
-                                      ),
-                                      selected: _selectedCategoryId ==
-                                          _int(category['id']),
-                                      onSelected: (_) => _selectCategory(
-                                        _int(category['id']),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
                         sliver: SliverToBoxAdapter(
@@ -625,7 +694,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                               crossAxisCount: constraints.maxWidth >= 700 ? 3 : 2,
                               mainAxisSpacing: 12,
                               crossAxisSpacing: 12,
-                              childAspectRatio: constraints.maxWidth >= 700 ? 1.05 : .78,
+                              childAspectRatio:
+                                  constraints.maxWidth >= 700 ? 1.05 : .82,
                             ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
@@ -675,144 +745,171 @@ class _MarketplaceHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 520;
-            return Row(
-              children: [
-                CircleAvatar(
-                  radius: compact ? 18 : 22,
-                  backgroundColor: const Color(0xFFE9F8EF),
-                  child: const Icon(
-                    Icons.storefront_rounded,
-                    color: Color(0xFF087347),
-                  ),
-                ),
-                SizedBox(width: compact ? 6 : 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'FOODEX',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Text(
-                        context.tr('customer.marketplace.browse_guest'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF667085),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  key: const ValueKey('marketplace-scan'),
-                  visualDensity:
-                      compact ? VisualDensity.compact : VisualDensity.standard,
-                  constraints: compact
-                      ? const BoxConstraints.tightFor(width: 44, height: 44)
-                      : null,
-                  padding: compact ? const EdgeInsets.all(6) : null,
-                  tooltip: context.tr('customer.marketplace.scan'),
-                  onPressed: onScan,
-                  icon: const Icon(Icons.qr_code_scanner_rounded),
-                ),
-                TextButton(
-                  key: const ValueKey('marketplace-language'),
-                  onPressed: onLanguageToggle,
-                  style: compact
-                      ? TextButton.styleFrom(
-                          minimumSize: const Size(44, 44),
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        )
-                      : null,
-                  child: Text(localeCode.toUpperCase()),
-                ),
-                IconButton(
-                  key: const ValueKey('marketplace-cart'),
-                  visualDensity:
-                      compact ? VisualDensity.compact : VisualDensity.standard,
-                  constraints: compact
-                      ? const BoxConstraints.tightFor(width: 44, height: 44)
-                      : null,
-                  padding: compact ? const EdgeInsets.all(6) : null,
-                  tooltip: context.tr('customer.nav.cart'),
-                  onPressed: onCart,
-                  icon: const Icon(Icons.shopping_cart_outlined),
-                ),
-                IconButton(
-                  key: const ValueKey('marketplace-notifications'),
-                  visualDensity:
-                      compact ? VisualDensity.compact : VisualDensity.standard,
-                  constraints: compact
-                      ? const BoxConstraints.tightFor(width: 44, height: 44)
-                      : null,
-                  padding: compact ? const EdgeInsets.all(6) : null,
-                  tooltip: context.tr('customer.nav.notifications'),
-                  onPressed: onNotifications,
-                  icon: const Icon(Icons.notifications_none_rounded),
-                ),
-                if (authenticated)
-                  IconButton(
-                    key: const ValueKey('marketplace-profile'),
-                    onPressed: () =>
-                        Navigator.of(context).pushNamed('/profile'),
-                    icon: const Icon(Icons.person_outline_rounded),
-                  )
-                else if (compact)
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 2),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 66),
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 8, 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE7EAED)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0D0F172A),
+                blurRadius: 18,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 520;
+              final actionSize = compact ? 38.0 : 42.0;
+
+              Widget action({
+                required Key key,
+                required IconData icon,
+                required VoidCallback onPressed,
+                String? tooltip,
+              }) =>
                   SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: PopupMenuButton<String>(
-                      key: const ValueKey('marketplace-auth-menu'),
+                    width: actionSize,
+                    height: actionSize,
+                    child: IconButton(
+                      key: key,
+                      tooltip: tooltip,
+                      visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      iconSize: 22,
-                      icon: const Icon(Icons.account_circle_outlined),
-                      onSelected: (value) {
-                        if (value == 'login') {
-                          onLogin();
-                        } else {
-                          onRegister();
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        PopupMenuItem(
-                          value: 'login',
-                          child: Text(context.tr('customer.action.login')),
+                      onPressed: onPressed,
+                      icon: Icon(icon, size: compact ? 20 : 22),
+                    ),
+                  );
+
+              return Row(
+                children: [
+                  Container(
+                    width: compact ? 38 : 44,
+                    height: compact ? 38 : 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF7F0),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: const Icon(
+                      Icons.storefront_rounded,
+                      color: Color(0xFF087347),
+                    ),
+                  ),
+                  SizedBox(width: compact ? 8 : 10),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'FOODEX',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 17,
+                            height: 1.1,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: .2,
+                            color: Color(0xFF132238),
+                          ),
                         ),
-                        PopupMenuItem(
-                          value: 'register',
-                          child: Text(
-                            context.tr('customer.marketplace.register'),
+                        const SizedBox(height: 3),
+                        Text(
+                          context.tr('customer.marketplace.browse_guest'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF7A8592),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
-                  )
-                else ...[
-                  TextButton(
-                    onPressed: onLogin,
-                    child: Text(context.tr('customer.action.login')),
                   ),
-                  FilledButton(
-                    onPressed: onRegister,
-                    child: Text(context.tr('customer.marketplace.register')),
+                  action(
+                    key: const ValueKey('marketplace-scan'),
+                    icon: Icons.qr_code_scanner_rounded,
+                    tooltip: context.tr('customer.marketplace.scan'),
+                    onPressed: onScan,
                   ),
+                  SizedBox(
+                    width: actionSize,
+                    height: actionSize,
+                    child: TextButton(
+                      key: const ValueKey('marketplace-language'),
+                      onPressed: onLanguageToggle,
+                      style: TextButton.styleFrom(
+                        minimumSize: Size(actionSize, actionSize),
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        localeCode.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                  action(
+                    key: const ValueKey('marketplace-cart'),
+                    icon: Icons.shopping_bag_outlined,
+                    tooltip: context.tr('customer.nav.cart'),
+                    onPressed: onCart,
+                  ),
+                  action(
+                    key: const ValueKey('marketplace-notifications'),
+                    icon: Icons.notifications_none_rounded,
+                    tooltip: context.tr('customer.nav.notifications'),
+                    onPressed: onNotifications,
+                  ),
+                  if (authenticated)
+                    action(
+                      key: const ValueKey('marketplace-profile'),
+                      icon: Icons.person_outline_rounded,
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed('/profile'),
+                    )
+                  else
+                    SizedBox(
+                      width: actionSize,
+                      height: actionSize,
+                      child: PopupMenuButton<String>(
+                        key: const ValueKey('marketplace-auth-menu'),
+                        padding: EdgeInsets.zero,
+                        iconSize: compact ? 20 : 22,
+                        icon: const Icon(Icons.account_circle_outlined),
+                        onSelected: (value) {
+                          if (value == 'login') {
+                            onLogin();
+                          } else {
+                            onRegister();
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'login',
+                            child: Text(context.tr('customer.action.login')),
+                          ),
+                          PopupMenuItem(
+                            value: 'register',
+                            child: Text(
+                              context.tr('customer.marketplace.register'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
-              ],
-            );
-          },
+              );
+            },
+          ),
         ),
       );
 }
@@ -830,14 +927,39 @@ class _RetailStoreBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = store['banner_url']?.toString();
-    final logo = store['logo_url']?.toString();
+    final id = _int(store['id']);
+    final image = store['banner_url']?.toString().trim();
+    final logo = store['logo_url']?.toString().trim();
     final address = store['address']?.toString().trim() ?? '';
+    final title = store['title']?.toString().trim();
+    final name = store['name']?.toString().trim() ?? '';
+
+    Widget backgroundFallback() => const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: AlignmentDirectional.topStart,
+              end: AlignmentDirectional.bottomEnd,
+              colors: [Color(0xFF087347), Color(0xFF16A66C)],
+            ),
+          ),
+          child: Align(
+            alignment: AlignmentDirectional.topEnd,
+            child: Padding(
+              padding: EdgeInsets.all(18),
+              child: Icon(
+                Icons.storefront_rounded,
+                color: Color(0x55FFFFFF),
+                size: 64,
+              ),
+            ),
+          ),
+        );
+
     return SizedBox(
       width: width,
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -845,33 +967,54 @@ class _RetailStoreBanner extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               if (image != null && image.isNotEmpty)
-                Image.network(image, fit: BoxFit.cover)
+                Image.network(
+                  image,
+                  key: ValueKey('marketplace-retail-banner-image-$id'),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => backgroundFallback(),
+                )
               else
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF087347), Color(0xFF13A66A)],
-                    ),
-                  ),
-                ),
-              DecoratedBox(
+                backgroundFallback(),
+              const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [Colors.black54, Colors.transparent],
+                    stops: [0, .62, 1],
+                    colors: [
+                      Color(0xCC0B1720),
+                      Color(0x330B1720),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
               ),
               PositionedDirectional(
-                start: 14,
-                end: 14,
-                bottom: 12,
+                start: 16,
+                end: 16,
+                bottom: 14,
                 child: Row(
                   children: [
                     if (logo != null && logo.isNotEmpty) ...[
-                      CircleAvatar(backgroundImage: NetworkImage(logo), radius: 18),
-                      const SizedBox(width: 9),
+                      ClipOval(
+                        child: SizedBox(
+                          width: 38,
+                          height: 38,
+                          child: Image.network(
+                            logo,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const ColoredBox(
+                              color: Colors.white,
+                              child: Icon(
+                                Icons.storefront_rounded,
+                                color: Color(0xFF087347),
+                                size: 21,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
                     ],
                     Expanded(
                       child: Column(
@@ -879,35 +1022,38 @@ class _RetailStoreBanner extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            store['title']?.toString() ??
-                                store['name']?.toString() ??
-                                '',
+                            title != null && title.isNotEmpty ? title : name,
+                            key: ValueKey('marketplace-retail-banner-title-$id'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w900,
-                              fontSize: 16,
+                              fontSize: 17,
+                              height: 1.2,
                             ),
                           ),
-                          if (address.isNotEmpty)
+                          if (address.isNotEmpty) ...[
+                            const SizedBox(height: 3),
                             Text(
                               address,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: Colors.white70,
+                                color: Color(0xFFDCE5E1),
                                 fontSize: 11,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
+                          ],
                         ],
                       ),
                     ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+                        horizontal: 12,
+                        vertical: 8,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -917,7 +1063,7 @@ class _RetailStoreBanner extends StatelessWidget {
                         context.tr('customer.marketplace.shop_now'),
                         style: const TextStyle(
                           color: Color(0xFF087347),
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w900,
                           fontSize: 11,
                         ),
                       ),
@@ -935,107 +1081,244 @@ class _RetailStoreBanner extends StatelessWidget {
 
 class _WholesaleHero extends StatelessWidget {
   const _WholesaleHero({required this.title, this.imageUrl});
+
   final String title;
   final String? imageUrl;
 
   @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.fromLTRB(14, 6, 14, 2),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF5D2A91), Color(0xFF35195E)],
+  Widget build(BuildContext context) {
+    final image = imageUrl?.trim();
+
+    Widget fallback() => const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: AlignmentDirectional.topStart,
+              end: AlignmentDirectional.bottomEnd,
+              colors: [Color(0xFF5D2A91), Color(0xFF35195E)],
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 22,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    context.tr('customer.marketplace.browse_guest'),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                ],
+          child: Align(
+            alignment: AlignmentDirectional.topEnd,
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Icon(
+                Icons.warehouse_rounded,
+                color: Color(0x33FFFFFF),
+                size: 80,
               ),
             ),
-            if (imageUrl != null && imageUrl!.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  imageUrl!,
-                  width: 110,
-                  height: 110,
-                  fit: BoxFit.cover,
+          ),
+        );
+
+    return Container(
+      margin: const EdgeInsetsDirectional.fromSTEB(14, 6, 14, 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x140F172A),
+            blurRadius: 18,
+            offset: Offset(0, 7),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (image != null && image.isNotEmpty)
+            Image.network(
+              image,
+              key: const ValueKey('marketplace-wholesale-hero-image'),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => fallback(),
+            )
+          else
+            fallback(),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: AlignmentDirectional.centerStart,
+                end: AlignmentDirectional.centerEnd,
+                colors: [Color(0xE835195E), Color(0x7A35195E)],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(18, 18, 120, 18),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0x2EFFFFFF),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'FOODEX',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: .8,
+                    ),
+                  ),
                 ),
-              )
-            else
-              const Icon(Icons.warehouse_rounded, color: Colors.white38, size: 72),
-          ],
-        ),
-      );
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  key: const ValueKey('marketplace-wholesale-hero-title'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 21,
+                    height: 1.12,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  context.tr('customer.marketplace.browse_guest'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFE9DFF5),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _WholesaleProductCard extends StatelessWidget {
   const _WholesaleProductCard({required this.product, required this.onTap});
+
   final Map<String, dynamic> product;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final image = product['image_url']?.toString();
-    return Card(
+    final id = _int(product['id']);
+    final image = product['image_url']?.toString().trim();
+    final rawPrice = product['unit_price'] ??
+        product['account_price'] ??
+        product['price'] ??
+        '';
+    final currency = product['currency']?.toString().trim();
+    final sku = product['sku']?.toString().trim() ?? '';
+
+    return Material(
+      key: ValueKey('marketplace-product-card-$id'),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: ColoredBox(
-                color: const Color(0xFFF2F4F7),
-                child: image != null && image.isNotEmpty
-                    ? Image.network(image, fit: BoxFit.cover)
-                    : const Icon(Icons.inventory_2_outlined, size: 48),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE7EAED)),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ColoredBox(
+                  color: const Color(0xFFF1F4F3),
+                  child: image != null && image.isNotEmpty
+                      ? Image.network(
+                          image,
+                          key: ValueKey('marketplace-product-image-$id'),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.inventory_2_outlined,
+                            color: Color(0xFF7A8592),
+                            size: 44,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.inventory_2_outlined,
+                          color: Color(0xFF7A8592),
+                          size: 44,
+                        ),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product['name']?.toString() ?? '',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    '${product['price'] ?? ''} ${product['currency'] ?? 'EGP'}',
-                    style: const TextStyle(
-                      color: Color(0xFF087347),
-                      fontWeight: FontWeight.w900,
+              Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(11, 10, 9, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product['name']?.toString() ?? '',
+                      key: ValueKey('marketplace-product-name-$id'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF17212F),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        height: 1.25,
+                      ),
                     ),
-                  ),
-                ],
+                    if (sku.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        sku,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF89939E),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 7),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '$rawPrice ${currency == null || currency.isEmpty ? 'EGP' : currency}',
+                            key: ValueKey('marketplace-product-price-$id'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF087347),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEAF7F0),
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          child: const Icon(
+                            Icons.shopping_bag_outlined,
+                            color: Color(0xFF087347),
+                            size: 17,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
