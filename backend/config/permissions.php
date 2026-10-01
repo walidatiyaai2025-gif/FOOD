@@ -14,6 +14,7 @@ return [
         'settings.view' => 'View operational platform settings',
         'settings.manage' => 'Manage operational platform settings',
         'mobile_settings.manage' => 'Manage Customer and Driver app release settings',
+        'assistant.use' => 'Use the read-only FOODEX management Assistant within authorized business scope',
         'app_preview.view' => 'Open the real Customer and Driver application preview runtime',
         'app_preview.impersonate_customer' => 'Preview the application as an authorized customer identity',
         'app_preview.impersonate_driver' => 'Preview the application as an authorized driver identity',
@@ -80,8 +81,9 @@ return [
             'lookups.view', 'lookups.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage', 'inventory.replenishment_mapping.manage',
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
+            'assistant.use',
             'finance.view', 'finance.manage', 'reports.view', 'reports.export',
-            'settings.view', 'settings.manage',
+            'settings.view', 'settings.manage', 'assistant.use',
             'app_preview.view', 'app_preview.impersonate_customer', 'app_preview.impersonate_driver', 'app_preview.publish',
             'drivers.tracking.view', 'drivers.tracking.history', 'drivers.tracking.manage',
             'drivers.b2b.view', 'drivers.b2b.manage', 'notifications.view', 'notifications.manage',
@@ -95,7 +97,7 @@ return [
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
             'customers.view', 'customers.create', 'customers.edit', 'customers.delete', 'customers.manage',
             'promotions.view', 'promotions.manage', 'finance.view', 'finance.manage', 'reports.view', 'reports.export',
-            'settings.view', 'settings.manage',
+            'settings.view', 'settings.manage', 'assistant.use',
             'app_preview.view', 'app_preview.impersonate_customer', 'app_preview.impersonate_driver', 'app_preview.publish',
             'drivers.tracking.view', 'drivers.tracking.history', 'drivers.tracking.manage',
             'drivers.b2c.view', 'drivers.b2c.manage', 'notifications.view', 'notifications.manage',
@@ -104,16 +106,18 @@ return [
         // Global operational roles are wholesale-only. Retail counterparts are store-only.
         'OPERATIONS' => [
             'stores.view', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
+            'assistant.use',
             'drivers.tracking.view', 'drivers.b2b.view', 'drivers.b2b.manage', 'reports.view',
         ],
         'INVENTORY' => [
             'stores.view', 'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage', 'lookups.view',
+            'assistant.use',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
         ],
-        'FINANCE' => ['stores.view', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
+        'FINANCE' => ['assistant.use', 'stores.view', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
         'CUSTOMER_SUPPORT' => [
-            'stores.view', 'b2b.accounts.view', 'b2b.accounts.manage',
-            'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
+            'assistant.use', 'stores.view', 'b2b.accounts.view', 'b2b.accounts.manage',
+            'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
         ],
         'RETAIL_OPERATIONS' => [
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
@@ -121,9 +125,10 @@ return [
         ],
         'RETAIL_INVENTORY' => [
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage', 'lookups.view',
+            'assistant.use',
             'inventory.view', 'inventory.adjust', 'inventory.manage', 'inventory.replenishment_mapping.manage',
         ],
-        'RETAIL_FINANCE' => ['finance.view', 'finance.manage', 'reports.view', 'reports.export'],
+        'RETAIL_FINANCE' => ['assistant.use', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
         'RETAIL_CUSTOMER_SUPPORT' => [
             'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
         ],
