@@ -54,7 +54,7 @@ class PlatformCustomerOperationalNotificationTest extends TestCase
             'store_id' => $storeA,
             'status' => 'published',
         ]);
-        $this->assertDatabaseHas('notifications', [
+        $this->assertDatabaseMissing('notifications', [
             'user_id' => $superAdmin->id,
             'app' => 'dashboard',
             'type' => 'customer.registered',
