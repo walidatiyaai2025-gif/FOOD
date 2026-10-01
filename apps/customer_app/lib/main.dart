@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'app.dart';
+import 'core/auth/customer_session.dart';
+import 'core/auth/customer_session_store.dart';
 import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/push/firebase_push_service.dart';
 
@@ -27,6 +29,16 @@ Future<void> main() async {
     return previousPlatformHandler?.call(error, stack) ?? false;
   };
 
+  final sessionStore = SecureCustomerSessionStore();
+  CustomerSession session = const CustomerSession.guest();
+  try {
+    session = await restoreCustomerSession(sessionStore);
+  } catch (error) {
+    diagnostics.record('session_restore_error', {
+      'error_type': error.runtimeType.toString(),
+    });
+  }
+
   CustomerFirebasePushService? pushService;
   try {
     pushService = await CustomerFirebasePushService.bootstrap();
@@ -37,5 +49,11 @@ Future<void> main() async {
     });
   }
 
-  runApp(FoodexCustomerApp(pushService: pushService));
+  runApp(
+    FoodexCustomerApp(
+      session: session,
+      sessionStore: sessionStore,
+      pushService: pushService,
+    ),
+  );
 }
