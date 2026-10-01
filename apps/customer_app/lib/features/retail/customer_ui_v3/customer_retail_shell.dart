@@ -223,7 +223,7 @@ class _RetailNavButton extends StatelessWidget {
                 duration: duration,
                 curve: CustomerUiMotion.emphasisCurve,
                 width: active ? 48 : 40,
-                height: active ? 42 : 36,
+                height: active ? 40 : 36,
                 decoration: BoxDecoration(
                   color: active
                       ? CustomerUiColors.limeSoft
