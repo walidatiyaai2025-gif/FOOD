@@ -253,7 +253,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
                 final columns = constraints.maxWidth >= 720 ? 3 : 2;
                 final textScale = MediaQuery.textScalerOf(context).scale(1);
                 final scaledDelta =
-                    (textScale - 1.0).clamp(0.0, 1.0);
+                    (textScale - 1.0).clamp(0.0, 1.0).toDouble();
                 final cardExtent = 304.0 + (scaledDelta * 210.0);
                 return GridView.builder(
                   shrinkWrap: true,
@@ -501,7 +501,7 @@ class _RetailHomeSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0);
+    final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
     final cardExtent = 304.0 + (scaledDelta * 210.0);
 
     return ListView(
