@@ -194,6 +194,74 @@ class WholesaleStorefrontBuilderTest extends TestCase
             ]);
     }
 
+    public function test_wholesale_storefront_can_publish_platform_retail_store_placement(): void
+    {
+        $platformStoreId = app(WholesalePrincipal::class)->storeId();
+        $retailTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $retailStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $retailTypeId,
+            'code' => 'PLATFORM-PLACEMENT-RETAIL',
+            'name' => 'Retail Placement Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $admin = $this->roleUser('B2B_ADMIN', 'wholesale-placement@example.test');
+
+        $this->actingAs($admin)
+            ->get(route('admin.b2b.module', ['module' => 'storefront']))
+            ->assertOk()
+            ->assertSee('Retail Store · Retail Placement Store');
+
+        $this->actingAs($admin)->post(route('admin.b2b.storefront.banners.store'), [
+            'store_id' => $platformStoreId,
+            'title' => 'Retail Merchant Placement',
+            'banner_image' => UploadedFile::fake()->image('retail-placement.webp', 1200, 420),
+            'target_ref' => 'retail_store:'.$retailStoreId,
+            'sort_order' => 4,
+            'is_active' => 1,
+        ])->assertSessionHasNoErrors();
+
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $platformStoreId)
+            ->where('channel', 'b2b')
+            ->where('status', 'draft')
+            ->latest('id')
+            ->firstOrFail();
+        $placement = collect($draft->payload['banners'])
+            ->firstWhere('title', 'Retail Merchant Placement');
+
+        $this->assertNotNull($placement);
+        $this->assertSame('retail_store', $placement['target_type']);
+        $this->assertSame($retailStoreId, (int) $placement['target_id']);
+        $this->assertSame('/retail/'.$retailStoreId.'/home', $placement['target_url']);
+
+        $this->actingAs($admin)->post(route('admin.b2b.storefront.publish'), [
+            'store_id' => $platformStoreId,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('banners', [
+            'store_id' => $platformStoreId,
+            'title' => 'Retail Merchant Placement',
+            'target_type' => 'retail_store',
+            'target_id' => $retailStoreId,
+            'target_url' => '/retail/'.$retailStoreId.'/home',
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/v1/platform/storefront')
+            ->assertOk()
+            ->assertJsonPath('retail_banners.0.store_id', $retailStoreId)
+            ->assertJsonPath('retail_banners.0.placement_scope', 'platform_retail_store')
+            ->assertJsonPath('retail_banners.0.target_type', 'retail_store')
+            ->assertJsonPath('retail_banners.0.target_id', $retailStoreId)
+            ->assertJsonMissing(['title' => 'Retail Merchant Placement', 'target_type' => null]);
+
+        $this->getJson('/api/v1/stores/'.$retailStoreId.'/storefront')
+            ->assertOk()
+            ->assertJsonCount(0, 'banners');
+    }
+
     public function test_wholesale_discard_restores_draft_from_published_without_changing_live(): void
     {
         $storeId = app(WholesalePrincipal::class)->storeId();
