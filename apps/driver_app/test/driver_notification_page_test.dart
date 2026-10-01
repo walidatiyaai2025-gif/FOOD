@@ -47,6 +47,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byKey(const Key('driver-shell')), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
     expect(find.byKey(const Key('driver-notifications-list')), findsOneWidget);
     await tester.tap(find.byKey(const Key('driver-notification-7')));
     await tester.pumpAndSettle();
