@@ -251,6 +251,10 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
             LayoutBuilder(
               builder: (context, constraints) {
                 final columns = constraints.maxWidth >= 720 ? 3 : 2;
+                final textScale = MediaQuery.textScalerOf(context).scale(1);
+                final scaledDelta =
+                    (textScale - 1.0).clamp(0.0, 1.0);
+                final cardExtent = 304.0 + (scaledDelta * 210.0);
                 return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -259,7 +263,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
                     crossAxisCount: columns,
                     crossAxisSpacing: CustomerUiSpacing.sm,
                     mainAxisSpacing: CustomerUiSpacing.sm,
-                    mainAxisExtent: 304,
+                    mainAxisExtent: cardExtent,
                   ),
                   itemBuilder: (context, index) {
                     final product = data.products[index];
@@ -495,7 +499,12 @@ class _RetailHomeSkeleton extends StatelessWidget {
   const _RetailHomeSkeleton();
 
   @override
-  Widget build(BuildContext context) => ListView(
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0);
+    final cardExtent = 304.0 + (scaledDelta * 210.0);
+
+    return ListView(
         padding: const EdgeInsets.all(CustomerUiSpacing.page),
         children: [
           const CustomerSkeletonBox(
@@ -526,12 +535,13 @@ class _RetailHomeSkeleton extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: CustomerUiSpacing.sm,
               mainAxisSpacing: CustomerUiSpacing.sm,
-              mainAxisExtent: 304,
+              mainAxisExtent: cardExtent,
             ),
             itemBuilder: (_, __) => const CustomerProductCardSkeleton(),
           ),
         ],
       );
+  }
 }
 
 class _RetailHomeV3Data {
