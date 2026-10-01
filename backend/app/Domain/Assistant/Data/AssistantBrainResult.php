@@ -18,6 +18,8 @@ final readonly class AssistantBrainResult
         public array $actions = [],
         public array $suggestedPrompts = [],
         public array $state = [],
-    ) {}
+    )
+    {}
 }
+
 

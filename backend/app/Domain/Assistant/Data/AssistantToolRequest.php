@@ -15,6 +15,8 @@ final readonly class AssistantToolRequest
         public ?int $storeId = null,
         public array $entities = [],
         public array $context = [],
-    ) {}
+    )
+    {}
 }
+
 

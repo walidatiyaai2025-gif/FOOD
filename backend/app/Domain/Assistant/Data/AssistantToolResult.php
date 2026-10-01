@@ -15,6 +15,8 @@ final readonly class AssistantToolResult
         public array $cards = [],
         public array $actions = [],
         public array $references = [],
-    ) {}
+    )
+    {}
 }
+
 
