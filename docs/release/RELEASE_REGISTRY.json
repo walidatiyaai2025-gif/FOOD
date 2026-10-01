@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.41",
+  "current_version": "1.0.42",
   "releases": [
     {
       "version": "1.0.40",
@@ -26,6 +26,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "a97936f888f8f959f742f89f7e0549356984bca8f87c291e4f11bf6710d754e0",
       "note": "First post-1.0.40 reliability release governed by the immutable main release registry."
+    },
+    {
+      "version": "1.0.42",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.42.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "d7cb34aaab10d7d5322fb074e078f2ca93f10e1c62074e30660dfd03c8848a70",
+      "note": "Post-1.0.41 integrated mobile production UX, self-contained preview runtime and Assistant V1 distribution. Assistant remains disabled/read-only by default."
     }
   ]
 }
