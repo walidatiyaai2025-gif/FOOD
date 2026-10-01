@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.40 - 2026-10-01
+
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.40 / mobile build 1.0.40+40.
+- Fix the Dashboard Coupons page HTTP 500 when optional coupon start/end timestamps are null.
+- Safely redirect malformed/non-numeric Customer 360 placeholder references to the Customer 360 index while preserving the valid numeric scoped route.
+- Add regression coverage for both System Inspector production incidents.
+- Preserve production Driver minimum-version and fresh-location enforcement settings unchanged.
+
+
 ## 1.0.39 - 2026-09-30
 
 - Synchronize Dashboard, Customer and Driver release identities at 1.0.39 / mobile build 1.0.39+39 after the completed Driver tracking rollout chain.
