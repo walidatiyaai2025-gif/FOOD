@@ -1,0 +1,408 @@
+import 'package:flutter/material.dart';
+
+import '../../core/api/b2c_account_api.dart';
+import '../../core/api/b2c_catalog_api.dart';
+import '../../core/api/customer_action_api.dart';
+import '../../core/auth/customer_session.dart';
+import '../../core/location/customer_location_service.dart';
+import '../../core/location/customer_map_pin_selector.dart';
+import '../../core/routing/customer_commerce_context.dart';
+import '../../core/routing/customer_routes.dart';
+import '../../shared/customer_action_widgets.dart';
+import '../customer_account/customer_account_data.dart';
+import '../customer_account/customer_account_screen.dart';
+import '../customer_account/customer_address_book_screen.dart';
+import '../customer_account/customer_favorites_screen.dart';
+import '../customer_account/customer_notification_center_screen.dart';
+import '../customer_orders/customer_order_models.dart';
+import '../customer_orders/customer_order_screens.dart';
+import '../customer_orders/customer_orders_api.dart';
+import 'auth/retail_checkout_auth_screen.dart';
+import 'catalog/retail_catalog_screens.dart';
+import 'commerce/retail_commerce_api.dart';
+import 'commerce/retail_commerce_screens.dart';
+
+class RetailCustomerJourneyScreen extends StatelessWidget {
+  const RetailCustomerJourneyScreen({
+    required this.definition,
+    required this.location,
+    required this.session,
+    required this.catalogApi,
+    required this.accountApi,
+    required this.actionApi,
+    required this.commerceApi,
+    required this.commerceForToken,
+    required this.onAuthenticated,
+    required this.onPlatformAuthenticated,
+    required this.locationService,
+    required this.mapPinPicker,
+    this.ordersApi,
+    this.favoritesApi,
+    super.key,
+  });
+
+  final CustomerRouteDefinition definition;
+  final String location;
+  final CustomerSession session;
+  final B2cCatalogApi catalogApi;
+  final B2cAccountApi accountApi;
+  final CustomerActionApi actionApi;
+  final RetailCommerceApi commerceApi;
+  final RetailCommerceTokenFactory commerceForToken;
+  final CustomerOrdersApi? ordersApi;
+  final B2cRetailFavoritesApi? favoritesApi;
+  final CustomerAuthenticated onAuthenticated;
+  final ValueChanged<String> onPlatformAuthenticated;
+  final CustomerLocationService locationService;
+  final CustomerMapPinPicker mapPinPicker;
+
+  CustomerCommerceContext? get _context {
+    final parsed = CustomerCommerceContext.tryParseLocation(location);
+    if (parsed == null || !parsed.isRetail) return null;
+    return parsed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final commerceContext = _context;
+    if (commerceContext == null) {
+      return const _RetailContextMissing();
+    }
+
+    final storeId = commerceContext.storeId;
+    final uri = Uri.parse(location);
+    final navigation = RetailCatalogNavigation(
+      openProducts: (
+        context, {
+        required storeId,
+        query,
+        categoryId,
+      }) {
+        Navigator.of(context).pushNamed(
+          Uri(
+            path: CustomerRoutePaths.products,
+            queryParameters: <String, String>{
+              ...commerceContext.toQueryParameters(),
+              if (query != null && query.trim().isNotEmpty)
+                'q': query.trim(),
+              if (categoryId != null) 'category_id': '$categoryId',
+            },
+          ).toString(),
+        );
+      },
+      openProduct: (
+        context, {
+        required storeId,
+        required productId,
+      }) {
+        Navigator.of(context).pushNamed(
+          CustomerRouteLocations.retailProduct(commerceContext, productId),
+        );
+      },
+      openCart: (context, {required storeId}) {
+        Navigator.of(context).pushNamed(
+          CustomerRouteLocations.retailCart(commerceContext),
+        );
+      },
+      openNotifications: (context, {required storeId}) {
+        Navigator.of(context).pushNamed(
+          CustomerRouteLocations.retailNotifications(commerceContext),
+        );
+      },
+    );
+
+    Future<void> addToCart({
+      required int storeId,
+      required int productId,
+      required double quantity,
+    }) async {
+      await actionApi.addCartItem(
+        storeId: storeId,
+        productId: productId,
+        quantity: quantity,
+      );
+    }
+
+    switch (definition.pattern) {
+      case CustomerRoutePaths.home:
+      case CustomerRoutePaths.retailHome:
+        return RetailCatalogHomeScreen(
+          storeId: storeId,
+          catalogApi: catalogApi,
+          navigation: navigation,
+          onAddToCart: addToCart,
+        );
+
+      case CustomerRoutePaths.products:
+      case CustomerRoutePaths.categories:
+      case CustomerRoutePaths.offers:
+        return RetailCatalogProductsScreen(
+          storeId: storeId,
+          catalogApi: catalogApi,
+          navigation: navigation,
+          initialQuery: uri.queryParameters['q'],
+          categoryId: int.tryParse(uri.queryParameters['category_id'] ?? ''),
+          onAddToCart: addToCart,
+        );
+
+      case CustomerRoutePaths.productDetails:
+      case CustomerRoutePaths.retailProductDetails:
+        final productId = int.tryParse(uri.pathSegments.last);
+        if (productId == null || productId <= 0) {
+          return const _RetailContextMissing();
+        }
+        return RetailCatalogProductScreen(
+          storeId: storeId,
+          productId: productId,
+          catalogApi: catalogApi,
+          navigation: navigation,
+          onAddToCart: addToCart,
+        );
+
+      case CustomerRoutePaths.cart:
+        return RetailCartScreen(
+          storeId: storeId,
+          api: commerceApi,
+          isAuthenticated: session.isAuthenticated,
+          onCheckout: (_) => Navigator.of(context).pushNamed(
+            CustomerRouteLocations.retailCheckout(commerceContext),
+          ),
+          onAuthenticate: (intent, _) async {
+            await Navigator.of(context).pushNamed(
+              CustomerRouteLocations.authHandoff(
+                context: commerceContext,
+                next: CustomerRouteLocations.retailCheckout(commerceContext),
+                entry: intent == RetailAuthIntent.register
+                    ? CustomerAuthEntry.register
+                    : CustomerAuthEntry.login,
+              ),
+            );
+            return null;
+          },
+        );
+
+      case CustomerRoutePaths.checkoutAuth:
+        final next = safeCustomerContextReturnLocation(
+              uri.queryParameters['next'],
+              context: commerceContext,
+            ) ??
+            CustomerRouteLocations.retailCheckout(commerceContext);
+        return RetailCheckoutAuthScreen(
+          storeId: storeId,
+          nextRoute: next,
+          actionApi: actionApi,
+          onAuthenticated: onAuthenticated,
+          onPlatformAuthenticated: onPlatformAuthenticated,
+          commerceForToken: commerceForToken,
+          registerInitially: uri.queryParameters['entry'] == 'register',
+        );
+
+      case CustomerRoutePaths.checkoutAddressPayment:
+        return RetailCheckoutScreen(
+          storeId: storeId,
+          api: commerceApi,
+          onAddAddress: (_) async {
+            await Navigator.of(context).pushNamed(
+              CustomerRouteLocations.retailAddresses(commerceContext),
+            );
+          },
+          onEditAddress: (_, __) async {
+            await Navigator.of(context).pushNamed(
+              CustomerRouteLocations.retailAddresses(commerceContext),
+            );
+          },
+          onOrderCreated: (orderId, _) {
+            Navigator.of(context).pushReplacementNamed(
+              _orderTrackingLocation(orderId, commerceContext),
+            );
+          },
+        );
+
+      case CustomerRoutePaths.profile:
+      case CustomerRoutePaths.settings:
+        final retailFavorites = favoritesApi;
+        if (retailFavorites == null) return const _RetailContextMissing();
+        return CustomerAccountScreen(
+          api: accountApi,
+          favoritesApi: retailFavorites,
+          retailStoreId: storeId,
+          onOpenAddresses: () => Navigator.of(context).pushNamed(
+            CustomerRouteLocations.retailAddresses(commerceContext),
+          ),
+          onOpenFavorites: () => Navigator.of(context).pushNamed(
+            CustomerRouteLocations.retailFavorites(commerceContext),
+          ),
+          onOpenNotifications: () => Navigator.of(context).pushNamed(
+            CustomerRouteLocations.retailNotifications(commerceContext),
+          ),
+          onOpenOrders: () => Navigator.of(context).pushNamed(
+            CustomerRouteLocations.retailOrders(commerceContext),
+          ),
+        );
+
+      case CustomerRoutePaths.addresses:
+        return CustomerAddressBookScreen(
+          api: accountApi,
+          locationService: locationService,
+          mapPinPicker: mapPinPicker,
+        );
+
+      case CustomerRoutePaths.favorites:
+        final retailFavorites = favoritesApi;
+        if (retailFavorites == null) return const _RetailContextMissing();
+        return CustomerFavoritesScreen(
+          api: accountApi,
+          favoritesApi: retailFavorites,
+          retailStoreId: storeId,
+          onOpenProduct: (productId) => Navigator.of(context).pushNamed(
+            CustomerRouteLocations.retailProduct(
+              commerceContext,
+              productId,
+            ),
+          ),
+        );
+
+      case CustomerRoutePaths.notifications:
+        return CustomerNotificationCenterScreen(
+          api: accountApi,
+          onOpenOrder: (target) =>
+              _openNotificationOrder(context, target, commerceContext),
+        );
+
+      case CustomerRoutePaths.orders:
+        final api = ordersApi;
+        if (api == null) return const _RetailContextMissing();
+        final scoped = _ScopedCustomerOrdersApi(
+          api,
+          CustomerOrderContext(storeId: storeId, channel: 'b2c'),
+        );
+        return CustomerOrdersScreen(
+          api: scoped,
+          onOpenOrder: (order) => Navigator.of(context).pushNamed(
+            _orderTrackingLocation(
+              order.id,
+              CustomerCommerceContext(
+                channel: CustomerCommerceChannel.retail,
+                storeId: order.storeId,
+              ),
+            ),
+          ),
+        );
+
+      case CustomerRoutePaths.orderTracking:
+        final api = ordersApi;
+        final orderId = _orderId(uri);
+        if (api == null || orderId == null) {
+          return const _RetailContextMissing();
+        }
+        return CustomerOrderTrackingScreen(
+          api: api,
+          orderId: orderId,
+          orderContext: CustomerOrderContext(
+            storeId: storeId,
+            channel: 'b2c',
+          ),
+        );
+
+      default:
+        return const _RetailContextMissing();
+    }
+  }
+
+  void _openNotificationOrder(
+    BuildContext context,
+    CustomerNotificationTarget target,
+    CustomerCommerceContext currentContext,
+  ) {
+    if (target.channel.toLowerCase() == 'b2b') {
+      final storeId = target.storeId;
+      if (storeId == null || storeId <= 0) return;
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: '/b2b/orders/' + target.orderId.toString(),
+          queryParameters: <String, String>{
+            'channel': 'wholesale',
+            'store_id': storeId.toString(),
+          },
+        ).toString(),
+      );
+      return;
+    }
+
+    final storeId = target.storeId ?? currentContext.storeId;
+    Navigator.of(context).pushNamed(
+      _orderTrackingLocation(
+        target.orderId,
+        CustomerCommerceContext(
+          channel: CustomerCommerceChannel.retail,
+          storeId: storeId,
+        ),
+      ),
+    );
+  }
+
+  static int? _orderId(Uri uri) {
+    final parts = uri.pathSegments;
+    final orders = parts.indexOf('orders');
+    if (orders < 0 || parts.length <= orders + 1) return null;
+    final id = int.tryParse(parts[orders + 1]);
+    return id != null && id > 0 ? id : null;
+  }
+
+  static String _orderTrackingLocation(
+    int orderId,
+    CustomerCommerceContext context,
+  ) =>
+      Uri(
+        path: '/orders/' + orderId.toString() + '/track',
+        queryParameters: context.toQueryParameters(),
+      ).toString();
+}
+
+class _ScopedCustomerOrdersApi implements CustomerOrdersApi {
+  const _ScopedCustomerOrdersApi(this.delegate, this.context);
+
+  final CustomerOrdersApi delegate;
+  final CustomerOrderContext context;
+
+  @override
+  Future<CustomerOrderPage> orders({
+    int page = 1,
+    int perPage = 20,
+    String? status,
+    CustomerOrderContext? context,
+  }) =>
+      delegate.orders(
+        page: page,
+        perPage: perPage,
+        status: status,
+        context: context ?? this.context,
+      );
+
+  @override
+  Future<CustomerOrderDetails> order({
+    required int orderId,
+    CustomerOrderContext? context,
+  }) =>
+      delegate.order(
+        orderId: orderId,
+        context: context ?? this.context,
+      );
+}
+
+class _RetailContextMissing extends StatelessWidget {
+  const _RetailContextMissing();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        key: const ValueKey('retail-context-missing'),
+        body: Center(
+          child: FilledButton(
+            key: const ValueKey('retail-context-open-store-selector'),
+            onPressed: () => Navigator.of(context)
+                .pushReplacementNamed(CustomerRoutePaths.storeSelector),
+            child: const Text('Select store'),
+          ),
+        ),
+      );
+}
