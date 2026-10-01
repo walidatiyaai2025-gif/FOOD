@@ -81,6 +81,122 @@ final class DriverLiveTrackingDashboardController extends Controller
         ]);
     }
 
+    public function evidence(Request $request, int $assignment): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $model = DriverAssignment::query()->findOrFail($assignment);
+        $channel = strtolower((string) $model->assignment_type);
+
+        $this->scope->assertStore(
+            $user,
+            (int) $model->store_id,
+            'drivers.tracking.view',
+            $channel,
+        );
+
+        $order = DB::table('orders')
+            ->where('id', $model->order_id)
+            ->where('store_id', $model->store_id)
+            ->where('channel', $channel)
+            ->first(['id', 'order_number', 'status']);
+        abort_unless($order !== null, 404);
+
+        $events = DB::table('delivery_proofs')
+            ->leftJoin('users', 'users.id', '=', 'delivery_proofs.user_id')
+            ->where('delivery_proofs.driver_assignment_id', $model->getKey())
+            ->where(function ($query) use ($model): void {
+                $query
+                    ->whereNull('delivery_proofs.order_id')
+                    ->orWhere('delivery_proofs.order_id', $model->order_id);
+            })
+            ->orderBy('delivery_proofs.id')
+            ->get([
+                'delivery_proofs.id',
+                'delivery_proofs.proof_type',
+                'delivery_proofs.from_status',
+                'delivery_proofs.to_status',
+                'delivery_proofs.reason_code',
+                'delivery_proofs.note',
+                'delivery_proofs.file_path',
+                'delivery_proofs.captured_at',
+                'users.name as actor_name',
+            ])
+            ->map(static fn (object $event): array => [
+                'id' => (int) $event->id,
+                'proof_type' => (string) $event->proof_type,
+                'from_status' => $event->from_status === null ? null : (string) $event->from_status,
+                'to_status' => $event->to_status === null ? null : (string) $event->to_status,
+                'reason_code' => $event->reason_code === null ? null : (string) $event->reason_code,
+                'note' => $event->note === null ? null : (string) $event->note,
+                'actor_name' => $event->actor_name === null ? null : (string) $event->actor_name,
+                'captured_at' => $event->captured_at === null ? null : (string) $event->captured_at,
+                'has_image' => is_string($event->file_path) && trim($event->file_path) !== '',
+                'proof_url' => is_string($event->file_path) && trim($event->file_path) !== ''
+                    ? route('admin.driver-live-tracking.proofs.show', ['proof' => (int) $event->id])
+                    : null,
+            ])
+            ->values();
+
+        return response()->json([
+            'data' => [
+                'assignment' => [
+                    'id' => (int) $model->getKey(),
+                    'driver_id' => (int) $model->driver_id,
+                    'order_id' => (int) $model->order_id,
+                    'store_id' => (int) $model->store_id,
+                    'channel' => $channel,
+                    'status' => (string) $model->status,
+                    'assigned_at' => $model->assigned_at,
+                    'completed_at' => $model->completed_at,
+                ],
+                'order' => [
+                    'id' => (int) $order->id,
+                    'number' => (string) $order->order_number,
+                    'status' => (string) $order->status,
+                ],
+                'timeline' => $events,
+            ],
+        ]);
+    }
+
+    public function proof(Request $request, int $proof): StreamedResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $evidence = DeliveryProof::query()->findOrFail($proof);
+        $assignment = DriverAssignment::query()->findOrFail($evidence->driver_assignment_id);
+        $channel = strtolower((string) $assignment->assignment_type);
+
+        $this->scope->assertStore(
+            $user,
+            (int) $assignment->store_id,
+            'drivers.tracking.view',
+            $channel,
+        );
+
+        if ($evidence->order_id !== null) {
+            abort_unless((int) $evidence->order_id === (int) $assignment->order_id, 404);
+        }
+
+        $path = trim((string) $evidence->file_path);
+        abort_if($path === '', 404);
+
+        $disk = Storage::disk('public');
+        abort_unless($disk->exists($path), 404);
+
+        return $disk->response(
+            $path,
+            basename($path),
+            [
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+            ],
+        );
+    }
+
     private function canView(User $user): bool
     {
         if ($user->hasPermission('drivers.tracking.view')) {
