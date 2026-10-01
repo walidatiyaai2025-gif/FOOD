@@ -7,6 +7,7 @@ const {
   STATE_MARKER,
   branchFromText,
   classify,
+  executionActivityMillis,
   handoffComment,
   linkedIssueNumbers,
   parseWorkerState,
@@ -70,6 +71,57 @@ test('unclaimed managed issue is ready', () => {
       mergeable: null,
     }),
     { status: 'ready', reason: 'unclaimed' },
+  );
+});
+
+test('coordination chatter cannot renew a lease without execution evidence', () => {
+  const oldCommit = Date.parse('2026-10-01T05:00:00Z');
+  const recentCoordinatorComment = Date.parse('2026-10-01T05:59:30Z');
+
+  // The recent comment is intentionally not an input to execution activity.
+  assert.equal(
+    executionActivityMillis({
+      commitActivity: oldCommit,
+      stateHeartbeat: 0,
+    }),
+    oldCommit,
+  );
+  assert.ok(recentCoordinatorComment > oldCommit);
+
+  assert.deepEqual(
+    classify({
+      nowMs: NOW,
+      managed: true,
+      workerState: null,
+      hasOpenPr: true,
+      hasBranch: true,
+      latestActivityMs: oldCommit,
+      ciRunning: false,
+      ciConclusion: null,
+      mergeable: true,
+    }),
+    { status: 'handoff-ready', reason: 'stale-lease' },
+  );
+});
+
+test('fresh explicit machine heartbeat keeps lease active', () => {
+  const activity = executionActivityMillis({
+    commitActivity: Date.parse('2026-10-01T05:00:00Z'),
+    stateHeartbeat: Date.parse('2026-10-01T05:59:00Z'),
+  });
+  assert.deepEqual(
+    classify({
+      nowMs: NOW,
+      managed: true,
+      workerState: { state: 'WORKING', blocker: 'none' },
+      hasOpenPr: true,
+      hasBranch: true,
+      latestActivityMs: activity,
+      ciRunning: false,
+      ciConclusion: null,
+      mergeable: true,
+    }),
+    { status: 'active', reason: 'fresh-lease' },
   );
 });
 
