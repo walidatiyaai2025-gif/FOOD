@@ -42,10 +42,10 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(tester.takeException(), isNull);
-          expect(find.byKey(const ValueKey('b2c-home-search')), findsOneWidget);
+          expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
 
           final direction = Directionality.of(
-            tester.element(find.byKey(const ValueKey('b2c-home-search'))),
+            tester.element(find.byKey(const ValueKey('retail-catalog-search'))),
           );
           expect(
             direction,
@@ -91,7 +91,7 @@ void main() {
 
       await tester.pumpWidget(guestApp);
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('b2c-home-search')), findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       final authenticatedApp = _previewApp(
@@ -104,7 +104,7 @@ void main() {
 
       await tester.pumpWidget(authenticatedApp);
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('b2c-home-search')), findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
