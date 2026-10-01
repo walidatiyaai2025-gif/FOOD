@@ -144,9 +144,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('retail-product-plus')));
+    final plus = find.byKey(const ValueKey('retail-product-plus'));
+    await tester.ensureVisible(plus);
+    await tester.tap(plus);
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('retail-product-add-cart')));
+    final add = find.byKey(const ValueKey('retail-product-add-cart'));
+    await tester.ensureVisible(add);
+    await tester.tap(add);
     await tester.pumpAndSettle();
 
     expect(capturedStoreId, 7);
