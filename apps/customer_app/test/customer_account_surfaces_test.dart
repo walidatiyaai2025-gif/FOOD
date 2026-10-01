@@ -224,7 +224,18 @@ void main() {
 
       expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
       expect(find.byType(CustomerAccountAvatar), findsOneWidget);
-      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(4));
+      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(3));
+
+      await tester.drag(
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('customer-account-orders-section')),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     },
   );
