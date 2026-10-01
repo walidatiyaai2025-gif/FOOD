@@ -537,25 +537,13 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
 
     var noteValue = '';
     String? proofImagePath;
-    String? failureReason;
-    var failureMode = false;
     final picker = ImagePicker();
-    const failureReasons = [
-      'customer_no_answer',
-      'wrong_address',
-      'customer_refused',
-      'customer_absent',
-      'payment_issue',
-      'order_issue',
-      'other',
-    ];
 
     final result = await showModalBottomSheet<
         ({
           String status,
           String note,
           String? proofImagePath,
-          String? failureReason,
         })>(
       context: context,
       showDragHandle: true,
@@ -573,7 +561,7 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                 20,
                 4,
                 20,
-                20 + MediaQuery.viewInsetsOf(sheetContext).bottom,
+                20 + MediaQuery.of(sheetContext).viewInsets.bottom,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -598,29 +586,6 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                         ),
                   ),
                   const SizedBox(height: 16),
-                  if (failureMode) ...[
-                    DropdownButtonFormField<String>(
-                      key: const Key('driver-decision-failure-reason'),
-                      initialValue: failureReason,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: context.tr('driver.failure.reason'),
-                      ),
-                      items: failureReasons
-                          .map(
-                            (reason) => DropdownMenuItem(
-                              value: reason,
-                              child: Text(
-                                context.tr('driver.failure.reason.$reason'),
-                              ),
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) =>
-                          setSheetState(() => failureReason = value),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
                   TextField(
                     key: Key(
                       'driver-decision-note-${assignment.id}-$primaryStatus',
@@ -629,12 +594,10 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                     maxLength: 1000,
                     maxLines: 3,
                     decoration: InputDecoration(
-                      labelText: failureMode
-                          ? context.tr('driver.failure.note_optional')
-                          : context.tr('driver.action.note_optional'),
+                      labelText: context.tr('driver.action.note_optional'),
                     ),
                   ),
-                  if (requiresProofChoice && !failureMode) ...[
+                  if (requiresProofChoice) ...[
                     const SizedBox(height: 4),
                     Text(
                       context.tr('driver.action.attach_proof'),
@@ -713,95 +676,60 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                       ),
                   ],
                   const SizedBox(height: 14),
-                  if (!failureMode)
-                    Row(
-                      children: [
-                        if (allowsFailure) ...[
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              key: Key(
-                                'driver-decision-failed-${assignment.id}',
-                              ),
-                              onPressed: () =>
-                                  setSheetState(() => failureMode = true),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: FoodexBrand.red,
-                                side: const BorderSide(color: FoodexBrand.red),
-                              ),
-                              icon: const Icon(Icons.report_gmailerrorred_rounded),
-                              label: Text(
-                                context.tr('driver.action.delivery_failed'),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                        ],
+                  Row(
+                    children: [
+                      if (allowsFailure) ...[
                         Expanded(
-                          child: FilledButton(
+                          child: OutlinedButton.icon(
                             key: Key(
-                              'driver-decision-confirm-$primaryStatus',
+                              'driver-decision-failed-${assignment.id}',
                             ),
                             onPressed: () {
                               Navigator.of(sheetContext).pop((
-                                status: primaryStatus,
+                                status: 'failed',
                                 note: noteValue.trim(),
-                                proofImagePath: proofImagePath,
-                                failureReason: null,
+                                proofImagePath: null,
                               ));
                             },
-                            child: Text(
-                              primaryStatus == 'out_for_delivery'
-                                  ? context.tr(
-                                      'driver.action.confirm_start_delivery',
-                                    )
-                                  : context.tr(
-                                      'driver.action.confirm_delivered',
-                                    ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: FoodexBrand.red,
+                              side: const BorderSide(color: FoodexBrand.red),
                             ),
-                          ),
-                        ),
-                      ],
-                    )
-                  else
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            key: const Key('driver-decision-failure-back'),
-                            onPressed: () => setSheetState(() {
-                              failureMode = false;
-                              failureReason = null;
-                            }),
-                            child: Text(context.tr('driver.dismiss')),
+                            icon: const Icon(
+                              Icons.report_gmailerrorred_rounded,
+                            ),
+                            label: Text(
+                              context.tr('driver.action.delivery_failed'),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Expanded(
-                          child: FilledButton(
-                            key: const Key(
-                              'driver-decision-confirm-failed',
-                            ),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: FoodexBrand.red,
-                            ),
-                            onPressed: () {
-                              final note = noteValue.trim();
-                              if (failureReason == null) return;
-                              if (failureReason == 'other' && note.isEmpty) {
-                                return;
-                              }
-                              Navigator.of(sheetContext).pop((
-                                status: 'failed',
-                                note: note,
-                                proofImagePath: null,
-                                failureReason: failureReason,
-                              ));
-                            },
-                            child: Text(context.tr('driver.failure.submit')),
+                      ],
+                      Expanded(
+                        child: FilledButton(
+                          key: Key(
+                            'driver-decision-confirm-$primaryStatus',
+                          ),
+                          onPressed: () {
+                            Navigator.of(sheetContext).pop((
+                              status: primaryStatus,
+                              note: noteValue.trim(),
+                              proofImagePath: proofImagePath,
+                            ));
+                          },
+                          child: Text(
+                            primaryStatus == 'out_for_delivery'
+                                ? context.tr(
+                                    'driver.action.confirm_start_delivery',
+                                  )
+                                : context.tr(
+                                    'driver.action.confirm_delivered',
+                                  ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -816,7 +744,6 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
       result.status,
       note: result.note.isEmpty ? null : result.note,
       proofImagePath: result.proofImagePath,
-      failureReason: result.failureReason,
     );
   }
 
