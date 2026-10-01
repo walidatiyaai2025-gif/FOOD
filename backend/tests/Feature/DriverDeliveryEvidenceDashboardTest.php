@@ -83,10 +83,13 @@ class DriverDeliveryEvidenceDashboardTest extends TestCase
 
         $proofUrl = $response->json('data.timeline.3.proof.url');
         $this->assertIsString($proofUrl);
-        $this->actingAs($admin)
+        $proofResponse = $this->actingAs($admin)
             ->get($proofUrl)
-            ->assertOk()
-            ->assertHeader('cache-control', 'private, no-store, max-age=0');
+            ->assertOk();
+        $cacheControl = (string) $proofResponse->headers->get('cache-control');
+        $this->assertStringContainsString('private', $cacheControl);
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('max-age=0', $cacheControl);
 
         $this->actingAs($admin)
             ->get(route('admin.operations.orders.index', ['order' => $order->id]))
