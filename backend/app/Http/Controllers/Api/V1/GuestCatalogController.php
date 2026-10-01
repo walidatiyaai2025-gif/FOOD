@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class GuestCatalogController extends Controller
 {
@@ -230,7 +231,9 @@ class GuestCatalogController extends Controller
                 ->map(fn ($banner): array => [
                     'id' => (int) $banner->id,
                     'title' => (string) $banner->title,
-                    'image_url' => $this->assetUrl($banner->image_path),
+                    'image_url' => $this->bannerImageUrl($banner->image_path),
+                    'target_type' => $banner->target_type,
+                    'target_id' => $banner->target_id === null ? null : (int) $banner->target_id,
                     'target_url' => $banner->target_url,
                     'sort_order' => (int) $banner->sort_order,
                 ])
@@ -303,6 +306,23 @@ class GuestCatalogController extends Controller
             ->value('product_images.path');
 
         return $this->assetUrl($fallback);
+    }
+
+    private function bannerImageUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $value = ltrim(trim($path), '/');
+        if (str_starts_with($value, 'storage/')) {
+            $relative = substr($value, strlen('storage/'));
+            if ($relative === '' || ! Storage::disk('public')->exists($relative)) {
+                return null;
+            }
+        }
+
+        return $this->assetUrl($path);
     }
 
     private function assetUrl(mixed $path): ?string
