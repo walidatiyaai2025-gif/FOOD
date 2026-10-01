@@ -296,14 +296,35 @@ final class OrderLifecycleNotificationService
         string $bodyEn,
         array $extraData = [],
     ): void {
-        $userId = DB::table('drivers')->where('id', $driverId)->value('user_id');
-        if ($userId === null) {
+        $driver = DB::table('drivers')
+            ->where('id', $driverId)
+            ->where('is_active', true)
+            ->first(['user_id', 'driver_type', 'store_id']);
+        if ($driver === null || $driver->user_id === null) {
+            return;
+        }
+
+        $channel = strtolower((string) $order->channel);
+        if (strtolower((string) $driver->driver_type) !== $channel) {
+            return;
+        }
+
+        $driverStoreId = $driver->store_id === null
+            ? null
+            : (int) $driver->store_id;
+        $orderStoreId = (int) $order->store_id;
+        if ($channel === 'b2c' && $driverStoreId !== $orderStoreId) {
+            return;
+        }
+        if ($channel === 'b2b'
+            && $driverStoreId !== null
+            && $driverStoreId !== $orderStoreId) {
             return;
         }
 
         $this->publish(
             $order,
-            (int) $userId,
+            (int) $driver->user_id,
             'driver',
             $type,
             $eventKey,
@@ -327,7 +348,22 @@ final class OrderLifecycleNotificationService
         string $bodyEn,
         array $extraData,
     ): void {
-        $dedupeKey = hash('sha256', $app.'|'.$type.'|'.$eventKey);
+        $targetChannel = strtolower((string) $order->channel);
+        if (! in_array($targetChannel, ['b2b', 'b2c'], true)) {
+            return;
+        }
+
+        $storeId = (int) $order->store_id;
+        $dedupeKey = hash('sha256', implode('|', [
+            'recipient:'.$userId,
+            'app:'.$app,
+            'channel:'.$targetChannel,
+            'store:'.$storeId,
+            'type:'.$type,
+            'event:'.$eventKey,
+        ]));
+        $deepLink = $this->deepLink($order, $app, $extraData);
+
         $notification = Notification::query()->firstOrCreate(
             [
                 'user_id' => $userId,
@@ -344,28 +380,32 @@ final class OrderLifecycleNotificationService
                 'body_en' => $bodyEn,
                 'audience' => 'user',
                 'app' => $app,
-                // User-specific lifecycle events are already authorization scoped.
-                // Keep target_channel=all so unified Platform Customers can receive
-                // both Wholesale and Retail order events through one identity.
-                'target_channel' => 'all',
-                'store_id' => (int) $order->store_id,
+                'target_channel' => $targetChannel,
+                'store_id' => $storeId,
                 'status' => 'published',
                 'published_at' => now(),
                 'data' => [
+                    ...$extraData,
                     'order_id' => (int) $order->getKey(),
                     'order_number' => (string) $order->order_number,
-                    'store_id' => (int) $order->store_id,
-                    'channel' => strtolower((string) $order->channel),
+                    'store_id' => $storeId,
+                    'channel' => $targetChannel,
                     'status' => (string) $order->status,
                     'event_key' => $eventKey,
                     'event_at' => now()->toAtomString(),
                     'order_updated_at' => $order->updated_at?->toAtomString(),
                     'state_version' => hash(
                         'sha256',
-                        $eventKey.'|'.(string) $order->updated_at,
+                        implode('|', [
+                            'recipient:'.$userId,
+                            'channel:'.$targetChannel,
+                            'store:'.$storeId,
+                            'event:'.$eventKey,
+                            'updated:'.(string) $order->updated_at,
+                        ]),
                     ),
                     'route' => $app === 'customer' ? 'order' : 'assignment',
-                    ...$extraData,
+                    'deep_link' => $deepLink,
                 ],
             ],
         );
@@ -373,6 +413,34 @@ final class OrderLifecycleNotificationService
         if ($notification->wasRecentlyCreated) {
             DispatchPushNotification::dispatch((int) $notification->getKey())->afterCommit();
         }
+    }
+
+    private function deepLink(Order $order, string $app, array $extraData): string
+    {
+        $channel = strtolower((string) $order->channel);
+        $storeId = (int) $order->store_id;
+        $orderId = (int) $order->getKey();
+
+        if ($app === 'driver') {
+            $assignmentId = (int) ($extraData['assignment_id'] ?? 0);
+
+            return '/driver/'.$channel.'/deliveries?'.http_build_query([
+                'channel' => $channel,
+                'store_id' => $storeId,
+                'order_id' => $orderId,
+                'assignment_id' => $assignmentId > 0 ? $assignmentId : null,
+            ]);
+        }
+
+        $commerceChannel = $channel === 'b2b' ? 'wholesale' : 'retail';
+        $path = $channel === 'b2b'
+            ? '/b2b/orders/'.$orderId
+            : '/orders/'.$orderId.'/track';
+
+        return $path.'?'.http_build_query([
+            'channel' => $commerceChannel,
+            'store_id' => $storeId,
+        ]);
     }
 
     private function customerUserId(Order $order): ?int
