@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
-import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
+import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 import 'package:foodex_driver_app/navigation.dart';
 
 class _StatusRepo implements DriverAssignmentRepository {
@@ -146,7 +146,7 @@ void main() {
     await tester.tap(outForDeliveryTapTarget);
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('driver-exact-status-filter')), findsOneWidget);
+    expect(find.byKey(const Key('driver-active-status-filter')), findsOneWidget);
     expect(find.text('OUT-1'), findsOneWidget);
     expect(find.text('ACCEPTED-1'), findsNothing);
     expect(find.text('DONE-1'), findsNothing);
