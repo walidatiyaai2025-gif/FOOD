@@ -774,7 +774,7 @@ This policy is enforced by repository CI and must not be bypassed to publish a r
 
 ---
 
-## 23. CUSTOMER JOURNEY V2 mission keyword
+## 23. JOURNEY mission keyword — Customer + Driver
 
 The single-word repository-owner command:
 
@@ -782,36 +782,35 @@ The single-word repository-owner command:
 JOURNEY
 ```
 
-is an alias for continuous Umbrella Mission / Drain Mode on **#675**:
+is a persistent coordinated Mission / Drain command for both:
 
-`[PLATFORM-BUG][CUSTOMER-JOURNEY-V2][UMBRELLA] New-only Customer App end-to-end journey`.
+- **#675** — Customer Journey V2, new-only Customer App end-to-end journey;
+- **#686** — Driver Journey V2, assignment-to-proof-of-delivery end-to-end journey.
 
 When `JOURNEY` is received in any chat/session, the worker must:
 
-1. reconstruct #675 and child lanes #676-#683 from GitHub state;
-2. apply Section 20 Mission/Drain Mode without asking the owner to repeat context;
-3. select the highest-priority safe non-conflicting lane;
-4. reuse its existing Issue/branch/PR if present;
-5. respect current-head CI and fresh peer ownership;
-6. take over red/stalled/handoff-ready work on the same branch/PR according to this policy;
-7. continue draining #675 after the first child completes;
-8. stop only when #675 is COMPLETE or genuinely HUMAN-GATED.
+1. reconstruct both umbrellas and all current child lanes from GitHub state;
+2. apply Section 20 Mission/Drain rules without asking the owner to repeat context;
+3. select the highest-priority safe non-conflicting lane across both umbrellas;
+4. reuse existing Issue/branch/PR state where present;
+5. respect fresh peer ownership and current-head running CI;
+6. immediately take over red/stalled/handoff-ready work on the same branch/PR according to policy;
+7. continue draining after the first child completes;
+8. stop only when **both #675 and #686 are COMPLETE**, or every remaining incomplete lane is genuinely HUMAN-GATED.
 
 ### NEW-only invariant
 
-For #675 and every child lane:
+For both journeys:
 
-- the production Customer App destination is the **new** Customer journey only;
-- old Customer journey code may be read as a behavioral reference while parity is being migrated;
-- workers must not fix, expand, or retain a legacy Customer screen as the final runtime solution;
-- once parity exists, obsolete legacy routes/screens/widgets/tests/assets must be deleted, not merely hidden;
-- no fallback switch may silently return production users to the legacy journey;
-- Lane #683 owns final shared wiring and legacy deletion after prerequisite lanes converge;
-- #675 cannot close while production routing still intentionally renders the legacy B2C journey.
+- production runtime must converge on one **new** Customer journey and one **new** Driver journey;
+- old runtime code may be read temporarily as behavioral reference only;
+- workers must not repair, expand, or retain a legacy screen/flow as the final production solution;
+- after parity, obsolete routes/screens/widgets/tests/assets must be deleted, not merely hidden;
+- no silent fallback may return users to legacy Customer or Driver flows;
+- #683 owns final Customer shared wiring and legacy purge;
+- #694 owns final Driver shared wiring and legacy purge.
 
-### Parallel lane ownership
-
-The authoritative child lanes are:
+### Customer lanes (#675)
 
 - #676 Context/Auth/guest-session kernel;
 - #677 NEW Retail catalog;
@@ -820,19 +819,42 @@ The authoritative child lanes are:
 - #680 NEW Orders/tracking;
 - #681 Dashboard registration + order-created operational notifications;
 - #682 Guest full-journey E2E acceptance;
-- #683 final integration + legacy purge.
+- #683 final Customer integration + legacy purge.
 
-Lanes #676-#681 are designed to run in parallel. #682 may scaffold concurrently but closes only against integrated behavior. #683 is the convergence lane and must not race shared routing/wiring files owned by an active prerequisite lane.
+Lanes #676-#681 are designed to run in parallel. #682 may scaffold concurrently but closes only against integrated behavior. #683 is the Customer convergence lane.
 
-### Mandatory Guest acceptance
+### Driver lanes (#686)
+
+- #687 authoritative Driver state machine + proof contract + idempotency;
+- #688 NEW assignment/accept/pickup/start-delivery UX;
+- #689 delivered/failed decision + mandatory proof-photo UX/upload;
+- #690 navigation + active location lifecycle;
+- #691 Driver/Customer/Dashboard lifecycle notifications;
+- #692 Dashboard delivery timeline + proof evidence;
+- #693 full Driver assignment-to-proof E2E acceptance;
+- #694 final Driver integration + legacy purge.
+
+Lanes #687, #688, #689, #690 and #692 are designed to run immediately in parallel. #691 may progress on disjoint notification-service work, but it must not edit `DashboardOperationalNotifier.php` until Customer lane #681 is merged. #693 may scaffold concurrently but closes only against integrated behavior. #694 is the Driver convergence lane.
+
+### Mandatory Customer Guest acceptance
 
 #675 is not complete unless automated acceptance covers a real guest journey from Marketplace through Retail browse/product/cart, Login-or-Register handoff, same-store guest-cart merge, saved address, backend-supported payment, checkout, created order and order details/tracking, with exact store context preserved at every boundary and cross-store isolation verified.
 
-### Dashboard notification acceptance
+### Mandatory Driver acceptance
 
-#675 is not complete unless automated tests prove:
+#686 is not complete unless automated acceptance covers Dashboard assignment → Driver push → authoritative assignment open → Accept → Pick up/Receive → Start Delivery decision sheet → Out for Delivery → Delivered decision sheet → required proof photo → final Delivered state, plus failed-delivery, reassignment and cancellation paths.
+
+Successful delivery must not become terminal without a valid proof-of-delivery image accepted by the backend. Retry/idempotency must prevent duplicate order transitions, delivery proofs, audit entries and user-visible notifications.
+
+### Notification acceptance across both journeys
+
+The combined mission is not complete unless automated tests prove:
 
 - successful new Platform Customer registration/subscription creates one deduplicated Dashboard operational notification;
-- ordinary login does not create that registration notification;
-- successful checkout/order creation creates one deduplicated Dashboard order-created operational notification;
-- notification audience, store/channel scope and deep links obey existing authorization conventions.
+- ordinary login does not create a false registration notification;
+- successful checkout/order creation creates one deduplicated Dashboard order-created notification;
+- Driver assignment/reassignment/unassignment/cancellation reaches the correct Driver and Dashboard audiences;
+- Driver accepted, picked-up, out-for-delivery, failed and delivered lifecycle events generate the required Dashboard and Customer notifications from the authoritative backend transition path;
+- stale/revoked Driver push payloads cannot grant assignment/order access;
+- notification audience, store/channel scope, deep links and deduplication follow existing authorization conventions;
+- Customer notifications never expose internal proof storage paths or driver-only sensitive notes.
