@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/api/customer_action_api.dart';
 import '../../../core/auth/customer_session.dart';
 import '../../../core/localization/app_translations.dart';
+import '../../../core/routing/customer_routes.dart';
 import '../commerce/retail_commerce_api.dart';
 
 typedef RetailCommerceTokenFactory = RetailCommerceApi Function(String token);
@@ -252,6 +253,15 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
                               : 'customer.action.login',
                         ),
                       ),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                key: const ValueKey('customer-login-diagnostics'),
+                onPressed: () => Navigator.of(context).pushNamed(
+                  CustomerRoutePaths.diagnostics,
+                ),
+                icon: const Icon(Icons.bug_report_outlined),
+                label: Text(context.tr('customer.diagnostics.open')),
               ),
             ],
           ),
