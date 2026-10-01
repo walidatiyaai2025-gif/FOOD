@@ -12,13 +12,13 @@ final class SelfStorePurchaseNotAllowed extends RuntimeException
 
     public function __construct(public readonly int $storeId)
     {
-        parent::__construct('Retail merchants cannot purchase from a Retail Store they own or manage.');
+        parent::__construct(self::ERROR_CODE);
     }
 
     public function render(Request $request): JsonResponse
     {
         return response()->json([
-            'message' => $this->getMessage(),
+            'message' => self::ERROR_CODE,
             'code' => self::ERROR_CODE,
             'store_id' => $this->storeId,
         ], 403);
