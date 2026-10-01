@@ -790,7 +790,6 @@ class B2cWorkspaceController extends Controller
     }
 
     /** @param list<int> $storeIds */
-    /** @param array<string, int> $scopeParams */
     private function inventoryModuleData(array $storeIds): array
     {
         return [
