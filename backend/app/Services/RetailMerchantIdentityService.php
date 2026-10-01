@@ -141,7 +141,7 @@ final class RetailMerchantIdentityService
     }
 
     /**
-     * @param list<int> $storeIds
+     * @param  list<int>  $storeIds
      * @return list<array{retail_store_id:int,b2b_customer_id:int}>
      */
     private function wholesaleIdentitiesForStoreIds(array $storeIds): array
@@ -163,7 +163,7 @@ final class RetailMerchantIdentityService
     }
 
     /**
-     * @param list<int> ...$groups
+     * @param  list<int>  ...$groups
      * @return list<int>
      */
     private function mergeIds(array ...$groups): array
