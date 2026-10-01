@@ -97,10 +97,7 @@ final class AppVersionController extends Controller
         $audit->record('app_version_policy.updated', $actor, $policy, $before?->toArray(), $policy->toArray(), $request);
 
         return redirect()
-            ->route('admin.app-versions.index', [
-                'app' => $validated['app'],
-                'platform' => $validated['platform'],
-            ])
+            ->route('admin.app-versions.index')
             ->with('status', __('app_versions.saved'));
     }
 }
