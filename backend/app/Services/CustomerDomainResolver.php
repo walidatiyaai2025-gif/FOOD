@@ -82,28 +82,13 @@ final class CustomerDomainResolver
     /** @return list<int> */
     public function entitledRetailStoreIds(User $user): array
     {
-        $managedStoreIds = app(RetailMerchantIdentityService::class)->managedRetailStoreIds($user);
-        if ($managedStoreIds === []) {
-            return [];
-        }
-
-        return DB::table('retail_wholesale_accounts')
-            ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'retail_wholesale_accounts.b2b_customer_id')
-            ->whereIn('retail_wholesale_accounts.retail_store_id', $managedStoreIds)
-            ->where('b2b_accounts.status', 'active')
-            ->whereNotNull('b2b_accounts.price_tier_id')
-            ->pluck('retail_wholesale_accounts.retail_store_id')
-            ->map(static fn ($id): int => (int) $id)
-            ->unique()
-            ->sort()
-            ->values()
-            ->all();
+        return app(CommerceIdentityResolver::class)->wholesaleEntitledRetailStoreIds($user);
     }
 
     public function b2c(User $user, int $storeId): B2cCustomer
     {
         $this->assertStoreChannel($storeId, 'B2C');
-        app(RetailMerchantIdentityService::class)->assertCanPurchaseFromRetailStore($user, $storeId);
+        app(CommerceIdentityResolver::class)->assertCanPurchaseFromRetailStore($user, $storeId);
 
         $customer = $this->b2c->forUserAndStore($user, $storeId);
 
