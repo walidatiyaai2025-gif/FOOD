@@ -2,7 +2,8 @@
 
 use App\Http\Controllers\Admin\AdminLoginController;
 use App\Http\Controllers\Admin\AdminProfileController;
-use App\Http\Controllers\Admin\AdminShellController;\nuse App\Http\Controllers\Admin\AssistantController;
+use App\Http\Controllers\Admin\AdminShellController;
+use App\Http\Controllers\Admin\AssistantController;
 use App\Http\Controllers\Admin\AppPreviewConfigurationController;
 use App\Http\Controllers\Admin\AppPreviewController;
 use App\Http\Controllers\Admin\AppPreviewInvalidationController;
@@ -79,7 +80,19 @@ Route::prefix('admin')
     ->name('admin.')
     ->middleware('management.dashboard')
     ->group(function (): void {
-        Route::get('/', [AdminShellController::class, 'index'])->name('index');\n        Route::prefix('assistant')\n            ->name('assistant.')\n            ->middleware('throttle:assistant')\n            ->group(function (): void {\n                Route::get('/bootstrap', [AssistantController::class, 'bootstrap'])->name('bootstrap');\n                Route::get('/conversations', [AssistantController::class, 'index'])->name('conversations.index');\n                Route::post('/conversations', [AssistantController::class, 'storeConversation'])->name('conversations.store');\n                Route::get('/conversations/{conversationId}/messages', [AssistantController::class, 'messages'])->whereUuid('conversationId')->name('conversations.messages.index');\n                Route::post('/conversations/{conversationId}/messages', [AssistantController::class, 'storeMessage'])->whereUuid('conversationId')->name('conversations.messages.store');\n                Route::post('/conversations/{conversationId}/clear', [AssistantController::class, 'clear'])->whereUuid('conversationId')->name('conversations.clear');\n                Route::delete('/conversations/{conversationId}', [AssistantController::class, 'destroy'])->whereUuid('conversationId')->name('conversations.destroy');\n            });
+        Route::get('/', [AdminShellController::class, 'index'])->name('index');
+        Route::prefix('assistant')
+            ->name('assistant.')
+            ->middleware('throttle:assistant')
+            ->group(function (): void {
+                Route::get('/bootstrap', [AssistantController::class, 'bootstrap'])->name('bootstrap');
+                Route::get('/conversations', [AssistantController::class, 'index'])->name('conversations.index');
+                Route::post('/conversations', [AssistantController::class, 'storeConversation'])->name('conversations.store');
+                Route::get('/conversations/{conversationId}/messages', [AssistantController::class, 'messages'])->whereUuid('conversationId')->name('conversations.messages.index');
+                Route::post('/conversations/{conversationId}/messages', [AssistantController::class, 'storeMessage'])->whereUuid('conversationId')->name('conversations.messages.store');
+                Route::post('/conversations/{conversationId}/clear', [AssistantController::class, 'clear'])->whereUuid('conversationId')->name('conversations.clear');
+                Route::delete('/conversations/{conversationId}', [AssistantController::class, 'destroy'])->whereUuid('conversationId')->name('conversations.destroy');
+            });
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
         Route::get('/app-preview', [AppPreviewController::class, 'index'])->name('app-preview.index');
         Route::get('/app-preview/targets', [AppPreviewController::class, 'targets'])->name('app-preview.targets');
