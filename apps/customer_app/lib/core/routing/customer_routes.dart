@@ -9,6 +9,15 @@ abstract final class CustomerRoutePaths {
   static const home = '/home';
   static const retailHome = '/retail/:store/home';
   static const retailProductDetails = '/retail/:store/products/:product';
+  static const retailCart = '/retail/:store/cart';
+  static const retailCheckout = '/retail/:store/checkout';
+  static const retailProfile = '/retail/:store/profile';
+  static const retailAddresses = '/retail/:store/profile/addresses';
+  static const retailFavorites = '/retail/:store/favorites';
+  static const retailNotifications = '/retail/:store/notifications';
+  static const retailOrders = '/retail/:store/orders';
+  static const retailOrderDetails = '/retail/:store/orders/:order';
+  static const retailOrderTracking = '/retail/:store/orders/:order/track';
   static const offers = '/offers';
   static const products = '/products';
   static const productDetails = '/products/:id';
@@ -21,6 +30,8 @@ abstract final class CustomerRoutePaths {
   static const diagnostics = '/diagnostics';
   static const cart = '/cart';
   static const checkoutAuth = '/auth/checkout';
+  static const authLogin = '/auth/login';
+  static const authRegister = '/auth/register';
   static const checkoutAddressPayment = '/checkout/address-payment';
   static const orderTracking = '/orders/:id/track';
   static const profile = '/profile';
@@ -118,6 +129,8 @@ String? safeCustomerReturnLocation(
   }
 
   if (destination.pattern == CustomerRoutePaths.checkoutAuth ||
+      destination.pattern == CustomerRoutePaths.authLogin ||
+      destination.pattern == CustomerRoutePaths.authRegister ||
       destination.pattern == CustomerRoutePaths.b2bLogin) {
     return null;
   }
@@ -162,6 +175,59 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     pattern: CustomerRoutePaths.retailProductDetails,
     label: 'Retail product details',
     channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailCart,
+    label: 'Retail cart',
+    channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailCheckout,
+    label: 'Retail checkout',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailProfile,
+    label: 'Retail profile',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailAddresses,
+    label: 'Retail addresses',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailFavorites,
+    label: 'Retail favorites',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailNotifications,
+    label: 'Retail notifications',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailOrders,
+    label: 'Retail orders',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailOrderDetails,
+    label: 'Retail order details',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.retailOrderTracking,
+    label: 'Retail order tracking',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.offers,
@@ -225,6 +291,16 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.checkoutAuth,
     label: 'B2C checkout login',
+    channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.authLogin,
+    label: 'Customer login',
+    channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.authRegister,
+    label: 'Customer registration',
     channel: CustomerChannel.b2c,
   ),
   CustomerRouteDefinition(
