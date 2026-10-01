@@ -42,9 +42,10 @@ Evidence convention:
 
 ## Preview runtime distribution
 
-- [x] Customer and Driver shared Flutter Web preview runtimes are built through a repeatable release workflow with explicit production API/origin, `shared-flutter-v1`, and canonical base hrefs.
-- [x] Distribution artifacts are version/commit identified and include SHA-256 digests, a runtime manifest, the exact Dashboard env snippet, and local HTTP smoke validation for `index.html`, `main.dart.js`, bootstrap and assets.
-- [ ] The generated `/preview/customer/` and `/preview/driver/` trees are deployed to the production web root and the post-deployment `verify_deployed=true` HTTPS smoke gate is recorded. Repository CI does not fabricate this external evidence.
+- [x] Customer and Driver shared Flutter Web preview runtimes are built from the real app entrypoints with `shared-flutter-v1` and canonical `/preview/customer/` / `/preview/driver/` base hrefs.
+- [x] The normal Dashboard update workflow stages both compiled runtime trees under `backend/public/preview/` and includes them in every generated `FOODEX-Update.zip`; package verification fails if index, Dart JS, Flutter bootstrap or assets are missing.
+- [x] Standard same-origin installations require no separate preview deployment or preview-specific `.env` wiring: Dashboard configuration defaults to `APP_URL`, while explicit `FOODEX_*_PREVIEW_*` overrides remain available for advanced/external hosting.
+- [x] The standalone preview-distribution workflow remains available for optional external hosting and production smoke evidence; it is not required for the standard Update Center path.
 
 ## Final release gate
 

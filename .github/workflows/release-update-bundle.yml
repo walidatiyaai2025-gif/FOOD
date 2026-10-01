@@ -12,6 +12,8 @@ on:
     paths:
       - VERSION
       - "backend/**"
+      - "apps/customer_app/**"
+      - "apps/driver_app/**"
       - CHANGELOG.md
       - docs/release/RELEASE_NOTES.md
       - scripts/build-update-bundle.py
@@ -89,6 +91,49 @@ jobs:
           test -f backend/app/ThirdParty/tcpdf/LICENSE.TXT
           test -f backend/app/ThirdParty/tcpdf/fonts/dejavusans.php
           test -f backend/app/ThirdParty/tcpdf/fonts/dejavusans.z
+
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Build and stage same-origin shared preview runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf backend/public/preview/customer backend/public/preview/driver
+
+          pushd apps/customer_app
+          flutter pub get
+          flutter build web \
+            --release \
+            --target=lib/preview_main.dart \
+            --base-href=/preview/customer/ \
+            --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          popd
+
+          pushd apps/driver_app
+          flutter create --platforms=web --project-name foodex_driver_app .
+          flutter pub get
+          flutter build web \
+            --release \
+            --target=lib/preview_main.dart \
+            --base-href=/preview/driver/ \
+            --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          popd
+
+          mkdir -p backend/public/preview
+          cp -a apps/customer_app/build/web backend/public/preview/customer
+          cp -a apps/driver_app/build/web backend/public/preview/driver
+
+          for runtime in customer driver; do
+            test -s "backend/public/preview/${runtime}/index.html"
+            test -s "backend/public/preview/${runtime}/main.dart.js"
+            test -s "backend/public/preview/${runtime}/flutter_bootstrap.js"
+            test -d "backend/public/preview/${runtime}/assets"
+            find "backend/public/preview/${runtime}/assets" -type f -print -quit | grep -q .
+          done
 
       - name: Resolve cumulative update boundary
         shell: bash
@@ -197,6 +242,19 @@ jobs:
               assert "VERSION" in names
               missing = sorted(mandatory - names)
               assert not missing, f"Update bundle is missing recovery-critical files: {missing}"
+              for runtime in ("customer", "driver"):
+                  prefix = f"backend/public/preview/{runtime}"
+                  required = {
+                      f"{prefix}/index.html",
+                      f"{prefix}/main.dart.js",
+                      f"{prefix}/flutter_bootstrap.js",
+                  }
+                  runtime_missing = sorted(required - names)
+                  assert not runtime_missing, f"Update bundle is missing {runtime} preview files: {runtime_missing}"
+                  assert any(
+                      name.startswith(f"{prefix}/assets/") and not name.endswith("/")
+                      for name in names
+                  ), f"Update bundle is missing {runtime} preview assets"
               has_migrations = any(name.startswith("backend/database/migrations/") for name in names)
               assert manifest["contains_migrations"] is has_migrations
               assert not any(name.startswith(("apps/", "Release/", "docs/", ".github/")) for name in names)

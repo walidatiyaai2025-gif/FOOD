@@ -61,6 +61,7 @@ jobs:
             --target=lib/preview_main.dart \
             --base-href="${FOODEX_CUSTOMER_PREVIEW_BASE_HREF}" \
             --dart-define=FOODEX_API_BASE_URL="${FOODEX_PREVIEW_API_BASE_URL}" \
+            --dart-define=FOODEX_PREVIEW_API_BASE_URL="${FOODEX_PREVIEW_API_BASE_URL}" \
             --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN="${FOODEX_PREVIEW_PARENT_ORIGIN}" \
             --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION="${FOODEX_PREVIEW_CONTRACT_VERSION}"
 
@@ -76,6 +77,7 @@ jobs:
             --target=lib/preview_main.dart \
             --base-href="${FOODEX_DRIVER_PREVIEW_BASE_HREF}" \
             --dart-define=FOODEX_API_BASE_URL="${FOODEX_PREVIEW_API_BASE_URL}" \
+            --dart-define=FOODEX_PREVIEW_API_BASE_URL="${FOODEX_PREVIEW_API_BASE_URL}" \
             --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN="${FOODEX_PREVIEW_PARENT_ORIGIN}" \
             --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION="${FOODEX_PREVIEW_CONTRACT_VERSION}"
 
