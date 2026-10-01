@@ -28,6 +28,8 @@ use Throwable;
 final class AssistantController extends Controller
 {
     private const ACTION_ROUTES = [
+        'admin.b2b.module',
+        'admin.b2c.module',
         'admin.catalog.index',
         'admin.operations.orders.index',
         'admin.reports.index',
