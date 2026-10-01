@@ -136,7 +136,7 @@ final class RetailStoreProvisioningController extends Controller
                 ['created_at' => now(), 'updated_at' => now()],
             );
 
-            $wholesaleCustomer = $this->wholesaleAccounts->ensureForStore($store, (int) $data['price_tier_id']);
+            $wholesaleCustomer = $this->wholesaleAccounts->ensureForStore($store, (int) $data['price_tier_id'], $manager);
 
             $this->audit->record('retail_store.provisioned', $actor, $store, null, [
                 'store_id' => $store->id,
