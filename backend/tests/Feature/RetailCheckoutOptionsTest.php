@@ -63,6 +63,7 @@ class RetailCheckoutOptionsTest extends TestCase
     public function test_retail_checkout_options_are_store_scoped_and_authoritative(): void
     {
         $owned = Address::query()->create([
+            'customer_id' => $this->customer->legacy_customer_id,
             'b2c_customer_id' => $this->customer->id,
             'label' => 'Home',
             'line1' => 'Street 1',
@@ -91,6 +92,7 @@ class RetailCheckoutOptionsTest extends TestCase
             'email' => $otherUser->email,
         ]);
         Address::query()->create([
+            'customer_id' => $otherLegacy->id,
             'b2c_customer_id' => $otherCustomer->id,
             'label' => 'Foreign',
             'line1' => 'Other Street',
