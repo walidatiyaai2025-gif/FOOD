@@ -287,6 +287,12 @@ class OrderDomainTest extends TestCase
         $order = $this->makeOrder($this->b2bCustomer, $this->b2bStoreId, 'b2b', 'failed');
         $base = now()->subMinutes(20)->startOfSecond();
 
+        DB::table('orders')->where('id', $order->id)->update([
+            'created_at' => $base,
+            'updated_at' => $base->copy()->addMinutes(2),
+        ]);
+        DB::table('order_status_history')->where('order_id', $order->id)->delete();
+
         $driverUser = User::query()->create([
             'name' => 'Failed Wholesale Driver',
             'email' => 'failed-wholesale-driver@example.test',
