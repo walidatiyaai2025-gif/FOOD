@@ -20,6 +20,7 @@ jobs:
       driver: ${{ steps.filter.outputs.driver }}
       app_preview_visual: ${{ steps.filter.outputs.app_preview_visual }}
       preview_runtime_distribution: ${{ steps.filter.outputs.preview_runtime_distribution }}
+      mobile_prod_ux_acceptance: ${{ steps.filter.outputs.mobile_prod_ux_acceptance }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,6 +43,7 @@ jobs:
           driver=false
           app_preview_visual=false
           preview_runtime_distribution=false
+          mobile_prod_ux_acceptance=false
 
           if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$)' changed-files.txt; then
             backend=true
@@ -61,6 +63,13 @@ jobs:
             driver=true
           fi
 
+          if [[ "${GITHUB_HEAD_REF:-}" =~ ^test/[0-9]+-mobile-prod-ux-final-acceptance$ ]]; then
+            mobile_prod_ux_acceptance=true
+            backend=true
+            customer=true
+            driver=true
+          fi
+
           if grep -Eq '^(apps/(customer_app|driver_app)/(lib/core/preview/|lib/preview_main\.dart|test/(customer|driver)_preview)|backend/(config/app_preview\.php|resources/views/admin/app-preview\.blade\.php)|scripts/app_preview_visual_parity\.mjs|docs/quality/APP_PREVIEW_VISUAL_PARITY\.md|\.github/workflows/app-preview-(acceptance-ci|visual-parity)\.yml|\.github/workflows/required-ci-gate\.yml)' changed-files.txt; then
             app_preview_visual=true
           fi
@@ -75,6 +84,7 @@ jobs:
             echo "driver=$driver"
             echo "app_preview_visual=$app_preview_visual"
             echo "preview_runtime_distribution=$preview_runtime_distribution"
+            echo "mobile_prod_ux_acceptance=$mobile_prod_ux_acceptance"
           } >> "$GITHUB_OUTPUT"
 
   repository-policy:
@@ -130,7 +140,8 @@ jobs:
 
   screenshot-evidence:
     name: Runtime screenshot evidence
-    if: ${{ github.head_ref == 'test/175-runtime-screenshot-evidence' || github.head_ref == 'ci/184-screenshot-evidence-guards' }}
+    needs: changes
+    if: ${{ needs.changes.outputs.mobile_prod_ux_acceptance == 'true' || github.head_ref == 'test/175-runtime-screenshot-evidence' || github.head_ref == 'ci/184-screenshot-evidence-guards' }}
     permissions:
       contents: write
     uses: ./.github/workflows/screenshot-evidence.yml
@@ -165,6 +176,7 @@ jobs:
           PREVIEW_RUNTIME_DISTRIBUTION_CHANGED: ${{ needs.changes.outputs.preview_runtime_distribution }}
           PREVIEW_RUNTIME_DISTRIBUTION_RESULT: ${{ needs.preview-runtime-distribution.result }}
           SCREENSHOT_RESULT: ${{ needs.screenshot-evidence.result }}
+          MOBILE_PROD_UX_ACCEPTANCE: ${{ needs.changes.outputs.mobile_prod_ux_acceptance }}
         run: |
           set -euo pipefail
 
@@ -199,7 +211,7 @@ jobs:
           require_applicable_success "$APP_PREVIEW_VISUAL_CHANGED" "APP-PREVIEW visual runtime parity" "$APP_PREVIEW_VISUAL_RESULT"
           require_applicable_success "$PREVIEW_RUNTIME_DISTRIBUTION_CHANGED" "Preview runtime distribution" "$PREVIEW_RUNTIME_DISTRIBUTION_RESULT"
 
-          if [[ "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" || "${{ github.head_ref }}" == "ci/184-screenshot-evidence-guards" ]]; then
+          if [[ "$MOBILE_PROD_UX_ACCEPTANCE" == "true" || "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" || "${{ github.head_ref }}" == "ci/184-screenshot-evidence-guards" ]]; then
             require_success "Runtime screenshot evidence" "$SCREENSHOT_RESULT"
           elif [[ "$SCREENSHOT_RESULT" != "skipped" && "$SCREENSHOT_RESULT" != "success" ]]; then
             echo "::error::Runtime screenshot evidence had unexpected result: $SCREENSHOT_RESULT"
