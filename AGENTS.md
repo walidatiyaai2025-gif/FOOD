@@ -307,3 +307,123 @@ When instructions conflict, use this order:
 5. older Issue comments / historical plans.
 
 Do not use an old worker claim to override a newer explicit takeover or repository-owner instruction.
+
+
+---
+
+## 15. Machine-readable worker state
+
+Every active implementation Issue/PR should maintain a current machine-readable state block. It may live in the PR body or in the latest Issue progress/handoff comment.
+
+Use exactly this shape:
+
+```text
+<!-- foodex-worker-state:v1 -->
+STATE: WORKING
+OWNER: worker-name-or-role
+BRANCH: feat/123-stable-branch-name
+PR: #456
+HEAD: full-or-short-head-sha
+HEARTBEAT: 2026-10-01T06:00:00Z
+BLOCKER: none
+NEXT_ACTION: next concrete repository action
+```
+
+Allowed `STATE` values:
+
+- `WORKING`
+- `WAITING_CI`
+- `BLOCKED_REPO`
+- `BLOCKED_EXTERNAL`
+- `READY_TO_MERGE`
+- `HANDOFF`
+
+Allowed `BLOCKER` semantics:
+
+- `none` — normal work;
+- `ci` — tests/checks/action failure or wait; repository-local;
+- `repo` — code/conflict/test/docs/rebase or other repository-local blocker;
+- `deploy` — real deployment action is required;
+- `production` — production-side verification/evidence/action is required;
+- `credentials` — required secret/credential is unavailable;
+- `device` — required real device/execution environment is unavailable;
+- `approval` — explicit human approval is required;
+- `human` — other genuine external intervention.
+
+Do **not** classify CI failures, merge conflicts, test failures, missing code, branch drift, or ordinary debugging as human blockers.
+
+The Worker Watchdog may use this block plus GitHub branch/PR/CI activity to classify the task.
+
+---
+
+## 16. Worker Watchdog and automatic takeover
+
+The repository runs a scheduled/event-driven Worker Watchdog.
+
+It maintains these queue states:
+
+- `worker:ready` — atomic repository-local work with no active claim;
+- `worker:active` — a fresh worker lease exists;
+- `worker:waiting-ci` — CI/actions are currently running;
+- `worker:handoff-ready` — worker lease is stale, CI needs takeover, a merge-ready PR was abandoned, or handoff was explicit;
+- `gate:human` — real intervention outside normal repository work is required.
+
+Specific human gates may also be labeled:
+
+- `gate:deploy`
+- `gate:production`
+- `gate:credentials`
+- `gate:device`
+- `gate:approval`
+
+The watchdog:
+
+- does not create replacement implementation branches;
+- does not create replacement PRs;
+- does not bypass required CI;
+- does not enable production toggles;
+- does not fabricate deployment/production/device evidence.
+
+When a stale task is detected, it marks the existing Issue `worker:handoff-ready` and records the existing branch/PR/head when available.
+
+The next worker must take over that exact work.
+
+---
+
+## 17. Continuous queue drain
+
+Workers should not stop merely because their first Issue merged.
+
+Unless the repository owner explicitly says **only this Issue/task**, after finishing a task a worker must inspect the managed queue and continue with the next safe repository-local item in this order:
+
+1. `worker:handoff-ready` — resume abandoned/stalled existing work first;
+2. `worker:ready` — claim new atomic work second.
+
+Before claiming the next item, still perform the full preflight and dependency/ownership checks.
+
+A worker must **not** consume Issues labeled `gate:human` until the external requirement has actually been satisfied.
+
+The desired steady state is:
+
+> no repository-local actionable work left; any remaining managed Issues are blocked only by genuine deployment, production, credential, device, or approval gates.
+
+A worker may stop earlier only when:
+
+- the user explicitly restricted it to one exact task;
+- there is no safe actionable Issue;
+- all remaining managed work is human-gated;
+- an external service/tool required for the next action is unavailable and the Issue has been classified accordingly.
+
+---
+
+## 18. Managed Issue marker
+
+New atomic implementation Issues should include:
+
+```html
+<!-- foodex-worker:managed -->
+```
+
+This opts the Issue into watchdog queue classification even before a branch/PR exists.
+
+Do not put this marker on coordination-only umbrella Issues unless they are intended to be directly executable.
