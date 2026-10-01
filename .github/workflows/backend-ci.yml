@@ -49,6 +49,14 @@ jobs:
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite
 
+      - name: Set up Node for live-map runtime tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Test live-map runtime and local static assets
+        run: node --test tests/Browser/driver-live-map.test.cjs
+
       - name: Run backend tests
         run: composer test
 

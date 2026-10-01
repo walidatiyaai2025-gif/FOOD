@@ -6,7 +6,17 @@
     $pollMs = $pollMs ?? 5000;
     $ctaUrl = $ctaUrl ?? null;
     $ctaLabel = $ctaLabel ?? __('admin.driver_live_tracking.view_full');
-    $trackingI18n = $trackingI18n ?? [
+    $trackingI18n = array_merge($trackingI18n ?? [], [
+        'assetsFailed' => __('admin.driver_live_tracking.assets_failed'),
+        'mapFailed' => __('admin.driver_live_tracking.map_failed'),
+        'sessionExpired' => __('admin.driver_live_tracking.session_expired'),
+        'forbidden' => __('admin.driver_live_tracking.forbidden'),
+        'serverFailed' => __('admin.driver_live_tracking.server_failed'),
+        'networkFailed' => __('admin.driver_live_tracking.network_failed'),
+        'invalidFeed' => __('admin.driver_live_tracking.invalid_feed'),
+        'timeout' => __('admin.driver_live_tracking.timeout'),
+    ]);
+    $trackingI18n += [
         'noDrivers' => __('admin.driver_live_tracking.no_drivers'),
         'loading' => __('admin.driver_live_tracking.loading'),
         'failed' => __('admin.driver_live_tracking.load_failed'),
@@ -32,6 +42,7 @@
     data-show-list="{{ $showList ? '1' : '0' }}"
     data-feed-url="{{ $feedUrl }}"
     data-poll-ms="{{ $pollMs }}"
+    data-assets-failed="{{ __('admin.driver_live_tracking.assets_failed') }}"
 >
     <script type="application/json" data-driver-live-map-i18n>@json($trackingI18n)</script>
 
@@ -66,13 +77,17 @@
 
     @if ($showSummary)
         <div class="tracking-summary" aria-live="polite">
-            <div><strong data-live-map="count-online">0</strong><small>{{ __('admin.driver_live_tracking.online') }}</small></div>
-            <div><strong data-live-map="count-stale">0</strong><small>{{ __('admin.driver_live_tracking.stale') }}</small></div>
-            <div><strong data-live-map="count-offline">0</strong><small>{{ __('admin.driver_live_tracking.offline') }}</small></div>
+            <div><strong data-live-map="count-online">—</strong><small>{{ __('admin.driver_live_tracking.online') }}</small></div>
+            <div><strong data-live-map="count-stale">—</strong><small>{{ __('admin.driver_live_tracking.stale') }}</small></div>
+            <div><strong data-live-map="count-offline">—</strong><small>{{ __('admin.driver_live_tracking.offline') }}</small></div>
         </div>
     @endif
 
-    <div class="tracking-error" data-live-map="error" hidden>{{ __('admin.driver_live_tracking.load_failed') }}</div>
+    <div class="tracking-error" data-live-map="error" role="alert" hidden>
+        <span data-live-map="error-message">{{ __('admin.driver_live_tracking.load_failed') }}</span>
+        <a class="btn" href="" data-live-map="retry">{{ __('admin.driver_live_tracking.retry') }}</a>
+    </div>
+    <noscript><div role="alert">{{ __('admin.driver_live_tracking.assets_failed') }}</div></noscript>
 
     <div class="tracking-grid">
         <section class="foodex-card tracking-map-card">
@@ -80,7 +95,7 @@
                 <div>
                     <strong>{{ __('admin.driver_live_tracking.title') }}</strong>
                     <div class="tracking-status">
-                        <span data-live-map="state">{{ __('admin.driver_live_tracking.loading') }}</span>
+                        <span data-live-map="state" aria-live="polite">{{ __('admin.driver_live_tracking.loading') }}</span>
                         · {{ __('admin.driver_live_tracking.auto_refresh') }}
                     </div>
                 </div>

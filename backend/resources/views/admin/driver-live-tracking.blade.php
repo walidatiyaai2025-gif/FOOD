@@ -32,7 +32,6 @@
     </main>
 </div>
 
-<script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
-<script src="{{ asset('assets/admin/driver-live-map.js') }}"></script>
+@include('admin._driver-live-map-scripts')
 </body>
 </html>
