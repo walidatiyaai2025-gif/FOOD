@@ -91,9 +91,16 @@ void main() {
     expect(find.text('الخضروات والفواكه'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byIcon(Icons.favorite_border_rounded));
+    final favorite = find.byIcon(Icons.favorite_border_rounded);
+    await tester.ensureVisible(favorite);
+    await tester.pumpAndSettle();
+    await tester.tap(favorite);
     await tester.pump();
-    await tester.tap(find.byIcon(Icons.add_rounded));
+
+    final add = find.byIcon(Icons.add_rounded);
+    await tester.ensureVisible(add);
+    await tester.pumpAndSettle();
+    await tester.tap(add);
     await tester.pump();
 
     expect(favoritePressed, isTrue);
