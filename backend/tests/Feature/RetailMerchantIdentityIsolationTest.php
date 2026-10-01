@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Services\B2cCustomerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\PlatformCustomerService;
-use App\Services\CommerceIdentityResolver;
+use App\Services\RetailMerchantIdentityService;
 use App\Services\RetailWholesaleAccountService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,9 +34,9 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         [$storeA, $b2bCustomerA] = $this->managedStore($manager, 'MERCHANT-A', true);
         [$storeB, $b2bCustomerB] = $this->managedStore($manager, 'MERCHANT-B', false);
 
-        $identity = app(CommerceIdentityResolver::class)->resolve($manager);
+        $identity = app(RetailMerchantIdentityService::class)->identityPayload($manager);
 
-        $this->assertTrue($identity['is_retail_merchant']);
+        $this->assertTrue($identity['retail_merchant']);
         $this->assertSame([$storeA->id], $identity['owned_retail_store_ids']);
         $this->assertSame([$storeA->id, $storeB->id], $identity['managed_retail_store_ids']);
         $this->assertSame([$storeA->id, $storeB->id], $identity['retail_store_ids']);
@@ -44,20 +44,20 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         $this->assertSame([
             ['store_id' => $storeA->id, 'b2b_customer_id' => $b2bCustomerA],
             ['store_id' => $storeB->id, 'b2b_customer_id' => $b2bCustomerB],
-        ], $identity['retail_store_b2b_customers']);
+        ], $identity['retail_wholesale_accounts']);
 
         $login = $this->postJson('/api/v1/auth/login', [
             'email' => $manager->email,
             'password' => 'password123',
         ])->assertOk()
-            ->assertJsonPath('user.is_retail_merchant', true)
+            ->assertJsonPath('user.retail_merchant', true)
             ->assertJsonPath('user.owned_retail_store_ids', [$storeA->id])
             ->assertJsonPath('user.managed_retail_store_ids', [$storeA->id, $storeB->id])
             ->assertJsonPath('user.retail_store_ids', [$storeA->id, $storeB->id])
-            ->assertJsonPath('user.retail_store_b2b_customers.0.store_id', $storeA->id)
-            ->assertJsonPath('user.retail_store_b2b_customers.0.b2b_customer_id', $b2bCustomerA)
-            ->assertJsonPath('user.retail_store_b2b_customers.1.store_id', $storeB->id)
-            ->assertJsonPath('user.retail_store_b2b_customers.1.b2b_customer_id', $b2bCustomerB);
+            ->assertJsonPath('user.retail_wholesale_accounts.0.retail_store_id', $storeA->id)
+            ->assertJsonPath('user.retail_wholesale_accounts.0.b2b_customer_id', $b2bCustomerA)
+            ->assertJsonPath('user.retail_wholesale_accounts.1.retail_store_id', $storeB->id)
+            ->assertJsonPath('user.retail_wholesale_accounts.1.b2b_customer_id', $b2bCustomerB);
 
         $this->assertNotEmpty($login->json('token'));
 
@@ -165,8 +165,10 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         [$ownedA] = $this->managedStore($user, 'OWNED-A');
         [$ownedB] = $this->managedStore($user, 'OWNED-B');
 
-        $identity = app(CommerceIdentityResolver::class);
+        $identity = app(RetailMerchantIdentityService::class);
+        $this->assertSame([$ownedA->id, $ownedB->id], $identity->ownedRetailStoreIds($user));
         $this->assertSame([$ownedA->id, $ownedB->id], $identity->managedRetailStoreIds($user));
+        $this->assertSame([$ownedA->id, $ownedB->id], $identity->retailStoreIds($user));
 
         $this->assertSelfStoreForbidden(
             fn () => app(CustomerDomainResolver::class)->b2c($user, $ownedA->id),
@@ -256,7 +258,7 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         } catch (SelfStorePurchaseNotAllowed $exception) {
             $this->assertGreaterThan(0, $exception->storeId);
             $this->assertSame(
-                'Retail merchants cannot purchase from a Retail Store they own or manage.',
+                SelfStorePurchaseNotAllowed::ERROR_CODE,
                 $exception->getMessage(),
             );
 
