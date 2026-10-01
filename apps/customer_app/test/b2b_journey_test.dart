@@ -10,11 +10,12 @@ import 'package:foodex_customer_app/core/auth/customer_session.dart';
 void main() {
   const b2b = CustomerSession.authenticated(CustomerChannel.b2b);
 
-  testWidgets('B2B unauthenticated protected route uses the unified Customer login', (tester) async {
+  testWidgets('B2B unauthenticated protected route uses B2B-aware Customer login', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(initialRoute: '/b2b/dashboard'));
     await tester.pumpAndSettle();
-    expect(find.text('تسجيل الدخول'), findsWidgets);
-    expect(find.textContaining('/auth/checkout'), findsOneWidget);
+    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.textContaining('/b2b/login'), findsOneWidget);
+    expect(find.textContaining('/auth/checkout'), findsNothing);
     expect(find.textContaining('next='), findsOneWidget);
   });
 

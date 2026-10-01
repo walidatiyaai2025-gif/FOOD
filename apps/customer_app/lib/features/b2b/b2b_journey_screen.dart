@@ -28,6 +28,11 @@ class B2bJourneyScreen extends StatelessWidget {
   final CustomerAuthenticated onAuthenticated;
   final ValueChanged<String> onPlatformAuthenticated;
 
+  String? get _nextRoute => safeCustomerReturnLocation(
+        Uri.parse(location).queryParameters['next'],
+        channel: CustomerChannel.b2b,
+      );
+
   @override
   Widget build(BuildContext context) {
     final content = _contentFor(context, definition.pattern);
@@ -101,7 +106,7 @@ class B2bJourneyScreen extends StatelessWidget {
               api: actionApi,
               onAuthenticated: onAuthenticated,
               onPlatformAuthenticated: onPlatformAuthenticated,
-              successRoute: CustomerRoutePaths.b2bDashboard,
+              successRoute: _nextRoute ?? CustomerRoutePaths.b2bDashboard,
             ),
           ],
         );

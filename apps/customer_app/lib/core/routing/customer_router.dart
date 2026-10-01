@@ -105,7 +105,11 @@ class CustomerAppRouter {
     }
 
     if (!session.isAuthenticated) {
-      return definitionFor(CustomerRoutePaths.checkoutAuth);
+      return definitionFor(
+        requested.channel == CustomerChannel.b2b
+            ? CustomerRoutePaths.b2bLogin
+            : CustomerRoutePaths.checkoutAuth,
+      );
     }
 
     if (session.channel != requested.channel && !session.platformWide) {
@@ -129,12 +133,12 @@ class CustomerAppRouter {
     CustomerRouteDefinition requested,
     String requestedLocation,
   ) {
-    if (
-        !session.isAuthenticated &&
+    if (!session.isAuthenticated &&
         requested.requiresAuth &&
-        redirect.pattern == CustomerRoutePaths.checkoutAuth) {
+        (redirect.pattern == CustomerRoutePaths.checkoutAuth ||
+            redirect.pattern == CustomerRoutePaths.b2bLogin)) {
       return Uri(
-        path: CustomerRoutePaths.checkoutAuth,
+        path: redirect.pattern,
         queryParameters: {'next': requestedLocation},
       ).toString();
     }
