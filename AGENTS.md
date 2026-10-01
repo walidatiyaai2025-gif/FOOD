@@ -763,6 +763,7 @@ Mandatory rules:
 - a release branch may generate a Dashboard update only when its target `VERSION` is not already registered on `main`;
 - `release/*` branches are temporary delivery branches, not long-lived release records; after their PR is merged to `main`, safe branch GC should delete them when they are not protected, do not have an open PR, are not referenced by open Issue worker state, and their completion can be verified safely;
 - release history must be recovered from `main`, tags/release metadata and `docs/release/RELEASE_REGISTRY.json`, never by keeping merged `release/*` branches indefinitely;
+- exception: `release/221-generated-trial-bundle` is a repository-managed generated distribution branch maintained by the trial-distribution workflow and must be preserved by branch GC; it is not authoritative release identity and must never replace `main`, tags/releases or the release registry as the source of release truth;
 - generated release artifacts are not authoritative merely because a workflow artifact or branch exists; promotion is complete only after the release metadata/artifacts are merged and registered on `main`;
 - workers must never tell the owner to deploy a package whose version is already registered for a different release payload.
 
