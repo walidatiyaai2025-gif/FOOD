@@ -761,6 +761,8 @@ Mandatory rules:
 - post-release fixes require the next semantic version (for example, fixes after published 1.0.40 must ship as 1.0.41);
 - published registry history is append-only: old entries may not be edited, reordered or removed;
 - a release branch may generate a Dashboard update only when its target `VERSION` is not already registered on `main`;
+- `release/*` branches are temporary delivery branches, not long-lived release records; after their PR is merged to `main`, safe branch GC should delete them when they are not protected, do not have an open PR, are not referenced by open Issue worker state, and their completion can be verified safely;
+- release history must be recovered from `main`, tags/release metadata and `docs/release/RELEASE_REGISTRY.json`, never by keeping merged `release/*` branches indefinitely;
 - generated release artifacts are not authoritative merely because a workflow artifact or branch exists; promotion is complete only after the release metadata/artifacts are merged and registered on `main`;
 - workers must never tell the owner to deploy a package whose version is already registered for a different release payload.
 
