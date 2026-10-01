@@ -259,6 +259,59 @@ void main() {
     expect(repo.transitionedStatus, isNull);
   });
 
+  testWidgets(
+      'Assignment Details drives authoritative accepted pickup and delivery-start states',
+      (tester) async {
+    final repo = _FakeActiveRepo(
+      const DriverAssignment(
+        id: 50,
+        channel: DriverChannel.b2c,
+        reference: 'RET-50',
+        status: 'assigned',
+        availableStatuses: ['accepted'],
+      ),
+    );
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('driver-active-assignment-50')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-detail-accept-50')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('driver-detail-accept-50')));
+    await tester.pumpAndSettle();
+    expect(repo.current.status, 'accepted');
+    expect(find.byKey(const Key('driver-active-detail-50')), findsOneWidget);
+    expect(find.byKey(const Key('driver-detail-pickup-50')), findsOneWidget);
+    expect(find.byKey(const Key('driver-detail-start-50')), findsOneWidget);
+    expect(find.byKey(const Key('driver-detail-failed-50')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('driver-detail-pickup-50')));
+    await tester.pumpAndSettle();
+    expect(repo.current.status, 'picked_up');
+    expect(find.byKey(const Key('driver-detail-start-50')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('driver-detail-start-50')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-active-start-note')), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('driver-active-start-note')),
+      'Driver left the store',
+    );
+    await tester.tap(
+      find.byKey(const Key('driver-active-confirm-start-50')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repo.current.status, 'out_for_delivery');
+    expect(repo.transitionedNote, 'Driver left the store');
+    expect(find.byKey(const Key('driver-active-detail-50')), findsOneWidget);
+    expect(find.byKey(const Key('driver-detail-delivered-50')), findsOneWidget);
+    expect(find.byKey(const Key('driver-detail-failed-50')), findsOneWidget);
+  });
+
   testWidgets('detail renders authoritative data and immutable navigation target',
       (tester) async {
     final repo = _FakeActiveRepo(
