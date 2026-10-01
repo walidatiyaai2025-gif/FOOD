@@ -28,6 +28,8 @@ class ProductionServicesTest extends TestCase
 
     private string $publicAssetProbeDirectory;
 
+    private string $sharedHostPublicAssetProbeDirectory;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -44,7 +46,9 @@ class ProductionServicesTest extends TestCase
         $this->assertFileDoesNotExist($this->migrationPath);
         $this->publicStorageLinkExisted = is_link(public_path('storage')) || is_dir(public_path('storage'));
         $this->publicAssetProbeDirectory = public_path('assets/updater-permission-probe');
+        $this->sharedHostPublicAssetProbeDirectory = dirname(base_path()).'/assets/updater-shared-host-probe';
         File::deleteDirectory($this->publicAssetProbeDirectory);
+        File::deleteDirectory($this->sharedHostPublicAssetProbeDirectory);
         copy(base_path('.env'), $this->directory.'/.env');
         config([
             'foodex.installer_env_path' => $this->directory.'/.env',
@@ -73,6 +77,9 @@ class ProductionServicesTest extends TestCase
         }
         if (isset($this->publicAssetProbeDirectory)) {
             File::deleteDirectory($this->publicAssetProbeDirectory);
+        }
+        if (isset($this->sharedHostPublicAssetProbeDirectory)) {
+            File::deleteDirectory($this->sharedHostPublicAssetProbeDirectory);
         }
 
         parent::tearDown();
@@ -122,6 +129,7 @@ class ProductionServicesTest extends TestCase
         $package = $this->package('success.zip', [
             'VERSION' => "99.0.0\n",
             'backend/public/assets/updater-permission-probe/probe.js' => 'window.foodexUpdaterProbe = true;',
+            'assets/updater-shared-host-probe/probe.js' => 'window.foodexSharedHostUpdaterProbe = true;',
         ]);
         $history = app(UpdateManager::class)->execute(
             $this->manifest($package, '99.0.0', $installed), $installed, $package,
@@ -138,6 +146,11 @@ class ProductionServicesTest extends TestCase
         $this->assertFileExists($publicProbe);
         $this->assertSame('0755', substr(sprintf('%o', fileperms($this->publicAssetProbeDirectory)), -4));
         $this->assertSame('0644', substr(sprintf('%o', fileperms($publicProbe)), -4));
+
+        $sharedHostProbe = $this->sharedHostPublicAssetProbeDirectory.'/probe.js';
+        $this->assertFileExists($sharedHostProbe);
+        $this->assertSame('0755', substr(sprintf('%o', fileperms($this->sharedHostPublicAssetProbeDirectory)), -4));
+        $this->assertSame('0644', substr(sprintf('%o', fileperms($sharedHostProbe)), -4));
 
         $migration = <<<'PHP'
 <?php
