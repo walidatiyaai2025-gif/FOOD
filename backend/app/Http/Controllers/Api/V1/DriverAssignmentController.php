@@ -93,10 +93,21 @@ class DriverAssignmentController extends Controller
             'order_id' => ['required', 'integer', 'exists:orders,id'],
             'replace_existing' => ['nullable', 'boolean'],
         ]);
-        $driver = Driver::query()->findOrFail($data['driver_id']);
         $order = Order::query()->findOrFail($data['order_id']);
         $channel = strtolower((string) $order->channel);
         abort_unless(in_array($channel, ['b2c', 'b2b'], true), 409, 'Unsupported order channel.');
+
+        $ability = "drivers.{$channel}.manage";
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        app(OperationalTenantScope::class)->assertStore(
+            $user,
+            (int) $order->store_id,
+            $ability,
+            $channel,
+        );
+
+        $driver = Driver::query()->findOrFail($data['driver_id']);
         abort_unless((bool) $driver->is_active, 409, 'Driver must be active before assignment.');
         [$driverChannel, $driverStoreId] = $this->driverTenants->resolve($driver);
         abort_unless($driverChannel === $channel, 409, 'Driver and order channels must match.');
@@ -109,16 +120,6 @@ class DriverAssignmentController extends Controller
             in_array((string) $order->status, ['delivered', 'cancelled'], true),
             409,
             'Completed or cancelled orders cannot be assigned.',
-        );
-
-        $ability = "drivers.{$channel}.manage";
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-        app(OperationalTenantScope::class)->assertStore(
-            $user,
-            (int) $order->store_id,
-            $ability,
-            $channel,
         );
 
         $activeAssignment = DriverAssignment::query()
