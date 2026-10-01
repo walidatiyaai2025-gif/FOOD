@@ -83,7 +83,6 @@ void main() {
       expect(find.byKey(const ValueKey('retail-catalog-home')), findsOneWidget);
       expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(find.byKey(const ValueKey('retail-category-3')), findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-product-42')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('retail-shell-nav-home')),
         findsOneWidget,
@@ -110,7 +109,11 @@ void main() {
       expect(capturedCategoryId, 3);
 
       final product = find.byKey(const ValueKey('retail-product-42'));
-      await tester.ensureVisible(product);
+      await tester.scrollUntilVisible(
+        product,
+        240,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(product);
       await tester.pump();
       expect(capturedProductId, 42);
