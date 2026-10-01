@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/core/theme/foodex_theme.dart';
-import 'package:foodex_driver_app/features/tasks/driver_journey.dart';
+import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -101,7 +101,7 @@ void main() {
       );
       await tester.pump();
         await tester.pump(const Duration(milliseconds: 150));
-      await tester.tap(find.byKey(const Key('assignment-3')));
+      await tester.tap(find.byKey(const Key('driver-active-assignment-3')));
       await tester.pump();
         await tester.pump(const Duration(milliseconds: 150));
       await _writeBoundary(
@@ -109,7 +109,7 @@ void main() {
         key,
         '01_Mobile/Driver_B2C/04_driver_delivery_detail__actions__$localeCode.png',
       );
-      expect(find.byKey(const Key('driver-navigate-3')), findsOneWidget);
+      expect(find.byKey(const Key('driver-active-navigate-3')), findsOneWidget);
       await _writeBoundary(
         tester,
         key,
