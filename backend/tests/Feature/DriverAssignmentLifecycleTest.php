@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Address;
 use App\Models\Customer;
+use App\Models\DeliveryProof;
 use App\Models\Driver;
 use App\Models\Order;
 use App\Models\Role;
@@ -346,7 +347,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             ->assertJsonPath('data.available_statuses.1', 'failed');
     }
 
-    public function test_delivered_transition_can_store_optional_proof_image(): void
+    public function test_delivered_transition_persists_required_proof_image(): void
     {
         Storage::fake('public');
         $this->seed(CoreReferenceSeeder::class);
@@ -534,6 +535,20 @@ class DriverAssignmentLifecycleTest extends TestCase
             'to_status' => 'accepted',
         ]);
 
+        $evidence = DeliveryProof::query()
+            ->where('driver_assignment_id', $assignmentId)
+            ->where('idempotency_key', 'accept-retry-0001')
+            ->firstOrFail();
+        try {
+            $evidence->update(['note' => 'tampered']);
+            $this->fail('Delivery evidence must be immutable.');
+        } catch (\LogicException $exception) {
+            $this->assertSame(
+                'Delivery proof evidence is immutable.',
+                $exception->getMessage(),
+            );
+        }
+
         $this->postJson(
             "/api/v1/driver/assignments/{$assignmentId}/status",
             [
@@ -678,6 +693,9 @@ class DriverAssignmentLifecycleTest extends TestCase
 
         $this->getJson("/api/v1/driver/assignments/{$firstId}")
             ->assertNotFound();
+        $this->postJson("/api/v1/driver/assignments/{$firstId}/status", [
+            'status' => 'accepted',
+        ])->assertNotFound();
 
         $history = $this->getJson('/api/v1/driver/assignments?scope=all')
             ->assertOk()
