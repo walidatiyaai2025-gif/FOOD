@@ -12,27 +12,27 @@ permissions:
 jobs:
   backend-validation:
     name: Backend + MySQL commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') }}
     uses: ./.github/workflows/backend-ci.yml
 
   customer-validation:
     name: Customer Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') }}
     uses: ./.github/workflows/customer-app-ci.yml
 
   driver-validation:
     name: Driver Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') }}
     uses: ./.github/workflows/driver-app-ci.yml
 
   runtime-evidence:
     name: Runtime screenshot evidence
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') }}
     uses: ./.github/workflows/screenshot-evidence.yml
 
   release-gate:
     name: Platform Customer commerce release gate
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-')) }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-')) }}
     needs:
       - backend-validation
       - customer-validation
@@ -126,7 +126,7 @@ jobs:
           grep -Fq 'capture My Addresses edit with location' apps/customer_app/test/screenshot_evidence_test.dart
 
       - name: Verify CJ-V2 Guest integrated acceptance
-        if: ${{ startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') }}
+        if: ${{ startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') }}
         shell: bash
         run: |
           set -euo pipefail
