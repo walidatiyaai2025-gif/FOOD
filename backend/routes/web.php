@@ -104,6 +104,13 @@ Route::prefix('admin')
             ->name('app-preview.sessions.destroy');
         Route::get('/driver-live-tracking', [DriverLiveTrackingDashboardController::class, 'index'])->name('driver-live-tracking.index');
         Route::get('/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed'])->name('driver-live-tracking.feed');
+        Route::get('/driver-live-tracking/assignments/{assignment}/evidence', [DriverLiveTrackingDashboardController::class, 'evidence'])
+            ->whereNumber('assignment')
+            ->name('driver-live-tracking.evidence');
+        Route::get('/driver-live-tracking/assignments/{assignment}/proofs/{proof}', [DriverLiveTrackingDashboardController::class, 'proof'])
+            ->whereNumber('assignment')
+            ->whereNumber('proof')
+            ->name('driver-live-tracking.proofs.show');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
         Route::get('/customer-360/{invalidCustomerReference}', [Customer360Controller::class, 'invalidReference'])
