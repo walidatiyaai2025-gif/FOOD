@@ -152,8 +152,6 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
         );
 
       case CustomerRoutePaths.products:
-      case CustomerRoutePaths.categories:
-      case CustomerRoutePaths.offers:
         return withShell(
           CustomerRetailDestination.products,
           RetailCatalogProductsScreen(
@@ -163,6 +161,26 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
             initialQuery: uri.queryParameters['q'],
             categoryId: int.tryParse(uri.queryParameters['category_id'] ?? ''),
             onAddToCart: addToCart,
+          ),
+        );
+
+      case CustomerRoutePaths.categories:
+        return withShell(
+          CustomerRetailDestination.products,
+          RetailCatalogCategoriesScreen(
+            storeId: storeId,
+            catalogApi: catalogApi,
+            navigation: navigation,
+          ),
+        );
+
+      case CustomerRoutePaths.offers:
+        return withShell(
+          CustomerRetailDestination.products,
+          RetailCatalogOffersScreen(
+            storeId: storeId,
+            catalogApi: catalogApi,
+            navigation: navigation,
           ),
         );
 

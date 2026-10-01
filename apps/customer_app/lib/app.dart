@@ -42,6 +42,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.actionApi,
     this.storefrontApi,
     this.wholesaleCommerceApi,
+    this.customerOrdersApi,
     this.locale = const Locale('ar'),
     this.translationOverrides = const {},
     this.translationFetcher,
@@ -64,6 +65,7 @@ class FoodexCustomerApp extends StatefulWidget {
     required http.Client marketplaceClient,
     B2bApi? b2bApi,
     WholesaleCommerceApi? wholesaleCommerceApi,
+    CustomerOrdersApi? customerOrdersApi,
     String initialRoute = CustomerRoutePaths.marketplace,
     Locale? locale,
     Map<String, String> translationOverrides = const {},
@@ -93,6 +95,7 @@ class FoodexCustomerApp extends StatefulWidget {
               wholesaleCommerceApi,
               previewContext,
             ),
+      customerOrdersApi: customerOrdersApi,
       locale: locale ??
           Locale(previewContext.targetLocale == 'en' ? 'en' : 'ar'),
       translationOverrides: translationOverrides,
@@ -116,6 +119,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final CustomerActionApi? actionApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleCommerceApi;
+  final CustomerOrdersApi? customerOrdersApi;
   final Locale locale;
   final Map<String, String> translationOverrides;
   final TranslationFetcher? translationFetcher;
@@ -507,13 +511,14 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     }
 
     final retailCommerceApi = retailCommerceForToken(token);
-    final customerOrdersApi = token == null || token.isEmpty
-        ? null
-        : HttpCustomerOrdersApi(
-            baseUrl: baseUrl,
-            token: token,
-            client: _sessionHttpClient,
-          );
+    final customerOrdersApi = widget.customerOrdersApi ??
+        (token == null || token.isEmpty
+            ? null
+            : HttpCustomerOrdersApi(
+                baseUrl: baseUrl,
+                token: token,
+                client: _sessionHttpClient,
+              ));
     final favoritesApi = b2cAccountApi is B2cRetailFavoritesApi
         ? b2cAccountApi as B2cRetailFavoritesApi
         : null;

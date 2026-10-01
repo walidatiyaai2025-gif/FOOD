@@ -121,7 +121,7 @@ abstract final class FoodexTheme {
       scaffoldBackgroundColor: CustomerUiColors.mint,
       cardColor: CustomerUiColors.white,
       dividerColor: CustomerUiColors.border,
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: CustomerUiColors.deepGreen,
         foregroundColor: CustomerUiColors.white,
         surfaceTintColor: Colors.transparent,
@@ -129,13 +129,13 @@ abstract final class FoodexTheme {
         scrolledUnderElevation: CustomerUiElevation.flat,
         centerTitle: false,
         toolbarHeight: 64,
-        titleTextStyle: TextStyle(
+        titleTextStyle: primaryTextTheme.titleLarge?.copyWith(
           color: CustomerUiColors.white,
           fontSize: 19,
           fontWeight: FontWeight.w800,
         ),
-        iconTheme: IconThemeData(color: CustomerUiColors.white),
-        actionsIconTheme: IconThemeData(color: CustomerUiColors.white),
+        iconTheme: const IconThemeData(color: CustomerUiColors.white),
+        actionsIconTheme: const IconThemeData(color: CustomerUiColors.white),
       ),
       navigationBarTheme: const NavigationBarThemeData(
         height: 74,

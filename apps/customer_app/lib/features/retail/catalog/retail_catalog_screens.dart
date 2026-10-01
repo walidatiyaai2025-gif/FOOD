@@ -226,6 +226,301 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen> {
   }
 }
 
+class RetailCatalogCategoriesScreen extends StatefulWidget {
+  const RetailCatalogCategoriesScreen({
+    required this.storeId,
+    required this.catalogApi,
+    this.navigation = const RetailCatalogNavigation(),
+    super.key,
+  }) : assert(storeId > 0);
+
+  final int storeId;
+  final B2cCatalogApi catalogApi;
+  final RetailCatalogNavigation navigation;
+
+  @override
+  State<RetailCatalogCategoriesScreen> createState() =>
+      _RetailCatalogCategoriesScreenState();
+}
+
+class _RetailCatalogCategoriesScreenState
+    extends State<RetailCatalogCategoriesScreen> {
+  late Future<List<B2cCategory>> _future = _load();
+
+  Future<List<B2cCategory>> _load() =>
+      widget.catalogApi.categories(widget.storeId);
+
+  void _reload() => setState(() => _future = _load());
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        key: const ValueKey('retail-catalog-categories'),
+        backgroundColor: CustomerUiColors.mint,
+        appBar: AppBar(
+          title: Text(context.tr('customer.home.categories')),
+          actions: [
+            if (widget.navigation.openCart != null)
+              IconButton(
+                key: const ValueKey('retail-categories-cart'),
+                tooltip: context.tr('customer.nav.cart'),
+                onPressed: () => widget.navigation.openCart!(
+                  context,
+                  storeId: widget.storeId,
+                ),
+                icon: const Icon(Icons.shopping_bag_outlined),
+              ),
+          ],
+        ),
+        body: FutureBuilder<List<B2cCategory>>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return GridView.builder(
+                key: const ValueKey('retail-categories-loading'),
+                padding: const EdgeInsets.all(CustomerUiSpacing.page),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: CustomerUiSpacing.sm,
+                  mainAxisSpacing: CustomerUiSpacing.md,
+                  mainAxisExtent: 112,
+                ),
+                itemCount: 9,
+                itemBuilder: (_, __) =>
+                    const Center(child: CustomerCategorySkeleton()),
+              );
+            }
+
+            if (snapshot.hasError || !snapshot.hasData) {
+              return CustomerStateView(
+                kind: CustomerStateKind.error,
+                title: context.tr('customer.error.offline'),
+                actionLabel: context.tr('customer.action.retry'),
+                onAction: _reload,
+              );
+            }
+
+            final categories = snapshot.data!;
+            if (categories.isEmpty) {
+              return CustomerStateView(
+                kind: CustomerStateKind.empty,
+                title: context.tr('customer.empty'),
+                icon: Icons.category_outlined,
+              );
+            }
+
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 720 ? 5 : 3;
+                return GridView.builder(
+                  key: const ValueKey('retail-categories-grid'),
+                  padding: const EdgeInsets.fromLTRB(
+                    CustomerUiSpacing.page,
+                    CustomerUiSpacing.lg,
+                    CustomerUiSpacing.page,
+                    CustomerUiSpacing.xxl,
+                  ),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    crossAxisSpacing: CustomerUiSpacing.sm,
+                    mainAxisSpacing: CustomerUiSpacing.md,
+                    mainAxisExtent: 116,
+                  ),
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    final category = categories[index];
+                    return Center(
+                      child: CustomerCategoryTile(
+                        key: ValueKey('retail-category-grid-${category.id}'),
+                        label: category.name,
+                        imageUrl: category.imageUrl,
+                        onTap: widget.navigation.openProducts == null
+                            ? null
+                            : () => widget.navigation.openProducts!(
+                                  context,
+                                  storeId: widget.storeId,
+                                  categoryId: category.id,
+                                ),
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        ),
+      );
+}
+
+class RetailCatalogOffersScreen extends StatefulWidget {
+  const RetailCatalogOffersScreen({
+    required this.storeId,
+    required this.catalogApi,
+    this.navigation = const RetailCatalogNavigation(),
+    super.key,
+  }) : assert(storeId > 0);
+
+  final int storeId;
+  final B2cCatalogApi catalogApi;
+  final RetailCatalogNavigation navigation;
+
+  @override
+  State<RetailCatalogOffersScreen> createState() =>
+      _RetailCatalogOffersScreenState();
+}
+
+class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen> {
+  late Future<List<B2cOffer>> _future = _load();
+
+  Future<List<B2cOffer>> _load() => widget.catalogApi.offers(widget.storeId);
+
+  void _reload() => setState(() => _future = _load());
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        key: const ValueKey('retail-catalog-offers'),
+        backgroundColor: CustomerUiColors.mint,
+        appBar: AppBar(
+          title: Text(context.tr('customer.home.offers')),
+          actions: [
+            if (widget.navigation.openCart != null)
+              IconButton(
+                key: const ValueKey('retail-offers-cart'),
+                tooltip: context.tr('customer.nav.cart'),
+                onPressed: () => widget.navigation.openCart!(
+                  context,
+                  storeId: widget.storeId,
+                ),
+                icon: const Icon(Icons.shopping_bag_outlined),
+              ),
+          ],
+        ),
+        body: FutureBuilder<List<B2cOffer>>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return ListView.separated(
+                key: const ValueKey('retail-offers-loading'),
+                padding: const EdgeInsets.all(CustomerUiSpacing.page),
+                itemCount: 4,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: CustomerUiSpacing.sm),
+                itemBuilder: (_, __) => const CustomerSkeletonBox(
+                  height: 96,
+                  radius: CustomerUiRadii.xl,
+                ),
+              );
+            }
+
+            if (snapshot.hasError || !snapshot.hasData) {
+              return CustomerStateView(
+                kind: CustomerStateKind.error,
+                title: context.tr('customer.error.offline'),
+                actionLabel: context.tr('customer.action.retry'),
+                onAction: _reload,
+              );
+            }
+
+            final offers = snapshot.data!;
+            if (offers.isEmpty) {
+              return CustomerStateView(
+                kind: CustomerStateKind.empty,
+                title: context.tr('customer.empty'),
+                icon: Icons.local_offer_outlined,
+              );
+            }
+
+            return ListView.separated(
+              key: const ValueKey('retail-offers-list'),
+              padding: const EdgeInsets.fromLTRB(
+                CustomerUiSpacing.page,
+                CustomerUiSpacing.lg,
+                CustomerUiSpacing.page,
+                CustomerUiSpacing.xxl,
+              ),
+              itemCount: offers.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: CustomerUiSpacing.sm),
+              itemBuilder: (context, index) {
+                final offer = offers[index];
+                final value = offer.value;
+                return Material(
+                  color: CustomerUiColors.white,
+                  borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+                      border: Border.all(color: CustomerUiColors.border),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(CustomerUiSpacing.md),
+                      child: Row(
+                        children: [
+                          DecoratedBox(
+                            decoration: const BoxDecoration(
+                              color: CustomerUiColors.limeSoft,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const SizedBox.square(
+                              dimension: 52,
+                              child: Icon(
+                                Icons.local_offer_outlined,
+                                color: CustomerUiColors.deepGreenStrong,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: CustomerUiSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  offer.name,
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
+                                ),
+                                if (offer.type.trim().isNotEmpty) ...[
+                                  const SizedBox(
+                                    height: CustomerUiSpacing.xs,
+                                  ),
+                                  Text(
+                                    offer.type,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: CustomerUiColors.muted,
+                                        ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (value != null)
+                            CustomerBadge(
+                              label: _formatOfferValue(offer),
+                              tone: CustomerBadgeTone.discount,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      );
+
+  String _formatOfferValue(B2cOffer offer) {
+    final value = offer.value;
+    if (value == null) return '';
+    final normalizedType = offer.type.toLowerCase();
+    final fractionDigits = value == value.roundToDouble() ? 0 : 2;
+    final formatted = value.toStringAsFixed(fractionDigits);
+    return normalizedType.contains('percent') ? '$formatted%' : formatted;
+  }
+}
+
 class RetailCatalogProductsScreen extends StatefulWidget {
   const RetailCatalogProductsScreen({
     required this.storeId,
