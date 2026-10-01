@@ -2,7 +2,12 @@
 
 namespace App\Providers;
 
-use App\Domain\Assistant\Business\AssistantBusinessToolSet;\nuse App\Domain\Assistant\Contracts\AssistantBrainInterface;\nuse App\Domain\Assistant\Conversation\DeterministicBrain;\nuse App\Domain\Assistant\Operations\AssistantOperationsToolSet;\nuse App\Domain\Assistant\Tools\AssistantToolRegistry;\nuse App\Domain\Updater\LaravelUpdateRuntime;
+use App\Domain\Assistant\Business\AssistantBusinessToolSet;
+use App\Domain\Assistant\Contracts\AssistantBrainInterface;
+use App\Domain\Assistant\Conversation\DeterministicBrain;
+use App\Domain\Assistant\Operations\AssistantOperationsToolSet;
+use App\Domain\Assistant\Tools\AssistantToolRegistry;
+use App\Domain\Updater\LaravelUpdateRuntime;
 use App\Domain\Updater\UpdateRuntime;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
@@ -23,7 +28,14 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(AssistantToolRegistry::class, function ($app): AssistantToolRegistry {\n            return new AssistantToolRegistry([\n                ...$app->make(AssistantBusinessToolSet::class)->all(),\n                ...$app->make(AssistantOperationsToolSet::class)->all(),\n            ]);\n        });\n        $this->app->bind(AssistantBrainInterface::class, DeterministicBrain::class);\n        $this->app->scoped(StoreContext::class, static fn (): StoreContext => new StoreContext);
+        $this->app->singleton(AssistantToolRegistry::class, function ($app): AssistantToolRegistry {
+            return new AssistantToolRegistry([
+                ...$app->make(AssistantBusinessToolSet::class)->all(),
+                ...$app->make(AssistantOperationsToolSet::class)->all(),
+            ]);
+        });
+        $this->app->bind(AssistantBrainInterface::class, DeterministicBrain::class);
+        $this->app->scoped(StoreContext::class, static fn (): StoreContext => new StoreContext);
         $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
         $this->app->extend(
             'translation.loader',
@@ -45,7 +57,14 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
-        RateLimiter::for('assistant', function (Request $request): Limit {\n            $userId = $request->user()?->getAuthIdentifier();\n            $key = $userId === null ? 'assistant:ip:'.$request->ip() : 'assistant:user:'.$userId;\n\n            return Limit::perMinute(max(1, (int) config('assistant.rate_limit', 30)))->by($key);\n        });\n\n        foreach (array_keys((array) config('permissions.abilities', [])) as $ability) {
+        RateLimiter::for('assistant', function (Request $request): Limit {
+            $userId = $request->user()?->getAuthIdentifier();
+            $key = $userId === null ? 'assistant:ip:'.$request->ip() : 'assistant:user:'.$userId;
+
+            return Limit::perMinute(max(1, (int) config('assistant.rate_limit', 30)))->by($key);
+        });
+
+        foreach (array_keys((array) config('permissions.abilities', [])) as $ability) {
             Gate::define(
                 $ability,
                 static fn (User $user, ?int $storeId = null): bool => $user->hasPermission($ability, $storeId),
