@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
 use App\Models\User;
 use App\Services\CustomerDomainResolver;
+use App\Services\RetailMerchantIdentityService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,8 @@ use Illuminate\Validation\ValidationException;
 
 final class StorefrontController extends Controller
 {
+    public function __construct(private readonly RetailMerchantIdentityService $retailMerchants) {}
+
     public function marketplace(Request $request): JsonResponse
     {
         $wholesale = DB::table('stores')
@@ -238,6 +241,11 @@ final class StorefrontController extends Controller
 
     public function show(Request $request, int $store): JsonResponse
     {
+        $user = $request->user('sanctum');
+        if ($user instanceof User) {
+            $this->retailMerchants->assertCanPurchaseFromRetailStore($user, $store);
+        }
+
         $storeRow = $this->retailStoreQuery($request, false)
             ->where('stores.id', $store)
             ->first();
@@ -502,6 +510,14 @@ final class StorefrontController extends Controller
                 'storefront_settings.theme_code',
                 'storefront_settings.header_address',
             ]);
+
+        $user = $request->user('sanctum');
+        if ($user instanceof User) {
+            $excludedStoreIds = $this->retailMerchants->retailStoreIds($user);
+            if ($excludedStoreIds !== []) {
+                $query->whereNotIn('stores.id', $excludedStoreIds);
+            }
+        }
 
         if (! $applyZone) {
             return $query;
