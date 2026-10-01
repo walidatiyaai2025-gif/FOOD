@@ -48,10 +48,12 @@ final class AssistantController extends Controller
             ->latest('updated_at')
             ->first();
 
+        $locale = $conversation === null ? $user->locale : $conversation->locale;
+
         return response()->json(['data' => [
             'conversation' => $conversation === null ? null : $this->conversationPayload($conversation),
             'messages' => $conversation === null ? [] : $this->messagePayloads($conversation),
-            'suggested_prompts' => $this->suggestedPrompts($this->locale($conversation?->locale ?? $user->locale)),
+            'suggested_prompts' => $this->suggestedPrompts($this->locale($locale)),
         ]]);
     }
 
@@ -182,7 +184,7 @@ final class AssistantController extends Controller
                     'cards' => $cards,
                     'actions' => $actions,
                     'suggested_prompts' => $suggested,
-                    'data' => $toolResult?->data ?? [],
+                    'data' => $toolResult === null ? [] : $toolResult->data,
                 ];
 
                 $assistantMessage = AssistantMessage::query()->create([
@@ -340,11 +342,9 @@ final class AssistantController extends Controller
             $authorized['channel'] = $toolRequest->channel;
         }
 
-        foreach ($toolResult?->references ?? [] as $reference) {
-            if (! is_array($reference)) {
-                continue;
-            }
+        $references = $toolResult === null ? [] : $toolResult->references;
 
+        foreach ($references as $reference) {
             $type = is_string($reference['type'] ?? null) ? $reference['type'] : null;
             $id = $this->positiveInt($reference['id'] ?? null);
             if ($type !== null && $id !== null && in_array($type, ['order', 'customer', 'driver', 'product', 'store'], true)) {
@@ -365,7 +365,7 @@ final class AssistantController extends Controller
                 'last_period' => is_array($brainState['last_period'] ?? null) ? $brainState['last_period'] : null,
                 'last_authorized_entities' => $authorized,
                 'last_tool' => $toolResult === null ? null : ($brainState['last_tool'] ?? $brainState['last_intent'] ?? null),
-                'result_references' => $toolResult?->references ?? [],
+                'result_references' => $toolResult === null ? [] : $toolResult->references,
                 'pending_clarification_slots' => (bool) ($brainState['pending_clarification'] ?? false)
                     ? [['intent' => $brainState['last_intent'] ?? null]]
                     : [],
@@ -389,7 +389,7 @@ final class AssistantController extends Controller
                 continue;
             }
 
-            if (is_string($url) && str_starts_with($url, '/admin')) {
+            if (str_starts_with($url, '/admin')) {
                 $result[] = ['label' => $action->label, 'url' => $url];
             }
         }
@@ -458,14 +458,17 @@ final class AssistantController extends Controller
             'public_id' => (string) $conversation->public_id,
             'locale' => (string) $conversation->locale,
             'title' => $conversation->title,
-            'last_message_at' => $conversation->last_message_at?->toIso8601String(),
+            'last_message_at' => $conversation->last_message_at === null
+                ? null
+                : CarbonImmutable::parse((string) $conversation->last_message_at)->toIso8601String(),
         ];
     }
 
     /** @return list<array<string,mixed>> */
     private function messagePayloads(AssistantConversation $conversation): array
     {
-        return $conversation->messages()
+        return AssistantMessage::query()
+            ->where('conversation_id', $conversation->getKey())
             ->latest('id')
             ->limit(50)
             ->get()
@@ -478,7 +481,8 @@ final class AssistantController extends Controller
     /** @return array<string,mixed> */
     private function messagePayload(AssistantMessage $message): array
     {
-        $payload = is_array($message->payload) ? $message->payload : [];
+        /** @var array<string, mixed> $payload */
+        $payload = $message->getAttribute('payload') ?? [];
 
         return [
             'id' => (int) $message->getKey(),
