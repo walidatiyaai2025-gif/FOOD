@@ -157,20 +157,28 @@ void main() {
     );
   });
 
-  testWidgets('Customer login exposes diagnostics before authentication',
+  testWidgets('Customer checkout auth uses the NEW Retail auth surface',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
-        initialRoute: CustomerRoutePaths.checkoutAuth,
+        initialRoute:
+            '/auth/checkout?channel=retail&store_id=7&next=%2Fcheckout%2Faddress-payment%3Fchannel%3Dretail%26store_id%3D7',
         locale: Locale('en'),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('customer-login-diagnostics')),
+      find.byKey(const ValueKey('retail-checkout-auth-screen')),
       findsOneWidget,
     );
-    expect(find.text('Open app diagnostics'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('retail-auth-submit')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('customer-login-diagnostics')),
+      findsNothing,
+    );
   });
 }
