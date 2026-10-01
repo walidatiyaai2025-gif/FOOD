@@ -59,6 +59,10 @@ void main() {
           'retail_banners': [
             {
               'id': 7,
+              'store_id': 7,
+              'placement_scope': 'platform_retail_store',
+              'target_type': 'retail_store',
+              'target_id': 7,
               'code': 'RETAIL-07',
               'name': 'Retail Seven',
               'title': 'Retail Seven Offer',
@@ -68,6 +72,10 @@ void main() {
             },
             {
               'id': 8,
+              'store_id': 8,
+              'placement_scope': 'platform_retail_store',
+              'target_type': 'retail_store',
+              'target_id': 8,
               'code': 'RETAIL-08',
               'name': 'Retail Eight',
               'title': 'Retail Eight Offer',
@@ -133,7 +141,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('route-name')), findsOneWidget);
-    expect(find.text('/retail/7/home'), findsOneWidget);
+    final routeText = tester.widget<Text>(
+      find.byKey(const ValueKey('route-name')),
+    );
+    final route = Uri.parse(routeText.data!);
+    expect(route.path, '/retail/7/home');
+    expect(route.queryParameters['channel'], 'retail');
+    expect(route.queryParameters['store_id'], '7');
   });
 
   testWidgets('marketplace banner carousel keeps Wholesale first then Retail slides', (tester) async {
