@@ -384,6 +384,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
         ? null
         : DriverNavigator(
             session.channel,
+            driverName: session.name,
             repository: assignments,
             notificationRepository: notifications,
             onSessionExpired: _sessionExpired,

@@ -12,6 +12,7 @@ class FakeRepo implements DriverAssignmentRepository {
   String? transitionedStatus;
   DriverChannel? transitionedChannel;
   String? transitionedFailureReason;
+  String? transitionedNote;
 
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async {
@@ -25,6 +26,7 @@ class FakeRepo implements DriverAssignmentRepository {
     transitionedChannel = channel;
     transitionedStatus = status;
     transitionedFailureReason = failureReason;
+    transitionedNote = note;
   }
 }
 
@@ -60,6 +62,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('B2C-1'), findsOneWidget);
+    expect(find.byKey(const Key('driver-order-filter-bar')), findsOneWidget);
     expect(find.text('B2B-1'), findsNothing);
     expect(find.text('B2C-OLD'), findsNothing);
   });
@@ -241,6 +244,133 @@ void main() {
     await tester.pumpAndSettle();
     expect(repo.transitionedStatus, 'failed');
     expect(repo.transitionedFailureReason, 'customer_no_answer');
+  });
+
+  testWidgets('accepted delivery uses direct start-delivery decision sheet',
+      (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 41,
+        channel: DriverChannel.b2b,
+        reference: 'B2B-41',
+        status: 'accepted',
+        availableStatuses: ['out_for_delivery', 'failed'],
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2b,
+          repository: repo,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-primary-action-41')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('driver-primary-action-41')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('driver-decision-note-41-out_for_delivery')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('driver-decision-failed-41')), findsOneWidget);
+    expect(
+      find.byKey(const Key('driver-decision-confirm-out_for_delivery')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('driver-decision-note-41-out_for_delivery')),
+      'Leaving warehouse now',
+    );
+    await tester.tap(
+      find.byKey(const Key('driver-decision-confirm-out_for_delivery')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repo.transitionedId, 41);
+    expect(repo.transitionedStatus, 'out_for_delivery');
+    expect(repo.transitionedNote, 'Leaving warehouse now');
+  });
+
+  testWidgets('start-delivery sheet can report failure directly with optional note',
+      (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 43,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-43',
+        status: 'accepted',
+        availableStatuses: ['out_for_delivery', 'failed'],
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2c,
+          repository: repo,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('driver-primary-action-43')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('driver-decision-note-43-out_for_delivery')),
+      'Customer requested reschedule',
+    );
+    await tester.tap(find.byKey(const Key('driver-decision-failed-43')));
+    await tester.pumpAndSettle();
+
+    expect(repo.transitionedId, 43);
+    expect(repo.transitionedStatus, 'failed');
+    expect(repo.transitionedNote, 'Customer requested reschedule');
+    expect(repo.transitionedFailureReason, isNull);
+  });
+
+  testWidgets('out-for-delivery direct action keeps failed and proof options together',
+      (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 42,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-42',
+        status: 'out_for_delivery',
+        availableStatuses: ['delivered', 'failed'],
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2c,
+          repository: repo,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('driver-primary-action-42')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-decision-failed-42')), findsOneWidget);
+    expect(
+      find.byKey(const Key('driver-decision-proof-camera')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('driver-decision-proof-gallery')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('driver-decision-confirm-delivered')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('push-targeted assignment opens its detail after load', (tester) async {

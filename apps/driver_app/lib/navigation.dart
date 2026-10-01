@@ -31,6 +31,7 @@ class DriverNavigator {
   const DriverNavigator(
     this.channel, {
     required this.repository,
+    this.driverName = '',
     this.notificationRepository,
     this.onSessionExpired,
     this.onLogout,
@@ -39,6 +40,7 @@ class DriverNavigator {
 
   final DriverChannel channel;
   final DriverAssignmentRepository repository;
+  final String driverName;
   final DriverNotificationRepository? notificationRepository;
   final VoidCallback? onSessionExpired;
   final VoidCallback? onLogout;
@@ -105,9 +107,6 @@ class DriverNavigator {
   }
 
   Widget _homeFor(DriverChannel channel) {
-    final route = channel == DriverChannel.b2c
-        ? DriverRoutes.b2cHome
-        : DriverRoutes.b2bHome;
     final deliveries = channel == DriverChannel.b2c
         ? DriverRoutes.b2cDeliveries
         : DriverRoutes.b2bDeliveries;
@@ -116,8 +115,8 @@ class DriverNavigator {
         : DriverRoutes.b2bNotifications;
 
     return _DriverHomePage(
-      routeName: route,
       deliveriesRoute: deliveries,
+      driverName: driverName,
       notificationsRoute: notifications,
       channel: channel,
       repository: repository,
@@ -134,8 +133,8 @@ class DriverNavigator {
 
 class _DriverHomePage extends StatefulWidget {
   const _DriverHomePage({
-    required this.routeName,
     required this.deliveriesRoute,
+    required this.driverName,
     required this.notificationsRoute,
     required this.channel,
     required this.repository,
@@ -144,8 +143,8 @@ class _DriverHomePage extends StatefulWidget {
     this.previewContext,
   });
 
-  final String routeName;
   final String deliveriesRoute;
+  final String driverName;
   final String notificationsRoute;
   final DriverChannel channel;
   final DriverAssignmentRepository repository;
@@ -225,9 +224,53 @@ class _DriverHomePageState extends State<_DriverHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final driverName = widget.driverName.trim();
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.tr('driver.app.title')),
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: FoodexBrand.greenSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.local_shipping_rounded,
+                color: FoodexBrand.greenDark,
+                size: 21,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr('driver.app.title'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (driverName.isNotEmpty)
+                    Text(
+                      driverName,
+                      key: const Key('driver-home-driver-name'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: FoodexBrand.muted,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             key: const Key('driver-home-refresh'),
@@ -240,7 +283,7 @@ class _DriverHomePageState extends State<_DriverHomePage> {
               key: const Key('driver-logout'),
               onPressed: widget.onLogout,
               tooltip: context.tr('driver.logout'),
-              icon: const Icon(Icons.logout),
+              icon: const Icon(Icons.logout_rounded),
             ),
         ],
       ),
@@ -249,86 +292,119 @@ class _DriverHomePageState extends State<_DriverHomePage> {
           onRefresh: _loadSummary,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
             children: [
               Container(
-                padding: const EdgeInsets.all(22),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     begin: AlignmentDirectional.topStart,
                     end: AlignmentDirectional.bottomEnd,
                     colors: [FoodexBrand.greenDark, FoodexBrand.green],
                   ),
-                  borderRadius: BorderRadius.circular(26),
+                  borderRadius: BorderRadius.circular(24),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x24165D2D),
-                      blurRadius: 24,
-                      offset: Offset(0, 12),
+                      blurRadius: 22,
+                      offset: Offset(0, 10),
                     ),
                   ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.white24,
-                          foregroundColor: Colors.white,
-                          child: Icon(Icons.local_shipping_rounded),
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: const Color(0x29FFFFFF),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.route_rounded,
+                            color: Colors.white,
+                          ),
                         ),
-                        SizedBox(width: 12),
+                        const SizedBox(width: 12),
                         Expanded(
-                          child: Text(
-                            'FOODEX DRIVER',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: .8,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                driverName.isEmpty
+                                    ? context.tr('driver.home.title')
+                                    : driverName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                context.tr('driver.home.subtitle'),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFFE3F5E9),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 22),
-                    Text(
-                      context.tr('driver.home.title'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      context.tr('driver.home.subtitle'),
-                      style: const TextStyle(color: Color(0xFFE3F5E9)),
-                    ),
-                    const SizedBox(height: 18),
-                    FilledButton.icon(
-                      key: const Key('driver-open-deliveries'),
-                      onPressed: () => Navigator.of(context).pushNamed(widget.deliveriesRoute),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: FoodexBrand.greenDark,
-                      ),
-                      icon: const Icon(Icons.route_rounded),
-                      label: Text(context.tr('driver.home.open_deliveries')),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      key: const Key('driver-open-notifications'),
-                      onPressed: () => Navigator.of(context).pushNamed(
-                        widget.notificationsRoute,
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white54),
-                      ),
-                      icon: const Icon(Icons.notifications_none_rounded),
-                      label: Text(context.tr('driver.notifications.title')),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.icon(
+                            key: const Key('driver-open-deliveries'),
+                            onPressed: () => Navigator.of(context)
+                                .pushNamed(widget.deliveriesRoute),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: FoodexBrand.greenDark,
+                              minimumSize: const Size(0, 48),
+                            ),
+                            icon: const Icon(Icons.route_rounded, size: 19),
+                            label: Text(
+                              context.tr('driver.home.open_deliveries'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const Key('driver-open-notifications'),
+                            onPressed: () => Navigator.of(context)
+                                .pushNamed(widget.notificationsRoute),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white54),
+                              minimumSize: const Size(0, 48),
+                            ),
+                            icon: const Icon(
+                              Icons.notifications_none_rounded,
+                              size: 19,
+                            ),
+                            label: Text(
+                              context.tr('driver.notifications.title'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -336,6 +412,7 @@ class _DriverHomePageState extends State<_DriverHomePage> {
               const SizedBox(height: 16),
               Text(
                 context.tr('driver.home.status_summary'),
+                key: const Key('driver-home-status-summary-title'),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
@@ -353,42 +430,25 @@ class _DriverHomePageState extends State<_DriverHomePage> {
                   ),
                 )
               else
-                SingleChildScrollView(
-                  key: const Key('driver-home-status-cards'),
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < _statuses.length; i++) ...[
-                        SizedBox(
-                          width: 150,
-                          child: _DriverStatusCard(
-                            key: Key('driver-home-status-${_statuses[i].$1}'),
-                            icon: _statuses[i].$2,
-                            label: context.tr('driver.status.${_statuses[i].$1}'),
-                            value: _loading ? null : _count(_statuses[i].$1),
-                            onTap: _loading ? null : () => _openStatus(_statuses[i].$1),
-                          ),
-                        ),
-                        if (i != _statuses.length - 1) const SizedBox(width: 10),
-                      ],
-                    ],
-                  ),
+                GridView.count(
+                  key: const Key('driver-home-status-grid'),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 1.9,
+                  children: [
+                    for (final status in _statuses)
+                      _DriverStatusCard(
+                        key: Key('driver-home-status-${status.$1}'),
+                        icon: status.$2,
+                        label: context.tr('driver.status.${status.$1}'),
+                        value: _loading ? null : _count(status.$1),
+                        onTap: _loading ? null : () => _openStatus(status.$1),
+                      ),
+                  ],
                 ),
-              const SizedBox(height: 12),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.hub_rounded),
-                  title: Text(context.tr('driver.home.channel')),
-                  subtitle: Text(
-                    widget.routeName,
-                    key: const Key('driver-route'),
-                  ),
-                  trailing: Text(
-                    widget.routeName.contains('/b2b/') ? 'B2B' : 'Retail',
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -414,19 +474,17 @@ class _DriverStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
         color: FoodexBrand.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           child: Container(
-            constraints: const BoxConstraints(minHeight: 128),
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: FoodexBrand.border),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
                 Container(
                   width: 38,
@@ -435,30 +493,35 @@ class _DriverStatusCard extends StatelessWidget {
                     color: FoodexBrand.greenSoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: FoodexBrand.greenDark, size: 21),
+                  child: Icon(icon, color: FoodexBrand.greenDark, size: 20),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
                 if (value == null)
                   const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.1),
                   )
                 else
                   Text(
                     value.toString(),
                     style: const TextStyle(
-                      fontSize: 24,
+                      fontSize: 21,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
               ],
             ),
           ),
