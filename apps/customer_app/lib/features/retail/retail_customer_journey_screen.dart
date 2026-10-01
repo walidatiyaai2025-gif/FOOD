@@ -21,6 +21,8 @@ import 'auth/retail_checkout_auth_screen.dart';
 import 'catalog/retail_catalog_screens.dart';
 import 'commerce/retail_commerce_api.dart';
 import 'commerce/retail_commerce_screens.dart';
+import 'customer_ui_v3/customer_retail_shell.dart';
+import 'customer_ui_v3/retail_home_v3_screen.dart';
 
 class RetailCustomerJourneyScreen extends StatelessWidget {
   const RetailCustomerJourneyScreen({
@@ -123,26 +125,45 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
       );
     }
 
+    Widget withShell(
+      CustomerRetailDestination destination,
+      Widget child,
+    ) =>
+        CustomerRetailShell(
+          commerceContext: commerceContext,
+          activeDestination: destination,
+          isAuthenticated: session.isAuthenticated,
+          child: child,
+        );
+
     switch (definition.pattern) {
       case CustomerRoutePaths.home:
       case CustomerRoutePaths.retailHome:
-        return RetailCatalogHomeScreen(
-          storeId: storeId,
-          catalogApi: catalogApi,
-          navigation: navigation,
-          onAddToCart: addToCart,
+        return withShell(
+          CustomerRetailDestination.home,
+          RetailHomeV3Screen(
+            storeId: storeId,
+            catalogApi: catalogApi,
+            accountApi: accountApi,
+            isAuthenticated: session.isAuthenticated,
+            navigation: navigation,
+            onAddToCart: addToCart,
+          ),
         );
 
       case CustomerRoutePaths.products:
       case CustomerRoutePaths.categories:
       case CustomerRoutePaths.offers:
-        return RetailCatalogProductsScreen(
-          storeId: storeId,
-          catalogApi: catalogApi,
-          navigation: navigation,
-          initialQuery: uri.queryParameters['q'],
-          categoryId: int.tryParse(uri.queryParameters['category_id'] ?? ''),
-          onAddToCart: addToCart,
+        return withShell(
+          CustomerRetailDestination.products,
+          RetailCatalogProductsScreen(
+            storeId: storeId,
+            catalogApi: catalogApi,
+            navigation: navigation,
+            initialQuery: uri.queryParameters['q'],
+            categoryId: int.tryParse(uri.queryParameters['category_id'] ?? ''),
+            onAddToCart: addToCart,
+          ),
         );
 
       case CustomerRoutePaths.productDetails:
@@ -160,25 +181,28 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
         );
 
       case CustomerRoutePaths.cart:
-        return RetailCartScreen(
-          storeId: storeId,
-          api: commerceApi,
-          isAuthenticated: session.isAuthenticated,
-          onCheckout: (_) => Navigator.of(context).pushNamed(
-            CustomerRouteLocations.retailCheckout(commerceContext),
+        return withShell(
+          CustomerRetailDestination.cart,
+          RetailCartScreen(
+            storeId: storeId,
+            api: commerceApi,
+            isAuthenticated: session.isAuthenticated,
+            onCheckout: (_) => Navigator.of(context).pushNamed(
+              CustomerRouteLocations.retailCheckout(commerceContext),
+            ),
+            onAuthenticate: (intent, _) async {
+              await Navigator.of(context).pushNamed(
+                CustomerRouteLocations.authHandoff(
+                  context: commerceContext,
+                  next: CustomerRouteLocations.retailCheckout(commerceContext),
+                  entry: intent == RetailAuthIntent.register
+                      ? CustomerAuthEntry.register
+                      : CustomerAuthEntry.login,
+                ),
+              );
+              return null;
+            },
           ),
-          onAuthenticate: (intent, _) async {
-            await Navigator.of(context).pushNamed(
-              CustomerRouteLocations.authHandoff(
-                context: commerceContext,
-                next: CustomerRouteLocations.retailCheckout(commerceContext),
-                entry: intent == RetailAuthIntent.register
-                    ? CustomerAuthEntry.register
-                    : CustomerAuthEntry.login,
-              ),
-            );
-            return null;
-          },
         );
 
       case CustomerRoutePaths.checkoutAuth:
@@ -222,51 +246,63 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
       case CustomerRoutePaths.settings:
         final retailFavorites = favoritesApi;
         if (retailFavorites == null) return const _RetailContextMissing();
-        return CustomerAccountScreen(
-          api: accountApi,
-          favoritesApi: retailFavorites,
-          retailStoreId: storeId,
-          onOpenAddresses: () => Navigator.of(context).pushNamed(
-            CustomerRouteLocations.retailAddresses(commerceContext),
-          ),
-          onOpenFavorites: () => Navigator.of(context).pushNamed(
-            CustomerRouteLocations.retailFavorites(commerceContext),
-          ),
-          onOpenNotifications: () => Navigator.of(context).pushNamed(
-            CustomerRouteLocations.retailNotifications(commerceContext),
-          ),
-          onOpenOrders: () => Navigator.of(context).pushNamed(
-            CustomerRouteLocations.retailOrders(commerceContext),
+        return withShell(
+          CustomerRetailDestination.account,
+          CustomerAccountScreen(
+            api: accountApi,
+            favoritesApi: retailFavorites,
+            retailStoreId: storeId,
+            onOpenAddresses: () => Navigator.of(context).pushNamed(
+              CustomerRouteLocations.retailAddresses(commerceContext),
+            ),
+            onOpenFavorites: () => Navigator.of(context).pushNamed(
+              CustomerRouteLocations.retailFavorites(commerceContext),
+            ),
+            onOpenNotifications: () => Navigator.of(context).pushNamed(
+              CustomerRouteLocations.retailNotifications(commerceContext),
+            ),
+            onOpenOrders: () => Navigator.of(context).pushNamed(
+              CustomerRouteLocations.retailOrders(commerceContext),
+            ),
           ),
         );
 
       case CustomerRoutePaths.addresses:
-        return CustomerAddressBookScreen(
-          api: accountApi,
-          locationService: locationService,
-          mapPinPicker: mapPinPicker,
+        return withShell(
+          CustomerRetailDestination.account,
+          CustomerAddressBookScreen(
+            api: accountApi,
+            locationService: locationService,
+            mapPinPicker: mapPinPicker,
+          ),
         );
 
       case CustomerRoutePaths.favorites:
         final retailFavorites = favoritesApi;
         if (retailFavorites == null) return const _RetailContextMissing();
-        return CustomerFavoritesScreen(
-          api: accountApi,
-          favoritesApi: retailFavorites,
-          retailStoreId: storeId,
-          onOpenProduct: (productId) => Navigator.of(context).pushNamed(
-            CustomerRouteLocations.retailProduct(
-              commerceContext,
-              productId,
+        return withShell(
+          CustomerRetailDestination.account,
+          CustomerFavoritesScreen(
+            api: accountApi,
+            favoritesApi: retailFavorites,
+            retailStoreId: storeId,
+            onOpenProduct: (productId) => Navigator.of(context).pushNamed(
+              CustomerRouteLocations.retailProduct(
+                commerceContext,
+                productId,
+              ),
             ),
           ),
         );
 
       case CustomerRoutePaths.notifications:
-        return CustomerNotificationCenterScreen(
-          api: accountApi,
-          onOpenOrder: (target) =>
-              _openNotificationOrder(context, target, commerceContext),
+        return withShell(
+          CustomerRetailDestination.account,
+          CustomerNotificationCenterScreen(
+            api: accountApi,
+            onOpenOrder: (target) =>
+                _openNotificationOrder(context, target, commerceContext),
+          ),
         );
 
       case CustomerRoutePaths.orders:
@@ -276,14 +312,17 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
           api,
           CustomerOrderContext(storeId: storeId, channel: 'b2c'),
         );
-        return CustomerOrdersScreen(
-          api: scoped,
-          onOpenOrder: (order) => Navigator.of(context).pushNamed(
-            _orderTrackingLocation(
-              order.id,
-              CustomerCommerceContext(
-                channel: CustomerCommerceChannel.retail,
-                storeId: order.storeId,
+        return withShell(
+          CustomerRetailDestination.orders,
+          CustomerOrdersScreen(
+            api: scoped,
+            onOpenOrder: (order) => Navigator.of(context).pushNamed(
+              _orderTrackingLocation(
+                order.id,
+                CustomerCommerceContext(
+                  channel: CustomerCommerceChannel.retail,
+                  storeId: order.storeId,
+                ),
               ),
             ),
           ),
