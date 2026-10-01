@@ -15,9 +15,27 @@ final class RetailMerchantIdentityService
     public function __construct(private readonly CommerceIdentityResolver $commerce) {}
 
     /** @return list<int> */
+    public function ownedRetailStoreIds(User $user): array
+    {
+        return $this->commerce->ownedRetailStoreIds($user);
+    }
+
+    /** @return list<int> */
     public function managedRetailStoreIds(User $user): array
     {
+        return $this->commerce->managedRetailStoreIds($user);
+    }
+
+    /** @return list<int> */
+    public function retailStoreIds(User $user): array
+    {
         return $this->commerce->retailStoreIds($user);
+    }
+
+    /** @return list<int> */
+    public function wholesaleEntitledRetailStoreIds(User $user): array
+    {
+        return $this->commerce->wholesaleEntitledRetailStoreIds($user);
     }
 
     /**
