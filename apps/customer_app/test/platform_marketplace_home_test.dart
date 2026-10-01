@@ -538,11 +538,20 @@ void main() {
             'retail_banners': [
               {
                 'id': 7,
+                'store_id': 7,
+                'banner_id': 701,
+                'code': 'RTL-7',
                 'name': 'Retail Seven',
                 'title': 'Dashboard Retail Banner',
                 'banner_url': null,
                 'logo_url': null,
+                'theme_code': 'retail_grocery',
+                'address': 'Retail Area',
                 'channel': 'b2c',
+                'target_type': 'store',
+                'target_id': 7,
+                'target_url': null,
+                'sort_order': 1,
               },
             ],
           }),
@@ -596,6 +605,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Dashboard Retail Banner'), findsOneWidget);
+    expect(find.text('Retail Area'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.drag(
