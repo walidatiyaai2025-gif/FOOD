@@ -360,7 +360,8 @@ void main() {
       expect(find.byKey(const Key('driver-version-blocking')), findsOneWidget);
       expect(find.byKey(const Key('runtime')), findsNothing);
       expect(find.text('1.0.38'), findsOneWidget);
-      expect(find.text('1.0.40'), findsNWidgets(2));
+      expect(find.text('1.0.40'), findsOneWidget);
+      expect(find.text('1.0.41'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('driver-version-update-now')));
       await tester.pump();
