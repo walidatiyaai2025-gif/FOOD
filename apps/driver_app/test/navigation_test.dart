@@ -131,9 +131,19 @@ void main() {
 
     final outForDeliveryCard =
         find.byKey(const Key('driver-home-status-out_for_delivery'));
-    await tester.ensureVisible(outForDeliveryCard);
+    await tester.scrollUntilVisible(
+      outForDeliveryCard,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(outForDeliveryCard);
+
+    final outForDeliveryTapTarget = find.descendant(
+      of: outForDeliveryCard,
+      matching: find.byType(InkWell),
+    );
+    expect(outForDeliveryTapTarget, findsOneWidget);
+    await tester.tap(outForDeliveryTapTarget);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('driver-exact-status-filter')), findsOneWidget);
