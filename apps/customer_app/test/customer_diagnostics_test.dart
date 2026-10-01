@@ -178,7 +178,7 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey('customer-login-diagnostics')),
-      findsNothing,
+      findsOneWidget,
     );
   });
 }
