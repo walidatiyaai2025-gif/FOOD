@@ -59,6 +59,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
   void didUpdateWidget(covariant CustomerAccountScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.api != widget.api ||
+        oldWidget.favoritesApi != widget.favoritesApi ||
         oldWidget.retailStoreId != widget.retailStoreId) {
       _reloadAll();
     }
