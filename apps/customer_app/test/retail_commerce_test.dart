@@ -257,6 +257,39 @@ void main() {
     expect(checkoutStore, 7);
   });
 
+  testWidgets('checkout offers Add Address when no valid address exists',
+      (tester) async {
+    final api = _FakeRetailCommerceApi()..emptyAddresses = true;
+    var addAddressCalls = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailCheckoutScreen(
+          storeId: 7,
+          api: api,
+          onAddAddress: (_) async {
+            addAddressCalls++;
+          },
+          onOrderCreated: (_, __) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('retail-checkout-add-address')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('retail-checkout-add-address')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(addAddressCalls, 1);
+  });
+
   testWidgets('checkout exposes backend payment options and created order',
       (tester) async {
     final api = _FakeRetailCommerceApi();
@@ -304,6 +337,7 @@ void main() {
 }
 
 class _FakeRetailCommerceApi implements RetailCommerceApi {
+  bool emptyAddresses = false;
   int mergeCalls = 0;
   int? lastMergeStore;
   int submitCalls = 0;
@@ -336,15 +370,17 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
   Future<RetailCheckoutOptions> checkoutOptions({required int storeId}) async =>
       RetailCheckoutOptions(
         storeId: storeId,
-        addresses: const [
-          RetailCheckoutAddress(
-            id: 9,
-            label: 'Home',
-            line1: 'Street 1',
-            city: 'Kuwait City',
-            isDefault: true,
-          ),
-        ],
+        addresses: emptyAddresses
+            ? const <RetailCheckoutAddress>[]
+            : const [
+                RetailCheckoutAddress(
+                  id: 9,
+                  label: 'Home',
+                  line1: 'Street 1',
+                  city: 'Kuwait City',
+                  isDefault: true,
+                ),
+              ],
         paymentMethods: const ['cash_on_delivery', 'knet'],
       );
 

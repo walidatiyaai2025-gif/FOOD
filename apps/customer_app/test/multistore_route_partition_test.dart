@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/features/storefront/multistore_design_screen.dart';
 
@@ -54,4 +55,16 @@ void main() {
       );
     }
   });
+
+  test('address books are separate authenticated B2B and B2C routes', () {
+    final retail = definition(CustomerRoutePaths.addresses);
+    final wholesale = definition(CustomerRoutePaths.b2bAddresses);
+
+    expect(retail.channel, CustomerChannel.b2c);
+    expect(retail.requiresAuth, isTrue);
+    expect(wholesale.channel, CustomerChannel.b2b);
+    expect(wholesale.requiresAuth, isTrue);
+    expect(CustomerRoutePaths.addresses, isNot(CustomerRoutePaths.b2bAddresses));
+  });
+
 }

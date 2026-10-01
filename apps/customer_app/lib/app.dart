@@ -455,6 +455,16 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
               guestSession: _guestSession,
               client: _sessionHttpClient,
             );
+    final b2bAccountApi = preview != null
+        ? widget.b2cAccountApi!
+        : HttpB2cAccountApi(
+            baseUrl: baseUrl,
+            token: token,
+            guestSession: _guestSession,
+            customerDomain: 'b2b',
+            retailStoreContextId: _session.b2bRetailStoreId,
+            client: _sessionHttpClient,
+          );
     final storefrontApi = preview != null
         ? widget.storefrontApi!
         : widget.storefrontApi ??
@@ -528,6 +538,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       b2bApi: b2bApi,
       b2cCatalogApi: b2cCatalogApi,
       b2cAccountApi: b2cAccountApi,
+      b2bAccountApi: b2bAccountApi,
       actionApi: actionApi,
       storefrontApi: storefrontApi,
       wholesaleApi: wholesaleCommerceApi,
