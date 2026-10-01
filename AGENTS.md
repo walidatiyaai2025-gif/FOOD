@@ -76,12 +76,16 @@ A claim is a **lease**, not permanent ownership.
 
 ### Lease heartbeat
 
-A worker should renew visible activity at least every **20 minutes** while actively working by one of:
+A worker MUST leave a repository-visible checkpoint at least every **10 minutes** while actively working. A checkpoint may be any of:
 
-- pushing a commit;
+- pushing a coherent commit/checkpoint;
 - updating/opening the PR;
-- adding an Issue/PR progress comment;
+- adding an Issue/PR progress/heartbeat comment;
 - producing a workflow/CI run tied to the branch.
+
+The 10-minute checkpoint SLA exists so a chat/session failure cannot hide a large amount of unpushed work. The 30-minute stale timeout is a takeover detector, not a recommended checkpoint interval.
+
+Before any long wait, tool-heavy operation, CI wait, or potentially fragile session step, checkpoint first when safe.
 
 ### Stale lease
 
@@ -254,7 +258,9 @@ Therefore:
 - record blockers/next actions in GitHub;
 - a new worker should be able to resume without asking the user to reconstruct history.
 
-If a worker/session hangs, another worker should take over the same task after the stale-lease check, using the same branch/PR.
+If a worker/session hangs, another worker should take over the same task using the same branch/PR.
+
+If the repository owner explicitly sends `HANDOFF`, `AUTO-HANDOFF`, or otherwise states that the previous chat/worker is interrupted, that is an **immediate lease transfer**. Do not wait for the 30-minute stale timeout. The replacement worker must inspect GitHub first, reuse the existing Issue/branch/PR/head, and the previous worker must stop if it later returns.
 
 ---
 
@@ -262,11 +268,27 @@ If a worker/session hangs, another worker should take over the same task after t
 
 The phrases:
 
+- `HANDOFF`
+- `AUTO-HANDOFF`
 - `FOOD AUTO-HANDOFF`
+- `HANDOFF #<issue>`
 - `FOOD #<issue> AUTO-HANDOFF`
 - `FOOD #<umbrella> AUTO-HANDOFF`
 
-are shorthand for this policy.
+are shorthand for this policy across the entire repository.
+
+**Bare `HANDOFF` is intentionally sufficient.** The user does not need to repeat the Issue, branch, PR, SHA, CI status, or previous prompt.
+
+When `HANDOFF` is received, the replacement worker must reconstruct the task from GitHub authoritative state. Selection order is:
+
+1. the Issue/branch/PR explicitly associated with the current conversation, when available;
+2. otherwise an existing `worker:handoff-ready` task, preferring the most recently updated resumable handoff;
+3. otherwise a task whose latest machine-readable state is `HANDOFF`;
+4. never steal a fresh non-stale `worker:active` lease merely because multiple workers exist.
+
+If an explicit repository-owner `HANDOFF` identifies the interrupted work through current conversation context, takeover is immediate and does not wait for stale detection.
+
+No replacement branch or duplicate PR may be created just because the prior chat disconnected.
 
 But this policy applies even when those phrases are **not** present.
 
@@ -427,3 +449,29 @@ New atomic implementation Issues should include:
 This opts the Issue into watchdog queue classification even before a branch/PR exists.
 
 Do not put this marker on coordination-only umbrella Issues unless they are intended to be directly executable.
+
+
+---
+
+## 19. Minimal user command contract
+
+The normal recovery command for an interrupted worker is simply:
+
+```text
+HANDOFF
+```
+
+That command means:
+
+- previous chat/session may be treated as interrupted;
+- GitHub is authoritative;
+- inspect current Issue/branch/PR/head/CI before editing;
+- continue existing work in place;
+- do not ask the user to reconstruct prior chat state;
+- do not create a new branch/PR when an existing one belongs to the task;
+- fix repository-local failures and drive CI to completion;
+- merge/close when permitted;
+- continue draining repository-local managed work when the task completes;
+- stop only at a genuine external/human gate or when no safe actionable managed work remains.
+
+The user may still provide `HANDOFF #<issue>` when they want to force a specific task, but the longer AUTO-HANDOFF prompt is no longer required.
