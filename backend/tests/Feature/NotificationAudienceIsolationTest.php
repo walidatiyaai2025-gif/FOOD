@@ -347,6 +347,9 @@ class NotificationAudienceIsolationTest extends TestCase
     private function driver(int $storeId, string $email): Driver
     {
         $user = $this->user($email);
+        $user->roles()->attach(
+            Role::query()->where('code', 'B2C_DRIVER')->firstOrFail(),
+        );
 
         return Driver::query()->create([
             'user_id' => $user->id,
