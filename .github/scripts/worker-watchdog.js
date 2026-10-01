@@ -12,6 +12,15 @@ const STATUS_LABELS = [
   'worker:handoff-ready',
 ];
 
+const GATE_LABELS = [
+  'gate:human',
+  'gate:deploy',
+  'gate:production',
+  'gate:credentials',
+  'gate:device',
+  'gate:approval',
+];
+
 const HUMAN_BLOCKERS = new Set([
   'deploy',
   'production',
@@ -228,14 +237,12 @@ async function replaceStatusLabels(github, owner, repo, issue, desired) {
     }
   }
 
-  if (!desiredSet.has('gate:human') && current.has('gate:human')) {
-    for (const label of ['gate:human', 'gate:deploy', 'gate:production', 'gate:credentials', 'gate:device', 'gate:approval']) {
-      if (!current.has(label)) continue;
-      try {
-        await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: label });
-      } catch (error) {
-        if (error.status !== 404) throw error;
-      }
+  for (const label of GATE_LABELS) {
+    if (!current.has(label) || desiredSet.has(label)) continue;
+    try {
+      await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: label });
+    } catch (error) {
+      if (error.status !== 404) throw error;
     }
   }
 }
