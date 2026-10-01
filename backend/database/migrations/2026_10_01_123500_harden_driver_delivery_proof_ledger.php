@@ -17,6 +17,9 @@ return new class extends Migration {
             $table->string('idempotency_key', 128)
                 ->nullable()
                 ->after('order_id');
+            $table->string('request_fingerprint', 64)
+                ->nullable()
+                ->after('idempotency_key');
             $table->unique(
                 ['driver_assignment_id', 'idempotency_key'],
                 'delivery_proofs_assignment_idempotency_unique',
@@ -45,7 +48,7 @@ return new class extends Migration {
     {
         Schema::table('delivery_proofs', function (Blueprint $table): void {
             $table->dropUnique('delivery_proofs_assignment_idempotency_unique');
-            $table->dropColumn('idempotency_key');
+            $table->dropColumn(['request_fingerprint', 'idempotency_key']);
             $table->dropConstrainedForeignId('order_id');
         });
     }
