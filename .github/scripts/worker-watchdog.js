@@ -5,6 +5,15 @@ const MANAGED_MARKER = '<!-- foodex-worker:managed -->';
 const WATCHDOG_MARKER = '<!-- foodex-watchdog:';
 const STALE_MINUTES = 30;
 
+const RED_CI_CONCLUSIONS = new Set([
+  'failure',
+  'timed_out',
+  'cancelled',
+  'action_required',
+  'startup_failure',
+  'stale',
+]);
+
 const STATUS_LABELS = [
   'worker:ready',
   'worker:active',
@@ -34,7 +43,7 @@ const LABELS = {
   'worker:ready': ['1D76DB', 'Atomic repository-local work is ready for a worker'],
   'worker:active': ['0E8A16', 'A worker has an active lease on this issue'],
   'worker:waiting-ci': ['FBCA04', 'Worker is waiting for CI/actions on the current branch head'],
-  'worker:handoff-ready': ['F97316', 'Lease is stale or explicitly handed off; continue the same branch/PR'],
+  'worker:handoff-ready': ['F97316', 'Immediate takeover needed for red CI/conflict, stale lease, or explicit handoff; continue the same branch/PR'],
   'gate:human': ['B60205', 'Real external intervention is required; workers must not fabricate or bypass it'],
   'gate:deploy': ['D93F0B', 'Requires real deployment/environment action'],
   'gate:production': ['D93F0B', 'Requires real production evidence or production-side action'],
@@ -136,6 +145,16 @@ function classify({
     return { status: 'handoff-ready', reason: 'explicit-handoff' };
   }
 
+  // Red repository state is actionable work, not inactivity. It bypasses the
+  // stale-worker timer even when the current worker heartbeat is fresh.
+  if (hasOpenPr && RED_CI_CONCLUSIONS.has(ciConclusion)) {
+    return { status: 'handoff-ready', reason: `ci-${ciConclusion}` };
+  }
+
+  if (hasOpenPr && mergeable === false) {
+    return { status: 'handoff-ready', reason: 'merge-conflict' };
+  }
+
   if (ciRunning) {
     return { status: 'waiting-ci', reason: 'ci-running' };
   }
@@ -152,10 +171,6 @@ function classify({
 
   if (hasOpenPr && ciConclusion === 'success' && mergeable === true) {
     return { status: 'handoff-ready', reason: 'merge-ready-stale' };
-  }
-
-  if (hasOpenPr && ciConclusion && ciConclusion !== 'success' && ciConclusion !== 'skipped') {
-    return { status: 'handoff-ready', reason: `ci-${ciConclusion}` };
   }
 
   if (explicitState === 'READY_TO_MERGE') {
@@ -185,8 +200,9 @@ function handoffComment({ issueNumber, branch, prNumber, head, reason, ciConclus
     'stale-lease': 'there has been no repository-visible worker activity for at least 30 minutes',
     'explicit-handoff': 'the previous worker explicitly handed the task off',
     'ready-to-merge': 'the task was marked ready to merge but has no active worker',
+    'merge-conflict': 'the current PR has an immediate repository-local merge conflict/blocker',
   }[reason] || (reason.startsWith('ci-')
-    ? `the current PR needs CI follow-up (${reason.slice(3)})`
+    ? `the latest branch head is red in CI (${reason.slice(3)}); no stale-worker timeout applies`
     : reason);
 
   return `<!-- foodex-watchdog:handoff issue=${issueNumber} head=${head || 'none'} reason=${reason} -->
@@ -268,6 +284,57 @@ async function branchExists(github, owner, repo, branch) {
   }
 }
 
+function summarizeWorkflowRuns(runs) {
+  const newestByWorkflow = new Map();
+
+  for (const run of runs) {
+    const key = run.workflow_id ?? run.name ?? run.id;
+    const runMs = newestMillis(
+      run.run_started_at,
+      run.created_at,
+      run.updated_at,
+      typeof run.id === 'number' ? run.id : 0,
+    );
+    const previous = newestByWorkflow.get(key);
+    if (!previous || runMs >= previous.ms) {
+      newestByWorkflow.set(key, { run, ms: runMs });
+    }
+  }
+
+  const latest = [...newestByWorkflow.values()].map(entry => entry.run);
+  const red = latest.find(
+    run => run.status === 'completed' && RED_CI_CONCLUSIONS.has(run.conclusion),
+  );
+  const running = latest.some(run => run.status !== 'completed');
+
+  // A red latest run for any workflow wins immediately, even while another
+  // workflow is still queued/running on the same head.
+  if (red) {
+    return { running, conclusion: red.conclusion };
+  }
+
+  if (running) {
+    return { running: true, conclusion: null };
+  }
+
+  const meaningful = latest
+    .map(run => run.conclusion)
+    .filter(conclusion => conclusion && conclusion !== 'skipped');
+
+  if (meaningful.length === 0) {
+    return { running: false, conclusion: null };
+  }
+
+  if (meaningful.every(conclusion => conclusion === 'success' || conclusion === 'neutral')) {
+    return {
+      running: false,
+      conclusion: meaningful.includes('success') ? 'success' : 'neutral',
+    };
+  }
+
+  return { running: false, conclusion: meaningful[0] };
+}
+
 async function workflowState(github, owner, repo, pr) {
   if (!pr) return { running: false, conclusion: null };
   const { data } = await github.rest.actions.listWorkflowRunsForRepo({
@@ -276,16 +343,8 @@ async function workflowState(github, owner, repo, pr) {
     branch: pr.head.ref,
     per_page: 100,
   });
-  const matching = data.workflow_runs
-    .filter(run => run.head_sha === pr.head.sha)
-    .sort((a, b) => asMillis(b.updated_at) - asMillis(a.updated_at));
-
-  if (matching.some(run => run.status !== 'completed')) {
-    return { running: true, conclusion: null };
-  }
-
-  const meaningful = matching.find(run => run.conclusion && run.conclusion !== 'skipped');
-  return { running: false, conclusion: meaningful?.conclusion || null };
+  const matching = data.workflow_runs.filter(run => run.head_sha === pr.head.sha);
+  return summarizeWorkflowRuns(matching);
 }
 
 async function run({ github, context, core, nowMs = Date.now() }) {
@@ -348,7 +407,7 @@ async function run({ github, context, core, nowMs = Date.now() }) {
 
     const ci = await workflowState(github, owner, repo, linkedPr);
     let mergeable = null;
-    if (linkedPr && !ci.running) {
+    if (linkedPr) {
       try {
         const { data } = await github.rest.pulls.get({ owner, repo, pull_number: linkedPr.number });
         mergeable = data.mergeable;
@@ -405,6 +464,7 @@ async function run({ github, context, core, nowMs = Date.now() }) {
 module.exports = {
   HUMAN_BLOCKERS,
   MANAGED_MARKER,
+  RED_CI_CONCLUSIONS,
   STALE_MINUTES,
   STATE_MARKER,
   branchFromText,
@@ -415,4 +475,5 @@ module.exports = {
   parseWorkerState,
   run,
   statusLabel,
+  summarizeWorkflowRuns,
 };
