@@ -20,7 +20,7 @@ class PlatformCustomerMarketplaceTest extends TestCase
         config(['foodex.platform_wholesale_store_code' => 'MAIN-B2B']);
     }
 
-    public function test_guest_platform_home_exposes_principal_wholesale_catalog_and_retail_store_banners(): void
+    public function test_guest_platform_home_exposes_platform_retail_placements_without_leaking_store_internal_banners(): void
     {
         [$wholesaleStore, $retailStore, $wholesaleProduct] = $this->marketplaceFixture();
         $wholesaleCategory = (int) DB::table('products')
@@ -39,15 +39,26 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertJsonPath('offers.0.value', 2.5)
             ->assertJsonCount(1, 'offers')
             ->assertJsonMissing(['name' => 'Expired Wholesale Offer'])
+            ->assertJsonPath('hero.title', 'Platform Wholesale Hero')
+            ->assertJsonCount(1, 'banners')
             ->assertJsonPath('retail_banners.0.id', $retailStore)
             ->assertJsonPath('retail_banners.0.store_id', $retailStore)
-            ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/retail-home.jpg'))
+            ->assertJsonPath('retail_banners.0.placement_scope', 'platform_retail_store')
+            ->assertJsonPath('retail_banners.0.target_type', 'retail_store')
+            ->assertJsonPath('retail_banners.0.target_id', $retailStore)
+            ->assertJsonPath('retail_banners.0.target_url', '/retail/'.$retailStore.'/home')
+            ->assertJsonPath('retail_banners.0.banner_url', url('/storage/banners/platform-retail.jpg'))
             ->assertJsonPath('retail_banners.0.sort_order', 1)
-            ->assertJsonPath('retail_banners.1.id', $retailStore)
-            ->assertJsonPath('retail_banners.1.banner_url', url('/storage/banners/retail-second.jpg'))
-            ->assertJsonPath('retail_banners.1.sort_order', 2)
-            ->assertJsonCount(2, 'retail_banners')
-            ->assertJsonMissing(['title' => 'Retail Inactive Banner']);
+            ->assertJsonCount(1, 'retail_banners')
+            ->assertJsonMissing(['title' => 'Retail Home Banner'])
+            ->assertJsonMissing(['title' => 'Retail Second Banner']);
+
+        $this->getJson('/api/v1/stores/'.$retailStore.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('banners.0.title', 'Retail Home Banner')
+            ->assertJsonPath('banners.1.title', 'Retail Second Banner')
+            ->assertJsonCount(2, 'banners')
+            ->assertJsonMissing(['title' => 'Platform Retail Placement']);
     }
 
     public function test_registered_customer_identity_materializes_per_store_and_routes_carts_by_purchase_store(): void
@@ -238,9 +249,35 @@ class PlatformCustomerMarketplaceTest extends TestCase
 
         DB::table('banners')->insert([
             [
+                'store_id' => $wholesaleStore,
+                'title' => 'Platform Wholesale Hero',
+                'image_path' => 'storage/banners/platform-wholesale.jpg',
+                'target_type' => null,
+                'target_id' => null,
+                'target_url' => null,
+                'sort_order' => 0,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'store_id' => $wholesaleStore,
+                'title' => 'Platform Retail Placement',
+                'image_path' => 'storage/banners/platform-retail.jpg',
+                'target_type' => 'retail_store',
+                'target_id' => $retailStore,
+                'target_url' => '/retail/'.$retailStore.'/home',
+                'sort_order' => 1,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
                 'store_id' => $retailStore,
                 'title' => 'Retail Home Banner',
                 'image_path' => 'storage/banners/retail-home.jpg',
+                'target_type' => null,
+                'target_id' => null,
                 'target_url' => null,
                 'sort_order' => 1,
                 'is_active' => true,
@@ -251,6 +288,8 @@ class PlatformCustomerMarketplaceTest extends TestCase
                 'store_id' => $retailStore,
                 'title' => 'Retail Second Banner',
                 'image_path' => 'storage/banners/retail-second.jpg',
+                'target_type' => null,
+                'target_id' => null,
                 'target_url' => null,
                 'sort_order' => 2,
                 'is_active' => true,
@@ -261,6 +300,8 @@ class PlatformCustomerMarketplaceTest extends TestCase
                 'store_id' => $retailStore,
                 'title' => 'Retail Inactive Banner',
                 'image_path' => 'storage/banners/retail-inactive.jpg',
+                'target_type' => null,
+                'target_id' => null,
                 'target_url' => null,
                 'sort_order' => 0,
                 'is_active' => false,
