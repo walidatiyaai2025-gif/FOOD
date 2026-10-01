@@ -35,6 +35,11 @@ class DriverLiveTrackingDashboardTest extends TestCase
             ->assertSee('/assets/admin/driver-live-map.js', false)
             ->assertSee('data-driver-live-map', false)
             ->assertSee('data-driver-live-map-i18n', false)
+            ->assertSee('data-live-map="error-message"', false)
+            ->assertSee('data-live-map="retry"', false)
+            ->assertSee('data-assets-failed=', false)
+            ->assertSee('Map files could not load.', false)
+            ->assertSee('reportMissingRuntime', false)
             ->assertSee('"status":"Status"', false)
             ->assertSee('"online":"Online"', false)
             ->assertDontSee('const popupFor', false)
@@ -52,6 +57,8 @@ class DriverLiveTrackingDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('data-mode="full"', false)
+            ->assertSee('تعذر تحميل ملفات الخريطة.', false)
+            ->assertSee('data-live-map="retry"', false)
             ->assertViewHas('trackingI18n', static function (array $i18n): bool {
                 return $i18n['status'] === 'الحالة'
                     && $i18n['statuses']['online'] === 'متصل'

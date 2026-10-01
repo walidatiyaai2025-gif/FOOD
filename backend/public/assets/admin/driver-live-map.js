@@ -1,12 +1,11 @@
 (() => {
     const roots = document.querySelectorAll('[data-driver-live-map]');
-    if (!roots.length || typeof window.L === 'undefined') return;
+    if (!roots.length) return;
 
     const colors = {online:'#16a34a',stale:'#f59e0b',offline:'#64748b'};
 
     roots.forEach(root => {
         if (root.dataset.driverLiveMapReady === '1') return;
-        root.dataset.driverLiveMapReady = '1';
 
         const find = role => root.querySelector('[data-live-map="' + role + '"]');
         const i18nNode = root.querySelector('[data-driver-live-map-i18n]');
@@ -19,15 +18,47 @@
 
         const mapNode = find('map');
         const feedUrl = root.dataset.feedUrl;
-        if (!mapNode || !feedUrl) return;
+        const fail = (code, key) => {
+            const message = i18n[key] || i18n.failed || 'Unable to load live driver locations.';
+            root.dataset.liveMapError = code;
+            const error = find('error');
+            if (error) error.hidden = false;
+            const detail = find('error-message');
+            if (detail) detail.textContent = message;
+            const state = find('state');
+            if (state) state.textContent = message;
+            // Old coordinates and zero counters must not look like a current feed.
+            ['online','stale','offline'].forEach(status => {
+                const counter = find('count-' + status);
+                if (counter) counter.textContent = '—';
+            });
+            const list = find('list');
+            if (list) list.textContent = message;
+        };
+        if (!mapNode || !feedUrl) {
+            fail('map-configuration', 'mapFailed');
+            return;
+        }
+        if (!window.L || typeof window.L.map !== 'function') {
+            fail('map-assets', 'assetsFailed');
+            return;
+        }
 
-        const map = L.map(mapNode,{zoomControl:true}).setView([29.3759,47.9774],11);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
-            maxZoom:19,
-            attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        const layer = L.layerGroup().addTo(map);
+        let map;
+        let layer;
+        try {
+            map = L.map(mapNode,{zoomControl:true}).setView([29.3759,47.9774],11);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+                maxZoom:19,
+                attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            layer = L.layerGroup().addTo(map);
+        } catch (_) {
+            map?.remove();
+            fail('map-initialization', 'mapFailed');
+            return;
+        }
+        root.dataset.driverLiveMapReady = '1';
         const markers = new Map();
         let latestRows = [];
         let fitted = false;
@@ -156,34 +187,62 @@
             const state = find('state');
             if (state) state.textContent = i18n.loading;
 
+            const controller = new AbortController();
+            const timeout = window.setTimeout(() => controller.abort(), 10000);
+            let failure = ['feed-network', 'networkFailed'];
             try {
                 const response = await fetch(queryUrl(),{
                     headers:{Accept:'application/json'},
-                    credentials:'same-origin'
+                    credentials:'same-origin',
+                    signal: controller.signal
                 });
-                if (!response.ok) throw new Error('tracking-feed-'+response.status);
+                if (!response.ok) {
+                    failure = response.status === 401 ? ['feed-401', 'sessionExpired']
+                        : response.status === 403 ? ['feed-403', 'forbidden']
+                        : response.status >= 500 ? ['feed-server', 'serverFailed']
+                        : ['feed-http', 'failed'];
+                    throw new Error('tracking-feed');
+                }
+                failure = ['feed-invalid', 'invalidFeed'];
+                if (response.redirected) {
+                    failure = ['feed-session', 'sessionExpired'];
+                    throw new Error('tracking-session');
+                }
 
                 const payload = await response.json();
-                latestRows = Array.isArray(payload.data) ? payload.data : [];
+                if (!payload || !Array.isArray(payload.data)
+                    || payload.data.some(row => !row || typeof row !== 'object' || Array.isArray(row))) {
+                    throw new Error('tracking-payload');
+                }
+                latestRows = payload.data;
+                failure = ['map-render', 'mapFailed'];
+                render();
 
                 const error = find('error');
                 if (error) error.hidden = true;
+                delete root.dataset.liveMapError;
                 if (state) state.textContent = latestRows.length ? (i18n.ready || 'OK') : i18n.noDrivers;
 
                 const updated = find('updated');
                 if (updated) {
                     updated.textContent = new Date(payload.meta?.generated_at || Date.now()).toLocaleString();
                 }
-
-                render();
             } catch (_) {
-                const error = find('error');
-                if (error) error.hidden = false;
-                if (state) state.textContent = i18n.failed;
+                latestRows = [];
+                layer.clearLayers();
+                markers.clear();
+                fail(...(controller.signal.aborted ? ['feed-timeout', 'timeout'] : failure));
             } finally {
+                window.clearTimeout(timeout);
                 refreshing = false;
             }
         };
+
+        find('retry')?.addEventListener('click', event => {
+            if (['feed-401', 'feed-session'].includes(root.dataset.liveMapError)) return;
+            event.preventDefault();
+            refresh();
+        });
 
         find('apply')?.addEventListener('click',() => {
             fitted=false;
