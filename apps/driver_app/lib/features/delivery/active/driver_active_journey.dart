@@ -285,98 +285,250 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
     }
 
     var note = '';
-    await showModalBottomSheet<void>(
+    final decision = await showModalBottomSheet<_StartDeliveryDecision>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (sheetContext) {
-          return SafeArea(
-            top: false,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                4,
-                20,
-                20 + MediaQuery.of(sheetContext).viewInsets.bottom,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    context.tr('driver.action.start_delivery'),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              4,
+              20,
+              20 + MediaQuery.of(sheetContext).viewInsets.bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  context.tr('driver.action.start_delivery'),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  assignment.reference,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  key: const Key('driver-active-start-note'),
+                  onChanged: (value) => note = value,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: context.tr('driver.action.note_optional'),
+                    border: const OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    assignment.reference,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    key: const Key('driver-active-start-note'),
-                    onChanged: (value) => note = value,
-                    minLines: 2,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      labelText: context.tr('driver.action.note_optional'),
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      if (_allows(assignment, 'failed')) ...[
-                        Expanded(
-                          child: OutlinedButton(
-                            key: Key(
-                              'driver-active-failed-${assignment.id}',
-                            ),
-                            onPressed: () {
-                              final capturedNote = note;
-                              Navigator.of(sheetContext).pop();
-                              _requestFailure(assignment, capturedNote);
-                            },
-                            child: Text(
-                              context.tr('driver.action.delivery_failed'),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    if (_allows(assignment, 'failed')) ...[
                       Expanded(
-                        child: FilledButton(
+                        child: OutlinedButton(
                           key: Key(
-                            'driver-active-confirm-start-${assignment.id}',
+                            'driver-active-failed-${assignment.id}',
                           ),
-                          onPressed: () {
-                            final normalizedNote = note.trim();
-                            Navigator.of(sheetContext).pop();
-                            _transition(
-                              assignment,
-                              'out_for_delivery',
-                              note: normalizedNote.isEmpty
-                                  ? null
-                                  : normalizedNote,
-                            );
-                          },
+                          onPressed: () => Navigator.of(sheetContext).pop(
+                            _StartDeliveryDecision.failed(note),
+                          ),
                           child: Text(
-                            context.tr(
-                              'driver.action.confirm_start_delivery',
-                            ),
+                            context.tr('driver.action.delivery_failed'),
                           ),
                         ),
                       ),
+                      const SizedBox(width: 12),
                     ],
-                  ),
-                ],
-              ),
+                    Expanded(
+                      child: FilledButton(
+                        key: Key(
+                          'driver-active-confirm-start-${assignment.id}',
+                        ),
+                        onPressed: () => Navigator.of(sheetContext).pop(
+                          _StartDeliveryDecision.start(note),
+                        ),
+                        child: Text(
+                          context.tr(
+                            'driver.action.confirm_start_delivery',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          );
+          ),
+        );
       },
+    );
+
+    if (decision == null || !mounted) return;
+    if (decision.failed) {
+      await _requestFailure(assignment, decision.note);
+      return;
+    }
+
+    final normalizedNote = decision.note.trim();
+    await _transition(
+      assignment,
+      'out_for_delivery',
+      note: normalizedNote.isEmpty ? null : normalizedNote,
+    );
+  }
+
+  Future<DriverAssignment?> _fetchAuthoritativeAssignment(int id) async {
+    try {
+      final rows = await widget.repository.list(widget.channel);
+      for (final row in rows) {
+        if (row.id != id || row.channel != widget.channel) continue;
+        final preview = widget.previewContext;
+        if (preview != null &&
+            !preview.allowsAssignment(
+              assignmentChannel: row.channel,
+              assignmentStoreId: row.storeId,
+            )) {
+          continue;
+        }
+        return row;
+      }
+      return null;
+    } on DriverSessionExpiredException {
+      widget.onSessionExpired?.call();
+      return null;
+    } on DriverOfflineException {
+      if (mounted) {
+        setState(() => _actionError = context.tr('driver.offline'));
+      }
+      return null;
+    } catch (_) {
+      if (mounted) {
+        setState(() => _actionError = context.tr('driver.error'));
+      }
+      return null;
+    }
+  }
+
+  Future<void> _runDetailAction(
+    BuildContext sheetContext,
+    DriverAssignment assignment,
+    Future<void> Function() action,
+  ) async {
+    Navigator.of(sheetContext).pop();
+    await action();
+    if (!mounted) return;
+
+    final fresh = await _fetchAuthoritativeAssignment(assignment.id);
+    if (fresh != null && mounted) {
+      await _showDetail(fresh);
+    }
+  }
+
+  Widget _detailActions(
+    BuildContext sheetContext,
+    DriverAssignment assignment,
+  ) {
+    final busy = _busyAssignments.contains(assignment.id);
+    final buttons = <Widget>[];
+
+    if (assignment.status == 'assigned' &&
+        _allows(assignment, 'accepted')) {
+      buttons.add(
+        FilledButton(
+          key: Key('driver-detail-accept-${assignment.id}'),
+          onPressed: busy
+              ? null
+              : () => _runDetailAction(
+                    sheetContext,
+                    assignment,
+                    () => _transition(assignment, 'accepted'),
+                  ),
+          child: Text(_statusLabel('accepted')),
+        ),
+      );
+    }
+
+    if (assignment.status == 'accepted' &&
+        _allows(assignment, 'picked_up')) {
+      buttons.add(
+        FilledButton.tonal(
+          key: Key('driver-detail-pickup-${assignment.id}'),
+          onPressed: busy
+              ? null
+              : () => _runDetailAction(
+                    sheetContext,
+                    assignment,
+                    () => _transition(assignment, 'picked_up'),
+                  ),
+          child: Text(_statusLabel('picked_up')),
+        ),
+      );
+    }
+
+    if (const {'accepted', 'picked_up'}.contains(assignment.status) &&
+        _allows(assignment, 'out_for_delivery')) {
+      buttons.add(
+        FilledButton(
+          key: Key('driver-detail-start-${assignment.id}'),
+          onPressed: busy
+              ? null
+              : () => _runDetailAction(
+                    sheetContext,
+                    assignment,
+                    () => _showStartDeliverySheet(assignment),
+                  ),
+          child: Text(context.tr('driver.action.start_delivery')),
+        ),
+      );
+    }
+
+    if (assignment.status == 'out_for_delivery' &&
+        _allows(assignment, 'delivered')) {
+      buttons.add(
+        FilledButton(
+          key: Key('driver-detail-delivered-${assignment.id}'),
+          onPressed: busy
+              ? null
+              : () => _runDetailAction(
+                    sheetContext,
+                    assignment,
+                    () => _requestDelivered(assignment),
+                  ),
+          child: Text(context.tr('driver.action.delivered')),
+        ),
+      );
+    }
+
+    if (_allows(assignment, 'failed')) {
+      buttons.add(
+        OutlinedButton(
+          key: Key('driver-detail-failed-${assignment.id}'),
+          onPressed: busy
+              ? null
+              : () => _runDetailAction(
+                    sheetContext,
+                    assignment,
+                    () => _requestFailure(assignment, ''),
+                  ),
+          child: Text(context.tr('driver.action.delivery_failed')),
+        ),
+      );
+    }
+
+    if (buttons.isEmpty) {
+      return Text(context.tr('driver.action.none'));
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: buttons,
     );
   }
 
@@ -390,6 +542,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
           heightFactor: .9,
           child: DriverActiveAssignmentDetail(
             assignment: assignment,
+            actions: _detailActions(sheetContext, assignment),
             onNavigationRequested: assignment.hasNavigation
                 ? () async {
                     Navigator.of(sheetContext).pop();
@@ -581,10 +734,12 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
   const DriverActiveAssignmentDetail({
     super.key,
     required this.assignment,
+    this.actions,
     this.onNavigationRequested,
   });
 
   final DriverAssignment assignment;
+  final Widget? actions;
   final Future<void> Function()? onNavigationRequested;
 
   String _value(BuildContext context, String value) {
@@ -598,6 +753,17 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
       assignment.paymentMethod,
       assignment.paymentStatus,
     ].where((value) => value.trim().isNotEmpty).join(' · ');
+    final statusKey = 'driver.status.${assignment.status}';
+    final translatedStatus = context.tr(statusKey);
+    final statusLabel =
+        translatedStatus == statusKey ? assignment.status : translatedStatus;
+    final orderStatusKey = 'driver.order_status.${assignment.orderStatus}';
+    final translatedOrderStatus = context.tr(orderStatusKey);
+    final orderStatusLabel = assignment.orderStatus.trim().isEmpty
+        ? context.tr('driver.detail.unknown')
+        : translatedOrderStatus == orderStatusKey
+            ? assignment.orderStatus
+            : translatedOrderStatus;
 
     return ListView(
       key: Key('driver-active-detail-${assignment.id}'),
@@ -615,6 +781,15 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
           value: assignment.reference,
         ),
         _DetailRow(
+          label: context.tr('driver.detail.status'),
+          value: statusLabel,
+        ),
+        if (assignment.orderStatus.trim().isNotEmpty)
+          _DetailRow(
+            label: context.tr('driver.detail.order_status'),
+            value: orderStatusLabel,
+          ),
+        _DetailRow(
           label: context.tr('driver.detail.store'),
           value: _value(context, assignment.storeName),
         ),
@@ -630,6 +805,38 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
           label: context.tr('driver.detail.address'),
           value: _value(context, assignment.address),
         ),
+        if (onNavigationRequested != null) ...[
+          const SizedBox(height: 6),
+          FilledButton.icon(
+            key: Key('driver-active-navigate-${assignment.id}'),
+            onPressed: onNavigationRequested,
+            icon: const Icon(Icons.navigation_rounded),
+            label: Text(context.tr('driver.navigation.open')),
+          ),
+        ],
+        if (actions != null) ...[
+          const SizedBox(height: 14),
+          Text(
+            context.tr('driver.detail.actions'),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 10),
+          actions!,
+        ],
+        if (assignment.invoice != null) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            key: Key('driver-active-open-invoice-${assignment.id}'),
+            onPressed: () => _showInvoice(context, assignment.invoice!),
+            icon: const Icon(Icons.receipt_long_rounded),
+            label: Text(
+              '${context.tr('driver.invoice.open')} · ${assignment.invoice!.number}',
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
         _DetailRow(
           label: context.tr('driver.detail.payment'),
           value: _value(context, payment),
@@ -667,26 +874,6 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
               ),
             ),
           ),
-        if (assignment.invoice != null) ...[
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            key: Key('driver-active-open-invoice-${assignment.id}'),
-            onPressed: () => _showInvoice(context, assignment.invoice!),
-            icon: const Icon(Icons.receipt_long_rounded),
-            label: Text(
-              '${context.tr('driver.invoice.open')} · ${assignment.invoice!.number}',
-            ),
-          ),
-        ],
-        if (onNavigationRequested != null) ...[
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            key: Key('driver-active-navigate-${assignment.id}'),
-            onPressed: onNavigationRequested,
-            icon: const Icon(Icons.navigation_rounded),
-            label: Text(context.tr('driver.navigation.open')),
-          ),
-        ],
       ],
     );
   }
@@ -822,6 +1009,22 @@ class _DetailRow extends StatelessWidget {
           ],
         ),
       );
+}
+
+class _StartDeliveryDecision {
+  const _StartDeliveryDecision._({
+    required this.failed,
+    required this.note,
+  });
+
+  factory _StartDeliveryDecision.start(String note) =>
+      _StartDeliveryDecision._(failed: false, note: note);
+
+  factory _StartDeliveryDecision.failed(String note) =>
+      _StartDeliveryDecision._(failed: true, note: note);
+
+  final bool failed;
+  final String note;
 }
 
 class _RetryState extends StatelessWidget {

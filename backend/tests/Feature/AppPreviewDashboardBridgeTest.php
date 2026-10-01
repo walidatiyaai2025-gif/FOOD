@@ -131,6 +131,63 @@ class AppPreviewDashboardBridgeTest extends TestCase
             ->assertJsonPath('data.0.store_id', $storeId);
     }
 
+    public function test_driver_discovery_is_deterministic_and_exact_store_scoped_for_auto_launch(): void
+    {
+        $storeA = $this->retailStore('BRIDGE-DRIVER-A');
+        $storeB = $this->retailStore('BRIDGE-DRIVER-B');
+        $admin = $this->storeAdmin($storeA, 'bridge-driver-admin@example.test');
+
+        $inactiveUser = $this->roleUser('B2C_DRIVER', 'bridge-driver-inactive@example.test');
+        Driver::query()->create([
+            'user_id' => $inactiveUser->id,
+            'store_id' => $storeA,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => false,
+        ]);
+
+        $firstUser = $this->roleUser('B2C_DRIVER', 'bridge-driver-first@example.test');
+        $firstDriver = Driver::query()->create([
+            'user_id' => $firstUser->id,
+            'store_id' => $storeA,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        $secondUser = $this->roleUser('B2C_DRIVER', 'bridge-driver-second@example.test');
+        $secondDriver = Driver::query()->create([
+            'user_id' => $secondUser->id,
+            'store_id' => $storeA,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        $otherStoreUser = $this->roleUser('B2C_DRIVER', 'bridge-driver-other-store@example.test');
+        $otherStoreDriver = Driver::query()->create([
+            'user_id' => $otherStoreUser->id,
+            'store_id' => $storeB,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.app-preview.targets', [
+                'target_type' => 'driver',
+                'channel' => 'b2c',
+                'store_id' => $storeA,
+            ]))
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.user_id', $firstUser->id)
+            ->assertJsonPath('data.0.driver_id', $firstDriver->id)
+            ->assertJsonPath('data.1.user_id', $secondUser->id)
+            ->assertJsonPath('data.1.driver_id', $secondDriver->id)
+            ->assertJsonMissing(['driver_id' => $otherStoreDriver->id]);
+    }
+
     public function test_dashboard_bridge_uses_ephemeral_message_handoff_and_rejects_insecure_runtime_origin(): void
     {
         $admin = $this->roleUser('B2B_ADMIN', 'bridge-runtime-admin@example.test');
