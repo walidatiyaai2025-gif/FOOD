@@ -145,6 +145,40 @@ class HttpCustomerActionApi implements CustomerActionApi {
     );
   }
 
+  Future<CustomerLoginResult> credentialRegister({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+    required String passwordConfirmation,
+    required String locale,
+    int? storeId,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/register'),
+      headers: _headersForStore(storeId),
+      body: jsonEncode({
+        'name': name.trim(),
+        'email': email.trim().toLowerCase(),
+        'phone': phone.trim(),
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+        'locale': locale == 'en' ? 'en' : 'ar',
+        if (storeId != null) 'store_id': storeId,
+      }),
+    );
+    final body = _decode(response);
+    final value = body is Map ? body['token'] : null;
+    if (value is! String || value.isEmpty) {
+      throw const CustomerActionException('invalid_registration_response');
+    }
+
+    return CustomerLoginResult(
+      token: value,
+      platformCustomer: true,
+    );
+  }
+
   @override
   Future<CustomerLoginResult> login({
     required String username,
