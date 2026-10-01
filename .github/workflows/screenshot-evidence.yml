@@ -63,3 +63,50 @@ jobs:
           grep -Fq 'Canonical palette verification failures: **0**' ScreenShots/AUDIT.md
           grep -Fq 'Roles/surfaces without a green/orange brand anchor: **0**' ScreenShots/AUDIT.md
           test "$(grep -c ',PASS,PASS,' ScreenShots/SCREENSHOT_MANIFEST.csv)" -ge 110
+
+
+      - name: Set up Flutter for final mobile UX runtime capture
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Capture current Customer runtime evidence
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') }}
+        working-directory: apps/customer_app
+        run: |
+          flutter pub get
+          flutter test test/screenshot_evidence_test.dart
+
+      - name: Capture current Driver runtime evidence
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') }}
+        working-directory: apps/driver_app
+        run: |
+          flutter pub get
+          flutter test test/screenshot_evidence_test.dart
+
+      - name: Verify refreshed mobile runtime evidence
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f ScreenShots/02_MultiStore/01_store_selection__ar.png
+          test -f ScreenShots/02_MultiStore/01_store_selection__en.png
+          test -f ScreenShots/01_Mobile/Driver_B2C/02_driver_home__default__ar.png
+          test -f ScreenShots/01_Mobile/Driver_B2C/02_driver_home__default__en.png
+          test -f ScreenShots/01_Mobile/Driver_B2C/03_driver_deliveries__populated__ar.png
+          test -f ScreenShots/01_Mobile/Driver_B2C/03_driver_deliveries__populated__en.png
+
+      - name: Upload final mobile UX runtime evidence
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-prod-ux-final-runtime-evidence
+          path: |
+            ScreenShots/02_MultiStore/
+            ScreenShots/01_Mobile/B2C_Customer/
+            ScreenShots/01_Mobile/Driver_B2C/
+            ScreenShots/01_Mobile/Driver_B2B/
+          if-no-files-found: error
+          retention-days: 14
