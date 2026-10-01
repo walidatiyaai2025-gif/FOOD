@@ -10,16 +10,17 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverOrderService;
+use App\Services\DriverTenantScope;
 use App\Services\OperationalTenantScope;
-use App\Services\WholesalePrincipal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class DriverAssignmentController extends Controller
 {
+    public function __construct(private readonly DriverTenantScope $driverTenants) {}
+
     public function index(Request $request, DriverOrderService $driverOrders): JsonResponse
     {
         [$driver, $channel] = $this->driverContext($request);
@@ -30,10 +31,7 @@ class DriverAssignmentController extends Controller
         $query = DriverAssignment::query()
             ->where('driver_id', $driver->getKey())
             ->where('assignment_type', $channel)
-            ->when(
-                $driver->store_id !== null,
-                fn ($builder) => $builder->where('store_id', (int) $driver->store_id),
-            );
+            ->where('store_id', (int) $driver->store_id);
 
         match ($scope) {
             'active' => $query->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned']),
@@ -79,10 +77,7 @@ class DriverAssignmentController extends Controller
             ->where('driver_id', $driver->getKey())
             ->where('assignment_type', $channel)
             ->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned'])
-            ->when(
-                $driver->store_id !== null,
-                fn ($query) => $query->where('store_id', (int) $driver->store_id),
-            )
+            ->where('store_id', (int) $driver->store_id)
             ->firstOrFail();
 
         return response()->json(['data' => $driverOrders->payload($model)]);
@@ -102,10 +97,13 @@ class DriverAssignmentController extends Controller
         $order = Order::query()->findOrFail($data['order_id']);
         $channel = strtolower((string) $order->channel);
         abort_unless(in_array($channel, ['b2c', 'b2b'], true), 409, 'Unsupported order channel.');
+        abort_unless((bool) $driver->is_active, 409, 'Driver must be active before assignment.');
+        [$driverChannel, $driverStoreId] = $this->driverTenants->resolve($driver);
+        abort_unless($driverChannel === $channel, 409, 'Driver and order channels must match.');
         abort_unless(
-            strtolower((string) $driver->driver_type) === $channel,
+            $driverStoreId === (int) $order->store_id,
             409,
-            'Driver and order channels must match.',
+            'Driver and order must belong to the same authoritative store.',
         );
         abort_if(
             in_array((string) $order->status, ['delivered', 'cancelled'], true),
@@ -122,29 +120,6 @@ class DriverAssignmentController extends Controller
             $ability,
             $channel,
         );
-
-        if ($driver->store_id === null) {
-            $historicalStores = DriverAssignment::query()
-                ->where('driver_id', $driver->getKey())
-                ->whereNotNull('store_id')
-                ->distinct()
-                ->pluck('store_id')
-                ->map(static fn ($id): int => (int) $id)
-                ->all();
-
-            abort_unless(
-                $historicalStores === [] || $historicalStores === [(int) $order->store_id],
-                409,
-                'Driver has ambiguous historical store ownership and must be reconciled before assignment.',
-            );
-            $driver->update(['store_id' => (int) $order->store_id]);
-        } else {
-            abort_unless(
-                (int) $driver->store_id === (int) $order->store_id,
-                409,
-                'Driver and order must belong to the same store.',
-            );
-        }
 
         $activeAssignment = DriverAssignment::query()
             ->where('order_id', $order->getKey())
@@ -328,10 +303,7 @@ class DriverAssignmentController extends Controller
             ->where('driver_id', $driver->getKey())
             ->where('assignment_type', $channel)
             ->whereNotIn('status', ['cancelled', 'unassigned', 'reassigned'])
-            ->when(
-                $driver->store_id !== null,
-                fn ($query) => $query->where('store_id', (int) $driver->store_id),
-            )
+            ->where('store_id', (int) $driver->store_id)
             ->firstOrFail();
 
         $fresh = $driverOrders->transition(
@@ -370,57 +342,9 @@ class DriverAssignmentController extends Controller
         abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403);
         abort_unless($user->hasPermission("deliveries.{$channel}.execute"), 403);
 
-        $driver = $this->reconcileDriverOwnership($driver, $channel);
+        $this->driverTenants->resolve($driver);
 
         return [$driver, $channel];
     }
 
-    private function reconcileDriverOwnership(Driver $driver, string $channel): Driver
-    {
-        $assignmentStoreIds = DB::table('driver_assignments')
-            ->join('orders', 'orders.id', '=', 'driver_assignments.order_id')
-            ->where('driver_assignments.driver_id', $driver->getKey())
-            ->where('driver_assignments.assignment_type', $channel)
-            ->where('orders.channel', $channel)
-            ->distinct()
-            ->pluck('orders.store_id')
-            ->map(static fn ($id): int => (int) $id)
-            ->values();
-
-        if ($assignmentStoreIds->count() === 1) {
-            $authoritativeStoreId = (int) $assignmentStoreIds->first();
-            if ((int) ($driver->store_id ?? 0) !== $authoritativeStoreId) {
-                $driver->forceFill(['store_id' => $authoritativeStoreId])->save();
-            }
-        } elseif ($assignmentStoreIds->isEmpty() && $channel === 'b2b') {
-            $principalStoreId = app(WholesalePrincipal::class)->storeId();
-            if ((int) ($driver->store_id ?? 0) !== $principalStoreId) {
-                $driver->forceFill(['store_id' => $principalStoreId])->save();
-            }
-        } elseif ($assignmentStoreIds->isEmpty()) {
-            return $driver;
-        } else {
-            abort(403, 'Driver assignment history belongs to multiple stores and must be reconciled.');
-        }
-
-        $storeId = (int) $driver->store_id;
-
-        DriverAssignment::query()
-            ->where('driver_id', $driver->getKey())
-            ->where('assignment_type', $channel)
-            ->get(['id', 'order_id', 'store_id'])
-            ->each(function (DriverAssignment $assignment) use ($storeId, $channel): void {
-                $matches = Order::query()
-                    ->whereKey($assignment->order_id)
-                    ->where('store_id', $storeId)
-                    ->where('channel', $channel)
-                    ->exists();
-
-                if ($matches && (int) ($assignment->store_id ?? 0) !== $storeId) {
-                    $assignment->forceFill(['store_id' => $storeId])->save();
-                }
-            });
-
-        return $driver->fresh();
-    }
 }
