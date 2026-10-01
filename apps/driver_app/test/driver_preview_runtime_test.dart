@@ -92,6 +92,7 @@ void main() {
     expect(preview.auditCorrelationId, 'audit-id');
     expect(preview.runtimeIdentity.token, isEmpty);
     expect(preview.runtimeIdentity.channel, DriverChannel.b2b);
+    expect(preview.runtimeIdentity.storeId, 9);
   });
 
   testWidgets('real B2C journey filters preview to the selected retail store',
