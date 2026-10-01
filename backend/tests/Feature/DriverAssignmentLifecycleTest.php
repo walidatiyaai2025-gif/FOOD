@@ -378,7 +378,7 @@ class DriverAssignmentLifecycleTest extends TestCase
         ])->assertCreated()->json('data.id');
 
         Sanctum::actingAs($driverUser);
-        foreach (['accepted', 'out_for_delivery'] as $status) {
+        foreach (['accepted', 'picked_up', 'out_for_delivery'] as $status) {
             $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
                 'status' => $status,
             ])->assertOk();
