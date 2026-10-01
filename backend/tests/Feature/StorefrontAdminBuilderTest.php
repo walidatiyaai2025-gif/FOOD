@@ -525,6 +525,11 @@ class StorefrontAdminBuilderTest extends TestCase
             ->assertJsonPath('hero.title', 'Published hero')
             ->assertJsonPath('banners.1.image_url', null);
 
+        // Missing optional media must degrade safely at read time, but Draft
+        // publication still keeps the existing revision-asset safety invariant:
+        // a referenced source file must exist or be recoverable from history.
+        Storage::disk('public')->put('banners/'.$storeA.'/missing.jpg', 'recovered');
+
         $this->actingAs($admin)->post(route('admin.business.banners.store'), [
             'store_id' => $storeA,
             'title' => 'Draft hero',
