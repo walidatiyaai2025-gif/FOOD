@@ -282,7 +282,6 @@ class DriverAssignmentController extends Controller
                 Rule::in(['accepted', 'picked_up', 'out_for_delivery', 'delivered', 'failed']),
             ],
             'failure_reason' => [
-                Rule::requiredIf(fn (): bool => $request->string('status')->toString() === 'failed'),
                 'nullable',
                 Rule::in([
                     'customer_no_answer',
@@ -295,8 +294,6 @@ class DriverAssignmentController extends Controller
                 ]),
             ],
             'note' => [
-                Rule::requiredIf(fn (): bool => $request->string('status')->toString() === 'failed'
-                    && $request->string('failure_reason')->toString() === 'other'),
                 'nullable',
                 'string',
                 'max:1000',
