@@ -90,6 +90,36 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 </div>
 <div class="foodex-card panel"><h2>{{ $isAr?'سجل حالات الطلب':'Order status timeline' }} · {{ $detail['number'] }}</h2><div class="timeline">@forelse($detail['history'] as $entry)<div class="timeline-item"><strong>{{ $entry['from'] ?? '—' }} → {{ $entry['to'] }}</strong><div>{{ $entry['note'] }}</div><small>{{ optional($entry['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</small></div>@empty<div class="foodex-empty-state">{{ $isAr?'لا يوجد سجل.':'No history.' }}</div>@endforelse</div></div>
 <div class="foodex-card panel"><h2>{{ $isAr?'سجل السائقين':'Driver assignment history' }}</h2><div class="timeline">@forelse($detail['assignments'] as $entry)<div class="timeline-item"><strong>{{ $entry['driver'] }}</strong><div>{{ $entry['status'] }}</div><small>{{ optional($entry['assigned_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }} @if($entry['completed_at'])→ {{ optional($entry['completed_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}@endif</small></div>@empty<div class="foodex-empty-state">{{ $isAr?'لا توجد تعيينات.':'No assignments.' }}</div>@endforelse</div></div>
+<div class="foodex-card panel" data-delivery-evidence>
+<h2>{{ $isAr?'سجل التوصيل وإثبات التسليم':'Delivery timeline & proof' }}</h2>
+<div class="timeline">
+@forelse($detail['delivery_evidence'] as $assignment)
+<div class="timeline-item" data-delivery-evidence-assignment="{{ $assignment['id'] }}">
+<strong>{{ $assignment['driver_name'] }} · {{ $assignment['status'] }}</strong>
+<div>{{ $isAr?'رقم التعيين':'Assignment' }} #{{ $assignment['id'] }}</div>
+@if(empty($assignment['timeline']))
+<small>{{ $isAr?'لا توجد أحداث توصيل محفوظة لهذا التعيين.':'No delivery evidence events are recorded for this assignment.' }}</small>
+@else
+<div class="timeline" style="margin-top:10px">
+@foreach($assignment['timeline'] as $event)
+<div class="timeline-item" data-delivery-evidence-event="{{ $event['id'] }}">
+<strong>{{ $event['from_status'] ?? '—' }} → {{ $event['to_status'] }}</strong>
+@if($event['reason_code'])<div>{{ $isAr?'سبب التعذر':'Failure reason' }}: {{ $event['reason_code'] }}</div>@endif
+@if($event['note'])<div>{{ $isAr?'ملاحظة السائق':'Driver note' }}: {{ $event['note'] }}</div>@endif
+@if($event['proof'])
+<div><a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-delivery-proof-link>{{ $isAr?'عرض إثبات التسليم':'View delivery proof' }}</a></div>
+@endif
+<small>{{ $event['captured_at'] ? \Carbon\Carbon::parse($event['captured_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
+</div>
+@endforeach
+</div>
+@endif
+</div>
+@empty
+<div class="foodex-empty-state">{{ $isAr?'لا يوجد سجل توصيل أو إثبات محفوظ لهذا الطلب.':'No delivery timeline or proof is recorded for this order.' }}</div>
+@endforelse
+</div>
+</div>
 </section>
 @endif
 </main>
