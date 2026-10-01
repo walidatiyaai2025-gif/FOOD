@@ -36,7 +36,7 @@ final class DialogueStateResolver
             'those',
             'same',
         ]);
-        $asksComparison = $this->containsAny($normalizedMessage, ['compare', 'comparison', 'قارن', 'مقارنه']);
+        $asksComparison = $this->containsAny($normalizedMessage, ['compare', 'comparison', 'compare them', 'compare it', 'قارن', 'قارنهم', 'قارنها', 'قارنه', 'مقارنه']);
 
         if ($lastIntent !== null && $asksComparison) {
             $comparisonIntent = match ($lastIntent) {
