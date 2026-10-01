@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.42",
+  "target_version": "1.0.43",
   "minimum_current_version": "1.0.6",
-  "sha256": "d7cb34aaab10d7d5322fb074e078f2ca93f10e1c62074e30660dfd03c8848a70",
+  "sha256": "03c50ab87e8819b2e6e9128b29a06218dcdacaf439f5b715a419d102361baf5e",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "FOODEX 1.0.42: Publish the complete MOBILE-PROD-UX package: production static asset reliability, authoritative Driver delivery lifecycle and notifications, Driver Home/Deliveries redesign, persistent Customer sessions, Dashboard-managed retail banners, and the redesigned Customer marketplace home. Include the final integrated mobile acceptance lane with backend, Customer/Driver Flutter and iOS validation, runtime screenshot evidence, and APP-PREVIEW visual/pixel-parity gates. Ship the self-contained Customer and Driver Flutter Web preview runtimes inside the Dashboard update package so App Preview updates do not require a separate runtime deployment path. Integrate FOOD Assistant V1 as a deterministic Arabic/English conversational copilot with authoritative FOODEX business/operations data, no LLM or external AI API, disabled by default and read-only by default. Preserve production AppVersion minimum/force-update rows and Driver fresh-location enforcement activation state; this release does not activate those policies.",
+  "release_notes": "FOODEX 1.0.43: Republish the Dashboard update under a new immutable version so installed 1.0.42 systems receive the shared-host public-runtime repair from #670/#671. Ship canonical `backend/public/**` files and safe shared-host aliases for `/assets/**`, `/brand/**`, `/demo/**`, and `/preview/**` in the same Dashboard update package. Repair public static-file and directory permissions during update extraction so Leaflet, Driver live tracking, FOODEX branding, and Customer/Driver App Preview runtimes resolve from the production document root. Preserve production AppVersion minimum/force-update rows, Driver fresh-location enforcement state, and Assistant disabled/read-only defaults.",
   "dashboard_fields": {
-    "target_version": "1.0.42",
+    "target_version": "1.0.43",
     "minimum_current_version": "1.0.6",
-    "sha256": "d7cb34aaab10d7d5322fb074e078f2ca93f10e1c62074e30660dfd03c8848a70",
+    "sha256": "03c50ab87e8819b2e6e9128b29a06218dcdacaf439f5b715a419d102361baf5e",
     "contains_migrations": true,
-    "release_notes": "FOODEX 1.0.42: Publish the complete MOBILE-PROD-UX package: production static asset reliability, authoritative Driver delivery lifecycle and notifications, Driver Home/Deliveries redesign, persistent Customer sessions, Dashboard-managed retail banners, and the redesigned Customer marketplace home. Include the final integrated mobile acceptance lane with backend, Customer/Driver Flutter and iOS validation, runtime screenshot evidence, and APP-PREVIEW visual/pixel-parity gates. Ship the self-contained Customer and Driver Flutter Web preview runtimes inside the Dashboard update package so App Preview updates do not require a separate runtime deployment path. Integrate FOOD Assistant V1 as a deterministic Arabic/English conversational copilot with authoritative FOODEX business/operations data, no LLM or external AI API, disabled by default and read-only by default. Preserve production AppVersion minimum/force-update rows and Driver fresh-location enforcement activation state; this release does not activate those policies."
+    "release_notes": "FOODEX 1.0.43: Republish the Dashboard update under a new immutable version so installed 1.0.42 systems receive the shared-host public-runtime repair from #670/#671. Ship canonical `backend/public/**` files and safe shared-host aliases for `/assets/**`, `/brand/**`, `/demo/**`, and `/preview/**` in the same Dashboard update package. Repair public static-file and directory permissions during update extraction so Leaflet, Driver live tracking, FOODEX branding, and Customer/Driver App Preview runtimes resolve from the production document root. Preserve production AppVersion minimum/force-update rows, Driver fresh-location enforcement state, and Assistant disabled/read-only defaults."
   }
 }

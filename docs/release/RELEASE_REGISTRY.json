@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.42",
+  "current_version": "1.0.43",
   "releases": [
     {
       "version": "1.0.40",
@@ -38,6 +38,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "d7cb34aaab10d7d5322fb074e078f2ca93f10e1c62074e30660dfd03c8848a70",
       "note": "Post-1.0.41 integrated mobile production UX, self-contained preview runtime and Assistant V1 distribution. Assistant remains disabled/read-only by default."
+    },
+    {
+      "version": "1.0.43",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.43.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "03c50ab87e8819b2e6e9128b29a06218dcdacaf439f5b715a419d102361baf5e",
+      "note": "Post-1.0.42 shared-host public-runtime repair distribution; canonical and mirrored static runtime paths ship in the same Dashboard update package."
     }
   ]
 }

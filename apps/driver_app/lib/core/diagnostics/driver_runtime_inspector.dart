@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'driver_runtime_platform.dart';
 
-const driverAppVersion = '1.0.42';
-const driverAppBuild = '42';
+const driverAppVersion = '1.0.43';
+const driverAppBuild = '43';
 
 String sanitizeForDiagnostics(Object? value, {int maxLength = 12000}) {
   var text = value?.toString() ?? '';
