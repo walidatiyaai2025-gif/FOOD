@@ -3,11 +3,11 @@
 use App\Http\Controllers\Admin\AdminLoginController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminShellController;
-use App\Http\Controllers\Admin\AssistantController;
 use App\Http\Controllers\Admin\AppPreviewConfigurationController;
 use App\Http\Controllers\Admin\AppPreviewController;
 use App\Http\Controllers\Admin\AppPreviewInvalidationController;
 use App\Http\Controllers\Admin\AppVersionController;
+use App\Http\Controllers\Admin\AssistantController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
 use App\Http\Controllers\Admin\BusinessManagementController;
