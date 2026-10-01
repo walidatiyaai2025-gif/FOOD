@@ -86,7 +86,7 @@ void main() {
       }),
     );
 
-    await api.favorites(storeId: 19);
+    await api.favoritesForStore(19);
 
     expect(captured?.url.path, '/api/v1/profile/favorites');
     expect(captured?.headers['Authorization'], 'Bearer customer-token');
