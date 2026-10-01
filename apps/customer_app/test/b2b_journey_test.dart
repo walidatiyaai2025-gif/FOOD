@@ -6,17 +6,30 @@ import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
+import 'package:foodex_customer_app/core/diagnostics/customer_diagnostics.dart';
 
 void main() {
   const b2b = CustomerSession.authenticated(CustomerChannel.b2b);
 
-  testWidgets('B2B unauthenticated protected route uses B2B-aware Customer login', (tester) async {
-    await tester.pumpWidget(const FoodexCustomerApp(initialRoute: '/b2b/dashboard'));
+  testWidgets('B2B unauthenticated protected route hides internal redirect details',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(initialRoute: '/b2b/dashboard'),
+    );
     await tester.pumpAndSettle();
+
     expect(find.text('دخول عميل الأعمال'), findsOneWidget);
-    expect(find.textContaining('/b2b/login'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-login-submit')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('/b2b/login'), findsNothing);
     expect(find.textContaining('/auth/checkout'), findsNothing);
-    expect(find.textContaining('next='), findsOneWidget);
+    expect(find.textContaining('next='), findsNothing);
+    expect(
+      find.byKey(const ValueKey('customer-route-location')),
+      findsNothing,
+    );
   });
 
   testWidgets('B2B approved customer dashboard is RTL and exposes finance areas', (tester) async {
@@ -418,7 +431,11 @@ void main() {
     await tester.tap(find.text('INV-31'));
     await tester.pumpAndSettle();
 
-    expect(find.text('/b2b/invoices/31'), findsOneWidget);
+    expect(find.text('/b2b/invoices/31'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('customer-route-location')),
+      findsNothing,
+    );
     expect(api.lastPath, '/api/v1/b2b/invoices/31');
   });
 
@@ -431,10 +448,111 @@ void main() {
     expect(api.lastPath, '/api/v1/b2b/invoices');
   });
 
-  testWidgets('B2B remote journey renders safe error state', (tester) async {
-    await tester.pumpWidget(FoodexCustomerApp(session: b2b, initialRoute: '/b2b/account-statement', b2bApi: _FailingB2bApi()));
+  testWidgets('B2B remote journey classifies network/client failure safely',
+      (tester) async {
+    await CustomerDiagnostics.instance.clear();
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/account-statement',
+        b2bApi: _FailingB2bApi(),
+      ),
+    );
     await tester.pumpAndSettle();
+
     expect(find.byKey(const ValueKey('b2b-error')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-error-retry')), findsOneWidget);
+
+    final failure = CustomerDiagnostics.instance.events.lastWhere(
+      (event) => event['type'] == 'runtime_failure',
+    );
+    final details = Map<String, dynamic>.from(failure['details'] as Map);
+    expect(details['category'], 'network_or_client_failure');
+    expect(details.containsKey('status_code'), isFalse);
+  });
+
+  testWidgets(
+      'B2B product transient failure exposes support reference and authoritative retry',
+      (tester) async {
+    await CustomerDiagnostics.instance.clear();
+    final api = _RetryB2bApi();
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/products/42?store_id=7',
+        b2bApi: api,
+        actionApi: _FakeCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2b-error')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-error-retry')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-error-back-products')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('req-product-503'), findsOneWidget);
+    expect(find.textContaining('/b2b/products/42'), findsNothing);
+
+    final failure = CustomerDiagnostics.instance.events.lastWhere(
+      (event) => event['type'] == 'runtime_failure',
+    );
+    final details = Map<String, dynamic>.from(failure['details'] as Map);
+    expect(details['category'], 'server_failure');
+    expect(details['status_code'], 503);
+    expect(details['support_reference'], 'req-product-503');
+
+    await tester.tap(find.byKey(const ValueKey('b2b-error-retry')));
+    await tester.pumpAndSettle();
+
+    expect(api.calls, 2);
+    expect(
+      find.byKey(const ValueKey('b2b-product-detail-data')),
+      findsOneWidget,
+    );
+    expect(find.text('Recovered Product'), findsOneWidget);
+  });
+
+  testWidgets('B2B runtime diagnostics classify 401 403 404 and 5xx',
+      (tester) async {
+    const cases = <({int status, String code, String category})>[
+      (status: 401, code: 'not_authorized', category: 'unauthorized'),
+      (status: 403, code: 'not_authorized', category: 'forbidden'),
+      (status: 404, code: 'http_404', category: 'not_found'),
+      (status: 500, code: 'http_500', category: 'server_failure'),
+    ];
+
+    for (final item in cases) {
+      await CustomerDiagnostics.instance.clear();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          key: ValueKey('b2b-failure-${item.status}'),
+          session: b2b,
+          initialRoute: '/b2b/products/42?store_id=7',
+          b2bApi: _StatusFailingB2bApi(
+            status: item.status,
+            code: item.code,
+          ),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final failure = CustomerDiagnostics.instance.events.lastWhere(
+        (event) => event['type'] == 'runtime_failure',
+      );
+      final details = Map<String, dynamic>.from(failure['details'] as Map);
+      expect(details['category'], item.category, reason: '${item.status}');
+      expect(details['status_code'], item.status, reason: '${item.status}');
+      expect(
+        details['support_reference'],
+        'req-${item.status}',
+        reason: '${item.status}',
+      );
+      expect(find.byKey(const ValueKey('b2b-error-retry')), findsOneWidget);
+    }
   });
 }
 
@@ -579,6 +697,51 @@ class _StaticB2bApi implements B2bApi {
   const _StaticB2bApi();
   @override
   Future<Object?> get(String path) async => null;
+}
+
+class _RetryB2bApi implements B2bApi {
+  int calls = 0;
+
+  @override
+  Future<Object?> get(String path) async {
+    calls++;
+    if (calls == 1) {
+      throw const B2bApiException(
+        'http_503',
+        statusCode: 503,
+        supportReference: 'req-product-503',
+      );
+    }
+    return const {
+      'id': 42,
+      'sku': 'REC-42',
+      'name': 'Recovered Product',
+      'store_id': 7,
+      'account_price': 7.25,
+      'minimum_order_quantity': 5,
+      'available_quantity': 24,
+      'currency': 'KWD',
+    };
+  }
+}
+
+class _StatusFailingB2bApi implements B2bApi {
+  const _StatusFailingB2bApi({
+    required this.status,
+    required this.code,
+  });
+
+  final int status;
+  final String code;
+
+  @override
+  Future<Object?> get(String path) async {
+    throw B2bApiException(
+      code,
+      statusCode: status,
+      supportReference: 'req-$status',
+    );
+  }
 }
 
 
