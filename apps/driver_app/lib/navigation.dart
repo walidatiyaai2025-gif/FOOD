@@ -320,7 +320,7 @@ class _DriverHomePageState extends State<_DriverHomePage> {
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: .16),
+                            color: const Color(0x29FFFFFF),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(
