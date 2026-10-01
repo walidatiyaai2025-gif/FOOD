@@ -109,11 +109,14 @@ void main() {
       expect(capturedCategoryId, 3);
 
       final product = find.byKey(const ValueKey('retail-product-42'));
+      final mainScroll = find.byType(Scrollable).first;
       await tester.scrollUntilVisible(
         product,
         240,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: mainScroll,
       );
+      await tester.drag(mainScroll, const Offset(0, -160));
+      await tester.pumpAndSettle();
       await tester.tap(product);
       await tester.pump();
       expect(capturedProductId, 42);
