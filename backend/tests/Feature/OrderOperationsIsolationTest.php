@@ -82,6 +82,30 @@ class OrderOperationsIsolationTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $rogueWholesaleStore = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'OPS-ROGUE-B2B',
+            'name' => 'Rogue Wholesale',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('orders')->insert([
+            'store_id' => $rogueWholesaleStore,
+            'customer_id' => (int) $wholesaleCustomer->legacy_customer_id,
+            'b2b_customer_id' => (int) $wholesaleCustomer->getKey(),
+            'order_number' => 'OPS-ROGUE-WHOLESALE-3001',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 30,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 30,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $super = User::query()->create([
             'name' => 'Platform Operations Owner',
             'email' => 'platform-operations-owner@example.test',
@@ -95,6 +119,7 @@ class OrderOperationsIsolationTest extends TestCase
             ->get('/admin/operations/orders')
             ->assertOk()
             ->assertSee('OPS-WHOLESALE-ONLY-2001')
+            ->assertDontSee('OPS-ROGUE-WHOLESALE-3001')
             ->assertDontSee('OPS-RETAIL-ONLY-1001');
 
         $this->actingAs($super)
