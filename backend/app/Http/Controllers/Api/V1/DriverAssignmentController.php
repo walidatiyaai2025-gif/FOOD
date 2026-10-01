@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class DriverAssignmentController extends Controller
 {
@@ -276,6 +277,22 @@ class DriverAssignmentController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
+        $idempotencyKey = trim((string) $request->header('Idempotency-Key', ''));
+        if (
+            $idempotencyKey !== ''
+            && (
+                strlen($idempotencyKey) < 8
+                || strlen($idempotencyKey) > 128
+                || preg_match('/^[A-Za-z0-9._:-]+$/', $idempotencyKey) !== 1
+            )
+        ) {
+            throw ValidationException::withMessages([
+                'idempotency_key' => [
+                    'Idempotency-Key must be 8-128 characters using letters, numbers, dot, underscore, colon or dash.',
+                ],
+            ]);
+        }
+
         $data = $request->validate([
             'status' => [
                 'required',
@@ -298,14 +315,19 @@ class DriverAssignmentController extends Controller
                 'string',
                 'max:1000',
             ],
-            'proof_image' => ['nullable', 'image', 'max:5120'],
+            'proof_image' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
         ]);
 
         $model = DriverAssignment::query()
             ->whereKey($assignment)
             ->where('driver_id', $driver->getKey())
             ->where('assignment_type', $channel)
-            ->whereNotIn('status', ['cancelled', 'unassigned'])
+            ->whereNotIn('status', ['cancelled', 'unassigned', 'reassigned'])
             ->when(
                 $driver->store_id !== null,
                 fn ($query) => $query->where('store_id', (int) $driver->store_id),
@@ -321,9 +343,15 @@ class DriverAssignmentController extends Controller
             $request,
             $request->file('proof_image'),
             $data['failure_reason'] ?? null,
+            $idempotencyKey === '' ? null : $idempotencyKey,
         );
 
-        return response()->json(['data' => $driverOrders->payload($fresh)]);
+        return response()->json([
+            'data' => $driverOrders->payload($fresh),
+            'meta' => [
+                'idempotency_key' => $idempotencyKey === '' ? null : $idempotencyKey,
+            ],
+        ]);
     }
 
     /** @return array{0: Driver, 1: string} */
