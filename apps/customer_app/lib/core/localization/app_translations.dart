@@ -263,6 +263,9 @@ class AppTranslations extends InheritedWidget {
     'b2b.empty.statement': 'لا توجد حركات مالية',
     'b2b.empty.orders': 'لا توجد طلبات',
     'b2b.remote.error': 'تعذر تحميل البيانات. حاول مرة أخرى.',
+    'b2b.remote.not_found': 'لم تعد هذه البيانات متاحة.',
+    'b2b.remote.back_products': 'العودة إلى المنتجات',
+    'b2b.remote.support_reference': 'مرجع الدعم',
     'b2b.remote.empty': 'لا توجد بيانات',
     'b2b.remote.loaded': 'تم تحميل البيانات من فودكس',
   };
@@ -510,6 +513,9 @@ class AppTranslations extends InheritedWidget {
     'b2b.empty.statement': 'No financial transactions',
     'b2b.empty.orders': 'No orders',
     'b2b.remote.error': 'Unable to load data. Please try again.',
+    'b2b.remote.not_found': 'This item is no longer available.',
+    'b2b.remote.back_products': 'Back to products',
+    'b2b.remote.support_reference': 'Support reference',
     'b2b.remote.empty': 'No data available',
     'b2b.remote.loaded': 'Data loaded from FOODEX',
   };
