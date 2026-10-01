@@ -377,10 +377,16 @@ void main() {
       ),
       findsOneWidget,
     );
+    final detailScrollable = find.descendant(
+      of: detail,
+      matching: find.byType(Scrollable),
+    );
+    expect(detailScrollable, findsOneWidget);
+
     await tester.scrollUntilVisible(
       find.text('Product A'),
       160,
-      scrollable: detail,
+      scrollable: detailScrollable,
     );
     await tester.pumpAndSettle();
     expect(
@@ -388,12 +394,12 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('driver-active-navigate-5')),
-      -160,
-      scrollable: detail,
-    );
+    await tester.drag(detailScrollable, const Offset(0, 600));
     await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('driver-active-navigate-5')),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const Key('driver-active-navigate-5')));
     await tester.pumpAndSettle();
     expect(navigatedId, 5);
