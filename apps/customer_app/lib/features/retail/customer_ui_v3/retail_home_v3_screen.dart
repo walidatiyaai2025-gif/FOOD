@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/api/b2c_account_api.dart';
 import '../../../core/api/b2c_catalog_api.dart';
 import '../../../core/localization/app_translations.dart';
-import '../../../core/theme/customer_ui_v3_tokens.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
 import '../../customer_account/customer_account_data.dart';
 import '../catalog/retail_catalog_screens.dart';
