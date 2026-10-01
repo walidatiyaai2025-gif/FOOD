@@ -252,10 +252,11 @@ class WholesaleStorefrontBuilderTest extends TestCase
         $this->getJson('/api/v1/platform/storefront')
             ->assertOk()
             ->assertJsonPath('retail_banners.0.store_id', $retailStoreId)
+            ->assertJsonPath('retail_banners.0.title', 'Retail Merchant Placement')
             ->assertJsonPath('retail_banners.0.placement_scope', 'platform_retail_store')
             ->assertJsonPath('retail_banners.0.target_type', 'retail_store')
             ->assertJsonPath('retail_banners.0.target_id', $retailStoreId)
-            ->assertJsonMissing(['title' => 'Retail Merchant Placement', 'target_type' => null]);
+            ->assertJsonCount(0, 'banners');
 
         $this->getJson('/api/v1/stores/'.$retailStoreId.'/storefront')
             ->assertOk()
