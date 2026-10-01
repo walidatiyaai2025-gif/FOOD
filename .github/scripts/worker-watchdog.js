@@ -14,6 +14,9 @@ const RED_CI_CONCLUSIONS = new Set([
   'stale',
 ]);
 
+const SELF_WATCHDOG_WORKFLOW_NAMES = new Set(['Worker Watchdog']);
+const SELF_WATCHDOG_CHECK_NAMES = new Set(['Detect stale workers and external gates']);
+
 const STATUS_LABELS = [
   'worker:ready',
   'worker:active',
@@ -289,6 +292,7 @@ function summarizeWorkflowRuns(runs) {
   const newestByWorkflow = new Map();
 
   for (const run of runs) {
+    if (SELF_WATCHDOG_WORKFLOW_NAMES.has(run.name)) continue;
     const key = run.workflow_id ?? run.name ?? run.id;
     const runMs = newestMillis(
       run.run_started_at,
@@ -339,6 +343,7 @@ function summarizeWorkflowRuns(runs) {
 function summarizeCheckRuns(checkRuns) {
   const newestByCheck = new Map();
   for (const check of checkRuns) {
+    if (SELF_WATCHDOG_CHECK_NAMES.has(check.name)) continue;
     const key = `${check.app?.id || 'app'}:${check.name || check.id}`;
     const ms = newestMillis(check.started_at, check.completed_at);
     const previous = newestByCheck.get(key);
