@@ -192,8 +192,8 @@ void main() {
       }),
     );
 
-    expect(() => api.products(0), throwsArgumentError);
-    expect(() => api.product(42, storeId: -1), throwsArgumentError);
+    await expectLater(api.products(0), throwsArgumentError);
+    await expectLater(api.product(42, storeId: -1), throwsArgumentError);
   });
 }
 
