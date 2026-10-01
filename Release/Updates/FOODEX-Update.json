@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.34",
-  "minimum_current_version": "1.0.33",
-  "sha256": "7b77c2f4769cd94acb52265001edd9a3e357bae13455911740ef2563b127fb0d",
+  "target_version": "1.0.40",
+  "minimum_current_version": "1.0.6",
+  "sha256": "81fbc6f0a49d60d78284bf100d015a0a4ae5c916191e7d68392713a7fbb8cb7d",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "#431 Refresh FOODEX 1.0.34 trial distribution",
+  "release_notes": "FOODEX 1.0.40: Synchronize Dashboard, Customer and Driver release identities at 1.0.40 / mobile build 1.0.40+40. Fix the Dashboard Coupons page HTTP 500 when optional coupon start/end timestamps are null. Safely redirect malformed/non-numeric Customer 360 placeholder references to the Customer 360 index while preserving the valid numeric scoped route. Add regression coverage for both System Inspector production incidents. Preserve production Driver minimum-version and fresh-location enforcement settings unchanged.",
   "dashboard_fields": {
-    "target_version": "1.0.34",
-    "minimum_current_version": "1.0.33",
-    "sha256": "7b77c2f4769cd94acb52265001edd9a3e357bae13455911740ef2563b127fb0d",
+    "target_version": "1.0.40",
+    "minimum_current_version": "1.0.6",
+    "sha256": "81fbc6f0a49d60d78284bf100d015a0a4ae5c916191e7d68392713a7fbb8cb7d",
     "contains_migrations": true,
-    "release_notes": "#431 Refresh FOODEX 1.0.34 trial distribution"
+    "release_notes": "FOODEX 1.0.40: Synchronize Dashboard, Customer and Driver release identities at 1.0.40 / mobile build 1.0.40+40. Fix the Dashboard Coupons page HTTP 500 when optional coupon start/end timestamps are null. Safely redirect malformed/non-numeric Customer 360 placeholder references to the Customer 360 index while preserving the valid numeric scoped route. Add regression coverage for both System Inspector production incidents. Preserve production Driver minimum-version and fresh-location enforcement settings unchanged."
   }
 }

@@ -32,3 +32,10 @@ This release does **not**:
 - enable Driver fresh-location enforcement;
 - change the existing production Driver enforcement state;
 - alter Customer or Driver business behavior beyond synchronized release identity.
+
+
+## Dashboard update bundle publication
+
+- Publish the generated cumulative `FOODEX-Update.zip` and its manifest/checksum/file list under `Release/Updates` for Dashboard System Update.
+- Dashboard update target: `1.0.40`; supported minimum current version: `1.0.6`; database migrations are included and full redeploy is not required.
+- Package SHA-256: `81fbc6f0a49d60d78284bf100d015a0a4ae5c916191e7d68392713a7fbb8cb7d`.
