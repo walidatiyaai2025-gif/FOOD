@@ -45,8 +45,6 @@ final class OrderOperationsController extends Controller
     public function index(Request $request): View
     {
         $actor = $this->actor($request);
-        $storeIds = $this->scope->allowedStoreIds($actor, 'orders.view');
-        abort_if($storeIds === [], 403);
 
         $data = $request->validate([
             'from' => ['nullable', 'date_format:Y-m-d'],
@@ -59,6 +57,14 @@ final class OrderOperationsController extends Controller
             'order' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        $operationalChannel = isset($data['channel'])
+            ? (string) $data['channel']
+            : $this->defaultOperationalChannel($actor);
+        $data['channel'] = $operationalChannel;
+
+        $storeIds = $this->scope->allowedStoreIds($actor, 'orders.view', $operationalChannel);
+        abort_if($storeIds === [], 403);
+
         $selectedStoreId = isset($data['store_id']) ? (int) $data['store_id'] : null;
         if ($selectedStoreId !== null && ! collect($storeIds)->containsStrict($selectedStoreId)) {
             abort(404);
@@ -66,8 +72,8 @@ final class OrderOperationsController extends Controller
 
         $orders = Order::query()
             ->whereIn('store_id', $storeIds)
+            ->where('channel', $operationalChannel)
             ->when($selectedStoreId !== null, fn ($query) => $query->where('store_id', $selectedStoreId))
-            ->when(isset($data['channel']), fn ($query) => $query->where('channel', $data['channel']))
             ->when(isset($data['status']), fn ($query) => $query->where('status', $data['status']))
             ->when(isset($data['from']), fn ($query) => $query->whereDate('created_at', '>=', $data['from']))
             ->when(isset($data['to']), fn ($query) => $query->whereDate('created_at', '<=', $data['to']))
@@ -101,6 +107,7 @@ final class OrderOperationsController extends Controller
         $drivers = DB::table('drivers')
             ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
             ->whereIn('drivers.store_id', $storeIds)
+            ->where('drivers.driver_type', $operationalChannel)
             ->where('drivers.is_active', true)
             ->orderBy('users.name')
             ->get([
@@ -116,6 +123,7 @@ final class OrderOperationsController extends Controller
             $detailOrder = Order::query()
                 ->whereKey((int) $data['order'])
                 ->whereIn('store_id', $storeIds)
+                ->where('channel', $operationalChannel)
                 ->firstOrFail();
             $detail = $this->detail($actor, $detailOrder);
         }
@@ -376,6 +384,20 @@ final class OrderOperationsController extends Controller
             'assignments' => $assignments,
             'delivery_evidence' => $this->deliveryEvidence->order($actor, $order),
         ];
+    }
+
+    private function defaultOperationalChannel(User $actor): string
+    {
+        $b2b = $this->scope->allowedStoreIds($actor, 'orders.view', 'b2b');
+        $b2c = $this->scope->allowedStoreIds($actor, 'orders.view', 'b2c');
+
+        if ($b2b !== []) {
+            return 'b2b';
+        }
+
+        abort_if($b2c === [], 403);
+
+        return 'b2c';
     }
 
     private function actor(Request $request): User
