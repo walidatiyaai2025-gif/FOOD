@@ -94,4 +94,31 @@ void main() {
     expect(captured?.headers['X-FOODEX-Customer-Domain'], 'b2c');
   });
 
+
+  test('B2B address API carries explicit customer and retailer context', () async {
+    http.Request? captured;
+    final api = HttpB2cAccountApi(
+      baseUrl: 'https://foodex.example',
+      token: 'merchant-token',
+      guestSession: CustomerGuestSession(),
+      customerDomain: 'b2b',
+      retailStoreContextId: 19,
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response(
+          '{"data":[]}',
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
+
+    await api.addresses();
+
+    expect(captured?.url.path, '/api/v1/profile/addresses');
+    expect(captured?.headers['Authorization'], 'Bearer merchant-token');
+    expect(captured?.headers['X-FOODEX-Customer-Domain'], 'b2b');
+    expect(captured?.headers['X-FOODEX-Retail-Store-ID'], '19');
+  });
+
 }
