@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'retail_commerce_api.dart';
 
 enum RetailAuthIntent { login, register }
@@ -190,82 +191,103 @@ class _RetailCartScreenState extends State<RetailCartScreen> {
     final cart = _cart;
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.cart)),
+      backgroundColor: CustomerUiColors.mint,
+      appBar: AppBar(
+        title: Text(strings.cart),
+        backgroundColor: CustomerUiColors.deepGreen,
+        foregroundColor: CustomerUiColors.white,
+      ),
       body: SafeArea(
+        top: false,
         child: _busy && cart == null
-            ? const Center(child: CircularProgressIndicator())
+            ? const _CommerceLoadingSkeleton()
             : RefreshIndicator(
                 onRefresh: _reload,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(
+                    CustomerUiSpacing.page,
+                    CustomerUiSpacing.lg,
+                    CustomerUiSpacing.page,
+                    CustomerUiSpacing.xxl,
+                  ),
                   children: [
                     if (_error != null)
                       _ErrorBanner(
                         message: _commerceErrorText(strings, _error!),
                       ),
                     if (cart == null || cart.items.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 72),
-                        child: Center(child: Text(strings.emptyCart)),
+                      CustomerStateView(
+                        kind: CustomerStateKind.empty,
+                        title: strings.emptyCart,
+                        icon: Icons.shopping_bag_outlined,
                       )
                     else ...[
-                      for (final item in cart.items)
-                        Card(
-                          child: ListTile(
-                            title: Text(item.name),
-                            subtitle: Text(
-                              '${item.lineTotal.toStringAsFixed(3)} ${cart.currency}',
-                            ),
-                            trailing: Wrap(
-                              crossAxisAlignment: WrapCrossAlignment.center,
+                      for (final item in cart.items) ...[
+                        _CartItemCard(
+                          item: item,
+                          currency: cart.currency,
+                          busy: _busy,
+                          onMinus: () => _changeQuantity(
+                            item,
+                            item.quantity - 1,
+                          ),
+                          onPlus: () => _changeQuantity(
+                            item,
+                            item.quantity + 1,
+                          ),
+                        ),
+                        const SizedBox(height: CustomerUiSpacing.sm),
+                      ],
+                      _CommerceSectionCard(
+                        key: const ValueKey('retail-cart-summary'),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
                               children: [
-                                IconButton(
-                                  key: ValueKey('retail-cart-minus-${item.id}'),
-                                  onPressed: _busy
-                                      ? null
-                                      : () => _changeQuantity(
-                                            item,
-                                            item.quantity - 1,
-                                          ),
-                                  icon: const Icon(Icons.remove),
+                                Expanded(
+                                  child: Text(
+                                    strings.total,
+                                    style:
+                                        Theme.of(context).textTheme.titleMedium,
+                                  ),
                                 ),
-                                Text(item.quantity.toStringAsFixed(0)),
-                                IconButton(
-                                  key: ValueKey('retail-cart-plus-${item.id}'),
-                                  onPressed: _busy
-                                      ? null
-                                      : () => _changeQuantity(
-                                            item,
-                                            item.quantity + 1,
-                                          ),
-                                  icon: const Icon(Icons.add),
+                                Text(
+                                  '${cart.grandTotal.toStringAsFixed(3)} ${cart.currency}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(
+                                        color:
+                                            CustomerUiColors.deepGreenStrong,
+                                      ),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${strings.total}: ${cart.grandTotal.toStringAsFixed(3)} ${cart.currency}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      if (cart.hasUnavailableItems)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            strings.unavailableItems,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
+                            if (cart.hasUnavailableItems) ...[
+                              const SizedBox(height: CustomerUiSpacing.sm),
+                              Text(
+                                strings.unavailableItems,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: CustomerUiColors.destructive,
+                                    ),
+                              ),
+                            ],
+                            const SizedBox(height: CustomerUiSpacing.lg),
+                            FilledButton.icon(
+                              key: const ValueKey('retail-cart-checkout'),
+                              onPressed: _busy || cart.hasUnavailableItems
+                                  ? null
+                                  : _checkout,
+                              icon: const Icon(Icons.lock_outline_rounded),
+                              label: Text(strings.checkout),
                             ),
-                          ),
+                          ],
                         ),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        key: const ValueKey('retail-cart-checkout'),
-                        onPressed:
-                            _busy || cart.hasUnavailableItems ? null : _checkout,
-                        child: Text(strings.checkout),
                       ),
                     ],
                   ],
@@ -410,111 +432,382 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
     final options = _options;
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.checkout)),
+      backgroundColor: CustomerUiColors.mint,
+      appBar: AppBar(
+        title: Text(strings.checkout),
+        backgroundColor: CustomerUiColors.deepGreen,
+        foregroundColor: CustomerUiColors.white,
+      ),
       body: SafeArea(
+        top: false,
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const _CheckoutLoadingSkeleton()
             : ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(
+                  CustomerUiSpacing.page,
+                  CustomerUiSpacing.lg,
+                  CustomerUiSpacing.page,
+                  CustomerUiSpacing.xxl,
+                ),
                 children: [
                   if (_error != null)
                     _ErrorBanner(
                       message: _commerceErrorText(strings, _error!),
                     ),
-                  Text(
-                    strings.deliveryAddress,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  if (options == null || options.addresses.isEmpty)
-                    Text(strings.noAddresses)
-                  else
-                    RadioGroup<int>(
-                      groupValue: _addressId,
-                      onChanged: (value) =>
-                          setState(() => _addressId = value),
-                      child: Column(
-                        children: [
-                          for (final address in options.addresses)
-                            RadioListTile<int>(
-                              key: ValueKey(
-                                'retail-checkout-address-${address.id}',
-                              ),
-                              value: address.id,
-                              title: Text(
-                                address.label.isEmpty
-                                    ? strings.address
-                                    : address.label,
-                              ),
-                              subtitle: Text(
-                                '${address.line1} · ${address.city}',
-                              ),
-                              secondary: widget.onEditAddress == null
-                                  ? null
-                                  : IconButton(
-                                      onPressed: () =>
-                                          _editAddress(address.id),
-                                      icon:
-                                          const Icon(Icons.edit_outlined),
+                  _CommerceSectionCard(
+                    key: const ValueKey('retail-checkout-address-section'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _SectionTitle(
+                          icon: Icons.location_on_outlined,
+                          label: strings.deliveryAddress,
+                        ),
+                        const SizedBox(height: CustomerUiSpacing.sm),
+                        if (options == null || options.addresses.isEmpty)
+                          CustomerStateView(
+                            kind: CustomerStateKind.empty,
+                            title: strings.noAddresses,
+                            icon: Icons.add_location_alt_outlined,
+                          )
+                        else
+                          RadioGroup<int>(
+                            groupValue: _addressId,
+                            onChanged: (value) =>
+                                setState(() => _addressId = value),
+                            child: Column(
+                              children: [
+                                for (final address in options.addresses)
+                                  Container(
+                                    margin: const EdgeInsets.only(
+                                      bottom: CustomerUiSpacing.xs,
                                     ),
+                                    decoration: BoxDecoration(
+                                      color: CustomerUiColors.white,
+                                      borderRadius: BorderRadius.circular(
+                                        CustomerUiRadii.md,
+                                      ),
+                                      border: Border.all(
+                                        color: _addressId == address.id
+                                            ? CustomerUiColors.lime
+                                            : CustomerUiColors.border,
+                                        width: _addressId == address.id
+                                            ? CustomerUiStroke.emphasis
+                                            : CustomerUiStroke.hairline,
+                                      ),
+                                    ),
+                                    child: RadioListTile<int>(
+                                      key: ValueKey(
+                                        'retail-checkout-address-${address.id}',
+                                      ),
+                                      value: address.id,
+                                      title: Text(
+                                        address.label.isEmpty
+                                            ? strings.address
+                                            : address.label,
+                                      ),
+                                      subtitle: Text(
+                                        '${address.line1} · ${address.city}',
+                                      ),
+                                      secondary: widget.onEditAddress == null
+                                          ? null
+                                          : IconButton(
+                                              onPressed: () =>
+                                                  _editAddress(address.id),
+                                              icon: const Icon(
+                                                Icons.edit_outlined,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                        ],
-                      ),
-                    ),
-                  if (widget.onAddAddress != null)
-                    TextButton.icon(
-                      key: const ValueKey('retail-checkout-add-address'),
-                      onPressed: _addAddress,
-                      icon: const Icon(Icons.add_location_alt_outlined),
-                      label: Text(strings.addAddress),
-                    ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    key: const ValueKey('retail-checkout-payment-method'),
-                    initialValue: _paymentMethod,
-                    decoration: InputDecoration(
-                      labelText: strings.paymentMethod,
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: (options?.paymentMethods ?? const <String>[])
-                        .map(
-                          (method) => DropdownMenuItem<String>(
-                            value: method,
-                            child: Text(_paymentLabel(strings, method)),
                           ),
-                        )
-                        .toList(growable: false),
-                    onChanged: _submitting
-                        ? null
-                        : (value) =>
-                            setState(() => _paymentMethod = value),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    key: const ValueKey('retail-checkout-coupon'),
-                    controller: _coupon,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: InputDecoration(
-                      labelText: strings.coupon,
-                      border: const OutlineInputBorder(),
+                        if (widget.onAddAddress != null)
+                          TextButton.icon(
+                            key: const ValueKey(
+                              'retail-checkout-add-address',
+                            ),
+                            onPressed: _addAddress,
+                            icon: const Icon(
+                              Icons.add_location_alt_outlined,
+                            ),
+                            label: Text(strings.addAddress),
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  FilledButton(
+                  const SizedBox(height: CustomerUiSpacing.md),
+                  _CommerceSectionCard(
+                    key: const ValueKey('retail-checkout-payment-section'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _SectionTitle(
+                          icon: Icons.payments_outlined,
+                          label: strings.paymentMethod,
+                        ),
+                        const SizedBox(height: CustomerUiSpacing.sm),
+                        DropdownButtonFormField<String>(
+                          key: const ValueKey(
+                            'retail-checkout-payment-method',
+                          ),
+                          initialValue: _paymentMethod,
+                          decoration: InputDecoration(
+                            labelText: strings.paymentMethod,
+                            prefixIcon:
+                                const Icon(Icons.account_balance_wallet_outlined),
+                          ),
+                          items: (options?.paymentMethods ??
+                                  const <String>[])
+                              .map(
+                                (method) => DropdownMenuItem<String>(
+                                  value: method,
+                                  child: Text(
+                                    _paymentLabel(strings, method),
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: _submitting
+                              ? null
+                              : (value) =>
+                                  setState(() => _paymentMethod = value),
+                        ),
+                        const SizedBox(height: CustomerUiSpacing.md),
+                        TextField(
+                          key: const ValueKey('retail-checkout-coupon'),
+                          controller: _coupon,
+                          textCapitalization:
+                              TextCapitalization.characters,
+                          decoration: InputDecoration(
+                            labelText: strings.coupon,
+                            prefixIcon:
+                                const Icon(Icons.local_offer_outlined),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: CustomerUiSpacing.lg),
+                  FilledButton.icon(
                     key: const ValueKey('retail-checkout-submit'),
                     onPressed: _submitting ? null : _submit,
-                    child: _submitting
+                    icon: _submitting
                         ? const SizedBox.square(
-                            dimension: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            dimension: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
                           )
-                        : Text(strings.placeOrder),
+                        : const Icon(Icons.shopping_bag_outlined),
+                    label: Text(
+                      _submitting
+                          ? strings.checkoutInProgress
+                          : strings.placeOrder,
+                    ),
                   ),
                 ],
               ),
       ),
     );
   }
+}
+
+class _CommerceSectionCard extends StatelessWidget {
+  const _CommerceSectionCard({
+    required this.child,
+    super.key,
+  });
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: CustomerUiColors.white,
+          borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+          border: Border.all(color: CustomerUiColors.border),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(CustomerUiSpacing.lg),
+          child: child,
+        ),
+      );
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              color: CustomerUiColors.limeSoft,
+              shape: BoxShape.circle,
+            ),
+            child: SizedBox.square(
+              dimension: 40,
+              child: Icon(
+                icon,
+                color: CustomerUiColors.deepGreenStrong,
+                size: 21,
+              ),
+            ),
+          ),
+          const SizedBox(width: CustomerUiSpacing.sm),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+        ],
+      );
+}
+
+class _CartItemCard extends StatelessWidget {
+  const _CartItemCard({
+    required this.item,
+    required this.currency,
+    required this.busy,
+    required this.onMinus,
+    required this.onPlus,
+  });
+
+  final RetailCartItem item;
+  final String currency;
+  final bool busy;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
+
+  @override
+  Widget build(BuildContext context) => _CommerceSectionCard(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: CustomerUiColors.mint,
+                borderRadius: BorderRadius.circular(CustomerUiRadii.md),
+              ),
+              child: const SizedBox.square(
+                dimension: 58,
+                child: Icon(
+                  Icons.shopping_basket_outlined,
+                  color: CustomerUiColors.deepGreenSoft,
+                ),
+              ),
+            ),
+            const SizedBox(width: CustomerUiSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: CustomerUiSpacing.xxs),
+                  Text(
+                    '${item.lineTotal.toStringAsFixed(3)} $currency',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: CustomerUiColors.deepGreenStrong,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: CustomerUiSpacing.xs),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CustomerOutlineIconButton(
+                  key: ValueKey('retail-cart-minus-${item.id}'),
+                  icon: Icons.remove_rounded,
+                  onPressed: busy ? null : onMinus,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: CustomerUiSpacing.xs,
+                  ),
+                  child: Text(
+                    item.quantity.toStringAsFixed(0),
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                CustomerOutlineIconButton(
+                  key: ValueKey('retail-cart-plus-${item.id}'),
+                  icon: Icons.add_rounded,
+                  selected: true,
+                  onPressed: busy ? null : onPlus,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+}
+
+class _CommerceLoadingSkeleton extends StatelessWidget {
+  const _CommerceLoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(CustomerUiSpacing.page),
+        children: const [
+          CustomerSkeletonBox(
+            height: 112,
+            radius: CustomerUiRadii.xl,
+          ),
+          SizedBox(height: CustomerUiSpacing.sm),
+          CustomerSkeletonBox(
+            height: 112,
+            radius: CustomerUiRadii.xl,
+          ),
+          SizedBox(height: CustomerUiSpacing.sm),
+          CustomerSkeletonBox(
+            height: 132,
+            radius: CustomerUiRadii.xl,
+          ),
+        ],
+      );
+}
+
+class _CheckoutLoadingSkeleton extends StatelessWidget {
+  const _CheckoutLoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(CustomerUiSpacing.page),
+        children: const [
+          CustomerSkeletonBox(
+            height: 220,
+            radius: CustomerUiRadii.xl,
+          ),
+          SizedBox(height: CustomerUiSpacing.md),
+          CustomerSkeletonBox(
+            height: 190,
+            radius: CustomerUiRadii.xl,
+          ),
+          SizedBox(height: CustomerUiSpacing.lg),
+          CustomerSkeletonBox(
+            height: 52,
+            radius: CustomerUiRadii.pill,
+          ),
+        ],
+      );
+}
 }
 
 class _ErrorBanner extends StatelessWidget {
@@ -524,13 +817,33 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: CustomerUiSpacing.md),
+        padding: const EdgeInsets.all(CustomerUiSpacing.md),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(12),
+          color: CustomerUiColors.destructive.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(CustomerUiRadii.md),
+          border: Border.all(
+            color: CustomerUiColors.destructive.withValues(alpha: 0.18),
+          ),
         ),
-        child: Text(message),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: CustomerUiColors.destructive,
+            ),
+            const SizedBox(width: CustomerUiSpacing.sm),
+            Expanded(
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: CustomerUiColors.destructive,
+                    ),
+              ),
+            ),
+          ],
+        ),
       );
 }
 
