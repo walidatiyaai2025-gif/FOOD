@@ -148,7 +148,7 @@ class DriverAssignmentController extends Controller
 
         $activeAssignment = DriverAssignment::query()
             ->where('order_id', $order->getKey())
-            ->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned'])
+            ->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned'])
             ->latest('id')
             ->first();
 
@@ -168,11 +168,11 @@ class DriverAssignmentController extends Controller
             $previousDriverId = (int) $activeAssignment->driver_id;
             $before = $activeAssignment->toArray();
             $activeAssignment->forceFill([
-                'status' => 'unassigned',
+                'status' => 'reassigned',
                 'completed_at' => now(),
             ])->save();
             $auditLogger->record(
-                'delivery.assignment.unassigned',
+                'delivery.assignment.reassigned',
                 $user,
                 $activeAssignment,
                 $before,
@@ -234,7 +234,7 @@ class DriverAssignmentController extends Controller
         $assignment = DriverAssignment::query()
             ->where('order_id', $orderModel->getKey())
             ->where('assignment_type', $channel)
-            ->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned'])
+            ->whereNotIn('status', ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned'])
             ->latest('id')
             ->first();
 
