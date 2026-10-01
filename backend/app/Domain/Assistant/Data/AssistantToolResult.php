@@ -15,10 +15,5 @@ final readonly class AssistantToolResult
         public array $cards = [],
         public array $actions = [],
         public array $references = [],
-    ) {
-        // Constructor promotion defines the complete immutable payload.
-    }
+    ) {}
 }
-
-
-
