@@ -228,7 +228,7 @@ async function replaceStatusLabels(github, owner, repo, issue, desired) {
     }
   }
 
-  if (!desiredSet.includes('gate:human') && current.has('gate:human')) {
+  if (!desiredSet.has('gate:human') && current.has('gate:human')) {
     for (const label of ['gate:human', 'gate:deploy', 'gate:production', 'gate:credentials', 'gate:device', 'gate:approval']) {
       if (!current.has(label)) continue;
       try {
