@@ -114,6 +114,30 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
         $this->assertNotNull($proof->file_path);
         Storage::disk('public')->assertExists($proof->file_path);
 
+        $evidence = $this->actingAs($admin)
+            ->getJson(route('admin.driver-live-tracking.evidence', $assignmentId))
+            ->assertOk()
+            ->assertJsonPath('data.id', $assignmentId)
+            ->assertJsonPath('data.status', 'delivered')
+            ->assertJsonCount(4, 'data.timeline')
+            ->assertJsonPath('data.timeline.3.to_status', 'delivered')
+            ->assertJsonPath('data.timeline.3.proof.available', true);
+
+        $evidence->assertJsonMissingPath('data.timeline.3.file_path');
+        $this->assertStringNotContainsString(
+            (string) $proof->file_path,
+            $evidence->getContent(),
+        );
+
+        $proofUrl = $evidence->json('data.timeline.3.proof.url');
+        $this->assertIsString($proofUrl);
+        $proofResponse = $this->actingAs($admin)
+            ->get($proofUrl)
+            ->assertOk();
+        $cacheControl = (string) $proofResponse->headers->get('cache-control');
+        $this->assertStringContainsString('private', $cacheControl);
+        $this->assertStringContainsString('no-store', $cacheControl);
+
         $this->assertDatabaseHas('driver_assignments', [
             'id' => $assignmentId,
             'status' => 'delivered',
