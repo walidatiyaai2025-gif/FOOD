@@ -764,7 +764,8 @@ class _MarketplaceHeader extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 520;
-              final actionSize = compact ? 38.0 : 42.0;
+              final veryCompact = constraints.maxWidth < 300;
+              final actionSize = veryCompact ? 34.0 : (compact ? 38.0 : 42.0);
 
               Widget action({
                 required Key key,
@@ -781,26 +782,31 @@ class _MarketplaceHeader extends StatelessWidget {
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       onPressed: onPressed,
-                      icon: Icon(icon, size: compact ? 20 : 22),
+                      icon: Icon(
+                        icon,
+                        size: veryCompact ? 18 : (compact ? 20 : 22),
+                      ),
                     ),
                   );
 
               final brand = Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: compact ? 38 : 44,
-                    height: compact ? 38 : 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEAF7F0),
-                      borderRadius: BorderRadius.circular(13),
+                  if (!veryCompact) ...[
+                    Container(
+                      width: compact ? 38 : 44,
+                      height: compact ? 38 : 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAF7F0),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: const Icon(
+                        Icons.storefront_rounded,
+                        color: Color(0xFF087347),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.storefront_rounded,
-                      color: Color(0xFF087347),
-                    ),
-                  ),
-                  SizedBox(width: compact ? 8 : 10),
+                    SizedBox(width: compact ? 8 : 10),
+                  ],
                   Flexible(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -887,7 +893,7 @@ class _MarketplaceHeader extends StatelessWidget {
                       child: PopupMenuButton<String>(
                         key: const ValueKey('marketplace-auth-menu'),
                         padding: EdgeInsets.zero,
-                        iconSize: compact ? 20 : 22,
+                        iconSize: veryCompact ? 18 : (compact ? 20 : 22),
                         icon: const Icon(Icons.account_circle_outlined),
                         onSelected: (value) {
                           if (value == 'login') {
