@@ -271,7 +271,9 @@ Therefore:
 
 If a worker/session hangs, another worker should take over the same task using the same branch/PR.
 
-If the repository owner explicitly sends `HANDOFF`, `AUTO-HANDOFF`, or otherwise states that the previous chat/worker is interrupted, that is an **immediate lease transfer**. Do not wait for the 30-minute stale timeout. The replacement worker must inspect GitHub first, reuse the existing Issue/branch/PR/head, and the previous worker must stop if it later returns.
+If the repository owner explicitly identifies a particular previous chat/worker as interrupted and sends `HANDOFF` / `AUTO-HANDOFF`, that is an **immediate lease transfer for that identified task**. Do not wait for the passive 30-minute stale timeout. The replacement worker must inspect GitHub first, reuse the existing Issue/branch/PR/head, and the previous worker must stop if it later returns.
+
+For a broad umbrella command such as `FOOD #<umbrella> AUTO-HANDOFF` where several lanes may exist, use the explicit-owner Mission takeover rule in section 20: red is immediate, running CI is preserved, otherwise 10 minutes without real execution evidence is enough to supersede an older chat lease.
 
 ---
 
@@ -297,7 +299,7 @@ When `HANDOFF` is received, the replacement worker must reconstruct the task fro
 1. the Issue/branch/PR explicitly associated with the current conversation, when available;
 2. otherwise an existing `worker:handoff-ready` task, preferring the most recently updated resumable handoff;
 3. otherwise a task whose latest machine-readable state is `HANDOFF`;
-4. never steal a fresh non-stale `worker:active` lease merely because multiple workers exist.
+4. never steal a genuinely executing `worker:active` lease merely because multiple workers exist; for an explicit owner AUTO-HANDOFF mission, "genuinely executing" is determined by current-head CI or execution evidence within the last 10 minutes, not by ordinary comments or labels.
 
 If an explicit repository-owner `HANDOFF` identifies the interrupted work through current conversation context, takeover is immediate and does not wait for stale detection.
 
@@ -566,14 +568,29 @@ To minimize umbrella completion time:
 3. take over `TAKEOVER` lanes using the same Issue/branch/PR;
 4. fix `CI_FIX` lanes on their existing branch/PR;
 5. claim `READY` lanes;
-6. never steal a fresh `ACTIVE_PEER` lease **unless that lane is currently red/CI_FIX or merge-conflicted; red state overrides lease freshness**;
-7. never duplicate a branch/PR just to increase parallelism.
+6. never collide with a genuinely executing `ACTIVE_PEER`; current-head CI/queued work remains owned, while red/CI_FIX or merge-conflicted state is immediate takeover-eligible;
+7. under an explicit repository-owner `FOOD #<umbrella> AUTO-HANDOFF` command, a lane with **no running current-head CI and no commit/head movement or machine HEARTBEAT for 10 minutes** is takeover-eligible on the same Issue/branch/PR even though the passive Watchdog's silent timeout is 30 minutes;
+8. never duplicate a branch/PR just to increase parallelism.
 
 Parallelism is encouraged only across file/scope-disjoint lanes.
 
 If multiple worker chats receive the same umbrella command, each worker must re-run preflight immediately before claiming work and skip lanes that gained a fresh claim. This makes repeated identical commands self-distribute across available lanes instead of duplicating implementation.
 
-After posting a claim, re-fetch the Issue's latest comments/PR state before the first code edit. If another valid claim won the race, release the lane and select another.
+After posting a claim, re-fetch the Issue's latest comments/PR state before the first code edit. If another valid claim or newer execution checkpoint won the race, release the lane and select another.
+
+### Explicit owner Mission pulse
+
+When a live worker receives `FOOD #<umbrella> AUTO-HANDOFF` directly from the repository owner, treat it as an instruction to make forward progress now, not merely to report queue status.
+
+For each incomplete lane:
+
+- red CI/check/status or merge conflict => take over immediately;
+- current-head CI queued/running => do not collide; classify `WAITING_CI` and inspect another independent lane;
+- no current-head CI and execution evidence newer than 10 minutes => respect the active peer;
+- no current-head CI and no commit/head movement or machine HEARTBEAT for 10 minutes => take over the same Issue/branch/PR immediately;
+- coordinator comments, labels, review chatter and "please continue" messages do not reset the 10-minute clock.
+
+This 10-minute explicit-owner rule is intentionally shorter than the passive 30-minute Watchdog timeout.
 
 ### Continuous drain loop
 
