@@ -8,26 +8,58 @@
 </head>
 <body>
 <main class="foodex-admin-page" data-foodex-utility="app-versions">
+    @php($ar = app()->getLocale() === 'ar')
     <h1>{{ __('app_versions.title') }}</h1>
+    <p class="foodex-state">
+        {{ $ar
+            ? 'هذه هي سياسة الإصدار الرسمية التي يعتمد عليها تطبيق الهاتف عند بدء التشغيل. إعدادات Mobile Runtime منفصلة ومعلوماتية ولا تستبدل هذه السياسة.'
+            : 'This is the authoritative startup/update policy consumed by the mobile apps. Mobile Runtime settings are separate informational metadata and do not replace this policy.' }}
+    </p>
+    <p><a href="{{ route('admin.mobile-settings.index', ['app' => $selectedApp, 'environment' => 'production']) }}">{{ $ar ? 'العودة إلى إعدادات الموبايل وجاهزية النشر' : 'Back to Mobile Settings and rollout readiness' }}</a></p>
+
     @if (session('status')) <p class="foodex-state" role="status">{{ session('status') }}</p> @endif
     @if ($errors->any()) <div class="foodex-state" role="alert"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif
+
+    <form class="foodex-form" method="get" action="{{ route('admin.app-versions.index') }}">
+        <label>{{ __('app_versions.app') }}
+            <select name="app" required>
+                <option value="customer" @selected($selectedApp === 'customer')>{{ __('app_versions.customer') }}</option>
+                <option value="driver" @selected($selectedApp === 'driver')>{{ __('app_versions.driver') }}</option>
+            </select>
+        </label>
+        <label>{{ __('app_versions.platform') }}
+            <select name="platform" required>
+                <option value="android" @selected($selectedPlatform === 'android')>{{ __('app_versions.android') }}</option>
+                <option value="ios" @selected($selectedPlatform === 'ios')>{{ __('app_versions.ios') }}</option>
+            </select>
+        </label>
+        <button class="foodex-primary" type="submit">{{ $ar ? 'تحميل السياسة المحفوظة' : 'Load saved policy' }}</button>
+    </form>
+
     <form class="foodex-form" method="post" action="{{ route('admin.app-versions.store') }}">
         @csrf
-        <label>{{ __('app_versions.app') }} <select name="app" required>
-            <option value="customer" @selected(old('app', 'customer') === 'customer')>{{ __('app_versions.customer') }}</option>
-            <option value="driver" @selected(old('app') === 'driver')>{{ __('app_versions.driver') }}</option>
-        </select></label>
-        <label>{{ __('app_versions.platform') }} <select name="platform" required>
-            <option value="android" @selected(old('platform', 'android') === 'android')>{{ __('app_versions.android') }}</option>
-            <option value="ios" @selected(old('platform') === 'ios')>{{ __('app_versions.ios') }}</option>
-        </select></label>
-        <label>{{ __('app_versions.latest_version') }} <input name="latest_version" dir="ltr" value="{{ old('latest_version') }}" placeholder="1.0.12" required></label>
-        <label>{{ __('app_versions.minimum_supported_version') }} <input name="minimum_supported_version" dir="ltr" value="{{ old('minimum_supported_version') }}" placeholder="1.0.6" required></label>
-        <label><input type="checkbox" name="force_update" value="1" @checked(old('force_update'))> {{ __('app_versions.force_update') }}</label>
-        <label>{{ __('app_versions.store_url') }} <input name="store_url" type="url" dir="ltr" value="{{ old('store_url') }}" placeholder="https://example.com/app" required></label>
-        <label>{{ __('app_versions.release_notes') }} <textarea name="release_notes" placeholder="{{ app()->getLocale()==='ar'?'اكتب ملخص التحديث والتغييرات المهمة':'Summarize the release changes' }}">{{ old('release_notes') }}</textarea></label>
+        <input type="hidden" name="app" value="{{ $selectedApp }}">
+        <input type="hidden" name="platform" value="{{ $selectedPlatform }}">
+
+        <p><strong>{{ __('app_versions.app') }}:</strong> {{ __('app_versions.'.$selectedApp) }} · <strong>{{ __('app_versions.platform') }}:</strong> {{ __('app_versions.'.$selectedPlatform) }}</p>
+
+        <label>{{ __('app_versions.latest_version') }}
+            <input name="latest_version" dir="ltr" value="{{ old('latest_version', $selectedPolicy?->latest_version) }}" placeholder="1.0.40" required>
+        </label>
+        <label>{{ __('app_versions.minimum_supported_version') }}
+            <input name="minimum_supported_version" dir="ltr" value="{{ old('minimum_supported_version', $selectedPolicy?->minimum_supported_version) }}" placeholder="1.0.40" required>
+        </label>
+        <input type="hidden" name="force_update" value="0">
+        <label><input type="checkbox" name="force_update" value="1" @checked((bool) old('force_update', $selectedPolicy?->force_update ?? false))> {{ __('app_versions.force_update') }}</label>
+        <label>{{ __('app_versions.store_url') }}
+            <input name="store_url" type="url" dir="ltr" value="{{ old('store_url', $selectedPolicy?->store_url) }}" placeholder="https://example.com/app" required>
+        </label>
+        <label>{{ __('app_versions.release_notes') }}
+            <textarea name="release_notes" placeholder="{{ $ar ? 'اكتب ملخص التحديث والتغييرات المهمة' : 'Summarize the release changes' }}">{{ old('release_notes', $selectedPolicy?->release_notes) }}</textarea>
+        </label>
         <button class="foodex-primary" type="submit">{{ __('app_versions.save') }}</button>
     </form>
+
     <h2>{{ __('app_versions.configured') }}</h2>
     @if ($policies->isEmpty()) <p class="foodex-empty-state">{{ __('app_versions.empty') }}</p>
     @else
