@@ -296,6 +296,43 @@ void main() {
     expect(repo.transitionedNote, 'Leaving warehouse now');
   });
 
+  testWidgets('start-delivery sheet can report failure directly with optional note',
+      (tester) async {
+    final repo = FakeRepo(const [
+      DriverAssignment(
+        id: 43,
+        channel: DriverChannel.b2c,
+        reference: 'B2C-43',
+        status: 'accepted',
+        availableStatuses: ['out_for_delivery', 'failed'],
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DriverJourneyPage(
+          channel: DriverChannel.b2c,
+          repository: repo,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('driver-primary-action-43')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('driver-decision-note-43-out_for_delivery')),
+      'Customer requested reschedule',
+    );
+    await tester.tap(find.byKey(const Key('driver-decision-failed-43')));
+    await tester.pumpAndSettle();
+
+    expect(repo.transitionedId, 43);
+    expect(repo.transitionedStatus, 'failed');
+    expect(repo.transitionedNote, 'Customer requested reschedule');
+    expect(repo.transitionedFailureReason, isNull);
+  });
+
   testWidgets('out-for-delivery direct action keeps failed and proof options together',
       (tester) async {
     final repo = FakeRepo(const [
