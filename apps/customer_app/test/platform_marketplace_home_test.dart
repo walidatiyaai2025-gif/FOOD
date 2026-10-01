@@ -107,7 +107,10 @@ void main() {
 
     expect(requests, hasLength(1));
     expect(requests.single.path, '/api/v1/platform/storefront');
-    expect(find.text('FOODEX'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('marketplace-brand-title')),
+      findsOneWidget,
+    );
     expect(find.text('Wholesale Launch Offer'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('marketplace-wholesale-offers')),
