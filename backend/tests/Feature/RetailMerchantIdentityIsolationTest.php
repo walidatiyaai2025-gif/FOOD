@@ -42,8 +42,8 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         $this->assertSame([$storeA->id, $storeB->id], $identity['retail_store_ids']);
         $this->assertSame([$b2bCustomerA, $b2bCustomerB], $identity['b2b_customer_ids']);
         $this->assertSame([
-            ['store_id' => $storeA->id, 'b2b_customer_id' => $b2bCustomerA],
-            ['store_id' => $storeB->id, 'b2b_customer_id' => $b2bCustomerB],
+            ['retail_store_id' => $storeA->id, 'b2b_customer_id' => $b2bCustomerA],
+            ['retail_store_id' => $storeB->id, 'b2b_customer_id' => $b2bCustomerB],
         ], $identity['retail_wholesale_accounts']);
 
         $login = $this->postJson('/api/v1/auth/login', [
