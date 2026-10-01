@@ -74,17 +74,23 @@ void main() {
     expect(navigatedStore, 7);
     expect(navigatedQuery, 'tomato');
 
-    await tester.tap(find.byKey(const ValueKey('retail-category-3')));
+    final category = find.byKey(const ValueKey('retail-category-3'));
+    await tester.ensureVisible(category);
+    await tester.tap(category);
     await tester.pump();
     expect(navigatedStore, 7);
     expect(navigatedCategory, 3);
 
-    await tester.tap(find.byKey(const ValueKey('retail-product-42')));
+    final product = find.byKey(const ValueKey('retail-product-42'));
+    await tester.ensureVisible(product);
+    await tester.tap(product);
     await tester.pump();
     expect(navigatedStore, 7);
     expect(navigatedProduct, 42);
 
-    await tester.tap(find.byKey(const ValueKey('retail-catalog-cart')));
+    final cart = find.byKey(const ValueKey('retail-catalog-cart'));
+    await tester.ensureVisible(cart);
+    await tester.tap(cart);
     await tester.pump();
     expect(navigatedStore, 7);
   });
