@@ -121,12 +121,29 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byKey(const Key('driver-home-driver-name')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-status-grid')), findsOneWidget);
+    expect(find.text('قناة العمل'), findsNothing);
     expect(find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-picked_up')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-out_for_delivery')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-delivered')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('driver-home-status-out_for_delivery')));
+    final outForDeliveryCard =
+        find.byKey(const Key('driver-home-status-out_for_delivery'));
+    await tester.scrollUntilVisible(
+      outForDeliveryCard,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    final outForDeliveryTapTarget = find.descendant(
+      of: outForDeliveryCard,
+      matching: find.byType(InkWell),
+    );
+    expect(outForDeliveryTapTarget, findsOneWidget);
+    await tester.tap(outForDeliveryTapTarget);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('driver-exact-status-filter')), findsOneWidget);

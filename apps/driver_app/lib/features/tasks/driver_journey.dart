@@ -505,6 +505,248 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
     );
   }
 
+  String? _primaryActionStatus(DriverAssignment assignment) {
+    if (const ['accepted', 'picked_up'].contains(assignment.status) &&
+        assignment.availableStatuses.contains('out_for_delivery')) {
+      return 'out_for_delivery';
+    }
+    if (assignment.status == 'out_for_delivery' &&
+        assignment.availableStatuses.contains('delivered')) {
+      return 'delivered';
+    }
+    return null;
+  }
+
+  String _primaryActionLabel(String status) => status == 'out_for_delivery'
+      ? context.tr('driver.action.start_delivery')
+      : context.tr('driver.action.delivered');
+
+  Future<void> _performDeliveryDecision(
+    DriverAssignment assignment,
+    String primaryStatus,
+  ) async {
+    if (widget.previewContext != null) {
+      if (mounted) {
+        setState(
+          () => _actionError = context.tr('driver.preview.mutation_blocked'),
+        );
+      }
+      return;
+    }
+    if (_transitioning.contains(assignment.id)) return;
+
+    var noteValue = '';
+    String? proofImagePath;
+    final picker = ImagePicker();
+
+    final result = await showModalBottomSheet<
+        ({
+          String status,
+          String note,
+          String? proofImagePath,
+        })>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          final allowsFailure =
+              assignment.availableStatuses.contains('failed');
+          final requiresProofChoice = primaryStatus == 'delivered';
+
+          return SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                4,
+                20,
+                20 + MediaQuery.of(sheetContext).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    primaryStatus == 'out_for_delivery'
+                        ? context.tr('driver.action.start_delivery')
+                        : context.tr('driver.action.delivered'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    assignment.reference,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: FoodexBrand.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    key: Key(
+                      'driver-decision-note-${assignment.id}-$primaryStatus',
+                    ),
+                    onChanged: (value) => noteValue = value,
+                    maxLength: 1000,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: context.tr('driver.action.note_optional'),
+                    ),
+                  ),
+                  if (requiresProofChoice) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr('driver.action.attach_proof'),
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const Key('driver-decision-proof-camera'),
+                            onPressed: () async {
+                              final image = await picker.pickImage(
+                                source: ImageSource.camera,
+                                imageQuality: 82,
+                                maxWidth: 1600,
+                              );
+                              if (image != null) {
+                                setSheetState(() => proofImagePath = image.path);
+                              }
+                            },
+                            icon: const Icon(Icons.photo_camera_rounded),
+                            label: Text(context.tr('driver.proof.camera')),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const Key('driver-decision-proof-gallery'),
+                            onPressed: () async {
+                              final image = await picker.pickImage(
+                                source: ImageSource.gallery,
+                                imageQuality: 82,
+                                maxWidth: 1600,
+                              );
+                              if (image != null) {
+                                setSheetState(() => proofImagePath = image.path);
+                              }
+                            },
+                            icon: const Icon(Icons.photo_library_rounded),
+                            label: Text(context.tr('driver.proof.gallery')),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (proofImagePath != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              size: 18,
+                              color: FoodexBrand.green,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                context.tr('driver.proof.attached'),
+                                key: const Key(
+                                  'driver-decision-proof-attached',
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              key: const Key('driver-decision-proof-remove'),
+                              onPressed: () => setSheetState(
+                                () => proofImagePath = null,
+                              ),
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      if (allowsFailure) ...[
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: Key(
+                              'driver-decision-failed-${assignment.id}',
+                            ),
+                            onPressed: () {
+                              Navigator.of(sheetContext).pop((
+                                status: 'failed',
+                                note: noteValue.trim(),
+                                proofImagePath: null,
+                              ));
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: FoodexBrand.red,
+                              side: const BorderSide(color: FoodexBrand.red),
+                            ),
+                            icon: const Icon(
+                              Icons.report_gmailerrorred_rounded,
+                            ),
+                            label: Text(
+                              context.tr('driver.action.delivery_failed'),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      Expanded(
+                        child: FilledButton(
+                          key: Key(
+                            'driver-decision-confirm-$primaryStatus',
+                          ),
+                          onPressed: () {
+                            Navigator.of(sheetContext).pop((
+                              status: primaryStatus,
+                              note: noteValue.trim(),
+                              proofImagePath: proofImagePath,
+                            ));
+                          },
+                          child: Text(
+                            primaryStatus == 'out_for_delivery'
+                                ? context.tr(
+                                    'driver.action.confirm_start_delivery',
+                                  )
+                                : context.tr(
+                                    'driver.action.confirm_delivered',
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    if (result == null) return;
+    await _transition(
+      assignment,
+      result.status,
+      note: result.note.isEmpty ? null : result.note,
+      proofImagePath: result.proofImagePath,
+    );
+  }
+
   String _paymentMethodLabel(String value) {
     if (value.trim().isEmpty) return context.tr('driver.detail.unknown');
     final key = 'driver.payment_method.${value.toLowerCase()}';
@@ -868,32 +1110,9 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                       ),
                     )
                   else
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SegmentedButton<DriverOrderFilter>(
-                        segments: [
-                          ButtonSegment(
-                            value: DriverOrderFilter.active,
-                            label: Text(context.tr('driver.filter.active')),
-                          ),
-                          ButtonSegment(
-                            value: DriverOrderFilter.completed,
-                            label: Text(context.tr('driver.filter.completed')),
-                          ),
-                          ButtonSegment(
-                            value: DriverOrderFilter.failed,
-                            label: Text(context.tr('driver.filter.failed')),
-                          ),
-                          ButtonSegment(
-                            value: DriverOrderFilter.all,
-                            label: Text(context.tr('driver.filter.all')),
-                          ),
-                        ],
-                        selected: {_filter},
-                        onSelectionChanged: (value) {
-                          setState(() => _filter = value.first);
-                        },
-                      ),
+                    _DriverFilterBar(
+                      value: _filter,
+                      onChanged: (value) => setState(() => _filter = value),
                     ),
                 ],
               ),
@@ -935,122 +1154,190 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                         itemCount: visible.length,
                         itemBuilder: (context, index) {
                           final assignment = visible[index];
+                          final primaryStatus =
+                              _primaryActionStatus(assignment);
+                          final identity = [
+                            assignment.customerName,
+                            assignment.storeName,
+                          ].where((value) => value.trim().isNotEmpty).join(' · ');
+                          final payment = assignment.paymentMethod.isEmpty
+                              ? ''
+                              : '${_paymentMethodLabel(assignment.paymentMethod)} · ${_paymentStatusLabel(assignment.paymentStatus)}';
+                          final timestamp = assignment.completedAt.isNotEmpty
+                              ? assignment.completedAt
+                              : (assignment.assignedAt.isNotEmpty
+                                  ? assignment.assignedAt
+                                  : assignment.createdAt);
+
                           return Card(
                             key: Key('assignment-${assignment.id}'),
-                            margin: const EdgeInsets.only(bottom: 12),
+                            margin: const EdgeInsets.only(bottom: 10),
                             elevation: 0,
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              leading: Container(
-                                width: 46,
-                                height: 46,
-                                decoration: BoxDecoration(
-                                  color: FoodexBrand.greenSoft,
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                child: const Icon(
-                                  Icons.local_shipping_rounded,
-                                  color: FoodexBrand.greenDark,
-                                ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              side: const BorderSide(
+                                color: FoodexBrand.border,
                               ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      assignment.reference,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${assignment.grandTotal.toStringAsFixed(3)} ${assignment.currency}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 8),
+                            ),
+                            child: InkWell(
+                              onTap: () => _showDetail(assignment),
+                              borderRadius: BorderRadius.circular(18),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    if (assignment.customerName.isNotEmpty)
-                                      Text(
-                                        assignment.customerName,
-                                        style: const TextStyle(fontWeight: FontWeight.w700),
-                                      ),
-                                    if (assignment.customerPhone.isNotEmpty)
-                                      Text(assignment.customerPhone),
-                                    if (assignment.storeName.isNotEmpty)
-                                      Text(assignment.storeName),
-                                    if (assignment.address.isNotEmpty)
-                                      Text(
-                                        assignment.address,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    if (assignment.paymentMethod.isNotEmpty)
-                                      Text(
-                                        '${_paymentMethodLabel(assignment.paymentMethod)} · ${_paymentStatusLabel(assignment.paymentStatus)}',
-                                      ),
-                                    if ((assignment.completedAt.isNotEmpty ||
-                                        assignment.assignedAt.isNotEmpty ||
-                                        assignment.createdAt.isNotEmpty))
-                                      Text(
-                                        assignment.completedAt.isNotEmpty
-                                            ? assignment.completedAt
-                                            : (assignment.assignedAt.isNotEmpty
-                                                ? assignment.assignedAt
-                                                : assignment.createdAt),
-                                        style: Theme.of(context).textTheme.bodySmall,
-                                      ),
-                                    const SizedBox(height: 8),
-                                    Align(
-                                      alignment:
-                                          AlignmentDirectional.centerStart,
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: FoodexBrand.statusSurface(
-                                            assignment.status,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(999),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
+                                    Row(
+                                      children: [
+                                        Expanded(
                                           child: Text(
-                                            context.tr(
-                                              'driver.status.${assignment.status}',
+                                            assignment.reference,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 15,
                                             ),
-                                            style: TextStyle(
-                                              color: FoodexBrand.statusColor(
-                                                assignment.status,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            color: FoodexBrand.statusSurface(
+                                              assignment.status,
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(999),
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 9,
+                                              vertical: 5,
+                                            ),
+                                            child: Text(
+                                              context.tr(
+                                                'driver.status.${assignment.status}',
                                               ),
+                                              maxLines: 1,
+                                              style: TextStyle(
+                                                color: FoodexBrand.statusColor(
+                                                  assignment.status,
+                                                ),
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 9),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            identity.isEmpty
+                                                ? context.tr(
+                                                    'driver.detail.unknown',
+                                                  )
+                                                : identity,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
                                               fontWeight: FontWeight.w700,
                                             ),
                                           ),
                                         ),
-                                      ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '${assignment.grandTotal.toStringAsFixed(3)} ${assignment.currency}',
+                                          maxLines: 1,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                    if (payment.isNotEmpty ||
+                                        timestamp.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              payment,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    color: FoodexBrand.muted,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            ),
+                                          ),
+                                          if (timestamp.isNotEmpty) ...[
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              child: Text(
+                                                timestamp,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                textAlign: TextAlign.end,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      color: FoodexBrand.muted,
+                                                    ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                    if (assignment.address.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        assignment.address,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: FoodexBrand.muted,
+                                            ),
+                                      ),
+                                    ],
+                                    if (primaryStatus != null) ...[
+                                      const SizedBox(height: 12),
+                                      FilledButton.icon(
+                                        key: Key(
+                                          'driver-primary-action-${assignment.id}',
+                                        ),
+                                        onPressed:
+                                            _transitioning.contains(assignment.id)
+                                                ? null
+                                                : () => _performDeliveryDecision(
+                                                      assignment,
+                                                      primaryStatus,
+                                                    ),
+                                        icon: Icon(
+                                          primaryStatus == 'out_for_delivery'
+                                              ? Icons.local_shipping_rounded
+                                              : Icons.task_alt_rounded,
+                                        ),
+                                        label: Text(
+                                          _primaryActionLabel(primaryStatus),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
-                              trailing: Container(
-                                width: 38,
-                                height: 38,
-                                decoration: BoxDecoration(
-                                  color: FoodexBrand.surfaceMuted,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(Icons.chevron_right_rounded),
-                              ),
-                              onTap: () => _showDetail(assignment),
                             ),
                           );
                         },
@@ -1058,6 +1345,72 @@ class _DriverJourneyPageState extends State<DriverJourneyPage> {
                     ),
             },
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DriverFilterBar extends StatelessWidget {
+  const _DriverFilterBar({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final DriverOrderFilter value;
+  final ValueChanged<DriverOrderFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = [
+      (DriverOrderFilter.active, 'driver.filter.active'),
+      (DriverOrderFilter.completed, 'driver.filter.completed'),
+      (DriverOrderFilter.failed, 'driver.filter.failed'),
+      (DriverOrderFilter.all, 'driver.filter.all'),
+    ];
+
+    return Container(
+      key: const Key('driver-order-filter-bar'),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: FoodexBrand.surfaceMuted,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < options.length; i++) ...[
+            Expanded(
+              child: Material(
+                color: options[i].$1 == value
+                    ? FoodexBrand.surface
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(11),
+                child: InkWell(
+                  key: Key('driver-filter-${options[i].$1.name}'),
+                  onTap: () => onChanged(options[i].$1),
+                  borderRadius: BorderRadius.circular(11),
+                  child: SizedBox(
+                    height: 38,
+                    child: Center(
+                      child: Text(
+                        context.tr(options[i].$2),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: options[i].$1 == value
+                              ? FoodexBrand.greenDark
+                              : FoodexBrand.muted,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (i != options.length - 1) const SizedBox(width: 3),
+          ],
         ],
       ),
     );
