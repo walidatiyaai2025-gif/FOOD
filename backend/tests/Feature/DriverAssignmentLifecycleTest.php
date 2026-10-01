@@ -730,7 +730,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
-    public function test_legacy_driver_store_and_assignment_scope_are_reconciled_for_visibility(): void
+    public function test_legacy_unscoped_driver_and_assignment_are_not_reconciled_from_history(): void
     {
         $this->seed(CoreReferenceSeeder::class);
         [$storeId, $order] = $this->order('b2c');
@@ -757,18 +757,15 @@ class DriverAssignmentLifecycleTest extends TestCase
 
         Sanctum::actingAs($driverUser);
         $this->getJson('/api/v1/driver/assignments?scope=active')
-            ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $assignmentId)
-            ->assertJsonPath('data.0.order.number', $order->order_number);
+            ->assertConflict();
 
         $this->assertDatabaseHas('drivers', [
             'id' => $driver->id,
-            'store_id' => $storeId,
+            'store_id' => null,
         ]);
         $this->assertDatabaseHas('driver_assignments', [
             'id' => $assignmentId,
-            'store_id' => $storeId,
+            'store_id' => null,
         ]);
     }
 
