@@ -429,30 +429,38 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
                   if (options == null || options.addresses.isEmpty)
                     Text(strings.noAddresses)
                   else
-                    for (final address in options.addresses)
-                      RadioListTile<int>(
-                        key: ValueKey(
-                          'retail-checkout-address-${address.id}',
-                        ),
-                        value: address.id,
-                        groupValue: _addressId,
-                        onChanged: (value) =>
-                            setState(() => _addressId = value),
-                        title: Text(
-                          address.label.isEmpty
-                              ? strings.address
-                              : address.label,
-                        ),
-                        subtitle: Text(
-                          '${address.line1} · ${address.city}',
-                        ),
-                        secondary: widget.onEditAddress == null
-                            ? null
-                            : IconButton(
-                                onPressed: () => _editAddress(address.id),
-                                icon: const Icon(Icons.edit_outlined),
+                    RadioGroup<int>(
+                      groupValue: _addressId,
+                      onChanged: (value) =>
+                          setState(() => _addressId = value),
+                      child: Column(
+                        children: [
+                          for (final address in options.addresses)
+                            RadioListTile<int>(
+                              key: ValueKey(
+                                'retail-checkout-address-${address.id}',
                               ),
+                              value: address.id,
+                              title: Text(
+                                address.label.isEmpty
+                                    ? strings.address
+                                    : address.label,
+                              ),
+                              subtitle: Text(
+                                '${address.line1} · ${address.city}',
+                              ),
+                              secondary: widget.onEditAddress == null
+                                  ? null
+                                  : IconButton(
+                                      onPressed: () =>
+                                          _editAddress(address.id),
+                                      icon:
+                                          const Icon(Icons.edit_outlined),
+                                    ),
+                            ),
+                        ],
                       ),
+                    ),
                   if (widget.onAddAddress != null)
                     TextButton.icon(
                       key: const ValueKey('retail-checkout-add-address'),
@@ -463,7 +471,7 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     key: const ValueKey('retail-checkout-payment-method'),
-                    value: _paymentMethod,
+                    initialValue: _paymentMethod,
                     decoration: InputDecoration(
                       labelText: strings.paymentMethod,
                       border: const OutlineInputBorder(),
