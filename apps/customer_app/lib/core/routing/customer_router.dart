@@ -11,8 +11,11 @@ import '../auth/customer_session.dart';
 import '../location/customer_location_service.dart';
 import '../location/customer_map_pin_selector.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
+import '../../features/customer_orders/customer_orders_api.dart';
 import '../../features/diagnostics/customer_diagnostics_screen.dart';
-import '../../features/home/b2c_journey_screen.dart';
+import '../../features/retail/auth/retail_checkout_auth_screen.dart';
+import '../../features/retail/commerce/retail_commerce_api.dart';
+import '../../features/retail/retail_customer_journey_screen.dart';
 import '../../features/storefront/marketplace_barcode_scanner.dart';
 import '../../features/storefront/multistore_design_screen.dart';
 import '../../shared/customer_action_widgets.dart';
@@ -31,6 +34,10 @@ class CustomerAppRouter {
     this.b2bApi,
     this.storefrontApi,
     this.wholesaleApi,
+    required this.retailCommerceApi,
+    required this.retailCommerceForToken,
+    this.customerOrdersApi,
+    this.favoritesApi,
     required this.b2cCatalogApi,
     required this.b2cAccountApi,
     required this.locationService,
@@ -50,6 +57,10 @@ class CustomerAppRouter {
   final CustomerActionApi actionApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
+  final RetailCommerceApi retailCommerceApi;
+  final RetailCommerceTokenFactory retailCommerceForToken;
+  final CustomerOrdersApi? customerOrdersApi;
+  final B2cRetailFavoritesApi? favoritesApi;
   final CustomerAuthenticated onAuthenticated;
   final VoidCallback onSessionExpired;
   final ValueChanged<int?> onEnterWholesale;
@@ -57,8 +68,8 @@ class CustomerAppRouter {
   final ValueChanged<Locale> onLocaleChanged;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    final requestedLocation = settings.name ?? CustomerRoutePaths.splash;
-    final requested = definitionFor(requestedLocation);
+    var requestedLocation = settings.name ?? CustomerRoutePaths.splash;
+    var requested = definitionFor(requestedLocation);
 
     if (requested == null) {
       return _pageRoute(
@@ -69,6 +80,30 @@ class CustomerAppRouter {
         ),
         requestedLocation: requestedLocation,
       );
+    }
+
+    if (requested.pattern == CustomerRoutePaths.splash ||
+        requested.pattern == CustomerRoutePaths.entry) {
+      requestedLocation = CustomerRoutePaths.marketplace;
+      requested = definitionFor(requestedLocation)!;
+    }
+
+    if (_isRetailJourney(requested)) {
+      final normalized = _normalizeRetailLocation(
+        requested,
+        requestedLocation,
+      );
+      if (normalized == null) {
+        final selector = definitionFor(CustomerRoutePaths.storeSelector)!;
+        return _pageRoute(
+          settings: const RouteSettings(
+            name: CustomerRoutePaths.storeSelector,
+          ),
+          definition: selector,
+          requestedLocation: CustomerRoutePaths.storeSelector,
+        );
+      }
+      requestedLocation = normalized;
     }
 
     final redirect = _redirectFor(requested);
@@ -98,6 +133,62 @@ class CustomerAppRouter {
     }
 
     return null;
+  }
+
+  bool _isRetailJourney(CustomerRouteDefinition definition) =>
+      const <String>{
+        CustomerRoutePaths.home,
+        CustomerRoutePaths.retailHome,
+        CustomerRoutePaths.offers,
+        CustomerRoutePaths.products,
+        CustomerRoutePaths.productDetails,
+        CustomerRoutePaths.retailProductDetails,
+        CustomerRoutePaths.categories,
+        CustomerRoutePaths.favorites,
+        CustomerRoutePaths.orders,
+        CustomerRoutePaths.notifications,
+        CustomerRoutePaths.addresses,
+        CustomerRoutePaths.settings,
+        CustomerRoutePaths.cart,
+        CustomerRoutePaths.checkoutAuth,
+        CustomerRoutePaths.checkoutAddressPayment,
+        CustomerRoutePaths.orderTracking,
+        CustomerRoutePaths.profile,
+      }.contains(definition.pattern);
+
+  String? _normalizeRetailLocation(
+    CustomerRouteDefinition definition,
+    String location,
+  ) {
+    final parsed = CustomerCommerceContext.tryParseLocation(location);
+    if (parsed != null && parsed.isRetail) return location;
+
+    final uri = Uri.tryParse(location);
+    if (uri == null) return null;
+
+    int? storeId;
+    final parts = uri.pathSegments;
+    final retailIndex = parts.indexOf('retail');
+    if (retailIndex >= 0 && parts.length > retailIndex + 1) {
+      storeId = int.tryParse(parts[retailIndex + 1]);
+    }
+    storeId ??= int.tryParse(
+      uri.queryParameters['store_id'] ??
+          uri.queryParameters['store'] ??
+          '',
+    );
+    if (storeId == null || storeId <= 0) return null;
+
+    final context = CustomerCommerceContext(
+      channel: CustomerCommerceChannel.retail,
+      storeId: storeId,
+    );
+    return uri.replace(
+      queryParameters: <String, String>{
+        ...uri.queryParameters,
+        ...context.toQueryParameters(),
+      },
+    ).toString();
   }
 
   CustomerRouteDefinition? _redirectFor(CustomerRouteDefinition requested) {
@@ -164,6 +255,25 @@ class CustomerAppRouter {
           return const CustomerDiagnosticsScreen();
         }
 
+        if (_isRetailJourney(definition)) {
+          return RetailCustomerJourneyScreen(
+            definition: definition,
+            location: requestedLocation,
+            session: session,
+            catalogApi: b2cCatalogApi,
+            accountApi: b2cAccountApi,
+            actionApi: actionApi,
+            commerceApi: retailCommerceApi,
+            commerceForToken: retailCommerceForToken,
+            ordersApi: customerOrdersApi,
+            favoritesApi: favoritesApi,
+            onAuthenticated: onAuthenticated,
+            onPlatformAuthenticated: onPlatformRegistered,
+            locationService: locationService,
+            mapPinPicker: mapPinPicker,
+          );
+        }
+
         if (shouldUseMultiStoreDesign(definition, requestedLocation)) {
           return MultiStoreDesignScreen(
             definition: definition,
@@ -184,28 +294,22 @@ class CustomerAppRouter {
           );
         }
 
-        return definition.channel == CustomerChannel.b2b
-            ? B2bJourneyScreen(
-                definition: definition,
-                location: requestedLocation,
-                api: b2bApi,
-                accountApi: b2cAccountApi,
-                actionApi: actionApi,
-                onAuthenticated: onAuthenticated,
-                onPlatformAuthenticated: onPlatformRegistered,
-              )
-            : B2cJourneyScreen(
-                definition: definition,
-                location: requestedLocation,
-                actionApi: actionApi,
-                catalogApi: b2cCatalogApi,
-                accountApi: b2cAccountApi,
-                onAuthenticated: onAuthenticated,
-                onPlatformAuthenticated: onPlatformRegistered,
-                onSessionExpired: onSessionExpired,
-                locationService: locationService,
-                mapPinPicker: mapPinPicker,
-              );
+        if (definition.channel == CustomerChannel.b2b) {
+          return B2bJourneyScreen(
+            definition: definition,
+            location: requestedLocation,
+            api: b2bApi,
+            accountApi: b2cAccountApi,
+            actionApi: actionApi,
+            onAuthenticated: onAuthenticated,
+            onPlatformAuthenticated: onPlatformRegistered,
+          );
+        }
+
+        return CustomerRoutePlaceholder(
+          definition: definition,
+          location: requestedLocation,
+        );
       },
     );
   }

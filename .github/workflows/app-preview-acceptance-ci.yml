@@ -143,7 +143,7 @@ jobs:
             test/customer_preview_configuration_test.dart \
             test/customer_navigation_test.dart \
             test/b2b_journey_test.dart \
-            test/b2c_journey_test.dart \
+            test/customer_new_only_guard_test.dart \
             test/localization_test.dart
       - name: Compile real Customer Preview Web runtime
         run: |

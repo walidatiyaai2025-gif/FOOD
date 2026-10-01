@@ -80,7 +80,7 @@ jobs:
           grep -Fq 'test_assigned_driver_receives_safe_invoice_and_note_timeline_only_for_own_assignment' backend/tests/Feature/DriverInvoiceNotificationTest.php
           grep -Fq 'test_retail_operational_notifications_are_store_scoped_deduplicated_and_have_authorized_deep_links' backend/tests/Feature/DriverInvoiceNotificationTest.php
           grep -Fq "B2B product details render authoritative account pricing and inventory" apps/customer_app/test/b2b_journey_test.dart
-          grep -Fq "B2C store selection propagates store context to home" apps/customer_app/test/b2c_journey_test.dart
+          grep -Fq "NEW Retail home keeps explicit store context in every intent" apps/customer_app/test/retail_catalog_new_only_test.dart
           grep -Fq "new detail preserves assigned invoice access" apps/driver_app/test/driver_active_journey_test.dart
           grep -Fq "new journey keeps the backend channel boundary" apps/driver_app/test/driver_active_journey_test.dart
           grep -Fq "customer app renders English LTR from the bilingual catalog" apps/customer_app/test/localization_test.dart
@@ -111,10 +111,10 @@ jobs:
           grep -Fq 'test_push_token_refresh_revokes_only_the_previous_token_for_same_installation' backend/tests/Feature/EngagementOpsIsolationTest.php
 
           grep -Fq 'B2B profile exposes the unified customer address book' apps/customer_app/test/b2b_journey_test.dart
-          grep -Fq 'My Addresses saves shared foreground location only after user action' apps/customer_app/test/b2c_journey_test.dart
-          grep -Fq 'My Addresses can choose and save a corrected map pin' apps/customer_app/test/b2c_journey_test.dart
-          grep -Fq 'location denial keeps manual address entry available' apps/customer_app/test/b2c_journey_test.dart
-          grep -Fq 'My Addresses can set another address as default' apps/customer_app/test/b2c_journey_test.dart
+          grep -Fq 'address book saves authoritative GPS location with address' apps/customer_app/test/customer_account_surfaces_test.dart
+          grep -Fq "customer-address-map" apps/customer_app/lib/features/customer_account/customer_address_book_screen.dart
+          grep -Fq "location_source': source" apps/customer_app/lib/features/customer_account/customer_address_book_screen.dart
+          grep -Fq 'B2C account API posts explicit set-default address action' apps/customer_app/test/b2c_account_api_test.dart
           grep -Fq 'notification routes are constrained to authorized customer destinations' apps/customer_app/test/firebase_push_service_test.dart
           grep -Fq 'device registry revokes authenticated customer push device' apps/customer_app/test/firebase_push_service_test.dart
 

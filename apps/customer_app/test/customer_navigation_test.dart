@@ -112,15 +112,19 @@ void main() {
     );
   });
 
-  testWidgets('guest can resolve B2C catalog routes without authentication',
+  testWidgets('guest resolves store-scoped Retail catalog on the NEW surface',
       (tester) async {
     await tester.pumpWidget(
-      const FoodexCustomerApp(initialRoute: '/products/42'),
+      const FoodexCustomerApp(
+        initialRoute: '/products/42?channel=retail&store_id=7',
+      ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    expect(find.text('تفاصيل المنتج'), findsOneWidget);
-    expect(find.text('/products/42'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('retail-catalog-product')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('customer-route-location')),
       findsNothing,
@@ -130,13 +134,16 @@ void main() {
   testWidgets('guest B2C protected route redirects to checkout login',
       (tester) async {
     await tester.pumpWidget(
-      const FoodexCustomerApp(initialRoute: '/checkout/address-payment'),
+      const FoodexCustomerApp(
+        initialRoute:
+            '/checkout/address-payment?channel=retail&store_id=7',
+      ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('تسجيل الدخول'), findsWidgets);
     expect(
-      find.byKey(const ValueKey('customer-login-submit')),
+      find.byKey(const ValueKey('retail-auth-submit')),
       findsOneWidget,
     );
     expect(find.textContaining('/auth/checkout'), findsNothing);
@@ -202,7 +209,7 @@ void main() {
     await tester.pumpWidget(
       const FoodexCustomerApp(
         session: CustomerSession.authenticated(CustomerChannel.b2c),
-        initialRoute: '/profile',
+        initialRoute: '/profile?channel=retail&store_id=7',
       ),
     );
     await tester.pumpAndSettle();
@@ -259,7 +266,7 @@ void main() {
           accessToken: 'token',
           platformWide: true,
         ),
-        initialRoute: '/profile',
+        initialRoute: '/profile?channel=retail&store_id=7',
       ),
     );
     await tester.pumpAndSettle();

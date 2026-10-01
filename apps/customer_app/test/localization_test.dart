@@ -1,15 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
+import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 
 void main() {
-  testWidgets('customer app renders English LTR from the bilingual catalog', (tester) async {
-    await tester.pumpWidget(const FoodexCustomerApp(locale: Locale('en'), initialRoute: '/entry'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+  testWidgets('customer app renders English LTR from the bilingual catalog',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(
+        locale: Locale('en'),
+        initialRoute: CustomerRoutePaths.diagnostics,
+      ),
+    );
+    await tester.pumpAndSettle();
 
-    expect(find.text('Welcome'), findsOneWidget);
-    expect(find.text('Browse as a guest or sign in to complete checkout'), findsOneWidget);
+    expect(find.text('App diagnostics'), findsOneWidget);
+    expect(
+      find.text(
+        'Export a safe JSON file with recent app failures and context to share with support.',
+      ),
+      findsOneWidget,
+    );
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('en'));
@@ -23,19 +34,20 @@ void main() {
     expect(directionality.textDirection, TextDirection.ltr);
   });
 
-  testWidgets('customer app accepts remote translation overrides with bundled fallback', (tester) async {
+  testWidgets(
+      'customer app accepts remote translation overrides with bundled fallback',
+      (tester) async {
     await tester.pumpWidget(
       FoodexCustomerApp(
-        initialRoute: '/entry',
+        initialRoute: CustomerRoutePaths.diagnostics,
         translationFetcher: (locale) async => {
-          'customer.entry.subtitle': 'وصف فودكس المخصص',
+          'customer.diagnostics.subtitle': 'وصف فودكس المخصص',
         },
       ),
     );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
 
-    expect(find.text('مرحباً بك'), findsOneWidget);
+    expect(find.text('تشخيص التطبيق'), findsOneWidget);
     expect(find.text('وصف فودكس المخصص'), findsOneWidget);
   });
 }

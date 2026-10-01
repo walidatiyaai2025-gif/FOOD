@@ -22,9 +22,12 @@ import 'core/push/firebase_push_service.dart';
 import 'core/preview/customer_preview_bootstrap.dart';
 import 'core/preview/customer_preview_context.dart';
 import 'core/preview/customer_preview_viewport.dart';
+import 'core/routing/customer_commerce_context_store.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
 import 'core/theme/foodex_theme.dart';
+import 'features/customer_orders/customer_orders_api.dart';
+import 'features/retail/commerce/retail_commerce_api.dart';
 import 'features/storefront/marketplace_barcode_scanner.dart';
 
 class FoodexCustomerApp extends StatefulWidget {
@@ -134,6 +137,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   late CustomerSession _session;
   late Locale _locale;
   final CustomerGuestSession _guestSession = CustomerGuestSession();
+  final CustomerGuestCartTokenStore _guestCartTokenStore =
+      SecureCustomerGuestCartTokenStore();
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<String>? _pushRouteSubscription;
@@ -468,6 +473,51 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                     retailStoreContextId: _session.b2bRetailStoreId,
                     client: _sessionHttpClient,
                   ));
+
+    RetailCommerceApi retailCommerceForToken(String? accessToken) {
+      final scopedAccountApi = accessToken == null || accessToken == token
+          ? b2cAccountApi
+          : HttpB2cAccountApi(
+              baseUrl: baseUrl,
+              token: accessToken,
+              guestSession: _guestSession,
+              client: _sessionHttpClient,
+            );
+      final scopedActionApi = accessToken == null || accessToken == token
+          ? actionApi
+          : HttpCustomerActionApi(
+              baseUrl: baseUrl,
+              token: accessToken,
+              guestSession: _guestSession,
+              b2bRetailStoreId: _session.b2bRetailStoreId,
+              client: _sessionHttpClient,
+            );
+
+      return DefaultRetailCommerceApi(
+        accountApi: scopedAccountApi,
+        actionApi: scopedActionApi,
+        checkoutOptionsApi: HttpRetailCheckoutOptionsApi(
+          baseUrl: baseUrl,
+          token: accessToken ?? token ?? '',
+          client: _sessionHttpClient,
+        ),
+        guestSession: _guestSession,
+        guestCartTokenStore: _guestCartTokenStore,
+      );
+    }
+
+    final retailCommerceApi = retailCommerceForToken(token);
+    final customerOrdersApi = token == null || token.isEmpty
+        ? null
+        : HttpCustomerOrdersApi(
+            baseUrl: baseUrl,
+            token: token,
+            client: _sessionHttpClient,
+          );
+    final favoritesApi = b2cAccountApi is B2cRetailFavoritesApi
+        ? b2cAccountApi as B2cRetailFavoritesApi
+        : null;
+
     final router = CustomerAppRouter(
       _session,
       b2bApi: b2bApi,
@@ -476,6 +526,11 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       actionApi: actionApi,
       storefrontApi: storefrontApi,
       wholesaleApi: wholesaleCommerceApi,
+      retailCommerceApi: retailCommerceApi,
+      retailCommerceForToken: (newToken) =>
+          retailCommerceForToken(newToken),
+      customerOrdersApi: customerOrdersApi,
+      favoritesApi: favoritesApi,
       onAuthenticated: _onAuthenticated,
       onSessionExpired: _onSessionExpired,
       onEnterWholesale: _enterWholesale,
