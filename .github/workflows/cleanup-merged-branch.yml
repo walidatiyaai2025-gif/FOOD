@@ -48,6 +48,7 @@ jobs:
               'staging',
               'production',
               'prod',
+              'release/221-generated-trial-bundle',
             ]);
             const keepPrefixes = []; // release/* branches are temporary; normal safety guards decide retention.
 
@@ -117,6 +118,7 @@ jobs:
               'staging',
               'production',
               'prod',
+              'release/221-generated-trial-bundle',
             ]);
             const keepPrefixes = []; // release/* branches are temporary; normal safety guards decide retention.
 
