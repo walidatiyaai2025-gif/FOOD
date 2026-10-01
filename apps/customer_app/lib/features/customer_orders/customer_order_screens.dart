@@ -328,7 +328,7 @@ class _CustomerOrderDetailsScreenState
           Text(
             '${context.tr('customer.order.last_updated')}: '
             '${_formatClock(_lastUpdatedAt!)}',
-            textAlign: TextAlignDirectional.end,
+            textAlign: TextAlign.end,
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
