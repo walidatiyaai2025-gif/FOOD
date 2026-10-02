@@ -545,6 +545,38 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                     client: _sessionHttpClient,
                   ));
 
+    CustomerActionApi customerActionForToken(String accessToken) {
+      if (widget.actionApi != null) {
+        return widget.actionApi!;
+      }
+      return HttpCustomerActionApi(
+        baseUrl: baseUrl,
+        token: accessToken,
+        guestSession: _guestSession,
+        b2bRetailStoreId: _session.b2bRetailStoreId,
+        client: _sessionHttpClient,
+      );
+    }
+
+    Future<String?> executePendingAction(
+      CustomerPendingAction action,
+      String accessToken,
+    ) async {
+      if (action.kind != CustomerPendingActionKind.addToCart ||
+          !action.context.isWholesale ||
+          action.productId == null ||
+          action.quantity == null) {
+        return null;
+      }
+
+      await customerActionForToken(accessToken).addCartItem(
+        storeId: action.context.storeId,
+        productId: action.productId!,
+        quantity: action.quantity!,
+      );
+      return CustomerRouteLocations.wholesaleCart(action.context);
+    }
+
     RetailCommerceApi retailCommerceForToken(String? accessToken) {
       final scopedAccountApi = accessToken == null || accessToken == token
           ? b2cAccountApi
@@ -616,6 +648,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
           widget.previewContext == null ? widget.biometricAuthenticator : null,
       pendingActionStore:
           widget.previewContext == null ? _pendingActionStore : null,
+      pendingActionExecutor:
+          widget.previewContext == null ? executePendingAction : null,
       onLocaleChanged: _changeLocale,
       locationService: widget.locationService ??
           const GeolocatorCustomerLocationService(),

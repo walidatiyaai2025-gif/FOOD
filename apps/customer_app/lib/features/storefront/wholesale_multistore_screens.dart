@@ -8,25 +8,32 @@ import '../../core/api/b2b_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/api/wholesale_commerce_api.dart';
+import '../../core/auth/customer_session.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/engagement/live_ad_service.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/routing/customer_commerce_context.dart';
+import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
 import 'storefront_design_system.dart';
 
 class WholesaleHomeDesignScreen extends StatefulWidget {
   const WholesaleHomeDesignScreen({
     required this.location,
+    required this.session,
     required this.api,
     required this.storefrontApi,
     required this.actionApi,
+    this.pendingActionStore,
     super.key,
   });
 
   final String location;
+  final CustomerSession session;
   final B2bApi? api;
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
+  final CustomerPendingActionStore? pendingActionStore;
 
   @override
   State<WholesaleHomeDesignScreen> createState() =>
@@ -42,23 +49,39 @@ class _WholesaleHomeDesignScreenState
   bool _liveAdScheduled = false;
 
   Future<Map<String, dynamic>> _load([String query = '']) async {
-    if (widget.api == null || storeId <= 0) {
+    if (storeId <= 0) {
       return const {
         'products': {'data': <Object>[]},
         'storefront': <String, Object?>{},
       };
     }
 
-    var endpoint =
-        '/api/v1/b2b/products?store_id=' + storeId.toString();
-    if (query.trim().isNotEmpty) {
-      endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
-    }
-
-    final products = await widget.api!.get(endpoint);
     Map<String, dynamic> storefront = <String, dynamic>{};
     if (widget.storefrontApi != null) {
       storefront = await widget.storefrontApi!.wholesaleHome(storeId);
+    }
+
+    Object? products;
+    if (widget.api != null) {
+      var endpoint =
+          '/api/v1/b2b/products?store_id=' + storeId.toString();
+      if (query.trim().isNotEmpty) {
+        endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
+      }
+      products = await widget.api!.get(endpoint);
+    } else {
+      var rows = mapRows(storefront['products']);
+      final needle = query.trim().toLowerCase();
+      if (needle.isNotEmpty) {
+        rows = rows
+            .where((row) {
+              final name = row['name']?.toString().toLowerCase() ?? '';
+              final sku = row['sku']?.toString().toLowerCase() ?? '';
+              return name.contains(needle) || sku.contains(needle);
+            })
+            .toList(growable: false);
+      }
+      products = <String, Object?>{'data': rows};
     }
 
     return {
@@ -230,7 +253,10 @@ class _WholesaleHomeDesignScreenState
                     _WholesaleProductGrid(
                       rows: rows,
                       storeId: storeId,
+                      sourceLocation: widget.location,
+                      session: widget.session,
                       actionApi: widget.actionApi,
+                      pendingActionStore: widget.pendingActionStore,
                       palette: palette,
                     ),
                   );
@@ -244,6 +270,39 @@ class _WholesaleHomeDesignScreenState
                   );
                   break;
               }
+            }
+
+            final productSectionTypes = <String>{
+              'offers',
+              'featured_products',
+              'best_sellers',
+              'reorder',
+              'product_grid',
+              'product_carousel',
+            };
+            final hasProductSection = effectiveSections.any(
+              (section) => productSectionTypes.contains(
+                section['type']?.toString() ?? '',
+              ),
+            );
+            if (rows.isNotEmpty && !hasProductSection) {
+              content.add(
+                FoodexSectionHeader(
+                  title: 'المنتجات',
+                  palette: palette,
+                ),
+              );
+              content.add(
+                _WholesaleProductGrid(
+                  rows: rows,
+                  storeId: storeId,
+                  sourceLocation: widget.location,
+                  session: widget.session,
+                  actionApi: widget.actionApi,
+                  pendingActionStore: widget.pendingActionStore,
+                  palette: palette,
+                ),
+              );
             }
 
             return Scaffold(
@@ -582,13 +641,19 @@ class _WholesaleProductGrid extends StatelessWidget {
   const _WholesaleProductGrid({
     required this.rows,
     required this.storeId,
+    required this.sourceLocation,
+    required this.session,
     required this.actionApi,
+    required this.pendingActionStore,
     required this.palette,
   });
 
   final List<Map<String, dynamic>> rows;
   final int storeId;
+  final String sourceLocation;
+  final CustomerSession session;
   final CustomerActionApi actionApi;
+  final CustomerPendingActionStore? pendingActionStore;
   final FoodexPalette palette;
 
   @override
@@ -661,7 +726,9 @@ class _WholesaleProductGrid extends StatelessWidget {
                   Text(
                     'سعر العميل ' +
                         money(
-                          row['account_price'] ?? row['unit_price'],
+                          row['account_price'] ??
+                              row['unit_price'] ??
+                              row['price'],
                         ),
                     style: TextStyle(
                       color: palette.primary,
@@ -687,6 +754,18 @@ class _WholesaleProductGrid extends StatelessWidget {
                             const EdgeInsets.symmetric(horizontal: 8),
                       ),
                       onPressed: () async {
+                        if (!session.isAuthenticated) {
+                          await _beginWholesaleAddHandoff(
+                            context: context,
+                            pendingActionStore: pendingActionStore,
+                            storeId: storeId,
+                            productId: id,
+                            quantity: minimum,
+                            sourceLocation: sourceLocation,
+                          );
+                          return;
+                        }
+
                         try {
                           await actionApi.addCartItem(
                             storeId: storeId,
@@ -719,6 +798,53 @@ class _WholesaleProductGrid extends StatelessWidget {
   }
 }
 
+Future<void> _beginWholesaleAddHandoff({
+  required BuildContext context,
+  required CustomerPendingActionStore? pendingActionStore,
+  required int storeId,
+  required int productId,
+  required double quantity,
+  String? sourceLocation,
+}) async {
+  final parsedContext =
+      CustomerCommerceContext.tryParseLocation(sourceLocation);
+  final commerceContext = parsedContext != null &&
+          parsedContext.isWholesale &&
+          parsedContext.storeId == storeId
+      ? parsedContext
+      : CustomerCommerceContext(
+          channel: CustomerCommerceChannel.wholesale,
+          storeId: storeId,
+          source: CustomerCommerceSource.wholesaleEntry,
+        );
+  final nextLocation =
+      CustomerRouteLocations.wholesaleProduct(commerceContext, productId);
+
+  final pending = CustomerPendingAction(
+    kind: CustomerPendingActionKind.addToCart,
+    context: commerceContext,
+    nextLocation: nextLocation,
+    createdAtEpochMs: DateTime.now().toUtc().millisecondsSinceEpoch,
+    productId: productId,
+    quantity: quantity,
+  );
+
+  try {
+    await pendingActionStore?.write(pending);
+  } catch (_) {
+    // The safe route carries enough context to continue authentication even
+    // when secure pending-action persistence is unavailable.
+  }
+
+  if (!context.mounted) return;
+  Navigator.of(context).pushNamed(
+    CustomerRouteLocations.authHandoff(
+      context: commerceContext,
+      next: nextLocation,
+    ),
+  );
+}
+
 class _WholesaleBottomNav extends StatelessWidget {
   const _WholesaleBottomNav({
     required this.storeId,
@@ -742,7 +868,10 @@ class _WholesaleBottomNav extends StatelessWidget {
               '/b2b/cart?store=' + storeId.toString(),
             );
           } else if (index == 3) {
-            Navigator.of(context).pushNamed('/orders');
+            Navigator.of(context).pushNamed(
+              '/b2b/orders?channel=wholesale&store_id=' +
+                  storeId.toString(),
+            );
           }
         },
         destinations: const [
@@ -809,14 +938,20 @@ String _defaultWholesaleSectionTitle(String type) {
 class WholesaleProductDetailsDesignScreen extends StatefulWidget {
   const WholesaleProductDetailsDesignScreen({
     required this.location,
+    required this.session,
     required this.api,
+    required this.storefrontApi,
     required this.actionApi,
+    this.pendingActionStore,
     super.key,
   });
 
   final String location;
+  final CustomerSession session;
   final B2bApi? api;
+  final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
+  final CustomerPendingActionStore? pendingActionStore;
 
   @override
   State<WholesaleProductDetailsDesignScreen> createState() =>
@@ -838,7 +973,33 @@ class _WholesaleProductDetailsDesignScreenState
 
   Future<Object?> _loadProduct() async {
     final api = widget.api;
-    if (api == null) return null;
+    if (api == null) {
+      final storefrontApi = widget.storefrontApi;
+      if (storefrontApi == null || storeId <= 0 || productId <= 0) {
+        return null;
+      }
+      final storefront = await storefrontApi.wholesaleHome(storeId);
+      final rows = mapRows(storefront['products']);
+      Map<String, dynamic>? product;
+      for (final row in rows) {
+        if (intValue(row['id']) == productId) {
+          product = row;
+          break;
+        }
+      }
+      if (product == null) return null;
+      return <String, dynamic>{
+        ...product,
+        'store_id': storeId,
+        'base_wholesale_price': product['price'],
+        'account_price': product['price'],
+        'minimum_order_quantity':
+            product['minimum_order_quantity'] ?? 1,
+        'ordering_increment': product['ordering_increment'] ?? 1,
+        'pack_size': product['pack_size'] ?? 1,
+        'currency': product['currency'] ?? 'EGP',
+      };
+    }
 
     try {
       return await api.get(endpoint);
@@ -1021,6 +1182,18 @@ class _WholesaleProductDetailsDesignScreenState
                     onChanged: (value) =>
                         setState(() => quantity = value),
                     onPressed: () async {
+                      if (!widget.session.isAuthenticated) {
+                        await _beginWholesaleAddHandoff(
+                          context: context,
+                          pendingActionStore: widget.pendingActionStore,
+                          storeId: storeId,
+                          productId: productId,
+                          quantity: quantity!,
+                          sourceLocation: widget.location,
+                        );
+                        return;
+                      }
+
                       try {
                         await widget.actionApi.addCartItem(
                           storeId: storeId,
@@ -1029,7 +1202,8 @@ class _WholesaleProductDetailsDesignScreenState
                         );
                         if (context.mounted) {
                           Navigator.of(context).pushNamed(
-                            '/b2b/cart?store=' + storeId.toString(),
+                            '/b2b/cart?channel=wholesale&store_id=' +
+                                storeId.toString(),
                           );
                         }
                       } catch (error) {

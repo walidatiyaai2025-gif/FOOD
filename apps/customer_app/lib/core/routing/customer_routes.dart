@@ -107,6 +107,20 @@ abstract final class CustomerRouteLocations {
     return _scoped(CustomerRoutePaths.b2bHome, context);
   }
 
+  static String wholesaleProduct(
+    CustomerCommerceContext context,
+    int productId,
+  ) {
+    _requireChannel(context, CustomerCommerceChannel.wholesale);
+    if (productId <= 0) {
+      throw ArgumentError.value(productId, 'productId', 'must be positive');
+    }
+    return _scoped(
+      '/b2b/products/$productId',
+      context,
+    );
+  }
+
   static String wholesaleCart(CustomerCommerceContext context) {
     _requireChannel(context, CustomerCommerceChannel.wholesale);
     return _scoped(CustomerRoutePaths.b2bCart, context);
@@ -406,7 +420,6 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     pattern: CustomerRoutePaths.b2bHome,
     label: 'B2B wholesale storefront',
     channel: CustomerChannel.b2b,
-    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bDashboard,
@@ -430,13 +443,11 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     pattern: CustomerRoutePaths.b2bProducts,
     label: 'B2B products',
     channel: CustomerChannel.b2b,
-    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bProductDetails,
     label: 'B2B product details',
     channel: CustomerChannel.b2b,
-    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bInvoices,

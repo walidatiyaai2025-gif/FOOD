@@ -86,8 +86,13 @@ class HttpStorefrontApi implements StorefrontApi {
       _asMap(await _get('/api/v1/stores/$storeId/storefront'));
 
   @override
-  Future<Map<String, dynamic>> wholesaleHome(int storeId) async =>
-      _asMap(await _get('/api/v1/b2b/stores/$storeId/storefront'));
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async => _asMap(
+        await _get(
+          token == null || token!.isEmpty
+              ? '/api/v1/wholesale/stores/$storeId/storefront'
+              : '/api/v1/b2b/stores/$storeId/storefront',
+        ),
+      );
 
   @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>

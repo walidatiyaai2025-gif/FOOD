@@ -4,6 +4,7 @@ import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
+import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 
 void main() {
@@ -170,25 +171,45 @@ void main() {
   });
 
   testWidgets(
-      'B2B product login returns to the same product/store and loads authenticated API',
+      'guest Wholesale product stays browseable and add auth resumes exact store',
       (tester) async {
     final b2bApi = _RecordingB2bApi();
+    final pending = _MemoryPendingActionStore();
     const target =
-        '/b2b/products/42?store_id=7&campaign=october%20launch';
+        '/b2b/products/42?channel=wholesale&store_id=7&campaign=october%20launch';
 
     await tester.pumpWidget(
       FoodexCustomerApp(
         initialRoute: target,
         b2bApi: b2bApi,
         actionApi: const _SuccessfulCustomerActionApi(),
+        pendingActionStore: pending,
       ),
     );
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const ValueKey('b2b-product-detail-data')),
+      findsOneWidget,
+    );
+    expect(
+      b2bApi.requestedPaths,
+      contains('/api/v1/b2b/products/42?store_id=7'),
+    );
+    expect(
+      find.byKey(const ValueKey('unified-customer-auth-screen')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('unified-customer-auth-screen')),
+      findsOneWidget,
+    );
     expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
-    expect(find.textContaining('/b2b/login'), findsNothing);
-    expect(find.textContaining('next='), findsNothing);
 
     await tester.enterText(
       find.byKey(const ValueKey('unified-auth-email')),
@@ -199,21 +220,9 @@ void main() {
       'test-password',
     );
     await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    final productData =
-        find.byKey(const ValueKey('b2b-product-detail-data'));
-    for (var attempt = 0;
-        attempt < 20 && productData.evaluate().isEmpty;
-        attempt++) {
-      await tester.pump(const Duration(milliseconds: 100));
-    }
-
-    expect(
-      b2bApi.requestedPaths,
-      contains('/api/v1/b2b/products/42?store_id=7'),
-    );
-    expect(productData, findsOneWidget);
+    expect(find.text('سلة الجملة'), findsOneWidget);
   });
 
   testWidgets('authenticated B2C session reaches B2C protected routes',
@@ -354,5 +363,30 @@ class _RecordingB2bApi implements B2bApi {
       'minimum_order_quantity': 1,
       'ordering_increment': 1,
     };
+  }
+}
+
+
+class _MemoryPendingActionStore implements CustomerPendingActionStore {
+  CustomerPendingAction? value;
+
+  @override
+  Future<void> clear() async {
+    value = null;
+  }
+
+  @override
+  Future<CustomerPendingAction?> read() async => value;
+
+  @override
+  Future<CustomerPendingAction?> take() async {
+    final current = value;
+    value = null;
+    return current;
+  }
+
+  @override
+  Future<void> write(CustomerPendingAction action) async {
+    value = action;
   }
 }
