@@ -10,7 +10,7 @@ import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import '../retail/commerce/retail_commerce_api.dart';
 
-typedef CustomerUnifiedAuthenticated = void Function(
+typedef CustomerUnifiedAuthenticated = Future<void> Function(
   String token,
   CustomerAuthPreferences preferences,
 );
@@ -119,10 +119,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       }
     }
 
-    // The app-level authenticated callback updates the session/router with setState.
-    // Let that rebuild commit before resolving the protected return route, otherwise
-    // the Navigator can still consult the previous guest router and bounce back to auth.
-    await WidgetsBinding.instance.endOfFrame;
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(target);
   }
@@ -131,13 +127,10 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     String token, {
     required bool mergeRetailGuestCart,
   }) async {
-    widget.onAuthenticated(token, _selectedPreferences);
-
-    // The authentication callback updates the parent Customer session with
-    // setState. Let that rebuild reach MaterialApp/Navigator before resolving
-    // the protected return route, otherwise the previous guest router can
-    // redirect the exact pending action back to login.
-    await WidgetsBinding.instance.endOfFrame;
+    // Authentication is authoritative only after the parent commits the new
+    // platform session/router. Await that contract before any cart merge or
+    // protected-route resume instead of guessing with frame delays here.
+    await widget.onAuthenticated(token, _selectedPreferences);
     if (!mounted) return;
 
     if (mergeRetailGuestCart) {
