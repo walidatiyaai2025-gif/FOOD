@@ -260,8 +260,16 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       _register ? 'customer.auth.register_title' : 'customer.auth.title',
     );
 
-    return Scaffold(
-      key: const ValueKey('unified-customer-auth-screen'),
+    final locale = AppTranslations.maybeOf(context)?.locale ??
+        Localizations.maybeLocaleOf(context) ??
+        const Locale('ar');
+    final textDirection =
+        locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr;
+
+    return Directionality(
+      textDirection: textDirection,
+      child: Scaffold(
+        key: const ValueKey('unified-customer-auth-screen'),
       backgroundColor: CustomerUiColors.mint,
       appBar: AppBar(
         title: Text(title),
@@ -396,21 +404,24 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                       ),
                     ],
                     const SizedBox(height: CustomerUiSpacing.sm),
-                    SwitchListTile.adaptive(
-                      key: const ValueKey('customer-auth-remember-me'),
-                      contentPadding: EdgeInsets.zero,
-                      value: _rememberMe,
-                      onChanged: _busy
-                          ? null
-                          : (value) {
-                              setState(() {
-                                _rememberMe = value;
-                                if (!value) _biometricEnabled = false;
-                              });
-                            },
-                      title: Text(context.tr('customer.auth.remember_me')),
-                      subtitle: Text(
-                        context.tr('customer.auth.remember_me_help'),
+                    Material(
+                      type: MaterialType.transparency,
+                      child: SwitchListTile.adaptive(
+                        key: const ValueKey('customer-auth-remember-me'),
+                        contentPadding: EdgeInsets.zero,
+                        value: _rememberMe,
+                        onChanged: _busy
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _rememberMe = value;
+                                  if (!value) _biometricEnabled = false;
+                                });
+                              },
+                        title: Text(context.tr('customer.auth.remember_me')),
+                        subtitle: Text(
+                          context.tr('customer.auth.remember_me_help'),
+                        ),
                       ),
                     ),
                     if (_checkingBiometric)
@@ -418,23 +429,26 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                         key: ValueKey('customer-auth-biometric-checking'),
                       ),
                     if (_biometricAvailable)
-                      SwitchListTile.adaptive(
-                        key: const ValueKey('customer-auth-biometric-toggle'),
-                        contentPadding: EdgeInsets.zero,
-                        value: _biometricEnabled,
-                        onChanged: _busy
-                            ? null
-                            : (value) {
-                                setState(() {
-                                  _biometricEnabled = value;
-                                  if (value) _rememberMe = true;
-                                });
-                              },
-                        title: Text(
-                          context.tr('customer.auth.biometric_enable'),
-                        ),
-                        subtitle: Text(
-                          context.tr('customer.auth.biometric_help'),
+                      Material(
+                        type: MaterialType.transparency,
+                        child: SwitchListTile.adaptive(
+                          key: const ValueKey('customer-auth-biometric-toggle'),
+                          contentPadding: EdgeInsets.zero,
+                          value: _biometricEnabled,
+                          onChanged: _busy
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    _biometricEnabled = value;
+                                    if (value) _rememberMe = true;
+                                  });
+                                },
+                          title: Text(
+                            context.tr('customer.auth.biometric_enable'),
+                          ),
+                          subtitle: Text(
+                            context.tr('customer.auth.biometric_help'),
+                          ),
                         ),
                       ),
                     if (_errorKey != null) ...[
@@ -500,6 +514,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
               label: Text(context.tr('customer.diagnostics.open')),
             ),
           ],
+        ),
         ),
       ),
     );
