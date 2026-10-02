@@ -122,6 +122,12 @@ void main() {
       find.byKey(const ValueKey('unified-customer-auth-screen')),
       findsNothing,
     );
+    await tester.scrollUntilVisible(
+      find.text('Public Bulk Water'),
+      260,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Public Bulk Water'), findsWidgets);
 
     await tester.tap(find.text('Public Bulk Water').first);
