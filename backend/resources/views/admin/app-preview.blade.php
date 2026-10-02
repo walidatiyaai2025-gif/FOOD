@@ -320,7 +320,9 @@
     const sanitizeInspectorStatus = (message) => {
         const source = message?.inspector && typeof message.inspector === 'object'
             ? message.inspector
-            : message;
+            : (message?.metadata && typeof message.metadata === 'object'
+                ? message.metadata
+                : message);
         const sanitized = {};
         const textFields = {
             state: [message?.state, source?.state],
@@ -350,6 +352,12 @@
             const value = safeIso(source?.[key]);
             if (value) sanitized[key] = value;
         }
+        const runtimeChannel = source?.channel === 'b2c'
+            ? 'b2c'
+            : (source?.channel === 'b2b' ? 'b2b' : null);
+        if (runtimeChannel) sanitized.channel = runtimeChannel;
+        const runtimeStoreId = safeInteger(source?.store_id, 1);
+        if (runtimeStoreId !== null) sanitized.store_id = runtimeStoreId;
         const capabilities = safeCapabilities(source?.capability_flags ?? source?.capabilities);
         if (capabilities) sanitized.capability_flags = capabilities;
         return Object.freeze(sanitized);
@@ -401,6 +409,9 @@
                 state: runtime.state ?? 'unavailable',
                 route: runtime.route ?? null,
                 screen: runtime.screen ?? null,
+                auth_mode: runtime.auth_mode ?? null,
+                channel: runtime.channel ?? null,
+                store_id: runtime.store_id ?? null,
                 runtime_version: runtime.runtime_version ?? null,
                 app_version: runtime.app_version ?? null,
                 config_version: runtime.config_version ?? null,
@@ -435,9 +446,9 @@
         const values = {
             app: context.app,
             route: runtime.route ?? runtime.screen,
-            channel: context.channel,
-            store_id: context.store_id,
-            auth_mode: context.auth_mode,
+            channel: runtime.channel ?? context.channel,
+            store_id: runtime.store_id ?? context.store_id,
+            auth_mode: runtime.auth_mode ?? context.auth_mode,
             locale: context.locale,
             device: [
                 context.device_profile,
@@ -762,8 +773,13 @@
             context: {
                 session_id: null,
                 target_type: 'customer',
+                auth_mode: 'guest',
                 channel: snapshot.channel,
                 store_id: snapshot.storeId,
+                commerce_context: {
+                    channel: snapshot.channel,
+                    store_id: snapshot.storeId,
+                },
                 mode: 'read_only',
                 read_only: true,
                 support_access: false,
