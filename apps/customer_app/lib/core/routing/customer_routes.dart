@@ -107,6 +107,20 @@ abstract final class CustomerRouteLocations {
     return _scoped(CustomerRoutePaths.b2bHome, context);
   }
 
+  static String wholesaleProduct(
+    CustomerCommerceContext context,
+    int productId,
+  ) {
+    _requireChannel(context, CustomerCommerceChannel.wholesale);
+    if (productId <= 0) {
+      throw ArgumentError.value(productId, 'productId', 'must be positive');
+    }
+    return _scoped(
+      '/b2b/products/$productId',
+      context,
+    );
+  }
+
   static String wholesaleCart(CustomerCommerceContext context) {
     _requireChannel(context, CustomerCommerceChannel.wholesale);
     return _scoped(CustomerRoutePaths.b2bCart, context);
