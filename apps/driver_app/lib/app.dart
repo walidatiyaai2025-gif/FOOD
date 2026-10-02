@@ -337,7 +337,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
           ),
         );
       } else {
-        unawaited(_sessionStore.clear());
+        unawaited(_clearRememberedSession());
       }
     }
     if (mounted) setState(() => _session = session);
@@ -385,7 +385,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     final service = widget.pushService;
     if (service != null) await service.revokeSession();
     DriverRuntimeInspector.instance.recordNavigation('driver.login');
-    await _clearRememberedSession();
+    unawaited(_clearRememberedSession());
     if (mounted) setState(() => _session = null);
     if (session == null) return;
     final repository = _authRepository();
