@@ -165,11 +165,16 @@ void main() {
       findsOneWidget,
     );
     final carousel =
-        find.byKey(const ValueKey('marketplace-retail-carousel'));
+        find.byKey(const ValueKey('marketplace-store-carousel'));
     expect(carousel, findsOneWidget);
-    expect(find.text('Retail Seven Offer'), findsOneWidget);
+    expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
+    expect(find.text('Retail Seven Offer').hitTestable(), findsNothing);
 
-    await tester.tap(find.text('Retail Seven Offer'));
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('Retail Seven Offer').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.text('Retail Seven Offer').hitTestable());
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('route-name')), findsOneWidget);
@@ -185,7 +190,7 @@ void main() {
   });
 
   testWidgets(
-      'guest uses one Retail carousel with configured primary first then every remaining public store once',
+      'guest uses one store carousel with Wholesale first then primary and remaining Retail stores once',
       (tester) async {
     final client = MockClient((request) async {
       if (request.url.path == '/api/v1/stores') {
@@ -257,14 +262,19 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('marketplace-retail-carousel')),
+      find.byKey(const ValueKey('marketplace-store-carousel')),
       findsOneWidget,
     );
-    expect(find.text('Primary Retail').hitTestable(), findsOneWidget);
+    expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
+    expect(find.text('Primary Retail').hitTestable(), findsNothing);
     expect(
       find.text('Duplicate placement must not duplicate store'),
       findsNothing,
     );
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('Primary Retail').hitTestable(), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
@@ -362,17 +372,22 @@ void main() {
       find.byKey(const ValueKey('marketplace-banner-carousel')),
       findsOneWidget,
     );
-    expect(find.text('Retail Eleven'), findsOneWidget);
+    expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
+    expect(find.text('Retail Eleven').hitTestable(), findsNothing);
 
     final wholesaleTop = tester
         .getTopLeft(find.byKey(const ValueKey('marketplace-wholesale-entry')))
         .dy;
-    final retailTop = tester
+    final carouselTop = tester
         .getTopLeft(find.byKey(const ValueKey('marketplace-banner-carousel')))
         .dy;
-    expect(wholesaleTop, lessThan(retailTop));
+    expect(wholesaleTop, carouselTop);
 
-    await tester.tap(find.text('Retail Eleven'));
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('Retail Eleven').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.text('Retail Eleven').hitTestable());
     await tester.pumpAndSettle();
 
     final routeText = tester.widget<Text>(
@@ -385,7 +400,7 @@ void main() {
   });
 
   testWidgets(
-      'marketplace Retail-only carousel auto-rotates every five seconds and loops',
+      'marketplace store carousel auto-rotates Wholesale then Retail every five seconds and loops',
       (tester) async {
     final client = MockClient((request) async => http.Response(
           jsonEncode({
@@ -431,20 +446,24 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    final carousel = find.byKey(const ValueKey('marketplace-retail-carousel'));
+    final carousel = find.byKey(const ValueKey('marketplace-store-carousel'));
     expect(carousel, findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-wholesale-entry')), findsOneWidget);
-    expect(find.text('Retail Seven Offer').hitTestable(), findsOneWidget);
+    expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
+    expect(find.text('Retail Seven Offer').hitTestable(), findsNothing);
     expect(find.text('Retail Eight Offer').hitTestable(), findsNothing);
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
-    expect(find.text('Retail Eight Offer').hitTestable(), findsOneWidget);
-    expect(find.text('Retail Seven Offer').hitTestable(), findsNothing);
+    expect(find.text('Retail Seven Offer').hitTestable(), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
-    expect(find.text('Retail Seven Offer').hitTestable(), findsOneWidget);
+    expect(find.text('Retail Eight Offer').hitTestable(), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
   });
 
   testWidgets('guest can search wholesale catalog and inspect product before login',
@@ -839,7 +858,7 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey('marketplace-banner-indicators')),
-      findsNothing,
+      findsOneWidget,
     );
     expect(find.text('October Wholesale'), findsOneWidget);
     expect(
@@ -857,13 +876,15 @@ void main() {
         .getTopLeft(find.byKey(const ValueKey('marketplace-banner-carousel')))
         .dy;
     expect(categoriesTop, lessThan(wholesaleTop));
-    expect(wholesaleTop, lessThan(bannerTop));
+    expect(wholesaleTop, bannerTop);
 
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(milliseconds: 450));
     expect(
       find.byKey(const ValueKey('marketplace-retail-banner-title-7')),
       findsOneWidget,
     );
-    expect(find.text('Dashboard Retail Banner'), findsOneWidget);
+    expect(find.text('Dashboard Retail Banner').hitTestable(), findsOneWidget);
     expect(find.text('Retail Area'), findsNothing);
     expect(tester.takeException(), isNull);
 
