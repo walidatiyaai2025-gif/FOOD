@@ -1,42 +1,50 @@
-# FOODEX 1.0.44 Release Notes
+# FOODEX 1.0.46 Release Notes
 
-Status: synchronized Customer + Driver Journey V2 production distribution.
+Status: synchronized unified Wholesale/Retail commerce-isolation production distribution.
 
 ## Release identity
 
-- Dashboard: `1.0.44`
-- Customer app: `1.0.44+44`
-- Driver app: `1.0.44+44`
-- Customer runtime/footer identity: `1.0.44`
-- Driver runtime/footer identity: `1.0.44`
-- Driver diagnostics current identity: `1.0.44`
-- Driver diagnostics build identity: `44`
+- Dashboard: `1.0.46`
+- Customer app: `1.0.46+46`
+- Driver app: `1.0.46+46`
+- Customer runtime/footer identity: `1.0.46`
+- Driver runtime/footer identity: `1.0.46`
+- Driver diagnostics current identity: `1.0.46`
+- Driver diagnostics build identity: `46`
+- Reserved version `1.0.45`: intentionally skipped and not published.
 
-## Deployable delta since distributed 1.0.43
+## Deployable delta since distributed 1.0.44
 
-### Customer Journey V2
-- Converge production B2C navigation on the NEW Retail journey only.
-- Preserve authoritative Retail store/channel context across guest browsing, authentication/registration return, checkout, deep links, notifications and orders.
-- Ship NEW account/profile, addresses, favorites, notification center and authoritative order/tracking surfaces.
-- Verify the mandatory guest Retail journey end to end, including same-store cart merge and operational order/registration notifications.
-- Remove the obsolete legacy Customer runtime and keep an anti-regression guard against reintroduction.
+### Unified commerce identity and ownership
+- Make platform identity, Retail Merchant ownership/management and Store-scoped B2C relationships authoritative.
+- Block owned/managed Retail Merchants from purchasing from their own Retail Store at backend authorization boundaries.
+- Keep the Customer App platform-first, with Retail Store entry through exact Retail Merchant placement/banner context.
 
-### Driver Journey V2
-- Converge ordinary launch, delivery navigation, push/deep links and notification-center assignment opens on the NEW Driver runtime.
-- Ship authoritative active-assignment actions and shared start/delivered/failed completion flow with notes and required delivery proof.
-- Keep Dashboard delivery evidence and lifecycle notifications synchronized with the authoritative assignment state.
-- Verify assignment-to-proof E2E acceptance.
-- Remove the obsolete legacy Driver runtime and keep an anti-regression guard against reintroduction.
+### B2B/B2C operational isolation
+- Route Wholesale and Retail orders to the correct seller/store/channel operational context.
+- Isolate B2B and B2C Address Books and checkout address selection.
+- Add My Wholesale Orders with backend-authoritative order and delivery timeline data.
+- Prevent cross-store and cross-channel operational visibility.
+
+### Driver and notification convergence
+- Enforce Wholesale/Retail Driver tenant and assignment isolation.
+- Converge all Driver production routes on the shared shell and keep assignment status actions inside Assignment Details.
+- Isolate operational notification audiences, dedupe/deep-link context and authorization by customer/driver/store/channel.
+
+### App Preview and final acceptance
+- Auto-launch published Customer Preview in guest/visitor context.
+- Auto-select the first eligible authorized Driver for Driver Preview, with a clear create/activate Driver state when none exists.
+- Include final Customer + Driver E2E convergence and the 1.0.45 skip/release-identity guard.
 
 ## Dashboard update bundle
 
-- Target version: `1.0.44`
+- Target version: `1.0.46`
 - Minimum current version: `1.0.6`
 - Contains migrations: `true`
 - Requires full redeploy: `false`
-- SHA-256: `586210c0d29c28eb9313449e340cf244fb05abc81b9ab42c7dd62d570da9c10d`
-- Package files: `679`
-- Package size: `73,056,557` bytes
+- SHA-256: `b213519f17e7b901ebaff2ae5e6040a50f47030952450dcfdef4a17768a07b19`
+- Package files: `687`
+- Package size: `73,173,378` bytes
 
 ## Explicit non-activation statement
 
