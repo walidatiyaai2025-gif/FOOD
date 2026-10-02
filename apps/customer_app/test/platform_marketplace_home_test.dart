@@ -60,7 +60,8 @@ void main() {
             {
               'id': 7,
               'store_id': 7,
-              'banner_id': 7,
+              'banner_id': 7001,
+              'placement_id': 701,
               'placement_scope': 'platform_retail_store',
               'target_type': 'retail_store',
               'target_id': 7,
@@ -151,7 +152,7 @@ void main() {
     expect(route.queryParameters['channel'], 'retail');
     expect(route.queryParameters['store_id'], '7');
     expect(route.queryParameters['source'], 'retail_banner');
-    expect(route.queryParameters['placement_id'], '7');
+    expect(route.queryParameters['placement_id'], '701');
   });
 
   testWidgets(
