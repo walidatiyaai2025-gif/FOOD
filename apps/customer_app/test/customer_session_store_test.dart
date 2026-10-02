@@ -80,6 +80,23 @@ void main() {
       expect(restored.accessToken, 'platform-token');
     });
 
+    test('platform customer session authorizes both commerce channels', () async {
+      final storage = _MemorySecureStore();
+      final store = SecureCustomerSessionStore(storage: storage);
+
+      await store.write(
+        const CustomerSession.platformCustomer(
+          accessToken: 'unified-customer-token',
+        ),
+      );
+      final restored = await restoreCustomerSession(store);
+
+      expect(restored.channel, isNull);
+      expect(restored.platformWide, isTrue);
+      expect(restored.allowsChannel(CustomerChannel.b2c), isTrue);
+      expect(restored.allowsChannel(CustomerChannel.b2b), isTrue);
+    });
+
     test('guest write clears durable credentials', () async {
       final storage = _MemorySecureStore();
       final store = SecureCustomerSessionStore(storage: storage);
