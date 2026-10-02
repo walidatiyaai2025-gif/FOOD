@@ -42,6 +42,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   int _bannerCount = -1;
   int? _selectedCategoryId;
   String? _pendingAfterAuth;
+  List<Map<String, dynamic>>? _guestRetailStoreFallback;
 
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
@@ -54,7 +55,51 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     final uri = Uri.parse('$baseUrl/api/v1/platform/storefront').replace(
       queryParameters: params.isEmpty ? null : params,
     );
-    return _get(uri.toString());
+    final data = await _get(uri.toString());
+
+    // Keep the approved home order: Wholesale hero first, Retail immediately
+    // after it. When the Dashboard has no Retail placement banners yet, guest
+    // discovery must not disappear; reuse the existing public Retail store API
+    // as an APK-only fallback without changing authenticated ownership rules.
+    if (!widget.session.isAuthenticated &&
+        _rows(data['retail_banners']).isEmpty) {
+      _guestRetailStoreFallback ??=
+          await _loadGuestRetailStoreFallback(baseUrl);
+      if (_guestRetailStoreFallback!.isNotEmpty) {
+        data['retail_banners'] = _guestRetailStoreFallback;
+      }
+    }
+
+    return data;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadGuestRetailStoreFallback(
+    String baseUrl,
+  ) async {
+    try {
+      final payload = await _get('$baseUrl/api/v1/stores');
+      return _rows(payload['data'])
+          .where((store) => _int(store['id']) > 0)
+          .map((store) {
+            final id = _int(store['id']);
+            final name = store['name']?.toString().trim() ?? '';
+            return <String, dynamic>{
+              ...store,
+              'id': id,
+              'store_id': id,
+              'title': name,
+              'banner_url': store['banner_url'] ?? store['logo_url'],
+              'channel': 'b2c',
+              'placement_scope': 'guest_store_fallback',
+              'target_type': 'retail_store',
+              'target_id': id,
+              'target_url': '/retail/$id/home',
+            };
+          })
+          .toList(growable: false);
+    } catch (_) {
+      return const <Map<String, dynamic>>[];
+    }
   }
 
   void _submitSearch(String _) {
