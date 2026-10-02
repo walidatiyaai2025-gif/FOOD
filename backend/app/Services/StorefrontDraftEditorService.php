@@ -117,6 +117,8 @@ final class StorefrontDraftEditorService
                         : '',
                     'sort_order' => (int) ($item['sort_order'] ?? 0),
                     'is_active' => (bool) ($item['is_active'] ?? false),
+                    'starts_at' => $item['starts_at'] ?? null,
+                    'ends_at' => $item['ends_at'] ?? null,
                     'status' => (bool) ($item['is_active'] ?? false),
                 ])
                 ->sortBy('sort_order')
@@ -326,6 +328,8 @@ final class StorefrontDraftEditorService
             'target_url' => $banner['target_url'] ?? null,
             'sort_order' => (int) ($banner['sort_order'] ?? 0),
             'is_active' => (bool) ($banner['is_active'] ?? false),
+            'starts_at' => $banner['starts_at'] ?? null,
+            'ends_at' => $banner['ends_at'] ?? null,
         ];
         $payload['banners'] = $banners;
 
@@ -357,6 +361,8 @@ final class StorefrontDraftEditorService
             'target_url' => $banner['target_url'] ?? null,
             'sort_order' => (int) ($banner['sort_order'] ?? $current['sort_order'] ?? 0),
             'is_active' => (bool) ($banner['is_active'] ?? false),
+            'starts_at' => $banner['starts_at'] ?? $current['starts_at'] ?? null,
+            'ends_at' => $banner['ends_at'] ?? $current['ends_at'] ?? null,
         ];
         $payload['banners'] = $banners;
 
