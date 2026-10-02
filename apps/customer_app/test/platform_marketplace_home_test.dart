@@ -15,6 +15,34 @@ void main() {
     final requests = <Uri>[];
     final client = MockClient((request) async {
       requests.add(request.url);
+      if (request.url.path == '/api/v1/stores') {
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {
+                'id': 7,
+                'code': 'RETAIL-07',
+                'name': 'Retail Seven',
+                'logo_url': null,
+              },
+              {
+                'id': 8,
+                'code': 'RETAIL-08',
+                'name': 'Retail Eight',
+                'logo_url': null,
+              },
+              {
+                'id': 9,
+                'code': 'RETAIL-09',
+                'name': 'Retail Nine',
+                'logo_url': null,
+              },
+            ],
+          }),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      }
       if (request.url.path == '/api/v1/platform/products/42') {
         return http.Response(
           jsonEncode({
@@ -115,8 +143,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(requests, hasLength(1));
-    expect(requests.single.path, '/api/v1/platform/storefront');
+    expect(requests, hasLength(2));
+    expect(requests.first.path, '/api/v1/platform/storefront');
+    expect(requests.last.path, '/api/v1/stores');
     expect(
       find.byKey(const ValueKey('marketplace-brand-title')),
       findsOneWidget,
@@ -153,6 +182,97 @@ void main() {
     expect(route.queryParameters['store_id'], '7');
     expect(route.queryParameters['source'], 'retail_banner');
     expect(route.queryParameters['placement_id'], '701');
+  });
+
+  testWidgets(
+      'guest uses one Retail carousel with configured primary first then every remaining public store once',
+      (tester) async {
+    final client = MockClient((request) async {
+      if (request.url.path == '/api/v1/stores') {
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {'id': 8, 'code': 'RETAIL-08', 'name': 'Primary Retail'},
+              {'id': 11, 'code': 'RETAIL-11', 'name': 'Retail Eleven'},
+              {'id': 12, 'code': 'RETAIL-12', 'name': 'Retail Twelve'},
+            ],
+          }),
+          200,
+        );
+      }
+
+      return http.Response(
+        jsonEncode({
+          'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
+          'hero': {'title': 'FOODEX Wholesale', 'image_url': null},
+          'products': {'data': []},
+          'retail_banners': [
+            {
+              'id': 8,
+              'store_id': 8,
+              'placement_id': 801,
+              'name': 'Primary Retail',
+              'title': 'Primary Retail',
+              'sort_order': 1,
+            },
+            {
+              'id': 8002,
+              'store_id': 8,
+              'placement_id': 802,
+              'name': 'Primary Retail',
+              'title': 'Duplicate placement must not duplicate store',
+              'sort_order': 2,
+            },
+            {
+              'id': 11,
+              'store_id': 11,
+              'placement_id': 1101,
+              'name': 'Retail Eleven',
+              'title': 'Retail Eleven',
+              'sort_order': 3,
+            },
+          ],
+        }),
+        200,
+      );
+    });
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('en'),
+        overrides: const {},
+        child: MaterialApp(
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.guest(),
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('marketplace-banner-carousel')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('marketplace-retail-carousel')),
+      findsOneWidget,
+    );
+    expect(find.text('Primary Retail').hitTestable(), findsOneWidget);
+    expect(
+      find.text('Duplicate placement must not duplicate store'),
+      findsNothing,
+    );
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('Retail Eleven').hitTestable(), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('Retail Twelve').hitTestable(), findsOneWidget);
   });
 
   testWidgets(
@@ -757,6 +877,11 @@ void main() {
       find.byKey(const ValueKey('marketplace-product-card-42')),
       findsOneWidget,
     );
+    final productName = tester.widget<Text>(
+      find.byKey(const ValueKey('marketplace-product-name-42')),
+    );
+    expect(productName.maxLines, 1);
+    expect(productName.overflow, TextOverflow.ellipsis);
     expect(find.text('API Water'), findsOneWidget);
     expect(find.text('12.5 KWD'), findsOneWidget);
     expect(tester.takeException(), isNull);
