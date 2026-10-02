@@ -224,11 +224,13 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         widget.channel,
         'picked_up',
       );
-      await widget.repository.transition(
-        assignment.id,
-        widget.channel,
-        'out_for_delivery',
-      );
+      if (widget.channel == DriverChannel.b2b) {
+        await widget.repository.transition(
+          assignment.id,
+          widget.channel,
+          'out_for_delivery',
+        );
+      }
       await _load();
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
@@ -718,7 +720,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
     );
     return _assignments.where((assignment) {
       final date = _assignmentDate(assignment);
-      return date != null && !date.isBefore(start) && !date.isAfter(end);
+      if (date == null) {
+        return _period != _DriverDeliveryPeriod.custom;
+      }
+      return !date.isBefore(start) && !date.isAfter(end);
     }).toList(growable: false);
   }
 
