@@ -427,6 +427,8 @@ final class StorefrontDraftEditorController extends Controller
             'target_ref' => ['nullable', 'string', 'regex:'.$targetPattern],
             'sort_order' => ['required', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
         ]);
 
         $targetType = null;
@@ -450,6 +452,8 @@ final class StorefrontDraftEditorController extends Controller
                         : null)),
             'sort_order' => (int) $data['sort_order'],
             'is_active' => $request->boolean('is_active'),
+            'starts_at' => $data['starts_at'] ?? null,
+            'ends_at' => $data['ends_at'] ?? null,
         ];
     }
 
