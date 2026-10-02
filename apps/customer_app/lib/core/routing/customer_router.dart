@@ -40,6 +40,7 @@ class CustomerAppRouter {
     this.authPreferences = const CustomerAuthPreferences(),
     this.biometricAuthenticator,
     this.pendingActionStore,
+    this.pendingActionExecutor,
     required this.onLocaleChanged,
     this.b2bApi,
     this.storefrontApi,
@@ -83,6 +84,7 @@ class CustomerAppRouter {
   final CustomerAuthPreferences authPreferences;
   final CustomerBiometricAuthenticator? biometricAuthenticator;
   final CustomerPendingActionStore? pendingActionStore;
+  final CustomerPendingActionExecutor? pendingActionExecutor;
   final ValueChanged<Locale> onLocaleChanged;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -326,6 +328,7 @@ class CustomerAppRouter {
                     ? retailCommerceForToken
                     : null,
             pendingActionStore: pendingActionStore,
+            pendingActionExecutor: pendingActionExecutor,
             sessionStore: sessionStore,
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
@@ -370,6 +373,7 @@ class CustomerAppRouter {
             onLocaleChanged: onLocaleChanged,
             marketplaceClient: marketplaceClient,
             marketplaceBarcodeScanner: marketplaceBarcodeScanner,
+            pendingActionStore: pendingActionStore,
           );
         }
 
