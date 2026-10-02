@@ -278,12 +278,13 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
             CustomerUiSpacing.xxl,
           ),
           children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: CustomerUiColors.white,
+            Material(
+              color: CustomerUiColors.white,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
-                border: Border.all(color: CustomerUiColors.border),
+                side: const BorderSide(color: CustomerUiColors.border),
               ),
+              clipBehavior: Clip.antiAlias,
               child: Padding(
                 padding: const EdgeInsets.all(CustomerUiSpacing.lg),
                 child: Column(
