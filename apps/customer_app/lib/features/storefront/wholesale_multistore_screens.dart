@@ -715,7 +715,7 @@ class _WholesaleProductGrid extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     row['name']?.toString() ?? '',
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 12,
