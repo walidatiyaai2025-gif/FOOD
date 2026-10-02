@@ -21,7 +21,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.marketplace,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (token, preferences) {
+          onAuthenticated: (token, preferences) async {
             completedToken = token;
             completedPreferences = preferences;
           },
@@ -90,7 +90,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRouteLocations.retailCheckout(context),
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (token, preferences) {
+          onAuthenticated: (token, preferences) async {
             completedToken = token;
             expect(preferences.rememberMe, isTrue);
             expect(preferences.biometricEnabled, isTrue);
@@ -140,7 +140,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.marketplace,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (_, __) {},
+          onAuthenticated: (_, __) async {},
           sessionStore: sessions,
           preferences: const CustomerAuthPreferences(
             rememberMe: true,
@@ -176,7 +176,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.marketplace,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (_, __) {},
+          onAuthenticated: (_, __) async {},
         ),
       ),
     );
