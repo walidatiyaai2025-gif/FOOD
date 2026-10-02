@@ -60,6 +60,7 @@ void main() {
             {
               'id': 7,
               'store_id': 7,
+              'banner_id': 7,
               'placement_scope': 'platform_retail_store',
               'target_type': 'retail_store',
               'target_id': 7,
@@ -203,16 +204,17 @@ void main() {
     final carousel = find.byKey(const ValueKey('marketplace-retail-carousel'));
     expect(carousel, findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-wholesale-entry')), findsOneWidget);
-    expect(find.text('Retail Seven Offer'), findsOneWidget);
-    expect(find.text('Retail Eight Offer'), findsNothing);
+    expect(find.text('Retail Seven Offer').hitTestable(), findsOneWidget);
+    expect(find.text('Retail Eight Offer').hitTestable(), findsNothing);
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
-    expect(find.text('Retail Eight Offer'), findsOneWidget);
+    expect(find.text('Retail Eight Offer').hitTestable(), findsOneWidget);
+    expect(find.text('Retail Seven Offer').hitTestable(), findsNothing);
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
-    expect(find.text('Retail Seven Offer'), findsOneWidget);
+    expect(find.text('Retail Seven Offer').hitTestable(), findsOneWidget);
   });
 
   testWidgets('guest can search wholesale catalog and inspect product before login',
