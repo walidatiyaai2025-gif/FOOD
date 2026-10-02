@@ -316,10 +316,10 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _authPreferences = const CustomerAuthPreferences();
   }
 
-  void _completeUnifiedAuthentication(
+  Future<void> _completeUnifiedAuthentication(
     String token,
     CustomerAuthPreferences preferences,
-  ) {
+  ) async {
     if (widget.previewContext != null) return;
     final session = CustomerSession.platformCustomer(
       accessToken: token,
@@ -331,19 +331,28 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     });
     unawaited(_persistSession(session));
     _bindPushSession();
+
+    // Complete only after MaterialApp/Navigator has received the router built
+    // from the authenticated platform session. The auth screen awaits this
+    // future before resolving its exact pending return route.
+    await WidgetsBinding.instance.endOfFrame;
   }
 
   void _onAuthenticated(CustomerChannel channel, String token) {
-    _completeUnifiedAuthentication(
-      token,
-      const CustomerAuthPreferences(),
+    unawaited(
+      _completeUnifiedAuthentication(
+        token,
+        const CustomerAuthPreferences(),
+      ),
     );
   }
 
   void _onPlatformRegistered(String token) {
-    _completeUnifiedAuthentication(
-      token,
-      const CustomerAuthPreferences(),
+    unawaited(
+      _completeUnifiedAuthentication(
+        token,
+        const CustomerAuthPreferences(),
+      ),
     );
   }
 
