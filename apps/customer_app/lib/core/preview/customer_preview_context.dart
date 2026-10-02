@@ -97,12 +97,15 @@ class CustomerPreviewContext {
 
   bool get mutationsAllowed => false;
 
+  String get authMode => authenticated ? 'platform_customer' : 'guest';
+
+  Map<String, Object?> get commerceContext => {
+        'channel': channel.name,
+        'store_id': storeId,
+      };
+
   CustomerSession get runtimeIdentity => authenticated
-      ? CustomerSession.authenticated(
-          channel,
-          accessToken: null,
-          platformWide: false,
-        )
+      ? const CustomerSession.platformCustomer()
       : const CustomerSession.guest();
 
   bool allowsStore(int candidateStoreId) => candidateStoreId == storeId;

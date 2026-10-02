@@ -54,7 +54,13 @@ void main() {
     expect(bootstrap.context.channel, CustomerChannel.b2c);
     expect(bootstrap.context.storeId, 7);
     expect(bootstrap.context.authenticated, isFalse);
+    expect(bootstrap.context.authMode, 'guest');
     expect(bootstrap.context.runtimeIdentity.isAuthenticated, isFalse);
+    expect(bootstrap.safeStatusMetadata['auth_mode'], 'guest');
+    expect(
+      bootstrap.safeStatusMetadata['commerce_context'],
+      {'channel': 'b2c', 'store_id': 7},
+    );
     expect(bootstrap.credential, isNull);
     expect(bootstrap.safeStatusMetadata.containsKey('credential'), isFalse);
   });
@@ -74,9 +80,17 @@ void main() {
 
     expect(bootstrap.context.channel, CustomerChannel.b2b);
     expect(bootstrap.context.authenticated, isTrue);
+    expect(bootstrap.context.authMode, 'platform_customer');
     expect(bootstrap.credential, 'opaque-preview-secret');
     expect(bootstrap.context.runtimeIdentity.isAuthenticated, isTrue);
+    expect(bootstrap.context.runtimeIdentity.channel, isNull);
+    expect(bootstrap.context.runtimeIdentity.platformWide, isTrue);
     expect(bootstrap.context.runtimeIdentity.accessToken, isNull);
+    expect(bootstrap.safeStatusMetadata['auth_mode'], 'platform_customer');
+    expect(
+      bootstrap.safeStatusMetadata['commerce_context'],
+      {'channel': 'b2b', 'store_id': 1},
+    );
     expect(
       bootstrap.safeStatusMetadata.values,
       isNot(contains('opaque-preview-secret')),

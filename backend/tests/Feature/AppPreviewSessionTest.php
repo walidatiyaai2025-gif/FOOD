@@ -37,8 +37,11 @@ class AppPreviewSessionTest extends TestCase
             'store_id' => $storeId,
         ])->assertCreated()
             ->assertJsonPath('data.read_only', true)
+            ->assertJsonPath('data.auth_mode', 'platform_customer')
             ->assertJsonPath('data.channel', 'b2c')
             ->assertJsonPath('data.store_id', $storeId)
+            ->assertJsonPath('data.commerce_context.channel', 'b2c')
+            ->assertJsonPath('data.commerce_context.store_id', $storeId)
             ->assertJsonPath('data.target.user_id', $customer->id)
             ->assertJsonPath('token_type', 'Preview');
 
@@ -54,6 +57,9 @@ class AppPreviewSessionTest extends TestCase
             ->postJson('/api/v1/app-preview/resolve')
             ->assertOk()
             ->assertJsonPath('data.target.user_id', $customer->id)
+            ->assertJsonPath('data.auth_mode', 'platform_customer')
+            ->assertJsonPath('data.commerce_context.channel', 'b2c')
+            ->assertJsonPath('data.commerce_context.store_id', $storeId)
             ->assertJsonPath('data.read_only', true);
 
         // Sanctum::actingAs() stores the admin on the in-memory guard for this

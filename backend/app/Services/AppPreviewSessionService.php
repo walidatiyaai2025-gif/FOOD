@@ -201,8 +201,13 @@ final class AppPreviewSessionService
         $context = [
             'session_id' => (string) $session->public_id,
             'target_type' => (string) $session->target_type,
+            'auth_mode' => $session->target_type === 'customer' ? 'platform_customer' : 'preview_driver',
             'channel' => (string) $session->channel,
             'store_id' => $session->store_id === null ? null : (int) $session->store_id,
+            'commerce_context' => [
+                'channel' => (string) $session->channel,
+                'store_id' => $session->store_id === null ? null : (int) $session->store_id,
+            ],
             'mode' => 'read_only',
             'read_only' => true,
             'support_access' => (bool) $session->support_access,

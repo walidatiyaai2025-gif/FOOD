@@ -59,8 +59,10 @@ class CustomerPreviewBootstrap {
 
   Map<String, Object?> get safeStatusMetadata => {
         'target_type': 'customer',
+        'auth_mode': context.authMode,
         'channel': context.channel.name,
         'store_id': context.storeId,
+        'commerce_context': context.commerceContext,
         'authenticated': context.authenticated,
         'locale': locale,
         'configuration': configuration,
