@@ -775,11 +775,7 @@ Future<void> _beginWholesaleAddHandoff({
   );
   final nextLocation = Uri(
     path: '/b2b/products/$productId',
-    queryParameters: <String, String>{
-      ...commerceContext.toQueryParameters(),
-      'resume_action': 'add_to_cart',
-      'resume_quantity': quantity.toString(),
-    },
+    queryParameters: commerceContext.toQueryParameters(),
   ).toString();
 
   final pending = CustomerPendingAction(
@@ -926,7 +922,6 @@ class _WholesaleProductDetailsDesignScreenState
   late final int productId = productIdFromLocation(widget.location);
   late Future<Object?> future = _loadProduct();
   double? quantity;
-  bool _resumeAddStarted = false;
 
   String get endpoint =>
       '/api/v1/b2b/products/' +
@@ -976,31 +971,6 @@ class _WholesaleProductDetailsDesignScreenState
         supportReference: failure.supportReference,
       );
       Error.throwWithStackTrace(error, stack);
-    }
-  }
-
-  Future<void> _resumeAddToCart(double fallbackQuantity) async {
-    final uri = Uri.parse(widget.location);
-    final requested = double.tryParse(
-      uri.queryParameters['resume_quantity'] ?? '',
-    );
-    final resolved = requested != null && requested > 0
-        ? requested
-        : fallbackQuantity;
-    try {
-      await widget.actionApi.addCartItem(
-        storeId: storeId,
-        productId: productId,
-        quantity: resolved,
-      );
-      if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(
-        '/b2b/cart?channel=wholesale&store_id=' + storeId.toString(),
-      );
-    } catch (error) {
-      if (mounted) {
-        await showOperationalError(context, error);
-      }
     }
   }
 
@@ -1093,20 +1063,6 @@ class _WholesaleProductDetailsDesignScreenState
               }
               final currency =
                   row['currency']?.toString() ?? 'KWD';
-              final resumeRequested =
-                  Uri.parse(widget.location)
-                          .queryParameters['resume_action'] ==
-                      'add_to_cart';
-              if (resumeRequested &&
-                  widget.session.isAuthenticated &&
-                  !_resumeAddStarted) {
-                _resumeAddStarted = true;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    _resumeAddToCart(minimum);
-                  }
-                });
-              }
 
               return ListView(
                 key: const ValueKey('b2b-product-detail-data'),
