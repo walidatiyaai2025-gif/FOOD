@@ -119,6 +119,10 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       }
     }
 
+    // The app-level authenticated callback updates the session/router with setState.
+    // Let that rebuild commit before resolving the protected return route, otherwise
+    // the Navigator can still consult the previous guest router and bounce back to auth.
+    await WidgetsBinding.instance.endOfFrame;
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(target);
   }
