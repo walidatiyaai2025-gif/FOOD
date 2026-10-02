@@ -458,7 +458,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   : <String, dynamic>{};
               final retail = _rows(data['retail_banners']);
               final categories = _rows(data['categories']);
-              final offers = _rows(data['offers']);
               final productEnvelope = data['products'] is Map
                   ? Map<String, dynamic>.from(data['products'] as Map)
                   : <String, dynamic>{};
@@ -1364,34 +1363,6 @@ class _MarketplaceCategoryRail extends StatelessWidget {
           },
         ),
       );
-}
-
-class _MarketplaceOfferStrip extends StatelessWidget {
-  const _MarketplaceOfferStrip({required this.offers});
-  final List<Map<String, dynamic>> offers;
-  @override
-  Widget build(BuildContext context) => Container(
-    key: const ValueKey('marketplace-wholesale-offers'),
-    margin: const EdgeInsets.fromLTRB(14, 10, 14, 2),
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-    decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF0B6F43), Color(0xFF0E8C55)]), borderRadius: BorderRadius.circular(18)),
-    child: SizedBox(height: 48, child: ListView.separated(
-      scrollDirection: Axis.horizontal,
-      itemCount: offers.length,
-      separatorBuilder: (_, __) => Container(width: 1, margin: const EdgeInsets.symmetric(horizontal: 10), color: const Color(0x55FFFFFF)),
-      itemBuilder: (_, index) {
-        final offer = offers[index];
-        final value = offer['value'];
-        final type = offer['type']?.toString();
-        final suffix = value == null ? '' : type == 'percentage' ? ' • $value%' : ' • $value';
-        return Row(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.local_offer_outlined, color: Colors.white, size: 22),
-          const SizedBox(width: 7),
-          ConstrainedBox(constraints: const BoxConstraints(maxWidth: 150), child: Text('${offer['name']?.toString() ?? ''}$suffix', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 10.5, height: 1.25, fontWeight: FontWeight.w800))),
-        ]);
-      },
-    )),
-  );
 }
 
 class _MarketplaceSectionHeader extends StatelessWidget {
