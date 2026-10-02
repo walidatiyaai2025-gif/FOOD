@@ -390,6 +390,12 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
                 '}\n',
                 text,
             )
+        if bundle_id == IDENTITIES['driver']['bundle_id']:
+            text = text.replace(
+                'import io.flutter.embedding.android.FlutterActivity',
+                'import io.flutter.embedding.android.FlutterFragmentActivity',
+            )
+            text = text.replace('FlutterActivity()', 'FlutterFragmentActivity()')
         path.write_text(text)
 
     _enable_android_core_library_desugaring(app)
@@ -402,6 +408,18 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
             app,
             background_delivery=bundle_id == IDENTITIES['driver']['bundle_id'],
         )
+    if bundle_id == IDENTITIES['driver']['bundle_id']:
+        manifest = app / 'src' / 'main' / 'AndroidManifest.xml'
+        text = manifest.read_text()
+        permission = 'android.permission.USE_BIOMETRIC'
+        if permission not in text:
+            marker = '<application'
+            text = text.replace(
+                marker,
+                f'<uses-permission android:name="{permission}" />\n    {marker}',
+                1,
+            )
+            manifest.write_text(text)
     _write_android_brand_resources(app)
 
 
@@ -577,6 +595,10 @@ def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
             'FOODEX Driver requires your precise location while you use the app '
             'and during an active delivery so live driver position can continue '
             'when the app is backgrounded.'
+        )
+        plist['NSFaceIDUsageDescription'] = (
+            'FOODEX Driver uses Face ID only when you enable biometric sign-in '
+            'to unlock your saved driver session on this device.'
         )
         background_modes = list(plist.get('UIBackgroundModes', []))
         if 'location' not in background_modes:

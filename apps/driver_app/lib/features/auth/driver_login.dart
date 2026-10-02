@@ -1,18 +1,29 @@
 import 'package:flutter/material.dart';
 
+import '../../core/auth/driver_auth_persistence.dart';
 import '../../core/auth/driver_session.dart';
 import '../../core/localization/driver_translations.dart';
 import '../../core/theme/foodex_theme.dart';
+
+typedef DriverAuthenticatedCallback = void Function(
+  DriverSession session,
+  bool rememberMe,
+  bool biometricEnabled,
+);
 
 class DriverLoginPage extends StatefulWidget {
   const DriverLoginPage({
     super.key,
     required this.repository,
     required this.onAuthenticated,
+    required this.sessionStore,
+    required this.biometricAuthenticator,
   });
 
   final DriverAuthRepository? repository;
-  final ValueChanged<DriverSession> onAuthenticated;
+  final DriverAuthenticatedCallback onAuthenticated;
+  final DriverSessionStore sessionStore;
+  final DriverBiometricAuthenticator biometricAuthenticator;
 
   @override
   State<DriverLoginPage> createState() => _DriverLoginPageState();
@@ -23,7 +34,67 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
   final _password = TextEditingController();
   bool _submitting = false;
   bool _passwordVisible = false;
+  bool _rememberMe = false;
+  bool _enableBiometrics = false;
+  bool _biometricAvailable = false;
+  bool _savedBiometricLogin = false;
+  bool _checkingBiometrics = true;
   String? _errorKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAuthOptions();
+  }
+
+  Future<void> _loadAuthOptions() async {
+    final available = await widget.biometricAuthenticator.isAvailable();
+    DriverStoredSession? stored;
+    try {
+      stored = await widget.sessionStore.read();
+    } catch (_) {
+      stored = null;
+    }
+    if (!mounted) return;
+    setState(() {
+      _biometricAvailable = available;
+      _savedBiometricLogin = available && stored?.biometricEnabled == true;
+      _checkingBiometrics = false;
+    });
+  }
+
+  Future<void> _loginWithBiometrics() async {
+    if (_submitting || !_savedBiometricLogin) return;
+    setState(() {
+      _submitting = true;
+      _errorKey = null;
+    });
+    try {
+      final authenticated = await widget.biometricAuthenticator.authenticate(
+        reason: context.tr('driver.login.biometric_reason'),
+      );
+      if (!authenticated) {
+        if (mounted) {
+          setState(() => _errorKey = 'driver.login.biometric_failed');
+        }
+        return;
+      }
+      final stored = await widget.sessionStore.read();
+      if (stored == null || !stored.biometricEnabled) {
+        if (mounted) {
+          setState(() => _errorKey = 'driver.login.biometric_unavailable');
+        }
+        return;
+      }
+      widget.onAuthenticated(stored.session, true, true);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorKey = 'driver.login.biometric_failed');
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -49,7 +120,9 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
 
     try {
       final session = await repository.login(email: email, password: password);
-      if (mounted) widget.onAuthenticated(session);
+      if (mounted) {
+        widget.onAuthenticated(session, _rememberMe, _enableBiometrics);
+      }
     } on DriverAuthenticationException {
       if (mounted) setState(() => _errorKey = 'driver.login.invalid');
     } on DriverRoleDeniedException {
@@ -183,7 +256,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                   ),
                                   onSubmitted: (_) => _submit(),
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 8),
                                 if (_errorKey != null)
                                   Container(
                                     key: const Key('driver-login-error'),
@@ -219,6 +292,57 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                       : const Icon(Icons.login_rounded),
                                   label: Text(context.tr('driver.login.submit')),
                                 ),
+                                if (_savedBiometricLogin) ...[
+                                  const SizedBox(height: 12),
+                                  OutlinedButton.icon(
+                                    key: const Key('driver-login-biometric'),
+                                    onPressed:
+                                        _submitting ? null : _loginWithBiometrics,
+                                    icon: const Icon(Icons.fingerprint_rounded),
+                                    label: Text(
+                                      context.tr('driver.login.biometric'),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 10),
+                                CheckboxListTile(
+                                  key: const Key('driver-login-remember'),
+                                  contentPadding: EdgeInsets.zero,
+                                  controlAffinity: ListTileControlAffinity.leading,
+                                  value: _rememberMe,
+                                  dense: true,
+                                  title: Text(context.tr('driver.login.remember_me')),
+                                  onChanged: _submitting
+                                      ? null
+                                      : (value) => setState(() {
+                                            _rememberMe = value ?? false;
+                                            if (!_rememberMe) {
+                                              _enableBiometrics = false;
+                                            }
+                                          }),
+                                ),
+                                if (!_checkingBiometrics && _biometricAvailable)
+                                  CheckboxListTile(
+                                    key: const Key('driver-login-biometric-toggle'),
+                                    contentPadding: EdgeInsets.zero,
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    value: _enableBiometrics,
+                                    dense: true,
+                                    title: Text(
+                                      context.tr('driver.login.enable_biometric'),
+                                    ),
+                                    subtitle: Text(
+                                      context.tr('driver.login.biometric_hint'),
+                                    ),
+                                    onChanged: _submitting
+                                        ? null
+                                        : (value) => setState(() {
+                                              _enableBiometrics = value ?? false;
+                                              if (_enableBiometrics) {
+                                                _rememberMe = true;
+                                              }
+                                            }),
+                                  ),
                               ],
                             ],
                           ),

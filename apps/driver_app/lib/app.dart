@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/api/http_driver_api.dart';
+import 'core/auth/driver_auth_persistence.dart';
 import 'core/auth/driver_session.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/diagnostics/driver_runtime_inspector.dart';
@@ -120,6 +121,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
   DriverLocationTrackingController? _locationTracking;
   bool _locationGateReady = false;
   bool _appInForeground = true;
+  final DriverSessionStore _sessionStore = SecureDriverSessionStore();
+  final DriverBiometricAuthenticator _biometricAuthenticator =
+      LocalAuthDriverBiometricAuthenticator();
 
   static const _appVersion = '1.0.46';
 
@@ -138,6 +142,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     );
     _loadRemoteTranslations();
     _configurePush();
+    if (_session == null && widget.previewContext == null) {
+      unawaited(_restoreRememberedSession());
+    }
     final session = _session;
     if (session != null) {
       _configureLocationTracking(session);
@@ -300,16 +307,50 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _authenticated(DriverSession session) {
+  Future<void> _restoreRememberedSession() async {
+    try {
+      final stored = await _sessionStore.read();
+      if (!mounted || stored == null || stored.biometricEnabled) return;
+      _authenticated(stored.session, true, false);
+    } catch (_) {
+      // Secure storage may be unavailable on unsupported preview/test runtimes.
+    }
+  }
+
+  void _authenticated(
+    DriverSession session, [
+    bool rememberMe = false,
+    bool biometricEnabled = false,
+  ]) {
     DriverRuntimeInspector.instance.recordNavigation(
       session.channel == DriverChannel.b2c
           ? DriverRoutes.b2cHome
           : DriverRoutes.b2bHome,
     );
     _locationGateReady = false;
+    if (widget.previewContext == null) {
+      if (rememberMe) {
+        unawaited(
+          _sessionStore.write(
+            session,
+            biometricEnabled: biometricEnabled,
+          ),
+        );
+      } else {
+        unawaited(_clearRememberedSession());
+      }
+    }
     if (mounted) setState(() => _session = session);
     _bindPushSession();
     _configureLocationTracking(session);
+  }
+
+  Future<void> _clearRememberedSession() async {
+    try {
+      await _sessionStore.clear();
+    } catch (_) {
+      // Secure storage is best-effort on unsupported/test runtimes.
+    }
   }
 
   void _sessionExpired() {
@@ -318,6 +359,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
     DriverRuntimeInspector.instance.recordNavigation('driver.login');
+    if (widget.previewContext == null) {
+      unawaited(_clearRememberedSession());
+    }
     if (mounted) setState(() => _session = null);
   }
 
@@ -341,6 +385,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     final service = widget.pushService;
     if (service != null) await service.revokeSession();
     DriverRuntimeInspector.instance.recordNavigation('driver.login');
+    unawaited(_clearRememberedSession());
     if (mounted) setState(() => _session = null);
     if (session == null) return;
     final repository = _authRepository();
@@ -399,6 +444,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
           : session == null
               ? DriverLoginPage(
                   repository: authRepository,
+                  sessionStore: _sessionStore,
+                  biometricAuthenticator: _biometricAuthenticator,
                   onAuthenticated: _authenticated,
                 )
               : assignments == null

@@ -45,6 +45,8 @@ class DriverActiveJourneyPage extends StatefulWidget {
 
 enum _DriverActiveLoadState { loading, ready, empty, error, offline }
 
+enum _DriverDeliveryPeriod { today, all, custom }
+
 class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   static const Set<String> _terminalStatuses = {
     'delivered',
@@ -59,10 +61,15 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   final Set<int> _busyAssignments = <int>{};
   String? _actionError;
   bool _focusedAssignmentOpened = false;
+  _DriverDeliveryPeriod _period = _DriverDeliveryPeriod.today;
+  DateTimeRange? _dateRange;
 
   @override
   void initState() {
     super.initState();
+    if (widget.focusAssignmentId != null) {
+      _period = _DriverDeliveryPeriod.all;
+    }
     _load();
   }
 
@@ -188,6 +195,58 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
     } catch (_) {
       if (mounted) {
         setState(() => _actionError = context.tr('driver.error'));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busyAssignments.remove(assignment.id));
+      }
+    }
+  }
+
+  Future<void> _receiveOrder(DriverAssignment assignment) async {
+    if (!_allows(assignment, 'picked_up') ||
+        _busyAssignments.contains(assignment.id)) {
+      return;
+    }
+    if (widget.previewContext != null &&
+        !widget.previewContext!.mutationsAllowed) {
+      setState(() {
+        _actionError = context.tr('driver.preview.mutation_blocked');
+      });
+      return;
+    }
+
+    setState(() {
+      _busyAssignments.add(assignment.id);
+      _actionError = null;
+    });
+
+    try {
+      await widget.repository.transition(
+        assignment.id,
+        widget.channel,
+        'picked_up',
+      );
+      if (widget.channel == DriverChannel.b2b) {
+        await widget.repository.transition(
+          assignment.id,
+          widget.channel,
+          'out_for_delivery',
+        );
+      }
+      await _load();
+    } on DriverSessionExpiredException {
+      widget.onSessionExpired?.call();
+    } on DriverOfflineException {
+      if (mounted) {
+        setState(() => _actionError = context.tr('driver.offline'));
+      }
+    } catch (_) {
+      if (mounted) {
+        await _load();
+        if (mounted) {
+          setState(() => _actionError = context.tr('driver.error'));
+        }
       }
     } finally {
       if (mounted) {
@@ -464,7 +523,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
               : () => _runDetailAction(
                     sheetContext,
                     assignment,
-                    () => _transition(assignment, 'picked_up'),
+                    () => _receiveOrder(assignment),
                   ),
           child: Text(_statusLabel('picked_up')),
         ),
@@ -583,7 +642,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         FilledButton.tonal(
           key: Key('driver-active-pickup-${assignment.id}'),
           onPressed:
-              busy ? null : () => _transition(assignment, 'picked_up'),
+              busy ? null : () => _receiveOrder(assignment),
           child: Text(_statusLabel('picked_up')),
         ),
       );
@@ -612,6 +671,16 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       );
     }
 
+    if (_allows(assignment, 'failed')) {
+      buttons.add(
+        OutlinedButton(
+          key: Key('driver-active-card-failed-${assignment.id}'),
+          onPressed: busy ? null : () => _requestFailure(assignment, ''),
+          child: Text(context.tr('driver.action.delivery_failed')),
+        ),
+      );
+    }
+
     if (buttons.isEmpty) {
       return Text(context.tr('driver.action.none'));
     }
@@ -620,6 +689,218 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       spacing: 8,
       runSpacing: 8,
       children: buttons,
+    );
+  }
+
+  DateTime? _assignmentDate(DriverAssignment assignment) {
+    for (final value in [assignment.assignedAt, assignment.createdAt]) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) return parsed.toLocal();
+    }
+    return null;
+  }
+
+  List<DriverAssignment> _filteredAssignments() {
+    if (_period == _DriverDeliveryPeriod.all) return _assignments;
+    final now = DateTime.now();
+    final range = _period == _DriverDeliveryPeriod.today
+        ? DateTimeRange(
+            start: DateTime(now.year, now.month, now.day),
+            end: DateTime(now.year, now.month, now.day, 23, 59, 59, 999),
+          )
+        : _dateRange;
+    if (range == null) return _assignments;
+
+    final start = DateTime(range.start.year, range.start.month, range.start.day);
+    final end = DateTime(
+      range.end.year,
+      range.end.month,
+      range.end.day,
+      23,
+      59,
+      59,
+      999,
+    );
+    return _assignments.where((assignment) {
+      final date = _assignmentDate(assignment);
+      if (date == null) {
+        return _period != _DriverDeliveryPeriod.custom;
+      }
+      return !date.isBefore(start) && !date.isAfter(end);
+    }).toList(growable: false);
+  }
+
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final initial = _dateRange ??
+        DateTimeRange(
+          start: now.subtract(const Duration(days: 7)),
+          end: now,
+        );
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 3),
+      lastDate: DateTime(now.year + 1),
+      initialDateRange: initial,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _dateRange = picked;
+      _period = _DriverDeliveryPeriod.custom;
+    });
+  }
+
+  Widget _filterControls() {
+    final locale = MaterialLocalizations.of(context);
+    final range = _dateRange;
+    final rangeLabel = range == null
+        ? context.tr('driver.filter.date_range')
+        : '${locale.formatShortDate(range.start)} — ${locale.formatShortDate(range.end)}';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OutlinedButton.icon(
+            key: const Key('driver-delivery-date-range'),
+            onPressed: _pickDateRange,
+            icon: const Icon(Icons.date_range_rounded),
+            label: Text(rangeLabel),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: ChoiceChip(
+                  key: const Key('driver-filter-today'),
+                  label: Text(context.tr('driver.filter.today')),
+                  selected: _period == _DriverDeliveryPeriod.today,
+                  onSelected: (_) => setState(() {
+                    _period = _DriverDeliveryPeriod.today;
+                  }),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ChoiceChip(
+                  key: const Key('driver-filter-all'),
+                  label: Text(context.tr('driver.filter.all')),
+                  selected: _period == _DriverDeliveryPeriod.all,
+                  onSelected: (_) => setState(() {
+                    _period = _DriverDeliveryPeriod.all;
+                  }),
+                ),
+              ),
+              if (_period == _DriverDeliveryPeriod.custom) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  key: const Key('driver-filter-clear-date'),
+                  tooltip: context.tr('driver.filter.clear_date'),
+                  onPressed: () => setState(() {
+                    _dateRange = null;
+                    _period = _DriverDeliveryPeriod.today;
+                  }),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _readyBody() {
+    final rows = _filteredAssignments();
+    return Column(
+      children: [
+        _filterControls(),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _load,
+            child: rows.isEmpty
+                ? ListView(
+                    key: const Key('driver-filter-empty'),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(28),
+                    children: [
+                      const SizedBox(height: 80),
+                      Center(
+                        child: Text(context.tr('driver.filter.period_empty')),
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    key: widget.initialAssignmentStatus != null
+                        ? const Key('driver-active-status-filter')
+                        : const Key('driver-active-assignment-list'),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                    itemCount: rows.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final assignment = rows[index];
+                      return Card(
+                        key: Key('driver-active-assignment-${assignment.id}'),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () => _showDetail(assignment),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        assignment.reference,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Chip(
+                                      label: Text(
+                                        _statusLabel(assignment.status),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (assignment.storeName.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(assignment.storeName),
+                                ],
+                                if (assignment.customerName.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(assignment.customerName),
+                                ],
+                                if (assignment.address.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    assignment.address,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                                const SizedBox(height: 14),
+                                _actions(assignment),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -640,74 +921,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
           message: context.tr('driver.offline'),
           onRetry: _load,
         ),
-      _DriverActiveLoadState.ready => RefreshIndicator(
-          onRefresh: _load,
-          child: ListView.separated(
-            key: widget.initialAssignmentStatus != null
-                ? const Key('driver-active-status-filter')
-                : const Key('driver-active-assignment-list'),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-            itemCount: _assignments.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final assignment = _assignments[index];
-              return Card(
-                key: Key('driver-active-assignment-${assignment.id}'),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => _showDetail(assignment),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                assignment.reference,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Chip(
-                              label: Text(
-                                _statusLabel(assignment.status),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (assignment.storeName.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(assignment.storeName),
-                        ],
-                        if (assignment.customerName.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(assignment.customerName),
-                        ],
-                        if (assignment.address.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            assignment.address,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        const SizedBox(height: 14),
-                        _actions(assignment),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+      _DriverActiveLoadState.ready => _readyBody(),
     };
 
     return Column(
