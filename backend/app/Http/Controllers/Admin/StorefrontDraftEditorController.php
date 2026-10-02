@@ -13,6 +13,7 @@ use App\Support\TenantContextResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 
 final class StorefrontDraftEditorController extends Controller
 {
@@ -452,8 +453,12 @@ final class StorefrontDraftEditorController extends Controller
                         : null)),
             'sort_order' => (int) $data['sort_order'],
             'is_active' => $request->boolean('is_active'),
-            'starts_at' => $data['starts_at'] ?? null,
-            'ends_at' => $data['ends_at'] ?? null,
+            'starts_at' => empty($data['starts_at'])
+                ? null
+                : Carbon::parse((string) $data['starts_at'])->format('Y-m-d H:i:s'),
+            'ends_at' => empty($data['ends_at'])
+                ? null
+                : Carbon::parse((string) $data['ends_at'])->format('Y-m-d H:i:s'),
         ];
     }
 
