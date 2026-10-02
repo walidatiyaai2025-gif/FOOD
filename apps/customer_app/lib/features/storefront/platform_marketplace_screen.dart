@@ -102,6 +102,16 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     if (_bannerCount == count) return;
     _bannerCount = count;
     _bannerTimer?.cancel();
+    if (count <= 0) {
+      _bannerIndex = 0;
+      return;
+    }
+    if (_bannerIndex >= count) {
+      _bannerIndex = 0;
+      if (_bannerController.hasClients) {
+        _bannerController.jumpToPage(0);
+      }
+    }
     if (count <= 1) return;
     _bannerTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted || !_bannerController.hasClients) return;
@@ -199,9 +209,12 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     final storeId = _int(placement['store_id'] ?? placement['id']);
     if (storeId <= 0) return;
 
+    final placementId = _int(placement['banner_id']);
     final commerceContext = CustomerCommerceContext(
       channel: CustomerCommerceChannel.retail,
       storeId: storeId,
+      source: CustomerCommerceSource.retailBanner,
+      entryPlacementId: placementId > 0 ? placementId : null,
     );
     Navigator.of(context).pushNamed(
       CustomerRouteLocations.retailHome(commerceContext),
@@ -381,7 +394,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   : <String, dynamic>{};
               final storeId = _int(wholesale['id']);
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _startBannerAutoSlide(retail.length + 1);
+                _startBannerAutoSlide(retail.length);
               });
 
               return LayoutBuilder(
@@ -514,82 +527,84 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                         ),
                       SliverToBoxAdapter(
                         child: SizedBox(
-                          key: const ValueKey('marketplace-banner-carousel'),
+                          key: const ValueKey('marketplace-wholesale-entry'),
                           height: bannerHeight,
-                          child: Column(
-                            children: [
-                              Expanded(
-                                child: PageView.builder(
-                                  key: const ValueKey('marketplace-retail-carousel'),
-                                  controller: _bannerController,
-                                  itemCount: retail.length + 1,
-                                  onPageChanged: (index) {
-                                    if (_bannerIndex == index) return;
-                                    setState(() => _bannerIndex = index);
-                                  },
-                                  itemBuilder: (_, index) {
-                                    if (index == 0) {
-                                      final configuredTitle =
-                                          hero['title']?.toString().trim() ?? '';
-                                      return _WholesaleHero(
-                                        title: configuredTitle.isNotEmpty
-                                            ? configuredTitle
-                                            : 'FOODEX Wholesale',
-                                        imageUrl: hero['image_url']?.toString(),
-                                      );
-                                    }
-
-                                    final store = retail[index - 1];
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsetsDirectional.fromSTEB(
-                                        14,
-                                        6,
-                                        14,
-                                        2,
-                                      ),
-                                      child: _RetailStoreBanner(
-                                        store: store,
-                                        width: double.infinity,
-                                        onTap: () => _openRetail(store),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              if (retail.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Row(
-                                    key: const ValueKey(
-                                      'marketplace-banner-indicators',
-                                    ),
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: List.generate(
-                                      retail.length + 1,
-                                      (index) => AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 180),
-                                        width: _bannerIndex == index ? 18 : 6,
-                                        height: 6,
-                                        margin: const EdgeInsets.symmetric(
-                                          horizontal: 3,
+                          child: _WholesaleHero(
+                            title: (hero['title']?.toString().trim() ?? '').isNotEmpty
+                                ? hero['title'].toString().trim()
+                                : 'FOODEX Wholesale',
+                            imageUrl: hero['image_url']?.toString(),
+                          ),
+                        ),
+                      ),
+                      if (retail.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            key: const ValueKey('marketplace-banner-carousel'),
+                            height: bannerHeight,
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: PageView.builder(
+                                    key: const ValueKey('marketplace-retail-carousel'),
+                                    controller: _bannerController,
+                                    itemCount: retail.length,
+                                    onPageChanged: (index) {
+                                      if (_bannerIndex == index) return;
+                                      setState(() => _bannerIndex = index);
+                                    },
+                                    itemBuilder: (_, index) {
+                                      final store = retail[index];
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsetsDirectional.fromSTEB(
+                                          14,
+                                          6,
+                                          14,
+                                          2,
                                         ),
-                                        decoration: BoxDecoration(
-                                          color: _bannerIndex == index
-                                              ? const Color(0xFF0B7A4B)
-                                              : const Color(0xFFD7DDE1),
-                                          borderRadius:
-                                              BorderRadius.circular(999),
+                                        child: _RetailStoreBanner(
+                                          store: store,
+                                          width: double.infinity,
+                                          onTap: () => _openRetail(store),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                if (retail.length > 1)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Row(
+                                      key: const ValueKey(
+                                        'marketplace-banner-indicators',
+                                      ),
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: List.generate(
+                                        retail.length,
+                                        (index) => AnimatedContainer(
+                                          duration:
+                                              const Duration(milliseconds: 180),
+                                          width: _bannerIndex == index ? 18 : 6,
+                                          height: 6,
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _bannerIndex == index
+                                                ? const Color(0xFF0B7A4B)
+                                                : const Color(0xFFD7DDE1),
+                                            borderRadius:
+                                                BorderRadius.circular(999),
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
                       if (offers.isNotEmpty)
                         SliverToBoxAdapter(
                           child: Padding(
