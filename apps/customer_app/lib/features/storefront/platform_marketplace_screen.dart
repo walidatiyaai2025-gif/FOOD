@@ -209,7 +209,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     final storeId = _int(placement['store_id'] ?? placement['id']);
     if (storeId <= 0) return;
 
-    final placementId = _int(placement['banner_id']);
+    final placementId = _int(placement['placement_id'] ?? placement['banner_id']);
     final commerceContext = CustomerCommerceContext(
       channel: CustomerCommerceChannel.retail,
       storeId: storeId,
