@@ -47,7 +47,7 @@ class _Store implements DriverSessionStore {
 }
 
 class _Biometric implements DriverBiometricAuthenticator {
-  const const _Biometric();
+  const _Biometric();
 
   static const bool available = true;
   static const bool result = true;
