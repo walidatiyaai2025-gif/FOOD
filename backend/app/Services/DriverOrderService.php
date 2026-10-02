@@ -451,8 +451,11 @@ final class DriverOrderService
                     );
                     $afterOrder = 'delivered';
                 } elseif ($targetStatus === 'failed') {
+                    $isWholesale = strtolower((string) $locked->assignment_type) === 'b2b';
                     abort_unless(
-                        in_array((string) $order->status, ['ready', 'out_for_delivery'], true),
+                        $isWholesale
+                            ? ! in_array((string) $order->status, ['cancelled', 'delivered'], true)
+                            : in_array((string) $order->status, ['ready', 'out_for_delivery'], true),
                         409,
                     );
                     $failureAuditNote = $normalizedFailureReason
