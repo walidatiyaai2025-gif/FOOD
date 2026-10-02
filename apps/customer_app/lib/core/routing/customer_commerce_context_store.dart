@@ -30,7 +30,8 @@ class SecureCustomerCommerceContextStore
   }) : _storage = storage ?? FlutterCustomerSecureKeyValueStore();
 
   static const _key = 'foodex.customer.commerce_context.v1';
-  static const _schemaVersion = 1;
+  static const _schemaVersion = 2;
+  static const _supportedSchemaVersions = <int>{1, _schemaVersion};
 
   final CustomerSecureKeyValueStore _storage;
 
@@ -49,33 +50,19 @@ class SecureCustomerCommerceContextStore
       }
 
       final payload = Map<String, dynamic>.from(decoded);
-      if (payload['version'] != _schemaVersion) {
+      final version = payload['version'];
+      if (version is! int || !_supportedSchemaVersions.contains(version)) {
         await clear();
         return null;
       }
 
-      final channel = switch (payload['channel']) {
-        'retail' => CustomerCommerceChannel.retail,
-        'wholesale' => CustomerCommerceChannel.wholesale,
-        _ => null,
-      };
-      final storeId = _positiveInt(payload['store_id']);
-      final receiverRaw = payload['retail_receiver_id'];
-      final receiverId =
-          receiverRaw == null ? null : _positiveInt(receiverRaw);
-
-      if (channel == null ||
-          storeId == null ||
-          (receiverRaw != null && receiverId == null)) {
+      final context = CustomerCommerceContext.tryFromJson(payload);
+      if (context == null) {
         await clear();
         return null;
       }
 
-      return CustomerCommerceContext(
-        channel: channel,
-        storeId: storeId,
-        retailReceiverId: receiverId,
-      );
+      return context;
     } on FormatException {
       await clear();
       return null;
@@ -90,9 +77,7 @@ class SecureCustomerCommerceContextStore
         _key,
         jsonEncode(<String, Object?>{
           'version': _schemaVersion,
-          'channel': context.channel.name,
-          'store_id': context.storeId,
-          'retail_receiver_id': context.retailReceiverId,
+          ...context.toJson(),
         }),
       );
 

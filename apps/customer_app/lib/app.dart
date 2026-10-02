@@ -292,9 +292,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
 
   void _onAuthenticated(CustomerChannel channel, String token) {
     if (widget.previewContext != null) return;
-    final session = CustomerSession.authenticated(
-      channel,
+    final session = CustomerSession.platformCustomer(
       accessToken: token,
+      b2bRetailStoreId: _session.b2bRetailStoreId,
     );
     setState(() {
       _session = session;
@@ -305,10 +305,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
 
   void _onPlatformRegistered(String token) {
     if (widget.previewContext != null) return;
-    final session = CustomerSession.authenticated(
-      CustomerChannel.b2b,
+    final session = CustomerSession.platformCustomer(
       accessToken: token,
-      platformWide: true,
+      b2bRetailStoreId: _session.b2bRetailStoreId,
     );
     setState(() {
       _session = session;
