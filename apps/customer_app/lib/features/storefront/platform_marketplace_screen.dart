@@ -605,14 +605,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           child: _MarketplaceCategoryRail(
                             categories: categories,
                             selectedCategoryId: _selectedCategoryId,
-                            onSelected: _selectCategory,
-                          ),
-                        ),
-                      if (categories.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: _MarketplaceCategoryRail(
-                            categories: categories,
-                            selectedCategoryId: _selectedCategoryId,
                             onSelect: _selectCategory,
                           ),
                         ),
@@ -1413,7 +1405,7 @@ class _MarketplaceProductFallback extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           child: Icon(
-            _marketplaceIconForName(name),
+            _marketplaceProductIcon(name),
             color: const Color(0xFF0A7047),
             size: 36,
           ),
@@ -1506,64 +1498,6 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
           ),
         ),
       );
-}
-
-IconData _marketplaceIconForName(String value) {
-  final name = value.toLowerCase();
-
-  if (name.contains('لبن') ||
-      name.contains('حليب') ||
-      name.contains('ألبان') ||
-      name.contains('milk') ||
-      name.contains('dairy')) {
-    return Icons.local_drink_rounded;
-  }
-  if (name.contains('جبن') || name.contains('cheese')) {
-    return Icons.breakfast_dining_rounded;
-  }
-  if (name.contains('مجمد') ||
-      name.contains('frozen') ||
-      name.contains('ثلج')) {
-    return Icons.ac_unit_rounded;
-  }
-  if (name.contains('خض') ||
-      name.contains('فاكه') ||
-      name.contains('vegetable') ||
-      name.contains('fruit')) {
-    return Icons.eco_rounded;
-  }
-  if (name.contains('مياه') ||
-      name.contains('ماء') ||
-      name.contains('water')) {
-    return Icons.water_drop_rounded;
-  }
-  if (name.contains('زيت') || name.contains('oil')) {
-    return Icons.opacity_rounded;
-  }
-  if (name.contains('أرز') ||
-      name.contains('ارز') ||
-      name.contains('رز') ||
-      name.contains('دقيق') ||
-      name.contains('سكر') ||
-      name.contains('rice') ||
-      name.contains('flour') ||
-      name.contains('sugar')) {
-    return Icons.rice_bowl_rounded;
-  }
-  if (name.contains('لحوم') ||
-      name.contains('دجاج') ||
-      name.contains('meat') ||
-      name.contains('chicken')) {
-    return Icons.restaurant_rounded;
-  }
-  if (name.contains('مشروب') ||
-      name.contains('عصير') ||
-      name.contains('beverage') ||
-      name.contains('juice')) {
-    return Icons.local_cafe_rounded;
-  }
-
-  return Icons.inventory_2_outlined;
 }
 
 List<Map<String, dynamic>> _rows(Object? value) {
