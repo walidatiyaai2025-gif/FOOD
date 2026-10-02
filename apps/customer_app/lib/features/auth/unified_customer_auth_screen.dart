@@ -17,6 +17,11 @@ typedef CustomerUnifiedAuthenticated = Future<void> Function(
 
 typedef CustomerAuthenticatedRouteResume = Future<void> Function(String route);
 
+typedef CustomerPendingActionExecutor = Future<void> Function(
+  String token,
+  CustomerPendingAction action,
+);
+
 class UnifiedCustomerAuthScreen extends StatefulWidget {
   const UnifiedCustomerAuthScreen({
     required this.nextRoute,
@@ -30,6 +35,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
     this.preferences = const CustomerAuthPreferences(),
     this.biometricAuthenticator,
     this.resumeAuthenticatedRoute,
+    this.pendingActionExecutor,
     this.registerInitially = false,
     super.key,
   });
@@ -45,6 +51,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
   final CustomerAuthPreferences preferences;
   final CustomerBiometricAuthenticator? biometricAuthenticator;
   final CustomerAuthenticatedRouteResume? resumeAuthenticatedRoute;
+  final CustomerPendingActionExecutor? pendingActionExecutor;
   final bool registerInitially;
 
   @override
@@ -111,6 +118,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       );
 
   Future<void> _resumeAfterAuthentication({
+    required String token,
     required String nextRoute,
     required CustomerPendingActionStore? pendingStore,
     required CustomerCommerceContext? commerceContext,
@@ -126,7 +134,22 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         if (pending != null &&
             (commerceContext == null ||
                 commerceContext.sameScope(pending.context))) {
-          target = pending.nextLocation;
+          final executor = widget.pendingActionExecutor;
+          if (executor != null) {
+            try {
+              // The store is consumed before execution, so an auth rebuild or
+              // navigation retry cannot duplicate the original customer action.
+              await executor(token, pending);
+              target = pending.nextLocation;
+            } catch (_) {
+              // Authentication already succeeded. Fall back to the safe product
+              // route so an unavailable/changed product is rendered by the
+              // authoritative journey instead of surfacing as an auth failure.
+              target = nextRoute;
+            }
+          } else {
+            target = pending.nextLocation;
+          }
         }
       } catch (_) {
         // Pending-action persistence is supplementary routing state. Once
@@ -177,6 +200,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     // fallback still requires [mounted].
     if (!mounted && appLevelResume == null) return;
     await _resumeAfterAuthentication(
+      token: token,
       nextRoute: nextRoute,
       pendingStore: pendingStore,
       commerceContext: commerceContext,
