@@ -109,9 +109,14 @@ void main() {
       find.byKey(const Key('driver-login-password')),
       'secret',
     );
-    await tester.tap(find.byKey(const Key('driver-login-biometric-toggle')));
+    final biometricToggle =
+        find.byKey(const Key('driver-login-biometric-toggle'));
+    await tester.ensureVisible(biometricToggle);
+    await tester.tap(biometricToggle);
     await tester.pump();
-    await tester.tap(find.byKey(const Key('driver-login-submit')));
+    final submit = find.byKey(const Key('driver-login-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
     await tester.pumpAndSettle();
 
     expect(session?.channel, DriverChannel.b2b);
@@ -146,8 +151,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('driver-login-biometric')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('driver-login-biometric')));
+    final biometricButton =
+        find.byKey(const Key('driver-login-biometric'));
+    expect(biometricButton, findsOneWidget);
+    await tester.ensureVisible(biometricButton);
+    await tester.tap(biometricButton);
     await tester.pumpAndSettle();
 
     expect(session?.token, 'remembered-token');
