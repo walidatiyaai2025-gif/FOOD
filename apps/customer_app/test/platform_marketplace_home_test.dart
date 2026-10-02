@@ -156,6 +156,115 @@ void main() {
   });
 
   testWidgets(
+      'guest falls back to public Retail stores after the Wholesale hero when placements are empty',
+      (tester) async {
+    final requests = <Uri>[];
+    final client = MockClient((request) async {
+      requests.add(request.url);
+      if (request.url.path == '/api/v1/stores') {
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {
+                'id': 11,
+                'code': 'RETAIL-11',
+                'name': 'Retail Eleven',
+                'theme_code': 'retail_grocery',
+                'address': 'Guest Retail Area',
+                'logo_url': null,
+              },
+            ],
+          }),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      }
+
+      return http.Response(
+        jsonEncode({
+          'store': {
+            'id': 70,
+            'code': 'MAIN-B2B',
+            'name': 'FOODEX Main Wholesale',
+            'channel': 'b2b',
+          },
+          'hero': {
+            'title': 'FOODEX Wholesale',
+            'image_url': null,
+          },
+          'products': {'data': []},
+          'retail_banners': const [],
+        }),
+        200,
+        headers: const {'content-type': 'application/json'},
+      );
+    });
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('ar'),
+        overrides: const {},
+        child: MaterialApp(
+          locale: const Locale('ar'),
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.guest(),
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => Scaffold(
+              body: Text(
+                settings.name ?? '',
+                key: const ValueKey('route-name'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(
+      requests.where((uri) => uri.path == '/api/v1/platform/storefront'),
+      hasLength(1),
+    );
+    expect(
+      requests.where((uri) => uri.path == '/api/v1/stores'),
+      hasLength(1),
+    );
+    expect(
+      find.byKey(const ValueKey('marketplace-wholesale-entry')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('marketplace-banner-carousel')),
+      findsOneWidget,
+    );
+    expect(find.text('Retail Eleven'), findsOneWidget);
+
+    final wholesaleTop = tester
+        .getTopLeft(find.byKey(const ValueKey('marketplace-wholesale-entry')))
+        .dy;
+    final retailTop = tester
+        .getTopLeft(find.byKey(const ValueKey('marketplace-banner-carousel')))
+        .dy;
+    expect(wholesaleTop, lessThan(retailTop));
+
+    await tester.tap(find.text('Retail Eleven'));
+    await tester.pumpAndSettle();
+
+    final routeText = tester.widget<Text>(
+      find.byKey(const ValueKey('route-name')),
+    );
+    final route = Uri.parse(routeText.data!);
+    expect(route.path, '/retail/11/home');
+    expect(route.queryParameters['channel'], 'retail');
+    expect(route.queryParameters['store_id'], '11');
+  });
+
+  testWidgets(
       'marketplace Retail-only carousel auto-rotates every five seconds and loops',
       (tester) async {
     final client = MockClient((request) async => http.Response(
