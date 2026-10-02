@@ -23,7 +23,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ request('to') }}"></label>
 <label>{{ $isAr?'رقم الطلب':'Order no.' }}<input name="order_number" value="{{ request('order_number') }}"></label>
 <label>{{ $isAr?'الحالة':'Status' }}<select name="status"><option value="">{{ $isAr?'الكل':'All' }}</option>@foreach($statuses as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ $status }}</option>@endforeach</select></label>
-<label>{{ $isAr?'القناة':'Channel' }}<select name="channel"><option value="">{{ $isAr?'الكل':'All' }}</option><option value="b2b" @selected(request('channel')==='b2b')>{{ $isAr?'الجملة':'Wholesale' }}</option><option value="b2c" @selected(request('channel')==='b2c')>{{ $isAr?'التجزئة':'Retail' }}</option></select></label>
+<label>{{ $isAr?'القناة':'Channel' }}<select name="channel"><option value="">{{ $isAr?'افتراضي':'Default' }}</option><option value="all" @selected(request('channel')==='all')>{{ $isAr?'الكل المصرح':'All authorized' }}</option><option value="b2b" @selected(request('channel')==='b2b')>{{ $isAr?'الجملة':'Wholesale' }}</option><option value="b2c" @selected(request('channel')==='b2c')>{{ $isAr?'التجزئة':'Retail' }}</option></select></label>
 <label>{{ $isAr?'المتجر':'Store' }}<select name="store_id"><option value="">{{ $isAr?'الكل':'All' }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)request('store_id')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select></label>
 <label>{{ $isAr?'السائق':'Driver' }}<select name="driver_id"><option value="">{{ $isAr?'الكل':'All' }}</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((string)request('driver_id')===(string)$driver->id)>{{ $driver->name ?? '#'.$driver->id }}</option>@endforeach</select></label>
 <div><button class="foodex-filter-action">{{ $isAr?'تطبيق':'Apply' }}</button> <a class="btn secondary" href="{{ route('admin.operations.orders.index') }}">{{ $isAr?'مسح':'Reset' }}</a></div>
@@ -31,12 +31,12 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 
 <section class="foodex-card panel table-wrap">
 <table class="foodex-table ops-table"><thead><tr>
-<th>{{ $isAr?'الطلب':'Order' }}</th><th>{{ $isAr?'المتجر':'Store' }}</th><th>{{ $isAr?'القناة':'Channel' }}</th><th>{{ $isAr?'العميل':'Customer' }}</th><th>{{ $isAr?'الحالة':'Status' }}</th><th>{{ $isAr?'السائق الحالي':'Current driver' }}</th><th>{{ $isAr?'الدفع':'Payment' }}</th><th>{{ $isAr?'الإجمالي':'Total' }}</th><th>{{ $isAr?'التاريخ':'Created' }}</th><th>{{ $isAr?'الإجراءات':'Actions' }}</th>
+<th>{{ $isAr?'الطلب':'Order' }}</th><th>{{ $isAr?'المتجر':'Store' }}</th><th>{{ $isAr?'القناة':'Channel' }}</th><th>{{ $isAr?'المصدر':'Source' }}</th><th>{{ $isAr?'العميل':'Customer' }}</th><th>{{ $isAr?'الحالة':'Status' }}</th><th>{{ $isAr?'السائق الحالي':'Current driver' }}</th><th>{{ $isAr?'الدفع':'Payment' }}</th><th>{{ $isAr?'الإجمالي':'Total' }}</th><th>{{ $isAr?'التاريخ':'Created' }}</th><th>{{ $isAr?'الإجراءات':'Actions' }}</th>
 </tr></thead><tbody>
 @forelse($rows as $row)
 <tr>
 <td><a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}"><strong>{{ $row['number'] }}</strong></a></td>
-<td>{{ $row['store'] }}</td><td>{{ strtoupper($row['channel']) }}</td><td>{{ $row['customer'] }}</td>
+<td>{{ $row['store'] }}</td><td>{{ strtoupper($row['channel']) }}</td><td>{{ $row['source'] }}</td><td>{{ $row['customer'] }}</td>
 <td><span class="badge {{ $row['status'] }}">{{ $row['status'] }}</span></td>
 <td>{{ $row['driver'] ?? ($isAr?'غير معين':'Unassigned') }} @if($row['assignment_status'])<small>· {{ $row['assignment_status'] }}</small>@endif</td>
 <td>{{ $row['payment_status'] ?? '-' }} @if($row['payment_provider'])<small>· {{ $row['payment_provider'] }}</small>@endif</td>
@@ -55,7 +55,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 @endif
 </div></td>
 </tr>
-@empty<tr><td colspan="10"><div class="foodex-empty-state">{{ $isAr?'لا توجد طلبات مطابقة.':'No matching orders.' }}</div></td></tr>@endforelse
+@empty<tr><td colspan="11"><div class="foodex-empty-state">{{ $isAr?'لا توجد طلبات مطابقة.':'No matching orders.' }}</div></td></tr>@endforelse
 </tbody></table>
 </section>
 {{ $orders->links() }}
@@ -63,7 +63,13 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 @if($detail)
 <section class="detail-grid" style="margin-top:18px">
 <div class="foodex-card panel">
-<h2>{{ $isAr?'عنوان التوصيل':'Delivery address' }} · {{ $detail['number'] }}</h2>
+<h2>{{ $isAr?'سياق الطلب':'Order context' }} · {{ $detail['number'] }}</h2>
+<div class="timeline-item" data-order-authoritative-context>
+<strong>{{ strtoupper($detail['channel']) }} · {{ $detail['store'] }}</strong>
+<div>{{ $isAr?'المصدر':'Source' }}: {{ $detail['source'] }}</div>
+<small>store_id={{ $detail['store_id'] }} · channel={{ $detail['channel'] }}</small>
+</div>
+<h2 style="margin-top:16px">{{ $isAr?'عنوان التوصيل':'Delivery address' }}</h2>
 @if($detail['delivery_address'])
 @php($delivery=$detail['delivery_address'])
 <div class="timeline">

@@ -54,7 +54,7 @@ final class OrderOperationsController extends Controller
             'status' => ['nullable', 'string', Rule::in(self::STATUSES)],
             'driver_id' => ['nullable', 'integer', 'min:1'],
             'store_id' => ['nullable', 'integer', 'min:1'],
-            'channel' => ['nullable', 'string', Rule::in(['b2b', 'b2c'])],
+            'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
             'order' => ['nullable', 'integer', 'min:1'],
         ]);
 
@@ -63,14 +63,11 @@ final class OrderOperationsController extends Controller
             : $this->defaultOperationalChannel($actor);
         $data['channel'] = $operationalChannel;
 
-        $storeIds = $this->scope->allowedStoreIds($actor, 'orders.view', $operationalChannel);
-        if ($operationalChannel === 'b2b') {
-            $principalStoreId = app(WholesalePrincipal::class)->storeId();
-            $storeIds = array_values(array_filter(
-                $storeIds,
-                static fn (int $storeId): bool => $storeId === $principalStoreId,
-            ));
-        }
+        $scopes = $this->operationalScopes($actor, $operationalChannel);
+        $storeIds = array_values(array_unique(array_merge(
+            $scopes['b2b'],
+            $scopes['b2c'],
+        )));
         abort_if($storeIds === [], 403);
 
         $selectedStoreId = isset($data['store_id']) ? (int) $data['store_id'] : null;
@@ -79,8 +76,7 @@ final class OrderOperationsController extends Controller
         }
 
         $orders = Order::query()
-            ->whereIn('store_id', $storeIds)
-            ->where('channel', $operationalChannel)
+            ->where(fn ($query) => $this->applyOperationalScopes($query, $scopes))
             ->when($selectedStoreId !== null, fn ($query) => $query->where('store_id', $selectedStoreId))
             ->when(isset($data['status']), fn ($query) => $query->where('status', $data['status']))
             ->when(isset($data['from']), fn ($query) => $query->whereDate('created_at', '>=', $data['from']))
@@ -114,8 +110,18 @@ final class OrderOperationsController extends Controller
 
         $drivers = DB::table('drivers')
             ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
-            ->whereIn('drivers.store_id', $storeIds)
-            ->where('drivers.driver_type', $operationalChannel)
+            ->where(function ($query) use ($scopes): void {
+                foreach (['b2b', 'b2c'] as $channel) {
+                    $ids = $scopes[$channel];
+                    if ($ids === []) {
+                        continue;
+                    }
+                    $query->orWhere(function ($scope) use ($channel, $ids): void {
+                        $scope->where('drivers.driver_type', $channel)
+                            ->whereIn('drivers.store_id', $ids);
+                    });
+                }
+            })
             ->where('drivers.is_active', true)
             ->orderBy('users.name')
             ->get([
@@ -130,8 +136,7 @@ final class OrderOperationsController extends Controller
         if (isset($data['order'])) {
             $detailOrder = Order::query()
                 ->whereKey((int) $data['order'])
-                ->whereIn('store_id', $storeIds)
-                ->where('channel', $operationalChannel)
+                ->where(fn ($query) => $this->applyOperationalScopes($query, $scopes))
                 ->firstOrFail();
             $detail = $this->detail($actor, $detailOrder);
         }
@@ -326,6 +331,15 @@ final class OrderOperationsController extends Controller
         $storeLabel = $store === null
             ? '#'.$order->store_id
             : ($store->name ?? $store->code ?? '#'.$order->store_id);
+        $sourceNote = DB::table('order_status_history')
+            ->where('order_id', $order->getKey())
+            ->whereNull('from_status')
+            ->where('to_status', 'pending')
+            ->oldest('id')
+            ->value('note');
+        $source = $sourceNote === 'dashboard_order_created'
+            ? 'dashboard'
+            : ($sourceNote === 'checkout' ? 'customer_checkout' : 'legacy');
 
         return [
             'id' => (int) $order->getKey(),
@@ -333,6 +347,7 @@ final class OrderOperationsController extends Controller
             'channel' => strtolower((string) $order->channel),
             'store_id' => (int) $order->store_id,
             'store' => $storeLabel,
+            'source' => $source,
             'customer' => $customerName ?? '-',
             'status' => (string) $order->status,
             'total' => (float) $order->grand_total,
@@ -392,6 +407,39 @@ final class OrderOperationsController extends Controller
             'assignments' => $assignments,
             'delivery_evidence' => $this->deliveryEvidence->order($actor, $order),
         ];
+    }
+
+    /** @return array{b2b:array<int,int>,b2c:array<int,int>} */
+    private function operationalScopes(User $actor, string $channel): array
+    {
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        $b2b = in_array($channel, ['all', 'b2b'], true)
+            ? array_values(array_filter(
+                $this->scope->allowedStoreIds($actor, 'orders.view', 'b2b'),
+                static fn (int $storeId): bool => $storeId === $principalStoreId,
+            ))
+            : [];
+        $b2c = in_array($channel, ['all', 'b2c'], true)
+            ? $this->scope->allowedStoreIds($actor, 'orders.view', 'b2c')
+            : [];
+
+        return ['b2b' => $b2b, 'b2c' => $b2c];
+    }
+
+    private function applyOperationalScopes($query, array $scopes): void
+    {
+        $query->where(function ($scopeQuery) use ($scopes): void {
+            foreach (['b2b', 'b2c'] as $channel) {
+                $ids = $scopes[$channel];
+                if ($ids === []) {
+                    continue;
+                }
+                $scopeQuery->orWhere(function ($channelQuery) use ($channel, $ids): void {
+                    $channelQuery->where('channel', $channel)
+                        ->whereIn('store_id', $ids);
+                });
+            }
+        });
     }
 
     private function defaultOperationalChannel(User $actor): string

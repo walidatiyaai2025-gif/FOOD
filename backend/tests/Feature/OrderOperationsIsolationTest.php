@@ -284,6 +284,112 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_platform_all_filter_unions_only_authorized_wholesale_and_retail_scopes_with_provenance(): void
+    {
+        $retailStore = $this->store('OPS-ALL-RETAIL');
+        $retailCustomer = app(B2cCustomerService::class)->create($retailStore, ['name' => 'All Retail Buyer']);
+        $retailOrder = $this->order(
+            $retailStore,
+            (int) $retailCustomer->legacy_customer_id,
+            (int) $retailCustomer->id,
+            'OPS-ALL-RETAIL-1001',
+        );
+        DB::table('order_status_history')->insert([
+            'order_id' => $retailOrder,
+            'store_id' => $retailStore,
+            'user_id' => null,
+            'from_status' => null,
+            'to_status' => 'pending',
+            'note' => 'checkout',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $wholesaleStore = app(WholesalePrincipal::class)->storeId();
+        $wholesaleCustomer = app(B2bCustomerService::class)->create([
+            'name' => 'All Wholesale Buyer',
+        ]);
+        $wholesaleOrder = (int) DB::table('orders')->insertGetId([
+            'store_id' => $wholesaleStore,
+            'customer_id' => (int) $wholesaleCustomer->legacy_customer_id,
+            'b2b_customer_id' => (int) $wholesaleCustomer->getKey(),
+            'order_number' => 'OPS-ALL-WHOLESALE-2001',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 20,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 20,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('order_status_history')->insert([
+            'order_id' => $wholesaleOrder,
+            'store_id' => $wholesaleStore,
+            'user_id' => null,
+            'from_status' => null,
+            'to_status' => 'pending',
+            'note' => 'dashboard_order_created',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $rogueWholesaleStore = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'OPS-ALL-ROGUE-B2B',
+            'name' => 'All Rogue Wholesale',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('orders')->insert([
+            'store_id' => $rogueWholesaleStore,
+            'customer_id' => (int) $wholesaleCustomer->legacy_customer_id,
+            'b2b_customer_id' => (int) $wholesaleCustomer->getKey(),
+            'order_number' => 'OPS-ALL-ROGUE-3001',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 30,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 30,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $super = User::query()->create([
+            'name' => 'All Scope Operations Owner',
+            'email' => 'all-scope-operations@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $super->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=all')
+            ->assertOk()
+            ->assertSee('OPS-ALL-RETAIL-1001')
+            ->assertSee('OPS-ALL-WHOLESALE-2001')
+            ->assertDontSee('OPS-ALL-ROGUE-3001')
+            ->assertSee('customer_checkout')
+            ->assertSee('dashboard');
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=all&order='.$retailOrder)
+            ->assertOk()
+            ->assertSee('data-order-authoritative-context', false)
+            ->assertSee('store_id='.$retailStore, false)
+            ->assertSee('channel=b2c', false)
+            ->assertSee('customer_checkout');
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2b&order='.$retailOrder)
+            ->assertNotFound();
+    }
+
     public function test_order_detail_renders_driver_assignment_timestamps_without_500(): void
     {
         $store = $this->store('OPS-DETAIL-DRIVER');
