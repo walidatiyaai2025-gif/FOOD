@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/localization/app_translations.dart';
+import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 import 'package:foodex_customer_app/features/storefront/platform_marketplace_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -308,6 +309,7 @@ void main() {
 
   testWidgets('guest wholesale buy keeps product and store context through login',
       (tester) async {
+    final pending = _MemoryPendingActionStore();
     final client = MockClient((request) async {
       if (request.url.path == '/api/v1/platform/products/42') {
         return http.Response(
@@ -351,6 +353,7 @@ void main() {
             session: const CustomerSession.guest(),
             onPlatformRegistered: (_) {},
             client: client,
+            pendingActionStore: pending,
           ),
           onGenerateRoute: (settings) => MaterialPageRoute<void>(
             settings: settings,
@@ -377,10 +380,21 @@ void main() {
     );
     final uri = Uri.parse(routeText.data!);
     expect(uri.path, '/auth/checkout');
-    expect(
-      uri.queryParameters['next'],
-      '/b2b/products/42?store_id=70',
-    );
+    expect(uri.queryParameters['channel'], 'wholesale');
+    expect(uri.queryParameters['store_id'], '70');
+    expect(uri.queryParameters['source'], 'marketplace');
+    final next = Uri.parse(uri.queryParameters['next']!);
+    expect(next.path, '/b2b/products/42');
+    expect(next.queryParameters['channel'], 'wholesale');
+    expect(next.queryParameters['store_id'], '70');
+    expect(next.queryParameters['source'], 'marketplace');
+
+    expect(pending.value, isNotNull);
+    expect(pending.value!.kind, CustomerPendingActionKind.addToCart);
+    expect(pending.value!.context.storeId, 70);
+    expect(pending.value!.productId, 42);
+    expect(pending.value!.quantity, 1);
+    expect(Uri.parse(pending.value!.nextLocation).path, '/b2b/cart');
   });
 
 
@@ -652,4 +666,24 @@ void main() {
     expect(find.text('12.5 KWD'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+}
+
+class _MemoryPendingActionStore implements CustomerPendingActionStore {
+  CustomerPendingAction? value;
+
+  @override
+  Future<void> clear() async => value = null;
+
+  @override
+  Future<CustomerPendingAction?> read() async => value;
+
+  @override
+  Future<CustomerPendingAction?> take() async {
+    final current = value;
+    value = null;
+    return current;
+  }
+
+  @override
+  Future<void> write(CustomerPendingAction action) async => value = action;
 }
