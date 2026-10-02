@@ -783,14 +783,19 @@ class _MarketplaceHeader extends StatelessWidget {
             switch (value) {
               case 'profile':
                 Navigator.of(context).pushNamed('/profile');
+                return;
               case 'login':
                 onLogin();
+                return;
               case 'register':
                 onRegister();
+                return;
               case 'scan':
                 onScan();
+                return;
               case 'language':
                 onLanguageToggle();
+                return;
             }
           },
           itemBuilder: (_) => [
@@ -1487,7 +1492,7 @@ class _WholesaleProductCard extends StatelessWidget {
     final currency = product['currency']?.toString().trim();
     final name = product['name']?.toString().trim() ?? '';
     final priceText =
-        '${currency == null || currency.isEmpty ? 'EGP' : currency} $rawPrice';
+        '$rawPrice ${currency == null || currency.isEmpty ? 'EGP' : currency}';
 
     return Material(
       key: ValueKey('marketplace-product-card-$id'),
