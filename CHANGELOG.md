@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.46 - 2026-10-02
+
+- Publish the completed unified Wholesale/Retail commerce-isolation program (#734): authoritative platform identity and Retail Store ownership, backend self-store purchase protection, platform-first Customer entry with exact Retail placement/store routing, and strict B2B/B2C order ownership.
+- Ship context-safe Customer address books and Wholesale order history/timeline, with Retail/Wholesale address, order and checkout data isolated by authoritative channel/store identity.
+- Enforce Wholesale/Retail Driver tenant isolation and converge the full Driver App shell and Assignment Details lifecycle actions while preserving proof, failure and status-transition requirements.
+- Isolate operational notification audiences and deep links by customer/driver/store/channel context, and auto-launch Dashboard App Preview into published Customer guest or the first eligible Driver context.
+- Include final Customer + Driver E2E convergence and release guards; skip reserved 1.0.45 and synchronize Dashboard, Customer and Driver release identities at 1.0.46 / mobile build 1.0.46+46 without changing production force-update, minimum-version, Driver location-enforcement or Assistant activation settings.
+
 ## 1.0.44 - 2026-10-01
 
 - Publish the completed Customer Journey V2 (#675) as NEW-only production runtime: store-scoped Retail catalog/cart/checkout, guest-to-auth cart continuity, account surfaces, authoritative orders/tracking, operational notifications, integrated guest E2E acceptance, legacy B2C purge and anti-regression guard.
