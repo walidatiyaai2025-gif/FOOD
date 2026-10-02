@@ -8,6 +8,7 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/api/wholesale_commerce_api.dart';
 import '../../core/auth/customer_session.dart';
+import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
 import 'retail_multistore_screens.dart';
@@ -27,6 +28,7 @@ bool shouldUseMultiStoreDesign(
     case CustomerRoutePaths.retailHome:
     case CustomerRoutePaths.retailProductDetails:
     case CustomerRoutePaths.b2bHome:
+    case CustomerRoutePaths.b2bProducts:
     case CustomerRoutePaths.b2bCart:
     case CustomerRoutePaths.b2bCheckout:
     case CustomerRoutePaths.b2bOrders:
@@ -57,6 +59,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
     this.b2bApi,
     this.storefrontApi,
     this.wholesaleApi,
+    this.pendingActionStore,
     this.marketplaceClient,
     this.marketplaceBarcodeScanner,
     super.key,
@@ -74,6 +77,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
   final B2bApi? b2bApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
+  final CustomerPendingActionStore? pendingActionStore;
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
   final ValueChanged<int?> enterWholesale;
@@ -115,17 +119,23 @@ class MultiStoreDesignScreen extends StatelessWidget {
           actionApi: actionApi,
         );
       case CustomerRoutePaths.b2bHome:
+      case CustomerRoutePaths.b2bProducts:
         return WholesaleHomeDesignScreen(
           location: location,
+          session: session,
           api: b2bApi,
           storefrontApi: storefrontApi,
           actionApi: actionApi,
+          pendingActionStore: pendingActionStore,
         );
       case CustomerRoutePaths.b2bProductDetails:
         return WholesaleProductDetailsDesignScreen(
           location: location,
+          session: session,
           api: b2bApi,
+          storefrontApi: storefrontApi,
           actionApi: actionApi,
+          pendingActionStore: pendingActionStore,
         );
       case CustomerRoutePaths.b2bCart:
         return WholesaleCartDesignScreen(
