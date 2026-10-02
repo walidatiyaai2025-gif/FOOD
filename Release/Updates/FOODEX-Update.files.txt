@@ -38,6 +38,7 @@ backend/app/Domain/Assistant/Tools/AssistantToolRegistry.php
 backend/app/Domain/Installer/InstallerWorkflow.php
 backend/app/Domain/Pricing/B2bPriceResolver.php
 backend/app/Domain/Updater/LaravelUpdateRuntime.php
+backend/app/Exceptions/SelfStorePurchaseNotAllowed.php
 backend/app/Http/Controllers/Admin/AdminLoginController.php
 backend/app/Http/Controllers/Admin/AdminProfileController.php
 backend/app/Http/Controllers/Admin/AdminShellController.php
@@ -135,12 +136,14 @@ backend/app/Services/CouponRedemptionService.php
 backend/app/Services/CustomerAddressService.php
 backend/app/Services/CustomerDomainResolver.php
 backend/app/Services/CustomerImageService.php
+backend/app/Services/CustomerOrderTimelineService.php
 backend/app/Services/DashboardOperationalNotifier.php
 backend/app/Services/DemoDataManager.php
 backend/app/Services/DriverDeliveryEvidenceService.php
 backend/app/Services/DriverLocationEnforcementPolicy.php
 backend/app/Services/DriverOrderService.php
 backend/app/Services/DriverRuntimeContextResolver.php
+backend/app/Services/DriverTenantScope.php
 backend/app/Services/InvoiceService.php
 backend/app/Services/LookupScopeService.php
 backend/app/Services/ManagementReportService.php
@@ -155,6 +158,7 @@ backend/app/Services/PlatformCustomerService.php
 backend/app/Services/PushDeliveryService.php
 backend/app/Services/RbacManager.php
 backend/app/Services/ReportExportService.php
+backend/app/Services/RetailMerchantIdentityService.php
 backend/app/Services/RetailWholesaleAccountService.php
 backend/app/Services/RetailWholesaleReplenishmentService.php
 backend/app/Services/SchedulerRuntime.php
@@ -432,6 +436,8 @@ backend/database/migrations/2026_10_01_071110_create_assistant_messages.php
 backend/database/migrations/2026_10_01_071120_create_assistant_conversation_state.php
 backend/database/migrations/2026_10_01_071130_grant_assistant_use_permission.php
 backend/database/migrations/2026_10_01_123500_harden_driver_delivery_proof_ledger.php
+backend/database/migrations/2026_10_01_203000_add_retail_wholesale_owner_identity.php
+backend/database/migrations/2026_10_01_203800_scope_customer_addresses_by_commerce_channel.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/ProductDemoSeeder.php
@@ -475,6 +481,7 @@ backend/public/preview/customer/assets/FontManifest.json
 backend/public/preview/customer/assets/NOTICES
 backend/public/preview/customer/assets/assets/branding/foodex-economical-group.webp
 backend/public/preview/customer/assets/assets/branding/splash_full.png
+backend/public/preview/customer/assets/assets/customer_ui_v3/asset_contract.json
 backend/public/preview/customer/assets/assets/store_selector/bottom_produce.webp
 backend/public/preview/customer/assets/assets/store_selector/foodex_app_icon.png
 backend/public/preview/customer/assets/assets/store_selector/grocery_store_art.webp
@@ -604,6 +611,7 @@ preview/customer/assets/FontManifest.json
 preview/customer/assets/NOTICES
 preview/customer/assets/assets/branding/foodex-economical-group.webp
 preview/customer/assets/assets/branding/splash_full.png
+preview/customer/assets/assets/customer_ui_v3/asset_contract.json
 preview/customer/assets/assets/store_selector/bottom_produce.webp
 preview/customer/assets/assets/store_selector/foodex_app_icon.png
 preview/customer/assets/assets/store_selector/grocery_store_art.webp
