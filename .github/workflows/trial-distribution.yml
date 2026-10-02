@@ -370,6 +370,63 @@ jobs:
           print("Verified published Driver artifact:", expected_version, expected_build, digest)
           PY
 
+      - name: Finalize immutable Dashboard update release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="v$CURRENT_VERSION"
+
+          # Mobile publication may build a smaller previous-tag incremental update
+          # in the workspace. The Dashboard Update Center contract is the cumulative
+          # package committed at the immutable release tag, so make that asset set
+          # the final writer to the GitHub Release.
+          git fetch --force origin "refs/tags/$tag:refs/tags/$tag"
+          published_sha="$(git rev-list -n 1 "$tag")"
+          test -n "$published_sha"
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null
+
+          stage="$(mktemp -d)"
+          for file in \
+            FOODEX-Update.zip \
+            FOODEX-Update.json \
+            FOODEX-Update.sha256.txt \
+            FOODEX-Update.files.txt
+          do
+            git show "$tag:Release/Updates/$file" > "$stage/$file"
+            test -s "$stage/$file"
+          done
+
+          CURRENT_VERSION="$CURRENT_VERSION" python3 - "$stage" <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import sys
+
+          root = Path(sys.argv[1])
+          package = root / "FOODEX-Update.zip"
+          manifest = json.loads((root / "FOODEX-Update.json").read_text(encoding="utf-8"))
+          checksum = (root / "FOODEX-Update.sha256.txt").read_text(encoding="utf-8").strip().split()[0]
+          digest = hashlib.sha256(package.read_bytes()).hexdigest()
+          expected_version = os.environ["CURRENT_VERSION"]
+
+          assert manifest["target_version"] == expected_version
+          assert manifest["package"] == "FOODEX-Update.zip"
+          assert manifest["sha256"] == digest
+          assert checksum == digest
+          print("Final immutable Dashboard update asset set:", expected_version, digest)
+          PY
+
+          gh release upload "$tag" \
+            "$stage/FOODEX-Update.zip" \
+            "$stage/FOODEX-Update.json" \
+            "$stage/FOODEX-Update.sha256.txt" \
+            "$stage/FOODEX-Update.files.txt" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
       - name: Validate bundle files
         shell: bash
         run: |
