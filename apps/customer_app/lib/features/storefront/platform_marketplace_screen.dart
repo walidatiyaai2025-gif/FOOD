@@ -57,16 +57,22 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
     final data = await _get(uri.toString());
 
-    // Keep the approved home order: Wholesale hero first, Retail immediately
-    // after it. When the Dashboard has no Retail placement banners yet, guest
-    // discovery must not disappear; reuse the existing public Retail store API
-    // as an APK-only fallback without changing authenticated ownership rules.
-    if (!widget.session.isAuthenticated &&
-        _rows(data['retail_banners']).isEmpty) {
+    // Keep the approved home order: Wholesale hero first, then exactly one
+    // Retail carousel. The carousel contains every active public Retail store:
+    // Dashboard placements keep their configured order (the first placement is
+    // the primary store), then stores missing from the placements are appended
+    // in the public /stores order. Duplicate store placements never create
+    // duplicate Retail slides.
+    if (!widget.session.isAuthenticated) {
+      final configuredRetail = _rows(data['retail_banners']);
       _guestRetailStoreFallback ??=
           await _loadGuestRetailStoreFallback(baseUrl);
-      if (_guestRetailStoreFallback!.isNotEmpty) {
-        data['retail_banners'] = _guestRetailStoreFallback;
+      final retailCarousel = _mergeRetailStoreCarousel(
+        configuredRetail,
+        _guestRetailStoreFallback!,
+      );
+      if (retailCarousel.isNotEmpty) {
+        data['retail_banners'] = retailCarousel;
       }
     }
 
@@ -100,6 +106,29 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     } catch (_) {
       return const <Map<String, dynamic>>[];
     }
+  }
+
+  List<Map<String, dynamic>> _mergeRetailStoreCarousel(
+    List<Map<String, dynamic>> configuredRetail,
+    List<Map<String, dynamic>> publicStores,
+  ) {
+    final byStoreId = <int, Map<String, dynamic>>{};
+
+    for (final store in configuredRetail) {
+      final id = _int(store['store_id'] ?? store['id']);
+      if (id > 0 && !byStoreId.containsKey(id)) {
+        byStoreId[id] = store;
+      }
+    }
+
+    for (final store in publicStores) {
+      final id = _int(store['store_id'] ?? store['id']);
+      if (id > 0 && !byStoreId.containsKey(id)) {
+        byStoreId[id] = store;
+      }
+    }
+
+    return byStoreId.values.toList(growable: false);
   }
 
   void _submitSearch(String _) {
@@ -1419,7 +1448,7 @@ class _WholesaleProductCard extends StatelessWidget {
                     Text(
                       product['name']?.toString() ?? '',
                       key: ValueKey('marketplace-product-name-$id'),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF17212F),
