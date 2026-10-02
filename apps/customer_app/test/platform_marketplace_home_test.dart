@@ -741,6 +741,8 @@ void main() {
     );
     expect(find.byKey(const ValueKey('marketplace-scan')), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-language')), findsOneWidget);
+    expect(find.byKey(const ValueKey('marketplace-search')), findsOneWidget);
+    expect(find.byKey(const ValueKey('marketplace-brand-title')), findsOneWidget);
     expect(find.text('AR'), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-cart')), findsOneWidget);
     expect(
@@ -875,8 +877,8 @@ void main() {
     final bannerTop = tester
         .getTopLeft(find.byKey(const ValueKey('marketplace-banner-carousel')))
         .dy;
-    expect(categoriesTop, lessThan(wholesaleTop));
     expect(wholesaleTop, bannerTop);
+    expect(bannerTop, lessThan(categoriesTop));
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
