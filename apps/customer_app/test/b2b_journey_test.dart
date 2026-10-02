@@ -21,7 +21,7 @@ void main() {
     expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(
-      find.byKey(const ValueKey('customer-login-submit')),
+      find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
     );
     expect(find.textContaining('/b2b/login'), findsNothing);
