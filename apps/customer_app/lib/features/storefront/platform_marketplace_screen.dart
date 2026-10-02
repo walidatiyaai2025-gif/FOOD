@@ -8,6 +8,7 @@ import '../../core/auth/customer_session.dart';
 import '../../core/config/foodex_environment.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
+import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
 import 'marketplace_barcode_scanner.dart';
 
@@ -18,6 +19,7 @@ class PlatformMarketplaceScreen extends StatefulWidget {
     super.key,
     this.client,
     this.onLocaleChanged,
+    this.pendingActionStore,
     this.barcodeScanner = showMarketplaceBarcodeScanner,
   });
 
@@ -25,6 +27,7 @@ class PlatformMarketplaceScreen extends StatefulWidget {
   final ValueChanged<String> onPlatformRegistered;
   final http.Client? client;
   final ValueChanged<Locale>? onLocaleChanged;
+  final CustomerPendingActionStore? pendingActionStore;
   final MarketplaceBarcodeScanner barcodeScanner;
 
   @override
@@ -221,6 +224,30 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
   }
 
+  Future<void> _beginWholesaleAuth({
+    required CustomerPendingAction action,
+    required String productRoute,
+    required CustomerAuthEntry entry,
+  }) async {
+    try {
+      await widget.pendingActionStore?.write(action);
+    } catch (_) {
+      // Secure pending state improves exact resume but must never block sign-in.
+    }
+    if (!mounted) return;
+
+    Navigator.of(context).pushNamed(
+      Uri(
+        path: CustomerRoutePaths.checkoutAuth,
+        queryParameters: <String, String>{
+          ...action.context.toQueryParameters(),
+          'entry': entry.name,
+          'next': productRoute,
+        },
+      ).toString(),
+    );
+  }
+
   Future<void> _openWholesaleProduct(int storeId, int productId) async {
     if (productId <= 0) return;
     try {
@@ -266,23 +293,47 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   FilledButton.icon(
                     key: const ValueKey('marketplace-wholesale-buy'),
                     onPressed: () {
+                      final contextScope = CustomerCommerceContext(
+                        channel: CustomerCommerceChannel.wholesale,
+                        storeId: storeId,
+                        source: _searchController.text.trim().isEmpty
+                            ? CustomerCommerceSource.marketplace
+                            : CustomerCommerceSource.search,
+                      );
+                      final productRoute = Uri(
+                        path: '/b2b/products/$productId',
+                        queryParameters: contextScope.toQueryParameters(),
+                      ).toString();
+                      final rawMinimum = product['minimum_order_quantity'];
+                      final parsedMinimum = rawMinimum is num
+                          ? rawMinimum.toDouble()
+                          : double.tryParse(rawMinimum?.toString() ?? '');
+                      final quantity = parsedMinimum != null && parsedMinimum > 0
+                          ? parsedMinimum
+                          : 1.0;
+                      final pendingAction = CustomerPendingAction(
+                        kind: CustomerPendingActionKind.addToCart,
+                        context: contextScope,
+                        nextLocation:
+                            CustomerRouteLocations.wholesaleCart(contextScope),
+                        createdAtEpochMs:
+                            DateTime.now().toUtc().millisecondsSinceEpoch,
+                        productId: productId,
+                        quantity: quantity,
+                      );
+
                       Navigator.pop(sheetContext);
                       if (!widget.session.isAuthenticated) {
                         _showAuthRequired(
-                          next: '/b2b/products/$productId?store_id=$storeId',
+                          next: productRoute,
+                          pendingAction: pendingAction,
                         );
                         return;
                       }
-                      Navigator.of(context).pushNamed(
-                        '/b2b/products/$productId?store_id=$storeId',
-                      );
+                      Navigator.of(context).pushNamed(productRoute);
                     },
                     icon: const Icon(Icons.shopping_cart_checkout_rounded),
-                    label: Text(
-                      widget.session.isAuthenticated
-                          ? context.tr('customer.action.add_cart')
-                          : context.tr('customer.action.login'),
-                    ),
+                    label: Text(context.tr('customer.action.add_cart')),
                   ),
                 ],
               ),
@@ -298,7 +349,10 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     }
   }
 
-  void _showAuthRequired({String? next}) {
+  void _showAuthRequired({
+    required String next,
+    required CustomerPendingAction pendingAction,
+  }) {
     _pendingAfterAuth = next;
     showModalBottomSheet<void>(
       context: context,
@@ -320,22 +374,24 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               Text(context.tr('customer.marketplace.auth_required_body')),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(sheetContext);
-                  _register();
+                  await _beginWholesaleAuth(
+                    action: pendingAction,
+                    productRoute: next,
+                    entry: CustomerAuthEntry.register,
+                  );
                 },
                 child: Text(context.tr('customer.marketplace.register')),
               ),
               const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(sheetContext);
-                  final target = next ?? '/marketplace';
-                  Navigator.of(context).pushNamed(
-                    Uri(
-                      path: '/auth/checkout',
-                      queryParameters: {'next': target},
-                    ).toString(),
+                  await _beginWholesaleAuth(
+                    action: pendingAction,
+                    productRoute: next,
+                    entry: CustomerAuthEntry.login,
                   );
                 },
                 child: Text(context.tr('customer.action.login')),
