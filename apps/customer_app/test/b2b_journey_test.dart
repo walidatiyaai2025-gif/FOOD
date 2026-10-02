@@ -7,6 +7,7 @@ import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/diagnostics/customer_diagnostics.dart';
+import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 
 void main() {
   const b2b = CustomerSession.authenticated(CustomerChannel.b2b);
@@ -101,6 +102,107 @@ void main() {
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(scaffold.backgroundColor, const Color(0xFFF7F1FC));
+  });
+
+  testWidgets('guest can browse Wholesale storefront and product without login',
+      (tester) async {
+    final storefront = _FakeWholesaleStorefrontApi();
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+        storefrontApi: storefront,
+        actionApi: _FakeCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(storefront.lastStoreId, 70);
+    expect(
+      find.byKey(const ValueKey('unified-customer-auth-screen')),
+      findsNothing,
+    );
+    expect(find.text('Public Bulk Water'), findsWidgets);
+
+    await tester.tap(find.text('Public Bulk Water').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('b2b-product-detail-data')),
+      findsOneWidget,
+    );
+    expect(find.text('Public Bulk Water'), findsOneWidget);
+    expect(find.textContaining('55'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('unified-customer-auth-screen')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'signed-out Wholesale add uses unified auth and resumes add exactly once',
+      (tester) async {
+    final actionApi = _CountingCustomerActionApi();
+    final pending = _MemoryPendingActionStore();
+    final b2bApi = _FakeB2bApi({
+      'id': 42,
+      'sku': 'B2B-P-42',
+      'name': 'Wholesale Product',
+      'store_id': 7,
+      'account_price': 7.25,
+      'minimum_order_quantity': 5,
+      'ordering_increment': 1,
+      'available_quantity': 24,
+      'currency': 'KWD',
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute:
+            '/b2b/products/42?channel=wholesale&store_id=7',
+        b2bApi: b2bApi,
+        storefrontApi: _FakeWholesaleStorefrontApi(),
+        actionApi: actionApi,
+        pendingActionStore: pending,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Wholesale Product'), findsOneWidget);
+    expect(actionApi.addCalls, 0);
+
+    await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('unified-customer-auth-screen')),
+      findsOneWidget,
+    );
+    expect(pending.writeCount, 1);
+    expect(pending.value?.kind, CustomerPendingActionKind.addToCart);
+    expect(pending.value?.productId, 42);
+    expect(pending.value?.quantity, 5);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-email')),
+      'buyer@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'secret-pass',
+    );
+    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    await tester.pumpAndSettle();
+
+    expect(pending.takeCount, 1);
+    expect(actionApi.addCalls, 1);
+    expect(actionApi.lastStoreId, 7);
+    expect(actionApi.lastProductId, 42);
+    expect(actionApi.lastQuantity, 5);
+    expect(find.text('سلة الجملة'), findsOneWidget);
+
+    await tester.pumpAndSettle();
+    expect(actionApi.addCalls, 1);
   });
 
   testWidgets('B2B product details render authoritative account pricing and inventory', (tester) async {
@@ -820,6 +922,16 @@ class _FakeWholesaleStorefrontApi implements StorefrontApi {
           'hero_cta_ar': 'ابدأ طلب الجملة',
         },
       },
+      'products': [
+        {
+          'id': 42,
+          'sku': 'PUBLIC-42',
+          'name': 'Public Bulk Water',
+          'price': 55,
+          'currency': 'EGP',
+          'category_id': 3,
+        },
+      ],
       'sections': [
         {'key': 'hero', 'type': 'hero', 'sort_order': 10},
         {
@@ -935,6 +1047,78 @@ class _StatusFailingB2bApi implements B2bApi {
   }
 }
 
+
+class _CountingCustomerActionApi implements CustomerActionApi {
+  int addCalls = 0;
+  int? lastStoreId;
+  int? lastProductId;
+  double? lastQuantity;
+
+  @override
+  Future<CustomerLoginResult> login({required String username}) async =>
+      const CustomerLoginResult(
+        token: 'platform-token',
+        platformCustomer: true,
+      );
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<Object?> addCartItem({
+    required int storeId,
+    required int productId,
+    required double quantity,
+  }) async {
+    addCalls++;
+    lastStoreId = storeId;
+    lastProductId = productId;
+    lastQuantity = quantity;
+    return {
+      'store_id': storeId,
+      'product_id': productId,
+      'quantity': quantity,
+    };
+  }
+
+  @override
+  Future<Object?> checkout({
+    required int addressId,
+    int? storeId,
+    String? paymentMethod,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async =>
+      null;
+}
+
+class _MemoryPendingActionStore implements CustomerPendingActionStore {
+  CustomerPendingAction? value;
+  int writeCount = 0;
+  int takeCount = 0;
+
+  @override
+  Future<void> clear() async {
+    value = null;
+  }
+
+  @override
+  Future<CustomerPendingAction?> read() async => value;
+
+  @override
+  Future<CustomerPendingAction?> take() async {
+    takeCount++;
+    final current = value;
+    value = null;
+    return current;
+  }
+
+  @override
+  Future<void> write(CustomerPendingAction action) async {
+    writeCount++;
+    value = action;
+  }
+}
 
 class _FakeCustomerActionApi implements CustomerActionApi {
   int? lastStoreId;
