@@ -183,13 +183,27 @@ class PlatformCustomerMarketplaceTest extends TestCase
             'store_id' => $wholesaleStore,
             'product_id' => $wholesaleProduct,
             'quantity' => 1,
-        ], $headers)->assertCreated();
+            // Deliberately forged persona/channel hints must never route the cart.
+            'channel' => 'b2c',
+            'customer_type' => 'retail',
+            'customerType' => 'retail',
+        ], $headers)
+            ->assertCreated()
+            ->assertJsonPath('store_id', $wholesaleStore)
+            ->assertJsonPath('channel', 'b2b');
 
         $this->postJson('/api/v1/cart/items', [
             'store_id' => $retailStore,
             'product_id' => $retailProduct,
             'quantity' => 1,
-        ], $headers)->assertCreated();
+            // The store/catalog domain remains authoritative regardless of client persona.
+            'channel' => 'b2b',
+            'customer_type' => 'business',
+            'customerType' => 'business',
+        ], $headers)
+            ->assertCreated()
+            ->assertJsonPath('store_id', $retailStore)
+            ->assertJsonPath('channel', 'b2c');
 
         $this->assertDatabaseHas('carts', [
             'store_id' => $wholesaleStore,

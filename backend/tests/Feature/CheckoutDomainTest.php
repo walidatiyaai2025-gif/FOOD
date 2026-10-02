@@ -385,6 +385,32 @@ class CheckoutDomainTest extends TestCase
         $this->assertDatabaseCount('orders', 1);
     }
 
+    public function test_checkout_derives_order_channel_from_authoritative_cart_not_client_persona(): void
+    {
+        $this->addCartItem(1);
+
+        $response = $this->withHeader('Idempotency-Key', 'checkout-authority-0001')
+            ->postJson('/api/v1/checkout', [
+                'store_id' => $this->storeId,
+                'address_id' => $this->address->id,
+                'channel' => 'b2b',
+                'customer_type' => 'business',
+                'customerType' => 'business',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('store_id', $this->storeId)
+            ->assertJsonPath('channel', 'b2c');
+
+        $orderId = (int) $response->json('id');
+        $this->assertDatabaseHas('orders', [
+            'id' => $orderId,
+            'store_id' => $this->storeId,
+            'channel' => 'b2c',
+            'b2c_customer_id' => $this->domainCustomer->id,
+            'b2b_customer_id' => null,
+        ]);
+    }
+
     public function test_checkout_rejects_foreign_address_and_unconfigured_payment_method(): void
     {
         $this->addCartItem(1);
