@@ -13,6 +13,7 @@ class _FakeActiveRepo implements DriverAssignmentRepository {
   String? transitionedStatus;
   String? transitionedNote;
   int transitionCount = 0;
+  final List<String> transitionedStatuses = <String>[];
 
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async {
@@ -29,6 +30,7 @@ class _FakeActiveRepo implements DriverAssignmentRepository {
     String? failureReason,
   }) async {
     transitionCount += 1;
+    transitionedStatuses.add(status);
     transitionedStatus = status;
     transitionedNote = note;
 
@@ -92,6 +94,7 @@ Widget _host(
   DriverActiveFailureCallback? onFailedDeliveryRequested,
   DriverActiveAssignmentCallback? onDeliveredRequested,
   Locale locale = const Locale('en'),
+  DriverChannel channel = DriverChannel.b2c,
   int? focusAssignmentId,
   String? initialAssignmentStatus,
 }) {
@@ -101,7 +104,7 @@ Widget _host(
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
     home: Scaffold(
       body: DriverActiveJourneyPage(
-        channel: DriverChannel.b2c,
+        channel: channel,
         repository: repository,
         onNavigationRequested:
             onNavigationRequested ?? (assignment) async {},
@@ -144,6 +147,50 @@ void main() {
     expect(find.byKey(const Key('driver-active-pickup-1')), findsOneWidget);
     expect(find.byKey(const Key('driver-active-start-1')), findsOneWidget);
   });
+
+  for (final channel in [DriverChannel.b2c, DriverChannel.b2b]) {
+    testWidgets(
+        'receive auto-starts delivery for ${channel.name} after accepted',
+        (tester) async {
+      final repo = _FakeActiveRepo(
+        DriverAssignment(
+          id: channel == DriverChannel.b2c ? 12 : 13,
+          channel: channel,
+          reference: channel == DriverChannel.b2c ? 'RET-12' : 'B2B-13',
+          status: 'accepted',
+          availableStatuses: const ['picked_up', 'failed'],
+        ),
+      );
+      final id = repo.current.id;
+
+      await tester.pumpWidget(_host(repo, channel: channel));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(Key('driver-active-pickup-$id')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(Key('driver-active-card-failed-$id')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(Key('driver-active-start-$id')),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(Key('driver-active-pickup-$id')));
+      await tester.pumpAndSettle();
+
+      expect(repo.transitionedStatuses, ['picked_up', 'out_for_delivery']);
+      expect(repo.transitionCount, 2);
+      expect(repo.current.status, 'out_for_delivery');
+      expect(
+        find.byKey(Key('driver-active-delivered-$id')),
+        findsOneWidget,
+      );
+    });
+  }
 
   testWidgets('accepted order start-delivery sheet submits note and reloads',
       (tester) async {
@@ -289,24 +336,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('driver-detail-pickup-50')));
     await tester.pumpAndSettle();
-    expect(repo.current.status, 'picked_up');
-    expect(find.byKey(const Key('driver-detail-start-50')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('driver-detail-start-50')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('driver-active-start-note')), findsOneWidget);
-
-    await tester.enterText(
-      find.byKey(const Key('driver-active-start-note')),
-      'Driver left the store',
-    );
-    await tester.tap(
-      find.byKey(const Key('driver-active-confirm-start-50')),
-    );
-    await tester.pumpAndSettle();
-
+    expect(repo.transitionedStatuses, ['accepted', 'picked_up', 'out_for_delivery']);
     expect(repo.current.status, 'out_for_delivery');
-    expect(repo.transitionedNote, 'Driver left the store');
+    expect(find.byKey(const Key('driver-detail-start-50')), findsNothing);
     expect(find.byKey(const Key('driver-active-detail-50')), findsOneWidget);
     expect(find.byKey(const Key('driver-detail-delivered-50')), findsOneWidget);
     expect(find.byKey(const Key('driver-detail-failed-50')), findsOneWidget);

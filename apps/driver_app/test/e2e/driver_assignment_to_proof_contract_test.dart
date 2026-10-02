@@ -114,25 +114,12 @@ void main() {
       await tester.tap(find.byKey(const Key('driver-active-pickup-693')));
       await tester.pumpAndSettle();
 
-      expect(repository.transitions, ['accepted', 'picked_up']);
-      expect(find.byKey(const Key('driver-active-start-693')), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key('driver-active-start-693')));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const Key('driver-active-start-note')),
-        'Leaving store now',
-      );
-      await tester.tap(
-        find.byKey(const Key('driver-active-confirm-start-693')),
-      );
-      await tester.pumpAndSettle();
-
       expect(
         repository.transitions,
         ['accepted', 'picked_up', 'out_for_delivery'],
       );
-      expect(repository.startNote, 'Leaving store now');
+      expect(find.byKey(const Key('driver-active-start-693')), findsNothing);
+      expect(repository.startNote, isNull);
       expect(find.byKey(const Key('driver-active-delivered-693')), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('driver-active-delivered-693')));

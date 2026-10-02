@@ -227,13 +227,11 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         widget.channel,
         'picked_up',
       );
-      if (widget.channel == DriverChannel.b2b) {
-        await widget.repository.transition(
-          assignment.id,
-          widget.channel,
-          'out_for_delivery',
-        );
-      }
+      await widget.repository.transition(
+        assignment.id,
+        widget.channel,
+        'out_for_delivery',
+      );
       await _load();
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
