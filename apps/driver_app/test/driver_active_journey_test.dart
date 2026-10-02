@@ -336,24 +336,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('driver-detail-pickup-50')));
     await tester.pumpAndSettle();
-    expect(repo.current.status, 'picked_up');
-    expect(find.byKey(const Key('driver-detail-start-50')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('driver-detail-start-50')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('driver-active-start-note')), findsOneWidget);
-
-    await tester.enterText(
-      find.byKey(const Key('driver-active-start-note')),
-      'Driver left the store',
-    );
-    await tester.tap(
-      find.byKey(const Key('driver-active-confirm-start-50')),
-    );
-    await tester.pumpAndSettle();
-
+    expect(repo.transitionedStatuses, ['accepted', 'picked_up', 'out_for_delivery']);
     expect(repo.current.status, 'out_for_delivery');
-    expect(repo.transitionedNote, 'Driver left the store');
+    expect(find.byKey(const Key('driver-detail-start-50')), findsNothing);
     expect(find.byKey(const Key('driver-active-detail-50')), findsOneWidget);
     expect(find.byKey(const Key('driver-detail-delivered-50')), findsOneWidget);
     expect(find.byKey(const Key('driver-detail-failed-50')), findsOneWidget);
