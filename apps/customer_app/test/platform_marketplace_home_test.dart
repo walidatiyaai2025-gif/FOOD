@@ -735,17 +735,22 @@ void main() {
       TextDirection.rtl,
     );
     expect(find.byKey(const ValueKey('marketplace-compact-header')), findsOneWidget);
-    expect(find.byKey(const ValueKey('marketplace-scan')), findsOneWidget);
-    expect(find.byKey(const ValueKey('marketplace-language')), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-search')), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-brand-title')), findsOneWidget);
-    expect(find.text('AR'), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-cart')), findsOneWidget);
+    expect(find.byKey(const ValueKey('marketplace-orders')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('marketplace-notifications')),
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('marketplace-auth-menu')), findsOneWidget);
+    expect(find.byKey(const ValueKey('marketplace-scan')), findsNothing);
+    expect(find.byKey(const ValueKey('marketplace-language')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('marketplace-auth-menu')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('marketplace-scan')), findsOneWidget);
+    expect(find.byKey(const ValueKey('marketplace-language')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('marketplace-scan')));
     await tester.pumpAndSettle();
@@ -755,6 +760,8 @@ void main() {
     expect(search.controller?.text, '123456789');
     expect(requests.last.queryParameters['q'], '123456789');
 
+    await tester.tap(find.byKey(const ValueKey('marketplace-auth-menu')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('marketplace-language')));
     await tester.pump();
     expect(requestedLocale, const Locale('en'));
