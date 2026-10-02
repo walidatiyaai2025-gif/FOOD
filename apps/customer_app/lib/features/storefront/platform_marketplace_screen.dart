@@ -474,9 +474,12 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final bannerHeight = (constraints.maxHeight * .22)
-                       .clamp(176.0, 204.0)
-                       .toDouble();
+                  final bannerHeight =
+                      constraints.maxWidth < 350 ? 158.0 : 166.0;
+                  final productColumns =
+                      constraints.maxWidth >= 350 ? 3 : 2;
+                  final productAspectRatio =
+                      productColumns == 3 ? .76 : .88;
 
                   return CustomScrollView(
                     slivers: [
@@ -493,6 +496,19 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                               Localizations.localeOf(context).languageCode,
                           onCart: () =>
                               Navigator.of(context).pushNamed('/cart'),
+                          cartCount: _int(data['cart_count']),
+                          onOrders: () {
+                            if (widget.session.isAuthenticated) {
+                              Navigator.of(context).pushNamed('/orders');
+                            } else {
+                              Navigator.of(context).pushNamed(
+                                Uri(
+                                  path: '/auth/checkout',
+                                  queryParameters: {'next': '/orders'},
+                                ).toString(),
+                              );
+                            }
+                          },
                           onNotifications: () {
                             if (widget.session.isAuthenticated) {
                               Navigator.of(context).pushNamed('/notifications');
@@ -553,10 +569,10 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                                     return Padding(
                                       padding:
                                           const EdgeInsetsDirectional.fromSTEB(
-                                        14,
-                                        6,
-                                        14,
-                                        2,
+                                        10,
+                                        4,
+                                        10,
+                                        1,
                                       ),
                                       child: _RetailStoreBanner(
                                         store: store,
@@ -608,12 +624,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                             onSelect: _selectCategory,
                           ),
                         ),
-                      if (offers.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: _MarketplaceOfferStrip(offers: offers),
-                        ),
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(14, 16, 14, 8),
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 5),
                         sliver: SliverToBoxAdapter(
                           child: _MarketplaceSectionHeader(
                             title: context.tr(
@@ -644,14 +656,14 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                         )
                       else
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 28),
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 28),
                           sliver: SliverGrid(
+                            key: const ValueKey('marketplace-product-grid'),
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: constraints.maxWidth >= 700 ? 3 : 2,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              childAspectRatio:
-                                  constraints.maxWidth >= 700 ? 1.02 : .86,
+                              crossAxisCount: productColumns,
+                              mainAxisSpacing: 9,
+                              crossAxisSpacing: 9,
+                              childAspectRatio: productAspectRatio,
                             ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
@@ -687,6 +699,8 @@ class _MarketplaceHeader extends StatelessWidget {
     required this.onLanguageToggle,
     required this.localeCode,
     required this.onCart,
+    required this.cartCount,
+    required this.onOrders,
     required this.onNotifications,
     required this.searchController,
     required this.searchFocus,
@@ -701,6 +715,8 @@ class _MarketplaceHeader extends StatelessWidget {
   final VoidCallback onLanguageToggle;
   final String localeCode;
   final VoidCallback onCart;
+  final int cartCount;
+  final VoidCallback onOrders;
   final VoidCallback onNotifications;
   final TextEditingController searchController;
   final FocusNode searchFocus;
@@ -714,122 +730,245 @@ class _MarketplaceHeader extends StatelessWidget {
       required IconData icon,
       required VoidCallback onPressed,
       String? tooltip,
-    }) => Material(
-      color: Colors.white,
-      shape: const CircleBorder(),
-      child: InkWell(
-        key: key,
-        customBorder: const CircleBorder(),
-        onTap: onPressed,
-        child: Tooltip(
-          message: tooltip ?? '',
-          child: SizedBox(
-            width: 42, height: 42,
-            child: Icon(icon, size: 22, color: const Color(0xFF17212F)),
-          ),
-        ),
-      ),
-    );
-
-    Widget accountAction() {
-      if (authenticated) {
-        return roundAction(
-          key: const ValueKey('marketplace-profile'),
-          icon: Icons.person_outline_rounded,
-          onPressed: () => Navigator.of(context).pushNamed('/profile'),
-        );
-      }
-      return PopupMenuButton<String>(
-        key: const ValueKey('marketplace-auth-menu'),
-        padding: EdgeInsets.zero,
-        tooltip: context.tr('customer.action.login'),
-        icon: const CircleAvatar(
-          radius: 21, backgroundColor: Colors.white,
-          child: Icon(Icons.person_outline_rounded, color: Color(0xFF17212F)),
-        ),
-        onSelected: (value) => value == 'login' ? onLogin() : onRegister(),
-        itemBuilder: (_) => [
-          PopupMenuItem(value: 'login', child: Text(context.tr('customer.action.login'))),
-          PopupMenuItem(value: 'register', child: Text(context.tr('customer.marketplace.register'))),
-        ],
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 9, 10, 5),
-      child: Row(
-        key: const ValueKey('marketplace-compact-header'),
-        children: [
-          accountAction(),
-          const SizedBox(width: 2),
-          roundAction(
-            key: const ValueKey('marketplace-notifications'),
-            icon: Icons.notifications_none_rounded,
-            tooltip: context.tr('customer.nav.notifications'),
-            onPressed: onNotifications,
-          ),
-          const SizedBox(width: 2),
-          SizedBox(
-            width: 32, height: 42,
-            child: TextButton(
-              key: const ValueKey('marketplace-language'),
-              onPressed: onLanguageToggle,
-              style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(32, 42)),
-              child: Text(
-                localeCode.toUpperCase(),
-                style: const TextStyle(color: Color(0xFF087347), fontSize: 10, fontWeight: FontWeight.w900),
-              ),
-            ),
-          ),
-          const SizedBox(width: 5),
-          Expanded(
-            child: SizedBox(
-              height: 46,
-              child: TextField(
-                key: const ValueKey('marketplace-search'),
-                controller: searchController,
-                focusNode: searchFocus,
-                textInputAction: TextInputAction.search,
-                onSubmitted: onSearchSubmitted,
-                decoration: InputDecoration(
-                  hintText: context.tr('customer.marketplace.search_hint'),
-                  prefixIcon: const Icon(Icons.search_rounded, size: 21),
-                  suffixIcon: searchController.text.isEmpty
-                      ? IconButton(
-                          key: const ValueKey('marketplace-scan'),
-                          tooltip: context.tr('customer.marketplace.scan'),
-                          onPressed: onScan,
-                          icon: const Icon(Icons.qr_code_scanner_rounded, size: 19),
-                        )
-                      : IconButton(onPressed: onSearchClear, icon: const Icon(Icons.close_rounded, size: 19)),
-                  filled: true, fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 9),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: const BorderSide(color: Color(0xFFE6E9EC))),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: const BorderSide(color: Color(0xFFE6E9EC))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: const BorderSide(color: Color(0xFF087347), width: 1.3)),
+    }) =>
+        Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          child: InkWell(
+            key: key,
+            customBorder: const CircleBorder(),
+            onTap: onPressed,
+            child: Tooltip(
+              message: tooltip ?? '',
+              child: SizedBox(
+                width: 36,
+                height: 36,
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: const Color(0xFF17212F),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 5),
-          Container(
-            width: 42, height: 42,
-            decoration: BoxDecoration(color: const Color(0xFFEAF7F0), borderRadius: BorderRadius.circular(14)),
-            child: const Icon(Icons.storefront_rounded, color: Color(0xFF087347), size: 24),
+        );
+
+    Widget accountAction() => PopupMenuButton<String>(
+          key: const ValueKey('marketplace-auth-menu'),
+          padding: EdgeInsets.zero,
+          tooltip: authenticated
+              ? context.tr('customer.nav.profile')
+              : context.tr('customer.action.login'),
+          icon: Container(
+            width: 38,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x0D0F172A),
+                  blurRadius: 10,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.person_outline_rounded,
+              color: Color(0xFF17212F),
+              size: 22,
+            ),
           ),
-          const SizedBox(width: 4),
-          roundAction(
-            key: const ValueKey('marketplace-cart'),
-            icon: Icons.shopping_cart_outlined,
-            tooltip: context.tr('customer.nav.cart'),
-            onPressed: onCart,
-          ),
-          const SizedBox.shrink(key: ValueKey('marketplace-brand-title')),
-        ],
+          onSelected: (value) {
+            switch (value) {
+              case 'profile':
+                Navigator.of(context).pushNamed('/profile');
+              case 'login':
+                onLogin();
+              case 'register':
+                onRegister();
+              case 'scan':
+                onScan();
+              case 'language':
+                onLanguageToggle();
+            }
+          },
+          itemBuilder: (_) => [
+            if (authenticated)
+              PopupMenuItem(
+                value: 'profile',
+                child: Text(context.tr('customer.nav.profile')),
+              )
+            else ...[
+              PopupMenuItem(
+                value: 'login',
+                child: Text(context.tr('customer.action.login')),
+              ),
+              PopupMenuItem(
+                value: 'register',
+                child: Text(context.tr('customer.marketplace.register')),
+              ),
+            ],
+            PopupMenuItem(
+              key: const ValueKey('marketplace-scan'),
+              value: 'scan',
+              child: Row(
+                children: [
+                  const Icon(Icons.qr_code_scanner_rounded, size: 20),
+                  const SizedBox(width: 10),
+                  Text(context.tr('customer.marketplace.scan')),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              key: const ValueKey('marketplace-language'),
+              value: 'language',
+              child: Text(localeCode == 'ar' ? 'English' : 'العربية'),
+            ),
+          ],
+        );
+
+    Widget cartAction() => Stack(
+          clipBehavior: Clip.none,
+          children: [
+            roundAction(
+              key: const ValueKey('marketplace-cart'),
+              icon: Icons.shopping_cart_outlined,
+              tooltip: context.tr('customer.nav.cart'),
+              onPressed: onCart,
+            ),
+            if (cartCount > 0)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF4747),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    cartCount > 99 ? '99+' : '$cartCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(9, 8, 9, 7),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(
+          key: const ValueKey('marketplace-compact-header'),
+          children: [
+            accountAction(),
+            const SizedBox(width: 2),
+            roundAction(
+              key: const ValueKey('marketplace-notifications'),
+              icon: Icons.notifications_none_rounded,
+              tooltip: context.tr('customer.nav.notifications'),
+              onPressed: onNotifications,
+            ),
+            const SizedBox(width: 2),
+            roundAction(
+              key: const ValueKey('marketplace-orders'),
+              icon: Icons.shopping_bag_outlined,
+              tooltip: context.tr('customer.nav.orders'),
+              onPressed: onOrders,
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: SizedBox(
+                height: 42,
+                child: TextField(
+                  key: const ValueKey('marketplace-search'),
+                  controller: searchController,
+                  focusNode: searchFocus,
+                  textDirection:
+                      localeCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+                  textAlign:
+                      localeCode == 'ar' ? TextAlign.right : TextAlign.left,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: onSearchSubmitted,
+                  decoration: InputDecoration(
+                    hintText: context.tr('customer.marketplace.search_hint'),
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF9299A4),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      size: 21,
+                      color: Color(0xFF7B8491),
+                    ),
+                    suffixIcon: searchController.text.isNotEmpty
+                        ? IconButton(
+                            onPressed: onSearchClear,
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: Color(0xFF7B8491),
+                            ),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(color: Color(0xFFE8ECEF)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(color: Color(0xFFE8ECEF)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0A7B4B),
+                        width: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 5),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE7F5EE),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.storefront_rounded,
+                color: Color(0xFF087347),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 2),
+            cartAction(),
+            const SizedBox.shrink(
+              key: ValueKey('marketplace-brand-title'),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
 class _RetailStoreBanner extends StatelessWidget {
   const _RetailStoreBanner({
     required this.store,
@@ -845,27 +984,29 @@ class _RetailStoreBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final id = _int(store['id']);
     final image = store['banner_url']?.toString().trim();
-    final logo = store['logo_url']?.toString().trim();
-    final address = store['address']?.toString().trim() ?? '';
     final title = store['title']?.toString().trim();
     final name = store['name']?.toString().trim() ?? '';
+    final displayTitle =
+        title != null && title.isNotEmpty ? title : name;
+    final isArabic =
+        Localizations.localeOf(context).languageCode.toLowerCase() == 'ar';
 
     Widget backgroundFallback() => const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: AlignmentDirectional.topStart,
               end: AlignmentDirectional.bottomEnd,
-              colors: [Color(0xFF087347), Color(0xFF16A66C)],
+              colors: [Color(0xFF00623B), Color(0xFF079454)],
             ),
           ),
           child: Align(
-            alignment: AlignmentDirectional.topEnd,
+            alignment: AlignmentDirectional.centerEnd,
             child: Padding(
-              padding: EdgeInsets.all(18),
+              padding: EdgeInsetsDirectional.only(end: 22),
               child: Icon(
                 Icons.storefront_rounded,
-                color: Color(0x55FFFFFF),
-                size: 64,
+                color: Color(0x35FFFFFF),
+                size: 88,
               ),
             ),
           ),
@@ -875,7 +1016,7 @@ class _RetailStoreBanner extends StatelessWidget {
       width: width,
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -894,125 +1035,80 @@ class _RetailStoreBanner extends StatelessWidget {
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    stops: [0, .62, 1],
+                    begin: AlignmentDirectional.centerStart,
+                    end: AlignmentDirectional.centerEnd,
                     colors: [
-                      Color(0xCC0B1720),
-                      Color(0x330B1720),
-                      Colors.transparent,
+                      Color(0xE9004C31),
+                      Color(0x9D006A40),
+                      Color(0x25006A40),
                     ],
                   ),
                 ),
               ),
-              PositionedDirectional(
-                start: 16,
-                end: 16,
-                bottom: 14,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final compact = constraints.maxWidth < 280;
-                    return Row(
-                      children: [
-                        if (logo != null && logo.isNotEmpty) ...[
-                          ClipOval(
-                            child: SizedBox(
-                              width: compact ? 34 : 38,
-                              height: compact ? 34 : 38,
-                              child: Image.network(
-                                logo,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    const ColoredBox(
-                                  color: Colors.white,
-                                  child: Icon(
-                                    Icons.storefront_rounded,
-                                    color: Color(0xFF087347),
-                                    size: 21,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: compact ? 7 : 10),
-                        ],
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                title != null && title.isNotEmpty
-                                    ? title
-                                    : name,
-                                key: ValueKey(
-                                  'marketplace-retail-banner-title-$id',
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: compact ? 15 : 17,
-                                  height: 1.2,
-                                ),
-                              ),
-                              if (address.isNotEmpty && !compact) ...[
-                                const SizedBox(height: 3),
-                                Text(
-                                  address,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xFFDCE5E1),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+              Padding(
+                padding:
+                    const EdgeInsetsDirectional.fromSTEB(18, 15, 18, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x4DFFFFFF),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        isArabic ? 'متجر التجزئة' : 'Retail store',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w900,
                         ),
-                        const SizedBox(width: 8),
-                        if (compact)
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: const Icon(
-                              Icons.arrow_forward_rounded,
-                              color: Color(0xFF087347),
-                              size: 18,
-                            ),
-                          )
-                        else
-                          Container(
-                            constraints: const BoxConstraints(maxWidth: 110),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              context.tr('customer.marketplace.shop_now'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF087347),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
+                      ),
+                    ),
+                    const Spacer(),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 220),
+                      child: Text(
+                        displayTitle,
+                        key: ValueKey(
+                          'marketplace-retail-banner-title-$id',
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 21,
+                          height: 1.12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 94),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 15,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        context.tr('customer.marketplace.shop_now'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF087347),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1032,37 +1128,39 @@ class _WholesaleHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = imageUrl?.trim();
+    final isArabic =
+        Localizations.localeOf(context).languageCode.toLowerCase() == 'ar';
 
     Widget fallback() => const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: AlignmentDirectional.topStart,
               end: AlignmentDirectional.bottomEnd,
-              colors: [Color(0xFF5D2A91), Color(0xFF35195E)],
+              colors: [Color(0xFF5B2A8D), Color(0xFF351858)],
             ),
           ),
           child: Align(
-            alignment: AlignmentDirectional.topEnd,
+            alignment: AlignmentDirectional.centerEnd,
             child: Padding(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsetsDirectional.only(end: 22),
               child: Icon(
                 Icons.warehouse_rounded,
-                color: Color(0x33FFFFFF),
-                size: 80,
+                color: Color(0x36FFFFFF),
+                size: 88,
               ),
             ),
           ),
         );
 
     return Container(
-      margin: const EdgeInsetsDirectional.fromSTEB(14, 6, 14, 2),
+      margin: const EdgeInsetsDirectional.fromSTEB(10, 4, 10, 1),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x140F172A),
-            blurRadius: 18,
-            offset: Offset(0, 7),
+            color: Color(0x100F172A),
+            blurRadius: 12,
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -1084,55 +1182,76 @@ class _WholesaleHero extends StatelessWidget {
               gradient: LinearGradient(
                 begin: AlignmentDirectional.centerStart,
                 end: AlignmentDirectional.centerEnd,
-                colors: [Color(0xE835195E), Color(0x7A35195E)],
+                colors: [
+                  Color(0xEB321552),
+                  Color(0xA44A2278),
+                  Color(0x254A2278),
+                ],
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(18, 18, 120, 18),
+            padding: const EdgeInsetsDirectional.fromSTEB(18, 15, 18, 14),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0x2EFFFFFF),
+                    color: const Color(0x38FFFFFF),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text(
-                    'B2B',
-                    style: TextStyle(
+                  child: Text(
+                    isArabic ? 'متجر الجملة' : 'Wholesale store',
+                    style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 10,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: .8,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  key: const ValueKey('marketplace-wholesale-hero-title'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 21,
-                    height: 1.12,
+                const Spacer(),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 225),
+                  child: Text(
+                    title,
+                    key: const ValueKey(
+                      'marketplace-wholesale-hero-title',
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 21,
+                      height: 1.12,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  context.tr('customer.marketplace.browse_guest'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFE9DFF5),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 9),
+                Container(
+                  constraints: const BoxConstraints(minWidth: 94),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    context.tr('customer.marketplace.browse_guest'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF51237B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ],
@@ -1145,59 +1264,101 @@ class _WholesaleHero extends StatelessWidget {
 }
 
 class _MarketplaceCategoryRail extends StatelessWidget {
-  const _MarketplaceCategoryRail({required this.categories, required this.selectedCategoryId, required this.onSelect});
+  const _MarketplaceCategoryRail({
+    required this.categories,
+    required this.selectedCategoryId,
+    required this.onSelect,
+  });
+
   final List<Map<String, dynamic>> categories;
   final int? selectedCategoryId;
   final ValueChanged<int?> onSelect;
+
   @override
-  Widget build(BuildContext context) {
-    final rows = <Map<String, dynamic>>[
-      {'id': null, 'name': context.tr('customer.marketplace.all_categories'), 'icon': Icons.apps_rounded},
-      ...categories,
-    ];
-    return SizedBox(
-      key: const ValueKey('marketplace-categories'),
-      height: 112,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-        itemCount: rows.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final row = rows[index];
-          final id = row['id'] == null ? null : _int(row['id']);
-          final selected = selectedCategoryId == id;
-          final name = row['name']?.toString() ?? '';
-          final image = row['image_url']?.toString().trim();
-          return SizedBox(
-            width: 72,
-            child: InkWell(
-              key: id == null ? const ValueKey('marketplace-category-all') : ValueKey('marketplace-category-$id'),
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => onSelect(id),
-              child: Column(children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 66, height: 66,
-                  decoration: BoxDecoration(
-                    color: selected ? const Color(0xFFE5F7D2) : Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: selected ? const Color(0xFF87C842) : const Color(0xFFE6E9EC), width: selected ? 2 : 1),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: image != null && image.isNotEmpty
-                      ? Image.network(image, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Icon(_marketplaceCategoryIcon(name), color: const Color(0xFF087347), size: 29))
-                      : Icon(row['icon'] is IconData ? row['icon'] as IconData : _marketplaceCategoryIcon(name), color: const Color(0xFF087347), size: 29),
+  Widget build(BuildContext context) => SizedBox(
+        key: const ValueKey('marketplace-categories'),
+        height: 92,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(8, 7, 8, 5),
+          itemCount: categories.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 4),
+          itemBuilder: (context, index) {
+            final row = categories[index];
+            final id = _int(row['id']);
+            final selected = selectedCategoryId == id;
+            final name = row['name']?.toString() ?? '';
+            final image = row['image_url']?.toString().trim();
+
+            return SizedBox(
+              width: 56,
+              child: InkWell(
+                key: ValueKey('marketplace-category-$id'),
+                borderRadius: BorderRadius.circular(999),
+                onTap: () => onSelect(id),
+                child: Column(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? const Color(0xFFE9F7EF)
+                            : const Color(0xFFF8FAF9),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: selected
+                              ? const Color(0xFF78C850)
+                              : const Color(0xFFF0F2F3),
+                          width: selected ? 1.6 : 1,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x090F172A),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: image != null && image.isNotEmpty
+                          ? Image.network(
+                              image,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Icon(
+                                _marketplaceCategoryIcon(name),
+                                color: const Color(0xFF087347),
+                                size: 25,
+                              ),
+                            )
+                          : Icon(
+                              _marketplaceCategoryIcon(name),
+                              color: const Color(0xFF087347),
+                              size: 25,
+                            ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFF17212F),
+                        fontSize: 9.5,
+                        height: 1.1,
+                        fontWeight:
+                            selected ? FontWeight.w900 : FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(color: const Color(0xFF17212F), fontSize: 11, fontWeight: selected ? FontWeight.w900 : FontWeight.w700)),
-              ]),
-            ),
-          );
-        },
-      ),
-    );
-  }
+              ),
+            );
+          },
+        ),
+      );
 }
 
 class _MarketplaceOfferStrip extends StatelessWidget {
@@ -1229,15 +1390,58 @@ class _MarketplaceOfferStrip extends StatelessWidget {
 }
 
 class _MarketplaceSectionHeader extends StatelessWidget {
-  const _MarketplaceSectionHeader({required this.title, required this.actionLabel, required this.onAction});
+  const _MarketplaceSectionHeader({
+    required this.title,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
   final String title;
   final String actionLabel;
   final VoidCallback onAction;
+
   @override
-  Widget build(BuildContext context) => Row(children: [
-    Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: const Color(0xFF17212F), fontWeight: FontWeight.w900))),
-    TextButton.icon(onPressed: onAction, icon: const Icon(Icons.arrow_back_rounded, size: 18, color: Color(0xFF087347)), label: Text(actionLabel, style: const TextStyle(color: Color(0xFF087347), fontWeight: FontWeight.w800))),
-  ]);
+  Widget build(BuildContext context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF17212F),
+                  fontSize: 20,
+                  height: 1.15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: onAction,
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 30),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                size: 17,
+                color: Color(0xFF087347),
+              ),
+              label: Text(
+                actionLabel,
+                style: const TextStyle(
+                  color: Color(0xFF087347),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 IconData _marketplaceCategoryIcon(String rawName) {
@@ -1264,7 +1468,10 @@ IconData _marketplaceProductIcon(String rawName) {
 }
 
 class _WholesaleProductCard extends StatelessWidget {
-  const _WholesaleProductCard({required this.product, required this.onTap});
+  const _WholesaleProductCard({
+    required this.product,
+    required this.onTap,
+  });
 
   final Map<String, dynamic> product;
   final VoidCallback onTap;
@@ -1278,106 +1485,111 @@ class _WholesaleProductCard extends StatelessWidget {
         product['price'] ??
         '';
     final currency = product['currency']?.toString().trim();
-    final sku = product['sku']?.toString().trim() ?? '';
     final name = product['name']?.toString().trim() ?? '';
-    final packLabel = product['pack_label']?.toString().trim() ?? '';
+    final priceText =
+        '${currency == null || currency.isEmpty ? 'EGP' : currency} $rawPrice';
 
     return Material(
       key: ValueKey('marketplace-product-card-$id'),
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: DecoratedBox(
+        child: Ink(
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE7EAED)),
-            borderRadius: BorderRadius.circular(18),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0B0F172A),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: ColoredBox(
-                  color: Colors.white,
-                  child: image != null && image.isNotEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Image.network(
-                            image,
-                            key: ValueKey('marketplace-product-image-$id'),
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
-                                _MarketplaceProductFallback(name: name),
-                          ),
-                        )
-                      : _MarketplaceProductFallback(name: name),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(7, 8, 7, 2),
+                        child: image != null && image.isNotEmpty
+                            ? Image.network(
+                                image,
+                                key: ValueKey(
+                                  'marketplace-product-image-$id',
+                                ),
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) =>
+                                    _MarketplaceProductFallback(name: name),
+                              )
+                            : _MarketplaceProductFallback(name: name),
+                      ),
+                    ),
+                    const PositionedDirectional(
+                      start: 7,
+                      top: 7,
+                      child: Icon(
+                        Icons.favorite_border_rounded,
+                        size: 18,
+                        color: Color(0xFF9AA2AC),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(11, 10, 9, 10),
+                padding: const EdgeInsets.fromLTRB(6, 1, 6, 7),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       name,
                       key: ValueKey('marketplace-product-name-$id'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xFF17212F),
                         fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                        height: 1.25,
+                        fontSize: 11.5,
+                        height: 1.16,
                       ),
                     ),
-                    if (packLabel.isNotEmpty || sku.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        packLabel.isNotEmpty ? packLabel : sku,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF89939E),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w600,
+                    const SizedBox(height: 3),
+                    Text(
+                      priceText,
+                      key: ValueKey('marketplace-product-price-$id'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF087347),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11.5,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Container(
+                      width: 29,
+                      height: 29,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF078447),
+                          width: 1.25,
                         ),
                       ),
-                    ],
-                    const SizedBox(height: 7),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '$rawPrice ${currency == null || currency.isEmpty ? 'EGP' : currency}',
-                            key: ValueKey('marketplace-product-price-$id'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF087347),
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFF0A7047),
-                              width: 1.4,
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.add_shopping_cart_rounded,
-                            color: Color(0xFF0A7047),
-                            size: 17,
-                          ),
-                        ),
-                      ],
+                      child: const Icon(
+                        Icons.shopping_cart_outlined,
+                        color: Color(0xFF078447),
+                        size: 17,
+                      ),
                     ),
                   ],
                 ),
@@ -1398,8 +1610,8 @@ class _MarketplaceProductFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
         child: Container(
-          width: 74,
-          height: 74,
+          width: 54,
+          height: 54,
           decoration: const BoxDecoration(
             color: Color(0xFFEAF7F0),
             shape: BoxShape.circle,
@@ -1407,7 +1619,7 @@ class _MarketplaceProductFallback extends StatelessWidget {
           child: Icon(
             _marketplaceProductIcon(name),
             color: const Color(0xFF0A7047),
-            size: 36,
+            size: 28,
           ),
         ),
       );
