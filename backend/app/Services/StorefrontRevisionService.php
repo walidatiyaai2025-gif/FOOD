@@ -469,6 +469,8 @@ final class StorefrontRevisionService
                 'target_url' => $banner->target_url ?? null,
                 'sort_order' => (int) $banner->sort_order,
                 'is_active' => (bool) $banner->is_active,
+                'starts_at' => $banner->starts_at ?? null,
+                'ends_at' => $banner->ends_at ?? null,
             ])
             ->values()
             ->all();
@@ -587,6 +589,8 @@ final class StorefrontRevisionService
                 'target_url' => $banner['target_url'] ?? null,
                 'sort_order' => (int) ($banner['sort_order'] ?? 0),
                 'is_active' => (bool) ($banner['is_active'] ?? false),
+                'starts_at' => $banner['starts_at'] ?? null,
+                'ends_at' => $banner['ends_at'] ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -750,6 +754,18 @@ final class StorefrontRevisionService
             if ($targetType !== null && ! in_array($targetType, $allowedTargetTypes, true)) {
                 throw ValidationException::withMessages([
                     "payload.banners.{$index}.target_type" => ['Storefront banner target type is invalid.'],
+                ]);
+            }
+
+            $startsAt = $banner['starts_at'] ?? null;
+            $endsAt = $banner['ends_at'] ?? null;
+            $startsTimestamp = $startsAt === null ? null : strtotime((string) $startsAt);
+            $endsTimestamp = $endsAt === null ? null : strtotime((string) $endsAt);
+            if (($startsAt !== null && $startsTimestamp === false)
+                || ($endsAt !== null && $endsTimestamp === false)
+                || ($startsTimestamp !== null && $endsTimestamp !== null && $endsTimestamp < $startsTimestamp)) {
+                throw ValidationException::withMessages([
+                    "payload.banners.{$index}.schedule" => ['Storefront banner schedule window is invalid.'],
                 ]);
             }
         }

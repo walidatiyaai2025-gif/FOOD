@@ -203,9 +203,17 @@ final class PlatformMarketplaceController extends Controller
     /** @return list<array<string,mixed>> */
     private function wholesaleBanners(int $storeId): array
     {
+        $now = now();
+
         return DB::table('banners')
             ->where('store_id', $storeId)
             ->where('is_active', true)
+            ->where(function (Builder $query) use ($now): void {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
+            })
+            ->where(function (Builder $query) use ($now): void {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
+            })
             ->where(function (Builder $query): void {
                 $query->whereNull('target_type')
                     ->orWhere('target_type', '!=', 'retail_store');
@@ -263,6 +271,7 @@ final class PlatformMarketplaceController extends Controller
         $countryCode = strtoupper(trim((string) $request->query('country_code', '')));
         $city = trim((string) $request->query('city', ''));
         $area = trim((string) $request->query('area', ''));
+        $now = now();
 
         $query = DB::table('banners')
             ->join('stores', 'stores.id', '=', 'banners.target_id')
@@ -271,6 +280,12 @@ final class PlatformMarketplaceController extends Controller
             ->where('banners.store_id', $platformStoreId)
             ->where('banners.target_type', 'retail_store')
             ->where('banners.is_active', true)
+            ->where(function (Builder $query) use ($now): void {
+                $query->whereNull('banners.starts_at')->orWhere('banners.starts_at', '<=', $now);
+            })
+            ->where(function (Builder $query) use ($now): void {
+                $query->whereNull('banners.ends_at')->orWhere('banners.ends_at', '>=', $now);
+            })
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2C');
 
@@ -313,6 +328,8 @@ final class PlatformMarketplaceController extends Controller
                 'banners.title',
                 'banners.image_path',
                 'banners.sort_order',
+                'banners.starts_at',
+                'banners.ends_at',
                 'stores.id as store_id',
                 'stores.code',
                 'stores.name',
@@ -338,6 +355,8 @@ final class PlatformMarketplaceController extends Controller
                 'target_id' => (int) $placement->store_id,
                 'target_url' => '/retail/'.(int) $placement->store_id.'/home',
                 'sort_order' => (int) $placement->sort_order,
+                'starts_at' => $placement->starts_at === null ? null : (string) $placement->starts_at,
+                'ends_at' => $placement->ends_at === null ? null : (string) $placement->ends_at,
             ])
             ->values()
             ->all();

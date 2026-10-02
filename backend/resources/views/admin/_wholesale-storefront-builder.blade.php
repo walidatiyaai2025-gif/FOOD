@@ -128,6 +128,8 @@
                 <label>{{ app()->getLocale()==='ar'?'الصورة':'Image' }}<input type="file" name="banner_image" accept="image/jpeg,image/png,image/webp" required></label>
                 <label>{{ app()->getLocale()==='ar'?'الهدف':'Target' }}<select name="target_ref"><option value="">{{ app()->getLocale()==='ar'?'بدون هدف':'No target' }}</option>@foreach($sfTargets as $target)<option value="{{ $target['ref'] }}">{{ $target['label'] }}</option>@endforeach</select></label>
                 <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="0" min="0" required></label>
+                <label>{{ app()->getLocale()==='ar'?'يبدأ في':'Starts at' }}<input type="datetime-local" name="starts_at"></label>
+                <label>{{ app()->getLocale()==='ar'?'ينتهي في':'Ends at' }}<input type="datetime-local" name="ends_at"></label>
                 <label><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
             </div>
             <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة البانر للمسودة':'Add banner to Draft' }}</button></div>
@@ -146,6 +148,8 @@
                         <label>{{ app()->getLocale()==='ar'?'استبدال الصورة':'Replace image' }}<input type="file" name="banner_image" accept="image/jpeg,image/png,image/webp"></label>
                         <label>{{ app()->getLocale()==='ar'?'الهدف':'Target' }}<select name="target_ref"><option value="">{{ app()->getLocale()==='ar'?'بدون هدف':'No target' }}</option>@foreach($sfTargets as $target)<option value="{{ $target['ref'] }}" @selected($banner['target_ref']===$target['ref'])>{{ $target['label'] }}</option>@endforeach</select></label>
                         <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="{{ $banner['sort_order'] }}" min="0" required></label>
+                        <label>{{ app()->getLocale()==='ar'?'يبدأ في':'Starts at' }}<input type="datetime-local" name="starts_at" value="{{ empty($banner['starts_at']) ? '' : str_replace(' ', 'T', substr((string) $banner['starts_at'], 0, 16)) }}"></label>
+                        <label>{{ app()->getLocale()==='ar'?'ينتهي في':'Ends at' }}<input type="datetime-local" name="ends_at" value="{{ empty($banner['ends_at']) ? '' : str_replace(' ', 'T', substr((string) $banner['ends_at'], 0, 16)) }}"></label>
                         <label><span><input type="checkbox" name="is_active" value="1" @checked($banner['is_active'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
                     </div>
                     <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}</button></div>
