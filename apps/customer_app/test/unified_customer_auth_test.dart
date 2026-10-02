@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
@@ -161,6 +163,40 @@ void main() {
     );
   });
 
+  testWidgets(
+      'pending storage timeout still resumes the safe auth return route',
+      (tester) async {
+    await tester.pumpWidget(
+      _testApp(
+        child: UnifiedCustomerAuthScreen(
+          nextRoute: CustomerRoutePaths.marketplace,
+          actionApi: const _SuccessfulActionApi(),
+          onAuthenticated: (_, __) async {},
+          pendingActionStore: const _HangingPendingActionStore(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-email')),
+      'buyer@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'secret-pass',
+    );
+    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pumpAndSettle();
+
+    expect(find.text(CustomerRoutePaths.marketplace), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('unified-customer-auth-screen')),
+      findsNothing,
+    );
+  });
+
   testWidgets('biometric failure keeps normal login usable', (tester) async {
     final storage = _MemorySecureStore();
     final sessions = SecureCustomerSessionStore(storage: storage);
@@ -287,6 +323,25 @@ class _FakeBiometric implements CustomerBiometricAuthenticator {
 
   @override
   Future<bool> authenticate({required String reason}) async => result;
+}
+
+class _HangingPendingActionStore implements CustomerPendingActionStore {
+  const _HangingPendingActionStore();
+
+  @override
+  Future<void> clear() => Future<void>.value();
+
+  @override
+  Future<CustomerPendingAction?> read() =>
+      Completer<CustomerPendingAction?>().future;
+
+  @override
+  Future<CustomerPendingAction?> take() =>
+      Completer<CustomerPendingAction?>().future;
+
+  @override
+  Future<void> write(CustomerPendingAction action) =>
+      Completer<void>().future;
 }
 
 class _ThrowingPendingActionStore implements CustomerPendingActionStore {
