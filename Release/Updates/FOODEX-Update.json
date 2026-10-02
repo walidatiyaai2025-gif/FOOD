@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.46",
-  "minimum_current_version": "1.0.44",
-  "sha256": "730ce7cf3772fd5079b16609a8984c9877c1f107e1ba2f480a2a518d1b870cde",
+  "target_version": "1.0.47",
+  "minimum_current_version": "1.0.46",
+  "sha256": "d3c1a038415c72e258778b75b8c3191a99af0a909bb34f62036108dcf9fd9106",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release(#733): FOODEX 1.0.46 unified commerce convergence (#756)",
+  "release_notes": "release(#776): publish FOODEX 1.0.47",
   "dashboard_fields": {
-    "target_version": "1.0.46",
-    "minimum_current_version": "1.0.44",
-    "sha256": "730ce7cf3772fd5079b16609a8984c9877c1f107e1ba2f480a2a518d1b870cde",
+    "target_version": "1.0.47",
+    "minimum_current_version": "1.0.46",
+    "sha256": "d3c1a038415c72e258778b75b8c3191a99af0a909bb34f62036108dcf9fd9106",
     "contains_migrations": true,
-    "release_notes": "release(#733): FOODEX 1.0.46 unified commerce convergence (#756)"
+    "release_notes": "release(#776): publish FOODEX 1.0.47"
   }
 }
