@@ -29,10 +29,41 @@ void main() {
     expect(context.channel, CustomerChannel.b2c);
     expect(context.storeId, 7);
     expect(context.mutationsAllowed, isFalse);
+    expect(context.authMode, 'platform_customer');
+    expect(context.commerceContext, {'channel': 'b2c', 'store_id': 7});
     expect(context.runtimeIdentity.isAuthenticated, isTrue);
-    expect(context.runtimeIdentity.channel, CustomerChannel.b2c);
+    expect(context.runtimeIdentity.channel, isNull);
     expect(context.runtimeIdentity.accessToken, isNull);
-    expect(context.runtimeIdentity.platformWide, isFalse);
+    expect(context.runtimeIdentity.platformWide, isTrue);
+  });
+
+  test('same preview customer identity remains platform-wide across commerce contexts', () {
+    final retail = CustomerPreviewContext.fromResolvedSession({
+      'session_id': 'preview-retail',
+      'target_type': 'customer',
+      'channel': 'b2c',
+      'store_id': 7,
+      'read_only': true,
+      'target': {'user_id': 44, 'name': 'Preview Customer', 'locale': 'en'},
+    });
+    final wholesale = CustomerPreviewContext.fromResolvedSession({
+      'session_id': 'preview-wholesale',
+      'target_type': 'customer',
+      'channel': 'b2b',
+      'store_id': 1,
+      'read_only': true,
+      'target': {'user_id': 44, 'name': 'Preview Customer', 'locale': 'en'},
+    });
+
+    expect(retail.targetUserId, wholesale.targetUserId);
+    expect(retail.authMode, 'platform_customer');
+    expect(wholesale.authMode, 'platform_customer');
+    expect(retail.runtimeIdentity.channel, isNull);
+    expect(wholesale.runtimeIdentity.channel, isNull);
+    expect(retail.runtimeIdentity.platformWide, isTrue);
+    expect(wholesale.runtimeIdentity.platformWide, isTrue);
+    expect(retail.commerceContext, {'channel': 'b2c', 'store_id': 7});
+    expect(wholesale.commerceContext, {'channel': 'b2b', 'store_id': 1});
   });
 
   test('customer preview rejects driver and writable session contexts', () {
