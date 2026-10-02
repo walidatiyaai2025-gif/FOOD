@@ -1256,7 +1256,7 @@ IconData _marketplaceProductIcon(String rawName) {
   final name = rawName.toLowerCase();
   if (name.contains('لبن') || name.contains('حليب') || name.contains('milk')) return Icons.local_drink_outlined;
   if (name.contains('جبن') || name.contains('cheese')) return Icons.breakfast_dining_outlined;
-  if (name.contains('مياه') || name.contains('ماء') || name.contains('water')) return Icons.water_drop_outlined;
+  if (name.contains('مياه') || name.contains('ماء') || name.contains('water')) return Icons.water_drop_rounded;
   if (name.contains('زيت') || name.contains('oil')) return Icons.opacity_rounded;
   if (name.contains('بيض') || name.contains('egg')) return Icons.egg_outlined;
   if (name.contains('بطاط') || name.contains('خض') || name.contains('فاكه') || name.contains('veget') || name.contains('fruit')) return Icons.eco_outlined;
