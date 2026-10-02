@@ -545,20 +545,15 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                     client: _sessionHttpClient,
                   ));
 
-    WholesaleCommerceApi? wholesaleCommerceForToken(String accessToken) {
-      if (widget.wholesaleCommerceApi != null) {
-        return widget.wholesaleCommerceApi;
+    CustomerActionApi customerActionForToken(String accessToken) {
+      if (widget.actionApi != null) {
+        return widget.actionApi!;
       }
-      if (preview != null) {
-        return wholesaleCommerceApi;
-      }
-      if (accessToken.trim().isEmpty) {
-        return null;
-      }
-      return HttpWholesaleCommerceApi(
+      return HttpCustomerActionApi(
         baseUrl: baseUrl,
         token: accessToken,
-        retailStoreContextId: _session.b2bRetailStoreId,
+        guestSession: _guestSession,
+        b2bRetailStoreId: _session.b2bRetailStoreId,
         client: _sessionHttpClient,
       );
     }
@@ -574,15 +569,10 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
         return null;
       }
 
-      final commerce = wholesaleCommerceForToken(accessToken);
-      if (commerce == null) {
-        return null;
-      }
-
-      await commerce.addItem(
-        action.context.storeId,
-        action.productId!,
-        action.quantity!,
+      await customerActionForToken(accessToken).addCartItem(
+        storeId: action.context.storeId,
+        productId: action.productId!,
+        quantity: action.quantity!,
       );
       return CustomerRouteLocations.wholesaleCart(action.context);
     }
