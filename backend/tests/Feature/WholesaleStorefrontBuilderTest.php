@@ -206,12 +206,25 @@ class WholesaleStorefrontBuilderTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $secondRetailStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $retailTypeId,
+            'code' => 'PLATFORM-PLACEMENT-RETAIL-2',
+            'name' => 'Retail Placement Store Two',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $admin = $this->roleUser('B2B_ADMIN', 'wholesale-placement@example.test');
+        $startsAt = now()->subHour()->format('Y-m-d\TH:i');
+        $endsAt = now()->addHour()->format('Y-m-d\TH:i');
 
         $this->actingAs($admin)
             ->get(route('admin.b2b.module', ['module' => 'storefront']))
             ->assertOk()
-            ->assertSee('Retail Store · Retail Placement Store');
+            ->assertSee('Retail Store · Retail Placement Store')
+            ->assertSee('Retail Store · Retail Placement Store Two')
+            ->assertSee('Starts at')
+            ->assertSee('Ends at');
 
         $this->actingAs($admin)->post(route('admin.b2b.storefront.banners.store'), [
             'store_id' => $platformStoreId,
@@ -219,6 +232,28 @@ class WholesaleStorefrontBuilderTest extends TestCase
             'banner_image' => UploadedFile::fake()->image('retail-placement.webp', 1200, 420),
             'target_ref' => 'retail_store:'.$retailStoreId,
             'sort_order' => 4,
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'is_active' => 1,
+        ])->assertSessionHasNoErrors();
+
+        $this->actingAs($admin)->post(route('admin.b2b.storefront.banners.store'), [
+            'store_id' => $platformStoreId,
+            'title' => 'Retail Merchant Placement Two',
+            'banner_image' => UploadedFile::fake()->image('retail-placement-two.webp', 1200, 420),
+            'target_ref' => 'retail_store:'.$secondRetailStoreId,
+            'sort_order' => 2,
+            'is_active' => 1,
+        ])->assertSessionHasNoErrors();
+
+        $this->actingAs($admin)->post(route('admin.b2b.storefront.banners.store'), [
+            'store_id' => $platformStoreId,
+            'title' => 'Future Retail Placement',
+            'banner_image' => UploadedFile::fake()->image('retail-placement-future.webp', 1200, 420),
+            'target_ref' => 'retail_store:'.$secondRetailStoreId,
+            'sort_order' => 1,
+            'starts_at' => now()->addDay()->format('Y-m-d\TH:i'),
+            'ends_at' => now()->addDays(2)->format('Y-m-d\TH:i'),
             'is_active' => 1,
         ])->assertSessionHasNoErrors();
 
@@ -235,6 +270,14 @@ class WholesaleStorefrontBuilderTest extends TestCase
         $this->assertSame('retail_store', $placement['target_type']);
         $this->assertSame($retailStoreId, (int) $placement['target_id']);
         $this->assertSame('/retail/'.$retailStoreId.'/home', $placement['target_url']);
+        $this->assertSame($startsAt, $placement['starts_at']);
+        $this->assertSame($endsAt, $placement['ends_at']);
+
+        $this->getJson('/api/v1/platform/storefront')
+            ->assertOk()
+            ->assertJsonMissing(['title' => 'Retail Merchant Placement'])
+            ->assertJsonMissing(['title' => 'Retail Merchant Placement Two'])
+            ->assertJsonMissing(['title' => 'Future Retail Placement']);
 
         $this->actingAs($admin)->post(route('admin.b2b.storefront.publish'), [
             'store_id' => $platformStoreId,
@@ -251,11 +294,16 @@ class WholesaleStorefrontBuilderTest extends TestCase
 
         $this->getJson('/api/v1/platform/storefront')
             ->assertOk()
-            ->assertJsonPath('retail_banners.0.store_id', $retailStoreId)
-            ->assertJsonPath('retail_banners.0.title', 'Retail Merchant Placement')
-            ->assertJsonPath('retail_banners.0.placement_scope', 'platform_retail_store')
-            ->assertJsonPath('retail_banners.0.target_type', 'retail_store')
-            ->assertJsonPath('retail_banners.0.target_id', $retailStoreId)
+            ->assertJsonPath('retail_banners.0.store_id', $secondRetailStoreId)
+            ->assertJsonPath('retail_banners.0.title', 'Retail Merchant Placement Two')
+            ->assertJsonPath('retail_banners.0.sort_order', 2)
+            ->assertJsonPath('retail_banners.1.store_id', $retailStoreId)
+            ->assertJsonPath('retail_banners.1.title', 'Retail Merchant Placement')
+            ->assertJsonPath('retail_banners.1.placement_scope', 'platform_retail_store')
+            ->assertJsonPath('retail_banners.1.target_type', 'retail_store')
+            ->assertJsonPath('retail_banners.1.target_id', $retailStoreId)
+            ->assertJsonMissing(['title' => 'Future Retail Placement'])
+            ->assertJsonCount(2, 'retail_banners')
             ->assertJsonCount(0, 'banners');
 
         $this->getJson('/api/v1/stores/'.$retailStoreId.'/storefront')
@@ -264,7 +312,8 @@ class WholesaleStorefrontBuilderTest extends TestCase
 
         $this->getJson('/api/v1/wholesale/stores/'.$platformStoreId.'/storefront')
             ->assertOk()
-            ->assertJsonMissing(['title' => 'Retail Merchant Placement']);
+            ->assertJsonMissing(['title' => 'Retail Merchant Placement'])
+            ->assertJsonMissing(['title' => 'Retail Merchant Placement Two']);
     }
 
     public function test_wholesale_discard_restores_draft_from_published_without_changing_live(): void
