@@ -1,56 +1,37 @@
-# FOODEX 1.0.46 Release Notes
+# FOODEX 1.0.47 Release Notes
 
-Status: synchronized unified Wholesale/Retail commerce-isolation production distribution.
+Status: synchronized post-1.0.46 Dashboard, Customer and Driver release.
 
 ## Release identity
 
-- Dashboard: `1.0.46`
-- Customer app: `1.0.46+46`
-- Driver app: `1.0.46+46`
-- Customer runtime/footer identity: `1.0.46`
-- Driver runtime/footer identity: `1.0.46`
-- Driver diagnostics current identity: `1.0.46`
-- Driver diagnostics build identity: `46`
-- Reserved version `1.0.45`: intentionally skipped and not published.
+- Dashboard: `1.0.47`
+- Customer app: `1.0.47+47`
+- Driver app: `1.0.47+47`
+- Customer runtime/footer identity: `1.0.47`
+- Driver runtime/footer identity: `1.0.47`
+- Driver diagnostics current identity: `1.0.47`
+- Driver diagnostics build identity: `47`
+- Published `1.0.46` remains immutable and is not reused.
 
-## Deployable delta since distributed 1.0.44
+## Included changes
 
-### Unified commerce identity and ownership
-- Make platform identity, Retail Merchant ownership/management and Store-scoped B2C relationships authoritative.
-- Block owned/managed Retail Merchants from purchasing from their own Retail Store at backend authorization boundaries.
-- Keep the Customer App platform-first, with Retail Store entry through exact Retail Merchant placement/banner context.
-
-### B2B/B2C operational isolation
-- Route Wholesale and Retail orders to the correct seller/store/channel operational context.
-- Isolate B2B and B2C Address Books and checkout address selection.
-- Add My Wholesale Orders with backend-authoritative order and delivery timeline data.
-- Prevent cross-store and cross-channel operational visibility.
-
-### Driver and notification convergence
-- Enforce Wholesale/Retail Driver tenant and assignment isolation.
-- Converge all Driver production routes on the shared shell and keep assignment status actions inside Assignment Details.
-- Isolate operational notification audiences, dedupe/deep-link context and authorization by customer/driver/store/channel.
-
-### App Preview and final acceptance
-- Auto-launch published Customer Preview in guest/visitor context.
-- Auto-select the first eligible authorized Driver for Driver Preview, with a clear create/activate Driver state when none exists.
-- Include final Customer + Driver E2E convergence and the 1.0.45 skip/release-identity guard.
+- Driver post-1.0.46 fixes tracked through #761/#763: secure Remember Me, optional fingerprint / Face ID sign-in, Today / All / From-To delivery filters, and one accepted-delivery Receive / Failed execution contract across B2B and B2C.
+- Customer Commerce V4 (#764, #765-#773): one Customer login identity across Retail and Wholesale, Dashboard-managed Retail banners that rotate every 5 seconds and open the exact store, authoritative store-scoped cart/checkout/order routing, unified auth resume, complete Retail and Wholesale purchase journeys, and converged Dashboard order operations.
+- Customer App Preview now mirrors the corrected shared Flutter runtime, keeps authentication identity separate from commerce context, preserves exact store/channel authorization, and keeps Draft vs Published configuration isolated.
+- Existing tenant isolation, self-store purchase protection, Wholesale tier/MOQ rules, notification routing and Driver operational boundaries remain authoritative.
 
 ## Dashboard update bundle
 
-- Target version: `1.0.46`
+- Target version: `1.0.47`
 - Minimum current version: `1.0.6`
-- Contains migrations: `true`
+- Contains migrations: generated manifest is authoritative.
 - Requires full redeploy: `false`
-- SHA-256: `b213519f17e7b901ebaff2ae5e6040a50f47030952450dcfdef4a17768a07b19`
-- Package files: `687`
-- Package size: `73,173,378` bytes
+- SHA-256: generated package metadata and immutable release registry are authoritative.
 
 ## Explicit non-activation statement
 
-This release does **not**:
+This release does **not** automatically:
 - change production minimum-supported AppVersion rows;
 - enable force-update;
 - enable Driver fresh-location enforcement;
-- enable the Assistant in production by default;
-- change the Assistant from read-only by default.
+- enable the Assistant in production.
