@@ -18,7 +18,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(
       find.byKey(const ValueKey('customer-login-submit')),
       findsOneWidget,
@@ -424,7 +425,8 @@ void main() {
   testWidgets('B2C session cannot enter B2B protected journey', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(session: CustomerSession.authenticated(CustomerChannel.b2c), initialRoute: '/b2b/invoices'));
     await tester.pumpAndSettle();
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
   });
 
   testWidgets('B2B top products use ranked endpoint and render authoritative data', (tester) async {
