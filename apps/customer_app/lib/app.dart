@@ -512,6 +512,32 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
               guestSession: _guestSession,
               client: _sessionHttpClient,
             );
+
+    Future<void> executePendingAction(
+      String authenticatedToken,
+      CustomerPendingAction pending,
+    ) async {
+      if (pending.kind != CustomerPendingActionKind.addToCart ||
+          !pending.context.isWholesale ||
+          pending.productId == null ||
+          pending.quantity == null) {
+        return;
+      }
+
+      final authenticatedActionApi = widget.actionApi ??
+          HttpCustomerActionApi(
+            baseUrl: baseUrl,
+            token: authenticatedToken,
+            guestSession: _guestSession,
+            b2bRetailStoreId: _session.b2bRetailStoreId,
+            client: _sessionHttpClient,
+          );
+      await authenticatedActionApi.addCartItem(
+        storeId: pending.context.storeId,
+        productId: pending.productId!,
+        quantity: pending.quantity!,
+      );
+    }
     final b2bAccountApi = preview != null
         ? widget.b2cAccountApi!
         : HttpB2cAccountApi(
@@ -616,6 +642,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
           widget.previewContext == null ? widget.biometricAuthenticator : null,
       pendingActionStore:
           widget.previewContext == null ? _pendingActionStore : null,
+      pendingActionExecutor:
+          widget.previewContext == null ? executePendingAction : null,
       onLocaleChanged: _changeLocale,
       locationService: widget.locationService ??
           const GeolocatorCustomerLocationService(),
