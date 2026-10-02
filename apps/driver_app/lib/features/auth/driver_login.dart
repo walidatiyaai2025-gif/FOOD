@@ -256,43 +256,6 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                   ),
                                   onSubmitted: (_) => _submit(),
                                 ),
-                                const SizedBox(height: 10),
-                                CheckboxListTile(
-                                  key: const Key('driver-login-remember'),
-                                  contentPadding: EdgeInsets.zero,
-                                  controlAffinity: ListTileControlAffinity.leading,
-                                  value: _rememberMe,
-                                  title: Text(context.tr('driver.login.remember_me')),
-                                  onChanged: _submitting
-                                      ? null
-                                      : (value) => setState(() {
-                                            _rememberMe = value ?? false;
-                                            if (!_rememberMe) {
-                                              _enableBiometrics = false;
-                                            }
-                                          }),
-                                ),
-                                if (!_checkingBiometrics && _biometricAvailable)
-                                  CheckboxListTile(
-                                    key: const Key('driver-login-biometric-toggle'),
-                                    contentPadding: EdgeInsets.zero,
-                                    controlAffinity: ListTileControlAffinity.leading,
-                                    value: _enableBiometrics,
-                                    title: Text(
-                                      context.tr('driver.login.enable_biometric'),
-                                    ),
-                                    subtitle: Text(
-                                      context.tr('driver.login.biometric_hint'),
-                                    ),
-                                    onChanged: _submitting
-                                        ? null
-                                        : (value) => setState(() {
-                                              _enableBiometrics = value ?? false;
-                                              if (_enableBiometrics) {
-                                                _rememberMe = true;
-                                              }
-                                            }),
-                                  ),
                                 const SizedBox(height: 8),
                                 if (_errorKey != null)
                                   Container(
@@ -341,6 +304,45 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                     ),
                                   ),
                                 ],
+                                const SizedBox(height: 10),
+                                CheckboxListTile(
+                                  key: const Key('driver-login-remember'),
+                                  contentPadding: EdgeInsets.zero,
+                                  controlAffinity: ListTileControlAffinity.leading,
+                                  value: _rememberMe,
+                                  dense: true,
+                                  title: Text(context.tr('driver.login.remember_me')),
+                                  onChanged: _submitting
+                                      ? null
+                                      : (value) => setState(() {
+                                            _rememberMe = value ?? false;
+                                            if (!_rememberMe) {
+                                              _enableBiometrics = false;
+                                            }
+                                          }),
+                                ),
+                                if (!_checkingBiometrics && _biometricAvailable)
+                                  CheckboxListTile(
+                                    key: const Key('driver-login-biometric-toggle'),
+                                    contentPadding: EdgeInsets.zero,
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    value: _enableBiometrics,
+                                    dense: true,
+                                    title: Text(
+                                      context.tr('driver.login.enable_biometric'),
+                                    ),
+                                    subtitle: Text(
+                                      context.tr('driver.login.biometric_hint'),
+                                    ),
+                                    onChanged: _submitting
+                                        ? null
+                                        : (value) => setState(() {
+                                              _enableBiometrics = value ?? false;
+                                              if (_enableBiometrics) {
+                                                _rememberMe = true;
+                                              }
+                                            }),
+                                  ),
                               ],
                             ],
                           ),
