@@ -114,12 +114,18 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     var target = widget.nextRoute;
     final pendingStore = widget.pendingActionStore;
     if (pendingStore != null) {
-      final pending = await pendingStore.take();
-      if (pending != null) {
-        final context = widget.commerceContext;
-        if (context == null || context.sameScope(pending.context)) {
-          target = pending.nextLocation;
+      try {
+        final pending = await pendingStore.take();
+        if (pending != null) {
+          final context = widget.commerceContext;
+          if (context == null || context.sameScope(pending.context)) {
+            target = pending.nextLocation;
+          }
         }
+      } catch (_) {
+        // Pending-action persistence is supplementary routing state. Once
+        // authentication succeeded, a secure-storage failure must not turn the
+        // valid login into an auth error or block the already-safe nextRoute.
       }
     }
 
