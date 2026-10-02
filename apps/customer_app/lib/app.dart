@@ -10,6 +10,7 @@ import 'core/api/b2c_account_api.dart';
 import 'core/api/customer_action_api.dart';
 import 'core/api/storefront_api.dart';
 import 'core/api/wholesale_commerce_api.dart';
+import 'core/auth/customer_auth_persistence.dart';
 import 'core/auth/customer_session.dart';
 import 'core/auth/customer_session_http_client.dart';
 import 'core/auth/customer_session_store.dart';
@@ -23,6 +24,7 @@ import 'core/preview/customer_preview_bootstrap.dart';
 import 'core/preview/customer_preview_context.dart';
 import 'core/preview/customer_preview_viewport.dart';
 import 'core/routing/customer_commerce_context_store.dart';
+import 'core/routing/customer_pending_action.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
 import 'core/theme/foodex_theme.dart';
@@ -35,6 +37,10 @@ class FoodexCustomerApp extends StatefulWidget {
     super.key,
     this.session = const CustomerSession.guest(),
     this.sessionStore,
+    this.authPreferences = const CustomerAuthPreferences(),
+    this.authPreferenceStore,
+    this.biometricAuthenticator,
+    this.pendingActionStore,
     this.initialRoute = CustomerRoutePaths.marketplace,
     this.b2bApi,
     this.b2cCatalogApi,
@@ -112,6 +118,10 @@ class FoodexCustomerApp extends StatefulWidget {
 
   final CustomerSession session;
   final CustomerSessionStore? sessionStore;
+  final CustomerAuthPreferences authPreferences;
+  final CustomerAuthPreferenceStore? authPreferenceStore;
+  final CustomerBiometricAuthenticator? biometricAuthenticator;
+  final CustomerPendingActionStore? pendingActionStore;
   final String initialRoute;
   final B2bApi? b2bApi;
   final B2cCatalogApi? b2cCatalogApi;
@@ -139,6 +149,8 @@ class FoodexCustomerApp extends StatefulWidget {
 class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   late Map<String, String> _translations;
   late CustomerSession _session;
+  late CustomerAuthPreferences _authPreferences;
+  late final CustomerPendingActionStore _pendingActionStore;
   late Locale _locale;
   final CustomerGuestSession _guestSession = CustomerGuestSession();
   final CustomerGuestCartTokenStore _guestCartTokenStore =
@@ -160,6 +172,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     super.initState();
     _translations = Map<String, String>.from(widget.translationOverrides);
     _session = widget.session;
+    _authPreferences = widget.authPreferences;
+    _pendingActionStore =
+        widget.pendingActionStore ?? SecureCustomerPendingActionStore();
     _locale = widget.locale;
     _diagnosticsHttpClient = CustomerDiagnosticsHttpClient(
       http.Client(),
@@ -265,11 +280,21 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   }
 
   Future<void> _persistSession(CustomerSession session) async {
-    final store = widget.sessionStore;
-    if (widget.previewContext != null || store == null) return;
+    if (widget.previewContext != null) return;
 
+    final sessionStore = widget.sessionStore;
+    final preferenceStore = widget.authPreferenceStore;
     try {
-      await store.write(session);
+      if (sessionStore != null) {
+        if (_authPreferences.rememberMe) {
+          await sessionStore.write(session);
+        } else {
+          await sessionStore.clear();
+        }
+      }
+      if (preferenceStore != null) {
+        await preferenceStore.write(_authPreferences);
+      }
     } catch (error) {
       _diagnostics.record('session_persist_error', {
         'error_type': error.runtimeType.toString(),
@@ -278,42 +303,48 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   }
 
   Future<void> _clearPersistedSession() async {
-    final store = widget.sessionStore;
-    if (widget.previewContext != null || store == null) return;
+    if (widget.previewContext != null) return;
 
     try {
-      await store.clear();
+      await widget.sessionStore?.clear();
+      await widget.authPreferenceStore?.clear();
     } catch (error) {
       _diagnostics.record('session_clear_error', {
         'error_type': error.runtimeType.toString(),
       });
     }
+    _authPreferences = const CustomerAuthPreferences();
+  }
+
+  void _completeUnifiedAuthentication(
+    String token,
+    CustomerAuthPreferences preferences,
+  ) {
+    if (widget.previewContext != null) return;
+    final session = CustomerSession.platformCustomer(
+      accessToken: token,
+      b2bRetailStoreId: _session.b2bRetailStoreId,
+    );
+    setState(() {
+      _session = session;
+      _authPreferences = preferences;
+    });
+    unawaited(_persistSession(session));
+    _bindPushSession();
   }
 
   void _onAuthenticated(CustomerChannel channel, String token) {
-    if (widget.previewContext != null) return;
-    final session = CustomerSession.platformCustomer(
-      accessToken: token,
-      b2bRetailStoreId: _session.b2bRetailStoreId,
+    _completeUnifiedAuthentication(
+      token,
+      const CustomerAuthPreferences(),
     );
-    setState(() {
-      _session = session;
-    });
-    unawaited(_persistSession(session));
-    _bindPushSession();
   }
 
   void _onPlatformRegistered(String token) {
-    if (widget.previewContext != null) return;
-    final session = CustomerSession.platformCustomer(
-      accessToken: token,
-      b2bRetailStoreId: _session.b2bRetailStoreId,
+    _completeUnifiedAuthentication(
+      token,
+      const CustomerAuthPreferences(),
     );
-    setState(() {
-      _session = session;
-    });
-    unawaited(_persistSession(session));
-    _bindPushSession();
   }
 
   void _enterWholesale(int? retailStoreId) {
@@ -551,6 +582,13 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       onSessionExpired: _onSessionExpired,
       onEnterWholesale: _enterWholesale,
       onPlatformRegistered: _onPlatformRegistered,
+      onUnifiedAuthenticated: _completeUnifiedAuthentication,
+      sessionStore: widget.previewContext == null ? widget.sessionStore : null,
+      authPreferences: _authPreferences,
+      biometricAuthenticator:
+          widget.previewContext == null ? widget.biometricAuthenticator : null,
+      pendingActionStore:
+          widget.previewContext == null ? _pendingActionStore : null,
       onLocaleChanged: _changeLocale,
       locationService: widget.locationService ??
           const GeolocatorCustomerLocationService(),
