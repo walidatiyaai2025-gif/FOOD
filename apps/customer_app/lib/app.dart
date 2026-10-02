@@ -157,6 +157,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       SecureCustomerGuestCartTokenStore();
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  CustomerAppRouter? _activeRouter;
   StreamSubscription<String>? _pushRouteSubscription;
   StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
   Timer? _versionFooterTimer;
@@ -358,11 +359,18 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
 
   Future<void> _resumeAuthenticatedRoute(String target) async {
     // Route from the app-owned Navigator after the authenticated rebuild.
-    // This remains valid even if the auth route widget is disposed as part of
-    // the session transition.
+    // Generate the replacement from the latest router instance directly:
+    // relying on Navigator.pushReplacementNamed here can race with the
+    // Navigator widget updating its onGenerateRoute callback.
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted) return;
-    _navigatorKey.currentState?.pushReplacementNamed(target);
+
+    final navigator = _navigatorKey.currentState;
+    final router = _activeRouter;
+    if (navigator == null || router == null) return;
+
+    final route = router.onGenerateRoute(RouteSettings(name: target));
+    unawaited(navigator.pushReplacement(route).then<void>((_) {}));
   }
 
   void _enterWholesale(int? retailStoreId) {
@@ -615,6 +623,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       marketplaceClient: widget.marketplaceClient,
       marketplaceBarcodeScanner: widget.marketplaceBarcodeScanner,
     );
+    _activeRouter = router;
 
     return MaterialApp(
       navigatorKey: _navigatorKey,
