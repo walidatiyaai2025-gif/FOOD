@@ -345,6 +345,14 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     _configureLocationTracking(session);
   }
 
+  Future<void> _clearRememberedSession() async {
+    try {
+      await _sessionStore.clear();
+    } catch (_) {
+      // Secure storage is best-effort on unsupported/test runtimes.
+    }
+  }
+
   void _sessionExpired() {
     _disposeLocationTracking();
     _locationGateReady = false;
@@ -352,7 +360,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     if (service != null) unawaited(service.revokeSession());
     DriverRuntimeInspector.instance.recordNavigation('driver.login');
     if (widget.previewContext == null) {
-      unawaited(_sessionStore.clear());
+      unawaited(_clearRememberedSession());
     }
     if (mounted) setState(() => _session = null);
   }
