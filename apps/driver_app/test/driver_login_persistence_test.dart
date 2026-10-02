@@ -47,10 +47,10 @@ class _Store implements DriverSessionStore {
 }
 
 class _Biometric implements DriverBiometricAuthenticator {
-  _Biometric({this.available = true, this.result = true});
+  const const _Biometric();
 
-  final bool available;
-  final bool result;
+  static const bool available = true;
+  static const bool result = true;
 
   @override
   Future<bool> authenticate({required String reason}) async => result;
@@ -91,7 +91,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         store: store,
-        biometric: _Biometric(),
+        biometric: const _Biometric(),
         onAuthenticated: (value, rememberMe, biometricEnabled) {
           session = value;
           remember = rememberMe;
@@ -138,7 +138,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         store: store,
-        biometric: _Biometric(),
+        biometric: const _Biometric(),
         onAuthenticated: (value, rememberMe, biometricEnabled) {
           session = value;
         },
