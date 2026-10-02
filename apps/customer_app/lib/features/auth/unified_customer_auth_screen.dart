@@ -110,17 +110,20 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         biometricEnabled: _biometricAvailable && _biometricEnabled,
       );
 
-  Future<void> _resumeAfterAuthentication() async {
-    var target = widget.nextRoute;
-    final pendingStore = widget.pendingActionStore;
+  Future<void> _resumeAfterAuthentication({
+    required String nextRoute,
+    required CustomerPendingActionStore? pendingStore,
+    required CustomerCommerceContext? commerceContext,
+    required CustomerAuthenticatedRouteResume? appLevelResume,
+  }) async {
+    var target = nextRoute;
     if (pendingStore != null) {
       try {
         final pending = await pendingStore.take();
-        if (pending != null) {
-          final context = widget.commerceContext;
-          if (context == null || context.sameScope(pending.context)) {
-            target = pending.nextLocation;
-          }
+        if (pending != null &&
+            (commerceContext == null ||
+                commerceContext.sameScope(pending.context))) {
+          target = pending.nextLocation;
         }
       } catch (_) {
         // Pending-action persistence is supplementary routing state. Once
@@ -129,7 +132,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       }
     }
 
-    final appLevelResume = widget.resumeAuthenticatedRoute;
     if (appLevelResume != null) {
       await appLevelResume(target);
       return;
@@ -143,24 +145,40 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     String token, {
     required bool mergeRetailGuestCart,
   }) async {
-    // Authentication is authoritative only after the parent commits the new
-    // platform session/router. Await that contract before any cart merge or
-    // protected-route resume instead of guessing with frame delays here.
-    await widget.onAuthenticated(token, _selectedPreferences);
-    if (!mounted) return;
+    // Capture everything needed for post-auth work before the parent rebuild:
+    // that rebuild may legitimately dispose this auth route.
+    final nextRoute = widget.nextRoute;
+    final pendingStore = widget.pendingActionStore;
+    final commerceContext = widget.commerceContext;
+    final commerceFactory = widget.commerceForToken;
+    final appLevelResume = widget.resumeAuthenticatedRoute;
+    final preferences = _selectedPreferences;
 
-    if (mergeRetailGuestCart) {
-      final context = widget.commerceContext;
-      final factory = widget.commerceForToken;
-      if (context != null && context.isRetail && factory != null) {
-        final commerce = factory(token);
-        await commerce.mergeGuestCartAfterAuthentication(
-          storeId: context.storeId,
-        );
-      }
+    // Authentication is authoritative only after the parent commits the new
+    // platform session/router.
+    await widget.onAuthenticated(token, preferences);
+
+    // Guest-cart merge does not depend on this State remaining mounted.
+    if (mergeRetailGuestCart &&
+        commerceContext != null &&
+        commerceContext.isRetail &&
+        commerceFactory != null) {
+      final commerce = commerceFactory(token);
+      await commerce.mergeGuestCartAfterAuthentication(
+        storeId: commerceContext.storeId,
+      );
     }
 
-    await _resumeAfterAuthentication();
+    // The app-owned resume is intentionally allowed after this auth State has
+    // been disposed by the authenticated rebuild. Only the local Navigator
+    // fallback still requires [mounted].
+    if (!mounted && appLevelResume == null) return;
+    await _resumeAfterAuthentication(
+      nextRoute: nextRoute,
+      pendingStore: pendingStore,
+      commerceContext: commerceContext,
+      appLevelResume: appLevelResume,
+    );
   }
 
   Future<void> _authenticateWithBiometrics() async {
