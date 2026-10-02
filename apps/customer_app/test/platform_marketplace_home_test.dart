@@ -739,6 +739,7 @@ void main() {
       ),
       TextDirection.rtl,
     );
+    expect(find.byKey(const ValueKey('marketplace-compact-header')), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-scan')), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-language')), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-search')), findsOneWidget);
@@ -879,6 +880,7 @@ void main() {
         .dy;
     expect(wholesaleTop, bannerTop);
     expect(bannerTop, lessThan(categoriesTop));
+    expect(find.byIcon(Icons.local_cafe_outlined), findsWidgets);
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
@@ -907,6 +909,7 @@ void main() {
     expect(productName.overflow, TextOverflow.ellipsis);
     expect(find.text('API Water'), findsOneWidget);
     expect(find.text('12.5 KWD'), findsOneWidget);
+    expect(find.byIcon(Icons.water_drop_rounded), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }
