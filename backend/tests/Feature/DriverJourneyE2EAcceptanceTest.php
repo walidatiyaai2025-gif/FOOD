@@ -194,6 +194,70 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
         Queue::assertPushed(DispatchPushNotification::class);
     }
 
+    public function test_receive_and_fail_actions_are_available_before_ready_for_both_channels(): void
+    {
+        foreach ([
+            ['channel' => 'b2c', 'role' => 'B2C_STORE_ADMIN', 'suffix' => 'PARITY-B2C'],
+            ['channel' => 'b2b', 'role' => 'B2B_ADMIN', 'suffix' => 'PARITY-B2B'],
+        ] as $case) {
+            [$storeId, $order] = $this->order($case['channel'], $case['suffix']);
+            $order->forceFill(['status' => 'confirmed'])->save();
+
+            $admin = $this->admin(
+                $case['role'],
+                $storeId,
+                strtolower($case['suffix']).'-admin@example.test',
+            );
+            [$driverUser, $driver] = $this->driver(
+                $case['channel'],
+                $storeId,
+                strtolower($case['suffix']).'-driver@example.test',
+            );
+
+            Sanctum::actingAs($admin);
+            $assignmentId = $this->postJson('/api/v1/admin/deliveries/assign', [
+                'driver_id' => $driver->id,
+                'order_id' => $order->id,
+            ])->assertCreated()
+                ->assertJsonPath('data.assignment_type', $case['channel'])
+                ->json('data.id');
+
+            Sanctum::actingAs($driverUser);
+            $this->transition(
+                $assignmentId,
+                'accepted',
+                strtolower($case['suffix']).'-accept',
+            )->assertJsonPath('data.status', 'accepted')
+                ->assertJsonPath('data.order.status', 'confirmed')
+                ->assertJsonPath('data.available_statuses.0', 'picked_up')
+                ->assertJsonPath('data.available_statuses.1', 'failed');
+
+            $this->transition(
+                $assignmentId,
+                'picked_up',
+                strtolower($case['suffix']).'-pickup',
+            )->assertJsonPath('data.status', 'picked_up')
+                ->assertJsonPath('data.order.status', 'confirmed')
+                ->assertJsonPath('data.available_statuses.0', 'out_for_delivery')
+                ->assertJsonPath('data.available_statuses.1', 'failed');
+
+            $this->transition(
+                $assignmentId,
+                'out_for_delivery',
+                strtolower($case['suffix']).'-start',
+            )->assertJsonPath('data.status', 'out_for_delivery')
+                ->assertJsonPath('data.order.status', 'out_for_delivery')
+                ->assertJsonPath('data.available_statuses.0', 'delivered')
+                ->assertJsonPath('data.available_statuses.1', 'failed');
+
+            $this->assertDatabaseHas('order_status_history', [
+                'order_id' => $order->id,
+                'from_status' => 'confirmed',
+                'to_status' => 'out_for_delivery',
+            ]);
+        }
+    }
+
     public function test_reassignment_revocation_failure_and_b2b_contract_share_the_authoritative_path(): void
     {
         [$storeId, $order] = $this->order('b2c', 'REASSIGN');
