@@ -253,6 +253,7 @@ class _WholesaleHomeDesignScreenState
                     _WholesaleProductGrid(
                       rows: rows,
                       storeId: storeId,
+                      sourceLocation: widget.location,
                       session: widget.session,
                       actionApi: widget.actionApi,
                       pendingActionStore: widget.pendingActionStore,
@@ -269,6 +270,39 @@ class _WholesaleHomeDesignScreenState
                   );
                   break;
               }
+            }
+
+            final productSectionTypes = <String>{
+              'offers',
+              'featured_products',
+              'best_sellers',
+              'reorder',
+              'product_grid',
+              'product_carousel',
+            };
+            final hasProductSection = effectiveSections.any(
+              (section) => productSectionTypes.contains(
+                section['type']?.toString() ?? '',
+              ),
+            );
+            if (rows.isNotEmpty && !hasProductSection) {
+              content.add(
+                FoodexSectionHeader(
+                  title: 'المنتجات',
+                  palette: palette,
+                ),
+              );
+              content.add(
+                _WholesaleProductGrid(
+                  rows: rows,
+                  storeId: storeId,
+                  sourceLocation: widget.location,
+                  session: widget.session,
+                  actionApi: widget.actionApi,
+                  pendingActionStore: widget.pendingActionStore,
+                  palette: palette,
+                ),
+              );
             }
 
             return Scaffold(
@@ -607,6 +641,7 @@ class _WholesaleProductGrid extends StatelessWidget {
   const _WholesaleProductGrid({
     required this.rows,
     required this.storeId,
+    required this.sourceLocation,
     required this.session,
     required this.actionApi,
     required this.pendingActionStore,
@@ -615,6 +650,7 @@ class _WholesaleProductGrid extends StatelessWidget {
 
   final List<Map<String, dynamic>> rows;
   final int storeId;
+  final String sourceLocation;
   final CustomerSession session;
   final CustomerActionApi actionApi;
   final CustomerPendingActionStore? pendingActionStore;
@@ -725,6 +761,7 @@ class _WholesaleProductGrid extends StatelessWidget {
                             storeId: storeId,
                             productId: id,
                             quantity: minimum,
+                            sourceLocation: sourceLocation,
                           );
                           return;
                         }
@@ -767,16 +804,21 @@ Future<void> _beginWholesaleAddHandoff({
   required int storeId,
   required int productId,
   required double quantity,
+  String? sourceLocation,
 }) async {
-  final commerceContext = CustomerCommerceContext(
-    channel: CustomerCommerceChannel.wholesale,
-    storeId: storeId,
-    source: CustomerCommerceSource.wholesaleEntry,
-  );
-  final nextLocation = Uri(
-    path: '/b2b/products/$productId',
-    queryParameters: commerceContext.toQueryParameters(),
-  ).toString();
+  final parsedContext =
+      CustomerCommerceContext.tryParseLocation(sourceLocation);
+  final commerceContext = parsedContext != null &&
+          parsedContext.isWholesale &&
+          parsedContext.storeId == storeId
+      ? parsedContext
+      : CustomerCommerceContext(
+          channel: CustomerCommerceChannel.wholesale,
+          storeId: storeId,
+          source: CustomerCommerceSource.wholesaleEntry,
+        );
+  final nextLocation =
+      CustomerRouteLocations.wholesaleProduct(commerceContext, productId);
 
   final pending = CustomerPendingAction(
     kind: CustomerPendingActionKind.addToCart,
@@ -1147,6 +1189,7 @@ class _WholesaleProductDetailsDesignScreenState
                           storeId: storeId,
                           productId: productId,
                           quantity: quantity!,
+                          sourceLocation: widget.location,
                         );
                         return;
                       }
