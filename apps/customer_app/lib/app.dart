@@ -356,6 +356,15 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     );
   }
 
+  Future<void> _resumeAuthenticatedRoute(String target) async {
+    // Route from the app-owned Navigator after the authenticated rebuild.
+    // This remains valid even if the auth route widget is disposed as part of
+    // the session transition.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    _navigatorKey.currentState?.pushReplacementNamed(target);
+  }
+
   void _enterWholesale(int? retailStoreId) {
     if (widget.previewContext != null || !_session.isAuthenticated) return;
     final session = _session.asB2bRetailContext(retailStoreId);
@@ -592,6 +601,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       onEnterWholesale: _enterWholesale,
       onPlatformRegistered: _onPlatformRegistered,
       onUnifiedAuthenticated: _completeUnifiedAuthentication,
+      onAuthenticatedRouteResume: _resumeAuthenticatedRoute,
       sessionStore: widget.previewContext == null ? widget.sessionStore : null,
       authPreferences: _authPreferences,
       biometricAuthenticator:
