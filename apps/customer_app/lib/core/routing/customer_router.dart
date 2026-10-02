@@ -7,11 +7,14 @@ import '../api/b2c_account_api.dart';
 import '../api/customer_action_api.dart';
 import '../api/storefront_api.dart';
 import '../api/wholesale_commerce_api.dart';
+import '../auth/customer_auth_persistence.dart';
 import '../auth/customer_session.dart';
+import '../auth/customer_session_store.dart';
 import '../location/customer_location_service.dart';
 import '../location/customer_map_pin_selector.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
 import '../../features/customer_orders/customer_orders_api.dart';
+import '../../features/auth/unified_customer_auth_screen.dart';
 import '../../features/diagnostics/customer_diagnostics_screen.dart';
 import '../../features/retail/auth/retail_checkout_auth_screen.dart';
 import '../../features/retail/commerce/retail_commerce_api.dart';
@@ -20,6 +23,7 @@ import '../../features/storefront/marketplace_barcode_scanner.dart';
 import '../../features/storefront/multistore_design_screen.dart';
 import '../../shared/customer_action_widgets.dart';
 import 'customer_commerce_context.dart';
+import 'customer_pending_action.dart';
 import 'customer_routes.dart';
 
 class CustomerAppRouter {
@@ -30,6 +34,12 @@ class CustomerAppRouter {
     required this.onSessionExpired,
     required this.onEnterWholesale,
     required this.onPlatformRegistered,
+    this.onUnifiedAuthenticated,
+    this.onAuthenticatedRouteResume,
+    this.sessionStore,
+    this.authPreferences = const CustomerAuthPreferences(),
+    this.biometricAuthenticator,
+    this.pendingActionStore,
     required this.onLocaleChanged,
     this.b2bApi,
     this.storefrontApi,
@@ -67,6 +77,12 @@ class CustomerAppRouter {
   final VoidCallback onSessionExpired;
   final ValueChanged<int?> onEnterWholesale;
   final ValueChanged<String> onPlatformRegistered;
+  final CustomerUnifiedAuthenticated? onUnifiedAuthenticated;
+  final CustomerAuthenticatedRouteResume? onAuthenticatedRouteResume;
+  final CustomerSessionStore? sessionStore;
+  final CustomerAuthPreferences authPreferences;
+  final CustomerBiometricAuthenticator? biometricAuthenticator;
+  final CustomerPendingActionStore? pendingActionStore;
   final ValueChanged<Locale> onLocaleChanged;
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -90,7 +106,15 @@ class CustomerAppRouter {
       requested = definitionFor(requestedLocation)!;
     }
 
-    if (_isRetailJourney(requested)) {
+    final wholesaleAuthHandoff =
+        requested.pattern == CustomerRoutePaths.checkoutAuth &&
+        safeCustomerReturnLocation(
+              Uri.tryParse(requestedLocation)?.queryParameters['next'],
+              channel: CustomerChannel.b2b,
+            ) !=
+            null;
+
+    if (_isRetailJourney(requested) && !wholesaleAuthHandoff) {
       final normalized = _normalizeRetailLocation(
         requested,
         requestedLocation,
@@ -255,6 +279,59 @@ class CustomerAppRouter {
       builder: (_) {
         if (definition.pattern == CustomerRoutePaths.diagnostics) {
           return const CustomerDiagnosticsScreen();
+        }
+
+        if (definition.pattern == CustomerRoutePaths.checkoutAuth ||
+            definition.pattern == CustomerRoutePaths.b2bLogin) {
+          final uri = Uri.parse(requestedLocation);
+          final rawNext = uri.queryParameters['next'];
+          var commerceContext =
+              CustomerCommerceContext.tryParseLocation(requestedLocation);
+
+          String nextLocation;
+          if (commerceContext != null) {
+            nextLocation = safeCustomerContextReturnLocation(
+                  rawNext,
+                  context: commerceContext,
+                ) ??
+                (commerceContext.isRetail
+                    ? CustomerRouteLocations.retailCheckout(commerceContext)
+                    : CustomerRouteLocations.wholesaleHome(commerceContext));
+          } else {
+            final wholesaleNext = safeCustomerReturnLocation(
+              rawNext,
+              channel: CustomerChannel.b2b,
+            );
+            if (wholesaleNext != null) {
+              nextLocation = wholesaleNext;
+              commerceContext =
+                  CustomerCommerceContext.tryParseLocation(wholesaleNext);
+            } else {
+              nextLocation = CustomerRoutePaths.marketplace;
+            }
+          }
+
+          return UnifiedCustomerAuthScreen(
+            nextRoute: nextLocation,
+            actionApi: actionApi,
+            onAuthenticated: onUnifiedAuthenticated ??
+                (token, preferences) async => onPlatformRegistered(token),
+            commerceContext: commerceContext,
+            registrationStoreId:
+                commerceContext != null && commerceContext.isRetail
+                    ? commerceContext.storeId
+                    : null,
+            commerceForToken:
+                commerceContext != null && commerceContext.isRetail
+                    ? retailCommerceForToken
+                    : null,
+            pendingActionStore: pendingActionStore,
+            sessionStore: sessionStore,
+            preferences: authPreferences,
+            biometricAuthenticator: biometricAuthenticator,
+            resumeAuthenticatedRoute: onAuthenticatedRouteResume,
+            registerInitially: uri.queryParameters['entry'] == 'register',
+          );
         }
 
         if (_isRetailJourney(definition)) {

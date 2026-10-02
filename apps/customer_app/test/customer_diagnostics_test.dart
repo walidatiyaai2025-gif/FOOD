@@ -157,7 +157,7 @@ void main() {
     );
   });
 
-  testWidgets('Customer checkout auth uses the NEW Retail auth surface',
+  testWidgets('Customer checkout auth uses the unified customer auth surface',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
@@ -169,11 +169,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('retail-checkout-auth-screen')),
+      find.byKey(const ValueKey('unified-customer-auth-screen')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('retail-auth-submit')),
+      find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
     );
     expect(

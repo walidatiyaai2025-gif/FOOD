@@ -390,7 +390,10 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
                 '}\n',
                 text,
             )
-        if bundle_id == IDENTITIES['driver']['bundle_id']:
+        if bundle_id in (
+            IDENTITIES['customer']['bundle_id'],
+            IDENTITIES['driver']['bundle_id'],
+        ):
             text = text.replace(
                 'import io.flutter.embedding.android.FlutterActivity',
                 'import io.flutter.embedding.android.FlutterFragmentActivity',
@@ -408,7 +411,10 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
             app,
             background_delivery=bundle_id == IDENTITIES['driver']['bundle_id'],
         )
-    if bundle_id == IDENTITIES['driver']['bundle_id']:
+    if bundle_id in (
+        IDENTITIES['customer']['bundle_id'],
+        IDENTITIES['driver']['bundle_id'],
+    ):
         manifest = app / 'src' / 'main' / 'AndroidManifest.xml'
         text = manifest.read_text()
         permission = 'android.permission.USE_BIOMETRIC'
@@ -589,6 +595,10 @@ def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
         )
         plist['NSCameraUsageDescription'] = (
             'Scan product barcodes and QR codes for marketplace search.'
+        )
+        plist['NSFaceIDUsageDescription'] = (
+            'FOODEX uses Face ID only when you enable biometric sign-in '
+            'to unlock your saved customer session on this device.'
         )
     elif bundle_id == IDENTITIES['driver']['bundle_id']:
         plist['NSLocationWhenInUseUsageDescription'] = (

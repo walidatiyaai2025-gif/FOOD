@@ -141,11 +141,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('تسجيل الدخول'), findsWidgets);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(
-      find.byKey(const ValueKey('retail-auth-submit')),
+      find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey('customer-auth-remember-me')), findsOneWidget);
     expect(find.textContaining('/auth/checkout'), findsNothing);
     expect(find.textContaining('next='), findsNothing);
   });
@@ -157,9 +158,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(
-      find.byKey(const ValueKey('customer-login-submit')),
+      find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
     );
     expect(find.textContaining('/b2b/login'), findsNothing);
@@ -183,25 +185,35 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.textContaining('/b2b/login'), findsNothing);
     expect(find.textContaining('next='), findsNothing);
 
     await tester.enterText(
-      find.byKey(const ValueKey('customer-login-username')),
-      'wholesale-buyer',
+      find.byKey(const ValueKey('unified-auth-email')),
+      'wholesale-buyer@example.test',
     );
-    await tester.tap(find.byKey(const ValueKey('customer-login-submit')));
-    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'test-password',
+    );
+    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    await tester.pump();
+
+    final productData =
+        find.byKey(const ValueKey('b2b-product-detail-data'));
+    for (var attempt = 0;
+        attempt < 20 && productData.evaluate().isEmpty;
+        attempt++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
 
     expect(
       b2bApi.requestedPaths,
       contains('/api/v1/b2b/products/42?store_id=7'),
     );
-    expect(
-      find.byKey(const ValueKey('b2b-product-detail-data')),
-      findsOneWidget,
-    );
+    expect(productData, findsOneWidget);
   });
 
   testWidgets('authenticated B2C session reaches B2C protected routes',
@@ -249,7 +261,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.text('/b2b/login'), findsNothing);
     expect(
       find.byKey(const ValueKey('customer-route-location')),

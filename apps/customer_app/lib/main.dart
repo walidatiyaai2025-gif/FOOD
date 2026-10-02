@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'app.dart';
+import 'core/auth/customer_auth_persistence.dart';
 import 'core/auth/customer_session.dart';
 import 'core/auth/customer_session_store.dart';
 import 'core/diagnostics/customer_diagnostics.dart';
@@ -30,9 +31,16 @@ Future<void> main() async {
   };
 
   final sessionStore = SecureCustomerSessionStore();
-  CustomerSession session = const CustomerSession.guest();
+  final authPreferenceStore = SecureCustomerAuthPreferenceStore();
+  var bootstrap = const CustomerAuthBootstrap(
+    session: CustomerSession.guest(),
+    preferences: CustomerAuthPreferences(),
+  );
   try {
-    session = await restoreCustomerSession(sessionStore);
+    bootstrap = await restoreCustomerAuthBootstrap(
+      sessionStore: sessionStore,
+      preferenceStore: authPreferenceStore,
+    );
   } catch (error) {
     diagnostics.record('session_restore_error', {
       'error_type': error.runtimeType.toString(),
@@ -51,8 +59,11 @@ Future<void> main() async {
 
   runApp(
     FoodexCustomerApp(
-      session: session,
+      session: bootstrap.session,
       sessionStore: sessionStore,
+      authPreferences: bootstrap.preferences,
+      authPreferenceStore: authPreferenceStore,
+      biometricAuthenticator: LocalAuthCustomerBiometricAuthenticator(),
       pushService: pushService,
     ),
   );
