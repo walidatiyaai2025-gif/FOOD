@@ -35,6 +35,7 @@ class CustomerAppRouter {
     required this.onEnterWholesale,
     required this.onPlatformRegistered,
     this.onUnifiedAuthenticated,
+    this.onAuthenticatedRouteResume,
     this.sessionStore,
     this.authPreferences = const CustomerAuthPreferences(),
     this.biometricAuthenticator,
@@ -77,6 +78,7 @@ class CustomerAppRouter {
   final ValueChanged<int?> onEnterWholesale;
   final ValueChanged<String> onPlatformRegistered;
   final CustomerUnifiedAuthenticated? onUnifiedAuthenticated;
+  final CustomerAuthenticatedRouteResume? onAuthenticatedRouteResume;
   final CustomerSessionStore? sessionStore;
   final CustomerAuthPreferences authPreferences;
   final CustomerBiometricAuthenticator? biometricAuthenticator;
@@ -327,6 +329,7 @@ class CustomerAppRouter {
             sessionStore: sessionStore,
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
+            resumeAuthenticatedRoute: onAuthenticatedRouteResume,
             registerInitially: uri.queryParameters['entry'] == 'register',
           );
         }
