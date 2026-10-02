@@ -406,7 +406,6 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     pattern: CustomerRoutePaths.b2bHome,
     label: 'B2B wholesale storefront',
     channel: CustomerChannel.b2b,
-    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bDashboard,
@@ -430,13 +429,11 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     pattern: CustomerRoutePaths.b2bProducts,
     label: 'B2B products',
     channel: CustomerChannel.b2b,
-    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bProductDetails,
     label: 'B2B product details',
     channel: CustomerChannel.b2b,
-    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bInvoices,
