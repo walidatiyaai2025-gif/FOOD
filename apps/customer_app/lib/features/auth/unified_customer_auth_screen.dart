@@ -133,6 +133,13 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   }) async {
     widget.onAuthenticated(token, _selectedPreferences);
 
+    // The authentication callback updates the parent Customer session with
+    // setState. Let that rebuild reach MaterialApp/Navigator before resolving
+    // the protected return route, otherwise the previous guest router can
+    // redirect the exact pending action back to login.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+
     if (mergeRetailGuestCart) {
       final context = widget.commerceContext;
       final factory = widget.commerceForToken;
