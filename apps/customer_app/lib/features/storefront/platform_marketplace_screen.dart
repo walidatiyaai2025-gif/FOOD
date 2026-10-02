@@ -1172,7 +1172,7 @@ class _MarketplaceCategoryRail extends StatelessWidget {
           return SizedBox(
             width: 72,
             child: InkWell(
-              key: id == null ? const ValueKey('marketplace-category-all') : ValueKey('marketplace-category-' + id.toString()),
+              key: id == null ? const ValueKey('marketplace-category-all') : ValueKey('marketplace-category-$id'),
               borderRadius: BorderRadius.circular(20),
               onTap: () => onSelect(id),
               child: Column(children: [
@@ -1217,11 +1217,11 @@ class _MarketplaceOfferStrip extends StatelessWidget {
         final offer = offers[index];
         final value = offer['value'];
         final type = offer['type']?.toString();
-        final suffix = value == null ? '' : type == 'percentage' ? ' • ' + value.toString() + '%' : ' • ' + value.toString();
+        final suffix = value == null ? '' : type == 'percentage' ? ' • $value%' : ' • $value';
         return Row(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.local_offer_outlined, color: Colors.white, size: 22),
           const SizedBox(width: 7),
-          ConstrainedBox(constraints: const BoxConstraints(maxWidth: 150), child: Text((offer['name']?.toString() ?? '') + suffix, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 10.5, height: 1.25, fontWeight: FontWeight.w800))),
+          ConstrainedBox(constraints: const BoxConstraints(maxWidth: 150), child: Text('${offer['name']?.toString() ?? ''}$suffix', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 10.5, height: 1.25, fontWeight: FontWeight.w800))),
         ]);
       },
     )),
