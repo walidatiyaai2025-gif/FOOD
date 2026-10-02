@@ -67,6 +67,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.focusAssignmentId != null) {
+      _period = _DriverDeliveryPeriod.all;
+    }
     _load();
   }
 
