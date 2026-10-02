@@ -545,6 +545,48 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                     client: _sessionHttpClient,
                   ));
 
+    WholesaleCommerceApi? wholesaleCommerceForToken(String accessToken) {
+      if (widget.wholesaleCommerceApi != null) {
+        return widget.wholesaleCommerceApi;
+      }
+      if (preview != null) {
+        return wholesaleCommerceApi;
+      }
+      if (accessToken.trim().isEmpty) {
+        return null;
+      }
+      return HttpWholesaleCommerceApi(
+        baseUrl: baseUrl,
+        token: accessToken,
+        retailStoreContextId: _session.b2bRetailStoreId,
+        client: _sessionHttpClient,
+      );
+    }
+
+    Future<String?> executePendingAction(
+      CustomerPendingAction action,
+      String accessToken,
+    ) async {
+      if (action.kind != CustomerPendingActionKind.addToCart ||
+          !action.context.isWholesale ||
+          action.productId == null ||
+          action.quantity == null) {
+        return null;
+      }
+
+      final commerce = wholesaleCommerceForToken(accessToken);
+      if (commerce == null) {
+        return null;
+      }
+
+      await commerce.addItem(
+        action.context.storeId,
+        action.productId!,
+        action.quantity!,
+      );
+      return CustomerRouteLocations.wholesaleCart(action.context);
+    }
+
     RetailCommerceApi retailCommerceForToken(String? accessToken) {
       final scopedAccountApi = accessToken == null || accessToken == token
           ? b2cAccountApi
@@ -616,6 +658,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
           widget.previewContext == null ? widget.biometricAuthenticator : null,
       pendingActionStore:
           widget.previewContext == null ? _pendingActionStore : null,
+      pendingActionExecutor:
+          widget.previewContext == null ? executePendingAction : null,
       onLocaleChanged: _changeLocale,
       locationService: widget.locationService ??
           const GeolocatorCustomerLocationService(),
