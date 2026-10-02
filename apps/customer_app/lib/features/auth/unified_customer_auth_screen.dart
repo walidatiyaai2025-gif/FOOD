@@ -15,6 +15,8 @@ typedef CustomerUnifiedAuthenticated = Future<void> Function(
   CustomerAuthPreferences preferences,
 );
 
+typedef CustomerAuthenticatedRouteResume = Future<void> Function(String route);
+
 class UnifiedCustomerAuthScreen extends StatefulWidget {
   const UnifiedCustomerAuthScreen({
     required this.nextRoute,
@@ -27,6 +29,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
     this.sessionStore,
     this.preferences = const CustomerAuthPreferences(),
     this.biometricAuthenticator,
+    this.resumeAuthenticatedRoute,
     this.registerInitially = false,
     super.key,
   });
@@ -41,6 +44,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
   final CustomerSessionStore? sessionStore;
   final CustomerAuthPreferences preferences;
   final CustomerBiometricAuthenticator? biometricAuthenticator;
+  final CustomerAuthenticatedRouteResume? resumeAuthenticatedRoute;
   final bool registerInitially;
 
   @override
@@ -117,6 +121,12 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
           target = pending.nextLocation;
         }
       }
+    }
+
+    final appLevelResume = widget.resumeAuthenticatedRoute;
+    if (appLevelResume != null) {
+      await appLevelResume(target);
+      return;
     }
 
     if (!mounted) return;
