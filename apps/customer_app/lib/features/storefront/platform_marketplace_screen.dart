@@ -886,7 +886,7 @@ class _MarketplaceHeader extends StatelessWidget {
             roundAction(
               key: const ValueKey('marketplace-orders'),
               icon: Icons.shopping_bag_outlined,
-              tooltip: context.tr('customer.nav.orders'),
+              tooltip: localeCode == 'ar' ? 'الطلبات' : 'Orders',
               onPressed: onOrders,
             ),
             const SizedBox(width: 5),
