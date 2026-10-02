@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.47 - 2026-10-02
+
+- Publish all post-1.0.46 Driver corrections tracked through #761/#763: secure Remember Me, optional biometric sign-in, delivery Today/All/From-To filters, and the unified accepted-delivery Receive/Failed execution path for both B2B and B2C.
+- Publish Customer Commerce V4 (#764, lanes #765-#773): one platform Customer identity across Retail and Wholesale, Dashboard-authoritative Retail banners with 5-second direct exact-store entry, store-scoped carts/order routing, unified login/register with Remember Me/biometric resume, complete Retail and Wholesale journeys, converged Dashboard order intake, and App Preview parity.
+- Keep Retail/Wholesale as commerce context rather than separate authentication personas; preserve exact store/channel authorization, tenant isolation, self-store purchase protection, pricing/MOQ authority and driver/notification routing.
+- Ship the corrected Dashboard Customer App Preview runtime/inspector so authenticated preview uses the unified platform Customer identity while exposing auth mode separately from exact commerce context, with Draft/Published isolation and shared Flutter runtime parity.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.47 / mobile build 1.0.47+47 because published 1.0.46 is immutable; preserve production minimum-version, force-update, Driver location-enforcement and Assistant activation settings unchanged.
+
 ## 1.0.46 - 2026-10-02
 
 - Publish the completed unified Wholesale/Retail commerce-isolation program (#734): authoritative platform identity and Retail Store ownership, backend self-store purchase protection, platform-first Customer entry with exact Retail placement/store routing, and strict B2B/B2C order ownership.
