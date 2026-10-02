@@ -8,6 +8,7 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/api/wholesale_commerce_api.dart';
 import '../../core/auth/customer_session.dart';
+import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
 import 'retail_multistore_screens.dart';
@@ -59,6 +60,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
     this.wholesaleApi,
     this.marketplaceClient,
     this.marketplaceBarcodeScanner,
+    this.pendingActionStore,
     super.key,
   });
 
@@ -76,6 +78,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
   final WholesaleCommerceApi? wholesaleApi;
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
+  final CustomerPendingActionStore? pendingActionStore;
   final ValueChanged<int?> enterWholesale;
 
   @override
@@ -89,6 +92,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
           client: marketplaceClient,
           barcodeScanner:
               marketplaceBarcodeScanner ?? showMarketplaceBarcodeScanner,
+          pendingActionStore: pendingActionStore,
         );
       case CustomerRoutePaths.stores:
       case CustomerRoutePaths.storeSelector:
