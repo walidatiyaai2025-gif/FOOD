@@ -49,6 +49,10 @@ class AppPreviewDashboardTest extends TestCase
         $this->assertStringContainsString("selectFirstDriver: app?.value === 'driver'", $html);
         $this->assertStringContainsString('restoreDriverRequired()', $html);
         $this->assertStringContainsString('/admin/b2b/drivers', $html);
+        $this->assertStringContainsString("message?.metadata && typeof message.metadata === 'object'", $html);
+        $this->assertStringContainsString('runtime.auth_mode ?? context.auth_mode', $html);
+        $this->assertStringContainsString('runtime.channel ?? context.channel', $html);
+        $this->assertStringContainsString('runtime.store_id ?? context.store_id', $html);
     }
 
     public function test_retail_admin_sees_only_assigned_retail_store_in_preview_center(): void
