@@ -364,6 +364,7 @@ class CustomerAppRouter {
             b2bApi: b2bApi,
             storefrontApi: storefrontApi,
             wholesaleApi: wholesaleApi,
+            pendingActionStore: pendingActionStore,
             enterWholesale: onEnterWholesale,
             onAuthenticated: onAuthenticated,
             onPlatformRegistered: onPlatformRegistered,
