@@ -128,6 +128,39 @@ void main() {
     );
   });
 
+  testWidgets(
+      'pending storage failure falls back to the safe auth return route',
+      (tester) async {
+    await tester.pumpWidget(
+      _testApp(
+        child: UnifiedCustomerAuthScreen(
+          nextRoute: CustomerRoutePaths.marketplace,
+          actionApi: const _SuccessfulActionApi(),
+          onAuthenticated: (_, __) async {},
+          pendingActionStore: const _ThrowingPendingActionStore(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-email')),
+      'buyer@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'secret-pass',
+    );
+    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(CustomerRoutePaths.marketplace), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('unified-customer-auth-screen')),
+      findsNothing,
+    );
+  });
+
   testWidgets('biometric failure keeps normal login usable', (tester) async {
     final storage = _MemorySecureStore();
     final sessions = SecureCustomerSessionStore(storage: storage);
@@ -254,6 +287,25 @@ class _FakeBiometric implements CustomerBiometricAuthenticator {
 
   @override
   Future<bool> authenticate({required String reason}) async => result;
+}
+
+class _ThrowingPendingActionStore implements CustomerPendingActionStore {
+  const _ThrowingPendingActionStore();
+
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<CustomerPendingAction?> read() async =>
+      throw StateError('secure storage unavailable');
+
+  @override
+  Future<CustomerPendingAction?> take() async =>
+      throw StateError('secure storage unavailable');
+
+  @override
+  Future<void> write(CustomerPendingAction action) async =>
+      throw StateError('secure storage unavailable');
 }
 
 class _MemoryPendingActionStore implements CustomerPendingActionStore {
