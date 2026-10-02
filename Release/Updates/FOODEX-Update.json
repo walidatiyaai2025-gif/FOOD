@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.44",
-  "minimum_current_version": "1.0.43",
-  "sha256": "9c6524b6f3fedaf568f740284f4e35b5e171be6026b3d1505bf109d203db7e8a",
+  "target_version": "1.0.46",
+  "minimum_current_version": "1.0.44",
+  "sha256": "730ce7cf3772fd5079b16609a8984c9877c1f107e1ba2f480a2a518d1b870cde",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release(#714): FOODEX 1.0.44 Customer + Driver Journey V2 (#717)",
+  "release_notes": "release(#733): FOODEX 1.0.46 unified commerce convergence (#756)",
   "dashboard_fields": {
-    "target_version": "1.0.44",
-    "minimum_current_version": "1.0.43",
-    "sha256": "9c6524b6f3fedaf568f740284f4e35b5e171be6026b3d1505bf109d203db7e8a",
+    "target_version": "1.0.46",
+    "minimum_current_version": "1.0.44",
+    "sha256": "730ce7cf3772fd5079b16609a8984c9877c1f107e1ba2f480a2a518d1b870cde",
     "contains_migrations": true,
-    "release_notes": "release(#714): FOODEX 1.0.44 Customer + Driver Journey V2 (#717)"
+    "release_notes": "release(#733): FOODEX 1.0.46 unified commerce convergence (#756)"
   }
 }
