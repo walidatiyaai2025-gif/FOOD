@@ -313,7 +313,7 @@ class CustomerAppRouter {
             nextRoute: nextLocation,
             actionApi: actionApi,
             onAuthenticated: onUnifiedAuthenticated ??
-                (token, preferences) => onPlatformRegistered(token),
+                (token, preferences) async => onPlatformRegistered(token),
             commerceContext: commerceContext,
             registrationStoreId:
                 commerceContext != null && commerceContext.isRetail
