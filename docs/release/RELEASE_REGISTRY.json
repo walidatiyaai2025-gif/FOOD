@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.46",
+  "current_version": "1.0.47",
   "releases": [
     {
       "version": "1.0.40",
@@ -74,6 +74,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "b213519f17e7b901ebaff2ae5e6040a50f47030952450dcfdef4a17768a07b19",
       "note": "Post-1.0.44 unified Wholesale/Retail commerce-isolation convergence; 1.0.45 is intentionally reserved and skipped, with Customer/Driver/Dashboard synchronized at 1.0.46."
+    },
+    {
+      "version": "1.0.47",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.47.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "b2c3ef03b9235d93e5a4d016d3f1294a88f5a04a56f56aa0a91f1bca1001b777",
+      "note": "Post-1.0.46 synchronized Driver fixes plus Customer Commerce V4 (#764/#765-#773), including unified Customer identity, exact Retail/Wholesale commerce context, Dashboard order convergence and corrected shared App Preview parity."
     }
   ]
 }
