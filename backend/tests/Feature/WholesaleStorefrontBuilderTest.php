@@ -270,8 +270,8 @@ class WholesaleStorefrontBuilderTest extends TestCase
         $this->assertSame('retail_store', $placement['target_type']);
         $this->assertSame($retailStoreId, (int) $placement['target_id']);
         $this->assertSame('/retail/'.$retailStoreId.'/home', $placement['target_url']);
-        $this->assertSame($startsAt, $placement['starts_at']);
-        $this->assertSame($endsAt, $placement['ends_at']);
+        $this->assertSame(str_replace('T', ' ', $startsAt).':00', $placement['starts_at']);
+        $this->assertSame(str_replace('T', ' ', $endsAt).':00', $placement['ends_at']);
 
         $this->getJson('/api/v1/platform/storefront')
             ->assertOk()
