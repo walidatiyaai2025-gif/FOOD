@@ -143,7 +143,6 @@ void main() {
       'signed-out Wholesale add uses unified auth and resumes add exactly once',
       (tester) async {
     final actionApi = _CountingCustomerActionApi();
-    final wholesaleApi = _CountingWholesaleCommerceApi();
     final pending = _MemoryPendingActionStore();
     final b2bApi = _FakeB2bApi({
       'id': 42,
@@ -164,7 +163,6 @@ void main() {
         b2bApi: b2bApi,
         storefrontApi: _FakeWholesaleStorefrontApi(),
         actionApi: actionApi,
-        wholesaleCommerceApi: wholesaleApi,
         pendingActionStore: pending,
       ),
     );
@@ -197,15 +195,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(pending.takeCount, 1);
-    expect(wholesaleApi.addCalls, 1);
-    expect(wholesaleApi.lastStoreId, 7);
-    expect(wholesaleApi.lastProductId, 42);
-    expect(wholesaleApi.lastQuantity, 5);
-    expect(actionApi.addCalls, 0);
+    expect(actionApi.addCalls, 1);
+    expect(actionApi.lastStoreId, 7);
+    expect(actionApi.lastProductId, 42);
+    expect(actionApi.lastQuantity, 5);
     expect(find.text('سلة الجملة'), findsOneWidget);
 
     await tester.pumpAndSettle();
-    expect(wholesaleApi.addCalls, 1);
+    expect(actionApi.addCalls, 1);
   });
 
   testWidgets('B2B product details render authoritative account pricing and inventory', (tester) async {
@@ -850,63 +847,6 @@ class _CheckoutStorefrontApi implements StorefrontApi {
         'delivery_dates': ['2026-09-30'],
         'payment_methods': ['cash_on_delivery'],
       };
-}
-
-class _CountingWholesaleCommerceApi implements WholesaleCommerceApi {
-  int addCalls = 0;
-  int? lastStoreId;
-  int? lastProductId;
-  double? lastQuantity;
-
-  @override
-  Future<Object?> cart(int storeId) async => {
-        'store_id': storeId,
-        'currency': 'KWD',
-        'subtotal': 36.25,
-        'items': [
-          {
-            'id': 1,
-            'name': 'Wholesale Product',
-            'quantity': 5,
-            'unit_price': 7.25,
-          },
-        ],
-      };
-
-  @override
-  Future<Object?> addItem(
-    int storeId,
-    int productId,
-    double quantity,
-  ) async {
-    addCalls++;
-    lastStoreId = storeId;
-    lastProductId = productId;
-    lastQuantity = quantity;
-    return {
-      'store_id': storeId,
-      'product_id': productId,
-      'quantity': quantity,
-    };
-  }
-
-  @override
-  Future<Object?> updateItem(int itemId, double quantity) async => null;
-
-  @override
-  Future<void> removeItem(int itemId) async {}
-
-  @override
-  Future<Object?> checkout({
-    required int storeId,
-    required int addressId,
-    required String paymentMethod,
-    String? requestedDeliveryDate,
-    String? note,
-    String? couponCode,
-    required String idempotencyKey,
-  }) async =>
-      null;
 }
 
 class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
