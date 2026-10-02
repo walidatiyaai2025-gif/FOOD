@@ -674,7 +674,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
     if (_allows(assignment, 'failed')) {
       buttons.add(
         OutlinedButton(
-          key: Key('driver-active-failed-${assignment.id}'),
+          key: Key('driver-active-card-failed-${assignment.id}'),
           onPressed: busy ? null : () => _requestFailure(assignment, ''),
           child: Text(context.tr('driver.action.delivery_failed')),
         ),
