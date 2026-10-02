@@ -19,6 +19,8 @@ dependencies:
   firebase_messaging: ^15.2.10
   flutter_local_notifications: ^18.0.1
   shared_preferences: ^2.5.3
+  flutter_secure_storage: ^11.2.0
+  local_auth: ^2.3.0
   geolocator: 14.0.2
   share_plus: ^10.1.4
   url_launcher: ^6.3.2
