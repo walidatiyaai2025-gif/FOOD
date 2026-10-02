@@ -141,11 +141,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('تسجيل الدخول'), findsWidgets);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(
-      find.byKey(const ValueKey('retail-auth-submit')),
+      find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey('customer-auth-remember-me')), findsOneWidget);
     expect(find.textContaining('/auth/checkout'), findsNothing);
     expect(find.textContaining('next='), findsNothing);
   });
@@ -157,9 +158,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(
-      find.byKey(const ValueKey('customer-login-submit')),
+      find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
     );
     expect(find.textContaining('/b2b/login'), findsNothing);
@@ -183,15 +185,20 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.textContaining('/b2b/login'), findsNothing);
     expect(find.textContaining('next='), findsNothing);
 
     await tester.enterText(
-      find.byKey(const ValueKey('customer-login-username')),
-      'wholesale-buyer',
+      find.byKey(const ValueKey('unified-auth-email')),
+      'wholesale-buyer@example.test',
     );
-    await tester.tap(find.byKey(const ValueKey('customer-login-submit')));
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'test-password',
+    );
+    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
     await tester.pumpAndSettle();
 
     expect(
@@ -249,7 +256,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.text('/b2b/login'), findsNothing);
     expect(
       find.byKey(const ValueKey('customer-route-location')),
