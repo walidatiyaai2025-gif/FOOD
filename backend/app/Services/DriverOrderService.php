@@ -41,16 +41,10 @@ final class DriverOrderService
             return [];
         }
 
-        $channel = strtolower((string) $assignment->assignment_type);
-
         return match ($assignmentStatus) {
             'assigned' => ['accepted'],
-            'accepted' => $channel === 'b2b'
-                ? ['picked_up', 'failed']
-                : ($orderStatus === 'ready' ? ['picked_up', 'failed'] : ['failed']),
-            'picked_up' => $channel === 'b2b'
-                ? ['out_for_delivery', 'failed']
-                : ($orderStatus === 'ready' ? ['out_for_delivery', 'failed'] : ['failed']),
+            'accepted' => ['picked_up', 'failed'],
+            'picked_up' => ['out_for_delivery', 'failed'],
             'out_for_delivery' => $orderStatus === 'out_for_delivery' ? ['delivered', 'failed'] : [],
             default => [],
         };
@@ -424,11 +418,8 @@ final class DriverOrderService
                 $beforeOrder = (string) $order->status;
 
                 if ($targetStatus === 'out_for_delivery') {
-                    $isWholesale = strtolower((string) $locked->assignment_type) === 'b2b';
                     abort_unless(
-                        $isWholesale
-                            ? ! in_array((string) $order->status, ['cancelled', 'delivered'], true)
-                            : (string) $order->status === 'ready',
+                        ! in_array((string) $order->status, ['cancelled', 'delivered', 'failed'], true),
                         409,
                     );
                     $this->updateOrderStatus(
@@ -451,11 +442,8 @@ final class DriverOrderService
                     );
                     $afterOrder = 'delivered';
                 } elseif ($targetStatus === 'failed') {
-                    $isWholesale = strtolower((string) $locked->assignment_type) === 'b2b';
                     abort_unless(
-                        $isWholesale
-                            ? ! in_array((string) $order->status, ['cancelled', 'delivered'], true)
-                            : in_array((string) $order->status, ['ready', 'out_for_delivery'], true),
+                        ! in_array((string) $order->status, ['cancelled', 'delivered', 'failed'], true),
                         409,
                     );
                     $failureAuditNote = $normalizedFailureReason
@@ -469,11 +457,8 @@ final class DriverOrderService
                     );
                     $afterOrder = 'failed';
                 } elseif ($targetStatus === 'picked_up') {
-                    $isWholesale = strtolower((string) $locked->assignment_type) === 'b2b';
                     abort_unless(
-                        $isWholesale
-                            ? ! in_array((string) $order->status, ['cancelled', 'delivered'], true)
-                            : (string) $order->status === 'ready',
+                        ! in_array((string) $order->status, ['cancelled', 'delivered', 'failed'], true),
                         409,
                     );
                 }
