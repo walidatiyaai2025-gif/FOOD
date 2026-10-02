@@ -39,10 +39,12 @@ class _DriverInspectorPanelState extends State<DriverInspectorPanel> {
         authenticated: widget.authenticated,
       );
       if (!mounted) return;
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/json')],
-        subject: 'FOODEX Driver diagnostics',
-        text: shareText,
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/json')],
+          subject: 'FOODEX Driver diagnostics',
+          text: shareText,
+        ),
       );
       if (!mounted) return;
       _show(context.tr('driver.inspector.export_ready'));
