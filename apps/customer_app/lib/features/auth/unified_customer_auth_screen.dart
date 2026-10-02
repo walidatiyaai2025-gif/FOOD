@@ -119,7 +119,10 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     var target = nextRoute;
     if (pendingStore != null) {
       try {
-        final pending = await pendingStore.take();
+        final pending = await pendingStore.take().timeout(
+          const Duration(milliseconds: 750),
+          onTimeout: () => null,
+        );
         if (pending != null &&
             (commerceContext == null ||
                 commerceContext.sameScope(pending.context))) {
