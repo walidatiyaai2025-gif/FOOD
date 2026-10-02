@@ -17,6 +17,11 @@ typedef CustomerUnifiedAuthenticated = Future<void> Function(
 
 typedef CustomerAuthenticatedRouteResume = Future<void> Function(String route);
 
+typedef CustomerPendingActionExecutor = Future<String?> Function(
+  CustomerPendingAction action,
+  String token,
+);
+
 class UnifiedCustomerAuthScreen extends StatefulWidget {
   const UnifiedCustomerAuthScreen({
     required this.nextRoute,
@@ -26,6 +31,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
     this.registrationStoreId,
     this.commerceForToken,
     this.pendingActionStore,
+    this.pendingActionExecutor,
     this.sessionStore,
     this.preferences = const CustomerAuthPreferences(),
     this.biometricAuthenticator,
@@ -41,6 +47,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
   final int? registrationStoreId;
   final RetailCommerceApi Function(String token)? commerceForToken;
   final CustomerPendingActionStore? pendingActionStore;
+  final CustomerPendingActionExecutor? pendingActionExecutor;
   final CustomerSessionStore? sessionStore;
   final CustomerAuthPreferences preferences;
   final CustomerBiometricAuthenticator? biometricAuthenticator;
@@ -111,8 +118,10 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       );
 
   Future<void> _resumeAfterAuthentication({
+    required String token,
     required String nextRoute,
     required CustomerPendingActionStore? pendingStore,
+    required CustomerPendingActionExecutor? pendingExecutor,
     required CustomerCommerceContext? commerceContext,
     required CustomerAuthenticatedRouteResume? appLevelResume,
   }) async {
@@ -127,6 +136,28 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
             (commerceContext == null ||
                 commerceContext.sameScope(pending.context))) {
           target = pending.nextLocation;
+
+          // The pending action has already been consumed atomically by take().
+          // Execute it at most once, after authentication, and accept only a
+          // same-context route override. Operational failure falls back to the
+          // safe product/checkout route so the successful login is preserved.
+          if (pendingExecutor != null) {
+            try {
+              final executedTarget = await pendingExecutor(pending, token);
+              if (executedTarget != null) {
+                final safeTarget = safeCustomerContextReturnLocation(
+                  executedTarget,
+                  context: pending.context,
+                );
+                if (safeTarget != null) {
+                  target = safeTarget;
+                }
+              }
+            } catch (_) {
+              // The target remains the safe pending route. The destination
+              // renders the authoritative product/cart failure state.
+            }
+          }
         }
       } catch (_) {
         // Pending-action persistence is supplementary routing state. Once
@@ -152,6 +183,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     // that rebuild may legitimately dispose this auth route.
     final nextRoute = widget.nextRoute;
     final pendingStore = widget.pendingActionStore;
+    final pendingExecutor = widget.pendingActionExecutor;
     final commerceContext = widget.commerceContext;
     final commerceFactory = widget.commerceForToken;
     final appLevelResume = widget.resumeAuthenticatedRoute;
@@ -177,8 +209,10 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     // fallback still requires [mounted].
     if (!mounted && appLevelResume == null) return;
     await _resumeAfterAuthentication(
+      token: token,
       nextRoute: nextRoute,
       pendingStore: pendingStore,
+      pendingExecutor: pendingExecutor,
       commerceContext: commerceContext,
       appLevelResume: appLevelResume,
     );
