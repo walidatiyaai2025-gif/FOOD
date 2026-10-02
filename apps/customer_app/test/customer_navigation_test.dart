@@ -4,6 +4,8 @@ import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
+import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
+import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 
 void main() {
@@ -216,6 +218,70 @@ void main() {
     expect(productData, findsOneWidget);
   });
 
+  testWidgets(
+      'wholesale pending add executes exactly once after unified login',
+      (tester) async {
+    const commerce = CustomerCommerceContext(
+      channel: CustomerCommerceChannel.wholesale,
+      storeId: 7,
+      source: CustomerCommerceSource.marketplace,
+    );
+    final productRoute = Uri(
+      path: '/b2b/products/42',
+      queryParameters: commerce.toQueryParameters(),
+    ).toString();
+    final pending = _MemoryPendingActionStore(
+      CustomerPendingAction(
+        kind: CustomerPendingActionKind.addToCart,
+        context: commerce,
+        nextLocation: CustomerRouteLocations.wholesaleCart(commerce),
+        createdAtEpochMs: DateTime.now().toUtc().millisecondsSinceEpoch,
+        productId: 42,
+        quantity: 3,
+      ),
+    );
+    final actions = _RecordingCustomerActionApi();
+    final authRoute = Uri(
+      path: CustomerRoutePaths.checkoutAuth,
+      queryParameters: <String, String>{
+        ...commerce.toQueryParameters(),
+        'entry': CustomerAuthEntry.login.name,
+        'next': productRoute,
+      },
+    ).toString();
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: authRoute,
+        actionApi: actions,
+        pendingActionStore: pending,
+        b2bApi: _RecordingB2bApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-email')),
+      'wholesale-buyer@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'test-password',
+    );
+    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    await tester.pumpAndSettle();
+
+    expect(actions.addCalls, 1);
+    expect(actions.lastStoreId, 7);
+    expect(actions.lastProductId, 42);
+    expect(actions.lastQuantity, 3);
+    expect(pending.takeCount, 1);
+    expect(pending.value, isNull);
+
+    await tester.pump();
+    expect(actions.addCalls, 1);
+  });
+
   testWidgets('authenticated B2C session reaches B2C protected routes',
       (tester) async {
     await tester.pumpWidget(
@@ -308,6 +374,70 @@ void main() {
       findsNothing,
     );
   });
+}
+
+class _RecordingCustomerActionApi implements CustomerActionApi {
+  int addCalls = 0;
+  int? lastStoreId;
+  int? lastProductId;
+  double? lastQuantity;
+
+  @override
+  Future<CustomerLoginResult> login({required String username}) async =>
+      const CustomerLoginResult(
+        token: 'platform-token',
+        platformCustomer: true,
+      );
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<Object?> addCartItem({
+    required int storeId,
+    required int productId,
+    required double quantity,
+  }) async {
+    addCalls++;
+    lastStoreId = storeId;
+    lastProductId = productId;
+    lastQuantity = quantity;
+    return const <String, Object?>{'ok': true};
+  }
+
+  @override
+  Future<Object?> checkout({
+    required int addressId,
+    int? storeId,
+    String? paymentMethod,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async =>
+      null;
+}
+
+class _MemoryPendingActionStore implements CustomerPendingActionStore {
+  _MemoryPendingActionStore(this.value);
+
+  CustomerPendingAction? value;
+  int takeCount = 0;
+
+  @override
+  Future<void> clear() async => value = null;
+
+  @override
+  Future<CustomerPendingAction?> read() async => value;
+
+  @override
+  Future<CustomerPendingAction?> take() async {
+    takeCount++;
+    final current = value;
+    value = null;
+    return current;
+  }
+
+  @override
+  Future<void> write(CustomerPendingAction action) async => value = action;
 }
 
 class _SuccessfulCustomerActionApi implements CustomerActionApi {
