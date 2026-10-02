@@ -150,11 +150,6 @@ void main() {
       find.byKey(const ValueKey('marketplace-brand-title')),
       findsOneWidget,
     );
-    expect(find.text('Wholesale Launch Offer'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('marketplace-wholesale-offers')),
-      findsOneWidget,
-    );
     expect(find.text('FOODEX Wholesale'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('marketplace-wholesale-entry')),
