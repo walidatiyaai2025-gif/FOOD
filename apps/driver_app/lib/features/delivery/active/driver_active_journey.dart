@@ -45,6 +45,8 @@ class DriverActiveJourneyPage extends StatefulWidget {
 
 enum _DriverActiveLoadState { loading, ready, empty, error, offline }
 
+enum _DriverDeliveryPeriod { today, all, custom }
+
 class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   static const Set<String> _terminalStatuses = {
     'delivered',
@@ -59,6 +61,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   final Set<int> _busyAssignments = <int>{};
   String? _actionError;
   bool _focusedAssignmentOpened = false;
+  _DriverDeliveryPeriod _period = _DriverDeliveryPeriod.today;
+  DateTimeRange? _dateRange;
 
   @override
   void initState() {
@@ -188,6 +192,56 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
     } catch (_) {
       if (mounted) {
         setState(() => _actionError = context.tr('driver.error'));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busyAssignments.remove(assignment.id));
+      }
+    }
+  }
+
+  Future<void> _receiveOrder(DriverAssignment assignment) async {
+    if (!_allows(assignment, 'picked_up') ||
+        _busyAssignments.contains(assignment.id)) {
+      return;
+    }
+    if (widget.previewContext != null &&
+        !widget.previewContext!.mutationsAllowed) {
+      setState(() {
+        _actionError = context.tr('driver.preview.mutation_blocked');
+      });
+      return;
+    }
+
+    setState(() {
+      _busyAssignments.add(assignment.id);
+      _actionError = null;
+    });
+
+    try {
+      await widget.repository.transition(
+        assignment.id,
+        widget.channel,
+        'picked_up',
+      );
+      await widget.repository.transition(
+        assignment.id,
+        widget.channel,
+        'out_for_delivery',
+      );
+      await _load();
+    } on DriverSessionExpiredException {
+      widget.onSessionExpired?.call();
+    } on DriverOfflineException {
+      if (mounted) {
+        setState(() => _actionError = context.tr('driver.offline'));
+      }
+    } catch (_) {
+      if (mounted) {
+        await _load();
+        if (mounted) {
+          setState(() => _actionError = context.tr('driver.error'));
+        }
       }
     } finally {
       if (mounted) {
@@ -464,7 +518,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
               : () => _runDetailAction(
                     sheetContext,
                     assignment,
-                    () => _transition(assignment, 'picked_up'),
+                    () => _receiveOrder(assignment),
                   ),
           child: Text(_statusLabel('picked_up')),
         ),
@@ -583,7 +637,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         FilledButton.tonal(
           key: Key('driver-active-pickup-${assignment.id}'),
           onPressed:
-              busy ? null : () => _transition(assignment, 'picked_up'),
+              busy ? null : () => _receiveOrder(assignment),
           child: Text(_statusLabel('picked_up')),
         ),
       );
@@ -608,6 +662,16 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
           key: Key('driver-active-delivered-${assignment.id}'),
           onPressed: busy ? null : () => _requestDelivered(assignment),
           child: Text(context.tr('driver.action.delivered')),
+        ),
+      );
+    }
+
+    if (_allows(assignment, 'failed')) {
+      buttons.add(
+        OutlinedButton(
+          key: Key('driver-active-failed-${assignment.id}'),
+          onPressed: busy ? null : () => _requestFailure(assignment, ''),
+          child: Text(context.tr('driver.action.delivery_failed')),
         ),
       );
     }
