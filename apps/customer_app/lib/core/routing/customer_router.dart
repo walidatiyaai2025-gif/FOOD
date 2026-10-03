@@ -71,7 +71,7 @@ class CustomerAppRouter {
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
   final CustomerSession Function()? currentSession;
-  final CustomerCommerceContext Function()? currentCommerceContext;
+  final CustomerCommerceContext? Function()? currentCommerceContext;
   final ValueChanged<CustomerCommerceContext>? onCommerceContextChanged;
   final CustomerActionApi actionApi;
   final StorefrontApi? storefrontApi;
