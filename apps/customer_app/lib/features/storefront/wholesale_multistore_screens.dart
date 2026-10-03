@@ -944,8 +944,6 @@ class _WholesaleProductGrid extends StatelessWidget {
                       ),
                     ],
                   ),
-                    ),
-                  ),
                 ],
               ),
             ),
