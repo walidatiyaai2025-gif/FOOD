@@ -2014,7 +2014,7 @@ List<Map<String, dynamic>> _marketplaceFeaturedProducts(
           .toList(growable: false)
       : const <int>[];
   final rawLimit = _int(config['limit']);
-  final limit = rawLimit > 0 ? rawLimit.clamp(1, 12) : 6;
+  final limit = rawLimit > 0 ? rawLimit.clamp(1, 12).toInt() : 6;
 
   if (configuredIds.isNotEmpty) {
     final byId = <int, Map<String, dynamic>>{
