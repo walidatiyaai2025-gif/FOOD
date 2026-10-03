@@ -100,7 +100,7 @@ jobs:
           grep -Fq 'Customer UI V3 home keeps store-scoped actions usable on narrow RTL layout' apps/customer_app/test/customer_ui_v3_shell_home_test.dart
           grep -Fq 'V3 product browse is RTL-safe at 360px and preserves store/query intents' apps/customer_app/test/customer_ui_v3_browse_test.dart
           grep -Fq 'cart V3 fits narrow RTL layout with larger text' apps/customer_app/test/retail_commerce_test.dart
-          grep -Fq 'orders cards keep V3 hierarchy under RTL and larger text' apps/customer_app/test/customer_orders_ui_v3_test.dart
+          grep -Fq 'orders tabs keep V3 hierarchy under RTL and larger text' apps/customer_app/test/customer_orders_ui_v3_test.dart
           grep -Fq 'notification and address empty states use V3 state primitives' apps/customer_app/test/customer_account_surfaces_test.dart
 
           grep -Fq 'CustomerRetailShell(' apps/customer_app/lib/features/retail/retail_customer_journey_screen.dart
