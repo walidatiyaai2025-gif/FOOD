@@ -358,81 +358,19 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
           ? CustomerRouteLocations.retailHome(context)
           : CustomerRouteLocations.wholesaleHome(context);
 
-  Future<void> _openWholesaleProduct(int storeId, int productId) async {
-    if (productId <= 0) return;
-    try {
-      final product = await _get(
-        '${FoodexEnvironment.apiBaseUrl}/api/v1/platform/products/$productId',
-      );
-      if (!mounted) return;
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        showDragHandle: true,
-        builder: (sheetContext) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    product['name']?.toString() ?? '',
-                    key: const ValueKey('marketplace-wholesale-product-title'),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  if ((product['sku']?.toString() ?? '').isNotEmpty)
-                    Text('SKU: ${product['sku']}'),
-                  if ((product['barcode']?.toString() ?? '').isNotEmpty)
-                    Text('Barcode: ${product['barcode']}'),
-                  const SizedBox(height: 12),
-                  Text(
-                    '${(product['unit_price'] ?? product['account_price'] ?? 0)} ${product['currency'] ?? 'EGP'}',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  if ((product['description']?.toString() ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(product['description'].toString()),
-                  ],
-                  const SizedBox(height: 18),
-                  FilledButton.icon(
-                    key: const ValueKey('marketplace-wholesale-buy'),
-                    onPressed: () {
-                      Navigator.pop(sheetContext);
-                      if (!_currentSession.isAuthenticated) {
-                        _showAuthRequired(
-                          next: '/b2b/products/$productId?store_id=$storeId',
-                        );
-                        return;
-                      }
-                      Navigator.of(context).pushNamed(
-                        '/b2b/products/$productId?store_id=$storeId',
-                      );
-                    },
-                    icon: const Icon(Icons.shopping_cart_checkout_rounded),
-                    label: Text(
-                      _currentSession.isAuthenticated
-                          ? context.tr('customer.action.add_cart')
-                          : context.tr('customer.action.login'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('customer.store.error.title'))),
-      );
-    }
+  void _openWholesaleProduct(int storeId, int productId) {
+    if (storeId <= 0 || productId <= 0) return;
+    final commerceContext = CustomerCommerceContext(
+      channel: CustomerCommerceChannel.wholesale,
+      storeId: storeId,
+      source: CustomerCommerceSource.marketplace,
+    );
+    Navigator.of(context).pushNamed(
+      CustomerRouteLocations.wholesaleProduct(
+        commerceContext,
+        productId,
+      ),
+    );
   }
 
   void _showAuthRequired({String? next}) {
@@ -612,9 +550,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   final bannerHeight =
                       constraints.maxWidth < 350 ? 158.0 : 166.0;
                   final productColumns =
-                      constraints.maxWidth >= 350 ? 3 : 2;
+                      constraints.maxWidth >= 350 ? 4 : 3;
                   final productAspectRatio =
-                      productColumns == 3 ? .76 : .88;
+                      productColumns == 4 ? .56 : .66;
 
                   return CustomScrollView(
                     slivers: [
@@ -1892,15 +1830,6 @@ class _WholesaleProductCard extends StatelessWidget {
                                     _MarketplaceProductFallback(name: name),
                               )
                             : _MarketplaceProductFallback(name: name),
-                      ),
-                    ),
-                    const PositionedDirectional(
-                      start: 7,
-                      top: 7,
-                      child: Icon(
-                        Icons.favorite_border_rounded,
-                        size: 18,
-                        color: Color(0xFF9AA2AC),
                       ),
                     ),
                   ],
