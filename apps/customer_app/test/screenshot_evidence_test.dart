@@ -574,6 +574,7 @@ class _EvidenceOrdersApi implements CustomerOrdersApi {
     int page = 1,
     int perPage = 20,
     String? status,
+    String? channel,
     CustomerOrderContext? context,
   }) async =>
       CustomerOrderPage(
