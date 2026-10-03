@@ -6,11 +6,13 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
 import '../customer_account/customer_notification_center_screen.dart';
 import '../../shared/customer_action_widgets.dart';
+import '../../shared/customer_persistent_footer.dart';
 
 class B2bJourneyScreen extends StatelessWidget {
   const B2bJourneyScreen({
@@ -39,16 +41,39 @@ class B2bJourneyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final commerceContext =
+        CustomerCommerceContext.tryParseLocation(location);
+
+    Widget withFooter(
+      Widget child,
+      CustomerFooterDestination destination,
+    ) {
+      if (commerceContext == null || !commerceContext.isWholesale) {
+        return child;
+      }
+      return CustomerPersistentFooterShell(
+        commerceContext: commerceContext,
+        activeDestination: destination,
+        child: child,
+      );
+    }
+
     if (definition.pattern == CustomerRoutePaths.b2bAddresses &&
         accountApi != null) {
-      return CustomerAddressBookScreen(api: accountApi!);
+      return withFooter(
+        CustomerAddressBookScreen(api: accountApi!),
+        CustomerFooterDestination.account,
+      );
     }
 
     if (definition.pattern == CustomerRoutePaths.b2bNotifications &&
         accountApi != null) {
-      return CustomerNotificationCenterScreen(
-        api: accountApi!,
-        onOpenOrder: (target) => _openNotificationOrder(context, target),
+      return withFooter(
+        CustomerNotificationCenterScreen(
+          api: accountApi!,
+          onOpenOrder: (target) => _openNotificationOrder(context, target),
+        ),
+        CustomerFooterDestination.account,
       );
     }
 
@@ -59,7 +84,25 @@ class B2bJourneyScreen extends StatelessWidget {
         definition.pattern == CustomerRoutePaths.b2bCart ||
         definition.pattern == CustomerRoutePaths.b2bProfile;
 
-    return Scaffold(
+    final destination = switch (definition.pattern) {
+      CustomerRoutePaths.b2bProducts ||
+      CustomerRoutePaths.b2bProductDetails =>
+        CustomerFooterDestination.products,
+      CustomerRoutePaths.b2bCart ||
+      CustomerRoutePaths.b2bCheckout =>
+        CustomerFooterDestination.cart,
+      CustomerRoutePaths.b2bOrders ||
+      CustomerRoutePaths.b2bOrderDetails =>
+        CustomerFooterDestination.orders,
+      CustomerRoutePaths.b2bProfile ||
+      CustomerRoutePaths.b2bAddresses ||
+      CustomerRoutePaths.b2bNotifications =>
+        CustomerFooterDestination.account,
+      _ => CustomerFooterDestination.home,
+    };
+
+    return withFooter(
+      Scaffold(
       appBar: AppBar(title: Text(context.tr('b2b.app.title'))),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -100,6 +143,8 @@ class B2bJourneyScreen extends StatelessWidget {
           ),
         ),
       ),
+      ),
+      destination,
     );
   }
 
