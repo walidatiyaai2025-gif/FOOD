@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.51 - 2026-10-03
+
+- Publish the approved Customer B2B visual convergence from #823 / PR #824: separate Home discovery from the full Products catalog, lock Wholesale surfaces to the FOODEx green identity, use readable two-column phone cards, surface Brand identity, and remove per-card cart shortcuts while preserving product-detail purchasing.
+- Replace the raw Business Account profile payload with clear account, company/contact, linked-store, linked-wholesale-account, customer-profile, address and favorites summaries without changing Dashboard or backend authorization contracts.
+- Improve Driver delivery execution: show the complete authoritative delivery address in Assignment Details and open Google Maps using the immutable navigation coordinates when present, with the saved address as the external-map fallback when coordinates are unavailable.
+- Replace the Driver Home accepted-order pickup shortcut with the prominent Delivery Failed / تعذر التوصيل action; keep Picked Up / تم الاستلام available inside Assignment Details so the authoritative lifecycle remains intact.
+- Unify Customer and Driver launcher artwork under the approved FOODEx Economical Group identity and make Driver local/FCM notification presentation resolve to the same launcher identity.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.51 / mobile build 1.0.51+51; keep production minimum-version, force-update, Driver fresh-location enforcement and Assistant activation settings unchanged.
+
 ## 1.0.50 - 2026-10-03
 
 - Replace the fragile Wholesale marketplace product modal with a full product-details route that preserves exact store context and exposes product imagery, description, customer price, MOQ/order increment, stock information and add-to-cart behavior.
