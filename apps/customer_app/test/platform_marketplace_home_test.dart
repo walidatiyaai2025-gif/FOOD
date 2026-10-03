@@ -770,6 +770,65 @@ void main() {
 
 
   testWidgets(
+      'platform cart opens the main Wholesale cart directly without store selector',
+      (tester) async {
+    final client = MockClient((request) async => http.Response(
+          jsonEncode({
+            'store': {
+              'id': 70,
+              'name': 'FOODEX Wholesale',
+              'channel': 'b2b',
+            },
+            'hero': null,
+            'categories': const [],
+            'products': {'data': const []},
+            'retail_banners': const [],
+          }),
+          200,
+        ));
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('ar'),
+        overrides: const {},
+        child: MaterialApp(
+          locale: const Locale('ar'),
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.platformCustomer(
+              accessToken: 'signed-in-token',
+            ),
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => Scaffold(
+              body: Text(
+                settings.name ?? '',
+                key: const ValueKey('route-name'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('marketplace-cart')));
+    await tester.pumpAndSettle();
+
+    final routeText = tester.widget<Text>(
+      find.byKey(const ValueKey('route-name')),
+    );
+    final route = Uri.parse(routeText.data!);
+    expect(route.path, '/b2b/cart');
+    expect(route.queryParameters['channel'], 'wholesale');
+    expect(route.queryParameters['store_id'], '70');
+    expect(route.queryParameters['source'], 'marketplace');
+  });
+
+
+  testWidgets(
       'marketplace auth menu reads the live app session after login without a stale guest route',
       (tester) async {
     var liveSession = const CustomerSession.guest();
