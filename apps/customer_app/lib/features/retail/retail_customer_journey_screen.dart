@@ -469,10 +469,10 @@ class _RetailContextMissing extends StatelessWidget {
         key: const ValueKey('retail-context-missing'),
         body: Center(
           child: FilledButton(
-            key: const ValueKey('retail-context-open-store-selector'),
+            key: const ValueKey('retail-context-return-marketplace'),
             onPressed: () => Navigator.of(context)
-                .pushReplacementNamed(CustomerRoutePaths.storeSelector),
-            child: const Text('Select store'),
+                .pushReplacementNamed(CustomerRoutePaths.marketplace),
+            child: const Text('Back to marketplace'),
           ),
         ),
       );

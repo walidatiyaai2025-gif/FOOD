@@ -44,7 +44,7 @@ void main() {
         expect(authUri.queryParameters['next'], checkout);
         expect(
           <String>[home, product, cart, checkout, auth],
-          isNot(contains(CustomerRoutePaths.storeSelector)),
+          isNot(contains('/customer/store-selector')),
         );
       },
     );

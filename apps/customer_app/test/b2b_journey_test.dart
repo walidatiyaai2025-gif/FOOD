@@ -544,11 +544,13 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsNothing);
   });
 
-  testWidgets('B2C session cannot enter B2B protected journey', (tester) async {
+  testWidgets('legacy channel-scoped session cannot enter B2B protected journey', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(session: CustomerSession.authenticated(CustomerChannel.b2c), initialRoute: '/b2b/invoices'));
     await tester.pumpAndSettle();
-    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+
+    expect(find.byKey(const ValueKey('unified-customer-auth-screen')), findsNothing);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
+    expect(find.text('الفواتير'), findsNothing);
   });
 
   testWidgets('B2B top products use ranked endpoint and render authoritative data', (tester) async {

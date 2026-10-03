@@ -19,7 +19,6 @@ void main() {
         '/splash',
         '/entry',
         '/marketplace',
-        '/stores',
         '/home',
         '/offers',
         '/products',
@@ -35,7 +34,6 @@ void main() {
         '/checkout/address-payment',
         '/orders/:id/track',
         '/profile',
-        '/b2b/login',
         '/b2b/dashboard',
         '/b2b/reports/purchases',
         '/b2b/products/top',
@@ -50,6 +48,16 @@ void main() {
         '/b2b/profile',
       }),
     );
+  });
+
+  test('legacy business-login and store-selector routes stay purged', () {
+    final patterns = customerRouteDefinitions
+        .map((definition) => definition.pattern)
+        .toSet();
+
+    expect(patterns, isNot(contains('/b2b/login')));
+    expect(patterns, isNot(contains('/stores')));
+    expect(patterns, isNot(contains('/customer/store-selector')));
   });
 
   test('customer app defaults to Marketplace Home for guest and authenticated launches', () {
@@ -152,7 +160,7 @@ void main() {
     expect(find.textContaining('next='), findsNothing);
   });
 
-  testWidgets('guest B2B protected route redirects to B2B-aware login',
+  testWidgets('guest B2B protected route redirects to unified customer login',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(initialRoute: '/b2b/dashboard'),
@@ -267,7 +275,8 @@ void main() {
     );
   });
 
-  testWidgets('legacy B2C session cannot enter protected B2B partition',
+  testWidgets(
+      'legacy channel-scoped session falls back without a Business login',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
@@ -277,9 +286,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('unified-customer-auth-screen')),
+      findsNothing,
+    );
     expect(find.text('دخول عميل الأعمال'), findsNothing);
-    expect(find.text('/b2b/login'), findsNothing);
+    expect(find.textContaining('/b2b/login'), findsNothing);
     expect(
       find.byKey(const ValueKey('customer-route-location')),
       findsNothing,
