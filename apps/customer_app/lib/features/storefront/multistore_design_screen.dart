@@ -56,6 +56,8 @@ class MultiStoreDesignScreen extends StatelessWidget {
     required this.catalogApi,
     required this.accountApi,
     required this.actionApi,
+    this.favoritesApi,
+    this.wholesaleFavoritesApi,
     required this.enterWholesale,
     this.b2bApi,
     this.storefrontApi,
@@ -77,6 +79,8 @@ class MultiStoreDesignScreen extends StatelessWidget {
   final B2cCatalogApi catalogApi;
   final B2cAccountApi accountApi;
   final CustomerActionApi actionApi;
+  final B2cRetailFavoritesApi? favoritesApi;
+  final B2cRetailFavoritesApi? wholesaleFavoritesApi;
   final B2bApi? b2bApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
@@ -130,8 +134,10 @@ class MultiStoreDesignScreen extends StatelessWidget {
         return withFooter(
           RetailProductDetailsDesignScreen(
             location: location,
+            session: session,
             catalogApi: catalogApi,
             actionApi: actionApi,
+            favoritesApi: favoritesApi,
           ),
           CustomerFooterDestination.products,
         );
@@ -159,6 +165,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
             api: b2bApi,
             storefrontApi: storefrontApi,
             actionApi: actionApi,
+            favoritesApi: wholesaleFavoritesApi,
             pendingActionStore: pendingActionStore,
           ),
           CustomerFooterDestination.products,
