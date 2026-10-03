@@ -19,8 +19,6 @@ class B2bJourneyScreen extends StatelessWidget {
     required this.definition,
     required this.location,
     required this.actionApi,
-    required this.onAuthenticated,
-    required this.onPlatformAuthenticated,
     this.api,
     this.accountApi,
     super.key,
@@ -31,13 +29,6 @@ class B2bJourneyScreen extends StatelessWidget {
   final B2bApi? api;
   final B2cAccountApi? accountApi;
   final CustomerActionApi actionApi;
-  final CustomerAuthenticated onAuthenticated;
-  final ValueChanged<String> onPlatformAuthenticated;
-
-  String? get _nextRoute => safeCustomerReturnLocation(
-        Uri.parse(location).queryParameters['next'],
-        channel: CustomerChannel.b2b,
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -153,20 +144,6 @@ class B2bJourneyScreen extends StatelessWidget {
     String pattern,
   ) {
     switch (pattern) {
-      case CustomerRoutePaths.b2bLogin:
-        return (
-          context.tr('b2b.login.title'),
-          context.tr('b2b.login.subtitle'),
-          [
-            CustomerLoginAction(
-              channel: CustomerChannel.b2b,
-              api: actionApi,
-              onAuthenticated: onAuthenticated,
-              onPlatformAuthenticated: onPlatformAuthenticated,
-              successRoute: _nextRoute ?? CustomerRoutePaths.b2bDashboard,
-            ),
-          ],
-        );
       case CustomerRoutePaths.b2bDashboard:
         return (
           context.tr('b2b.dashboard.title'),
