@@ -173,6 +173,13 @@ void main() {
   testWidgets(
       'guest Wholesale product stays browseable and add auth resumes exact store',
       (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     final b2bApi = _RecordingB2bApi();
     final pending = _MemoryPendingActionStore();
     const target =
@@ -201,11 +208,6 @@ void main() {
       findsNothing,
     );
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('customer-add-cart')),
-      180,
-      scrollable: find.byType(Scrollable).first,
-    );
     await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
     await tester.pumpAndSettle();
 
