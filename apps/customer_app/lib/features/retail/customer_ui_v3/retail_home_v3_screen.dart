@@ -183,7 +183,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
           CustomerUiSpacing.page,
           CustomerUiSpacing.md,
           CustomerUiSpacing.page,
-          CustomerUiSpacing.section,
+          160,
         ),
         children: [
           if (data.banners.isNotEmpty) ...[
