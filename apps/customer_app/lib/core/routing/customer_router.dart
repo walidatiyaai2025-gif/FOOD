@@ -56,6 +56,7 @@ class CustomerAppRouter {
     required this.mapPinPicker,
     this.marketplaceClient,
     this.marketplaceBarcodeScanner,
+    this.currentSession,
   });
 
   final CustomerSession session;
@@ -67,6 +68,7 @@ class CustomerAppRouter {
   final CustomerMapPinPicker mapPinPicker;
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
+  final CustomerSession Function()? currentSession;
   final CustomerActionApi actionApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
@@ -342,6 +344,7 @@ class CustomerAppRouter {
             definition: definition,
             location: requestedLocation,
             session: session,
+            currentSession: currentSession,
             catalogApi: b2cCatalogApi,
             accountApi: b2cAccountApi,
             actionApi: actionApi,
