@@ -313,6 +313,22 @@ final class PlatformCustomerService
         PlatformCustomer $platform,
         int $preferredTierId,
     ): B2bCustomer {
+        $retailLinkedCustomer = B2bCustomer::query()
+            ->join(
+                'retail_wholesale_accounts',
+                'retail_wholesale_accounts.b2b_customer_id',
+                '=',
+                'b2b_customers.id',
+            )
+            ->where('retail_wholesale_accounts.owner_user_id', $user->getKey())
+            ->where('b2b_customers.legacy_customer_id', $platform->legacy_customer_id)
+            ->select('b2b_customers.*')
+            ->first();
+
+        if ($retailLinkedCustomer instanceof B2bCustomer) {
+            return $retailLinkedCustomer;
+        }
+
         $customer = B2bCustomer::query()->firstOrCreate(
             ['user_id' => $user->getKey()],
             [
