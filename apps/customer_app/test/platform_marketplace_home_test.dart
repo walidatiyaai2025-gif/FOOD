@@ -830,7 +830,9 @@ void main() {
       expect(route.queryParameters['store_id'], '70');
       expect(route.queryParameters['source'], 'marketplace');
 
-      await tester.pageBack();
+      Navigator.of(
+        tester.element(find.byKey(const ValueKey('route-name'))),
+      ).pop();
       await tester.pumpAndSettle();
     }
 
@@ -1024,6 +1026,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('marketplace-offers-section')),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(
       find.byKey(const ValueKey('marketplace-offers-section')),
       findsOneWidget,
@@ -1035,6 +1042,11 @@ void main() {
     );
     expect(find.text('15%'), findsOneWidget);
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('marketplace-featured-section')),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(
       find.byKey(const ValueKey('marketplace-featured-section')),
       findsOneWidget,
