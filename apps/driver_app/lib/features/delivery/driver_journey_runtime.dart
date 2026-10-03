@@ -19,6 +19,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
     this.focusAssignmentId,
     this.initialAssignmentStatus,
     this.navigationLauncher = launchDriverNavigation,
+    this.addressNavigationLauncher = launchDriverAddressNavigation,
     this.previewContext,
     this.homeRoute,
     this.deliveriesRoute,
@@ -31,6 +32,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
   final int? focusAssignmentId;
   final String? initialAssignmentStatus;
   final DriverNavigationLauncher navigationLauncher;
+  final DriverAddressNavigationLauncher addressNavigationLauncher;
   final DriverPreviewContext? previewContext;
   final String? homeRoute;
   final String? deliveriesRoute;
@@ -91,8 +93,12 @@ class DriverJourneyRuntimePage extends StatelessWidget {
 
           final latitude = assignment.navigationLatitude;
           final longitude = assignment.navigationLongitude;
-          if (latitude == null || longitude == null) return;
-          final opened = await navigationLauncher(latitude, longitude);
+          final address = assignment.address.trim();
+          final opened = latitude != null && longitude != null
+              ? await navigationLauncher(latitude, longitude)
+              : address.isNotEmpty
+                  ? await addressNavigationLauncher(address)
+                  : false;
           if (!opened && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
