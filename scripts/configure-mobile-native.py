@@ -58,6 +58,19 @@ def _select_brand_assets(app_name: str) -> None:
             / 'foodex-economical-group.webp'
         )
         SPLASH_IMAGE = BRAND_ROOT / 'customer_splash.png'
+    elif app_name == 'driver':
+        # Customer and Driver intentionally share the same approved FOODEx
+        # application identity artwork.
+        APP_ICON = BRAND_ROOT / 'customer_app_icon_1024.png'
+        APP_ICON_FOREGROUND = APP_ICON
+        ANDROID_APP_ICON = (
+            REPO_ROOT
+            / 'apps'
+            / 'driver_app'
+            / 'assets'
+            / 'branding'
+            / 'foodex-economical-group.webp'
+        )
 
 
 GOOGLE_SERVICES_PLUGIN_VERSION = '4.4.4'
@@ -206,6 +219,32 @@ def _patch_android_launch_theme(path: Path, *, android_12: bool) -> None:
 
     ET.indent(tree, space='    ')
     tree.write(path, encoding='utf-8', xml_declaration=True)
+
+
+def _configure_android_default_notification_icon(app: Path) -> None:
+    manifest = app / 'src' / 'main' / 'AndroidManifest.xml'
+    if not manifest.exists():
+        raise RuntimeError('Generated Android main manifest was not found')
+
+    text = manifest.read_text()
+    marker = 'com.google.firebase.messaging.default_notification_icon'
+    if marker in text:
+        return
+
+    start = text.find('<application')
+    if start < 0:
+        raise RuntimeError('Generated Android application manifest node was not found')
+    close = text.find('>', start)
+    if close < 0:
+        raise RuntimeError('Generated Android application manifest tag is malformed')
+
+    metadata = (
+        '\n        <meta-data '
+        'android:name="com.google.firebase.messaging.default_notification_icon" '
+        'android:resource="@mipmap/ic_launcher" />'
+    )
+    text = text[: close + 1] + metadata + text[close + 1 :]
+    manifest.write_text(text)
 
 
 def _configure_android_firebase(app_dir: Path, bundle_id: str) -> None:
@@ -459,6 +498,7 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
             )
             manifest.write_text(text)
     _write_android_brand_resources(app)
+    _configure_android_default_notification_icon(app)
 
 
 def _render_ios_app_icons(app_icon_set: Path) -> None:
