@@ -20,6 +20,7 @@ class PlatformMarketplaceScreen extends StatefulWidget {
     this.client,
     this.onLocaleChanged,
     this.sessionProvider,
+    this.commerceContextProvider,
     this.barcodeScanner = showMarketplaceBarcodeScanner,
   });
 
@@ -28,6 +29,7 @@ class PlatformMarketplaceScreen extends StatefulWidget {
   final http.Client? client;
   final ValueChanged<Locale>? onLocaleChanged;
   final CustomerSession Function()? sessionProvider;
+  final CustomerCommerceContext Function()? commerceContextProvider;
   final MarketplaceBarcodeScanner barcodeScanner;
 
   @override
@@ -45,7 +47,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   int _bannerCount = -1;
   int? _selectedCategoryId;
   String? _pendingAfterAuth;
-  List<Map<String, dynamic>>? _guestRetailStoreFallback;
+  List<Map<String, dynamic>>? _retailStoreFallback;
 
   CustomerSession get _currentSession =>
       widget.sessionProvider?.call() ?? widget.session;
@@ -63,29 +65,25 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
     final data = await _get(uri.toString());
 
-    // Keep the approved home order: Wholesale hero first, then exactly one
-    // Retail carousel. The carousel contains every active public Retail store:
-    // Dashboard placements keep their configured order (the first placement is
-    // the primary store), then stores missing from the placements are appended
-    // in the public /stores order. Duplicate store placements never create
-    // duplicate Retail slides.
-    if (!_currentSession.isAuthenticated) {
-      final configuredRetail = _rows(data['retail_banners']);
-      _guestRetailStoreFallback ??=
-          await _loadGuestRetailStoreFallback(baseUrl);
-      final retailCarousel = _mergeRetailStoreCarousel(
-        configuredRetail,
-        _guestRetailStoreFallback!,
-      );
-      if (retailCarousel.isNotEmpty) {
-        data['retail_banners'] = retailCarousel;
-      }
+    // Keep one platform-wide store switcher for guest and signed-in users.
+    // Dashboard placements keep their configured order, then any active Retail
+    // stores missing from placements are appended from the public store list.
+    // Authentication never locks the customer into the current store.
+    final configuredRetail = _rows(data['retail_banners']);
+    _retailStoreFallback ??=
+        await _loadRetailStoreFallback(baseUrl);
+    final retailCarousel = _mergeRetailStoreCarousel(
+      configuredRetail,
+      _retailStoreFallback!,
+    );
+    if (retailCarousel.isNotEmpty) {
+      data['retail_banners'] = retailCarousel;
     }
 
     return data;
   }
 
-  Future<List<Map<String, dynamic>>> _loadGuestRetailStoreFallback(
+  Future<List<Map<String, dynamic>>> _loadRetailStoreFallback(
     String baseUrl,
   ) async {
     try {
@@ -301,6 +299,48 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
   }
 
+  void _openWholesaleStore(CustomerCommerceContext context) {
+    Navigator.of(context).pushNamed(
+      CustomerRouteLocations.wholesaleHome(context),
+    );
+  }
+
+  String _productsLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? Uri(
+              path: CustomerRoutePaths.products,
+              queryParameters: context.toQueryParameters(),
+            ).toString()
+          : Uri(
+              path: CustomerRoutePaths.b2bProducts,
+              queryParameters: context.toQueryParameters(),
+            ).toString();
+
+  String _cartLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? CustomerRouteLocations.retailCart(context)
+          : CustomerRouteLocations.wholesaleCart(context);
+
+  String _ordersLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? CustomerRouteLocations.retailOrders(context)
+          : CustomerRouteLocations.wholesaleOrders(context);
+
+  String _profileLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? CustomerRouteLocations.retailProfile(context)
+          : CustomerRouteLocations.wholesaleProfile(context);
+
+  String _notificationsLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? CustomerRouteLocations.retailNotifications(context)
+          : CustomerRouteLocations.wholesaleNotifications(context);
+
+  String _storeLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? CustomerRouteLocations.retailHome(context)
+          : CustomerRouteLocations.wholesaleHome(context);
+
   Future<void> _openWholesaleProduct(int storeId, int productId) async {
     if (productId <= 0) return;
     try {
@@ -429,7 +469,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        extendBody: true,
         backgroundColor: const Color(0xFFF8FAF9),
         body: SafeArea(
           child: FutureBuilder<Map<String, dynamic>>(
@@ -544,6 +583,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                       source: CustomerCommerceSource.marketplace,
                     )
                   : null;
+              final rememberedContext = widget.commerceContextProvider?.call();
+              final activeCommerceContext =
+                  rememberedContext ?? wholesaleContext;
               final storeSlidesCount = 1 + retail.length;
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _startBannerAutoSlide(storeSlidesCount);
@@ -568,10 +610,10 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                             '/auth/checkout?next=/marketplace',
                           ),
                           onProfile: () {
-                            final scope = wholesaleContext;
+                            final scope = activeCommerceContext;
                             if (scope == null) return;
                             Navigator.of(context).pushNamed(
-                              CustomerRouteLocations.wholesaleProfile(scope),
+                              _profileLocation(scope),
                             );
                           },
                           onScan: _scanBarcode,
@@ -579,34 +621,32 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           localeCode:
                               Localizations.localeOf(context).languageCode,
                           onStore: () {
-                            final scope = wholesaleContext;
+                            final scope = activeCommerceContext;
                             if (scope == null) return;
                             Navigator.of(context).pushNamed(
-                              CustomerRouteLocations.wholesaleHome(scope),
+                              _storeLocation(scope),
                             );
                           },
                           onCart: () {
-                            final scope = wholesaleContext;
+                            final scope = activeCommerceContext;
                             if (scope == null) return;
                             Navigator.of(context).pushNamed(
-                              CustomerRouteLocations.wholesaleCart(scope),
+                              _cartLocation(scope),
                             );
                           },
                           cartCount: _int(data['cart_count']),
                           onOrders: () {
-                            final scope = wholesaleContext;
+                            final scope = activeCommerceContext;
                             if (scope == null) return;
                             Navigator.of(context).pushNamed(
-                              CustomerRouteLocations.wholesaleOrders(scope),
+                              _ordersLocation(scope),
                             );
                           },
                           onNotifications: () {
-                            final scope = wholesaleContext;
+                            final scope = activeCommerceContext;
                             if (scope == null) return;
                             Navigator.of(context).pushNamed(
-                              CustomerRouteLocations.wholesaleNotifications(
-                                scope,
-                              ),
+                              _notificationsLocation(scope),
                             );
                           },
                           searchController: _searchController,
@@ -640,6 +680,11 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                                           'marketplace-wholesale-entry',
                                         ),
                                         child: _WholesaleHero(
+                                          onTap: wholesaleContext == null
+                                              ? null
+                                              : () => _openWholesaleStore(
+                                                    wholesaleContext,
+                                                  ),
                                           title: (hero['title']
                                                           ?.toString()
                                                           .trim() ??
@@ -747,7 +792,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                         )
                       else
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 160),
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 28),
                           sliver: SliverGrid(
                             key: const ValueKey('marketplace-product-grid'),
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -790,12 +835,14 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
             final storeId = _int(wholesale['id']);
             if (storeId <= 0) return const SizedBox.shrink();
 
+            final fallbackContext = CustomerCommerceContext(
+              channel: CustomerCommerceChannel.wholesale,
+              storeId: storeId,
+              source: CustomerCommerceSource.marketplace,
+            );
             return CustomerPersistentFooterDock(
-              commerceContext: CustomerCommerceContext(
-                channel: CustomerCommerceChannel.wholesale,
-                storeId: storeId,
-                source: CustomerCommerceSource.marketplace,
-              ),
+              commerceContext:
+                  widget.commerceContextProvider?.call() ?? fallbackContext,
               activeDestination: CustomerFooterDestination.home,
             );
           },
@@ -1259,10 +1306,15 @@ class _RetailStoreBanner extends StatelessWidget {
 }
 
 class _WholesaleHero extends StatelessWidget {
-  const _WholesaleHero({required this.title, this.imageUrl});
+  const _WholesaleHero({
+    required this.title,
+    this.imageUrl,
+    this.onTap,
+  });
 
   final String title;
   final String? imageUrl;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1304,9 +1356,14 @@ class _WholesaleHero extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const ValueKey('marketplace-wholesale-banner-action'),
+          onTap: onTap,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
           if (image != null && image.isNotEmpty)
             Image.network(
               image,
@@ -1396,7 +1453,9 @@ class _WholesaleHero extends StatelessWidget {
               ],
             ),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
