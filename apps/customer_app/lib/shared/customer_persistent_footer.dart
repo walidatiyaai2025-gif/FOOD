@@ -18,12 +18,14 @@ class CustomerPersistentFooterShell extends StatelessWidget {
     required this.commerceContext,
     required this.activeDestination,
     required this.child,
+    this.keyPrefix = 'customer-footer',
     super.key,
   });
 
   final CustomerCommerceContext commerceContext;
   final CustomerFooterDestination activeDestination;
   final Widget child;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +52,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
               child: CustomerPersistentFooter(
                 commerceContext: commerceContext,
                 activeDestination: activeDestination,
+                keyPrefix: keyPrefix,
               ),
             ),
         ],
@@ -62,11 +65,13 @@ class CustomerPersistentFooterDock extends StatelessWidget {
   const CustomerPersistentFooterDock({
     required this.commerceContext,
     required this.activeDestination,
+    this.keyPrefix = 'customer-footer',
     super.key,
   });
 
   final CustomerCommerceContext commerceContext;
   final CustomerFooterDestination activeDestination;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +90,7 @@ class CustomerPersistentFooterDock extends StatelessWidget {
         child: CustomerPersistentFooter(
           commerceContext: commerceContext,
           activeDestination: activeDestination,
+          keyPrefix: keyPrefix,
         ),
       ),
     );
@@ -95,11 +101,13 @@ class CustomerPersistentFooter extends StatelessWidget {
   const CustomerPersistentFooter({
     required this.commerceContext,
     required this.activeDestination,
+    this.keyPrefix = 'customer-footer',
     super.key,
   });
 
   final CustomerCommerceContext commerceContext;
   final CustomerFooterDestination activeDestination;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +167,7 @@ class CustomerPersistentFooter extends StatelessWidget {
                   Expanded(
                     child: _FooterButton(
                       key: ValueKey(
-                        'customer-footer-${item.destination.name}',
+                        '$keyPrefix-${item.destination.name}',
                       ),
                       item: item,
                       active: item.destination == activeDestination,
