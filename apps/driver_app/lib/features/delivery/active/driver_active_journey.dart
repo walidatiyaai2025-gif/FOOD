@@ -634,18 +634,6 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       );
     }
 
-    if (assignment.status == 'accepted' &&
-        _allows(assignment, 'picked_up')) {
-      buttons.add(
-        FilledButton.tonal(
-          key: Key('driver-active-pickup-${assignment.id}'),
-          onPressed:
-              busy ? null : () => _receiveOrder(assignment),
-          child: Text(_statusLabel('picked_up')),
-        ),
-      );
-    }
-
     if (const {'accepted', 'picked_up'}.contains(assignment.status) &&
         _allows(assignment, 'out_for_delivery')) {
       buttons.add(
@@ -671,10 +659,11 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
 
     if (_allows(assignment, 'failed')) {
       buttons.add(
-        OutlinedButton(
+        FilledButton.tonalIcon(
           key: Key('driver-active-card-failed-${assignment.id}'),
           onPressed: busy ? null : () => _requestFailure(assignment, ''),
-          child: Text(context.tr('driver.action.delivery_failed')),
+          icon: const Icon(Icons.report_problem_outlined),
+          label: Text(context.tr('driver.action.delivery_failed')),
         ),
       );
     }
@@ -1013,19 +1002,60 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
           label: context.tr('driver.detail.phone'),
           value: _value(context, assignment.customerPhone),
         ),
-        _DetailRow(
-          label: context.tr('driver.detail.address'),
-          value: _value(context, assignment.address),
-        ),
-        if (onNavigationRequested != null) ...[
-          const SizedBox(height: 6),
-          FilledButton.icon(
-            key: Key('driver-active-navigate-${assignment.id}'),
-            onPressed: onNavigationRequested,
-            icon: const Icon(Icons.navigation_rounded),
-            label: Text(context.tr('driver.navigation.open')),
+        const SizedBox(height: 8),
+        Container(
+          key: Key('driver-detail-address-card-${assignment.id}'),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF2F8F5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFD9E9E1)),
           ),
-        ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.location_on_outlined,
+                    color: Color(0xFF087347),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr('driver.detail.address'),
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _value(context, assignment.address),
+                          key: Key('driver-detail-address-${assignment.id}'),
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (onNavigationRequested != null) ...[
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  key: Key('driver-active-navigate-${assignment.id}'),
+                  onPressed: onNavigationRequested,
+                  icon: const Icon(Icons.map_outlined),
+                  label: Text(context.tr('driver.navigation.open')),
+                ),
+              ],
+            ],
+          ),
+        ),
         if (actions != null) ...[
           const SizedBox(height: 14),
           Text(
