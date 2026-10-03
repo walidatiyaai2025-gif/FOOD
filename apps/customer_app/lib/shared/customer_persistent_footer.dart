@@ -19,6 +19,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
     required this.activeDestination,
     required this.child,
     this.keyPrefix = 'customer-footer',
+    this.isPlatformHome = false,
     super.key,
   });
 
@@ -26,6 +27,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
   final CustomerFooterDestination activeDestination;
   final Widget child;
   final String keyPrefix;
+  final bool isPlatformHome;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +43,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
               commerceContext: commerceContext,
               activeDestination: activeDestination,
               keyPrefix: keyPrefix,
+              isPlatformHome: isPlatformHome,
             ),
         ],
       ),
@@ -53,12 +56,14 @@ class CustomerPersistentFooterDock extends StatelessWidget {
     required this.commerceContext,
     required this.activeDestination,
     this.keyPrefix = 'customer-footer',
+    this.isPlatformHome = false,
     super.key,
   });
 
   final CustomerCommerceContext commerceContext;
   final CustomerFooterDestination activeDestination;
   final String keyPrefix;
+  final bool isPlatformHome;
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +83,7 @@ class CustomerPersistentFooterDock extends StatelessWidget {
           commerceContext: commerceContext,
           activeDestination: activeDestination,
           keyPrefix: keyPrefix,
+          isPlatformHome: isPlatformHome,
         ),
       ),
     );
@@ -89,12 +95,14 @@ class CustomerPersistentFooter extends StatelessWidget {
     required this.commerceContext,
     required this.activeDestination,
     this.keyPrefix = 'customer-footer',
+    this.isPlatformHome = false,
     super.key,
   });
 
   final CustomerCommerceContext commerceContext;
   final CustomerFooterDestination activeDestination;
   final String keyPrefix;
+  final bool isPlatformHome;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +166,10 @@ class CustomerPersistentFooter extends StatelessWidget {
                       ),
                       item: item,
                       active: item.destination == activeDestination,
-                      onTap: item.destination == activeDestination
+                      onTap: item.destination == activeDestination &&
+                              (item.destination !=
+                                      CustomerFooterDestination.home ||
+                                  isPlatformHome)
                           ? null
                           : () => Navigator.of(context).pushNamed(
                                 _locationFor(item.destination),
