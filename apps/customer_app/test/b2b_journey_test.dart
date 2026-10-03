@@ -61,7 +61,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const ValueKey('b2b-profile-friendly-data')),
+      findsOneWidget,
+    );
+    expect(find.text('ملخص الحساب'), findsOneWidget);
+    expect(find.text('بيانات الشركة والتواصل'), findsOneWidget);
+    expect(find.text('Acme Foods'), findsOneWidget);
+    expect(find.text('buyer@example.test'), findsOneWidget);
+    expect(find.text('إدارة العناوين'), findsOneWidget);
     expect(find.text('العناوين'), findsOneWidget);
+    expect(find.text('company_name'), findsNothing);
   });
 
   testWidgets('B2B storefront keeps server branding and enforces green theme on mobile', (tester) async {
