@@ -455,7 +455,12 @@ final class RetailStoreProvisioningController extends Controller
 
             $linkAfter = DB::table('retail_wholesale_accounts')
                 ->where('retail_store_id', $store->id)
-                ->firstOrFail();
+                ->first();
+            abort_unless(
+                $linkAfter !== null,
+                500,
+                'Retail Wholesale owner link was not persisted.',
+            );
 
             $effectiveTierId = DB::table('b2b_accounts')
                 ->where('b2b_customer_id', $customer->getKey())
