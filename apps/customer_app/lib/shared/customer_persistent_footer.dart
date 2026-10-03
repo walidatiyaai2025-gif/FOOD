@@ -32,16 +32,11 @@ class CustomerPersistentFooterShell extends StatelessWidget {
     final media = MediaQuery.of(context);
     final visible = media.viewInsets.bottom < 24;
     final footerClearance = 42.0 + media.viewPadding.bottom;
-    const navHeight = 84.0;
-    final reservedBottom =
-        visible ? footerClearance + navHeight + CustomerUiSpacing.xs : 0.0;
-
     return ColoredBox(
       color: CustomerUiColors.mint,
       child: Stack(
         children: [
           Positioned.fill(
-            bottom: reservedBottom,
             child: child,
           ),
           if (visible)
