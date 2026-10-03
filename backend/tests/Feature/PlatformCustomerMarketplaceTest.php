@@ -203,6 +203,26 @@ class PlatformCustomerMarketplaceTest extends TestCase
         $this->assertSame($retailStore, (int) $b2c->store_id);
 
         $headers = ['Authorization' => 'Bearer '.$token];
+        $b2bHeaders = [
+            ...$headers,
+            'X-FOODEX-Customer-Domain' => 'b2b',
+            'X-FOODEX-Store-ID' => (string) $wholesaleStore,
+        ];
+
+        $this->postJson('/api/v1/profile/favorites/'.$wholesaleProduct, [], $b2bHeaders)
+            ->assertCreated()
+            ->assertJsonPath('product.id', $wholesaleProduct)
+            ->assertJsonPath('product.channel', 'b2b')
+            ->assertJsonPath('product.store_id', $wholesaleStore);
+
+        $this->getJson('/api/v1/profile/favorites', $b2bHeaders)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $wholesaleProduct)
+            ->assertJsonPath('data.0.channel', 'b2b');
+
+        $this->deleteJson('/api/v1/profile/favorites/'.$wholesaleProduct, [], $b2bHeaders)
+            ->assertNoContent();
 
         $this->postJson('/api/v1/cart/items', [
             'store_id' => $wholesaleStore,
