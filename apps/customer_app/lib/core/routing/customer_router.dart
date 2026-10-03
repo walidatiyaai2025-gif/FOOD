@@ -398,6 +398,7 @@ class CustomerAppRouter {
             location: requestedLocation,
             api: b2bApi,
             accountApi: b2bAccountApi,
+            ordersApi: customerOrdersApi,
             actionApi: actionApi,
             onAuthenticated: onAuthenticated,
             onPlatformAuthenticated: onPlatformRegistered,
