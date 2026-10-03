@@ -40,6 +40,52 @@ void main() {
     expect(page.orders.single.channel, 'b2c');
   });
 
+  test('orders can filter by channel without inheriting an active store', () async {
+    http.Request? captured;
+    final api = HttpCustomerOrdersApi(
+      baseUrl: 'https://foodex.example',
+      token: 'platform-token',
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response(
+          '{"data":[],"meta":{"current_page":1,"per_page":20,"total":0,"scope":"platform_customer"}}',
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
+
+    await api.orders(channel: 'b2b');
+
+    expect(captured?.url.queryParameters['channel'], 'b2b');
+    expect(captured?.url.queryParameters.containsKey('store_id'), isFalse);
+    expect(captured?.headers.containsKey('X-FOODEX-Store-ID'), isFalse);
+    expect(captured?.headers.containsKey('X-FOODEX-Customer-Domain'), isFalse);
+  });
+
+  test('orders reject an explicit channel that conflicts with store context',
+      () async {
+    final api = HttpCustomerOrdersApi(
+      baseUrl: 'https://foodex.example',
+      token: 'platform-token',
+      client: MockClient((request) async => http.Response('{}', 200)),
+    );
+
+    await expectLater(
+      api.orders(
+        channel: 'b2b',
+        context: const CustomerOrderContext(storeId: 7, channel: 'b2c'),
+      ),
+      throwsA(
+        isA<CustomerOrdersException>().having(
+          (error) => error.code,
+          'code',
+          'invalid_order_context',
+        ),
+      ),
+    );
+  });
+
   test('order detail decodes authoritative timeline payment and address', () async {
     http.Request? captured;
     final api = HttpCustomerOrdersApi(
