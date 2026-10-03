@@ -132,9 +132,13 @@ void main() {
       );
       expect(find.byKey(const Key('driver-active-start-693')), findsNothing);
       expect(repository.startNote, isNull);
-      expect(find.byKey(const Key('driver-active-delivered-693')), findsOneWidget);
+      expect(find.byKey(const Key('driver-detail-delivered-693')), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('driver-active-delivered-693')));
+      await tester.ensureVisible(
+        find.byKey(const Key('driver-detail-delivered-693')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('driver-detail-delivered-693')));
       await tester.pumpAndSettle();
 
       expect(completion, isNotNull);
