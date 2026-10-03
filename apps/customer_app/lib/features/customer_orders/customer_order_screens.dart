@@ -21,37 +21,106 @@ class CustomerOrdersScreen extends StatefulWidget {
   State<CustomerOrdersScreen> createState() => _CustomerOrdersScreenState();
 }
 
-class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
-  CustomerOrderPage? _page;
-  Object? _error;
-  bool _loading = true;
+class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
+    with SingleTickerProviderStateMixin {
+  static const _channels = <String>['b2b', 'b2c'];
+
+  late final TabController _tabController;
+  final Map<String, _OrdersTabState> _tabs = <String, _OrdersTabState>{
+    'b2b': _OrdersTabState(),
+    'b2c': _OrdersTabState(),
+  };
+
+  String get _activeChannel => _channels[_tabController.index];
 
   @override
   void initState() {
     super.initState();
-    unawaited(_load());
+    _tabController = TabController(length: _channels.length, vsync: this)
+      ..addListener(_onTabChanged);
+    for (final channel in _channels) {
+      unawaited(_loadChannel(channel));
+    }
   }
 
-  Future<void> _load() async {
+  @override
+  void dispose() {
+    _tabController
+      ..removeListener(_onTabChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (!_tabController.indexIsChanging && mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _loadChannel(
+    String channel, {
+    bool reset = true,
+  }) async {
+    final tab = _tabs[channel]!;
+    if ((reset && tab.loading) || (!reset && tab.loadingMore)) return;
+
     setState(() {
-      _loading = true;
-      _error = null;
+      if (reset) {
+        tab.loading = true;
+      } else {
+        tab.loadingMore = true;
+      }
+      tab.error = null;
     });
 
+    final targetPage = reset ? 1 : tab.currentPage + 1;
+
     try {
-      final page = await widget.api.orders();
+      final page = await widget.api.orders(
+        page: targetPage,
+        channel: channel,
+      );
+
+      final mixedChannel = page.orders.any(
+        (order) => order.channel.toLowerCase() != channel,
+      );
+      if (mixedChannel) {
+        throw const CustomerOrdersException('mixed_order_channel');
+      }
+
       if (!mounted) return;
       setState(() {
-        _page = page;
-        _loading = false;
+        tab.orders = reset
+            ? List<CustomerOrderSummary>.of(page.orders)
+            : _mergeOrders(tab.orders, page.orders);
+        tab.currentPage = page.currentPage;
+        tab.total = page.total;
+        tab.loading = false;
+        tab.loadingMore = false;
+        tab.error = null;
       });
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = error;
-        _loading = false;
+        tab.loading = false;
+        tab.loadingMore = false;
+        tab.error = error;
       });
     }
+  }
+
+  List<CustomerOrderSummary> _mergeOrders(
+    List<CustomerOrderSummary> current,
+    List<CustomerOrderSummary> incoming,
+  ) {
+    final merged = <String, CustomerOrderSummary>{
+      for (final order in current)
+        '${order.channel}:${order.storeId}:${order.id}': order,
+    };
+    for (final order in incoming) {
+      merged['${order.channel}:${order.storeId}:${order.id}'] = order;
+    }
+    return merged.values.toList(growable: false);
   }
 
   @override
@@ -60,67 +129,154 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
         backgroundColor: CustomerUiColors.mint,
         appBar: AppBar(
           title: Text(context.tr('customer.profile.orders')),
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: [
+              Tab(
+                key: const ValueKey('customer-orders-tab-b2b'),
+                text: context.tr('customer.orders.tab.wholesale'),
+              ),
+              Tab(
+                key: const ValueKey('customer-orders-tab-b2c'),
+                text: context.tr('customer.orders.tab.retail'),
+              ),
+            ],
+          ),
           actions: [
             IconButton(
               key: const ValueKey('customer-orders-refresh'),
               tooltip: context.tr('customer.orders.refresh'),
-              onPressed: _loading ? null : _load,
+              onPressed: _tabs[_activeChannel]!.loading
+                  ? null
+                  : () => unawaited(_loadChannel(_activeChannel)),
               icon: const Icon(Icons.refresh_rounded),
             ),
           ],
         ),
-        body: RefreshIndicator(
-          onRefresh: _load,
-          child: _body(context),
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            _channelBody(context, 'b2b'),
+            _channelBody(context, 'b2c'),
+          ],
         ),
       );
 
-  Widget _body(BuildContext context) {
-    if (_loading && _page == null) {
+  Widget _channelBody(BuildContext context, String channel) {
+    final tab = _tabs[channel]!;
+
+    return RefreshIndicator(
+      onRefresh: () => _loadChannel(channel),
+      child: _channelContent(context, channel, tab),
+    );
+  }
+
+  Widget _channelContent(
+    BuildContext context,
+    String channel,
+    _OrdersTabState tab,
+  ) {
+    if (tab.loading && tab.orders.isEmpty) {
       return const _OrdersListSkeleton();
     }
 
-    if (_error != null && _page == null) {
+    if (tab.error != null && tab.orders.isEmpty) {
       return _ScrollableState(
         child: CustomerStateView(
           kind: CustomerStateKind.error,
           title: context.tr('customer.error.action_failed'),
-          message: _errorText(context, _error!),
+          message: _errorText(context, tab.error!),
           actionLabel: context.tr('customer.action.retry'),
-          onAction: () => unawaited(_load()),
+          onAction: () => unawaited(_loadChannel(channel)),
           icon: Icons.receipt_long_outlined,
         ),
       );
     }
 
-    final orders = _page?.orders ?? const <CustomerOrderSummary>[];
-    if (orders.isEmpty) {
+    if (tab.orders.isEmpty) {
       return _ScrollableState(
         child: CustomerStateView(
           kind: CustomerStateKind.empty,
           title: context.tr('customer.orders.empty'),
           message: context.tr('customer.orders.subtitle'),
-          icon: Icons.receipt_long_outlined,
+          icon: channel == 'b2b'
+              ? Icons.warehouse_outlined
+              : Icons.storefront_outlined,
         ),
       );
     }
 
+    final hasFooter = tab.hasMore || tab.error != null;
     return ListView.separated(
+      key: ValueKey('customer-orders-list-$channel'),
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-      itemCount: orders.length,
+      itemCount: tab.orders.length + (hasFooter ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
-        final order = orders[index];
-        return _OrderCard(
-          order: order,
-          onTap: widget.onOpenOrder == null
-              ? null
-              : () => widget.onOpenOrder!(order),
+        if (index < tab.orders.length) {
+          final order = tab.orders[index];
+          return _OrderCard(
+            order: order,
+            onTap: widget.onOpenOrder == null
+                ? null
+                : () => widget.onOpenOrder!(order),
+          );
+        }
+
+        if (tab.error != null) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              children: [
+                Text(
+                  _errorText(context, tab.error!),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  key: ValueKey('customer-orders-retry-$channel'),
+                  onPressed: tab.loadingMore
+                      ? null
+                      : () => unawaited(
+                            _loadChannel(channel, reset: false),
+                          ),
+                  child: Text(context.tr('customer.action.retry')),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Center(
+            child: OutlinedButton.icon(
+              key: ValueKey('customer-orders-load-more-$channel'),
+              onPressed: tab.loadingMore
+                  ? null
+                  : () => unawaited(
+                        _loadChannel(channel, reset: false),
+                      ),
+              icon: const Icon(Icons.expand_more_rounded),
+              label: Text(context.tr('customer.orders.load_more')),
+            ),
+          ),
         );
       },
     );
   }
+}
+
+class _OrdersTabState {
+  List<CustomerOrderSummary> orders = <CustomerOrderSummary>[];
+  int currentPage = 0;
+  int total = 0;
+  bool loading = false;
+  bool loadingMore = false;
+  Object? error;
+
+  bool get hasMore => orders.length < total;
 }
 
 class CustomerOrderDetailsScreen extends StatefulWidget {

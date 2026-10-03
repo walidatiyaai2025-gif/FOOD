@@ -9,6 +9,7 @@ abstract interface class CustomerOrdersApi {
     int page = 1,
     int perPage = 20,
     String? status,
+    String? channel,
     CustomerOrderContext? context,
   });
 
@@ -34,9 +35,16 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
     int page = 1,
     int perPage = 20,
     String? status,
+    String? channel,
     CustomerOrderContext? context,
   }) async {
     _validateContext(context);
+    final normalizedChannel = _normalizeChannel(channel);
+    if (context != null &&
+        normalizedChannel != null &&
+        context.normalizedChannel != normalizedChannel) {
+      throw const CustomerOrdersException('invalid_order_context');
+    }
 
     final query = <String, String>{
       'page': page.toString(),
@@ -44,7 +52,10 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
       if (status != null && status.trim().isNotEmpty)
         'status': status.trim().toLowerCase(),
       if (context != null) 'store_id': context.storeId.toString(),
-      if (context != null) 'channel': context.normalizedChannel,
+      if (normalizedChannel != null)
+        'channel': normalizedChannel
+      else if (context != null)
+        'channel': context.normalizedChannel,
     };
 
     final response = await _send(
@@ -140,6 +151,15 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
     if (context != null && !context.isValidChannel) {
       throw const CustomerOrdersException('invalid_order_context');
     }
+  }
+
+  String? _normalizeChannel(String? channel) {
+    final normalized = channel?.trim().toLowerCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    if (normalized != 'b2b' && normalized != 'b2c') {
+      throw const CustomerOrdersException('invalid_order_context');
+    }
+    return normalized;
   }
 }
 

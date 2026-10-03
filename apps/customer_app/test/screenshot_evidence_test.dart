@@ -555,13 +555,18 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
 class _EvidenceOrdersApi implements CustomerOrdersApi {
   const _EvidenceOrdersApi();
 
-  CustomerOrderSummary _summary(int orderId) => CustomerOrderSummary(
+  CustomerOrderSummary _summary(
+    int orderId, {
+    String channel = 'b2c',
+  }) =>
+      CustomerOrderSummary(
         id: orderId,
         orderNumber: 'FOODEX-$orderId',
-        storeId: 7,
-        storeName: 'FOODEX Fresh Market',
+        storeId: channel == 'b2b' ? 70 : 7,
+        storeName:
+            channel == 'b2b' ? 'FOODEX Wholesale' : 'FOODEX Fresh Market',
         storeLogoUrl: null,
-        channel: 'b2c',
+        channel: channel,
         status: 'out_for_delivery',
         currency: 'KWD',
         grandTotal: 18.5,
@@ -573,16 +578,23 @@ class _EvidenceOrdersApi implements CustomerOrdersApi {
     int page = 1,
     int perPage = 20,
     String? status,
+    String? channel,
     CustomerOrderContext? context,
   }) async =>
       CustomerOrderPage(
-        orders: [_summary(101)],
+        orders: [
+          _summary(
+            101,
+            channel: channel ?? context?.normalizedChannel ?? 'b2c',
+          ),
+        ],
         currentPage: page,
         perPage: perPage,
         total: 1,
-        scope: context == null
-            ? 'all'
-            : '${context.normalizedChannel}:${context.storeId}',
+        scope: channel ??
+            (context == null
+                ? 'all'
+                : '${context.normalizedChannel}:${context.storeId}'),
       );
 
   @override

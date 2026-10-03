@@ -11,6 +11,8 @@ import '../../core/routing/customer_routes.dart';
 import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
 import '../customer_account/customer_notification_center_screen.dart';
+import '../customer_orders/customer_order_screens.dart';
+import '../customer_orders/customer_orders_api.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
 
@@ -21,6 +23,7 @@ class B2bJourneyScreen extends StatelessWidget {
     required this.actionApi,
     this.api,
     this.accountApi,
+    this.ordersApi,
     super.key,
   });
 
@@ -28,6 +31,7 @@ class B2bJourneyScreen extends StatelessWidget {
   final String location;
   final B2bApi? api;
   final B2cAccountApi? accountApi;
+  final CustomerOrdersApi? ordersApi;
   final CustomerActionApi actionApi;
 
   @override
@@ -65,6 +69,34 @@ class B2bJourneyScreen extends StatelessWidget {
           onOpenOrder: (target) => _openNotificationOrder(context, target),
         ),
         CustomerFooterDestination.account,
+      );
+    }
+
+    if (definition.pattern == CustomerRoutePaths.b2bOrders &&
+        ordersApi != null) {
+      return withFooter(
+        CustomerOrdersScreen(
+          api: ordersApi!,
+          onOpenOrder: (order) {
+            final orderContext = CustomerCommerceContext(
+              channel: order.channel == 'b2b'
+                  ? CustomerCommerceChannel.wholesale
+                  : CustomerCommerceChannel.retail,
+              storeId: order.storeId,
+            );
+            final target = order.channel == 'b2b'
+                ? Uri(
+                    path: '/b2b/orders/${order.id}',
+                    queryParameters: orderContext.toQueryParameters(),
+                  ).toString()
+                : Uri(
+                    path: '/orders/${order.id}/track',
+                    queryParameters: orderContext.toQueryParameters(),
+                  ).toString();
+            Navigator.of(context).pushNamed(target);
+          },
+        ),
+        CustomerFooterDestination.orders,
       );
     }
 
