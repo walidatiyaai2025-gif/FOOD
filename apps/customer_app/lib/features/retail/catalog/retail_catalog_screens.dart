@@ -931,6 +931,8 @@ class _BrowseProductCard extends StatelessWidget {
       title: product.name,
       priceLabel: priceLabel,
       imageUrl: image,
+      brandLabel: product.brandName,
+      brandImageUrl: product.brandImageUrl,
       onTap: openProduct == null
           ? null
           : () => openProduct(
@@ -1227,6 +1229,13 @@ class _CatalogErrorState extends StatelessWidget {
     final catalogError = error;
     if (catalogError is B2cCatalogException &&
         catalogError.isSelfStorePurchaseNotAllowed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          CustomerRoutePaths.marketplace,
+          (route) => false,
+        );
+      });
       return KeyedSubtree(
         key: const ValueKey('retail-own-store-blocked'),
         child: CustomerStateView(
