@@ -28,6 +28,26 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->where('id', $wholesaleProduct)
             ->value('category_id');
 
+        DB::table('categories')->where('id', $wholesaleCategory)->update([
+            'image_path' => 'storage/categories/platform-category.webp',
+        ]);
+        $brandId = (int) DB::table('brands')->insertGetId([
+            'store_id' => null,
+            'scope' => 'global',
+            'scope_key' => 'global',
+            'name' => 'Platform Brand',
+            'name_ar' => 'علامة المنصة',
+            'name_en' => 'Platform Brand',
+            'slug' => 'platform-brand',
+            'image_path' => 'storage/brands/platform-brand.webp',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('products')->where('id', $wholesaleProduct)->update([
+            'brand_id' => $brandId,
+        ]);
+
         $this->getJson('/api/v1/platform/storefront')
             ->assertOk()
             ->assertJsonPath('store.id', $wholesaleStore)
@@ -36,6 +56,11 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertJsonPath('products.data.0.id', $wholesaleProduct)
             ->assertJsonPath('categories.0.id', $wholesaleCategory)
             ->assertJsonPath('categories.0.slug', 'PLATFORM-CAT')
+            ->assertJsonPath('categories.0.image_url', url('/storage/categories/platform-category.webp'))
+            ->assertJsonPath('brands.0.id', $brandId)
+            ->assertJsonPath('brands.0.image_url', url('/storage/brands/platform-brand.webp'))
+            ->assertJsonPath('products.data.0.brand_id', $brandId)
+            ->assertJsonPath('products.data.0.brand_image_url', url('/storage/brands/platform-brand.webp'))
             ->assertJsonPath('offers.0.name', 'Wholesale Launch Offer')
             ->assertJsonPath('offers.0.value', 2.5)
             ->assertJsonCount(1, 'offers')
