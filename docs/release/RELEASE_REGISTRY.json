@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.49",
+  "current_version": "1.0.50",
   "releases": [
     {
       "version": "1.0.40",
@@ -110,6 +110,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "18878f839b846422d2309480b6e654c12cd81bc714b09746e6d81e8b881c95d9",
       "note": "Post-1.0.48 own-store context hardening plus Dashboard-authoritative Product/Category/Brand imagery and live upload previews, implemented by #812 / PR #813."
+    },
+    {
+      "version": "1.0.50",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.50.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "4e64da2da9f64494a6f9ff533fb4f83d402edd75ff03cffa1fc33d7a7d17e529",
+      "note": "Post-1.0.49 Customer catalog convergence and Dashboard Catalog Management repair, including Wholesale product details, Favorites parity, four-column mobile grids and catalog image-management fixes from #817 / PR #818."
     }
   ]
 }
