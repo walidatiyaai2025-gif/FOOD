@@ -293,7 +293,10 @@ class HttpCustomerActionApi implements CustomerActionApi {
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       String code = 'http_${response.statusCode}';
-      if (body is Map && body['message'] is String) {
+      if (body is Map && body['code'] is String) {
+        final serverCode = (body['code'] as String).trim();
+        if (serverCode.isNotEmpty) code = serverCode;
+      } else if (body is Map && body['message'] is String) {
         code = body['message'] as String;
       }
       throw CustomerActionException(

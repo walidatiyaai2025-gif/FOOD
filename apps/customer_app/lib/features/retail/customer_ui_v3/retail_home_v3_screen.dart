@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/api/b2c_account_api.dart';
 import '../../../core/api/b2c_catalog_api.dart';
 import '../../../core/localization/app_translations.dart';
+import '../../../core/routing/customer_routes.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
 import '../../customer_account/customer_account_data.dart';
 import '../catalog/retail_catalog_screens.dart';
@@ -140,6 +141,26 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
     }
 
     if (snapshot.hasError || !snapshot.hasData) {
+      final error = snapshot.error;
+      if (error is B2cCatalogException &&
+          error.isSelfStorePurchaseNotAllowed) {
+        return KeyedSubtree(
+          key: const ValueKey('retail-own-store-blocked'),
+          child: CustomerStateView(
+            kind: CustomerStateKind.error,
+            title: context.tr('customer.store.own_purchase_blocked.title'),
+            message: context.tr('customer.store.own_purchase_blocked.body'),
+            actionLabel:
+                context.tr('customer.store.own_purchase_blocked.action'),
+            onAction: () => Navigator.of(context).pushNamedAndRemoveUntil(
+              CustomerRoutePaths.marketplace,
+              (route) => false,
+            ),
+            icon: Icons.storefront_outlined,
+          ),
+        );
+      }
+
       return CustomerStateView(
         kind: CustomerStateKind.error,
         title: context.tr('customer.error.action_failed'),

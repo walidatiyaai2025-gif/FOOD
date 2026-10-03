@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/api/b2c_account_api.dart';
+import '../../../core/routing/customer_routes.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'retail_commerce_api.dart';
 
@@ -189,6 +191,18 @@ class _RetailCartScreenState extends State<RetailCartScreen> {
   Widget build(BuildContext context) {
     final strings = _RetailCommerceStrings.of(context);
     final cart = _cart;
+
+    if (_isOwnStoreBlocked(_error)) {
+      return Scaffold(
+        backgroundColor: CustomerUiColors.mint,
+        appBar: AppBar(
+          title: Text(strings.cart),
+          backgroundColor: CustomerUiColors.deepGreen,
+          foregroundColor: CustomerUiColors.white,
+        ),
+        body: _OwnStoreBlockedState(strings: strings),
+      );
+    }
 
     return Scaffold(
       backgroundColor: CustomerUiColors.mint,
@@ -430,6 +444,18 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
   Widget build(BuildContext context) {
     final strings = _RetailCommerceStrings.of(context);
     final options = _options;
+
+    if (_isOwnStoreBlocked(_error)) {
+      return Scaffold(
+        backgroundColor: CustomerUiColors.mint,
+        appBar: AppBar(
+          title: Text(strings.checkout),
+          backgroundColor: CustomerUiColors.deepGreen,
+          foregroundColor: CustomerUiColors.white,
+        ),
+        body: _OwnStoreBlockedState(strings: strings),
+      );
+    }
 
     return Scaffold(
       backgroundColor: CustomerUiColors.mint,
@@ -770,6 +796,36 @@ class _CartItemCard extends StatelessWidget {
       );
 }
 
+bool _isOwnStoreBlocked(Object? error) {
+  return switch (error) {
+    RetailCommerceException(:final code) => code == 'SELF_STORE_PURCHASE_NOT_ALLOWED',
+    B2cAccountException(:final code) => code == 'SELF_STORE_PURCHASE_NOT_ALLOWED',
+    _ => false,
+  };
+}
+
+class _OwnStoreBlockedState extends StatelessWidget {
+  const _OwnStoreBlockedState({required this.strings});
+
+  final _RetailCommerceStrings strings;
+
+  @override
+  Widget build(BuildContext context) => KeyedSubtree(
+        key: const ValueKey('retail-own-store-blocked'),
+        child: CustomerStateView(
+          kind: CustomerStateKind.error,
+          title: strings.ownStoreBlocked,
+          message: strings.ownStoreBlockedBody,
+          actionLabel: strings.backMarketplace,
+          onAction: () => Navigator.of(context).pushNamedAndRemoveUntil(
+            CustomerRoutePaths.marketplace,
+            (route) => false,
+          ),
+          icon: Icons.storefront_outlined,
+        ),
+      );
+}
+
 class _CommerceLoadingSkeleton extends StatelessWidget {
   const _CommerceLoadingSkeleton();
 
@@ -905,6 +961,9 @@ class _RetailCommerceStrings {
     required this.requestFailed,
     required this.cashOnDelivery,
     required this.card,
+    required this.ownStoreBlocked,
+    required this.ownStoreBlockedBody,
+    required this.backMarketplace,
   });
 
   final String cart;
@@ -928,6 +987,9 @@ class _RetailCommerceStrings {
   final String requestFailed;
   final String cashOnDelivery;
   final String card;
+  final String ownStoreBlocked;
+  final String ownStoreBlockedBody;
+  final String backMarketplace;
 
   static _RetailCommerceStrings of(BuildContext context) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
@@ -956,6 +1018,10 @@ class _RetailCommerceStrings {
     requestFailed: 'تعذر تنفيذ الطلب',
     cashOnDelivery: 'الدفع عند الاستلام',
     card: 'بطاقة',
+    ownStoreBlocked: 'لا يمكن الشراء من متجرك',
+    ownStoreBlockedBody:
+        'يمكنك إدارة هذا المتجر من لوحة الإدارة، لكن لا يمكنك الشراء منه بحساب المالك أو المدير.',
+    backMarketplace: 'العودة إلى المتاجر',
   );
 
   static const english = _RetailCommerceStrings(
@@ -980,5 +1046,9 @@ class _RetailCommerceStrings {
     requestFailed: 'Request failed',
     cashOnDelivery: 'Cash on delivery',
     card: 'Card',
+    ownStoreBlocked: 'You cannot purchase from your own store',
+    ownStoreBlockedBody:
+        'You can manage this store from the Dashboard, but an owner or manager account cannot purchase from it.',
+    backMarketplace: 'Back to marketplace',
   );
 }

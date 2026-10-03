@@ -70,7 +70,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     // stores missing from placements are appended from the public store list.
     // Authentication never locks the customer into the current store.
     final configuredRetail = _rows(data['retail_banners']);
-    _retailStoreFallback ??=
+    _retailStoreFallback =
         await _loadRetailStoreFallback(baseUrl);
     final retailCarousel = _mergeRetailStoreCarousel(
       configuredRetail,
@@ -200,6 +200,16 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
         curve: Curves.easeOutCubic,
       );
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant PlatformMarketplaceScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.session.accessToken != widget.session.accessToken ||
+        oldWidget.session.isAuthenticated != widget.session.isAuthenticated) {
+      _retailStoreFallback = null;
+      _future = _load();
+    }
   }
 
   @override
