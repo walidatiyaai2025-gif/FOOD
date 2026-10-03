@@ -463,10 +463,70 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   : <String, dynamic>{};
               final retail = _rows(data['retail_banners']);
               final categories = _rows(data['categories']);
+              final sections = _rows(data['sections']);
+              final offers = _rows(data['offers']);
               final productEnvelope = data['products'] is Map
                   ? Map<String, dynamic>.from(data['products'] as Map)
                   : <String, dynamic>{};
               final products = _rows(productEnvelope['data']);
+              final offersSection =
+                  _marketplaceSection(sections, 'offers');
+              final featuredSection =
+                  _marketplaceSection(sections, 'featured_products');
+              final featuredProducts = _marketplaceFeaturedProducts(
+                products,
+                featuredSection,
+              );
+              final isArabic =
+                  Localizations.localeOf(context).languageCode == 'ar';
+              final offersTitle = _marketplaceSectionTitle(
+                offersSection,
+                isArabic: isArabic,
+                fallbackAr: 'عروض',
+                fallbackEn: 'Offers',
+              );
+              final featuredTitle = _marketplaceSectionTitle(
+                featuredSection,
+                isArabic: isArabic,
+                fallbackAr: 'منتجات مميزة',
+                fallbackEn: 'Featured products',
+              );
+              final currency =
+                  data['currency']?.toString().trim().isNotEmpty == true
+                      ? data['currency'].toString().trim()
+                      : 'EGP';
+              final showHomeCollections =
+                  _selectedCategoryId == null &&
+                  _searchController.text.trim().isEmpty;
+              final homeCollections = <MapEntry<int, Widget>>[];
+              if (showHomeCollections && offers.isNotEmpty) {
+                homeCollections.add(
+                  MapEntry(
+                    _marketplaceSectionSort(offersSection, 30),
+                    _MarketplaceOfferSection(
+                      title: offersTitle,
+                      offers: offers,
+                      currency: currency,
+                    ),
+                  ),
+                );
+              }
+              if (showHomeCollections && featuredProducts.isNotEmpty) {
+                homeCollections.add(
+                  MapEntry(
+                    _marketplaceSectionSort(featuredSection, 40),
+                    _MarketplaceFeaturedSection(
+                      title: featuredTitle,
+                      products: featuredProducts,
+                      onProductTap: (product) => _openWholesaleProduct(
+                        _int(wholesale['id']),
+                        _int(product['id']),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              homeCollections.sort((a, b) => a.key.compareTo(b.key));
               final hero = data['hero'] is Map
                   ? Map<String, dynamic>.from(data['hero'] as Map)
                   : <String, dynamic>{};
@@ -646,6 +706,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                             onSelect: _selectCategory,
                           ),
                         ),
+                      ...homeCollections.map(
+                        (entry) => SliverToBoxAdapter(child: entry.value),
+                      ),
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(12, 10, 12, 5),
                         sliver: SliverToBoxAdapter(
@@ -1403,6 +1466,181 @@ class _MarketplaceCategoryRail extends StatelessWidget {
       );
 }
 
+
+class _MarketplaceOfferSection extends StatelessWidget {
+  const _MarketplaceOfferSection({
+    required this.title,
+    required this.offers,
+    required this.currency,
+  });
+
+  final String title;
+  final List<Map<String, dynamic>> offers;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        key: const ValueKey('marketplace-offers-section'),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _MarketplaceCollectionTitle(title: title),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 94,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: offers.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final offer = offers[index];
+                  final id = _int(offer['id']);
+                  final name = offer['name']?.toString().trim() ?? '';
+                  final type = offer['type']?.toString().trim() ?? '';
+                  final value = offer['value'];
+                  final badge =
+                      _marketplaceOfferBadge(type, value, currency);
+
+                  return Container(
+                    key: ValueKey('marketplace-offer-$id'),
+                    width: 176,
+                    padding: const EdgeInsetsDirectional.fromSTEB(
+                      12,
+                      10,
+                      12,
+                      10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF7F0),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFD7EDE2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.local_offer_outlined,
+                            color: Color(0xFF087347),
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF17212F),
+                                  fontSize: 11.5,
+                                  height: 1.15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              if (badge.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  badge,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF087347),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _MarketplaceFeaturedSection extends StatelessWidget {
+  const _MarketplaceFeaturedSection({
+    required this.title,
+    required this.products,
+    required this.onProductTap,
+  });
+
+  final String title;
+  final List<Map<String, dynamic>> products;
+  final ValueChanged<Map<String, dynamic>> onProductTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        key: const ValueKey('marketplace-featured-section'),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _MarketplaceCollectionTitle(title: title),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 190,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: products.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  return SizedBox(
+                    width: 122,
+                    child: _WholesaleProductCard(
+                      product: product,
+                      keyPrefix: 'marketplace-featured-product',
+                      onTap: () => onProductTap(product),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _MarketplaceCollectionTitle extends StatelessWidget {
+  const _MarketplaceCollectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.start,
+        style: const TextStyle(
+          color: Color(0xFF17212F),
+          fontSize: 18,
+          height: 1.15,
+          fontWeight: FontWeight.w900,
+        ),
+      );
+}
+
 class _MarketplaceSectionHeader extends StatelessWidget {
   const _MarketplaceSectionHeader({
     required this.title,
@@ -1485,10 +1723,12 @@ class _WholesaleProductCard extends StatelessWidget {
   const _WholesaleProductCard({
     required this.product,
     required this.onTap,
+    this.keyPrefix = 'marketplace-product',
   });
 
   final Map<String, dynamic> product;
   final VoidCallback onTap;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -1504,7 +1744,7 @@ class _WholesaleProductCard extends StatelessWidget {
         '$rawPrice ${currency == null || currency.isEmpty ? 'EGP' : currency}';
 
     return Material(
-      key: ValueKey('marketplace-product-card-$id'),
+      key: ValueKey('$keyPrefix-card-$id'),
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
@@ -1535,7 +1775,7 @@ class _WholesaleProductCard extends StatelessWidget {
                             ? Image.network(
                                 image,
                                 key: ValueKey(
-                                  'marketplace-product-image-$id',
+                                  '$keyPrefix-image-$id',
                                 ),
                                 fit: BoxFit.contain,
                                 errorBuilder: (_, __, ___) =>
@@ -1562,7 +1802,7 @@ class _WholesaleProductCard extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      key: ValueKey('marketplace-product-name-$id'),
+                      key: ValueKey('$keyPrefix-name-$id'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
@@ -1576,7 +1816,7 @@ class _WholesaleProductCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       priceText,
-                      key: ValueKey('marketplace-product-price-$id'),
+                      key: ValueKey('$keyPrefix-price-$id'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
@@ -1724,6 +1964,94 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
           ),
         ),
       );
+}
+
+
+Map<String, dynamic>? _marketplaceSection(
+  List<Map<String, dynamic>> sections,
+  String type,
+) {
+  for (final section in sections) {
+    if (section['type']?.toString() == type ||
+        section['key']?.toString() == type) {
+      return section;
+    }
+  }
+  return null;
+}
+
+String _marketplaceSectionTitle(
+  Map<String, dynamic>? section, {
+  required bool isArabic,
+  required String fallbackAr,
+  required String fallbackEn,
+}) {
+  final key = isArabic ? 'title_ar' : 'title_en';
+  final value = section?[key]?.toString().trim() ?? '';
+  if (value.isNotEmpty) return value;
+  return isArabic ? fallbackAr : fallbackEn;
+}
+
+int _marketplaceSectionSort(
+  Map<String, dynamic>? section,
+  int fallback,
+) {
+  final value = _int(section?['sort_order']);
+  return value > 0 ? value : fallback;
+}
+
+List<Map<String, dynamic>> _marketplaceFeaturedProducts(
+  List<Map<String, dynamic>> products,
+  Map<String, dynamic>? section,
+) {
+  final config = section?['config'] is Map
+      ? Map<String, dynamic>.from(section!['config'] as Map)
+      : const <String, dynamic>{};
+  final configuredIds = config['product_ids'] is List
+      ? (config['product_ids'] as List)
+          .map(_int)
+          .where((id) => id > 0)
+          .toList(growable: false)
+      : const <int>[];
+  final rawLimit = _int(config['limit']);
+  final limit = rawLimit > 0 ? rawLimit.clamp(1, 12) : 6;
+
+  if (configuredIds.isNotEmpty) {
+    final byId = <int, Map<String, dynamic>>{
+      for (final product in products)
+        if (_int(product['id']) > 0) _int(product['id']): product,
+    };
+    return configuredIds
+        .map((id) => byId[id])
+        .whereType<Map<String, dynamic>>()
+        .take(limit)
+        .toList(growable: false);
+  }
+
+  return products.take(limit).toList(growable: false);
+}
+
+String _marketplaceOfferBadge(
+  String type,
+  Object? rawValue,
+  String currency,
+) {
+  final value = rawValue is num
+      ? rawValue.toDouble()
+      : double.tryParse(rawValue?.toString() ?? '');
+  if (value == null || value <= 0) return '';
+
+  final normalized = type.toLowerCase();
+  final compact = value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toStringAsFixed(2);
+
+  if (normalized.contains('percent') ||
+      normalized.contains('percentage')) {
+    return '$compact%';
+  }
+
+  return '$compact $currency';
 }
 
 List<Map<String, dynamic>> _rows(Object? value) {
