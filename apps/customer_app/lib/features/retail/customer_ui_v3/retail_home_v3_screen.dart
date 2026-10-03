@@ -144,6 +144,13 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
       final error = snapshot.error;
       if (error is B2cCatalogException &&
           error.isSelfStorePurchaseNotAllowed) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            CustomerRoutePaths.marketplace,
+            (route) => false,
+          );
+        });
         return KeyedSubtree(
           key: const ValueKey('retail-own-store-blocked'),
           child: CustomerStateView(
@@ -296,6 +303,8 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
                       title: product.name,
                       priceLabel: price,
                       imageUrl: product.imageUrl,
+                      brandLabel: product.brandName,
+                      brandImageUrl: product.brandImageUrl,
                       categoryLabel: product.categoryId == null
                           ? null
                           : categoryNames[product.categoryId],
