@@ -8,6 +8,8 @@ import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_routes.dart';
 import '../customer_account/customer_address_book_screen.dart';
+import '../customer_account/customer_account_data.dart';
+import '../customer_account/customer_notification_center_screen.dart';
 import '../../shared/customer_action_widgets.dart';
 
 class B2bJourneyScreen extends StatelessWidget {
@@ -40,6 +42,14 @@ class B2bJourneyScreen extends StatelessWidget {
     if (definition.pattern == CustomerRoutePaths.b2bAddresses &&
         accountApi != null) {
       return CustomerAddressBookScreen(api: accountApi!);
+    }
+
+    if (definition.pattern == CustomerRoutePaths.b2bNotifications &&
+        accountApi != null) {
+      return CustomerNotificationCenterScreen(
+        api: accountApi!,
+        onOpenOrder: (target) => _openNotificationOrder(context, target),
+      );
     }
 
     final content = _contentFor(context, definition.pattern);
@@ -191,6 +201,12 @@ class B2bJourneyScreen extends StatelessWidget {
             _section(context.tr('b2b.order.tracking')),
           ],
         );
+      case CustomerRoutePaths.b2bNotifications:
+        return (
+          context.tr('customer.notifications.title'),
+          context.tr('customer.notifications.subtitle'),
+          const <Widget>[],
+        );
       case CustomerRoutePaths.b2bCart:
         return (
           context.tr('b2b.cart.title'),
@@ -242,6 +258,47 @@ class B2bJourneyScreen extends StatelessWidget {
           'FOODEX Business',
           [_empty(context.tr('customer.empty'))],
         );
+    }
+  }
+
+  void _openNotificationOrder(
+    BuildContext context,
+    CustomerNotificationTarget target,
+  ) {
+    final uri = Uri.parse(location);
+    final currentStoreId = int.tryParse(
+      uri.queryParameters['store_id'] ??
+          uri.queryParameters['store'] ??
+          '',
+    );
+
+    if (target.channel.toLowerCase() == 'b2b') {
+      final storeId = target.storeId ?? currentStoreId;
+      if (storeId == null || storeId <= 0) return;
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: '/b2b/orders/${target.orderId}',
+          queryParameters: <String, String>{
+            'channel': 'wholesale',
+            'store_id': storeId.toString(),
+          },
+        ).toString(),
+      );
+      return;
+    }
+
+    if (target.channel.toLowerCase() == 'b2c') {
+      final storeId = target.storeId;
+      if (storeId == null || storeId <= 0) return;
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: '/orders/${target.orderId}/track',
+          queryParameters: <String, String>{
+            'channel': 'retail',
+            'store_id': storeId.toString(),
+          },
+        ).toString(),
+      );
     }
   }
 
