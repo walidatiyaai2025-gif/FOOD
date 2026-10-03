@@ -529,6 +529,9 @@ void main() {
       'W-RICE-42',
     );
 
+    final marketplaceScroll = find.byType(CustomScrollView);
+    await tester.drag(marketplaceScroll, const Offset(0, -170));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Wholesale Rice'));
     await tester.pumpAndSettle();
 
@@ -605,6 +608,9 @@ void main() {
       ),
     );
 
+    await tester.pumpAndSettle();
+    final marketplaceScroll = find.byType(CustomScrollView);
+    await tester.drag(marketplaceScroll, const Offset(0, -170));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Wholesale Rice'));
     await tester.pumpAndSettle();
