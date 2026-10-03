@@ -1026,11 +1026,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('marketplace-offers-section')),
-      180,
-      scrollable: find.byType(Scrollable).first,
+    await tester.drag(
+      find.byType(CustomScrollView),
+      const Offset(0, -220),
     );
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('marketplace-offers-section')),
       findsOneWidget,
@@ -1042,11 +1042,11 @@ void main() {
     );
     expect(find.text('15%'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('marketplace-featured-section')),
-      180,
-      scrollable: find.byType(Scrollable).first,
+    await tester.drag(
+      find.byType(CustomScrollView),
+      const Offset(0, -260),
     );
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('marketplace-featured-section')),
       findsOneWidget,
