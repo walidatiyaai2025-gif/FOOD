@@ -98,11 +98,11 @@ final class RetailStoreProvisioningController extends Controller
             );
             $store->setAttribute('primary_owner_name', $commerce?->owner_name);
             $store->setAttribute('primary_owner_email', $commerce?->owner_email);
-            $store->setAttribute('primary_owner_active', (bool) ($commerce?->owner_user_active ?? false));
+            $store->setAttribute('primary_owner_active', (bool) ($commerce->owner_user_active ?? false));
             $store->setAttribute(
                 'customer_app_identity_linked',
                 $commerce?->owner_platform_customer_id !== null
-                    && (bool) $commerce?->owner_platform_customer_active,
+                    && (bool) ($commerce->owner_platform_customer_active ?? false),
             );
             $store->setAttribute('wholesale_account_linked', $commerce?->wholesale_account_id !== null);
 
@@ -280,7 +280,7 @@ final class RetailStoreProvisioningController extends Controller
         if (
             is_array($ownerChange)
             && ($ownerChange['before']['owner_user_id'] ?? null)
-                !== ($ownerChange['after']['owner_user_id'] ?? null)
+                !== $ownerChange['after']['owner_user_id']
         ) {
             $this->audit->record(
                 'retail_store.owner_reassigned',
