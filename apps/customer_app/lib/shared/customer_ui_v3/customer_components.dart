@@ -428,7 +428,7 @@ class CustomerProductCard extends StatelessWidget {
                   ],
                   Text(
                     title,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),

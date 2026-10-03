@@ -23,6 +23,7 @@ import 'core/push/firebase_push_service.dart';
 import 'core/preview/customer_preview_bootstrap.dart';
 import 'core/preview/customer_preview_context.dart';
 import 'core/preview/customer_preview_viewport.dart';
+import 'core/routing/customer_commerce_context.dart';
 import 'core/routing/customer_commerce_context_store.dart';
 import 'core/routing/customer_pending_action.dart';
 import 'core/routing/customer_router.dart';
@@ -150,6 +151,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   late Map<String, String> _translations;
   late CustomerSession _session;
   late CustomerAuthPreferences _authPreferences;
+  late CustomerCommerceContext? _activeCommerceContext;
   late final CustomerPendingActionStore _pendingActionStore;
   late Locale _locale;
   final CustomerGuestSession _guestSession = CustomerGuestSession();
@@ -174,6 +176,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _translations = Map<String, String>.from(widget.translationOverrides);
     _session = widget.session;
     _authPreferences = widget.authPreferences;
+    _activeCommerceContext =
+        CustomerCommerceContext.tryParseLocation(widget.initialRoute);
     _pendingActionStore =
         widget.pendingActionStore ?? SecureCustomerPendingActionStore();
     _locale = widget.locale;
@@ -656,6 +660,11 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       mapPinPicker: widget.mapPinPicker ?? showCustomerMapPinSelector,
       marketplaceClient: widget.marketplaceClient,
       marketplaceBarcodeScanner: widget.marketplaceBarcodeScanner,
+      currentSession: () => _session,
+      currentCommerceContext: () => _activeCommerceContext,
+      onCommerceContextChanged: (context) {
+        _activeCommerceContext = context;
+      },
     );
     _activeRouter = router;
 

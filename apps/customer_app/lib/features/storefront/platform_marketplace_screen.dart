@@ -9,6 +9,7 @@ import '../../core/config/foodex_environment.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../shared/customer_persistent_footer.dart';
 import 'marketplace_barcode_scanner.dart';
 
 class PlatformMarketplaceScreen extends StatefulWidget {
@@ -18,6 +19,8 @@ class PlatformMarketplaceScreen extends StatefulWidget {
     super.key,
     this.client,
     this.onLocaleChanged,
+    this.sessionProvider,
+    this.commerceContextProvider,
     this.barcodeScanner = showMarketplaceBarcodeScanner,
   });
 
@@ -25,6 +28,8 @@ class PlatformMarketplaceScreen extends StatefulWidget {
   final ValueChanged<String> onPlatformRegistered;
   final http.Client? client;
   final ValueChanged<Locale>? onLocaleChanged;
+  final CustomerSession Function()? sessionProvider;
+  final CustomerCommerceContext? Function()? commerceContextProvider;
   final MarketplaceBarcodeScanner barcodeScanner;
 
   @override
@@ -42,6 +47,10 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   int _bannerCount = -1;
   int? _selectedCategoryId;
   String? _pendingAfterAuth;
+  List<Map<String, dynamic>>? _retailStoreFallback;
+
+  CustomerSession get _currentSession =>
+      widget.sessionProvider?.call() ?? widget.session;
 
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
@@ -54,7 +63,76 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     final uri = Uri.parse('$baseUrl/api/v1/platform/storefront').replace(
       queryParameters: params.isEmpty ? null : params,
     );
-    return _get(uri.toString());
+    final data = await _get(uri.toString());
+
+    // Keep one platform-wide store switcher for guest and signed-in users.
+    // Dashboard placements keep their configured order, then any active Retail
+    // stores missing from placements are appended from the public store list.
+    // Authentication never locks the customer into the current store.
+    final configuredRetail = _rows(data['retail_banners']);
+    _retailStoreFallback ??=
+        await _loadRetailStoreFallback(baseUrl);
+    final retailCarousel = _mergeRetailStoreCarousel(
+      configuredRetail,
+      _retailStoreFallback!,
+    );
+    if (retailCarousel.isNotEmpty) {
+      data['retail_banners'] = retailCarousel;
+    }
+
+    return data;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadRetailStoreFallback(
+    String baseUrl,
+  ) async {
+    try {
+      final payload = await _get('$baseUrl/api/v1/stores');
+      return _rows(payload['data'])
+          .where((store) => _int(store['id']) > 0)
+          .map((store) {
+            final id = _int(store['id']);
+            final name = store['name']?.toString().trim() ?? '';
+            return <String, dynamic>{
+              ...store,
+              'id': id,
+              'store_id': id,
+              'title': name,
+              'banner_url': store['banner_url'] ?? store['logo_url'],
+              'channel': 'b2c',
+              'placement_scope': 'guest_store_fallback',
+              'target_type': 'retail_store',
+              'target_id': id,
+              'target_url': '/retail/$id/home',
+            };
+          })
+          .toList(growable: false);
+    } catch (_) {
+      return const <Map<String, dynamic>>[];
+    }
+  }
+
+  List<Map<String, dynamic>> _mergeRetailStoreCarousel(
+    List<Map<String, dynamic>> configuredRetail,
+    List<Map<String, dynamic>> publicStores,
+  ) {
+    final byStoreId = <int, Map<String, dynamic>>{};
+
+    for (final store in configuredRetail) {
+      final id = _int(store['store_id'] ?? store['id']);
+      if (id > 0 && !byStoreId.containsKey(id)) {
+        byStoreId[id] = store;
+      }
+    }
+
+    for (final store in publicStores) {
+      final id = _int(store['store_id'] ?? store['id']);
+      if (id > 0 && !byStoreId.containsKey(id)) {
+        byStoreId[id] = store;
+      }
+    }
+
+    return byStoreId.values.toList(growable: false);
   }
 
   void _submitSearch(String _) {
@@ -137,7 +215,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   }
 
   Future<Map<String, dynamic>> _get(String url) async {
-    final token = widget.session.accessToken;
+    final token = _currentSession.accessToken;
     final response = await _client.get(
       Uri.parse(url),
       headers: {
@@ -221,6 +299,37 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
   }
 
+  void _openWholesaleStore(CustomerCommerceContext commerceContext) {
+    Navigator.of(context).pushNamed(
+      CustomerRouteLocations.wholesaleHome(commerceContext),
+    );
+  }
+
+  String _cartLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? CustomerRouteLocations.retailCart(context)
+          : CustomerRouteLocations.wholesaleCart(context);
+
+  String _ordersLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? CustomerRouteLocations.retailOrders(context)
+          : CustomerRouteLocations.wholesaleOrders(context);
+
+  String _profileLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? CustomerRouteLocations.retailProfile(context)
+          : CustomerRouteLocations.wholesaleProfile(context);
+
+  String _notificationsLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? CustomerRouteLocations.retailNotifications(context)
+          : CustomerRouteLocations.wholesaleNotifications(context);
+
+  String _storeLocation(CustomerCommerceContext context) =>
+      context.isRetail
+          ? CustomerRouteLocations.retailHome(context)
+          : CustomerRouteLocations.wholesaleHome(context);
+
   Future<void> _openWholesaleProduct(int storeId, int productId) async {
     if (productId <= 0) return;
     try {
@@ -267,7 +376,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     key: const ValueKey('marketplace-wholesale-buy'),
                     onPressed: () {
                       Navigator.pop(sheetContext);
-                      if (!widget.session.isAuthenticated) {
+                      if (!_currentSession.isAuthenticated) {
                         _showAuthRequired(
                           next: '/b2b/products/$productId?store_id=$storeId',
                         );
@@ -279,7 +388,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     },
                     icon: const Icon(Icons.shopping_cart_checkout_rounded),
                     label: Text(
-                      widget.session.isAuthenticated
+                      _currentSession.isAuthenticated
                           ? context.tr('customer.action.add_cart')
                           : context.tr('customer.action.login'),
                     ),
@@ -349,7 +458,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: const Color(0xFFF6F7F8),
+        backgroundColor: const Color(0xFFF8FAF9),
         body: SafeArea(
           child: FutureBuilder<Map<String, dynamic>>(
             future: _future,
@@ -384,324 +493,279 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   : <String, dynamic>{};
               final retail = _rows(data['retail_banners']);
               final categories = _rows(data['categories']);
+              final sections = _rows(data['sections']);
               final offers = _rows(data['offers']);
               final productEnvelope = data['products'] is Map
                   ? Map<String, dynamic>.from(data['products'] as Map)
                   : <String, dynamic>{};
               final products = _rows(productEnvelope['data']);
+              final offersSection =
+                  _marketplaceSection(sections, 'offers');
+              final featuredSection =
+                  _marketplaceSection(sections, 'featured_products');
+              final featuredProducts = _marketplaceFeaturedProducts(
+                products,
+                featuredSection,
+              );
+              final isArabic =
+                  Localizations.localeOf(context).languageCode == 'ar';
+              final offersTitle = _marketplaceSectionTitle(
+                offersSection,
+                isArabic: isArabic,
+                fallbackAr: 'عروض',
+                fallbackEn: 'Offers',
+              );
+              final featuredTitle = _marketplaceSectionTitle(
+                featuredSection,
+                isArabic: isArabic,
+                fallbackAr: 'منتجات مميزة',
+                fallbackEn: 'Featured products',
+              );
+              final currency =
+                  data['currency']?.toString().trim().isNotEmpty == true
+                      ? data['currency'].toString().trim()
+                      : 'EGP';
+              final showHomeCollections =
+                  _selectedCategoryId == null &&
+                  _searchController.text.trim().isEmpty;
+              final homeCollections = <MapEntry<int, Widget>>[];
+              if (showHomeCollections &&
+                  offersSection != null &&
+                  offers.isNotEmpty) {
+                homeCollections.add(
+                  MapEntry(
+                    _marketplaceSectionSort(offersSection, 30),
+                    _MarketplaceOfferSection(
+                      title: offersTitle,
+                      offers: offers,
+                      currency: currency,
+                    ),
+                  ),
+                );
+              }
+              if (showHomeCollections &&
+                  featuredSection != null &&
+                  featuredProducts.isNotEmpty) {
+                homeCollections.add(
+                  MapEntry(
+                    _marketplaceSectionSort(featuredSection, 40),
+                    _MarketplaceFeaturedSection(
+                      title: featuredTitle,
+                      products: featuredProducts,
+                      onProductTap: (product) => _openWholesaleProduct(
+                        _int(wholesale['id']),
+                        _int(product['id']),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              homeCollections.sort((a, b) => a.key.compareTo(b.key));
               final hero = data['hero'] is Map
                   ? Map<String, dynamic>.from(data['hero'] as Map)
                   : <String, dynamic>{};
               final storeId = _int(wholesale['id']);
+              final wholesaleContext = storeId > 0
+                  ? CustomerCommerceContext(
+                      channel: CustomerCommerceChannel.wholesale,
+                      storeId: storeId,
+                      source: CustomerCommerceSource.marketplace,
+                    )
+                  : null;
+              final rememberedContext = widget.commerceContextProvider?.call();
+              final activeCommerceContext =
+                  rememberedContext ?? wholesaleContext;
+              final storeSlidesCount = 1 + retail.length;
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _startBannerAutoSlide(retail.length);
+                _startBannerAutoSlide(storeSlidesCount);
               });
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final bannerHeight = (constraints.maxHeight * .22)
-                       .clamp(176.0, 204.0)
-                       .toDouble();
+                  final bannerHeight =
+                      constraints.maxWidth < 350 ? 158.0 : 166.0;
+                  final productColumns =
+                      constraints.maxWidth >= 350 ? 3 : 2;
+                  final productAspectRatio =
+                      productColumns == 3 ? .76 : .88;
 
                   return CustomScrollView(
                     slivers: [
                       SliverToBoxAdapter(
                         child: _MarketplaceHeader(
-                          authenticated: widget.session.isAuthenticated,
+                          isAuthenticated: () => _currentSession.isAuthenticated,
                           onRegister: _register,
-                          onLogin: () => Navigator.of(context).pushNamed('/auth/checkout?next=/marketplace'),
+                          onLogin: () => Navigator.of(context).pushNamed(
+                            '/auth/checkout?next=/marketplace',
+                          ),
+                          onProfile: () {
+                            final scope = activeCommerceContext;
+                            if (scope == null) return;
+                            Navigator.of(context).pushNamed(
+                              _profileLocation(scope),
+                            );
+                          },
                           onScan: _scanBarcode,
                           onLanguageToggle: _toggleLocale,
-                          localeCode: Localizations.localeOf(context).languageCode,
-                          onCart: () => Navigator.of(context).pushNamed('/cart'),
+                          localeCode:
+                              Localizations.localeOf(context).languageCode,
+                          onStore: () {
+                            final scope = activeCommerceContext;
+                            if (scope == null) return;
+                            Navigator.of(context).pushNamed(
+                              _storeLocation(scope),
+                            );
+                          },
+                          onCart: () {
+                            final scope = activeCommerceContext;
+                            if (scope == null) return;
+                            Navigator.of(context).pushNamed(
+                              _cartLocation(scope),
+                            );
+                          },
+                          cartCount: _int(data['cart_count']),
+                          onOrders: () {
+                            final scope = activeCommerceContext;
+                            if (scope == null) return;
+                            Navigator.of(context).pushNamed(
+                              _ordersLocation(scope),
+                            );
+                          },
                           onNotifications: () {
-                            if (widget.session.isAuthenticated) {
-                              Navigator.of(context).pushNamed('/notifications');
-                            } else {
-                              Navigator.of(context).pushNamed(
-                                Uri(
-                                  path: '/auth/checkout',
-                                  queryParameters: {'next': '/notifications'},
-                                ).toString(),
-                              );
-                            }
+                            final scope = activeCommerceContext;
+                            if (scope == null) return;
+                            Navigator.of(context).pushNamed(
+                              _notificationsLocation(scope),
+                            );
+                          },
+                          searchController: _searchController,
+                          searchFocus: _searchFocus,
+                          onSearchSubmitted: _submitSearch,
+                          onSearchClear: () {
+                            _searchController.clear();
+                            _submitSearch('');
                           },
                         ),
                       ),
                       SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
-                          child: TextField(
-                            key: const ValueKey('marketplace-search'),
-                            controller: _searchController,
-                            focusNode: _searchFocus,
-                            textInputAction: TextInputAction.search,
-                            onSubmitted: _submitSearch,
-                            decoration: InputDecoration(
-                              hintText: context.tr('customer.marketplace.search_hint'),
-                              prefixIcon: const Icon(Icons.search_rounded),
-                              suffixIcon: _searchController.text.isEmpty
-                                  ? null
-                                  : IconButton(
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        _submitSearch('');
-                                      },
-                                      icon: const Icon(Icons.close_rounded),
+                        child: SizedBox(
+                          key: const ValueKey('marketplace-banner-carousel'),
+                          height: bannerHeight,
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: PageView.builder(
+                                  key: const ValueKey('marketplace-store-carousel'),
+                                  controller: _bannerController,
+                                  itemCount: storeSlidesCount,
+                                  onPageChanged: (index) {
+                                    if (_bannerIndex == index) return;
+                                    setState(() => _bannerIndex = index);
+                                  },
+                                  itemBuilder: (_, index) {
+                                    if (index == 0) {
+                                      return SizedBox(
+                                        key: const ValueKey(
+                                          'marketplace-wholesale-entry',
+                                        ),
+                                        child: _WholesaleHero(
+                                          onTap: wholesaleContext == null
+                                              ? null
+                                              : () => _openWholesaleStore(
+                                                    wholesaleContext,
+                                                  ),
+                                          title: (hero['title']
+                                                          ?.toString()
+                                                          .trim() ??
+                                                      '')
+                                                  .isNotEmpty
+                                              ? hero['title'].toString().trim()
+                                              : 'FOODEX Wholesale',
+                                          imageUrl:
+                                              hero['image_url']?.toString(),
+                                        ),
+                                      );
+                                    }
+
+                                    final store = retail[index - 1];
+                                    return Padding(
+                                      padding:
+                                          const EdgeInsetsDirectional.fromSTEB(
+                                        10,
+                                        4,
+                                        10,
+                                        1,
+                                      ),
+                                      child: _RetailStoreBanner(
+                                        store: store,
+                                        width: double.infinity,
+                                        onTap: () => _openRetail(store),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              if (storeSlidesCount > 1)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Row(
+                                    key: const ValueKey(
+                                      'marketplace-banner-indicators',
                                     ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 14,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE6E9EC),
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(
+                                      storeSlidesCount,
+                                      (index) => AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 180),
+                                        width: _bannerIndex == index ? 18 : 6,
+                                        height: 6,
+                                        margin: const EdgeInsets.symmetric(
+                                          horizontal: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _bannerIndex == index
+                                              ? const Color(0xFF0B7A4B)
+                                              : const Color(0xFFD7DDE1),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE6E9EC),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF0B7A4B),
-                                  width: 1.4,
-                                ),
-                              ),
-                            ),
+                            ],
                           ),
                         ),
                       ),
                       if (categories.isNotEmpty)
                         SliverToBoxAdapter(
-                          child: SizedBox(
-                            height: 54,
-                            child: ListView(
-                              key: const ValueKey('marketplace-categories'),
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 7,
-                              ),
-                              children: [
-                                ChoiceChip(
-                                  key: const ValueKey('marketplace-category-all'),
-                                  label: Text(
-                                    context.tr('customer.marketplace.all_categories'),
-                                  ),
-                                  selected: _selectedCategoryId == null,
-                                  showCheckmark: false,
-                                  onSelected: (_) => _selectCategory(null),
-                                ),
-                                const SizedBox(width: 8),
-                                ...categories.map(
-                                  (category) => Padding(
-                                    padding: const EdgeInsetsDirectional.only(
-                                      end: 8,
-                                    ),
-                                    child: ChoiceChip(
-                                      key: ValueKey(
-                                        'marketplace-category-${category['id']}',
-                                      ),
-                                      label: Text(
-                                        category['name']?.toString() ?? '',
-                                      ),
-                                      selected: _selectedCategoryId ==
-                                          _int(category['id']),
-                                      showCheckmark: false,
-                                      onSelected: (_) => _selectCategory(
-                                        _int(category['id']),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                          child: _MarketplaceCategoryRail(
+                            categories: categories,
+                            selectedCategoryId: _selectedCategoryId,
+                            onSelect: _selectCategory,
                           ),
                         ),
-                      SliverToBoxAdapter(
-                        child: SizedBox(
-                          key: const ValueKey('marketplace-wholesale-entry'),
-                          height: bannerHeight,
-                          child: _WholesaleHero(
-                            title: (hero['title']?.toString().trim() ?? '').isNotEmpty
-                                ? hero['title'].toString().trim()
-                                : 'FOODEX Wholesale',
-                            imageUrl: hero['image_url']?.toString(),
-                          ),
-                        ),
+                      ...homeCollections.map(
+                        (entry) => SliverToBoxAdapter(child: entry.value),
                       ),
-                      if (retail.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            key: const ValueKey('marketplace-banner-carousel'),
-                            height: bannerHeight,
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: PageView.builder(
-                                    key: const ValueKey('marketplace-retail-carousel'),
-                                    controller: _bannerController,
-                                    itemCount: retail.length,
-                                    onPageChanged: (index) {
-                                      if (_bannerIndex == index) return;
-                                      setState(() => _bannerIndex = index);
-                                    },
-                                    itemBuilder: (_, index) {
-                                      final store = retail[index];
-                                      return Padding(
-                                        padding:
-                                            const EdgeInsetsDirectional.fromSTEB(
-                                          14,
-                                          6,
-                                          14,
-                                          2,
-                                        ),
-                                        child: _RetailStoreBanner(
-                                          store: store,
-                                          width: double.infinity,
-                                          onTap: () => _openRetail(store),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                if (retail.length > 1)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Row(
-                                      key: const ValueKey(
-                                        'marketplace-banner-indicators',
-                                      ),
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: List.generate(
-                                        retail.length,
-                                        (index) => AnimatedContainer(
-                                          duration:
-                                              const Duration(milliseconds: 180),
-                                          width: _bannerIndex == index ? 18 : 6,
-                                          height: 6,
-                                          margin: const EdgeInsets.symmetric(
-                                            horizontal: 3,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: _bannerIndex == index
-                                                ? const Color(0xFF0B7A4B)
-                                                : const Color(0xFFD7DDE1),
-                                            borderRadius:
-                                                BorderRadius.circular(999),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (offers.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 2),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  context.tr('customer.home.offers'),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w900),
-                                ),
-                                const SizedBox(height: 8),
-                                SizedBox(
-                                  height: 76,
-                                  child: ListView.separated(
-                                    key: const ValueKey(
-                                      'marketplace-wholesale-offers',
-                                    ),
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: offers.length,
-                                    separatorBuilder: (_, __) =>
-                                        const SizedBox(width: 8),
-                                    itemBuilder: (_, index) {
-                                      final offer = offers[index];
-                                      final value = offer['value'];
-                                      final type = offer['type']?.toString();
-                                      final valueText = value == null
-                                          ? ''
-                                          : type == 'percentage'
-                                              ? '$value%'
-                                              : type == 'fixed'
-                                                  ? 'EGP $value'
-                                                  : '$value';
-                                      return Container(
-                                        constraints:
-                                            const BoxConstraints(minWidth: 170),
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF4ECFB),
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              offer['name']?.toString() ?? '',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                            ),
-                                            if (valueText.isNotEmpty)
-                                              Text(
-                                                valueText,
-                                                style: const TextStyle(
-                                                  color: Color(0xFF6B3A8E),
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 5),
                         sliver: SliverToBoxAdapter(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  context.tr('customer.marketplace.wholesale_products'),
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                ),
-                              ),
-                              if (!widget.session.isAuthenticated)
-                                TextButton(
-                                  onPressed: _register,
-                                  child: Text(context.tr('customer.marketplace.register')),
-                                ),
-                            ],
+                          child: _MarketplaceSectionHeader(
+                            title: context.tr(
+                              'customer.marketplace.wholesale_products',
+                            ),
+                            actionLabel: context.tr(
+                              'customer.marketplace.all_categories',
+                            ),
+                            onAction: () {
+                              if (_selectedCategoryId != null ||
+                                  _searchController.text.isNotEmpty) {
+                                _searchController.clear();
+                                _selectCategory(null);
+                              }
+                            },
                           ),
                         ),
                       ),
@@ -717,14 +781,14 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                         )
                       else
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 28),
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 28),
                           sliver: SliverGrid(
+                            key: const ValueKey('marketplace-product-grid'),
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: constraints.maxWidth >= 700 ? 3 : 2,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              childAspectRatio:
-                                  constraints.maxWidth >= 700 ? 1.05 : .82,
+                              crossAxisCount: productColumns,
+                              mainAxisSpacing: 9,
+                              crossAxisSpacing: 9,
+                              childAspectRatio: productAspectRatio,
                             ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
@@ -748,255 +812,337 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
             },
           ),
         ),
+        bottomNavigationBar: FutureBuilder<Map<String, dynamic>>(
+          future: _future,
+          builder: (context, snapshot) {
+            final data = snapshot.data;
+            if (data == null) return const SizedBox.shrink();
+
+            final wholesale = data['store'] is Map
+                ? Map<String, dynamic>.from(data['store'] as Map)
+                : const <String, dynamic>{};
+            final storeId = _int(wholesale['id']);
+            if (storeId <= 0) return const SizedBox.shrink();
+
+            final fallbackContext = CustomerCommerceContext(
+              channel: CustomerCommerceChannel.wholesale,
+              storeId: storeId,
+              source: CustomerCommerceSource.marketplace,
+            );
+            return CustomerPersistentFooterDock(
+              commerceContext:
+                  widget.commerceContextProvider?.call() ?? fallbackContext,
+              activeDestination: CustomerFooterDestination.home,
+              isPlatformHome: true,
+            );
+          },
+        ),
       );
 }
 
 class _MarketplaceHeader extends StatelessWidget {
   const _MarketplaceHeader({
-    required this.authenticated,
+    required this.isAuthenticated,
     required this.onRegister,
     required this.onLogin,
+    required this.onProfile,
     required this.onScan,
     required this.onLanguageToggle,
     required this.localeCode,
+    required this.onStore,
     required this.onCart,
+    required this.cartCount,
+    required this.onOrders,
     required this.onNotifications,
+    required this.searchController,
+    required this.searchFocus,
+    required this.onSearchSubmitted,
+    required this.onSearchClear,
   });
 
-  final bool authenticated;
+  final bool Function() isAuthenticated;
   final VoidCallback onRegister;
   final VoidCallback onLogin;
+  final VoidCallback onProfile;
   final VoidCallback onScan;
   final VoidCallback onLanguageToggle;
   final String localeCode;
+  final VoidCallback onStore;
   final VoidCallback onCart;
+  final int cartCount;
+  final VoidCallback onOrders;
   final VoidCallback onNotifications;
+  final TextEditingController searchController;
+  final FocusNode searchFocus;
+  final ValueChanged<String> onSearchSubmitted;
+  final VoidCallback onSearchClear;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 2),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 66),
-          padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 8, 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE7EAED)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0D0F172A),
-                blurRadius: 18,
-                offset: Offset(0, 5),
+  Widget build(BuildContext context) {
+    Widget roundAction({
+      required Key key,
+      required IconData icon,
+      required VoidCallback onPressed,
+      String? tooltip,
+    }) =>
+        Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          child: InkWell(
+            key: key,
+            customBorder: const CircleBorder(),
+            onTap: onPressed,
+            child: Tooltip(
+              message: tooltip ?? '',
+              child: SizedBox(
+                width: 36,
+                height: 36,
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: const Color(0xFF17212F),
+                ),
               ),
-            ],
+            ),
           ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 520;
-              final ultraCompact = constraints.maxWidth < 350;
-              final actionSize = compact ? 38.0 : 42.0;
+        );
 
-              Widget action({
-                required Key key,
-                required IconData icon,
-                required VoidCallback onPressed,
-                String? tooltip,
-              }) =>
-                  SizedBox(
-                    width: actionSize,
-                    height: actionSize,
-                    child: IconButton(
-                      key: key,
-                      tooltip: tooltip,
-                      visualDensity: VisualDensity.compact,
-                      constraints: BoxConstraints.tightFor(
-                        width: actionSize,
-                        height: actionSize,
-                      ),
-                      padding: EdgeInsets.zero,
-                      onPressed: onPressed,
-                      icon: Icon(icon, size: compact ? 20 : 22),
-                    ),
-                  );
-
-              Widget languageAction() => SizedBox(
-                    width: actionSize,
-                    height: actionSize,
-                    child: TextButton(
-                      key: const ValueKey('marketplace-language'),
-                      onPressed: onLanguageToggle,
-                      style: TextButton.styleFrom(
-                        minimumSize: Size(actionSize, actionSize),
-                        padding: EdgeInsets.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        localeCode.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  );
-
-              Widget accountAction() {
-                if (authenticated) {
-                  return action(
-                    key: const ValueKey('marketplace-profile'),
-                    icon: Icons.person_outline_rounded,
-                    onPressed: () => Navigator.of(context).pushNamed('/profile'),
-                  );
-                }
-
-                return SizedBox(
-                  width: actionSize,
-                  height: actionSize,
-                  child: PopupMenuButton<String>(
-                    key: const ValueKey('marketplace-auth-menu'),
-                    padding: EdgeInsets.zero,
-                    iconSize: compact ? 20 : 22,
-                    icon: const Icon(Icons.account_circle_outlined),
-                    onSelected: (value) {
-                      if (value == 'login') {
-                        onLogin();
-                      } else {
-                        onRegister();
-                      }
-                    },
-                    itemBuilder: (_) => [
-                      PopupMenuItem(
-                        value: 'login',
-                        child: Text(context.tr('customer.action.login')),
-                      ),
-                      PopupMenuItem(
-                        value: 'register',
-                        child: Text(context.tr('customer.marketplace.register')),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              Widget identity() => Row(
-                    children: [
-                      Container(
-                        width: compact ? 38 : 44,
-                        height: compact ? 38 : 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEAF7F0),
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        child: const Icon(
-                          Icons.storefront_rounded,
-                          color: Color(0xFF087347),
-                        ),
-                      ),
-                      SizedBox(width: compact ? 8 : 10),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'FOODEX',
-                              key: ValueKey('marketplace-brand-title'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 17,
-                                height: 1.1,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: .2,
-                                color: Color(0xFF132238),
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              context.tr('customer.marketplace.browse_guest'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF7A8592),
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-
-              if (ultraCompact) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
+    Widget accountAction() => PopupMenuButton<String>(
+          key: const ValueKey('marketplace-auth-menu'),
+          padding: EdgeInsets.zero,
+          tooltip: isAuthenticated()
+              ? context.tr('customer.nav.profile')
+              : context.tr('customer.action.login'),
+          icon: Container(
+            width: 38,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x0D0F172A),
+                  blurRadius: 10,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.person_outline_rounded,
+              color: Color(0xFF17212F),
+              size: 22,
+            ),
+          ),
+          onSelected: (value) {
+            switch (value) {
+              case 'profile':
+                onProfile();
+                return;
+              case 'login':
+                onLogin();
+                return;
+              case 'register':
+                onRegister();
+                return;
+              case 'scan':
+                onScan();
+                return;
+              case 'language':
+                onLanguageToggle();
+                return;
+            }
+          },
+          itemBuilder: (_) {
+            final authenticated = isAuthenticated();
+            return [
+              if (authenticated)
+                PopupMenuItem(
+                  key: const ValueKey('marketplace-profile-action'),
+                  value: 'profile',
+                  child: Text(context.tr('customer.nav.profile')),
+                )
+              else ...[
+                PopupMenuItem(
+                  key: const ValueKey('marketplace-login-action'),
+                  value: 'login',
+                  child: Text(context.tr('customer.action.login')),
+                ),
+                PopupMenuItem(
+                  key: const ValueKey('marketplace-register-action'),
+                  value: 'register',
+                  child: Text(context.tr('customer.marketplace.register')),
+                ),
+              ],
+              PopupMenuItem(
+                key: const ValueKey('marketplace-scan'),
+                value: 'scan',
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(child: identity()),
-                        const SizedBox(width: 4),
-                        accountAction(),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        action(
-                          key: const ValueKey('marketplace-scan'),
-                          icon: Icons.qr_code_scanner_rounded,
-                          tooltip: context.tr('customer.marketplace.scan'),
-                          onPressed: onScan,
-                        ),
-                        languageAction(),
-                        action(
-                          key: const ValueKey('marketplace-cart'),
-                          icon: Icons.shopping_bag_outlined,
-                          tooltip: context.tr('customer.nav.cart'),
-                          onPressed: onCart,
-                        ),
-                        action(
-                          key: const ValueKey('marketplace-notifications'),
-                          icon: Icons.notifications_none_rounded,
-                          tooltip: context.tr('customer.nav.notifications'),
-                          onPressed: onNotifications,
-                        ),
-                      ],
+                    const Icon(Icons.qr_code_scanner_rounded, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        context.tr('customer.marketplace.scan'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
-                );
-              }
+                ),
+              ),
+              PopupMenuItem(
+                key: const ValueKey('marketplace-language'),
+                value: 'language',
+                child: Text(localeCode == 'ar' ? 'English' : 'العربية'),
+              ),
+            ];
+          },
+        );
 
-              return Row(
-                children: [
-                  Expanded(child: identity()),
-                  action(
-                    key: const ValueKey('marketplace-scan'),
-                    icon: Icons.qr_code_scanner_rounded,
-                    tooltip: context.tr('customer.marketplace.scan'),
-                    onPressed: onScan,
+    Widget cartAction() => Stack(
+          clipBehavior: Clip.none,
+          children: [
+            roundAction(
+              key: const ValueKey('marketplace-cart'),
+              icon: Icons.shopping_cart_outlined,
+              tooltip: context.tr('customer.nav.cart'),
+              onPressed: onCart,
+            ),
+            if (cartCount > 0)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF4747),
+                    shape: BoxShape.circle,
                   ),
-                  languageAction(),
-                  action(
-                    key: const ValueKey('marketplace-cart'),
-                    icon: Icons.shopping_bag_outlined,
-                    tooltip: context.tr('customer.nav.cart'),
-                    onPressed: onCart,
+                  alignment: Alignment.center,
+                  child: Text(
+                    cartCount > 99 ? '99+' : '$cartCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                  action(
-                    key: const ValueKey('marketplace-notifications'),
-                    icon: Icons.notifications_none_rounded,
-                    tooltip: context.tr('customer.nav.notifications'),
-                    onPressed: onNotifications,
+                ),
+              ),
+          ],
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(9, 8, 9, 7),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(
+          key: const ValueKey('marketplace-compact-header'),
+          children: [
+            accountAction(),
+            const SizedBox(width: 2),
+            roundAction(
+              key: const ValueKey('marketplace-notifications'),
+              icon: Icons.notifications_none_rounded,
+              tooltip: context.tr('customer.nav.notifications'),
+              onPressed: onNotifications,
+            ),
+            const SizedBox(width: 2),
+            roundAction(
+              key: const ValueKey('marketplace-orders'),
+              icon: Icons.shopping_bag_outlined,
+              tooltip: localeCode == 'ar' ? 'الطلبات' : 'Orders',
+              onPressed: onOrders,
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: SizedBox(
+                height: 42,
+                child: TextField(
+                  key: const ValueKey('marketplace-search'),
+                  controller: searchController,
+                  focusNode: searchFocus,
+                  textDirection:
+                      localeCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+                  textAlign:
+                      localeCode == 'ar' ? TextAlign.right : TextAlign.left,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: onSearchSubmitted,
+                  decoration: InputDecoration(
+                    hintText: context.tr('customer.marketplace.search_hint'),
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF9299A4),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      size: 21,
+                      color: Color(0xFF7B8491),
+                    ),
+                    suffixIcon: searchController.text.isNotEmpty
+                        ? IconButton(
+                            onPressed: onSearchClear,
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: Color(0xFF7B8491),
+                            ),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(color: Color(0xFFE8ECEF)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(color: Color(0xFFE8ECEF)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0A7B4B),
+                        width: 1.2,
+                      ),
+                    ),
                   ),
-                  accountAction(),
-                ],
-              );
-            },
-          ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 5),
+            Material(
+              color: const Color(0xFFE7F5EE),
+              shape: const CircleBorder(),
+              child: InkWell(
+                key: const ValueKey('marketplace-store'),
+                customBorder: const CircleBorder(),
+                onTap: onStore,
+                child: const SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: Icon(
+                    Icons.storefront_rounded,
+                    color: Color(0xFF087347),
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 2),
+            cartAction(),
+            const SizedBox.shrink(
+              key: ValueKey('marketplace-brand-title'),
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _RetailStoreBanner extends StatelessWidget {
@@ -1014,27 +1160,29 @@ class _RetailStoreBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final id = _int(store['id']);
     final image = store['banner_url']?.toString().trim();
-    final logo = store['logo_url']?.toString().trim();
-    final address = store['address']?.toString().trim() ?? '';
     final title = store['title']?.toString().trim();
     final name = store['name']?.toString().trim() ?? '';
+    final displayTitle =
+        title != null && title.isNotEmpty ? title : name;
+    final isArabic =
+        Localizations.localeOf(context).languageCode.toLowerCase() == 'ar';
 
     Widget backgroundFallback() => const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: AlignmentDirectional.topStart,
               end: AlignmentDirectional.bottomEnd,
-              colors: [Color(0xFF087347), Color(0xFF16A66C)],
+              colors: [Color(0xFF00623B), Color(0xFF079454)],
             ),
           ),
           child: Align(
-            alignment: AlignmentDirectional.topEnd,
+            alignment: AlignmentDirectional.centerEnd,
             child: Padding(
-              padding: EdgeInsets.all(18),
+              padding: EdgeInsetsDirectional.only(end: 22),
               child: Icon(
                 Icons.storefront_rounded,
-                color: Color(0x55FFFFFF),
-                size: 64,
+                color: Color(0x35FFFFFF),
+                size: 88,
               ),
             ),
           ),
@@ -1044,7 +1192,7 @@ class _RetailStoreBanner extends StatelessWidget {
       width: width,
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -1063,125 +1211,80 @@ class _RetailStoreBanner extends StatelessWidget {
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    stops: [0, .62, 1],
+                    begin: AlignmentDirectional.centerStart,
+                    end: AlignmentDirectional.centerEnd,
                     colors: [
-                      Color(0xCC0B1720),
-                      Color(0x330B1720),
-                      Colors.transparent,
+                      Color(0xE9004C31),
+                      Color(0x9D006A40),
+                      Color(0x25006A40),
                     ],
                   ),
                 ),
               ),
-              PositionedDirectional(
-                start: 16,
-                end: 16,
-                bottom: 14,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final compact = constraints.maxWidth < 280;
-                    return Row(
-                      children: [
-                        if (logo != null && logo.isNotEmpty) ...[
-                          ClipOval(
-                            child: SizedBox(
-                              width: compact ? 34 : 38,
-                              height: compact ? 34 : 38,
-                              child: Image.network(
-                                logo,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    const ColoredBox(
-                                  color: Colors.white,
-                                  child: Icon(
-                                    Icons.storefront_rounded,
-                                    color: Color(0xFF087347),
-                                    size: 21,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: compact ? 7 : 10),
-                        ],
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                title != null && title.isNotEmpty
-                                    ? title
-                                    : name,
-                                key: ValueKey(
-                                  'marketplace-retail-banner-title-$id',
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: compact ? 15 : 17,
-                                  height: 1.2,
-                                ),
-                              ),
-                              if (address.isNotEmpty && !compact) ...[
-                                const SizedBox(height: 3),
-                                Text(
-                                  address,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xFFDCE5E1),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+              Padding(
+                padding:
+                    const EdgeInsetsDirectional.fromSTEB(18, 15, 18, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x4DFFFFFF),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        isArabic ? 'متجر التجزئة' : 'Retail store',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w900,
                         ),
-                        const SizedBox(width: 8),
-                        if (compact)
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: const Icon(
-                              Icons.arrow_forward_rounded,
-                              color: Color(0xFF087347),
-                              size: 18,
-                            ),
-                          )
-                        else
-                          Container(
-                            constraints: const BoxConstraints(maxWidth: 110),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              context.tr('customer.marketplace.shop_now'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF087347),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
+                      ),
+                    ),
+                    const Spacer(),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 220),
+                      child: Text(
+                        displayTitle,
+                        key: ValueKey(
+                          'marketplace-retail-banner-title-$id',
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 21,
+                          height: 1.12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 94),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 15,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        context.tr('customer.marketplace.shop_now'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF087347),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1193,52 +1296,64 @@ class _RetailStoreBanner extends StatelessWidget {
 }
 
 class _WholesaleHero extends StatelessWidget {
-  const _WholesaleHero({required this.title, this.imageUrl});
+  const _WholesaleHero({
+    required this.title,
+    this.imageUrl,
+    this.onTap,
+  });
 
   final String title;
   final String? imageUrl;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final image = imageUrl?.trim();
+    final isArabic =
+        Localizations.localeOf(context).languageCode.toLowerCase() == 'ar';
 
     Widget fallback() => const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: AlignmentDirectional.topStart,
               end: AlignmentDirectional.bottomEnd,
-              colors: [Color(0xFF5D2A91), Color(0xFF35195E)],
+              colors: [Color(0xFF5B2A8D), Color(0xFF351858)],
             ),
           ),
           child: Align(
-            alignment: AlignmentDirectional.topEnd,
+            alignment: AlignmentDirectional.centerEnd,
             child: Padding(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsetsDirectional.only(end: 22),
               child: Icon(
                 Icons.warehouse_rounded,
-                color: Color(0x33FFFFFF),
-                size: 80,
+                color: Color(0x36FFFFFF),
+                size: 88,
               ),
             ),
           ),
         );
 
     return Container(
-      margin: const EdgeInsetsDirectional.fromSTEB(14, 6, 14, 2),
+      margin: const EdgeInsetsDirectional.fromSTEB(10, 4, 10, 1),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x140F172A),
-            blurRadius: 18,
-            offset: Offset(0, 7),
+            color: Color(0x100F172A),
+            blurRadius: 12,
+            offset: Offset(0, 4),
           ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const ValueKey('marketplace-wholesale-banner-action'),
+          onTap: onTap,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
           if (image != null && image.isNotEmpty)
             Image.network(
               image,
@@ -1253,71 +1368,450 @@ class _WholesaleHero extends StatelessWidget {
               gradient: LinearGradient(
                 begin: AlignmentDirectional.centerStart,
                 end: AlignmentDirectional.centerEnd,
-                colors: [Color(0xE835195E), Color(0x7A35195E)],
+                colors: [
+                  Color(0xEB321552),
+                  Color(0xA44A2278),
+                  Color(0x254A2278),
+                ],
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(18, 18, 120, 18),
+            padding: const EdgeInsetsDirectional.fromSTEB(18, 15, 18, 14),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0x2EFFFFFF),
+                    color: const Color(0x38FFFFFF),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text(
-                    'B2B',
-                    style: TextStyle(
+                  child: Text(
+                    isArabic ? 'متجر الجملة' : 'Wholesale store',
+                    style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 10,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: .8,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  key: const ValueKey('marketplace-wholesale-hero-title'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 21,
-                    height: 1.12,
+                const Spacer(),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 225),
+                  child: Text(
+                    title,
+                    key: const ValueKey(
+                      'marketplace-wholesale-hero-title',
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 21,
+                      height: 1.12,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  context.tr('customer.marketplace.browse_guest'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFE9DFF5),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 9),
+                Container(
+                  constraints: const BoxConstraints(minWidth: 94),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    context.tr('customer.marketplace.browse_guest'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF51237B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
+class _MarketplaceCategoryRail extends StatelessWidget {
+  const _MarketplaceCategoryRail({
+    required this.categories,
+    required this.selectedCategoryId,
+    required this.onSelect,
+  });
+
+  final List<Map<String, dynamic>> categories;
+  final int? selectedCategoryId;
+  final ValueChanged<int?> onSelect;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        key: const ValueKey('marketplace-categories'),
+        height: 92,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(8, 7, 8, 5),
+          itemCount: categories.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 4),
+          itemBuilder: (context, index) {
+            final row = categories[index];
+            final id = _int(row['id']);
+            final selected = selectedCategoryId == id;
+            final name = row['name']?.toString() ?? '';
+            final image = row['image_url']?.toString().trim();
+
+            return SizedBox(
+              width: 56,
+              child: InkWell(
+                key: ValueKey('marketplace-category-$id'),
+                borderRadius: BorderRadius.circular(999),
+                onTap: () => onSelect(id),
+                child: Column(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? const Color(0xFFE9F7EF)
+                            : const Color(0xFFF8FAF9),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: selected
+                              ? const Color(0xFF78C850)
+                              : const Color(0xFFF0F2F3),
+                          width: selected ? 1.6 : 1,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x090F172A),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: image != null && image.isNotEmpty
+                          ? Image.network(
+                              image,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Icon(
+                                _marketplaceCategoryIcon(name),
+                                color: const Color(0xFF087347),
+                                size: 25,
+                              ),
+                            )
+                          : Icon(
+                              _marketplaceCategoryIcon(name),
+                              color: const Color(0xFF087347),
+                              size: 25,
+                            ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFF17212F),
+                        fontSize: 9.5,
+                        height: 1.1,
+                        fontWeight:
+                            selected ? FontWeight.w900 : FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+}
+
+
+class _MarketplaceOfferSection extends StatelessWidget {
+  const _MarketplaceOfferSection({
+    required this.title,
+    required this.offers,
+    required this.currency,
+  });
+
+  final String title;
+  final List<Map<String, dynamic>> offers;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        key: const ValueKey('marketplace-offers-section'),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _MarketplaceCollectionTitle(title: title),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 94,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: offers.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final offer = offers[index];
+                  final id = _int(offer['id']);
+                  final name = offer['name']?.toString().trim() ?? '';
+                  final type = offer['type']?.toString().trim() ?? '';
+                  final value = offer['value'];
+                  final badge =
+                      _marketplaceOfferBadge(type, value, currency);
+
+                  return Container(
+                    key: ValueKey('marketplace-offer-$id'),
+                    width: 176,
+                    padding: const EdgeInsetsDirectional.fromSTEB(
+                      12,
+                      10,
+                      12,
+                      10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF7F0),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFD7EDE2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.local_offer_outlined,
+                            color: Color(0xFF087347),
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF17212F),
+                                  fontSize: 11.5,
+                                  height: 1.15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              if (badge.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  badge,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF087347),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _MarketplaceFeaturedSection extends StatelessWidget {
+  const _MarketplaceFeaturedSection({
+    required this.title,
+    required this.products,
+    required this.onProductTap,
+  });
+
+  final String title;
+  final List<Map<String, dynamic>> products;
+  final ValueChanged<Map<String, dynamic>> onProductTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        key: const ValueKey('marketplace-featured-section'),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _MarketplaceCollectionTitle(title: title),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 190,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: products.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  return SizedBox(
+                    width: 122,
+                    child: _WholesaleProductCard(
+                      product: product,
+                      keyPrefix: 'marketplace-featured-product',
+                      onTap: () => onProductTap(product),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _MarketplaceCollectionTitle extends StatelessWidget {
+  const _MarketplaceCollectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.start,
+        style: const TextStyle(
+          color: Color(0xFF17212F),
+          fontSize: 18,
+          height: 1.15,
+          fontWeight: FontWeight.w900,
+        ),
+      );
+}
+
+class _MarketplaceSectionHeader extends StatelessWidget {
+  const _MarketplaceSectionHeader({
+    required this.title,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final String title;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF17212F),
+                  fontSize: 20,
+                  height: 1.15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: onAction,
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 30),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                size: 17,
+                color: Color(0xFF087347),
+              ),
+              label: Text(
+                actionLabel,
+                style: const TextStyle(
+                  color: Color(0xFF087347),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+IconData _marketplaceCategoryIcon(String rawName) {
+  final name = rawName.toLowerCase();
+  if (name.contains('لبن') || name.contains('حليب') || name.contains('ألبان') || name.contains('البان') || name.contains('dairy') || name.contains('milk')) return Icons.local_drink_outlined;
+  if (name.contains('جبن') || name.contains('cheese')) return Icons.breakfast_dining_outlined;
+  if (name.contains('خض') || name.contains('فاكه') || name.contains('veget') || name.contains('fruit')) return Icons.eco_outlined;
+  if (name.contains('مجمد') || name.contains('frozen')) return Icons.ac_unit_rounded;
+  if (name.contains('لحوم') || name.contains('دواجن') || name.contains('meat') || name.contains('chicken')) return Icons.set_meal_outlined;
+  if (name.contains('مشروب') || name.contains('عصير') || name.contains('beverage') || name.contains('drink')) return Icons.local_cafe_outlined;
+  if (name.contains('مخب') || name.contains('خبز') || name.contains('bakery') || name.contains('bread')) return Icons.bakery_dining_outlined;
+  return Icons.shopping_basket_outlined;
+}
+
+IconData _marketplaceProductIcon(String rawName) {
+  final name = rawName.toLowerCase();
+  if (name.contains('لبن') || name.contains('حليب') || name.contains('milk')) return Icons.local_drink_outlined;
+  if (name.contains('جبن') || name.contains('cheese')) return Icons.breakfast_dining_outlined;
+  if (name.contains('مياه') || name.contains('ماء') || name.contains('water')) return Icons.water_drop_rounded;
+  if (name.contains('زيت') || name.contains('oil')) return Icons.opacity_rounded;
+  if (name.contains('بيض') || name.contains('egg')) return Icons.egg_outlined;
+  if (name.contains('بطاط') || name.contains('خض') || name.contains('فاكه') || name.contains('veget') || name.contains('fruit')) return Icons.eco_outlined;
+  return Icons.inventory_2_outlined;
+}
+
 class _WholesaleProductCard extends StatelessWidget {
-  const _WholesaleProductCard({required this.product, required this.onTap});
+  const _WholesaleProductCard({
+    required this.product,
+    required this.onTap,
+    this.keyPrefix = 'marketplace-product',
+  });
 
   final Map<String, dynamic> product;
   final VoidCallback onTap;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -1328,104 +1822,111 @@ class _WholesaleProductCard extends StatelessWidget {
         product['price'] ??
         '';
     final currency = product['currency']?.toString().trim();
-    final sku = product['sku']?.toString().trim() ?? '';
+    final name = product['name']?.toString().trim() ?? '';
+    final priceText =
+        '$rawPrice ${currency == null || currency.isEmpty ? 'EGP' : currency}';
 
     return Material(
-      key: ValueKey('marketplace-product-card-$id'),
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
+      key: ValueKey('$keyPrefix-card-$id'),
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: DecoratedBox(
+        child: Ink(
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE7EAED)),
-            borderRadius: BorderRadius.circular(18),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0B0F172A),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: ColoredBox(
-                  color: const Color(0xFFF1F4F3),
-                  child: image != null && image.isNotEmpty
-                      ? Image.network(
-                          image,
-                          key: ValueKey('marketplace-product-image-$id'),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.inventory_2_outlined,
-                            color: Color(0xFF7A8592),
-                            size: 44,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.inventory_2_outlined,
-                          color: Color(0xFF7A8592),
-                          size: 44,
-                        ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(7, 8, 7, 2),
+                        child: image != null && image.isNotEmpty
+                            ? Image.network(
+                                image,
+                                key: ValueKey(
+                                  '$keyPrefix-image-$id',
+                                ),
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) =>
+                                    _MarketplaceProductFallback(name: name),
+                              )
+                            : _MarketplaceProductFallback(name: name),
+                      ),
+                    ),
+                    const PositionedDirectional(
+                      start: 7,
+                      top: 7,
+                      child: Icon(
+                        Icons.favorite_border_rounded,
+                        size: 18,
+                        color: Color(0xFF9AA2AC),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(11, 10, 9, 10),
+                padding: const EdgeInsets.fromLTRB(6, 1, 6, 7),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      product['name']?.toString() ?? '',
-                      key: ValueKey('marketplace-product-name-$id'),
-                      maxLines: 2,
+                      name,
+                      key: ValueKey('$keyPrefix-name-$id'),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xFF17212F),
                         fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                        height: 1.25,
+                        fontSize: 11.5,
+                        height: 1.16,
                       ),
                     ),
-                    if (sku.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        sku,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF89939E),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w600,
+                    const SizedBox(height: 3),
+                    Text(
+                      priceText,
+                      key: ValueKey('$keyPrefix-price-$id'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF087347),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11.5,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Container(
+                      width: 29,
+                      height: 29,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF078447),
+                          width: 1.25,
                         ),
                       ),
-                    ],
-                    const SizedBox(height: 7),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '$rawPrice ${currency == null || currency.isEmpty ? 'EGP' : currency}',
-                            key: ValueKey('marketplace-product-price-$id'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF087347),
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEAF7F0),
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: const Icon(
-                            Icons.shopping_bag_outlined,
-                            color: Color(0xFF087347),
-                            size: 17,
-                          ),
-                        ),
-                      ],
+                      child: const Icon(
+                        Icons.shopping_cart_outlined,
+                        color: Color(0xFF078447),
+                        size: 17,
+                      ),
                     ),
                   ],
                 ),
@@ -1436,6 +1937,29 @@ class _WholesaleProductCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MarketplaceProductFallback extends StatelessWidget {
+  const _MarketplaceProductFallback({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Container(
+          width: 54,
+          height: 54,
+          decoration: const BoxDecoration(
+            color: Color(0xFFEAF7F0),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            _marketplaceProductIcon(name),
+            color: const Color(0xFF0A7047),
+            size: 28,
+          ),
+        ),
+      );
 }
 
 class _RegistrationSheet extends StatefulWidget {
@@ -1523,6 +2047,94 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
           ),
         ),
       );
+}
+
+
+Map<String, dynamic>? _marketplaceSection(
+  List<Map<String, dynamic>> sections,
+  String type,
+) {
+  for (final section in sections) {
+    if (section['type']?.toString() == type ||
+        section['key']?.toString() == type) {
+      return section;
+    }
+  }
+  return null;
+}
+
+String _marketplaceSectionTitle(
+  Map<String, dynamic>? section, {
+  required bool isArabic,
+  required String fallbackAr,
+  required String fallbackEn,
+}) {
+  final key = isArabic ? 'title_ar' : 'title_en';
+  final value = section?[key]?.toString().trim() ?? '';
+  if (value.isNotEmpty) return value;
+  return isArabic ? fallbackAr : fallbackEn;
+}
+
+int _marketplaceSectionSort(
+  Map<String, dynamic>? section,
+  int fallback,
+) {
+  final value = _int(section?['sort_order']);
+  return value > 0 ? value : fallback;
+}
+
+List<Map<String, dynamic>> _marketplaceFeaturedProducts(
+  List<Map<String, dynamic>> products,
+  Map<String, dynamic>? section,
+) {
+  final config = section?['config'] is Map
+      ? Map<String, dynamic>.from(section!['config'] as Map)
+      : const <String, dynamic>{};
+  final configuredIds = config['product_ids'] is List
+      ? (config['product_ids'] as List)
+          .map(_int)
+          .where((id) => id > 0)
+          .toList(growable: false)
+      : const <int>[];
+  final rawLimit = _int(config['limit']);
+  final limit = rawLimit > 0 ? rawLimit.clamp(1, 12).toInt() : 6;
+
+  if (configuredIds.isNotEmpty) {
+    final byId = <int, Map<String, dynamic>>{
+      for (final product in products)
+        if (_int(product['id']) > 0) _int(product['id']): product,
+    };
+    return configuredIds
+        .map((id) => byId[id])
+        .whereType<Map<String, dynamic>>()
+        .take(limit)
+        .toList(growable: false);
+  }
+
+  return products.take(limit).toList(growable: false);
+}
+
+String _marketplaceOfferBadge(
+  String type,
+  Object? rawValue,
+  String currency,
+) {
+  final value = rawValue is num
+      ? rawValue.toDouble()
+      : double.tryParse(rawValue?.toString() ?? '');
+  if (value == null || value <= 0) return '';
+
+  final normalized = type.toLowerCase();
+  final compact = value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toStringAsFixed(2);
+
+  if (normalized.contains('percent') ||
+      normalized.contains('percentage')) {
+    return '$compact%';
+  }
+
+  return '$compact $currency';
 }
 
 List<Map<String, dynamic>> _rows(Object? value) {

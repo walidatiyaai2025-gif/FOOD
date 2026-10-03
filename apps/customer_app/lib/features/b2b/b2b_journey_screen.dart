@@ -6,9 +6,13 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../customer_account/customer_address_book_screen.dart';
+import '../customer_account/customer_account_data.dart';
+import '../customer_account/customer_notification_center_screen.dart';
 import '../../shared/customer_action_widgets.dart';
+import '../../shared/customer_persistent_footer.dart';
 
 class B2bJourneyScreen extends StatelessWidget {
   const B2bJourneyScreen({
@@ -37,9 +41,40 @@ class B2bJourneyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final commerceContext =
+        CustomerCommerceContext.tryParseLocation(location);
+
+    Widget withFooter(
+      Widget child,
+      CustomerFooterDestination destination,
+    ) {
+      if (commerceContext == null || !commerceContext.isWholesale) {
+        return child;
+      }
+      return CustomerPersistentFooterShell(
+        commerceContext: commerceContext,
+        activeDestination: destination,
+        child: child,
+      );
+    }
+
     if (definition.pattern == CustomerRoutePaths.b2bAddresses &&
         accountApi != null) {
-      return CustomerAddressBookScreen(api: accountApi!);
+      return withFooter(
+        CustomerAddressBookScreen(api: accountApi!),
+        CustomerFooterDestination.account,
+      );
+    }
+
+    if (definition.pattern == CustomerRoutePaths.b2bNotifications &&
+        accountApi != null) {
+      return withFooter(
+        CustomerNotificationCenterScreen(
+          api: accountApi!,
+          onOpenOrder: (target) => _openNotificationOrder(context, target),
+        ),
+        CustomerFooterDestination.account,
+      );
     }
 
     final content = _contentFor(context, definition.pattern);
@@ -49,7 +84,25 @@ class B2bJourneyScreen extends StatelessWidget {
         definition.pattern == CustomerRoutePaths.b2bCart ||
         definition.pattern == CustomerRoutePaths.b2bProfile;
 
-    return Scaffold(
+    final destination = switch (definition.pattern) {
+      CustomerRoutePaths.b2bProducts ||
+      CustomerRoutePaths.b2bProductDetails =>
+        CustomerFooterDestination.products,
+      CustomerRoutePaths.b2bCart ||
+      CustomerRoutePaths.b2bCheckout =>
+        CustomerFooterDestination.cart,
+      CustomerRoutePaths.b2bOrders ||
+      CustomerRoutePaths.b2bOrderDetails =>
+        CustomerFooterDestination.orders,
+      CustomerRoutePaths.b2bProfile ||
+      CustomerRoutePaths.b2bAddresses ||
+      CustomerRoutePaths.b2bNotifications =>
+        CustomerFooterDestination.account,
+      _ => CustomerFooterDestination.home,
+    };
+
+    return withFooter(
+      Scaffold(
       appBar: AppBar(title: Text(context.tr('b2b.app.title'))),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -90,6 +143,8 @@ class B2bJourneyScreen extends StatelessWidget {
           ),
         ),
       ),
+      ),
+      destination,
     );
   }
 
@@ -191,6 +246,12 @@ class B2bJourneyScreen extends StatelessWidget {
             _section(context.tr('b2b.order.tracking')),
           ],
         );
+      case CustomerRoutePaths.b2bNotifications:
+        return (
+          context.tr('customer.notifications.title'),
+          context.tr('customer.notifications.subtitle'),
+          const <Widget>[],
+        );
       case CustomerRoutePaths.b2bCart:
         return (
           context.tr('b2b.cart.title'),
@@ -231,7 +292,7 @@ class B2bJourneyScreen extends StatelessWidget {
             _button(
               context,
               context.tr('customer.profile.addresses'),
-              CustomerRoutePaths.b2bAddresses,
+              _scopedB2bRoute(CustomerRoutePaths.b2bAddresses),
             ),
             _section(context.tr('b2b.profile.settings')),
           ],
@@ -243,6 +304,59 @@ class B2bJourneyScreen extends StatelessWidget {
           [_empty(context.tr('customer.empty'))],
         );
     }
+  }
+
+  void _openNotificationOrder(
+    BuildContext context,
+    CustomerNotificationTarget target,
+  ) {
+    final uri = Uri.parse(location);
+    final currentStoreId = int.tryParse(
+      uri.queryParameters['store_id'] ??
+          uri.queryParameters['store'] ??
+          '',
+    );
+
+    if (target.channel.toLowerCase() == 'b2b') {
+      final storeId = target.storeId ?? currentStoreId;
+      if (storeId == null || storeId <= 0) return;
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: '/b2b/orders/${target.orderId}',
+          queryParameters: <String, String>{
+            'channel': 'wholesale',
+            'store_id': storeId.toString(),
+          },
+        ).toString(),
+      );
+      return;
+    }
+
+    if (target.channel.toLowerCase() == 'b2c') {
+      final storeId = target.storeId;
+      if (storeId == null || storeId <= 0) return;
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: '/orders/${target.orderId}/track',
+          queryParameters: <String, String>{
+            'channel': 'retail',
+            'store_id': storeId.toString(),
+          },
+        ).toString(),
+      );
+    }
+  }
+
+  String _scopedB2bRoute(String path) {
+    final commerceContext =
+        CustomerCommerceContext.tryParseLocation(location);
+    if (commerceContext == null || !commerceContext.isWholesale) {
+      return path;
+    }
+    return Uri(
+      path: path,
+      queryParameters: commerceContext.toQueryParameters(),
+    ).toString();
   }
 
   String _b2bCartRoute() {

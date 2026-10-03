@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
+import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/features/retail/catalog/retail_catalog_screens.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/customer_retail_shell.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/retail_home_v3_screen.dart';
@@ -89,7 +90,11 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('retail-shell-nav-orders')),
-        findsNothing,
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('retail-shell-nav-account')),
+        findsOneWidget,
       );
       expect(tester.takeException(), isNull);
 
@@ -131,6 +136,55 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+      'fixed footer reserves business-action space and Home returns to platform store switcher',
+      (tester) async {
+    String? pushedRoute;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        onGenerateRoute: (settings) {
+          pushedRoute = settings.name;
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const Scaffold(body: Text('destination')),
+          );
+        },
+        home: CustomerRetailShell(
+          commerceContext: const CustomerCommerceContext(
+            channel: CustomerCommerceChannel.retail,
+            storeId: 17,
+          ),
+          activeDestination: CustomerRetailDestination.cart,
+          isAuthenticated: true,
+          child: const Scaffold(
+            body: SizedBox.expand(),
+            bottomNavigationBar: SizedBox(
+              key: ValueKey('business-fixed-action'),
+              height: 56,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final actionBottom = tester.getBottomLeft(
+      find.byKey(const ValueKey('business-fixed-action')),
+    ).dy;
+    final footerTop = tester.getTopLeft(
+      find.byKey(const ValueKey('customer-persistent-footer')),
+    ).dy;
+    expect(actionBottom, lessThanOrEqualTo(footerTop));
+
+    await tester.tap(
+      find.byKey(const ValueKey('retail-shell-nav-home')),
+    );
+    await tester.pumpAndSettle();
+    expect(pushedRoute, CustomerRoutePaths.marketplace);
+  });
+
 
   testWidgets('floating navigation preserves authoritative Retail store context',
       (tester) async {

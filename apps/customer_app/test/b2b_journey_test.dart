@@ -148,6 +148,13 @@ void main() {
   testWidgets(
       'signed-out Wholesale add uses unified auth and resumes add exactly once',
       (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     final actionApi = _CountingCustomerActionApi();
     final pending = _MemoryPendingActionStore();
     final b2bApi = _FakeB2bApi({
@@ -212,6 +219,13 @@ void main() {
   });
 
   testWidgets('B2B product details render authoritative account pricing and inventory', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     final api = _FakeB2bApi({
       'id': 42,
       'sku': 'B2B-P-1',

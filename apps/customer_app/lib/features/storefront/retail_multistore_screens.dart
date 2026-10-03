@@ -1250,7 +1250,7 @@ class _RetailProductGrid extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     product.name,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 12,
