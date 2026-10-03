@@ -29,6 +29,7 @@ class CustomerRetailShell extends StatelessWidget {
   Widget build(BuildContext context) => CustomerPersistentFooterShell(
         commerceContext: commerceContext,
         activeDestination: _footerDestination(activeDestination),
+        keyPrefix: 'retail-shell-nav',
         child: child,
       );
 
