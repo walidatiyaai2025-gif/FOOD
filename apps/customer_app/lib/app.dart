@@ -656,6 +656,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       mapPinPicker: widget.mapPinPicker ?? showCustomerMapPinSelector,
       marketplaceClient: widget.marketplaceClient,
       marketplaceBarcodeScanner: widget.marketplaceBarcodeScanner,
+      currentSession: () => _session,
     );
     _activeRouter = router;
 
