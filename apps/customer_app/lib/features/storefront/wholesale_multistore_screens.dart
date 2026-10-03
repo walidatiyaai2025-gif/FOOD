@@ -824,32 +824,6 @@ class _WholesaleProductGrid extends StatelessWidget {
         final brand = row['brand_name']?.toString().trim() ?? '';
         final currency = row['currency']?.toString() ?? 'EGP';
 
-        Future<void> addToCart() async {
-          if (!session.isAuthenticated) {
-            await _beginWholesaleAddHandoff(
-              context: context,
-              pendingActionStore: pendingActionStore,
-              storeId: storeId,
-              productId: id,
-              quantity: minimum,
-              sourceLocation: sourceLocation,
-            );
-            return;
-          }
-
-          try {
-            await actionApi.addCartItem(
-              storeId: storeId,
-              productId: id,
-              quantity: minimum,
-            );
-          } catch (error) {
-            if (context.mounted) {
-              await showOperationalError(context, error);
-            }
-          }
-        }
-
         return Material(
           key: ValueKey('wholesale-product-card-$id'),
           color: Colors.white,
@@ -970,27 +944,6 @@ class _WholesaleProductGrid extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 38,
-                    child: FilledButton(
-                      key: ValueKey('wholesale-product-add-$id'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: palette.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: addToCart,
-                      child: const Text(
-                        'إضافة للسلة',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
                     ),
                   ),
                 ],
@@ -1470,17 +1423,10 @@ class _WholesaleBottomNav extends StatelessWidget {
 }
 
 FoodexPalette _wholesalePalette(Map<String, dynamic> theme) {
-  final base = FoodexPalette.wholesale;
-  return FoodexPalette(
-    primary: _colorFromHex(theme['primary'], base.primary),
-    primaryDark:
-        _colorFromHex(theme['primary_dark'], base.primaryDark),
-    accent: _colorFromHex(theme['accent'], base.accent),
-    background: _colorFromHex(theme['background'], base.background),
-    soft: base.soft,
-    text: base.text,
-    muted: base.muted,
-  );
+  // B2B customer identity is intentionally locked to the FOODEx green system.
+  // Storefront payloads may still contain legacy purple values; do not render
+  // those values on the customer B2B surfaces.
+  return FoodexPalette.wholesale;
 }
 
 Color _colorFromHex(Object? value, Color fallback) {
@@ -1739,7 +1685,7 @@ class _WholesaleProductDetailsDesignScreenState
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                          row['brand_name'].toString(),
+                          'العلامة التجارية: ' + row['brand_name'].toString(),
                           style: const TextStyle(
                             color: Color(0xFF006736),
                             fontSize: 11,
