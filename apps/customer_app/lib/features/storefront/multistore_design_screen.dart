@@ -142,7 +142,6 @@ class MultiStoreDesignScreen extends StatelessWidget {
           CustomerFooterDestination.products,
         );
       case CustomerRoutePaths.b2bHome:
-      case CustomerRoutePaths.b2bProducts:
         return withFooter(
           WholesaleHomeDesignScreen(
             location: location,
@@ -153,9 +152,19 @@ class MultiStoreDesignScreen extends StatelessWidget {
             pendingActionStore: pendingActionStore,
             showBottomNavigation: false,
           ),
-          definition.pattern == CustomerRoutePaths.b2bHome
-              ? CustomerFooterDestination.home
-              : CustomerFooterDestination.products,
+          CustomerFooterDestination.home,
+        );
+      case CustomerRoutePaths.b2bProducts:
+        return withFooter(
+          WholesaleCatalogDesignScreen(
+            location: location,
+            session: session,
+            api: b2bApi,
+            storefrontApi: storefrontApi,
+            actionApi: actionApi,
+            pendingActionStore: pendingActionStore,
+          ),
+          CustomerFooterDestination.products,
         );
       case CustomerRoutePaths.b2bProductDetails:
         return withFooter(
