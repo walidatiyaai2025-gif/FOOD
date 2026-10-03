@@ -337,23 +337,25 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
       case CustomerRoutePaths.orders:
         final api = ordersApi;
         if (api == null) return const _RetailContextMissing();
-        final scoped = _ScopedCustomerOrdersApi(
-          api,
-          CustomerOrderContext(storeId: storeId, channel: 'b2c'),
-        );
         return withShell(
           CustomerRetailDestination.orders,
           CustomerOrdersScreen(
-            api: scoped,
-            onOpenOrder: (order) => Navigator.of(context).pushNamed(
-              _orderTrackingLocation(
-                order.id,
-                CustomerCommerceContext(
-                  channel: CustomerCommerceChannel.retail,
-                  storeId: order.storeId,
-                ),
-              ),
-            ),
+            api: api,
+            onOpenOrder: (order) {
+              final orderContext = CustomerCommerceContext(
+                channel: order.channel == 'b2b'
+                    ? CustomerCommerceChannel.wholesale
+                    : CustomerCommerceChannel.retail,
+                storeId: order.storeId,
+              );
+              final location = order.channel == 'b2b'
+                  ? Uri(
+                      path: '/b2b/orders/${order.id}',
+                      queryParameters: orderContext.toQueryParameters(),
+                    ).toString()
+                  : _orderTrackingLocation(order.id, orderContext);
+              Navigator.of(context).pushNamed(location);
+            },
           ),
         );
 
