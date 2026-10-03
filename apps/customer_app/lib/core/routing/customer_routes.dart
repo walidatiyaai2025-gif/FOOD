@@ -5,8 +5,6 @@ abstract final class CustomerRoutePaths {
   static const splash = '/splash';
   static const entry = '/entry';
   static const marketplace = '/marketplace';
-  static const stores = '/stores';
-  static const storeSelector = '/customer/store-selector';
   static const home = '/home';
   static const retailHome = '/retail/:store/home';
   static const retailProductDetails = '/retail/:store/products/:product';
@@ -26,7 +24,6 @@ abstract final class CustomerRoutePaths {
   static const orderTracking = '/orders/:id/track';
   static const profile = '/profile';
 
-  static const b2bLogin = '/b2b/login';
   static const b2bHome = '/b2b/home';
   static const b2bDashboard = '/b2b/dashboard';
   static const b2bPurchaseReports = '/b2b/reports/purchases';
@@ -165,9 +162,7 @@ abstract final class CustomerRouteLocations {
     }
 
     return Uri(
-      path: context.isWholesale
-          ? CustomerRoutePaths.b2bLogin
-          : CustomerRoutePaths.checkoutAuth,
+      path: CustomerRoutePaths.checkoutAuth,
       queryParameters: <String, String>{
         ...context.toQueryParameters(),
         'entry': entry.name,
@@ -278,8 +273,7 @@ String? safeCustomerReturnLocation(
     return null;
   }
 
-  if (destination.pattern == CustomerRoutePaths.checkoutAuth ||
-      destination.pattern == CustomerRoutePaths.b2bLogin) {
+  if (destination.pattern == CustomerRoutePaths.checkoutAuth) {
     return null;
   }
 
@@ -319,16 +313,6 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.marketplace,
     label: 'Platform marketplace',
-  ),
-  CustomerRouteDefinition(
-    pattern: CustomerRoutePaths.stores,
-    label: 'Store selection',
-    channel: CustomerChannel.b2c,
-  ),
-  CustomerRouteDefinition(
-    pattern: CustomerRoutePaths.storeSelector,
-    label: 'Multi-store selection',
-    channel: CustomerChannel.b2c,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.home,
@@ -426,11 +410,6 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     label: 'B2C profile',
     channel: CustomerChannel.b2c,
     requiresAuth: true,
-  ),
-  CustomerRouteDefinition(
-    pattern: CustomerRoutePaths.b2bLogin,
-    label: 'B2B login',
-    channel: CustomerChannel.b2b,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bHome,
