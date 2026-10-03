@@ -807,15 +807,18 @@ class _MarketplaceHeader extends StatelessWidget {
             return [
               if (authenticated)
                 PopupMenuItem(
+                  key: const ValueKey('marketplace-profile-action'),
                   value: 'profile',
                   child: Text(context.tr('customer.nav.profile')),
                 )
               else ...[
                 PopupMenuItem(
+                  key: const ValueKey('marketplace-login-action'),
                   value: 'login',
                   child: Text(context.tr('customer.action.login')),
                 ),
                 PopupMenuItem(
+                  key: const ValueKey('marketplace-register-action'),
                   value: 'register',
                   child: Text(context.tr('customer.marketplace.register')),
                 ),
