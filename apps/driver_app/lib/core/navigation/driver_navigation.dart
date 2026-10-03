@@ -7,6 +7,10 @@ typedef DriverNavigationLauncher = Future<bool> Function(
   double longitude,
 );
 
+typedef DriverAddressNavigationLauncher = Future<bool> Function(
+  String address,
+);
+
 List<Uri> driverNavigationCandidates(
   double latitude,
   double longitude, {
@@ -32,6 +36,37 @@ List<Uri> driverNavigationCandidates(
       'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
     ),
   ];
+}
+
+List<Uri> driverAddressNavigationCandidates(
+  String address, {
+  bool? ios,
+}) {
+  final query = Uri.encodeQueryComponent(address.trim());
+  if (query.isEmpty) return const <Uri>[];
+  final isIos = ios ?? Platform.isIOS;
+
+  if (isIos) {
+    return [
+      Uri.parse('https://www.google.com/maps/search/?api=1&query=$query'),
+      Uri.parse('https://maps.apple.com/?q=$query'),
+    ];
+  }
+
+  return [
+    Uri.parse('https://www.google.com/maps/search/?api=1&query=$query'),
+    Uri.parse('geo:0,0?q=$query'),
+  ];
+}
+
+Future<bool> launchDriverAddressNavigation(String address) async {
+  for (final uri in driverAddressNavigationCandidates(address)) {
+    if (!await canLaunchUrl(uri)) continue;
+    if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 Future<bool> launchDriverNavigation(
