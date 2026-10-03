@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.47",
+  "current_version": "1.0.48",
   "releases": [
     {
       "version": "1.0.40",
@@ -86,6 +86,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "b2c3ef03b9235d93e5a4d016d3f1294a88f5a04a56f56aa0a91f1bca1001b777",
       "note": "Post-1.0.46 synchronized Driver fixes plus Customer Commerce V4 (#764/#765-#773), including unified Customer identity, exact Retail/Wholesale commerce context, Dashboard order convergence and corrected shared App Preview parity."
+    },
+    {
+      "version": "1.0.48",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.48.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "046f8276f1e7dfa8b765853d6001c5f6054b530d8e59a1ac4f7a833803ebc7bf",
+      "note": "Customer Commerce V4 corrective 1.0.48 closure: approved #794 Customer runtime baseline plus merchant identity reconciliation (#797), own-store purchase protection (#798), isolated Wholesale/Retail order history (#799), Dashboard primary-owner binding (#800), and final integrated gate #775/#805."
     }
   ]
 }
