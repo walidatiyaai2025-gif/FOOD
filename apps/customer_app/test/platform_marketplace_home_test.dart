@@ -894,6 +894,109 @@ void main() {
 
 
   testWidgets(
+      'signed-in marketplace keeps store switcher open and management routes follow origin store',
+      (tester) async {
+    const retailContext = CustomerCommerceContext(
+      channel: CustomerCommerceChannel.retail,
+      storeId: 22,
+      source: CustomerCommerceSource.retailBanner,
+    );
+    final client = MockClient((request) async {
+      if (request.url.path == '/api/v1/stores') {
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {
+                'id': 22,
+                'name': 'Retail 22',
+                'logo_url': null,
+              },
+            ],
+          }),
+          200,
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'store': {
+            'id': 70,
+            'name': 'FOODEX Wholesale',
+            'channel': 'b2b',
+          },
+          'hero': {'title': 'Wholesale'},
+          'categories': const [],
+          'products': {'data': const []},
+          'retail_banners': const [],
+        }),
+        200,
+      );
+    });
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('ar'),
+        overrides: const {},
+        child: MaterialApp(
+          locale: const Locale('ar'),
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.platformCustomer(
+              accessToken: 'signed-in-token',
+            ),
+            commerceContextProvider: () => retailContext,
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => Scaffold(
+              body: Text(
+                settings.name ?? '',
+                key: const ValueKey('route-name'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('marketplace-retail-banner-title-22')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('marketplace-cart')));
+    await tester.pumpAndSettle();
+    var route = Uri.parse(
+      tester.widget<Text>(
+        find.byKey(const ValueKey('route-name')),
+      ).data!,
+    );
+    expect(route.path, '/cart');
+    expect(route.queryParameters['channel'], 'retail');
+    expect(route.queryParameters['store_id'], '22');
+
+    Navigator.of(
+      tester.element(find.byKey(const ValueKey('route-name'))),
+    ).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('marketplace-wholesale-banner-action')),
+    );
+    await tester.pumpAndSettle();
+    route = Uri.parse(
+      tester.widget<Text>(
+        find.byKey(const ValueKey('route-name')),
+      ).data!,
+    );
+    expect(route.path, '/b2b/home');
+    expect(route.queryParameters['channel'], 'wholesale');
+    expect(route.queryParameters['store_id'], '70');
+  });
+
+
+  testWidgets(
       'marketplace auth menu reads the live app session after login without a stale guest route',
       (tester) async {
     var liveSession = const CustomerSession.guest();
