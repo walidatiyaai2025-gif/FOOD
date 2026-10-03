@@ -18,6 +18,7 @@ class PlatformMarketplaceScreen extends StatefulWidget {
     super.key,
     this.client,
     this.onLocaleChanged,
+    this.sessionProvider,
     this.barcodeScanner = showMarketplaceBarcodeScanner,
   });
 
@@ -25,6 +26,7 @@ class PlatformMarketplaceScreen extends StatefulWidget {
   final ValueChanged<String> onPlatformRegistered;
   final http.Client? client;
   final ValueChanged<Locale>? onLocaleChanged;
+  final CustomerSession Function()? sessionProvider;
   final MarketplaceBarcodeScanner barcodeScanner;
 
   @override
@@ -43,6 +45,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   int? _selectedCategoryId;
   String? _pendingAfterAuth;
   List<Map<String, dynamic>>? _guestRetailStoreFallback;
+
+  CustomerSession get _currentSession =>
+      widget.sessionProvider?.call() ?? widget.session;
 
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
@@ -63,7 +68,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     // the primary store), then stores missing from the placements are appended
     // in the public /stores order. Duplicate store placements never create
     // duplicate Retail slides.
-    if (!widget.session.isAuthenticated) {
+    if (!_currentSession.isAuthenticated) {
       final configuredRetail = _rows(data['retail_banners']);
       _guestRetailStoreFallback ??=
           await _loadGuestRetailStoreFallback(baseUrl);
@@ -211,7 +216,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   }
 
   Future<Map<String, dynamic>> _get(String url) async {
-    final token = widget.session.accessToken;
+    final token = _currentSession.accessToken;
     final response = await _client.get(
       Uri.parse(url),
       headers: {
@@ -341,7 +346,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     key: const ValueKey('marketplace-wholesale-buy'),
                     onPressed: () {
                       Navigator.pop(sheetContext);
-                      if (!widget.session.isAuthenticated) {
+                      if (!_currentSession.isAuthenticated) {
                         _showAuthRequired(
                           next: '/b2b/products/$productId?store_id=$storeId',
                         );
@@ -353,7 +358,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     },
                     icon: const Icon(Icons.shopping_cart_checkout_rounded),
                     label: Text(
-                      widget.session.isAuthenticated
+                      _currentSession.isAuthenticated
                           ? context.tr('customer.action.add_cart')
                           : context.tr('customer.action.login'),
                     ),
@@ -484,7 +489,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     slivers: [
                       SliverToBoxAdapter(
                         child: _MarketplaceHeader(
-                          authenticated: widget.session.isAuthenticated,
+                          isAuthenticated: () => _currentSession.isAuthenticated,
                           onRegister: _register,
                           onLogin: () => Navigator.of(context).pushNamed(
                             '/auth/checkout?next=/marketplace',
@@ -497,7 +502,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                               Navigator.of(context).pushNamed('/cart'),
                           cartCount: _int(data['cart_count']),
                           onOrders: () {
-                            if (widget.session.isAuthenticated) {
+                            if (_currentSession.isAuthenticated) {
                               Navigator.of(context).pushNamed('/orders');
                             } else {
                               Navigator.of(context).pushNamed(
@@ -509,7 +514,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                             }
                           },
                           onNotifications: () {
-                            if (widget.session.isAuthenticated) {
+                            if (_currentSession.isAuthenticated) {
                               Navigator.of(context).pushNamed('/notifications');
                             } else {
                               Navigator.of(context).pushNamed(
