@@ -128,13 +128,13 @@ class CustomerAppRouter {
         requestedLocation,
       );
       if (normalized == null) {
-        final selector = definitionFor(CustomerRoutePaths.storeSelector)!;
+        final marketplace = definitionFor(CustomerRoutePaths.marketplace)!;
         return _pageRoute(
           settings: const RouteSettings(
-            name: CustomerRoutePaths.storeSelector,
+            name: CustomerRoutePaths.marketplace,
           ),
-          definition: selector,
-          requestedLocation: CustomerRoutePaths.storeSelector,
+          definition: marketplace,
+          requestedLocation: CustomerRoutePaths.marketplace,
         );
       }
       requestedLocation = normalized;
@@ -237,11 +237,7 @@ class CustomerAppRouter {
     }
 
     if (!session.isAuthenticated) {
-      return definitionFor(
-        requested.channel == CustomerChannel.b2b
-            ? CustomerRoutePaths.b2bLogin
-            : CustomerRoutePaths.checkoutAuth,
-      );
+      return definitionFor(CustomerRoutePaths.checkoutAuth);
     }
 
     if (session.channel != requested.channel && !session.platformWide) {
@@ -249,11 +245,7 @@ class CustomerAppRouter {
           requested.channel == CustomerChannel.b2b &&
           session.b2bRetailStoreId != null;
       if (!entitledRetailManager) {
-        return definitionFor(
-          requested.channel == CustomerChannel.b2b
-              ? CustomerRoutePaths.b2bLogin
-              : CustomerRoutePaths.entry,
-        );
+        return definitionFor(CustomerRoutePaths.marketplace);
       }
     }
 
@@ -267,8 +259,7 @@ class CustomerAppRouter {
   ) {
     if (!session.isAuthenticated &&
         requested.requiresAuth &&
-        (redirect.pattern == CustomerRoutePaths.checkoutAuth ||
-            redirect.pattern == CustomerRoutePaths.b2bLogin)) {
+        redirect.pattern == CustomerRoutePaths.checkoutAuth) {
       final context =
           CustomerCommerceContext.tryParseLocation(requestedLocation);
       return Uri(
@@ -295,8 +286,7 @@ class CustomerAppRouter {
           return const CustomerDiagnosticsScreen();
         }
 
-        if (definition.pattern == CustomerRoutePaths.checkoutAuth ||
-            definition.pattern == CustomerRoutePaths.b2bLogin) {
+        if (definition.pattern == CustomerRoutePaths.checkoutAuth) {
           final uri = Uri.parse(requestedLocation);
           final rawNext = uri.queryParameters['next'];
           var commerceContext =
@@ -399,8 +389,6 @@ class CustomerAppRouter {
             api: b2bApi,
             accountApi: b2bAccountApi,
             actionApi: actionApi,
-            onAuthenticated: onAuthenticated,
-            onPlatformAuthenticated: onPlatformRegistered,
           );
         }
 
