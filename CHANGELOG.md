@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.50 - 2026-10-03
+
+- Replace the fragile Wholesale marketplace product modal with a full product-details route that preserves exact store context and exposes product imagery, description, customer price, MOQ/order increment, stock information and add-to-cart behavior.
+- Make Favorites functional across Wholesale and Retail product cards/details with authenticated customer-domain handling and preserved store/channel provenance, while keeping Retail detail behavior intact.
+- Render four product cards per row on normal phone widths for both Wholesale and Retail, with a safe narrow-width fallback and regression coverage for overflow/preview parity.
+- Repair Dashboard Catalog Management after the production /admin/catalog undefined-variable failure, keep product image/primary-image editing operational, and expose a direct authorized Catalog Management sidebar entry including SUPER_ADMIN.
+- Add regression coverage for B2B product-detail routing, favorites, catalog rendering and mobile grid policy; Backend validation, Customer Flutter/iOS validation, MySQL/Redis acceptance, UI Visual QA and mobile screenshot gates are green for #817 / PR #818.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.50 / mobile build 1.0.50+50; keep production minimum-version, force-update, Driver location-enforcement and Assistant activation settings unchanged.
+
 ## 1.0.49 - 2026-10-03
 
 - Prevent signed-in Retail owners/managers from reopening their own Retail storefront through stale remembered commerce context, the Marketplace store shortcut, the persistent footer, or direct Retail catalog routes; invalid own-store context now falls back to the allowed platform/Wholesale context while backend self-store purchase blocking remains authoritative.
