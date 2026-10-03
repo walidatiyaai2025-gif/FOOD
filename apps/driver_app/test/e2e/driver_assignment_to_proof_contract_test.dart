@@ -108,10 +108,22 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.transitions, ['accepted']);
-      expect(find.byKey(const Key('driver-active-pickup-693')), findsOneWidget);
+      expect(find.byKey(const Key('driver-active-pickup-693')), findsNothing);
+      expect(
+        find.byKey(const Key('driver-active-card-failed-693')),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('driver-active-start-693')), findsNothing);
 
-      await tester.tap(find.byKey(const Key('driver-active-pickup-693')));
+      await tester.tap(
+        find.byKey(const Key('driver-active-assignment-693')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('driver-detail-pickup-693')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const Key('driver-detail-pickup-693')));
       await tester.pumpAndSettle();
 
       expect(
@@ -120,9 +132,13 @@ void main() {
       );
       expect(find.byKey(const Key('driver-active-start-693')), findsNothing);
       expect(repository.startNote, isNull);
-      expect(find.byKey(const Key('driver-active-delivered-693')), findsOneWidget);
+      expect(find.byKey(const Key('driver-detail-delivered-693')), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('driver-active-delivered-693')));
+      await tester.ensureVisible(
+        find.byKey(const Key('driver-detail-delivered-693')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('driver-detail-delivered-693')));
       await tester.pumpAndSettle();
 
       expect(completion, isNotNull);

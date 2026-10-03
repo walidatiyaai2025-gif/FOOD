@@ -262,6 +262,7 @@ class _WholesaleHomeDesignScreenState
                       actionApi: widget.actionApi,
                       pendingActionStore: widget.pendingActionStore,
                       palette: palette,
+                      maxItems: 4,
                     ),
                   );
                   break;
@@ -311,6 +312,7 @@ class _WholesaleHomeDesignScreenState
                   actionApi: widget.actionApi,
                   pendingActionStore: widget.pendingActionStore,
                   palette: palette,
+                  maxItems: 4,
                 ),
               );
             }
@@ -606,62 +608,65 @@ class _WholesaleCategoryGrid extends StatelessWidget {
         'image_url': row['category_image_url']?.toString().trim(),
       };
     }
-    final categories = byId.values.take(6).toList(growable: false);
+    final categories = byId.values.take(8).toList(growable: false);
     if (categories.isEmpty) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+    return SizedBox(
+      key: const ValueKey('wholesale-home-category-rail'),
+      height: 104,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 9,
-          mainAxisSpacing: 9,
-          childAspectRatio: 1.2,
-        ),
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (_, index) {
           final category = categories[index];
           final id = intValue(category['id']);
           final name = category['name']?.toString().trim();
           final imageUrl = category['image_url']?.toString().trim();
-          return Container(
+          return SizedBox(
             key: ValueKey('wholesale-category-$id'),
-            decoration: BoxDecoration(
-              color: palette.soft,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.all(8),
+            width: 76,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(13),
-                    child: imageUrl != null && imageUrl.isNotEmpty
-                        ? Image.network(
-                            imageUrl,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(
-                              Icons.category_outlined,
-                              color: palette.primary,
-                              size: 28,
-                            ),
-                          )
-                        : Icon(
+                Container(
+                  width: 66,
+                  height: 66,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: palette.soft),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(
                             Icons.category_outlined,
                             color: palette.primary,
                             size: 28,
                           ),
-                  ),
+                        )
+                      : Icon(
+                          Icons.category_outlined,
+                          color: palette.primary,
+                          size: 28,
+                        ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   name != null && name.isNotEmpty ? name : 'تصنيف $id',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -770,6 +775,7 @@ class _WholesaleProductGrid extends StatelessWidget {
     required this.actionApi,
     required this.pendingActionStore,
     required this.palette,
+    this.maxItems,
   });
 
   final List<Map<String, dynamic>> rows;
@@ -779,6 +785,7 @@ class _WholesaleProductGrid extends StatelessWidget {
   final CustomerActionApi actionApi;
   final CustomerPendingActionStore? pendingActionStore;
   final FoodexPalette palette;
+  final int? maxItems;
 
   @override
   Widget build(BuildContext context) {
@@ -790,28 +797,35 @@ class _WholesaleProductGrid extends StatelessWidget {
       );
     }
 
+    final displayRows = maxItems == null
+        ? rows
+        : rows.take(maxItems!).toList(growable: false);
+    final width = MediaQuery.sizeOf(context).width;
+
     return GridView.builder(
+      key: const ValueKey('wholesale-product-grid'),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: rows.length,
+      itemCount: displayRows.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount:
-            MediaQuery.sizeOf(context).width < 350 ? 3 : 4,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 9,
-        childAspectRatio:
-            MediaQuery.sizeOf(context).width < 350 ? .44 : .37,
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 12,
+        mainAxisExtent: width < 360 ? 286 : 306,
       ),
       itemBuilder: (context, index) {
-        final row = rows[index];
+        final row = displayRows[index];
         final id = intValue(row['id']);
         final minimum = doubleValue(
           row['minimum_order_quantity'] ?? row['minimum_quantity'],
           1,
         );
+        final brand = row['brand_name']?.toString().trim() ?? '';
+        final currency = row['currency']?.toString() ?? 'EGP';
 
         return Material(
+          key: ValueKey('wholesale-product-card-$id'),
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           child: InkWell(
@@ -823,94 +837,112 @@ class _WholesaleProductGrid extends StatelessWidget {
                   storeId.toString(),
             ),
             child: Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
               decoration: BoxDecoration(
                 border: Border.all(color: palette.soft),
                 borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(.035),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: FoodexProductImage(
-                      url: row['image_url']?.toString(),
-                      palette: palette,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: FoodexProductImage(
+                            url: row['image_url']?.toString(),
+                            palette: palette,
+                          ),
+                        ),
+                        if (brand.isNotEmpty)
+                          PositionedDirectional(
+                            top: 0,
+                            end: 0,
+                            child: Container(
+                              key: ValueKey('wholesale-product-brand-$id'),
+                              constraints: const BoxConstraints(maxWidth: 112),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE9F7EE),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                brand,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF006736),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     row['name']?.toString() ?? '',
-                    maxLines: 1,
+                    key: ValueKey('wholesale-product-name-$id'),
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      height: 1.2,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF102033),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    money(
+                      row['account_price'] ??
+                          row['unit_price'] ??
+                          row['price'],
+                      currency: currency,
+                    ),
+                    key: ValueKey('wholesale-product-price-$id'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: palette.primary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Text(
-                    'سعر العميل ' +
-                        money(
-                          row['account_price'] ??
-                              row['unit_price'] ??
-                              row['price'],
-                        ),
-                    style: TextStyle(
-                      color: palette.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
-                    ),
-                  ),
-                  Text(
-                    'الحد الأدنى ' + compactNumber(minimum),
-                    style: TextStyle(
-                      color: palette.muted,
-                      fontSize: 10,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: palette.primary,
-                          padding: EdgeInsets.zero,
-                          shape: const CircleBorder(),
-                        ),
-                        onPressed: () async {
-                          if (!session.isAuthenticated) {
-                            await _beginWholesaleAddHandoff(
-                              context: context,
-                              pendingActionStore: pendingActionStore,
-                              storeId: storeId,
-                              productId: id,
-                              quantity: minimum,
-                              sourceLocation: sourceLocation,
-                            );
-                            return;
-                          }
-
-                          try {
-                            await actionApi.addCartItem(
-                              storeId: storeId,
-                              productId: id,
-                              quantity: minimum,
-                            );
-                          } catch (error) {
-                            if (context.mounted) {
-                              await showOperationalError(context, error);
-                            }
-                          }
-                        },
-                        child: const Icon(
-                          Icons.add_shopping_cart_rounded,
-                          size: 16,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 14,
+                        color: palette.primaryDark,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          'الحد الأدنى: ' + compactNumber(minimum),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: palette.muted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -969,6 +1001,375 @@ Future<void> _beginWholesaleAddHandoff({
   );
 }
 
+
+class WholesaleCatalogDesignScreen extends StatefulWidget {
+  const WholesaleCatalogDesignScreen({
+    required this.location,
+    required this.session,
+    required this.api,
+    required this.storefrontApi,
+    required this.actionApi,
+    this.pendingActionStore,
+    super.key,
+  });
+
+  final String location;
+  final CustomerSession session;
+  final B2bApi? api;
+  final StorefrontApi? storefrontApi;
+  final CustomerActionApi actionApi;
+  final CustomerPendingActionStore? pendingActionStore;
+
+  @override
+  State<WholesaleCatalogDesignScreen> createState() =>
+      _WholesaleCatalogDesignScreenState();
+}
+
+class _WholesaleCatalogDesignScreenState
+    extends State<WholesaleCatalogDesignScreen> {
+  final search = TextEditingController();
+  late final int storeId = wholesaleStoreId(widget.location);
+  late Future<Map<String, dynamic>> future = _load();
+  int? selectedCategoryId;
+  String sortMode = 'popular';
+
+  Future<Map<String, dynamic>> _load([String query = '']) async {
+    if (storeId <= 0) {
+      return const {
+        'products': {'data': <Object>[]},
+        'storefront': <String, Object?>{},
+      };
+    }
+
+    Map<String, dynamic> storefront = <String, dynamic>{};
+    if (widget.storefrontApi != null) {
+      storefront = await widget.storefrontApi!.wholesaleHome(storeId);
+    }
+
+    Object? products;
+    if (widget.api != null) {
+      var endpoint =
+          '/api/v1/b2b/products?store_id=' + storeId.toString();
+      if (query.trim().isNotEmpty) {
+        endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
+      }
+      products = await widget.api!.get(endpoint);
+    } else {
+      var rows = mapRows(storefront['products']);
+      final needle = query.trim().toLowerCase();
+      if (needle.isNotEmpty) {
+        rows = rows
+            .where((row) {
+              final name = row['name']?.toString().toLowerCase() ?? '';
+              final sku = row['sku']?.toString().toLowerCase() ?? '';
+              return name.contains(needle) || sku.contains(needle);
+            })
+            .toList(growable: false);
+      }
+      products = <String, Object?>{'data': rows};
+    }
+
+    return {
+      'products': products,
+      'storefront': storefront,
+    };
+  }
+
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openCategoryFilter(
+    BuildContext context,
+    List<Map<String, dynamic>> categories,
+  ) async {
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'فلترة المنتجات',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ChoiceChip(
+                    label: const Text('الكل'),
+                    selected: selectedCategoryId == null,
+                    onSelected: (_) => Navigator.of(sheetContext).pop(-1),
+                  ),
+                  for (final category in categories)
+                    ChoiceChip(
+                      label: Text(category['name']?.toString() ?? ''),
+                      selected:
+                          selectedCategoryId == intValue(category['id']),
+                      onSelected: (_) => Navigator.of(sheetContext)
+                          .pop(intValue(category['id'])),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!mounted || selected == null) return;
+    setState(() => selectedCategoryId = selected < 0 ? null : selected);
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
+        future: future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Scaffold(
+              body: SafeArea(
+                child: FoodexLoading(
+                  key: ValueKey('b2b-catalog-loading'),
+                ),
+              ),
+            );
+          }
+          if (snapshot.hasError) {
+            return Scaffold(
+              body: SafeArea(
+                child: FoodexErrorState(
+                  key: const ValueKey('b2b-catalog-error'),
+                  message: 'تعذر تحميل كتالوج الجملة.',
+                  onRetry: () =>
+                      setState(() => future = _load(search.text)),
+                ),
+              ),
+            );
+          }
+
+          final payload = snapshot.data ?? const <String, dynamic>{};
+          final allRows = dataRows(payload['products']);
+          final storefront = payload['storefront'] is Map
+              ? Map<String, dynamic>.from(payload['storefront'] as Map)
+              : <String, dynamic>{};
+          final theme = storefront['theme'] is Map
+              ? Map<String, dynamic>.from(storefront['theme'] as Map)
+              : <String, dynamic>{};
+          final branding = storefront['branding'] is Map
+              ? Map<String, dynamic>.from(storefront['branding'] as Map)
+              : <String, dynamic>{};
+          final custom = branding['custom'] is Map
+              ? Map<String, dynamic>.from(branding['custom'] as Map)
+              : <String, dynamic>{};
+          final store = storefront['store'] is Map
+              ? Map<String, dynamic>.from(storefront['store'] as Map)
+              : <String, dynamic>{};
+          final palette = _wholesalePalette(theme);
+          final title =
+              custom['brand_title_ar']?.toString().trim().isNotEmpty == true
+                  ? custom['brand_title_ar'].toString()
+                  : (store['name']?.toString().trim().isNotEmpty == true
+                      ? store['name'].toString()
+                      : 'فودكس');
+
+          final categoryMap = <int, Map<String, dynamic>>{};
+          for (final row in allRows) {
+            final id = intValue(row['category_id']);
+            if (id <= 0 || categoryMap.containsKey(id)) continue;
+            categoryMap[id] = {
+              'id': id,
+              'name': row['category_name']?.toString().trim().isNotEmpty ==
+                      true
+                  ? row['category_name'].toString()
+                  : 'تصنيف $id',
+            };
+          }
+          final categories = categoryMap.values.toList(growable: false);
+
+          var visibleRows = allRows
+              .where(
+                (row) =>
+                    selectedCategoryId == null ||
+                    intValue(row['category_id']) == selectedCategoryId,
+              )
+              .toList(growable: true);
+
+          double priceOf(Map<String, dynamic> row) => doubleValue(
+                row['account_price'] ?? row['unit_price'] ?? row['price'],
+                0,
+              );
+          if (sortMode == 'price_low') {
+            visibleRows.sort((a, b) => priceOf(a).compareTo(priceOf(b)));
+          } else if (sortMode == 'price_high') {
+            visibleRows.sort((a, b) => priceOf(b).compareTo(priceOf(a)));
+          } else if (sortMode == 'name') {
+            visibleRows.sort(
+              (a, b) => (a['name']?.toString() ?? '')
+                  .compareTo(b['name']?.toString() ?? ''),
+            );
+          }
+
+          return Scaffold(
+            key: const ValueKey('wholesale-catalog-screen'),
+            backgroundColor: palette.background,
+            body: SafeArea(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _WholesaleHeader(
+                    title: title,
+                    logoUrl: branding['logo_url']?.toString(),
+                    address: branding['address']?.toString(),
+                    palette: palette,
+                    onCart: () => Navigator.of(context).pushNamed(
+                      '/b2b/cart?store=' + storeId.toString(),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                    child: TextField(
+                      key: const ValueKey('wholesale-catalog-search'),
+                      controller: search,
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (value) =>
+                          setState(() => future = _load(value)),
+                      decoration: const InputDecoration(
+                        hintText: 'البحث بالاسم أو SKU أو الباركود',
+                        prefixIcon: Icon(Icons.search_rounded),
+                        suffixIcon: Icon(Icons.qr_code_scanner_rounded),
+                      ),
+                    ),
+                  ),
+                  if (categories.isNotEmpty)
+                    SizedBox(
+                      key: const ValueKey('wholesale-catalog-categories'),
+                      height: 48,
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsetsDirectional.only(end: 8),
+                            child: ChoiceChip(
+                              key: const ValueKey('wholesale-category-all'),
+                              label: const Text('الكل'),
+                              selected: selectedCategoryId == null,
+                              onSelected: (_) =>
+                                  setState(() => selectedCategoryId = null),
+                            ),
+                          ),
+                          for (final category in categories)
+                            Padding(
+                              padding:
+                                  const EdgeInsetsDirectional.only(end: 8),
+                              child: ChoiceChip(
+                                key: ValueKey(
+                                  'wholesale-category-filter-${category['id']}',
+                                ),
+                                label:
+                                    Text(category['name']?.toString() ?? ''),
+                                selected: selectedCategoryId ==
+                                    intValue(category['id']),
+                                onSelected: (_) => setState(
+                                  () => selectedCategoryId =
+                                      intValue(category['id']),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+                    child: Row(
+                      children: [
+                        OutlinedButton.icon(
+                          key: const ValueKey('wholesale-catalog-filter'),
+                          onPressed: () =>
+                              _openCategoryFilter(context, categories),
+                          icon: const Icon(Icons.tune_rounded, size: 18),
+                          label: const Text('فلتر'),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            key: const ValueKey('wholesale-catalog-sort'),
+                            value: sortMode,
+                            isDense: true,
+                            decoration: const InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 9,
+                              ),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'popular',
+                                child: Text('الأكثر مبيعًا'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'price_low',
+                                child: Text('السعر: الأقل أولًا'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'price_high',
+                                child: Text('السعر: الأعلى أولًا'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'name',
+                                child: Text('الاسم'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => sortMode = value);
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '${visibleRows.length} منتج',
+                          key: const ValueKey('wholesale-catalog-count'),
+                          style: TextStyle(
+                            color: palette.muted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _WholesaleProductGrid(
+                    rows: visibleRows,
+                    storeId: storeId,
+                    sourceLocation: widget.location,
+                    session: widget.session,
+                    actionApi: widget.actionApi,
+                    pendingActionStore: widget.pendingActionStore,
+                    palette: palette,
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+}
+
 class _WholesaleBottomNav extends StatelessWidget {
   const _WholesaleBottomNav({
     required this.storeId,
@@ -1020,24 +1421,10 @@ class _WholesaleBottomNav extends StatelessWidget {
 }
 
 FoodexPalette _wholesalePalette(Map<String, dynamic> theme) {
-  final base = FoodexPalette.wholesale;
-  return FoodexPalette(
-    primary: _colorFromHex(theme['primary'], base.primary),
-    primaryDark:
-        _colorFromHex(theme['primary_dark'], base.primaryDark),
-    accent: _colorFromHex(theme['accent'], base.accent),
-    background: _colorFromHex(theme['background'], base.background),
-    soft: base.soft,
-    text: base.text,
-    muted: base.muted,
-  );
-}
-
-Color _colorFromHex(Object? value, Color fallback) {
-  final text = value?.toString().trim() ?? '';
-  final match = RegExp(r'^#([0-9a-fA-F]{6})$').firstMatch(text);
-  if (match == null) return fallback;
-  return Color(int.parse('FF' + match.group(1)!, radix: 16));
+  // B2B customer identity is intentionally locked to the FOODEx green system.
+  // Storefront payloads may still contain legacy purple values; do not render
+  // those values on the customer B2B surfaces.
+  return FoodexPalette.wholesale;
 }
 
 String _defaultWholesaleSectionTitle(String type) {
@@ -1270,10 +1657,35 @@ class _WholesaleProductDetailsDesignScreenState
                             ? ''
                             : ' · ' + row['pack_label'].toString()),
                     style: const TextStyle(
-                      color: Color(0xFF6F6A7D),
+                      color: Color(0xFF6B7785),
                       fontSize: 12,
                     ),
                   ),
+                  if ((row['brand_name']?.toString().trim() ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Container(
+                        key: const ValueKey('b2b-product-brand'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE9F7EE),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          'العلامة التجارية: ' + row['brand_name'].toString(),
+                          style: const TextStyle(
+                            color: Color(0xFF006736),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 13),
                   _PricingPanel(
                     row: row,
@@ -1351,6 +1763,12 @@ class _WholesaleProductDetailsDesignScreenState
                         (row['case_size']?.toString() ?? '—') +
                         ' · الزيادة: ' +
                         (row['ordering_increment']?.toString() ?? '1'),
+                  ),
+                  FoodexDetailAccordion(
+                    title: 'العلامة التجارية',
+                    body: (row['brand_name']?.toString().trim().isNotEmpty ?? false)
+                        ? row['brand_name'].toString()
+                        : 'غير محددة',
                   ),
                   FoodexDetailAccordion(
                     title: 'الوصف',
@@ -1457,7 +1875,7 @@ class _PricingPanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Color(0xFFF5F0FA),
+          color: Color(0xFFF1F8F4),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -1517,8 +1935,8 @@ class _PriceRow extends StatelessWidget {
             value,
             style: TextStyle(
               color: emphasize
-                  ? Color(0xFF5D2A91)
-                  : Color(0xFF17142A),
+                  ? Color(0xFF078A43)
+                  : Color(0xFF102033),
               fontSize: emphasize ? 17 : 13,
               fontWeight: FontWeight.w800,
             ),
@@ -1541,7 +1959,7 @@ class _InfoPill extends StatelessWidget {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: Color(0xFFF5F0FA),
+          color: Color(0xFFF1F8F4),
           borderRadius: BorderRadius.circular(13),
         ),
         child: Row(
@@ -1549,7 +1967,7 @@ class _InfoPill extends StatelessWidget {
             Icon(
               icon,
               size: 18,
-              color: Color(0xFF5D2A91),
+              color: Color(0xFF078A43),
             ),
             const SizedBox(width: 7),
             Expanded(
@@ -1615,7 +2033,7 @@ class _WholesaleCartDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: Color(0xFFFBFAFD),
+          backgroundColor: Color(0xFFF8FBF9),
           body: SafeArea(
             child: FutureBuilder<Object?>(
               future: future,
@@ -1652,7 +2070,7 @@ class _WholesaleCartDesignScreenState
                       padding:
                           const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: Color(0xFFF5F0FA),
+                        color: Color(0xFFF1F8F4),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Row(
@@ -1660,7 +2078,7 @@ class _WholesaleCartDesignScreenState
                           Icon(
                             Icons.warehouse_outlined,
                             color:
-                                Color(0xFF5D2A91),
+                                Color(0xFF078A43),
                             size: 19,
                           ),
                           SizedBox(width: 8),
@@ -1772,13 +2190,13 @@ class _CartLine extends StatelessWidget {
               height: 66,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: Color(0xFFF5F0FA),
+                  color: Color(0xFFF1F8F4),
                   borderRadius:
                       BorderRadius.all(Radius.circular(14)),
                 ),
                 child: Icon(
                   Icons.inventory_2_outlined,
-                  color: Color(0xFF5D2A91),
+                  color: Color(0xFF078A43),
                 ),
               ),
             ),
@@ -1799,7 +2217,7 @@ class _CartLine extends StatelessWidget {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 10,
-                      color: Color(0xFF6F6A7D),
+                      color: Color(0xFF6B7785),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -1828,7 +2246,7 @@ class _CartLine extends StatelessWidget {
                         money(price),
                         style: const TextStyle(
                           color:
-                              Color(0xFF5D2A91),
+                              Color(0xFF078A43),
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -1853,7 +2271,7 @@ class _MiniStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Color(0xFFF5F0FA),
+        color: Color(0xFFF1F8F4),
         borderRadius: BorderRadius.circular(9),
         child: InkWell(
           onTap: onTap,
@@ -1882,7 +2300,7 @@ class _CartTotalPanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Color(0xFF35195E),
+          color: Color(0xFF006736),
           borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
@@ -1913,7 +2331,7 @@ class _CartTotalPanel extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor:
-                      Color(0xFF35195E),
+                      Color(0xFF006736),
                 ),
                 child: const Text('إتمام الطلب'),
               ),
@@ -1991,7 +2409,7 @@ class _WholesaleCheckoutDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: Color(0xFFFBFAFD),
+          backgroundColor: Color(0xFFF8FBF9),
           body: SafeArea(
             child: FutureBuilder<_CheckoutPayload>(
               future: future,
@@ -2173,7 +2591,7 @@ class _WholesaleCheckoutDesignScreenState
                       child: FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor:
-                              Color(0xFF5D2A91),
+                              Color(0xFF078A43),
                         ),
                         onPressed: widget.commerceApi == null ||
                                 addressId == null ||
@@ -2297,7 +2715,7 @@ class _CheckoutSummary extends StatelessWidget {
                           (item['quantity']?.toString() ?? '1'),
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF6F6A7D),
+                        color: Color(0xFF6B7785),
                       ),
                     ),
                   ],
@@ -2327,7 +2745,7 @@ class _CheckoutSummary extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               height: 1.4,
-              color: Color(0xFF6F6A7D),
+              color: Color(0xFF6B7785),
             ),
           ),
         ],
@@ -2366,8 +2784,8 @@ class _SummaryRow extends StatelessWidget {
               value,
               style: TextStyle(
                 color: strong
-                    ? const Color(0xFF5D2A91)
-                    : const Color(0xFF17142A),
+                    ? const Color(0xFF078A43)
+                    : const Color(0xFF102033),
                 fontSize: strong ? 16 : 12,
                 fontWeight: FontWeight.w800,
               ),
@@ -2392,7 +2810,7 @@ class _CheckoutStepper extends StatelessWidget {
           ),
           Expanded(
             child: Divider(
-              color: Color(0xFFB983F0),
+              color: Color(0xFF92D853),
             ),
           ),
           Expanded(
@@ -2404,7 +2822,7 @@ class _CheckoutStepper extends StatelessWidget {
           ),
           Expanded(
             child: Divider(
-              color: Color(0xFFB983F0),
+              color: Color(0xFF92D853),
             ),
           ),
           Expanded(
@@ -2435,14 +2853,14 @@ class _StepDot extends StatelessWidget {
           CircleAvatar(
             radius: 16,
             backgroundColor: active
-                ? Color(0xFF5D2A91)
+                ? Color(0xFF078A43)
                 : const Color(0xFFE7E3EA),
             child: Text(
               number,
               style: TextStyle(
                 color: active
                     ? Colors.white
-                    : Color(0xFF6F6A7D),
+                    : Color(0xFF6B7785),
                 fontSize: 11,
               ),
             ),
@@ -2484,7 +2902,7 @@ class _SelectCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: selected
-                      ? Color(0xFF5D2A91)
+                      ? Color(0xFF078A43)
                       : const Color(0xFFE4E0E7),
                   width: selected ? 1.6 : 1,
                 ),
@@ -2496,8 +2914,8 @@ class _SelectCard extends StatelessWidget {
                         ? Icons.radio_button_checked
                         : Icons.radio_button_off,
                     color: selected
-                        ? Color(0xFF5D2A91)
-                        : Color(0xFF6F6A7D),
+                        ? Color(0xFF078A43)
+                        : Color(0xFF6B7785),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -2516,7 +2934,7 @@ class _SelectCard extends StatelessWidget {
                           subtitle,
                           style: const TextStyle(
                             color:
-                                Color(0xFF6F6A7D),
+                                Color(0xFF6B7785),
                             fontSize: 11,
                           ),
                         ),
@@ -2575,7 +2993,7 @@ class _WholesaleOrdersDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: const Color(0xFFFBFAFD),
+          backgroundColor: const Color(0xFFF8FBF9),
           body: SafeArea(
             child: FutureBuilder<Object?>(
               future: future,
@@ -2680,7 +3098,7 @@ class _WholesaleOrderDetailsDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: const Color(0xFFFBFAFD),
+          backgroundColor: const Color(0xFFF8FBF9),
           body: SafeArea(
             child: Column(
               children: [
@@ -2938,7 +3356,7 @@ class _OrderDetailCard extends StatelessWidget {
                       child: Text(
                         row.$1,
                         style: const TextStyle(
-                          color: Color(0xFF6F6A7D),
+                          color: Color(0xFF6B7785),
                           fontSize: 11,
                         ),
                       ),
@@ -3030,12 +3448,12 @@ class _OrderCard extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F0FA),
+                  color: const Color(0xFFF1F8F4),
                   borderRadius: BorderRadius.circular(13),
                 ),
                 child: const Icon(
                   Icons.receipt_long_outlined,
-                  color: Color(0xFF5D2A91),
+                  color: Color(0xFF078A43),
                 ),
               ),
               const SizedBox(width: 11),
@@ -3056,7 +3474,7 @@ class _OrderCard extends StatelessWidget {
                         storeName,
                         style: const TextStyle(
                           fontSize: 11,
-                          color: Color(0xFF6F6A7D),
+                          color: Color(0xFF6B7785),
                         ),
                       ),
                     ],
@@ -3065,14 +3483,14 @@ class _OrderCard extends StatelessWidget {
                       row['created_at']?.toString() ?? '',
                       style: const TextStyle(
                         fontSize: 10,
-                        color: Color(0xFF6F6A7D),
+                        color: Color(0xFF6B7785),
                       ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       totalLabel,
                       style: const TextStyle(
-                        color: Color(0xFF5D2A91),
+                        color: Color(0xFF078A43),
                         fontWeight: FontWeight.w800,
                       ),
                     ),

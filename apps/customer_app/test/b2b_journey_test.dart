@@ -61,10 +61,20 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const ValueKey('b2b-profile-friendly-data')),
+      findsOneWidget,
+    );
+    expect(find.text('ملخص الحساب'), findsOneWidget);
+    expect(find.text('بيانات الشركة والتواصل'), findsOneWidget);
+    expect(find.text('Acme Foods'), findsOneWidget);
+    expect(find.text('buyer@example.test'), findsOneWidget);
+    expect(find.text('إدارة العناوين'), findsOneWidget);
     expect(find.text('العناوين'), findsOneWidget);
+    expect(find.text('company_name'), findsNothing);
   });
 
-  testWidgets('B2B storefront applies server branding and theme on mobile', (tester) async {
+  testWidgets('B2B storefront keeps server branding and enforces green theme on mobile', (tester) async {
     final storefront = _FakeWholesaleStorefrontApi();
     await tester.pumpWidget(
       FoodexCustomerApp(
@@ -101,7 +111,7 @@ void main() {
     expect(find.text('عروض الحساب'), findsOneWidget);
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
-    expect(scaffold.backgroundColor, const Color(0xFFF7F1FC));
+    expect(scaffold.backgroundColor, const Color(0xFFF8FBF9));
   });
 
   testWidgets('guest can browse Wholesale storefront and product without login',

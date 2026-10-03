@@ -34,19 +34,43 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BRAND_ROOT = REPO_ROOT / 'assets' / 'mobile_brand'
 APP_ICON = BRAND_ROOT / 'app_icon_1024.png'
 APP_ICON_FOREGROUND = BRAND_ROOT / 'app_icon_foreground_1024.png'
+ANDROID_APP_ICON = APP_ICON
 SPLASH_IMAGE = BRAND_ROOT / 'splash_master.png'
 SPLASH_BACKGROUND = '#003223'
 SPLASH_ACCENT = '#92D853'
 
 
 def _select_brand_assets(app_name: str) -> None:
-    global APP_ICON, APP_ICON_FOREGROUND, SPLASH_IMAGE
+    global APP_ICON, APP_ICON_FOREGROUND, ANDROID_APP_ICON, SPLASH_IMAGE
+    ANDROID_APP_ICON = APP_ICON
     if app_name == 'customer':
         APP_ICON = BRAND_ROOT / 'customer_app_icon_1024.png'
-        # Reuse the validated full customer icon for Android adaptive/splash drawables.
-        # AAPT2 is unstable with the transparent package foreground PNG in drawable-nodpi.
         APP_ICON_FOREGROUND = APP_ICON
+        # Android acceptance build uses the supplied FOODEx Economical Group
+        # lockup as the launcher identity. Keep the PNG master for iOS, where
+        # the asset catalog requires PNG inputs.
+        ANDROID_APP_ICON = (
+            REPO_ROOT
+            / 'apps'
+            / 'customer_app'
+            / 'assets'
+            / 'branding'
+            / 'foodex-economical-group.webp'
+        )
         SPLASH_IMAGE = BRAND_ROOT / 'customer_splash.png'
+    elif app_name == 'driver':
+        # Customer and Driver intentionally share the same approved FOODEx
+        # application identity artwork.
+        APP_ICON = BRAND_ROOT / 'customer_app_icon_1024.png'
+        APP_ICON_FOREGROUND = APP_ICON
+        ANDROID_APP_ICON = (
+            REPO_ROOT
+            / 'apps'
+            / 'driver_app'
+            / 'assets'
+            / 'branding'
+            / 'foodex-economical-group.webp'
+        )
 
 
 GOOGLE_SERVICES_PLUGIN_VERSION = '4.4.4'
@@ -56,7 +80,7 @@ ANDROID_DESUGAR_JDK_LIBS_VERSION = '2.1.4'
 def _require_brand_assets() -> None:
     missing = [
         path
-        for path in (APP_ICON, APP_ICON_FOREGROUND, SPLASH_IMAGE)
+        for path in (APP_ICON, APP_ICON_FOREGROUND, ANDROID_APP_ICON, SPLASH_IMAGE)
         if not path.is_file()
     ]
     if missing:
@@ -75,14 +99,35 @@ def _write_android_brand_resources(app: Path) -> None:
     # Legacy launcher resources. The high-resolution source is intentionally
     # reused across density folders; Android launchers scale it into their icon
     # slot while adaptive-icon capable devices use the transparent foreground.
+    icon_suffix = ANDROID_APP_ICON.suffix.lower()
     for density in ('mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi'):
         folder = res / f'mipmap-{density}'
-        _copy(APP_ICON, folder / 'ic_launcher.png')
-        _copy(APP_ICON, folder / 'ic_launcher_round.png')
+        for stale in (
+            folder / 'ic_launcher.png',
+            folder / 'ic_launcher.webp',
+            folder / 'ic_launcher_round.png',
+            folder / 'ic_launcher_round.webp',
+        ):
+            stale.unlink(missing_ok=True)
+        _copy(ANDROID_APP_ICON, folder / f'ic_launcher{icon_suffix}')
+        _copy(ANDROID_APP_ICON, folder / f'ic_launcher_round{icon_suffix}')
 
     drawable = res / 'drawable-nodpi'
-    _copy(APP_ICON_FOREGROUND, drawable / 'foodex_launcher_foreground.png')
-    _copy(APP_ICON_FOREGROUND, drawable / 'foodex_splash_icon.png')
+    for stale in (
+        drawable / 'foodex_launcher_foreground.png',
+        drawable / 'foodex_launcher_foreground.webp',
+        drawable / 'foodex_splash_icon.png',
+        drawable / 'foodex_splash_icon.webp',
+    ):
+        stale.unlink(missing_ok=True)
+    _copy(
+        ANDROID_APP_ICON,
+        drawable / f'foodex_launcher_foreground{icon_suffix}',
+    )
+    _copy(
+        ANDROID_APP_ICON,
+        drawable / f'foodex_splash_icon{icon_suffix}',
+    )
 
     values = res / 'values'
     values.mkdir(parents=True, exist_ok=True)
@@ -174,6 +219,32 @@ def _patch_android_launch_theme(path: Path, *, android_12: bool) -> None:
 
     ET.indent(tree, space='    ')
     tree.write(path, encoding='utf-8', xml_declaration=True)
+
+
+def _configure_android_default_notification_icon(app: Path) -> None:
+    manifest = app / 'src' / 'main' / 'AndroidManifest.xml'
+    if not manifest.exists():
+        raise RuntimeError('Generated Android main manifest was not found')
+
+    text = manifest.read_text()
+    marker = 'com.google.firebase.messaging.default_notification_icon'
+    if marker in text:
+        return
+
+    start = text.find('<application')
+    if start < 0:
+        raise RuntimeError('Generated Android application manifest node was not found')
+    close = text.find('>', start)
+    if close < 0:
+        raise RuntimeError('Generated Android application manifest tag is malformed')
+
+    metadata = (
+        '\n        <meta-data '
+        'android:name="com.google.firebase.messaging.default_notification_icon" '
+        'android:resource="@mipmap/ic_launcher" />'
+    )
+    text = text[: close + 1] + metadata + text[close + 1 :]
+    manifest.write_text(text)
 
 
 def _configure_android_firebase(app_dir: Path, bundle_id: str) -> None:
@@ -427,6 +498,7 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
             )
             manifest.write_text(text)
     _write_android_brand_resources(app)
+    _configure_android_default_notification_icon(app)
 
 
 def _render_ios_app_icons(app_icon_set: Path) -> None:

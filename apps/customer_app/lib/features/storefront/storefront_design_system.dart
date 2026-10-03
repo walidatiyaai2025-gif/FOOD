@@ -44,13 +44,13 @@ class FoodexPalette {
   );
 
   static const wholesale = FoodexPalette(
-    primary: Color(0xFF5D2A91),
-    primaryDark: Color(0xFF35195E),
-    accent: Color(0xFFB983F0),
-    background: Color(0xFFFBFAFD),
-    soft: Color(0xFFF5F0FA),
-    text: Color(0xFF17142A),
-    muted: Color(0xFF6F6A7D),
+    primary: Color(0xFF078A43),
+    primaryDark: Color(0xFF006736),
+    accent: Color(0xFF92D853),
+    background: Color(0xFFF8FBF9),
+    soft: Color(0xFFF1F8F4),
+    text: Color(0xFF102033),
+    muted: Color(0xFF6B7785),
   );
 }
 

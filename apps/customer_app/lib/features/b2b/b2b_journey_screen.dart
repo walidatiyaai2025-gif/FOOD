@@ -12,6 +12,7 @@ import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
 import '../customer_account/customer_notification_center_screen.dart';
 import '../customer_orders/customer_order_screens.dart';
+import 'business_account_profile.dart';
 import '../customer_orders/customer_orders_api.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
@@ -102,10 +103,11 @@ class B2bJourneyScreen extends StatelessWidget {
 
     final content = _contentFor(context, definition.pattern);
     final hasRemoteState = api != null && _endpoint() != null;
+    final isProfile =
+        definition.pattern == CustomerRoutePaths.b2bProfile;
     final keepLocalActions =
         definition.pattern == CustomerRoutePaths.b2bProductDetails ||
-        definition.pattern == CustomerRoutePaths.b2bCart ||
-        definition.pattern == CustomerRoutePaths.b2bProfile;
+        definition.pattern == CustomerRoutePaths.b2bCart;
 
     final destination = switch (definition.pattern) {
       CustomerRoutePaths.b2bProducts ||
@@ -142,6 +144,13 @@ class B2bJourneyScreen extends StatelessWidget {
             Text(content.$2),
             const SizedBox(height: 20),
             if (!hasRemoteState || keepLocalActions) ...content.$3,
+            if (hasRemoteState && isProfile)
+              B2bBusinessAccountProfile(
+                api: api!,
+                endpoint: _endpoint()!,
+                addressesRoute:
+                    _scopedB2bRoute(CustomerRoutePaths.b2bAddresses),
+              ),
             if (hasRemoteState && keepLocalActions)
               definition.pattern == CustomerRoutePaths.b2bProductDetails
                   ? _B2bProductDetailRemoteState(
@@ -154,7 +163,7 @@ class B2bJourneyScreen extends StatelessWidget {
                       routePattern: definition.pattern,
                       showEmpty: false,
                     ),
-            if (hasRemoteState && !keepLocalActions)
+            if (hasRemoteState && !keepLocalActions && !isProfile)
               definition.pattern == CustomerRoutePaths.b2bTopProducts
                   ? _TopProductsRemoteState(api: api!, endpoint: _endpoint()!)
                   : _RemoteState(

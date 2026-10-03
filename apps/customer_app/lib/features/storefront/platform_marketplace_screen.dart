@@ -502,9 +502,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   final bannerHeight =
                       constraints.maxWidth < 350 ? 158.0 : 166.0;
                   final productColumns =
-                      constraints.maxWidth >= 350 ? 4 : 3;
+                      constraints.maxWidth >= 720 ? 3 : 2;
                   final productAspectRatio =
-                      productColumns == 4 ? .56 : .66;
+                      constraints.maxWidth >= 720 ? .72 : .68;
 
                   return CustomScrollView(
                     slivers: [
@@ -1234,7 +1234,7 @@ class _WholesaleHero extends StatelessWidget {
             gradient: LinearGradient(
               begin: AlignmentDirectional.topStart,
               end: AlignmentDirectional.bottomEnd,
-              colors: [Color(0xFF5B2A8D), Color(0xFF351858)],
+              colors: [Color(0xFF00452F), Color(0xFF078A43)],
             ),
           ),
           child: Align(
@@ -1286,9 +1286,9 @@ class _WholesaleHero extends StatelessWidget {
                 begin: AlignmentDirectional.centerStart,
                 end: AlignmentDirectional.centerEnd,
                 colors: [
-                  Color(0xEB321552),
-                  Color(0xA44A2278),
-                  Color(0x254A2278),
+                  Color(0xE900452F),
+                  Color(0xA6078A43),
+                  Color(0x24078A43),
                 ],
               ),
             ),
@@ -1351,7 +1351,7 @@ class _WholesaleHero extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      color: Color(0xFF51237B),
+                      color: Color(0xFF087347),
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
                     ),
@@ -1598,7 +1598,7 @@ class _MarketplaceFeaturedSection extends StatelessWidget {
             _MarketplaceCollectionTitle(title: title),
             const SizedBox(height: 8),
             SizedBox(
-              height: 190,
+              height: 242,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: products.length,
@@ -1606,7 +1606,7 @@ class _MarketplaceFeaturedSection extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final product = products[index];
                   return SizedBox(
-                    width: 122,
+                    width: 168,
                     child: _WholesaleProductCard(
                       product: product,
                       keyPrefix: 'marketplace-featured-product',
@@ -1740,24 +1740,28 @@ class _WholesaleProductCard extends StatelessWidget {
         '';
     final currency = product['currency']?.toString().trim();
     final name = product['name']?.toString().trim() ?? '';
+    final brand = product['brand_name']?.toString().trim() ?? '';
+    final minimum = product['minimum_order_quantity'] ??
+        product['minimum_quantity'];
     final priceText =
         '$rawPrice ${currency == null || currency.isEmpty ? 'EGP' : currency}';
 
     return Material(
       key: ValueKey('$keyPrefix-card-$id'),
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE2ECE6)),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x0B0F172A),
-                blurRadius: 10,
+                blurRadius: 12,
                 offset: Offset(0, 4),
               ),
             ],
@@ -1770,13 +1774,11 @@ class _WholesaleProductCard extends StatelessWidget {
                   children: [
                     Positioned.fill(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(7, 8, 7, 2),
+                        padding: const EdgeInsets.fromLTRB(10, 10, 10, 3),
                         child: image != null && image.isNotEmpty
                             ? Image.network(
                                 image,
-                                key: ValueKey(
-                                  '$keyPrefix-image-$id',
-                                ),
+                                key: ValueKey('$keyPrefix-image-$id'),
                                 fit: BoxFit.contain,
                                 errorBuilder: (_, __, ___) =>
                                     _MarketplaceProductFallback(name: name),
@@ -1784,58 +1786,90 @@ class _WholesaleProductCard extends StatelessWidget {
                             : _MarketplaceProductFallback(name: name),
                       ),
                     ),
+                    if (brand.isNotEmpty)
+                      PositionedDirectional(
+                        top: 8,
+                        end: 8,
+                        child: Container(
+                          key: ValueKey('$keyPrefix-brand-$id'),
+                          constraints: const BoxConstraints(maxWidth: 118),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE9F7EE),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            brand,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF006736),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(6, 1, 6, 7),
+                padding: const EdgeInsets.fromLTRB(10, 4, 10, 12),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       name,
                       key: ValueKey('$keyPrefix-name-$id'),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
+                      textAlign: TextAlign.start,
                       style: const TextStyle(
                         color: Color(0xFF17212F),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11.5,
-                        height: 1.16,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        height: 1.18,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 6),
                     Text(
                       priceText,
                       key: ValueKey('$keyPrefix-price-$id'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xFF087347),
                         fontWeight: FontWeight.w900,
-                        fontSize: 11.5,
+                        fontSize: 14,
                         height: 1.1,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    Container(
-                      width: 29,
-                      height: 29,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF078447),
-                          width: 1.25,
+                    if (minimum != null) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F8F4),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'الحد الأدنى: $minimum',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF68766E),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                      child: const Icon(
-                        Icons.shopping_cart_outlined,
-                        color: Color(0xFF078447),
-                        size: 17,
-                      ),
-                    ),
+                    ],
                   ],
                 ),
               ),
