@@ -471,6 +471,13 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   ? Map<String, dynamic>.from(data['hero'] as Map)
                   : <String, dynamic>{};
               final storeId = _int(wholesale['id']);
+              final wholesaleContext = storeId > 0
+                  ? CustomerCommerceContext(
+                      channel: CustomerCommerceChannel.wholesale,
+                      storeId: storeId,
+                      source: CustomerCommerceSource.marketplace,
+                    )
+                  : null;
               final storeSlidesCount = 1 + retail.length;
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _startBannerAutoSlide(storeSlidesCount);
@@ -494,45 +501,47 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           onLogin: () => Navigator.of(context).pushNamed(
                             '/auth/checkout?next=/marketplace',
                           ),
+                          onProfile: () {
+                            final scope = wholesaleContext;
+                            if (scope == null) return;
+                            Navigator.of(context).pushNamed(
+                              CustomerRouteLocations.wholesaleProfile(scope),
+                            );
+                          },
                           onScan: _scanBarcode,
                           onLanguageToggle: _toggleLocale,
                           localeCode:
                               Localizations.localeOf(context).languageCode,
-                          onCart: () {
-                            if (storeId <= 0) return;
-                            final cartContext = CustomerCommerceContext(
-                              channel: CustomerCommerceChannel.wholesale,
-                              storeId: storeId,
-                              source: CustomerCommerceSource.marketplace,
-                            );
+                          onStore: () {
+                            final scope = wholesaleContext;
+                            if (scope == null) return;
                             Navigator.of(context).pushNamed(
-                              CustomerRouteLocations.wholesaleCart(cartContext),
+                              CustomerRouteLocations.wholesaleHome(scope),
+                            );
+                          },
+                          onCart: () {
+                            final scope = wholesaleContext;
+                            if (scope == null) return;
+                            Navigator.of(context).pushNamed(
+                              CustomerRouteLocations.wholesaleCart(scope),
                             );
                           },
                           cartCount: _int(data['cart_count']),
                           onOrders: () {
-                            if (_currentSession.isAuthenticated) {
-                              Navigator.of(context).pushNamed('/orders');
-                            } else {
-                              Navigator.of(context).pushNamed(
-                                Uri(
-                                  path: '/auth/checkout',
-                                  queryParameters: {'next': '/orders'},
-                                ).toString(),
-                              );
-                            }
+                            final scope = wholesaleContext;
+                            if (scope == null) return;
+                            Navigator.of(context).pushNamed(
+                              CustomerRouteLocations.wholesaleOrders(scope),
+                            );
                           },
                           onNotifications: () {
-                            if (_currentSession.isAuthenticated) {
-                              Navigator.of(context).pushNamed('/notifications');
-                            } else {
-                              Navigator.of(context).pushNamed(
-                                Uri(
-                                  path: '/auth/checkout',
-                                  queryParameters: {'next': '/notifications'},
-                                ).toString(),
-                              );
-                            }
+                            final scope = wholesaleContext;
+                            if (scope == null) return;
+                            Navigator.of(context).pushNamed(
+                              CustomerRouteLocations.wholesaleNotifications(
+                                scope,
+                              ),
+                            );
                           },
                           searchController: _searchController,
                           searchFocus: _searchFocus,
@@ -708,9 +717,11 @@ class _MarketplaceHeader extends StatelessWidget {
     required this.isAuthenticated,
     required this.onRegister,
     required this.onLogin,
+    required this.onProfile,
     required this.onScan,
     required this.onLanguageToggle,
     required this.localeCode,
+    required this.onStore,
     required this.onCart,
     required this.cartCount,
     required this.onOrders,
@@ -724,9 +735,11 @@ class _MarketplaceHeader extends StatelessWidget {
   final bool Function() isAuthenticated;
   final VoidCallback onRegister;
   final VoidCallback onLogin;
+  final VoidCallback onProfile;
   final VoidCallback onScan;
   final VoidCallback onLanguageToggle;
   final String localeCode;
+  final VoidCallback onStore;
   final VoidCallback onCart;
   final int cartCount;
   final VoidCallback onOrders;
@@ -795,7 +808,7 @@ class _MarketplaceHeader extends StatelessWidget {
           onSelected: (value) {
             switch (value) {
               case 'profile':
-                Navigator.of(context).pushNamed('/profile');
+                onProfile();
                 return;
               case 'login':
                 onLogin();
@@ -968,17 +981,22 @@ class _MarketplaceHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 5),
-            Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE7F5EE),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.storefront_rounded,
-                color: Color(0xFF087347),
-                size: 22,
+            Material(
+              color: const Color(0xFFE7F5EE),
+              shape: const CircleBorder(),
+              child: InkWell(
+                key: const ValueKey('marketplace-store'),
+                customBorder: const CircleBorder(),
+                onTap: onStore,
+                child: const SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: Icon(
+                    Icons.storefront_rounded,
+                    color: Color(0xFF087347),
+                    size: 22,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 2),
