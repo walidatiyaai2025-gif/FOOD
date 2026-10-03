@@ -14,7 +14,6 @@ import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
 import 'retail_multistore_screens.dart';
-import 'professional_store_selector_screen.dart';
 import 'marketplace_barcode_scanner.dart';
 import 'platform_marketplace_screen.dart';
 import 'wholesale_multistore_screens.dart';
@@ -25,8 +24,6 @@ bool shouldUseMultiStoreDesign(
 ) {
   switch (definition.pattern) {
     case CustomerRoutePaths.marketplace:
-    case CustomerRoutePaths.stores:
-    case CustomerRoutePaths.storeSelector:
     case CustomerRoutePaths.retailHome:
     case CustomerRoutePaths.retailProductDetails:
     case CustomerRoutePaths.b2bHome:
@@ -116,15 +113,6 @@ class MultiStoreDesignScreen extends StatelessWidget {
           client: marketplaceClient,
           barcodeScanner:
               marketplaceBarcodeScanner ?? showMarketplaceBarcodeScanner,
-        );
-      case CustomerRoutePaths.stores:
-      case CustomerRoutePaths.storeSelector:
-        return ProfessionalStoreSelectorScreen(
-          catalogApi: catalogApi,
-          accountApi: accountApi,
-          storefrontApi: storefrontApi,
-          session: session,
-          enterWholesale: enterWholesale,
         );
       case CustomerRoutePaths.home:
       case CustomerRoutePaths.retailHome:
