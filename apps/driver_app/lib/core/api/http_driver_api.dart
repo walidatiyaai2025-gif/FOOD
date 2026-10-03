@@ -192,8 +192,17 @@ class HttpDriverAssignmentRepository implements DriverProofAssignmentRepository 
       address['label'],
       address['line1'],
       address['line2'],
+      address['block'],
+      address['street'],
+      address['avenue'],
+      address['building'],
+      address['floor'],
+      address['apartment'],
       address['area'],
       address['city'],
+      address['governorate'],
+      address['country'],
+      address['landmark'],
     ]
         .where((value) => value != null && value.toString().trim().isNotEmpty)
         .map((value) => value.toString().trim())
