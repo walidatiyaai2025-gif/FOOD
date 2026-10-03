@@ -770,7 +770,7 @@ void main() {
 
 
   testWidgets(
-      'platform cart opens the main Wholesale cart directly without store selector',
+      'marketplace header routes every navigation icon in the main Wholesale context',
       (tester) async {
     final client = MockClient((request) async => http.Response(
           jsonEncode({
@@ -814,17 +814,58 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('marketplace-cart')));
+    Future<void> expectHeaderRoute(
+      Finder action,
+      String expectedPath,
+    ) async {
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+
+      final routeText = tester.widget<Text>(
+        find.byKey(const ValueKey('route-name')),
+      );
+      final route = Uri.parse(routeText.data!);
+      expect(route.path, expectedPath);
+      expect(route.queryParameters['channel'], 'wholesale');
+      expect(route.queryParameters['store_id'], '70');
+      expect(route.queryParameters['source'], 'marketplace');
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
+
+    await expectHeaderRoute(
+      find.byKey(const ValueKey('marketplace-store')),
+      '/b2b/home',
+    );
+    await expectHeaderRoute(
+      find.byKey(const ValueKey('marketplace-notifications')),
+      '/b2b/notifications',
+    );
+    await expectHeaderRoute(
+      find.byKey(const ValueKey('marketplace-orders')),
+      '/b2b/orders',
+    );
+    await expectHeaderRoute(
+      find.byKey(const ValueKey('marketplace-cart')),
+      '/b2b/cart',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('marketplace-auth-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('marketplace-profile-action')),
+    );
     await tester.pumpAndSettle();
 
-    final routeText = tester.widget<Text>(
+    final profileText = tester.widget<Text>(
       find.byKey(const ValueKey('route-name')),
     );
-    final route = Uri.parse(routeText.data!);
-    expect(route.path, '/b2b/cart');
-    expect(route.queryParameters['channel'], 'wholesale');
-    expect(route.queryParameters['store_id'], '70');
-    expect(route.queryParameters['source'], 'marketplace');
+    final profileRoute = Uri.parse(profileText.data!);
+    expect(profileRoute.path, '/b2b/profile');
+    expect(profileRoute.queryParameters['channel'], 'wholesale');
+    expect(profileRoute.queryParameters['store_id'], '70');
+    expect(profileRoute.queryParameters['source'], 'marketplace');
   });
 
 
