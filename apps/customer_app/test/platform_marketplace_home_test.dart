@@ -994,7 +994,7 @@ void main() {
       tester.element(find.byKey(const ValueKey('route-name'))),
     ).pop();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(seconds: 1));
 
     final returnedCarousel = tester.widget<PageView>(
       find.byKey(const ValueKey('marketplace-store-carousel')),
@@ -1006,7 +1006,7 @@ void main() {
       find.byKey(const ValueKey('marketplace-wholesale-banner-action')),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(seconds: 1));
     route = Uri.parse(
       tester.widget<Text>(
         find.byKey(const ValueKey('route-name')),
