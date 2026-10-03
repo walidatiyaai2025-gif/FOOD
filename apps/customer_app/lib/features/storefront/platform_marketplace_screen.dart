@@ -9,6 +9,7 @@ import '../../core/config/foodex_environment.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../shared/customer_persistent_footer.dart';
 import 'marketplace_barcode_scanner.dart';
 
 class PlatformMarketplaceScreen extends StatefulWidget {
@@ -775,6 +776,28 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               );
             },
           ),
+        ),
+        bottomNavigationBar: FutureBuilder<Map<String, dynamic>>(
+          future: _future,
+          builder: (context, snapshot) {
+            final data = snapshot.data;
+            if (data == null) return const SizedBox.shrink();
+
+            final wholesale = data['store'] is Map
+                ? Map<String, dynamic>.from(data['store'] as Map)
+                : const <String, dynamic>{};
+            final storeId = _int(wholesale['id']);
+            if (storeId <= 0) return const SizedBox.shrink();
+
+            return CustomerPersistentFooterDock(
+              commerceContext: CustomerCommerceContext(
+                channel: CustomerCommerceChannel.wholesale,
+                storeId: storeId,
+                source: CustomerCommerceSource.marketplace,
+              ),
+              activeDestination: CustomerFooterDestination.home,
+            );
+          },
         ),
       );
 }
