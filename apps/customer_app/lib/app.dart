@@ -625,6 +625,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     final favoritesApi = b2cAccountApi is B2cRetailFavoritesApi
         ? b2cAccountApi as B2cRetailFavoritesApi
         : null;
+    final wholesaleFavoritesApi = b2bAccountApi is B2cRetailFavoritesApi
+        ? b2bAccountApi as B2cRetailFavoritesApi
+        : null;
 
     final router = CustomerAppRouter(
       _session,
@@ -640,6 +643,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
           retailCommerceForToken(newToken),
       customerOrdersApi: customerOrdersApi,
       favoritesApi: favoritesApi,
+      wholesaleFavoritesApi: wholesaleFavoritesApi,
       onAuthenticated: _onAuthenticated,
       onSessionExpired: _onSessionExpired,
       onEnterWholesale: _enterWholesale,

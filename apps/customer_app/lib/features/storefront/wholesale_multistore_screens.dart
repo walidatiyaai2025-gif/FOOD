@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../core/api/b2b_api.dart';
+import '../../core/api/b2c_account_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/api/wholesale_commerce_api.dart';
@@ -15,6 +16,7 @@ import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../shared/customer_favorite_button.dart';
 import 'storefront_design_system.dart';
 
 class WholesaleHomeDesignScreen extends StatefulWidget {
@@ -795,10 +797,11 @@ class _WholesaleProductGrid extends StatelessWidget {
       itemCount: rows.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount:
-            MediaQuery.sizeOf(context).width < 360 ? 1 : 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: .78,
+            MediaQuery.sizeOf(context).width < 350 ? 3 : 4,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 9,
+        childAspectRatio:
+            MediaQuery.sizeOf(context).width < 350 ? .44 : .37,
       ),
       itemBuilder: (context, index) {
         final row = rows[index];
@@ -866,47 +869,46 @@ class _WholesaleProductGrid extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 7),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 38,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: palette.primary,
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                      onPressed: () async {
-                        if (!session.isAuthenticated) {
-                          await _beginWholesaleAddHandoff(
-                            context: context,
-                            pendingActionStore: pendingActionStore,
-                            storeId: storeId,
-                            productId: id,
-                            quantity: minimum,
-                            sourceLocation: sourceLocation,
-                          );
-                          return;
-                        }
-
-                        try {
-                          await actionApi.addCartItem(
-                            storeId: storeId,
-                            productId: id,
-                            quantity: minimum,
-                          );
-                        } catch (error) {
-                          if (context.mounted) {
-                            await showOperationalError(context, error);
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: palette.primary,
+                          padding: EdgeInsets.zero,
+                          shape: const CircleBorder(),
+                        ),
+                        onPressed: () async {
+                          if (!session.isAuthenticated) {
+                            await _beginWholesaleAddHandoff(
+                              context: context,
+                              pendingActionStore: pendingActionStore,
+                              storeId: storeId,
+                              productId: id,
+                              quantity: minimum,
+                              sourceLocation: sourceLocation,
+                            );
+                            return;
                           }
-                        }
-                      },
-                      icon: const Icon(
-                        Icons.add_shopping_cart_rounded,
-                        size: 16,
-                      ),
-                      label: const Text(
-                        'أضف',
-                        style: TextStyle(fontSize: 11),
+
+                          try {
+                            await actionApi.addCartItem(
+                              storeId: storeId,
+                              productId: id,
+                              quantity: minimum,
+                            );
+                          } catch (error) {
+                            if (context.mounted) {
+                              await showOperationalError(context, error);
+                            }
+                          }
+                        },
+                        child: const Icon(
+                          Icons.add_shopping_cart_rounded,
+                          size: 16,
+                        ),
                       ),
                     ),
                   ),
@@ -1064,6 +1066,7 @@ class WholesaleProductDetailsDesignScreen extends StatefulWidget {
     required this.api,
     required this.storefrontApi,
     required this.actionApi,
+    this.favoritesApi,
     this.pendingActionStore,
     super.key,
   });
@@ -1073,6 +1076,7 @@ class WholesaleProductDetailsDesignScreen extends StatefulWidget {
   final B2bApi? api;
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
+  final B2cRetailFavoritesApi? favoritesApi;
   final CustomerPendingActionStore? pendingActionStore;
 
   @override
@@ -1235,10 +1239,13 @@ class _WholesaleProductDetailsDesignScreenState
                   FoodexTopBar(
                     title: context.tr('b2b.product.title'),
                     actions: [
-                      IconButton(
-                        onPressed: () {},
-                        icon:
-                            const Icon(Icons.favorite_border_rounded),
+                      CustomerFavoriteButton(
+                        api: widget.favoritesApi,
+                        storeId: storeId,
+                        productId: productId,
+                        isAuthenticated: widget.session.isAuthenticated,
+                        loginRoute:
+                            '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
                       ),
                     ],
                   ),

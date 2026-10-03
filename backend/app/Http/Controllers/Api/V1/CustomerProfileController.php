@@ -13,6 +13,7 @@ use App\Services\AuditLogger;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\RetailMerchantIdentityService;
+use App\Services\WholesalePrincipal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -352,10 +353,10 @@ class CustomerProfileController extends Controller
     public function favorites(Request $request): JsonResponse
     {
         [, $customer, $channel] = $this->context($request);
-        abort_unless($channel === 'b2c' && $customer instanceof B2cCustomer, 403);
+        $storeId = $this->favoriteStoreId($customer, $channel);
 
         return response()->json([
-            'data' => $this->favoriteRows($customer),
+            'data' => $this->favoriteRows($customer, $storeId, $channel),
         ]);
     }
 
@@ -365,38 +366,53 @@ class CustomerProfileController extends Controller
         AuditLogger $auditLogger,
     ): JsonResponse {
         [$user, $customer, $channel] = $this->context($request);
-        abort_unless($channel === 'b2c' && $customer instanceof B2cCustomer, 403);
+        $storeId = $this->favoriteStoreId($customer, $channel);
+        $legacyCustomerId = app(CustomerDomainResolver::class)->legacyId($customer);
 
         $productModel = Product::query()
             ->whereKey($product)
             ->where('is_active', true)
-            ->whereExists(function ($query) use ($customer): void {
+            ->whereExists(function ($query) use ($storeId): void {
                 $query->selectRaw('1')
                     ->from('store_products')
                     ->whereColumn('store_products.product_id', 'products.id')
-                    ->where('store_products.store_id', $customer->store_id)
+                    ->where('store_products.store_id', $storeId)
                     ->where('store_products.is_active', true);
             })
             ->firstOrFail();
 
         $favorite = CustomerFavorite::query()->firstOrCreate([
-            'b2c_customer_id' => $customer->getKey(),
+            'customer_id' => $legacyCustomerId,
             'product_id' => $productModel->getKey(),
         ], [
-            'customer_id' => app(CustomerDomainResolver::class)->legacyId($customer),
+            'b2c_customer_id' => $customer instanceof B2cCustomer
+                ? $customer->getKey()
+                : null,
         ]);
+
+        if ($customer instanceof B2cCustomer && $favorite->b2c_customer_id === null) {
+            $favorite->forceFill(['b2c_customer_id' => $customer->getKey()])->save();
+        }
 
         $auditLogger->record(
             'customer.favorite_added',
             $user,
             $favorite,
             null,
-            ['product_id' => (int) $productModel->getKey()],
+            [
+                'product_id' => (int) $productModel->getKey(),
+                'channel' => $channel,
+                'store_id' => $storeId,
+            ],
             $request,
         );
 
         return response()->json([
-            'product' => $this->favoriteProductPayload($productModel),
+            'product' => $this->favoriteProductPayload(
+                $productModel,
+                $storeId,
+                $channel,
+            ),
         ], $favorite->wasRecentlyCreated ? 201 : 200);
     }
 
@@ -406,10 +422,11 @@ class CustomerProfileController extends Controller
         AuditLogger $auditLogger,
     ): Response {
         [$user, $customer, $channel] = $this->context($request);
-        abort_unless($channel === 'b2c' && $customer instanceof B2cCustomer, 403);
+        $storeId = $this->favoriteStoreId($customer, $channel);
+        $legacyCustomerId = app(CustomerDomainResolver::class)->legacyId($customer);
 
         $favorite = CustomerFavorite::query()
-            ->where('b2c_customer_id', $customer->getKey())
+            ->where('customer_id', $legacyCustomerId)
             ->where('product_id', $product)
             ->firstOrFail();
 
@@ -417,7 +434,11 @@ class CustomerProfileController extends Controller
             'customer.favorite_removed',
             $user,
             $favorite,
-            ['product_id' => (int) $favorite->product_id],
+            [
+                'product_id' => (int) $favorite->product_id,
+                'channel' => $channel,
+                'store_id' => $storeId,
+            ],
             null,
             $request,
         );
@@ -432,6 +453,18 @@ class CustomerProfileController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
+
+        $requestedDomain = strtolower(trim((string) $request->header(
+            'X-FOODEX-Customer-Domain',
+            '',
+        )));
+        if ($requestedDomain === 'b2b') {
+            return [
+                $user,
+                app(CustomerDomainResolver::class)->b2bFromRequest($user, $request),
+                'b2b',
+            ];
+        }
 
         [$customer, $channel] = app(CustomerDomainResolver::class)->profile($user, $request);
 
@@ -694,35 +727,105 @@ class CustomerProfileController extends Controller
         ];
     }
 
-    private function favoriteRows(B2cCustomer $customer): array
-    {
-        return Product::query()
+    private function favoriteRows(
+        B2bCustomer|B2cCustomer $customer,
+        ?int $storeId = null,
+        ?string $channel = null,
+    ): array {
+        $channel ??= $customer instanceof B2bCustomer ? 'b2b' : 'b2c';
+        $storeId ??= $this->favoriteStoreId($customer, $channel);
+
+        $query = Product::query()
             ->select('products.*')
-            ->join('customer_favorites', 'customer_favorites.product_id', '=', 'products.id')
-            ->where('customer_favorites.b2c_customer_id', $customer->getKey())
-            ->whereExists(function ($query) use ($customer): void {
-                $query->selectRaw('1')
+            ->join('customer_favorites', 'customer_favorites.product_id', '=', 'products.id');
+
+        if ($customer instanceof B2cCustomer) {
+            $legacyCustomerId = $customer->legacy_customer_id;
+            $query->where(function ($favorites) use ($customer, $legacyCustomerId): void {
+                $favorites->where(
+                    'customer_favorites.b2c_customer_id',
+                    $customer->getKey(),
+                );
+                if ($legacyCustomerId !== null) {
+                    $favorites->orWhere(
+                        'customer_favorites.customer_id',
+                        (int) $legacyCustomerId,
+                    );
+                }
+            });
+        } else {
+            $query->where(
+                'customer_favorites.customer_id',
+                app(CustomerDomainResolver::class)->legacyId($customer),
+            );
+        }
+
+        return $query
+            ->whereExists(function ($storeProducts) use ($storeId): void {
+                $storeProducts->selectRaw('1')
                     ->from('store_products')
                     ->whereColumn('store_products.product_id', 'products.id')
-                    ->where('store_products.store_id', $customer->store_id)
+                    ->where('store_products.store_id', $storeId)
                     ->where('store_products.is_active', true);
             })
             ->where('products.is_active', true)
             ->orderBy('customer_favorites.id')
             ->get()
-            ->map(fn (Product $product): array => $this->favoriteProductPayload($product))
+            ->map(fn (Product $product): array => $this->favoriteProductPayload(
+                $product,
+                $storeId,
+                $channel,
+            ))
             ->values()
             ->all();
     }
 
-    private function favoriteProductPayload(Product $product): array
-    {
+    private function favoriteStoreId(
+        B2bCustomer|B2cCustomer $customer,
+        string $channel,
+    ): int {
+        if ($channel === 'b2c' && $customer instanceof B2cCustomer) {
+            return (int) $customer->store_id;
+        }
+
+        abort_unless(
+            $channel === 'b2b' && $customer instanceof B2bCustomer,
+            403,
+        );
+
+        return app(WholesalePrincipal::class)->storeId();
+    }
+
+    private function favoriteProductPayload(
+        Product $product,
+        int $storeId,
+        string $channel,
+    ): array {
+        $imagePath = DB::table('product_images')
+            ->where('product_id', $product->getKey())
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->value('path');
+        $storeProduct = DB::table('store_products')
+            ->where('store_id', $storeId)
+            ->where('product_id', $product->getKey())
+            ->first(['price']);
+
         return [
             'id' => (int) $product->getKey(),
             'sku' => (string) $product->sku,
             'name' => (string) $product->name,
+            'description' => $product->description,
             'category_id' => $product->category_id === null ? null : (int) $product->category_id,
             'brand_id' => $product->brand_id === null ? null : (int) $product->brand_id,
+            'store_id' => $storeId,
+            'channel' => $channel,
+            'price' => $storeProduct?->price === null ? null : (float) $storeProduct->price,
+            'currency' => 'EGP',
+            'image_url' => $imagePath === null
+                ? null
+                : url('/'.ltrim((string) $imagePath, '/')),
             'is_active' => (bool) $product->is_active,
         ];
     }

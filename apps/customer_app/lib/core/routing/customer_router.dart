@@ -49,6 +49,7 @@ class CustomerAppRouter {
     required this.retailCommerceForToken,
     this.customerOrdersApi,
     this.favoritesApi,
+    this.wholesaleFavoritesApi,
     required this.b2cCatalogApi,
     required this.b2cAccountApi,
     this.b2bAccountApi,
@@ -80,6 +81,7 @@ class CustomerAppRouter {
   final RetailCommerceTokenFactory retailCommerceForToken;
   final CustomerOrdersApi? customerOrdersApi;
   final B2cRetailFavoritesApi? favoritesApi;
+  final B2cRetailFavoritesApi? wholesaleFavoritesApi;
   final CustomerAuthenticated onAuthenticated;
   final VoidCallback onSessionExpired;
   final ValueChanged<int?> onEnterWholesale;
@@ -369,6 +371,8 @@ class CustomerAppRouter {
             catalogApi: b2cCatalogApi,
             accountApi: b2cAccountApi,
             actionApi: actionApi,
+            favoritesApi: favoritesApi,
+            wholesaleFavoritesApi: wholesaleFavoritesApi,
             b2bApi: b2bApi,
             storefrontApi: storefrontApi,
             wholesaleApi: wholesaleApi,
