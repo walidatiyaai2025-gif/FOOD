@@ -299,22 +299,11 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
   }
 
-  void _openWholesaleStore(CustomerCommerceContext context) {
+  void _openWholesaleStore(CustomerCommerceContext commerceContext) {
     Navigator.of(context).pushNamed(
-      CustomerRouteLocations.wholesaleHome(context),
+      CustomerRouteLocations.wholesaleHome(commerceContext),
     );
   }
-
-  String _productsLocation(CustomerCommerceContext context) =>
-      context.isRetail
-          ? Uri(
-              path: CustomerRoutePaths.products,
-              queryParameters: context.toQueryParameters(),
-            ).toString()
-          : Uri(
-              path: CustomerRoutePaths.b2bProducts,
-              queryParameters: context.toQueryParameters(),
-            ).toString();
 
   String _cartLocation(CustomerCommerceContext context) =>
       context.isRetail
