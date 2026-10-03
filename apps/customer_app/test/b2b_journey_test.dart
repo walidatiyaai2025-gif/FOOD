@@ -177,6 +177,11 @@ void main() {
     expect(find.text('Wholesale Product'), findsOneWidget);
     expect(actionApi.addCalls, 0);
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('customer-add-cart')),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
     await tester.pumpAndSettle();
 
@@ -247,7 +252,17 @@ void main() {
     expect(find.text('Wholesale Product'), findsOneWidget);
     expect(find.textContaining('7.25 KWD'), findsOneWidget);
     expect(find.textContaining('5'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.textContaining('24').first,
+      160,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.textContaining('24'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('customer-add-cart')),
+      160,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('إضافة إلى السلة'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
