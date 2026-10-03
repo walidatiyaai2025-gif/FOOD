@@ -770,6 +770,71 @@ void main() {
 
 
   testWidgets(
+      'marketplace auth menu reads the live app session after login without a stale guest route',
+      (tester) async {
+    var liveSession = const CustomerSession.guest();
+    final client = MockClient((request) async => http.Response(
+          jsonEncode({
+            'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
+            'hero': null,
+            'categories': const [],
+            'products': {'data': const []},
+            'retail_banners': const [],
+          }),
+          200,
+        ));
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('en'),
+        overrides: const {},
+        child: MaterialApp(
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.guest(),
+            sessionProvider: () => liveSession,
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('marketplace-auth-menu')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('marketplace-login-action')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('marketplace-register-action')),
+      findsOneWidget,
+    );
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
+    liveSession = const CustomerSession.platformCustomer(
+      accessToken: 'signed-in-token',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('marketplace-auth-menu')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('marketplace-profile-action')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('marketplace-login-action')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('marketplace-register-action')),
+      findsNothing,
+    );
+  });
+
+
+  testWidgets(
       'marketplace reference home binds authoritative API content at narrow phone width',
       (tester) async {
     tester.view.physicalSize = const Size(320, 780);
