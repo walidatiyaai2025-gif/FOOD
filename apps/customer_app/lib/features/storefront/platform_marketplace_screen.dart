@@ -499,7 +499,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   _selectedCategoryId == null &&
                   _searchController.text.trim().isEmpty;
               final homeCollections = <MapEntry<int, Widget>>[];
-              if (showHomeCollections && offers.isNotEmpty) {
+              if (showHomeCollections &&
+                  offersSection != null &&
+                  offers.isNotEmpty) {
                 homeCollections.add(
                   MapEntry(
                     _marketplaceSectionSort(offersSection, 30),
@@ -511,7 +513,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   ),
                 );
               }
-              if (showHomeCollections && featuredProducts.isNotEmpty) {
+              if (showHomeCollections &&
+                  featuredSection != null &&
+                  featuredProducts.isNotEmpty) {
                 homeCollections.add(
                   MapEntry(
                     _marketplaceSectionSort(featuredSection, 40),
@@ -915,7 +919,13 @@ class _MarketplaceHeader extends StatelessWidget {
                   children: [
                     const Icon(Icons.qr_code_scanner_rounded, size: 20),
                     const SizedBox(width: 10),
-                    Text(context.tr('customer.marketplace.scan')),
+                    Expanded(
+                      child: Text(
+                        context.tr('customer.marketplace.scan'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
               ),
