@@ -142,15 +142,27 @@ final class PlatformCustomerService
                 ->where('user_id', '!=', $user->getKey())
                 ->exists();
 
-            abort_if(
-                $legacyConflict,
-                409,
-                'Retail-linked customer identity is already attached to another platform user.',
-            );
+            $platformLegacy = $legacy;
+            if ($legacyConflict) {
+                $platformLegacy = Customer::query()
+                    ->where('user_id', $user->getKey())
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $platformLegacy instanceof Customer) {
+                    $platformLegacy = Customer::query()->create([
+                        'user_id' => $user->getKey(),
+                        'type' => 'platform',
+                        'name' => (string) $user->name,
+                        'phone' => $linkedCustomer->phone,
+                        'email' => $email,
+                    ]);
+                }
+            }
 
             $platform = PlatformCustomer::query()->create([
                 'user_id' => $user->getKey(),
-                'legacy_customer_id' => $legacy->getKey(),
+                'legacy_customer_id' => $platformLegacy->getKey(),
                 'name' => (string) $user->name,
                 'phone' => $linkedCustomer->phone,
                 'email' => $email,
@@ -321,7 +333,7 @@ final class PlatformCustomerService
                 'b2b_customers.id',
             )
             ->where('retail_wholesale_accounts.owner_user_id', $user->getKey())
-            ->where('b2b_customers.legacy_customer_id', $platform->legacy_customer_id)
+            ->orderBy('retail_wholesale_accounts.retail_store_id')
             ->select('b2b_customers.*')
             ->first();
 
