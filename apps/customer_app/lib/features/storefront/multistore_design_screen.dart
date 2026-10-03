@@ -52,6 +52,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
     required this.location,
     required this.session,
     this.currentSession,
+    this.currentCommerceContext,
     required this.onAuthenticated,
     required this.onPlatformRegistered,
     required this.onLocaleChanged,
@@ -72,6 +73,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
   final String location;
   final CustomerSession session;
   final CustomerSession Function()? currentSession;
+  final CustomerCommerceContext Function()? currentCommerceContext;
   final CustomerAuthenticated onAuthenticated;
   final ValueChanged<String> onPlatformRegistered;
   final ValueChanged<Locale> onLocaleChanged;
@@ -108,6 +110,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
         return PlatformMarketplaceScreen(
           session: session,
           sessionProvider: currentSession,
+          commerceContextProvider: currentCommerceContext,
           onPlatformRegistered: onPlatformRegistered,
           onLocaleChanged: onLocaleChanged,
           client: marketplaceClient,
