@@ -292,7 +292,7 @@ class B2bJourneyScreen extends StatelessWidget {
             _button(
               context,
               context.tr('customer.profile.addresses'),
-              CustomerRoutePaths.b2bAddresses,
+              _scopedB2bRoute(CustomerRoutePaths.b2bAddresses),
             ),
             _section(context.tr('b2b.profile.settings')),
           ],
@@ -345,6 +345,18 @@ class B2bJourneyScreen extends StatelessWidget {
         ).toString(),
       );
     }
+  }
+
+  String _scopedB2bRoute(String path) {
+    final commerceContext =
+        CustomerCommerceContext.tryParseLocation(location);
+    if (commerceContext == null || !commerceContext.isWholesale) {
+      return path;
+    }
+    return Uri(
+      path: path,
+      queryParameters: commerceContext.toQueryParameters(),
+    ).toString();
   }
 
   String _b2bCartRoute() {
