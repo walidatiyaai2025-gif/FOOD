@@ -801,7 +801,7 @@ class _WholesaleProductGrid extends StatelessWidget {
         crossAxisSpacing: 8,
         mainAxisSpacing: 9,
         childAspectRatio:
-            MediaQuery.sizeOf(context).width < 350 ? .56 : .48,
+            MediaQuery.sizeOf(context).width < 350 ? .44 : .38,
       ),
       itemBuilder: (context, index) {
         final row = rows[index];
