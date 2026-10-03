@@ -1,28 +1,30 @@
-# FOODEX 1.0.47 Release Notes
+# FOODEX 1.0.48 Release Notes
 
-Status: synchronized post-1.0.46 Dashboard, Customer and Driver release.
+Status: final Customer Commerce V4 corrective production distribution.
 
 ## Release identity
 
-- Dashboard: `1.0.47`
-- Customer app: `1.0.47+47`
-- Driver app: `1.0.47+47`
-- Customer runtime/footer identity: `1.0.47`
-- Driver runtime/footer identity: `1.0.47`
-- Driver diagnostics current identity: `1.0.47`
-- Driver diagnostics build identity: `47`
-- Published `1.0.46` remains immutable and is not reused.
+- Dashboard: `1.0.48`
+- Customer app: `1.0.48+48`
+- Driver app: `1.0.48+48`
+- Customer runtime/footer identity: `1.0.48`
+- Driver runtime/footer identity: `1.0.48`
+- Driver diagnostics current identity: `1.0.48`
+- Driver diagnostics build identity: `48`
+- Published `1.0.47` remains immutable and is not reused.
 
 ## Included changes
 
-- Driver post-1.0.46 fixes tracked through #761/#763: secure Remember Me, optional fingerprint / Face ID sign-in, Today / All / From-To delivery filters, and one accepted-delivery Receive / Failed execution contract across B2B and B2C.
-- Customer Commerce V4 (#764, #765-#773): one Customer login identity across Retail and Wholesale, Dashboard-managed Retail banners that rotate every 5 seconds and open the exact store, authoritative store-scoped cart/checkout/order routing, unified auth resume, complete Retail and Wholesale purchase journeys, and converged Dashboard order operations.
-- Customer App Preview now mirrors the corrected shared Flutter runtime, keeps authentication identity separate from commerce context, preserves exact store/channel authorization, and keeps Draft vs Published configuration isolated.
-- Existing tenant isolation, self-store purchase protection, Wholesale tier/MOQ rules, notification routing and Driver operational boundaries remain authoritative.
+- Preserve the owner-approved Customer runtime baseline from #794, including the unified Home, fixed five-icon footer, signed-in store switching, Dashboard-driven images and store-origin-aware commerce routing.
+- Canonicalize Retail merchant identity and reuse the exact linked Wholesale purchasing account without duplication (#797).
+- Hide and authoritatively reject purchases from a merchant's own Retail store while leaving Wholesale and other Retail stores purchasable (#798).
+- Split My Orders into isolated Wholesale and Retail tabs using authoritative `channel=b2b` / `channel=b2c`, while preserving immutable original `store_id + channel` provenance (#799).
+- Bind Dashboard Retail primary owner/manager to the canonical commerce identity and safely remove stale entitlement on reassignment (#800).
+- Include final integrated acceptance #775 / PR #805: Backend/MySQL, Customer Android/iOS, Driver Android/iOS, runtime screenshot evidence, App Preview parity, exact auth resume and legacy Business Login / Choose Store purge guards.
 
 ## Dashboard update bundle
 
-- Target version: `1.0.47`
+- Target version: `1.0.48`
 - Minimum current version: `1.0.6`
 - Contains migrations: generated manifest is authoritative.
 - Requires full redeploy: `false`
