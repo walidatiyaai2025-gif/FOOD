@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.49 - 2026-10-03
+
+- Prevent signed-in Retail owners/managers from reopening their own Retail storefront through stale remembered commerce context, the Marketplace store shortcut, the persistent footer, or direct Retail catalog routes; invalid own-store context now falls back to the allowed platform/Wholesale context while backend self-store purchase blocking remains authoritative.
+- Make Dashboard media authoritative across the Customer catalog: Wholesale categories expose and render their category image, Product payloads retain primary product imagery, and Retail/Wholesale product contracts expose Brand names and Brand images with safe icon fallback when media is missing or fails.
+- Render real Wholesale category and Brand rails from catalog data instead of fixed placeholder icons, and surface Brand imagery on Retail product cards without weakening store/channel isolation.
+- Add immediate Dashboard image previews before save for Product multi-image uploads, Category images, and Brand images while preserving the existing saved-image thumbnails and validation rules.
+- Add regression coverage for stale own-store header/footer navigation and category/Brand image API contracts, with Backend/MySQL, Customer Android/iOS, UI Visual QA and update-package validation green in #812 / PR #813.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.49 / mobile build 1.0.49+49; keep production minimum-version, force-update, Driver location-enforcement and Assistant activation settings unchanged.
+
 ## 1.0.48 - 2026-10-03
 
 - Promote the owner-approved Customer APK baseline from #794 and preserve the final Home, persistent footer, store-switching and Dashboard-aware image behavior across the synchronized release.
