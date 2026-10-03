@@ -95,11 +95,11 @@ class B2bJourneyScreen extends StatelessWidget {
             );
             final target = order.channel == 'b2b'
                 ? Uri(
-                    path: '/b2b/orders/\${order.id}',
+                    path: '/b2b/orders/${order.id}',
                     queryParameters: orderContext.toQueryParameters(),
                   ).toString()
                 : Uri(
-                    path: '/orders/\${order.id}/track',
+                    path: '/orders/${order.id}/track',
                     queryParameters: orderContext.toQueryParameters(),
                   ).toString();
             Navigator.of(context).pushNamed(target);
