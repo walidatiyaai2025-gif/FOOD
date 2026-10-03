@@ -73,7 +73,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
   final String location;
   final CustomerSession session;
   final CustomerSession Function()? currentSession;
-  final CustomerCommerceContext Function()? currentCommerceContext;
+  final CustomerCommerceContext? Function()? currentCommerceContext;
   final CustomerAuthenticated onAuthenticated;
   final ValueChanged<String> onPlatformRegistered;
   final ValueChanged<Locale> onLocaleChanged;
