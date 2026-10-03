@@ -980,6 +980,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('marketplace-cart')));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     var route = Uri.parse(
       tester.widget<Text>(
         find.byKey(const ValueKey('route-name')),
@@ -993,11 +994,13 @@ void main() {
       tester.element(find.byKey(const ValueKey('route-name'))),
     ).pop();
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     await tester.tap(
       find.byKey(const ValueKey('marketplace-wholesale-banner-action')),
     );
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     route = Uri.parse(
       tester.widget<Text>(
         find.byKey(const ValueKey('route-name')),
