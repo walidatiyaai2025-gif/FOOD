@@ -115,10 +115,10 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
   ) {
     final merged = <String, CustomerOrderSummary>{
       for (final order in current)
-        '\${order.channel}:\${order.storeId}:\${order.id}': order,
+        '${order.channel}:${order.storeId}:${order.id}': order,
     };
     for (final order in incoming) {
-      merged['\${order.channel}:\${order.storeId}:\${order.id}'] = order;
+      merged['${order.channel}:${order.storeId}:${order.id}'] = order;
     }
     return merged.values.toList(growable: false);
   }
