@@ -35,7 +35,7 @@ class _FakeActiveRepo implements DriverAssignmentRepository {
     transitionedNote = note;
 
     final nextAvailable = switch (status) {
-      'accepted' => const ['picked_up', 'out_for_delivery', 'failed'],
+      'accepted' => const ['picked_up', 'failed'],
       'picked_up' => const ['out_for_delivery', 'failed'],
       'out_for_delivery' => const ['delivered', 'failed'],
       _ => const <String>[],
@@ -144,8 +144,13 @@ void main() {
 
     expect(repo.transitionedStatus, 'accepted');
     expect(repo.transitionCount, 1);
-    expect(find.byKey(const Key('driver-active-pickup-1')), findsOneWidget);
-    expect(find.byKey(const Key('driver-active-start-1')), findsOneWidget);
+    expect(find.byKey(const Key('driver-active-pickup-1')), findsNothing);
+    expect(
+      find.byKey(const Key('driver-active-card-failed-1')),
+      findsOneWidget,
+    );
+    expect(find.text('Delivery failed'), findsOneWidget);
+    expect(find.byKey(const Key('driver-active-start-1')), findsNothing);
   });
 
   for (final channel in [DriverChannel.b2c, DriverChannel.b2b]) {
@@ -168,7 +173,7 @@ void main() {
 
       expect(
         find.byKey(Key('driver-active-pickup-$id')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.byKey(Key('driver-active-card-failed-$id')),
@@ -179,7 +184,13 @@ void main() {
         findsNothing,
       );
 
-      await tester.tap(find.byKey(Key('driver-active-pickup-$id')));
+      await tester.tap(find.byKey(Key('driver-active-assignment-$id')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(Key('driver-detail-pickup-$id')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(Key('driver-detail-pickup-$id')));
       await tester.pumpAndSettle();
 
       expect(repo.transitionedStatuses, ['picked_up', 'out_for_delivery']);
@@ -331,7 +342,7 @@ void main() {
     expect(repo.current.status, 'accepted');
     expect(find.byKey(const Key('driver-active-detail-50')), findsOneWidget);
     expect(find.byKey(const Key('driver-detail-pickup-50')), findsOneWidget);
-    expect(find.byKey(const Key('driver-detail-start-50')), findsOneWidget);
+    expect(find.byKey(const Key('driver-detail-start-50')), findsNothing);
     expect(find.byKey(const Key('driver-detail-failed-50')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('driver-detail-pickup-50')));
@@ -407,6 +418,10 @@ void main() {
         of: detail,
         matching: find.text('Immutable delivery snapshot'),
       ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('driver-detail-address-card-5')),
       findsOneWidget,
     );
     final detailScrollable = find.descendant(
