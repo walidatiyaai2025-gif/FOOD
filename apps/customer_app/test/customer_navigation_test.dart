@@ -201,6 +201,11 @@ void main() {
       findsNothing,
     );
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('customer-add-cart')),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
     await tester.pumpAndSettle();
 
