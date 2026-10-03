@@ -1228,4 +1228,97 @@ void main() {
     expect(find.byIcon(Icons.water_drop_rounded), findsWidgets);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+      'stale owned Retail context is rejected by marketplace header and footer',
+      (tester) async {
+    const staleOwnedContext = CustomerCommerceContext(
+      channel: CustomerCommerceChannel.retail,
+      storeId: 99,
+      source: CustomerCommerceSource.retailBanner,
+    );
+    final client = MockClient((request) async {
+      if (request.url.path == '/api/v1/stores') {
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {'id': 22, 'name': 'Allowed Retail', 'logo_url': null},
+            ],
+          }),
+          200,
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'store': {
+            'id': 70,
+            'name': 'FOODEX Wholesale',
+            'channel': 'b2b',
+          },
+          'hero': null,
+          'categories': const [],
+          'products': {'data': const []},
+          'retail_banners': [
+            {
+              'id': 22,
+              'store_id': 22,
+              'name': 'Allowed Retail',
+              'title': 'Allowed Retail',
+              'channel': 'b2c',
+            },
+          ],
+        }),
+        200,
+      );
+    });
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('en'),
+        overrides: const {},
+        child: MaterialApp(
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.platformCustomer(
+              accessToken: 'signed-in-token',
+            ),
+            commerceContextProvider: () => staleOwnedContext,
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => Scaffold(
+              body: Text(
+                settings.name ?? '',
+                key: const ValueKey('route-name'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('marketplace-store')));
+    await tester.pumpAndSettle();
+    var route = Uri.parse(
+      tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+    );
+    expect(route.path, '/b2b/home');
+    expect(route.queryParameters['store_id'], '70');
+    expect(route.queryParameters['channel'], 'wholesale');
+
+    Navigator.of(tester.element(find.byKey(const ValueKey('route-name')))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('customer-footer-cart')));
+    await tester.pumpAndSettle();
+    route = Uri.parse(
+      tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+    );
+    expect(route.path, '/b2b/cart');
+    expect(route.queryParameters['store_id'], '70');
+    expect(route.queryParameters['channel'], 'wholesale');
+  });
+
 }
