@@ -25,6 +25,7 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
     required this.storefrontApi,
     required this.actionApi,
     this.pendingActionStore,
+    this.showBottomNavigation = true,
     super.key,
   });
 
@@ -34,6 +35,7 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
   final CustomerPendingActionStore? pendingActionStore;
+  final bool showBottomNavigation;
 
   @override
   State<WholesaleHomeDesignScreen> createState() =>
@@ -340,10 +342,12 @@ class _WholesaleHomeDesignScreenState
                   ],
                 ),
               ),
-              bottomNavigationBar: _WholesaleBottomNav(
-                storeId: storeId,
-                palette: palette,
-              ),
+              bottomNavigationBar: widget.showBottomNavigation
+                  ? _WholesaleBottomNav(
+                      storeId: storeId,
+                      palette: palette,
+                    )
+                  : null,
             );
           },
         ),
