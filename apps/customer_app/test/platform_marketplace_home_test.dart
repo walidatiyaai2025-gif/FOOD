@@ -1136,7 +1136,7 @@ void main() {
     final productName = tester.widget<Text>(
       find.byKey(const ValueKey('marketplace-product-name-42')),
     );
-    expect(productName.maxLines, 1);
+    expect(productName.maxLines, 2);
     expect(productName.overflow, TextOverflow.ellipsis);
     expect(find.text('API Water'), findsOneWidget);
     expect(find.text('12.5 KWD'), findsOneWidget);
