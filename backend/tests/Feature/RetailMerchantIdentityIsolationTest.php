@@ -187,6 +187,175 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         );
     }
 
+    public function test_retail_store_provisioning_reuses_owner_user_and_linked_wholesale_account_without_duplication(): void
+    {
+        $manager = $this->user('canonical-owner@example.test');
+        $store = $this->retailStore('CANONICAL-OWNER');
+        $this->assignManager($manager, $store);
+
+        $tierId = (int) DB::table('b2b_price_tiers')
+            ->where('code', 'STANDARD')
+            ->value('id');
+
+        $service = app(RetailWholesaleAccountService::class);
+        $customer = $service->ensureForStore($store, $tierId, $manager);
+        $account = DB::table('b2b_accounts')
+            ->where('b2b_customer_id', $customer->getKey())
+            ->first();
+
+        $this->assertNotNull($account);
+        $this->assertDatabaseHas('retail_wholesale_accounts', [
+            'retail_store_id' => $store->id,
+            'b2b_customer_id' => $customer->id,
+            'owner_user_id' => $manager->id,
+        ]);
+        $this->assertDatabaseHas('b2b_customers', [
+            'id' => $customer->id,
+            'legacy_customer_id' => $customer->legacy_customer_id,
+            'user_id' => null,
+            'email' => $manager->email,
+        ]);
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->legacy_customer_id,
+            'type' => 'b2b',
+            'email' => $manager->email,
+        ]);
+        $this->assertDatabaseHas('platform_customers', [
+            'user_id' => $manager->id,
+            'legacy_customer_id' => $customer->legacy_customer_id,
+            'origin_channel' => 'b2c',
+            'origin_store_id' => $store->id,
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('users', [
+            'id' => $manager->id,
+            'is_platform_customer' => true,
+        ]);
+
+        $materialized = app(PlatformCustomerService::class)->materializeB2b($manager);
+        $this->assertNotNull($materialized);
+        $this->assertSame($customer->id, $materialized->id);
+
+        $again = $service->ensureForStore($store, $tierId, $manager);
+        $accountAgain = DB::table('b2b_accounts')
+            ->where('b2b_customer_id', $customer->getKey())
+            ->first();
+
+        $this->assertSame($customer->id, $again->id);
+        $this->assertSame((int) $account->id, (int) $accountAgain->id);
+        $this->assertSame((int) $account->price_tier_id, (int) $accountAgain->price_tier_id);
+        $this->assertSame(
+            1,
+            DB::table('platform_customers')->where('user_id', $manager->id)->count(),
+        );
+        $this->assertSame(
+            1,
+            DB::table('b2b_customers')
+                ->where('legacy_customer_id', $customer->legacy_customer_id)
+                ->count(),
+        );
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => $manager->email,
+            'password' => 'password123',
+        ])->assertOk()
+            ->assertJsonPath('user.platform_customer', true)
+            ->assertJsonPath('user.retail_merchant', true)
+            ->assertJsonPath('user.b2b_customer_ids.0', $customer->id)
+            ->assertJsonPath('user.retail_wholesale_accounts.0.retail_store_id', $store->id)
+            ->assertJsonPath('user.retail_wholesale_accounts.0.b2b_customer_id', $customer->id);
+    }
+
+    public function test_canonical_identity_backfill_is_idempotent_and_preserves_existing_account_history_identity(): void
+    {
+        $manager = $this->user('backfill-owner@example.test');
+        $store = $this->retailStore('BACKFILL-OWNER');
+        $this->assignManager($manager, $store);
+
+        $tierId = (int) DB::table('b2b_price_tiers')
+            ->where('code', 'STANDARD')
+            ->value('id');
+
+        $customer = app(RetailWholesaleAccountService::class)
+            ->ensureForStore($store, $tierId, null);
+
+        $accountBefore = DB::table('b2b_accounts')
+            ->where('b2b_customer_id', $customer->id)
+            ->first();
+
+        $this->assertNotNull($accountBefore);
+        $this->assertDatabaseHas('retail_wholesale_accounts', [
+            'retail_store_id' => $store->id,
+            'b2b_customer_id' => $customer->id,
+            'owner_user_id' => null,
+        ]);
+        $this->assertSame(
+            0,
+            DB::table('platform_customers')->where('user_id', $manager->id)->count(),
+        );
+
+        $migration = require database_path(
+            'migrations/2026_10_03_083000_reconcile_retail_merchant_canonical_identity.php',
+        );
+        $migration->up();
+        $migration->up();
+
+        $accountAfter = DB::table('b2b_accounts')
+            ->where('b2b_customer_id', $customer->id)
+            ->first();
+
+        $this->assertNotNull($accountAfter);
+        $this->assertSame((int) $accountBefore->id, (int) $accountAfter->id);
+        $this->assertSame(
+            (int) $accountBefore->price_tier_id,
+            (int) $accountAfter->price_tier_id,
+        );
+        $this->assertDatabaseHas('retail_wholesale_accounts', [
+            'retail_store_id' => $store->id,
+            'b2b_customer_id' => $customer->id,
+            'owner_user_id' => $manager->id,
+        ]);
+        $this->assertDatabaseHas('b2b_customers', [
+            'id' => $customer->id,
+            'legacy_customer_id' => $customer->legacy_customer_id,
+            'email' => $manager->email,
+        ]);
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->legacy_customer_id,
+            'email' => $manager->email,
+        ]);
+        $this->assertDatabaseHas('platform_customers', [
+            'user_id' => $manager->id,
+            'legacy_customer_id' => $customer->legacy_customer_id,
+            'origin_channel' => 'b2c',
+            'origin_store_id' => $store->id,
+            'registration_source' => 'migration',
+            'is_active' => true,
+        ]);
+        $this->assertSame(
+            1,
+            DB::table('platform_customers')->where('user_id', $manager->id)->count(),
+        );
+        $this->assertSame(
+            1,
+            DB::table('b2b_customers')
+                ->where('legacy_customer_id', $customer->legacy_customer_id)
+                ->count(),
+        );
+
+        $materialized = app(PlatformCustomerService::class)->materializeB2b($manager);
+        $this->assertNotNull($materialized);
+        $this->assertSame($customer->id, $materialized->id);
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => $manager->email,
+            'password' => 'password123',
+        ])->assertOk()
+            ->assertJsonPath('user.platform_customer', true)
+            ->assertJsonPath('user.retail_merchant', true)
+            ->assertJsonPath('user.b2b_customer_ids.0', $customer->id);
+    }
+
     /** @return array{0:Store,1:int} */
     private function managedStore(User $manager, string $code, bool $owner = true): array
     {

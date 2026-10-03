@@ -7,6 +7,7 @@ use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\Customer;
 use App\Models\PlatformCustomer;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -88,6 +89,87 @@ final class PlatformCustomerService
             ->where('user_id', $user->getKey())
             ->where('is_active', true)
             ->first();
+    }
+
+    public function reconcileRetailMerchantIdentity(
+        User $user,
+        B2bCustomer $linkedCustomer,
+        Store $originStore,
+        string $registrationSource = 'dashboard',
+    ): PlatformCustomer {
+        $registrationSource = $this->normalizeRegistrationSource($registrationSource);
+
+        return DB::transaction(function () use (
+            $user,
+            $linkedCustomer,
+            $originStore,
+            $registrationSource,
+        ): PlatformCustomer {
+            abort_if(
+                $linkedCustomer->legacy_customer_id === null,
+                409,
+                'Retail-linked Wholesale customer legacy identity is incomplete.',
+            );
+
+            $legacy = Customer::query()->findOrFail((int) $linkedCustomer->legacy_customer_id);
+            $email = strtolower(trim((string) $user->email));
+
+            $platform = PlatformCustomer::query()
+                ->where('user_id', $user->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            if ($platform instanceof PlatformCustomer) {
+                $platform->forceFill([
+                    'name' => (string) $user->name,
+                    'phone' => $platform->phone ?? $linkedCustomer->phone,
+                    'email' => $email,
+                    'is_active' => true,
+                ])->save();
+
+                User::query()
+                    ->whereKey($user->getKey())
+                    ->update([
+                        'is_platform_customer' => true,
+                        'updated_at' => now(),
+                    ]);
+
+                return $platform->refresh();
+            }
+
+            $legacyConflict = PlatformCustomer::query()
+                ->where('legacy_customer_id', $legacy->getKey())
+                ->where('user_id', '!=', $user->getKey())
+                ->exists();
+
+            abort_if(
+                $legacyConflict,
+                409,
+                'Retail-linked customer identity is already attached to another platform user.',
+            );
+
+            $platform = PlatformCustomer::query()->create([
+                'user_id' => $user->getKey(),
+                'legacy_customer_id' => $legacy->getKey(),
+                'name' => (string) $user->name,
+                'phone' => $linkedCustomer->phone,
+                'email' => $email,
+                'origin_channel' => 'b2c',
+                'origin_store_id' => $originStore->getKey(),
+                'registration_source' => $registrationSource,
+                'registered_at' => now(),
+                'is_active' => true,
+            ]);
+
+            User::query()
+                ->whereKey($user->getKey())
+                ->update([
+                    'is_platform_customer' => true,
+                    'updated_at' => now(),
+                ]);
+
+            return $platform->refresh();
+        }, 3);
     }
 
     public function materializeB2b(User $user): ?B2bCustomer
@@ -231,6 +313,22 @@ final class PlatformCustomerService
         PlatformCustomer $platform,
         int $preferredTierId,
     ): B2bCustomer {
+        $retailLinkedCustomer = B2bCustomer::query()
+            ->join(
+                'retail_wholesale_accounts',
+                'retail_wholesale_accounts.b2b_customer_id',
+                '=',
+                'b2b_customers.id',
+            )
+            ->where('retail_wholesale_accounts.owner_user_id', $user->getKey())
+            ->where('b2b_customers.legacy_customer_id', $platform->legacy_customer_id)
+            ->select('b2b_customers.*')
+            ->first();
+
+        if ($retailLinkedCustomer instanceof B2bCustomer) {
+            return $retailLinkedCustomer;
+        }
+
         $customer = B2bCustomer::query()->firstOrCreate(
             ['user_id' => $user->getKey()],
             [
