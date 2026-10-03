@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CustomerDomainResolver;
+use App\Services\PlatformCustomerService;
 use App\Services\RetailMerchantIdentityService;
 use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
@@ -177,8 +178,14 @@ class RetailStoreProvisioningTest extends TestCase
         $legacyCustomerId = (int) DB::table('b2b_customers')
             ->where('id', $linkAfter->b2b_customer_id)
             ->value('legacy_customer_id');
+        $newOwnerPlatform = DB::table('platform_customers')
+            ->where('user_id', $newOwner->id)
+            ->first();
+        $this->assertNotNull($newOwnerPlatform);
+        $this->assertTrue((bool) $newOwnerPlatform->is_active);
+        $this->assertNotSame($legacyCustomerId, (int) $newOwnerPlatform->legacy_customer_id);
         $this->assertDatabaseHas('platform_customers', [
-            'user_id' => $newOwner->id,
+            'user_id' => $oldOwner->id,
             'legacy_customer_id' => $legacyCustomerId,
             'is_active' => true,
         ]);
@@ -186,6 +193,16 @@ class RetailStoreProvisioningTest extends TestCase
             'id' => $linkAfter->b2b_customer_id,
             'email' => $newOwner->email,
         ]);
+
+        $materialized = app(PlatformCustomerService::class)->materializeB2b($newOwner);
+        $this->assertNotNull($materialized);
+        $this->assertSame((int) $linkAfter->b2b_customer_id, (int) $materialized->id);
+        $this->assertSame(
+            1,
+            DB::table('b2b_customers')
+                ->where('id', $linkAfter->b2b_customer_id)
+                ->count(),
+        );
 
         $audit = DB::table('audit_logs')
             ->where('event', 'retail_store.owner_reassigned')
