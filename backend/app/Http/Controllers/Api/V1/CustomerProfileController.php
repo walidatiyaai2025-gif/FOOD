@@ -829,5 +829,4 @@ class CustomerProfileController extends Controller
             'is_active' => (bool) $product->is_active,
         ];
     }
-
 }
