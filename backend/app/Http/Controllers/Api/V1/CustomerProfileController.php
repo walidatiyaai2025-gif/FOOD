@@ -454,6 +454,18 @@ class CustomerProfileController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
+        $requestedDomain = strtolower(trim((string) $request->header(
+            'X-FOODEX-Customer-Domain',
+            '',
+        )));
+        if ($requestedDomain === 'b2b') {
+            return [
+                $user,
+                app(CustomerDomainResolver::class)->b2bFromRequest($user, $request),
+                'b2b',
+            ];
+        }
+
         [$customer, $channel] = app(CustomerDomainResolver::class)->profile($user, $request);
 
         return [$user, $customer, $channel];
@@ -717,9 +729,11 @@ class CustomerProfileController extends Controller
 
     private function favoriteRows(
         B2bCustomer|B2cCustomer $customer,
-        int $storeId,
-        string $channel,
+        ?int $storeId = null,
+        ?string $channel = null,
     ): array {
+        $channel ??= $customer instanceof B2bCustomer ? 'b2b' : 'b2c';
+        $storeId ??= $this->favoriteStoreId($customer, $channel);
         $legacyCustomerId = app(CustomerDomainResolver::class)->legacyId($customer);
 
         return Product::query()
