@@ -800,19 +800,19 @@ class _WholesaleProductGrid extends StatelessWidget {
     final displayRows = maxItems == null
         ? rows
         : rows.take(maxItems!).toList(growable: false);
+    final width = MediaQuery.sizeOf(context).width;
 
     return GridView.builder(
+      key: const ValueKey('wholesale-product-grid'),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: displayRows.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount:
-            MediaQuery.sizeOf(context).width < 350 ? 3 : 4,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 9,
-        childAspectRatio:
-            MediaQuery.sizeOf(context).width < 350 ? .44 : .37,
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 12,
+        mainAxisExtent: width < 360 ? 286 : 306,
       ),
       itemBuilder: (context, index) {
         final row = displayRows[index];
@@ -821,8 +821,37 @@ class _WholesaleProductGrid extends StatelessWidget {
           row['minimum_order_quantity'] ?? row['minimum_quantity'],
           1,
         );
+        final brand = row['brand_name']?.toString().trim() ?? '';
+        final currency = row['currency']?.toString() ?? 'EGP';
+
+        Future<void> addToCart() async {
+          if (!session.isAuthenticated) {
+            await _beginWholesaleAddHandoff(
+              context: context,
+              pendingActionStore: pendingActionStore,
+              storeId: storeId,
+              productId: id,
+              quantity: minimum,
+              sourceLocation: sourceLocation,
+            );
+            return;
+          }
+
+          try {
+            await actionApi.addCartItem(
+              storeId: storeId,
+              productId: id,
+              quantity: minimum,
+            );
+          } catch (error) {
+            if (context.mounted) {
+              await showOperationalError(context, error);
+            }
+          }
+        }
 
         return Material(
+          key: ValueKey('wholesale-product-card-$id'),
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           child: InkWell(
@@ -834,91 +863,132 @@ class _WholesaleProductGrid extends StatelessWidget {
                   storeId.toString(),
             ),
             child: Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
               decoration: BoxDecoration(
                 border: Border.all(color: palette.soft),
                 borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(.035),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: FoodexProductImage(
-                      url: row['image_url']?.toString(),
-                      palette: palette,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: FoodexProductImage(
+                            url: row['image_url']?.toString(),
+                            palette: palette,
+                          ),
+                        ),
+                        if (brand.isNotEmpty)
+                          PositionedDirectional(
+                            top: 0,
+                            end: 0,
+                            child: Container(
+                              key: ValueKey('wholesale-product-brand-$id'),
+                              constraints: const BoxConstraints(maxWidth: 112),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE9F7EE),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                brand,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF006736),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     row['name']?.toString() ?? '',
-                    maxLines: 1,
+                    key: ValueKey('wholesale-product-name-$id'),
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      height: 1.2,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF102033),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    money(
+                      row['account_price'] ??
+                          row['unit_price'] ??
+                          row['price'],
+                      currency: currency,
+                    ),
+                    key: ValueKey('wholesale-product-price-$id'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: palette.primary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Text(
-                    'سعر العميل ' +
-                        money(
-                          row['account_price'] ??
-                              row['unit_price'] ??
-                              row['price'],
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 14,
+                        color: palette.primaryDark,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          'الحد الأدنى: ' + compactNumber(minimum),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: palette.muted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                    style: TextStyle(
-                      color: palette.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
-                    ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'الحد الأدنى ' + compactNumber(minimum),
-                    style: TextStyle(
-                      color: palette.muted,
-                      fontSize: 10,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: palette.primary,
-                          padding: EdgeInsets.zero,
-                          shape: const CircleBorder(),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 38,
+                    child: FilledButton(
+                      key: ValueKey('wholesale-product-add-$id'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: palette.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        onPressed: () async {
-                          if (!session.isAuthenticated) {
-                            await _beginWholesaleAddHandoff(
-                              context: context,
-                              pendingActionStore: pendingActionStore,
-                              storeId: storeId,
-                              productId: id,
-                              quantity: minimum,
-                              sourceLocation: sourceLocation,
-                            );
-                            return;
-                          }
-
-                          try {
-                            await actionApi.addCartItem(
-                              storeId: storeId,
-                              productId: id,
-                              quantity: minimum,
-                            );
-                          } catch (error) {
-                            if (context.mounted) {
-                              await showOperationalError(context, error);
-                            }
-                          }
-                        },
-                        child: const Icon(
-                          Icons.add_shopping_cart_rounded,
-                          size: 16,
+                      ),
+                      onPressed: addToCart,
+                      child: const Text(
+                        'إضافة للسلة',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
@@ -1650,10 +1720,35 @@ class _WholesaleProductDetailsDesignScreenState
                             ? ''
                             : ' · ' + row['pack_label'].toString()),
                     style: const TextStyle(
-                      color: Color(0xFF6F6A7D),
+                      color: Color(0xFF6B7785),
                       fontSize: 12,
                     ),
                   ),
+                  if ((row['brand_name']?.toString().trim() ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Container(
+                        key: const ValueKey('b2b-product-brand'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE9F7EE),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          row['brand_name'].toString(),
+                          style: const TextStyle(
+                            color: Color(0xFF006736),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 13),
                   _PricingPanel(
                     row: row,
@@ -1731,6 +1826,12 @@ class _WholesaleProductDetailsDesignScreenState
                         (row['case_size']?.toString() ?? '—') +
                         ' · الزيادة: ' +
                         (row['ordering_increment']?.toString() ?? '1'),
+                  ),
+                  FoodexDetailAccordion(
+                    title: 'العلامة التجارية',
+                    body: (row['brand_name']?.toString().trim().isNotEmpty ?? false)
+                        ? row['brand_name'].toString()
+                        : 'غير محددة',
                   ),
                   FoodexDetailAccordion(
                     title: 'الوصف',
@@ -1837,7 +1938,7 @@ class _PricingPanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Color(0xFFF5F0FA),
+          color: Color(0xFFF1F8F4),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -1897,8 +1998,8 @@ class _PriceRow extends StatelessWidget {
             value,
             style: TextStyle(
               color: emphasize
-                  ? Color(0xFF5D2A91)
-                  : Color(0xFF17142A),
+                  ? Color(0xFF078A43)
+                  : Color(0xFF102033),
               fontSize: emphasize ? 17 : 13,
               fontWeight: FontWeight.w800,
             ),
@@ -1921,7 +2022,7 @@ class _InfoPill extends StatelessWidget {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: Color(0xFFF5F0FA),
+          color: Color(0xFFF1F8F4),
           borderRadius: BorderRadius.circular(13),
         ),
         child: Row(
@@ -1929,7 +2030,7 @@ class _InfoPill extends StatelessWidget {
             Icon(
               icon,
               size: 18,
-              color: Color(0xFF5D2A91),
+              color: Color(0xFF078A43),
             ),
             const SizedBox(width: 7),
             Expanded(
@@ -1995,7 +2096,7 @@ class _WholesaleCartDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: Color(0xFFFBFAFD),
+          backgroundColor: Color(0xFFF8FBF9),
           body: SafeArea(
             child: FutureBuilder<Object?>(
               future: future,
@@ -2032,7 +2133,7 @@ class _WholesaleCartDesignScreenState
                       padding:
                           const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: Color(0xFFF5F0FA),
+                        color: Color(0xFFF1F8F4),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Row(
@@ -2040,7 +2141,7 @@ class _WholesaleCartDesignScreenState
                           Icon(
                             Icons.warehouse_outlined,
                             color:
-                                Color(0xFF5D2A91),
+                                Color(0xFF078A43),
                             size: 19,
                           ),
                           SizedBox(width: 8),
@@ -2152,13 +2253,13 @@ class _CartLine extends StatelessWidget {
               height: 66,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: Color(0xFFF5F0FA),
+                  color: Color(0xFFF1F8F4),
                   borderRadius:
                       BorderRadius.all(Radius.circular(14)),
                 ),
                 child: Icon(
                   Icons.inventory_2_outlined,
-                  color: Color(0xFF5D2A91),
+                  color: Color(0xFF078A43),
                 ),
               ),
             ),
@@ -2179,7 +2280,7 @@ class _CartLine extends StatelessWidget {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 10,
-                      color: Color(0xFF6F6A7D),
+                      color: Color(0xFF6B7785),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -2208,7 +2309,7 @@ class _CartLine extends StatelessWidget {
                         money(price),
                         style: const TextStyle(
                           color:
-                              Color(0xFF5D2A91),
+                              Color(0xFF078A43),
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -2233,7 +2334,7 @@ class _MiniStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Color(0xFFF5F0FA),
+        color: Color(0xFFF1F8F4),
         borderRadius: BorderRadius.circular(9),
         child: InkWell(
           onTap: onTap,
@@ -2262,7 +2363,7 @@ class _CartTotalPanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Color(0xFF35195E),
+          color: Color(0xFF006736),
           borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
@@ -2293,7 +2394,7 @@ class _CartTotalPanel extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor:
-                      Color(0xFF35195E),
+                      Color(0xFF006736),
                 ),
                 child: const Text('إتمام الطلب'),
               ),
@@ -2371,7 +2472,7 @@ class _WholesaleCheckoutDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: Color(0xFFFBFAFD),
+          backgroundColor: Color(0xFFF8FBF9),
           body: SafeArea(
             child: FutureBuilder<_CheckoutPayload>(
               future: future,
@@ -2553,7 +2654,7 @@ class _WholesaleCheckoutDesignScreenState
                       child: FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor:
-                              Color(0xFF5D2A91),
+                              Color(0xFF078A43),
                         ),
                         onPressed: widget.commerceApi == null ||
                                 addressId == null ||
@@ -2677,7 +2778,7 @@ class _CheckoutSummary extends StatelessWidget {
                           (item['quantity']?.toString() ?? '1'),
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF6F6A7D),
+                        color: Color(0xFF6B7785),
                       ),
                     ),
                   ],
@@ -2707,7 +2808,7 @@ class _CheckoutSummary extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               height: 1.4,
-              color: Color(0xFF6F6A7D),
+              color: Color(0xFF6B7785),
             ),
           ),
         ],
@@ -2746,8 +2847,8 @@ class _SummaryRow extends StatelessWidget {
               value,
               style: TextStyle(
                 color: strong
-                    ? const Color(0xFF5D2A91)
-                    : const Color(0xFF17142A),
+                    ? const Color(0xFF078A43)
+                    : const Color(0xFF102033),
                 fontSize: strong ? 16 : 12,
                 fontWeight: FontWeight.w800,
               ),
@@ -2772,7 +2873,7 @@ class _CheckoutStepper extends StatelessWidget {
           ),
           Expanded(
             child: Divider(
-              color: Color(0xFFB983F0),
+              color: Color(0xFF92D853),
             ),
           ),
           Expanded(
@@ -2784,7 +2885,7 @@ class _CheckoutStepper extends StatelessWidget {
           ),
           Expanded(
             child: Divider(
-              color: Color(0xFFB983F0),
+              color: Color(0xFF92D853),
             ),
           ),
           Expanded(
@@ -2815,14 +2916,14 @@ class _StepDot extends StatelessWidget {
           CircleAvatar(
             radius: 16,
             backgroundColor: active
-                ? Color(0xFF5D2A91)
+                ? Color(0xFF078A43)
                 : const Color(0xFFE7E3EA),
             child: Text(
               number,
               style: TextStyle(
                 color: active
                     ? Colors.white
-                    : Color(0xFF6F6A7D),
+                    : Color(0xFF6B7785),
                 fontSize: 11,
               ),
             ),
@@ -2864,7 +2965,7 @@ class _SelectCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: selected
-                      ? Color(0xFF5D2A91)
+                      ? Color(0xFF078A43)
                       : const Color(0xFFE4E0E7),
                   width: selected ? 1.6 : 1,
                 ),
@@ -2876,8 +2977,8 @@ class _SelectCard extends StatelessWidget {
                         ? Icons.radio_button_checked
                         : Icons.radio_button_off,
                     color: selected
-                        ? Color(0xFF5D2A91)
-                        : Color(0xFF6F6A7D),
+                        ? Color(0xFF078A43)
+                        : Color(0xFF6B7785),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -2896,7 +2997,7 @@ class _SelectCard extends StatelessWidget {
                           subtitle,
                           style: const TextStyle(
                             color:
-                                Color(0xFF6F6A7D),
+                                Color(0xFF6B7785),
                             fontSize: 11,
                           ),
                         ),
@@ -2955,7 +3056,7 @@ class _WholesaleOrdersDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: const Color(0xFFFBFAFD),
+          backgroundColor: const Color(0xFFF8FBF9),
           body: SafeArea(
             child: FutureBuilder<Object?>(
               future: future,
@@ -3060,7 +3161,7 @@ class _WholesaleOrderDetailsDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: const Color(0xFFFBFAFD),
+          backgroundColor: const Color(0xFFF8FBF9),
           body: SafeArea(
             child: Column(
               children: [
@@ -3318,7 +3419,7 @@ class _OrderDetailCard extends StatelessWidget {
                       child: Text(
                         row.$1,
                         style: const TextStyle(
-                          color: Color(0xFF6F6A7D),
+                          color: Color(0xFF6B7785),
                           fontSize: 11,
                         ),
                       ),
@@ -3410,12 +3511,12 @@ class _OrderCard extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F0FA),
+                  color: const Color(0xFFF1F8F4),
                   borderRadius: BorderRadius.circular(13),
                 ),
                 child: const Icon(
                   Icons.receipt_long_outlined,
-                  color: Color(0xFF5D2A91),
+                  color: Color(0xFF078A43),
                 ),
               ),
               const SizedBox(width: 11),
@@ -3436,7 +3537,7 @@ class _OrderCard extends StatelessWidget {
                         storeName,
                         style: const TextStyle(
                           fontSize: 11,
-                          color: Color(0xFF6F6A7D),
+                          color: Color(0xFF6B7785),
                         ),
                       ),
                     ],
@@ -3445,14 +3546,14 @@ class _OrderCard extends StatelessWidget {
                       row['created_at']?.toString() ?? '',
                       style: const TextStyle(
                         fontSize: 10,
-                        color: Color(0xFF6F6A7D),
+                        color: Color(0xFF6B7785),
                       ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       totalLabel,
                       style: const TextStyle(
-                        color: Color(0xFF5D2A91),
+                        color: Color(0xFF078A43),
                         fontWeight: FontWeight.w800,
                       ),
                     ),
