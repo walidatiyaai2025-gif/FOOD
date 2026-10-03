@@ -10,10 +10,14 @@ import 'package:foodex_customer_app/features/customer_orders/customer_orders_api
 import 'package:foodex_customer_app/shared/customer_ui_v3/customer_ui_v3.dart';
 
 void main() {
-  testWidgets('orders loading uses V3 geometry skeletons instead of a spinner',
+  testWidgets('orders loading keeps independent V3 skeleton state per channel',
       (tester) async {
-    final pending = Completer<CustomerOrderPage>();
-    final api = _FakeOrdersApi(ordersFuture: pending.future);
+    final wholesale = Completer<CustomerOrderPage>();
+    final retail = Completer<CustomerOrderPage>();
+    final api = _FakeOrdersApi(
+      responder: (channel, page) =>
+          channel == 'b2b' ? wholesale.future : retail.future,
+    );
 
     await tester.pumpWidget(
       _TestApp(
@@ -24,15 +28,24 @@ void main() {
 
     expect(find.byType(CustomerSkeletonBox), findsWidgets);
     expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(api.calls, containsAll(<String>['b2b:1', 'b2c:1']));
 
-    pending.complete(_page());
+    wholesale.complete(_page(channel: 'b2b', orderId: 91));
+    retail.complete(_page(channel: 'b2c', orderId: 92));
     await tester.pump();
     await tester.pump();
   });
 
-  testWidgets('orders cards keep V3 hierarchy under RTL and larger text',
+  testWidgets('orders tabs keep V3 hierarchy under RTL and larger text',
       (tester) async {
-    final api = _FakeOrdersApi(ordersFuture: Future.value(_page()));
+    final api = _FakeOrdersApi(
+      responder: (channel, page) => Future.value(
+        _page(
+          channel: channel,
+          orderId: channel == 'b2b' ? 91 : 92,
+        ),
+      ),
+    );
 
     await tester.pumpWidget(
       _TestApp(
@@ -41,13 +54,120 @@ void main() {
         child: CustomerOrdersScreen(api: api),
       ),
     );
-    await tester.pump();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('FO-91'), findsOneWidget);
-    expect(find.byType(CustomerBadge), findsNWidgets(2));
+    expect(find.text('طلبات الجملة'), findsOneWidget);
+    expect(find.text('طلبات التجزئة'), findsOneWidget);
+    expect(find.text('WH-91'), findsOneWidget);
+    expect(find.text('RT-92'), findsNothing);
+    expect(find.byIcon(Icons.warehouse_outlined), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const ValueKey('customer-orders-tab-b2c')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('RT-92'), findsOneWidget);
+    expect(find.text('WH-91'), findsNothing);
     expect(find.byIcon(Icons.storefront_outlined), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'pagination refresh and order open stay isolated by authoritative channel',
+      (tester) async {
+    final api = _FakeOrdersApi(
+      responder: (channel, page) async {
+        if (channel == 'b2b' && page == 1) {
+          return _page(
+            channel: 'b2b',
+            orderId: 101,
+            storeId: 11,
+            total: 2,
+          );
+        }
+        if (channel == 'b2b' && page == 2) {
+          return _page(
+            channel: 'b2b',
+            orderId: 102,
+            storeId: 12,
+            currentPage: 2,
+            total: 2,
+          );
+        }
+        return _page(
+          channel: 'b2c',
+          orderId: 201,
+          storeId: 21,
+        );
+      },
+    );
+    CustomerOrderSummary? opened;
+
+    await tester.pumpWidget(
+      _TestApp(
+        child: CustomerOrdersScreen(
+          api: api,
+          onOpenOrder: (order) => opened = order,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('WH-101'), findsOneWidget);
+    expect(find.text('RT-201'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('customer-orders-load-more-b2b')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('customer-orders-load-more-b2b')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('WH-101'), findsOneWidget);
+    expect(find.text('WH-102'), findsOneWidget);
+    expect(find.text('RT-201'), findsNothing);
+    expect(api.calls, contains('b2b:2'));
+
+    await tester.tap(find.byKey(const ValueKey('customer-orders-tab-b2c')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('RT-201'), findsOneWidget);
+    expect(find.text('WH-101'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('customer-order-201')));
+    await tester.pump();
+
+    expect(opened?.context.storeId, 21);
+    expect(opened?.context.normalizedChannel, 'b2c');
+
+    await tester.tap(find.byKey(const ValueKey('customer-orders-refresh')));
+    await tester.pumpAndSettle();
+
+    expect(
+      api.calls.where((call) => call == 'b2c:1').length,
+      greaterThanOrEqualTo(2),
+    );
+  });
+
+  testWidgets('cross-channel API leakage is never rendered in the wrong tab',
+      (tester) async {
+    final api = _FakeOrdersApi(
+      responder: (channel, page) async => channel == 'b2b'
+          ? _page(channel: 'b2c', orderId: 999)
+          : _page(channel: 'b2c', orderId: 201),
+    );
+
+    await tester.pumpWidget(
+      _TestApp(
+        child: CustomerOrdersScreen(api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('RT-999'), findsNothing);
+    expect(find.byType(CustomerStateView), findsOneWidget);
   });
 }
 
@@ -84,31 +204,39 @@ class _TestApp extends StatelessWidget {
       );
 }
 
-CustomerOrderPage _page() => CustomerOrderPage(
+CustomerOrderPage _page({
+  required String channel,
+  required int orderId,
+  int storeId = 7,
+  int currentPage = 1,
+  int total = 1,
+}) =>
+    CustomerOrderPage(
       orders: [
         CustomerOrderSummary(
-          id: 91,
-          orderNumber: 'FO-91',
-          storeId: 7,
-          storeName: 'Retail A',
+          id: orderId,
+          orderNumber: channel == 'b2b' ? 'WH-$orderId' : 'RT-$orderId',
+          storeId: storeId,
+          storeName: channel == 'b2b' ? 'Wholesale A' : 'Retail A',
           storeLogoUrl: null,
-          channel: 'b2c',
+          channel: channel,
           status: 'out_for_delivery',
           currency: 'KWD',
           grandTotal: 12.5,
           createdAt: DateTime.utc(2026, 10, 1, 10),
         ),
       ],
-      currentPage: 1,
+      currentPage: currentPage,
       perPage: 20,
-      total: 1,
-      scope: 'all',
+      total: total,
+      scope: channel,
     );
 
 class _FakeOrdersApi implements CustomerOrdersApi {
-  _FakeOrdersApi({required this.ordersFuture});
+  _FakeOrdersApi({required this.responder});
 
-  final Future<CustomerOrderPage> ordersFuture;
+  final Future<CustomerOrderPage> Function(String channel, int page) responder;
+  final List<String> calls = <String>[];
 
   @override
   Future<CustomerOrderPage> orders({
@@ -117,8 +245,11 @@ class _FakeOrdersApi implements CustomerOrdersApi {
     String? status,
     String? channel,
     CustomerOrderContext? context,
-  }) =>
-      ordersFuture;
+  }) {
+    final resolvedChannel = channel ?? context?.normalizedChannel ?? 'b2c';
+    calls.add('$resolvedChannel:$page');
+    return responder(resolvedChannel, page);
+  }
 
   @override
   Future<CustomerOrderDetails> order({
