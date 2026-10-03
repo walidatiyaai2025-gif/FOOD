@@ -498,8 +498,17 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           onLanguageToggle: _toggleLocale,
                           localeCode:
                               Localizations.localeOf(context).languageCode,
-                          onCart: () =>
-                              Navigator.of(context).pushNamed('/cart'),
+                          onCart: () {
+                            if (storeId <= 0) return;
+                            final cartContext = CustomerCommerceContext(
+                              channel: CustomerCommerceChannel.wholesale,
+                              storeId: storeId,
+                              source: CustomerCommerceSource.marketplace,
+                            );
+                            Navigator.of(context).pushNamed(
+                              CustomerRouteLocations.wholesaleCart(cartContext),
+                            );
+                          },
                           cartCount: _int(data['cart_count']),
                           onOrders: () {
                             if (_currentSession.isAuthenticated) {
