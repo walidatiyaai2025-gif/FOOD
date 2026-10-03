@@ -56,6 +56,16 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
         ]);
 
         $this->actingAs($manager)
+            ->get(route('admin.catalog.index', [
+                'tab' => 'products',
+                'store_id' => $storeA,
+            ]))
+            ->assertOk()
+            ->assertSee('Store A Product')
+            ->assertSee('name="description"', false)
+            ->assertSee('Catalog & Categories Management');
+
+        $this->actingAs($manager)
             ->get(route('admin.catalog.index', ['tab' => 'products', 'store_id' => $storeB]))
             ->assertForbidden();
     }
