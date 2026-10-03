@@ -740,6 +740,22 @@ void main() {
     expect(find.byKey(const ValueKey('marketplace-cart')), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-orders')), findsOneWidget);
     expect(
+      find.byKey(const ValueKey('customer-persistent-footer')),
+      findsOneWidget,
+    );
+    for (final destination in [
+      'home',
+      'products',
+      'cart',
+      'orders',
+      'account',
+    ]) {
+      expect(
+        find.byKey(ValueKey('customer-footer-$destination')),
+        findsOneWidget,
+      );
+    }
+    expect(
       find.byKey(const ValueKey('marketplace-notifications')),
       findsOneWidget,
     );
