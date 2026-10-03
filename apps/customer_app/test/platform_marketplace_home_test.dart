@@ -462,113 +462,15 @@ void main() {
     expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
   });
 
-  testWidgets('guest can search wholesale catalog and inspect product before login',
+  testWidgets(
+      'guest wholesale product opens the full scoped product-details route',
       (tester) async {
     final requests = <Uri>[];
     final client = MockClient((request) async {
       requests.add(request.url);
-      if (request.url.path == '/api/v1/platform/products/42') {
-        return http.Response(
-          jsonEncode({
-            'id': 42,
-            'name': 'Wholesale Rice',
-            'sku': 'W-RICE-42',
-            'barcode': '123456789',
-            'unit_price': 12.5,
-            'currency': 'EGP',
-            'description': 'Bulk rice for wholesale customers',
-          }),
-          200,
-        );
+      if (request.url.path == '/api/v1/stores') {
+        return http.Response(jsonEncode({'data': const []}), 200);
       }
-
-      return http.Response(
-        jsonEncode({
-          'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
-          'hero': null,
-          'products': {
-            'data': [
-              {
-                'id': 42,
-                'name': 'Wholesale Rice',
-                'unit_price': 12.5,
-                'currency': 'EGP',
-              }
-            ],
-          },
-          'retail_banners': const [],
-        }),
-        200,
-      );
-    });
-
-    await tester.pumpWidget(
-      AppTranslations(
-        locale: const Locale('en'),
-        overrides: const {},
-        child: MaterialApp(
-          home: PlatformMarketplaceScreen(
-            session: const CustomerSession.guest(),
-            onPlatformRegistered: (_) {},
-            client: client,
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const ValueKey('marketplace-search')),
-      'W-RICE-42',
-    );
-    await tester.testTextInput.receiveAction(TextInputAction.search);
-    await tester.pumpAndSettle();
-
-    expect(
-      requests.where((uri) => uri.path == '/api/v1/platform/storefront').last
-          .queryParameters['q'],
-      'W-RICE-42',
-    );
-
-    final marketplaceScroll = find.byType(CustomScrollView);
-    await tester.drag(marketplaceScroll, const Offset(0, -170));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Wholesale Rice'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('marketplace-wholesale-product-title')),
-      findsOneWidget,
-    );
-    expect(find.textContaining('SKU: W-RICE-42'), findsOneWidget);
-    expect(find.textContaining('Barcode: 123456789'), findsOneWidget);
-    expect(
-      requests.any((uri) => uri.path == '/api/v1/platform/products/42'),
-      isTrue,
-    );
-    expect(
-      find.byKey(const ValueKey('marketplace-wholesale-buy')),
-      findsOneWidget,
-    );
-  });
-
-
-  testWidgets('guest wholesale buy keeps product and store context through login',
-      (tester) async {
-    final client = MockClient((request) async {
-      if (request.url.path == '/api/v1/platform/products/42') {
-        return http.Response(
-          jsonEncode({
-            'id': 42,
-            'name': 'Wholesale Rice',
-            'sku': 'W-RICE-42',
-            'unit_price': 12.5,
-            'currency': 'EGP',
-          }),
-          200,
-        );
-      }
-
       return http.Response(
         jsonEncode({
           'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
@@ -602,34 +504,47 @@ void main() {
           onGenerateRoute: (settings) => MaterialPageRoute<void>(
             settings: settings,
             builder: (_) => Scaffold(
-              body: Text(settings.name ?? '', key: const ValueKey('route-name')),
+              body: Text(
+                settings.name ?? '',
+                key: const ValueKey('route-name'),
+              ),
             ),
           ),
         ),
       ),
     );
-
     await tester.pumpAndSettle();
-    final marketplaceScroll = find.byType(CustomScrollView);
-    await tester.drag(marketplaceScroll, const Offset(0, -170));
+
+    await tester.enterText(
+      find.byKey(const ValueKey('marketplace-search')),
+      'W-RICE-42',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(
+      requests.where((uri) => uri.path == '/api/v1/platform/storefront').last
+          .queryParameters['q'],
+      'W-RICE-42',
+    );
+
+    await tester.drag(
+      find.byType(CustomScrollView),
+      const Offset(0, -170),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Wholesale Rice'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('marketplace-wholesale-buy')));
-    await tester.pumpAndSettle();
 
-    expect(find.text('Sign in'), findsWidgets);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Sign in'));
-    await tester.pumpAndSettle();
-
-    final routeText = tester.widget<Text>(
-      find.byKey(const ValueKey('route-name')),
+    final route = Uri.parse(
+      tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
     );
-    final uri = Uri.parse(routeText.data!);
-    expect(uri.path, '/auth/checkout');
+    expect(route.path, '/b2b/products/42');
+    expect(route.queryParameters['store_id'], '70');
+    expect(route.queryParameters['channel'], 'wholesale');
     expect(
-      uri.queryParameters['next'],
-      '/b2b/products/42?store_id=70',
+      requests.any((uri) => uri.path == '/api/v1/platform/products/42'),
+      isFalse,
     );
   });
 
