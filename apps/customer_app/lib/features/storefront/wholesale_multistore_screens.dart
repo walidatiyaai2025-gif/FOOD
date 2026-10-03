@@ -270,6 +270,12 @@ class _WholesaleHomeDesignScreenState
                       palette: palette,
                     ),
                   );
+                  content.add(
+                    _WholesaleBrandRail(
+                      rows: rows,
+                      palette: palette,
+                    ),
+                  );
                   break;
               }
             }
@@ -588,54 +594,166 @@ class _WholesaleCategoryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categories = rows
-        .map((row) => row['category_id'])
-        .where((value) => value != null)
-        .map((value) => value.toString())
-        .toSet()
-        .take(6)
-        .toList(growable: false);
-    final count = math.max(6, categories.length);
+    final byId = <int, Map<String, dynamic>>{};
+    for (final row in rows) {
+      final id = intValue(row['category_id']);
+      if (id <= 0 || byId.containsKey(id)) continue;
+      byId[id] = {
+        'id': id,
+        'name': row['category_name']?.toString().trim(),
+        'image_url': row['category_image_url']?.toString().trim(),
+      };
+    }
+    final categories = byId.values.take(6).toList(growable: false);
+    if (categories.isEmpty) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: count,
-        gridDelegate:
-            const SliverGridDelegateWithFixedCrossAxisCount(
+        itemCount: categories.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
           crossAxisSpacing: 9,
           mainAxisSpacing: 9,
-          childAspectRatio: 1.45,
+          childAspectRatio: 1.2,
         ),
-        itemBuilder: (_, index) => Container(
-          decoration: BoxDecoration(
-            color: palette.soft,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          alignment: Alignment.center,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.inventory_2_outlined,
-                color: palette.primary,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                index < categories.length
-                    ? 'تصنيف ' + categories[index]
-                    : 'المزيد',
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
+        itemBuilder: (_, index) {
+          final category = categories[index];
+          final id = intValue(category['id']);
+          final name = category['name']?.toString().trim();
+          final imageUrl = category['image_url']?.toString().trim();
+          return Container(
+            key: ValueKey('wholesale-category-$id'),
+            decoration: BoxDecoration(
+              color: palette.soft,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(13),
+                    child: imageUrl != null && imageUrl.isNotEmpty
+                        ? Image.network(
+                            imageUrl,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.category_outlined,
+                              color: palette.primary,
+                              size: 28,
+                            ),
+                          )
+                        : Icon(
+                            Icons.category_outlined,
+                            color: palette.primary,
+                            size: 28,
+                          ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
+                const SizedBox(height: 6),
+                Text(
+                  name != null && name.isNotEmpty ? name : 'تصنيف $id',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _WholesaleBrandRail extends StatelessWidget {
+  const _WholesaleBrandRail({
+    required this.rows,
+    required this.palette,
+  });
+
+  final List<Map<String, dynamic>> rows;
+  final FoodexPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final byId = <int, Map<String, dynamic>>{};
+    for (final row in rows) {
+      final id = intValue(row['brand_id']);
+      if (id <= 0 || byId.containsKey(id)) continue;
+      byId[id] = {
+        'id': id,
+        'name': row['brand_name']?.toString().trim(),
+        'image_url': row['brand_image_url']?.toString().trim(),
+      };
+    }
+    final brands = byId.values.toList(growable: false);
+    if (brands.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      key: const ValueKey('wholesale-brand-rail'),
+      height: 96,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        scrollDirection: Axis.horizontal,
+        itemCount: brands.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 9),
+        itemBuilder: (_, index) {
+          final brand = brands[index];
+          final id = intValue(brand['id']);
+          final name = brand['name']?.toString().trim() ?? '';
+          final imageUrl = brand['image_url']?.toString().trim();
+          return SizedBox(
+            key: ValueKey('wholesale-brand-$id'),
+            width: 76,
+            child: Column(
+              children: [
+                Container(
+                  width: 58,
+                  height: 58,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: palette.soft),
+                  ),
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Icon(
+                            Icons.sell_outlined,
+                            color: palette.primary,
+                          ),
+                        )
+                      : Icon(
+                          Icons.sell_outlined,
+                          color: palette.primary,
+                        ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

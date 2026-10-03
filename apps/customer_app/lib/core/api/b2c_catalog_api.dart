@@ -51,6 +51,9 @@ class B2cProduct {
     this.currency = 'EGP',
     this.description,
     this.categoryId,
+    this.brandId,
+    this.brandName,
+    this.brandImageUrl,
     this.imageUrl,
     this.images = const [],
   });
@@ -62,6 +65,9 @@ class B2cProduct {
   final String currency;
   final String? description;
   final int? categoryId;
+  final int? brandId;
+  final String? brandName;
+  final String? brandImageUrl;
   final String? imageUrl;
   final List<String> images;
 
@@ -73,6 +79,9 @@ class B2cProduct {
         currency: json['currency'] as String? ?? 'EGP',
         description: json['description'] as String?,
         categoryId: (json['category_id'] as num?)?.toInt(),
+        brandId: (json['brand_id'] as num?)?.toInt(),
+        brandName: json['brand_name'] as String?,
+        brandImageUrl: json['brand_image_url'] as String?,
         imageUrl: json['image_url'] as String?,
         images: (json['images'] as List?)
                 ?.whereType<String>()

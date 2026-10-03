@@ -52,6 +52,24 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   CustomerSession get _currentSession =>
       widget.sessionProvider?.call() ?? widget.session;
 
+  CustomerCommerceContext? _safeCommerceContext(
+    Map<String, dynamic> data,
+    CustomerCommerceContext? fallback,
+  ) {
+    final remembered = widget.commerceContextProvider?.call();
+    if (remembered == null) return fallback;
+    if (!remembered.isRetail) return remembered;
+
+    final allowedRetailStoreIds = _rows(data['retail_banners'])
+        .map((row) => _int(row['store_id'] ?? row['id']))
+        .where((id) => id > 0)
+        .toSet();
+
+    return allowedRetailStoreIds.contains(remembered.storeId)
+        ? remembered
+        : fallback;
+  }
+
   Future<Map<String, dynamic>> _load() async {
     final baseUrl = FoodexEnvironment.apiBaseUrl;
     final query = _searchController.text.trim();
@@ -582,9 +600,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                       source: CustomerCommerceSource.marketplace,
                     )
                   : null;
-              final rememberedContext = widget.commerceContextProvider?.call();
               final activeCommerceContext =
-                  rememberedContext ?? wholesaleContext;
+                  _safeCommerceContext(data, wholesaleContext);
               final storeSlidesCount = 1 + retail.length;
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _startBannerAutoSlide(storeSlidesCount);
@@ -840,8 +857,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               source: CustomerCommerceSource.marketplace,
             );
             return CustomerPersistentFooterDock(
-              commerceContext:
-                  widget.commerceContextProvider?.call() ?? fallbackContext,
+              commerceContext: _safeCommerceContext(data, fallbackContext) ??
+                  fallbackContext,
               activeDestination: CustomerFooterDestination.home,
               isPlatformHome: true,
             );

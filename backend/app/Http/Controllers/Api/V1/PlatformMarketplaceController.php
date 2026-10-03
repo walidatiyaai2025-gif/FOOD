@@ -28,6 +28,7 @@ final class PlatformMarketplaceController extends Controller
             'banners' => $wholesaleBanners,
             'sections' => $this->sections($storeId),
             'categories' => $this->categories($storeId),
+            'brands' => $this->brands($storeId),
             'offers' => $this->offers($storeId),
             'products' => [
                 'data' => $this->products($request, $storeId),
@@ -190,11 +191,42 @@ final class PlatformMarketplaceController extends Controller
                 'categories.id',
                 'categories.name',
                 'categories.slug',
+                'categories.image_path',
             ])
-            ->map(static fn (object $category): array => [
+            ->map(fn (object $category): array => [
                 'id' => (int) $category->id,
                 'name' => (string) $category->name,
                 'slug' => (string) $category->slug,
+                'image_url' => $this->assetUrl($category->image_path),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function brands(int $storeId): array
+    {
+        return DB::table('brands')
+            ->join('products', 'products.brand_id', '=', 'brands.id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->join('store_products', function ($join) use ($storeId): void {
+                $join->on('store_products.product_id', '=', 'products.id')
+                    ->where('store_products.store_id', '=', $storeId);
+            })
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('products.is_active', true)
+            ->where('store_products.is_active', true)
+            ->where('brands.is_active', true)
+            ->orderBy('brands.name')
+            ->distinct()
+            ->get(['brands.id', 'brands.name', 'brands.image_path'])
+            ->map(fn (object $brand): array => [
+                'id' => (int) $brand->id,
+                'name' => (string) $brand->name,
+                'image_url' => $this->assetUrl($brand->image_path),
             ])
             ->values()
             ->all();
@@ -440,6 +472,8 @@ final class PlatformMarketplaceController extends Controller
                 'b2b_price_rules.pack_label',
                 'b2b_price_rules.retail_reference_price',
                 DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
+                DB::raw('(select name from brands where brands.id = products.brand_id limit 1) as brand_name'),
+                DB::raw('(select image_path from brands where brands.id = products.brand_id limit 1) as brand_image_path'),
             ]);
         }
 
@@ -462,6 +496,8 @@ final class PlatformMarketplaceController extends Controller
             DB::raw('NULL as pack_label'),
             DB::raw('NULL as retail_reference_price'),
             DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
+            DB::raw('(select name from brands where brands.id = products.brand_id limit 1) as brand_name'),
+            DB::raw('(select image_path from brands where brands.id = products.brand_id limit 1) as brand_image_path'),
         ]);
     }
 
@@ -475,6 +511,8 @@ final class PlatformMarketplaceController extends Controller
             'name' => (string) $row->name,
             'category_id' => $row->category_id === null ? null : (int) $row->category_id,
             'brand_id' => $row->brand_id === null ? null : (int) $row->brand_id,
+            'brand_name' => $row->brand_name,
+            'brand_image_url' => $this->assetUrl($row->brand_image_path),
             'base_wholesale_price' => (float) $row->base_wholesale_price,
             'unit_price' => (float) $row->unit_price,
             'account_price' => (float) $row->account_price,

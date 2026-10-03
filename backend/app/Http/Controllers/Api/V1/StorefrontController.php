@@ -130,13 +130,23 @@ final class StorefrontController extends Controller
                 'products.sku',
                 'products.name',
                 'products.category_id',
+                'products.brand_id',
                 'store_products.price',
+                DB::raw('(select name from categories where categories.id = products.category_id limit 1) as category_name'),
+                DB::raw('(select image_path from categories where categories.id = products.category_id limit 1) as category_image_path'),
+                DB::raw('(select name from brands where brands.id = products.brand_id limit 1) as brand_name'),
+                DB::raw('(select image_path from brands where brands.id = products.brand_id limit 1) as brand_image_path'),
             ])
             ->map(fn (object $product): array => [
                 'id' => (int) $product->id,
                 'sku' => (string) $product->sku,
                 'name' => (string) $product->name,
                 'category_id' => $product->category_id === null ? null : (int) $product->category_id,
+                'category_name' => $product->category_name,
+                'category_image_url' => $this->assetUrl($product->category_image_path),
+                'brand_id' => $product->brand_id === null ? null : (int) $product->brand_id,
+                'brand_name' => $product->brand_name,
+                'brand_image_url' => $this->assetUrl($product->brand_image_path),
                 'price' => (float) $product->price,
                 'currency' => 'EGP',
                 'image_url' => $this->assetUrl(

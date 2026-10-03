@@ -283,12 +283,20 @@ class GuestCatalogController extends Controller
             ->orderBy('sort_order')
             ->value('path');
 
+        $brand = $product->brand_id === null
+            ? null
+            : DB::table('brands')
+                ->where('id', $product->brand_id)
+                ->first(['name', 'image_path']);
+
         return [
             'id' => (int) $product->id,
             'sku' => $product->sku,
             'name' => $product->name,
             'category_id' => $product->category_id === null ? null : (int) $product->category_id,
             'brand_id' => $product->brand_id === null ? null : (int) $product->brand_id,
+            'brand_name' => $brand?->name,
+            'brand_image_url' => $this->assetUrl($brand?->image_path),
             'is_active' => (bool) $product->is_active,
             'price' => $price === null ? null : (float) $price,
             'currency' => 'KWD',

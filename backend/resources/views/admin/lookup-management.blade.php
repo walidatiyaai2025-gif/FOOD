@@ -21,7 +21,7 @@ input,select{border:1px solid var(--foodex-border);border-radius:9px;padding:9px
 .notice{padding:10px 12px;border-radius:10px;margin-bottom:12px}.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.err{background:#fff1f0;color:var(--foodex-red)}
 .table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:1040px}.table th,.table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.table th{background:var(--foodex-background)}
 .badge{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:11px;background:#eef2f6}.badge.on{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.off{background:#f2f4f7;color:#667085}
-.actions{display:flex;gap:6px;flex-wrap:wrap}.brand-thumb{width:56px;height:56px;object-fit:contain;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;padding:4px;box-sizing:border-box}.image-help{font-size:11px;color:var(--foodex-muted);max-width:240px}.support{font-size:11px;color:var(--foodex-muted);display:flex!important;align-items:center;grid-auto-flow:column}.support input{min-width:auto}
+.actions{display:flex;gap:6px;flex-wrap:wrap}.brand-thumb{width:56px;height:56px;object-fit:contain;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;padding:4px;box-sizing:border-box}.image-help{font-size:11px;color:var(--foodex-muted);max-width:240px}.brand-upload-preview{margin-top:6px}.brand-upload-preview:empty{display:none}.brand-upload-preview img{width:72px;height:72px;object-fit:contain;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;padding:4px;box-sizing:border-box}.support{font-size:11px;color:var(--foodex-muted);display:flex!important;align-items:center;grid-auto-flow:column}.support input{min-width:auto}
 .lookup-add-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 16px;font-weight:800;box-shadow:0 8px 20px rgba(16,120,64,.14)}
 .lookup-modal[hidden]{display:none}.lookup-modal{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px}.lookup-modal-backdrop{position:absolute;inset:0;background:rgba(16,24,40,.52);backdrop-filter:blur(3px)}.lookup-modal-dialog{position:relative;z-index:1;width:min(820px,100%);max-height:min(86vh,820px);display:flex;flex-direction:column;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:20px;box-shadow:0 24px 70px rgba(16,24,40,.24);overflow:hidden}.lookup-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 22px;border-bottom:1px solid var(--foodex-border);background:linear-gradient(180deg,var(--foodex-green-soft),#fff)}.lookup-modal-header h2{margin:0 0 5px;font-size:22px}.lookup-modal-header p{margin:0;color:var(--foodex-muted);font-size:13px}.lookup-modal-close{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;font-size:24px;line-height:1;cursor:pointer}.lookup-modal-body{padding:22px;overflow:auto}.lookup-modal .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}.lookup-modal .form-grid label{font-size:13px}.lookup-modal .form-grid input,.lookup-modal .form-grid select{width:100%;min-width:0;box-sizing:border-box}.lookup-modal .support{grid-column:1/-1;justify-content:flex-start}.lookup-modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--foodex-border);background:#fbfcfd}.lookup-modal-actions .btn{min-width:110px}.lookup-modal-open{overflow:hidden}
 @media(max-width:1023px){.lookup-layout{grid-template-columns:1fr}.lookup-layout aside,.lookup-layout main,html[dir=ltr] .lookup-layout aside,html[dir=ltr] .lookup-layout main{grid-column:1}.lookup-layout aside{grid-row:1}.lookup-layout main{grid-row:2}}
@@ -93,7 +93,7 @@ $createDescription=$type==='brands'?($ar?'أدخل بيانات العلامة �
                     <label>{{ $ar?'الاسم بالإنجليزية':'English name' }}<input name="name_en" value="{{ old('name_en') }}" placeholder="{{ $type==='brands'?'e.g. Coca-Cola':'e.g. Piece' }}" required></label>
                     @if($type==='brands')
                     <label>{{ $ar?'المعرّف النصي':'Slug' }}<input name="slug" value="{{ old('slug') }}" placeholder="{{ $ar?'مثال: coca-cola':'e.g. coca-cola' }}"></label>
-                    <label>{{ $ar?'صورة العلامة':'Brand image' }}<input type="file" name="brand_image" accept="image/jpeg,image/png,image/webp" required><span class="image-help">{{ $ar?'يفضل 512×512 بكسل. المسموح 256×256 إلى 2048×2048، JPG/PNG/WebP، حتى 2MB.':'Recommended 512×512 px. Allowed 256×256 to 2048×2048, JPG/PNG/WebP, max 2 MB.' }}</span></label>
+                    <label>{{ $ar?'صورة العلامة':'Brand image' }}<input type="file" name="brand_image" accept="image/jpeg,image/png,image/webp" required class="js-brand-image-preview"><span class="image-help">{{ $ar?'يفضل 512×512 بكسل. المسموح 256×256 إلى 2048×2048، JPG/PNG/WebP، حتى 2MB.':'Recommended 512×512 px. Allowed 256×256 to 2048×2048, JPG/PNG/WebP, max 2 MB.' }}</span></label>
                     @else
                     <label>{{ $ar?'الكود':'Code' }}<input name="code" value="{{ old('code') }}" placeholder="{{ $ar?'مثال: PCS':'e.g. PCS' }}" required></label>
                     <label>{{ $ar?'المنازل العشرية':'Decimal places' }}<input type="number" name="decimal_places" min="0" max="6" value="{{ old('decimal_places',0) }}" placeholder="0" required></label>
@@ -127,7 +127,7 @@ $createDescription=$type==='brands'?($ar?'أدخل بيانات العلامة �
 @if($record->can_manage)
 <form class="inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.lookups.update',['type'=>$type,'lookup'=>$record->id]) }}">@csrf @method('PATCH')
 <label>{{ $ar?'العربية':'AR' }}<input name="name_ar" value="{{ $record->name_ar }}" required></label><label>{{ $ar?'الإنجليزية':'EN' }}<input name="name_en" value="{{ $record->name_en }}" required></label>
-@if($type==='brands')<label>{{ $ar?'المعرّف النصي':'Slug' }}<input name="slug" value="{{ $record->slug }}" placeholder="{{ $ar?'مثال: coca-cola':'e.g. coca-cola' }}" placeholder="{{ $ar?'مثال: coca-cola':'e.g. coca-cola' }}" required></label><label>{{ $ar?'استبدال الصورة':'Replace image' }}<input type="file" name="brand_image" accept="image/jpeg,image/png,image/webp" @required(!$record->image_path)><span class="image-help">{{ $ar?'512×512 مفضل؛ 256–2048 بكسل، حتى 2MB.':'512×512 recommended; 256–2048 px, max 2 MB.' }}</span></label>@else<label>{{ $ar?'الكود':'Code' }}<input name="code" value="{{ $record->code }}" placeholder="{{ $ar?'مثال: PCS':'e.g. PCS' }}" placeholder="{{ $ar?'مثال: PCS':'e.g. PCS' }}" required></label><label>{{ $ar?'الدقة':'Precision' }}<input type="number" min="0" max="6" name="decimal_places" value="{{ $record->decimal_places }}" placeholder="0" placeholder="0" required></label>@endif
+@if($type==='brands')<label>{{ $ar?'المعرّف النصي':'Slug' }}<input name="slug" value="{{ $record->slug }}" placeholder="{{ $ar?'مثال: coca-cola':'e.g. coca-cola' }}" placeholder="{{ $ar?'مثال: coca-cola':'e.g. coca-cola' }}" required></label><label>{{ $ar?'استبدال الصورة':'Replace image' }}<input type="file" name="brand_image" accept="image/jpeg,image/png,image/webp" @required(!$record->image_path) class="js-brand-image-preview"><span class="image-help">{{ $ar?'512×512 مفضل؛ 256–2048 بكسل، حتى 2MB.':'512×512 recommended; 256–2048 px, max 2 MB.' }}</span></label>@else<label>{{ $ar?'الكود':'Code' }}<input name="code" value="{{ $record->code }}" placeholder="{{ $ar?'مثال: PCS':'e.g. PCS' }}" placeholder="{{ $ar?'مثال: PCS':'e.g. PCS' }}" required></label><label>{{ $ar?'الدقة':'Precision' }}<input type="number" min="0" max="6" name="decimal_places" value="{{ $record->decimal_places }}" placeholder="0" placeholder="0" required></label>@endif
 @if($isSuperAdmin)
 <label>{{ $ar?'النطاق':'Scope' }}<select name="scope">@foreach($manageableScopes as $scope)<option value="{{ $scope }}" @selected($record->scope===$scope)>{{ $scopeLabels[$scope] }}</option>@endforeach</select></label>
 @if($stores->isNotEmpty())<label>{{ $ar?'المتجر':'Store' }}<select name="store_id"><option value="">—</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected($record->store_id==$store->id)>{{ $store->name }}</option>@endforeach</select></label>@endif
@@ -156,6 +156,22 @@ $createDescription=$type==='brands'?($ar?'أدخل بيانات العلامة �
 </main></div>
 <script>
 (() => {
+    document.querySelectorAll('.js-brand-image-preview').forEach((input) => {
+        const preview = document.createElement('div');
+        preview.className = 'brand-upload-preview';
+        input.insertAdjacentElement('afterend', preview);
+        input.addEventListener('change', () => {
+            preview.replaceChildren();
+            const file = input.files && input.files[0];
+            if (!file || !file.type.startsWith('image/')) return;
+            const image = document.createElement('img');
+            image.alt = file.name;
+            image.src = URL.createObjectURL(file);
+            image.addEventListener('load', () => URL.revokeObjectURL(image.src), {once:true});
+            preview.appendChild(image);
+        });
+    });
+
     const modal = document.querySelector('[data-lookup-modal]');
     const opener = document.querySelector('[data-lookup-modal-open]');
     if (!modal || !opener) return;
