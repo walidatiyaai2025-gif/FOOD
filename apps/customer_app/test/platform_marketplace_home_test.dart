@@ -996,6 +996,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
+    final returnedCarousel = tester.widget<PageView>(
+      find.byKey(const ValueKey('marketplace-store-carousel')),
+    );
+    returnedCarousel.controller!.jumpToPage(0);
+    await tester.pump();
+
     await tester.tap(
       find.byKey(const ValueKey('marketplace-wholesale-banner-action')),
     );
