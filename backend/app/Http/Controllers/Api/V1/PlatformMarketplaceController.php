@@ -496,8 +496,8 @@ final class PlatformMarketplaceController extends Controller
             DB::raw('NULL as pack_label'),
             DB::raw('NULL as retail_reference_price'),
             DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
-                DB::raw('(select name from brands where brands.id = products.brand_id limit 1) as brand_name'),
-                DB::raw('(select image_path from brands where brands.id = products.brand_id limit 1) as brand_image_path'),
+            DB::raw('(select name from brands where brands.id = products.brand_id limit 1) as brand_name'),
+            DB::raw('(select image_path from brands where brands.id = products.brand_id limit 1) as brand_image_path'),
         ]);
     }
 
