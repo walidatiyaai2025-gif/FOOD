@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CustomerDomainResolver;
+use App\Services\PlatformCustomerService;
+use App\Services\RetailMerchantIdentityService;
 use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -72,10 +74,212 @@ class RetailStoreProvisioningTest extends TestCase
         $this->assertStringStartsWith('storage/stores/'.$storeId.'/branding/', $logoPath);
         Storage::disk('public')->assertExists(substr($logoPath, strlen('storage/')));
         $this->assertSame([$storeId], app(TenantContextResolver::class)->retailStoreIds($manager));
+        $legacyCustomerId = (int) DB::table('b2b_customers')
+            ->where('id', $link->b2b_customer_id)
+            ->value('legacy_customer_id');
+        $this->assertDatabaseHas('platform_customers', [
+            'user_id' => $manager->id,
+            'legacy_customer_id' => $legacyCustomerId,
+            'origin_channel' => 'b2c',
+            'origin_store_id' => $storeId,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.retail-stores.index'))
+            ->assertOk()
+            ->assertSee('manager-a@example.test')
+            ->assertSee('Customer App identity')
+            ->assertSee('Linked / active')
+            ->assertSee('Wholesale purchasing account')
+            ->assertSee('No separate Wholesale password.');
 
         $assignmentId = (int) DB::table('user_store_roles')->where('user_id', $manager->id)->where('store_id', $storeId)->value('id');
         $this->actingAs($admin)->delete(route('admin.retail-stores.roles.remove', [$storeId, $assignmentId]))->assertRedirect();
         $this->assertSame([], app(TenantContextResolver::class)->retailStoreIds($manager));
+    }
+
+    public function test_super_admin_can_reassign_primary_owner_without_changing_linked_wholesale_account(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'owner-reassign@example.test');
+        $tierId = $this->priceTierId();
+
+        $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'code' => 'OWNER-SWAP',
+            'name' => 'Owner Swap',
+            'logo' => UploadedFile::fake()->image('owner-swap.png', 256, 256),
+            'price_tier_id' => $tierId,
+            'is_active' => '1',
+            'advertising_enabled' => '1',
+            'live_ads_enabled' => '1',
+            'coupons_enabled' => '1',
+            'manager_mode' => 'new',
+            'manager_name' => 'Original Owner',
+            'manager_email' => 'original-owner@example.test',
+            'manager_password' => 'password123',
+        ])->assertRedirect(route('admin.retail-stores.index'));
+
+        $storeId = (int) DB::table('stores')->where('code', 'OWNER-SWAP')->value('id');
+        $oldOwner = User::query()->where('email', 'original-owner@example.test')->firstOrFail();
+        $newOwner = $this->user('new-owner@example.test');
+        $managerRoleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+
+        $linkBefore = DB::table('retail_wholesale_accounts')
+            ->where('retail_store_id', $storeId)
+            ->first();
+        $this->assertNotNull($linkBefore);
+        $accountBefore = DB::table('b2b_accounts')
+            ->where('b2b_customer_id', $linkBefore->b2b_customer_id)
+            ->first();
+        $this->assertNotNull($accountBefore);
+
+        $this->actingAs($admin)->patch(route('admin.retail-stores.update', $storeId), [
+            'code' => 'OWNER-SWAP',
+            'name' => 'Owner Swap',
+            'price_tier_id' => $tierId,
+            'primary_owner_user_id' => $newOwner->id,
+            'is_active' => '1',
+            'advertising_enabled' => '1',
+            'live_ads_enabled' => '1',
+            'coupons_enabled' => '1',
+        ])->assertRedirect();
+
+        $linkAfter = DB::table('retail_wholesale_accounts')
+            ->where('retail_store_id', $storeId)
+            ->first();
+        $this->assertNotNull($linkAfter);
+        $accountAfter = DB::table('b2b_accounts')
+            ->where('b2b_customer_id', $linkAfter->b2b_customer_id)
+            ->first();
+        $this->assertNotNull($accountAfter);
+
+        $this->assertSame($newOwner->id, (int) $linkAfter->owner_user_id);
+        $this->assertSame((int) $linkBefore->b2b_customer_id, (int) $linkAfter->b2b_customer_id);
+        $this->assertSame((int) $accountBefore->id, (int) $accountAfter->id);
+        $this->assertSame((int) $accountBefore->price_tier_id, (int) $accountAfter->price_tier_id);
+
+        $this->assertDatabaseMissing('user_store_roles', [
+            'user_id' => $oldOwner->id,
+            'store_id' => $storeId,
+            'role_id' => $managerRoleId,
+        ]);
+        $this->assertDatabaseHas('user_store_roles', [
+            'user_id' => $newOwner->id,
+            'store_id' => $storeId,
+            'role_id' => $managerRoleId,
+        ]);
+
+        $merchantIdentity = app(RetailMerchantIdentityService::class);
+        $this->assertSame([], $merchantIdentity->retailStoreIds($oldOwner));
+        $this->assertSame([$storeId], $merchantIdentity->retailStoreIds($newOwner));
+        $this->assertSame([], app(CustomerDomainResolver::class)->entitledRetailStoreIds($oldOwner));
+        $this->assertSame([$storeId], app(CustomerDomainResolver::class)->entitledRetailStoreIds($newOwner));
+
+        $legacyCustomerId = (int) DB::table('b2b_customers')
+            ->where('id', $linkAfter->b2b_customer_id)
+            ->value('legacy_customer_id');
+        $newOwnerPlatform = DB::table('platform_customers')
+            ->where('user_id', $newOwner->id)
+            ->first();
+        $this->assertNotNull($newOwnerPlatform);
+        $this->assertTrue((bool) $newOwnerPlatform->is_active);
+        $this->assertNotSame($legacyCustomerId, (int) $newOwnerPlatform->legacy_customer_id);
+        $this->assertDatabaseHas('platform_customers', [
+            'user_id' => $oldOwner->id,
+            'legacy_customer_id' => $legacyCustomerId,
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('b2b_customers', [
+            'id' => $linkAfter->b2b_customer_id,
+            'email' => $newOwner->email,
+        ]);
+
+        $materialized = app(PlatformCustomerService::class)->materializeB2b($newOwner);
+        $this->assertNotNull($materialized);
+        $this->assertSame((int) $linkAfter->b2b_customer_id, (int) $materialized->id);
+        $this->assertSame(
+            1,
+            DB::table('b2b_customers')
+                ->where('id', $linkAfter->b2b_customer_id)
+                ->count(),
+        );
+
+        $audit = DB::table('audit_logs')
+            ->where('event', 'retail_store.owner_reassigned')
+            ->where('auditable_id', $storeId)
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($audit);
+        $before = json_decode((string) $audit->before, true, flags: JSON_THROW_ON_ERROR);
+        $after = json_decode((string) $audit->after, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame($oldOwner->id, (int) $before['owner_user_id']);
+        $this->assertSame($newOwner->id, (int) $after['owner_user_id']);
+        $this->assertSame((int) $linkBefore->b2b_customer_id, (int) $before['b2b_customer_id']);
+        $this->assertSame((int) $linkAfter->b2b_customer_id, (int) $after['b2b_customer_id']);
+    }
+
+    public function test_removing_primary_owner_manager_role_clears_owner_link_and_merchant_entitlement(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'owner-revoke@example.test');
+        $tierId = $this->priceTierId();
+
+        $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'code' => 'OWNER-REVOKE',
+            'name' => 'Owner Revoke',
+            'logo' => UploadedFile::fake()->image('owner-revoke.png', 256, 256),
+            'price_tier_id' => $tierId,
+            'is_active' => '1',
+            'manager_mode' => 'new',
+            'manager_name' => 'Revoked Owner',
+            'manager_email' => 'revoked-owner@example.test',
+            'manager_password' => 'password123',
+        ])->assertRedirect(route('admin.retail-stores.index'));
+
+        $storeId = (int) DB::table('stores')->where('code', 'OWNER-REVOKE')->value('id');
+        $owner = User::query()->where('email', 'revoked-owner@example.test')->firstOrFail();
+        $managerRoleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        $linkBefore = DB::table('retail_wholesale_accounts')
+            ->where('retail_store_id', $storeId)
+            ->first();
+        $this->assertNotNull($linkBefore);
+
+        $assignmentId = (int) DB::table('user_store_roles')
+            ->where('user_id', $owner->id)
+            ->where('store_id', $storeId)
+            ->where('role_id', $managerRoleId)
+            ->value('id');
+
+        $this->actingAs($admin)
+            ->delete(route('admin.retail-stores.roles.remove', [$storeId, $assignmentId]))
+            ->assertRedirect();
+
+        $linkAfter = DB::table('retail_wholesale_accounts')
+            ->where('retail_store_id', $storeId)
+            ->first();
+        $this->assertNotNull($linkAfter);
+        $this->assertNull($linkAfter->owner_user_id);
+        $this->assertSame((int) $linkBefore->b2b_customer_id, (int) $linkAfter->b2b_customer_id);
+        $this->assertDatabaseMissing('user_store_roles', [
+            'user_id' => $owner->id,
+            'store_id' => $storeId,
+            'role_id' => $managerRoleId,
+        ]);
+
+        $merchantIdentity = app(RetailMerchantIdentityService::class);
+        $this->assertSame([], $merchantIdentity->retailStoreIds($owner));
+        $this->assertSame([], app(CustomerDomainResolver::class)->entitledRetailStoreIds($owner));
+
+        $audit = DB::table('audit_logs')
+            ->where('event', 'retail_store.owner_revoked')
+            ->where('auditable_id', $storeId)
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($audit);
+        $before = json_decode((string) $audit->before, true, flags: JSON_THROW_ON_ERROR);
+        $after = json_decode((string) $audit->after, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame($owner->id, (int) $before['owner_user_id']);
+        $this->assertNull($after['owner_user_id']);
+        $this->assertSame((int) $linkBefore->b2b_customer_id, (int) $after['b2b_customer_id']);
     }
 
     public function test_retail_store_name_and_activation_control_linked_wholesale_account(): void

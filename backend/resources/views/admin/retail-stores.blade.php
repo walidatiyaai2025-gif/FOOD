@@ -25,7 +25,7 @@
 .store-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.store-assignments{display:grid;gap:8px}
 .store-assignment{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:#fbfcfd;flex-wrap:wrap}
 .store-inline-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.store-search{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
-.manager-mode-panel{padding:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}.store-logo{width:64px;height:64px;border-radius:14px;object-fit:cover;border:1px solid var(--foodex-border);background:#fff}.store-logo-placeholder{width:64px;height:64px;border-radius:14px;display:grid;place-items:center;border:1px dashed var(--foodex-border);background:#f8fafc;font-size:28px}
+.manager-mode-panel{padding:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}.commerce-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;padding:14px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}.commerce-status-item{display:grid;gap:4px}.commerce-status-item small{color:var(--foodex-muted)}.store-logo{width:64px;height:64px;border-radius:14px;object-fit:cover;border:1px solid var(--foodex-border);background:#fff}.store-logo-placeholder{width:64px;height:64px;border-radius:14px;display:grid;place-items:center;border:1px dashed var(--foodex-border);background:#f8fafc;font-size:28px}
 @media(max-width:720px){.store-panel{padding:var(--foodex-space-4)}.store-accordion summary{padding:14px}.store-accordion-body{padding:var(--foodex-space-4)}.store-logo,.store-logo-placeholder{width:52px;height:52px}.store-accordion-chevron{width:30px;height:30px}}
 </style>
 </head>
@@ -157,6 +157,7 @@
                                 @endif
                                 <div class="store-accordion-summary-text">
                                     <div class="store-meta"><h3>{{ $store->name }}</h3><span class="badge">{{ $store->code }}</span><span class="badge {{ $store->is_active?'active':'' }}">{{ $store->is_active?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div>
+                                    <small class="foodex-file-help">{{ $ar?'المالك / المدير الأساسي':'Primary Owner / Manager' }}: <strong>{{ $store->primary_owner_email ?: ($ar?'غير معيّن':'Not assigned') }}</strong></small>
                                     <small class="foodex-file-help">{{ $ar?'شريحة شراء المتجر من الجملة':'Store Wholesale purchasing tier' }}: <strong>{{ $store->wholesale_price_tier_name ?: ($ar?'غير محددة':'Not assigned') }}</strong></small>
                                     <small class="foodex-file-help">{{ $ar?'شريحة الجملة لعملاء المتجر':'Customer Wholesale tier' }}: <strong>{{ $store->customer_wholesale_price_tier_name ?: 'STANDARD' }}</strong></small>
                                 </div>
@@ -170,12 +171,47 @@
                                 </form>
                             </div>
 
+                            <div class="commerce-status" data-commerce-status="{{ $store->id }}">
+                                <div class="commerce-status-item">
+                                    <small>{{ $ar?'المالك / المدير الأساسي':'Primary Owner / Manager' }}</small>
+                                    <strong data-primary-owner="{{ $store->primary_owner_user_id ?: '' }}">{{ $store->primary_owner_name ?: ($ar?'غير معيّن':'Not assigned') }}</strong>
+                                    <span>{{ $store->primary_owner_email ?: '—' }}</span>
+                                </div>
+                                <div class="commerce-status-item">
+                                    <small>{{ $ar?'هوية تطبيق العميل':'Customer App identity' }}</small>
+                                    <strong>{{ $store->customer_app_identity_linked ? ($ar?'مرتبطة ونشطة':'Linked / active') : ($ar?'غير مرتبطة':'Not linked') }}</strong>
+                                </div>
+                                <div class="commerce-status-item">
+                                    <small>{{ $ar?'حساب الشراء من الجملة':'Wholesale purchasing account' }}</small>
+                                    <strong>{{ $store->wholesale_account_linked ? ($ar?'مرتبط':'Linked') : ($ar?'غير مرتبط':'Not linked') }}</strong>
+                                    @if($store->wholesale_b2b_customer_id)<span>B2B #{{ $store->wholesale_b2b_customer_id }}</span>@endif
+                                </div>
+                                <div class="commerce-status-item">
+                                    <small>{{ $ar?'شريحة شراء المتجر من الجملة':'Wholesale price tier' }}</small>
+                                    <strong>{{ $store->wholesale_price_tier_name ?: ($ar?'غير محددة':'Not assigned') }}</strong>
+                                </div>
+                                <div class="commerce-status-item">
+                                    <small>{{ $ar?'تسجيل الدخول':'Authentication' }}</small>
+                                    <strong>{{ $ar?'نفس حساب المستخدم في المنصة':'Same platform User login' }}</strong>
+                                    <span>{{ $ar?'لا توجد كلمة مرور منفصلة للجملة.':'No separate Wholesale password.' }}</span>
+                                </div>
+                            </div>
+
                         <form method="post" action="{{ route('admin.retail-stores.update',$store) }}" enctype="multipart/form-data" class="store-form-grid">
                             @csrf @method('patch')
                             <label>{{ $ar?'كود المتجر':'Store code' }}<input name="code" value="{{ $store->code }}" required maxlength="80" placeholder="STORE-01"></label>
                             <label>{{ $ar?'اسم المتجر':'Store name' }}<input name="name" value="{{ $store->name }}" required maxlength="255" placeholder="{{ $ar?'اسم المتجر':'Store name' }}"></label>
                             <label>{{ $ar?'استبدال الشعار':'Replace logo' }}<input name="logo" type="file" accept="image/jpeg,image/png,image/webp"><small class="foodex-file-help">{{ $ar?'اتركه فارغًا للاحتفاظ بالشعار الحالي.':'Leave empty to keep the current logo.' }}</small></label>
                             <label>{{ $ar?'شريحة تسعير طلبات الجملة':'Wholesale order price tier' }}<select name="price_tier_id" required><option value="">{{ $ar?'اختر شريحة التسعير':'Select price tier' }}</option>@foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((int)$store->wholesale_price_tier_id===(int)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach</select></label>
+                            <label>{{ $ar?'المالك / المدير الأساسي':'Primary Owner / Manager' }}
+                                <select name="primary_owner_user_id">
+                                    <option value="">{{ $ar?'اترك المالك الحالي بدون تغيير':'Keep current owner unchanged' }}</option>
+                                    @foreach($users as $managedUser)
+                                        <option value="{{ $managedUser->id }}" @selected((int)$store->primary_owner_user_id===(int)$managedUser->id)>{{ $managedUser->name }} · {{ $managedUser->email }}</option>
+                                    @endforeach
+                                </select>
+                                <small class="foodex-file-help">{{ $ar?'يستخدم هذا المستخدم نفس البريد وكلمة المرور في تطبيق العميل. إعادة التعيين تنقل صلاحية المدير الأساسية بدون إنشاء حساب جملة جديد.':'This User keeps the same email/password in Customer App. Reassignment moves the primary manager entitlement without creating another Wholesale account.' }}</small>
+                            </label>
                             <label>{{ $ar?'شريحة الجملة الافتراضية لعملاء المتجر':'Default Wholesale tier for customers registered here' }}<select name="default_customer_wholesale_price_tier_id"><option value="">{{ $ar?'STANDARD تلقائيًا':'Automatic STANDARD fallback' }}</option>@foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((int)$store->default_customer_wholesale_price_tier_id===(int)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach</select></label>
                             <label><span>{{ $ar?'الحالة':'Status' }}</span><span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($store->is_active)> {{ $ar?'نشط':'Active' }}</span></label>
                             <button class="foodex-action-primary" type="submit">✓ {{ $ar?'حفظ بيانات المتجر':'Save store details' }}</button>
@@ -186,7 +222,12 @@
                             <div class="store-assignments">
                                 @forelse($store->storeRoleAssignments as $assignment)
                                     <div class="store-assignment">
-                                        <span>{{ $assignment->user?->name }} · {{ $assignment->user?->email }} · <strong>{{ $assignment->role?->code }}</strong></span>
+                                        <span>
+                                            {{ $assignment->user?->name }} · {{ $assignment->user?->email }} · <strong>{{ $assignment->role?->code }}</strong>
+                                            @if((int)$store->primary_owner_user_id===(int)$assignment->user_id && $assignment->role?->code==='B2C_STORE_ADMIN')
+                                                <span class="badge active">{{ $ar?'المالك الأساسي':'Primary Owner' }}</span>
+                                            @endif
+                                        </span>
                                         <form method="post" action="{{ route('admin.retail-stores.roles.remove',[$store,$assignment->id]) }}">@csrf @method('delete')
                                             <button class="danger btn" type="submit">{{ $ar?'إزالة الإسناد':'Remove assignment' }}</button>
                                         </form>
