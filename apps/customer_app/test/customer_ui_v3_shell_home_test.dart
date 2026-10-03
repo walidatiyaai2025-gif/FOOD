@@ -89,7 +89,11 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('retail-shell-nav-orders')),
-        findsNothing,
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('retail-shell-nav-account')),
+        findsOneWidget,
       );
       expect(tester.takeException(), isNull);
 
