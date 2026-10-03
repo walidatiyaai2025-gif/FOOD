@@ -965,11 +965,12 @@ void main() {
     final storeCarousel = tester.widget<PageView>(
       find.byKey(const ValueKey('marketplace-store-carousel')),
     );
-    await storeCarousel.controller!.animateToPage(
+    storeCarousel.controller!.animateToPage(
       1,
       duration: const Duration(milliseconds: 250),
       curve: Curves.linear,
     );
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(
