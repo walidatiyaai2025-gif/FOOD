@@ -747,7 +747,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                         )
                       else
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 28),
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 160),
                           sliver: SliverGrid(
                             key: const ValueKey('marketplace-product-grid'),
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
