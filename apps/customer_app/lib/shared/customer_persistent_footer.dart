@@ -29,26 +29,18 @@ class CustomerPersistentFooterShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    final visible = media.viewInsets.bottom < 24;
-    final footerClearance = 42.0 + media.viewPadding.bottom;
+    final visible = MediaQuery.of(context).viewInsets.bottom < 24;
+
     return ColoredBox(
       color: CustomerUiColors.mint,
-      child: Stack(
+      child: Column(
         children: [
-          Positioned.fill(
-            child: child,
-          ),
+          Expanded(child: child),
           if (visible)
-            PositionedDirectional(
-              start: CustomerUiSpacing.sm,
-              end: CustomerUiSpacing.sm,
-              bottom: footerClearance,
-              child: CustomerPersistentFooter(
-                commerceContext: commerceContext,
-                activeDestination: activeDestination,
-                keyPrefix: keyPrefix,
-              ),
+            CustomerPersistentFooterDock(
+              commerceContext: commerceContext,
+              activeDestination: activeDestination,
+              keyPrefix: keyPrefix,
             ),
         ],
       ),
@@ -185,7 +177,7 @@ class CustomerPersistentFooter extends StatelessWidget {
     if (commerceContext.isRetail) {
       switch (destination) {
         case CustomerFooterDestination.home:
-          return CustomerRouteLocations.retailHome(commerceContext);
+          return CustomerRoutePaths.marketplace;
         case CustomerFooterDestination.products:
           return Uri(
             path: CustomerRoutePaths.products,
