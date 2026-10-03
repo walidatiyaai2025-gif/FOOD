@@ -8,6 +8,7 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/engagement/live_ad_service.dart';
+import '../../shared/customer_favorite_button.dart';
 import 'storefront_design_system.dart';
 
 typedef WholesaleContextCallback = void Function(int? retailStoreId);
@@ -1206,7 +1207,7 @@ class _RetailProductGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final count = MediaQuery.sizeOf(context).width < 350 ? 2 : 3;
+    final count = MediaQuery.sizeOf(context).width < 350 ? 3 : 4;
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       shrinkWrap: true,
@@ -1216,7 +1217,7 @@ class _RetailProductGrid extends StatelessWidget {
         crossAxisCount: count,
         crossAxisSpacing: 9,
         mainAxisSpacing: 10,
-        childAspectRatio: count == 2 ? .68 : .52,
+        childAspectRatio: count == 3 ? .56 : .48,
       ),
       itemBuilder: (context, index) {
         final product = products[index];
@@ -1314,14 +1315,18 @@ class _RetailProductGrid extends StatelessWidget {
 class RetailProductDetailsDesignScreen extends StatefulWidget {
   const RetailProductDetailsDesignScreen({
     required this.location,
+    required this.session,
     required this.catalogApi,
     required this.actionApi,
+    this.favoritesApi,
     super.key,
   });
 
   final String location;
+  final CustomerSession session;
   final B2cCatalogApi catalogApi;
   final CustomerActionApi actionApi;
+  final B2cRetailFavoritesApi? favoritesApi;
 
   @override
   State<RetailProductDetailsDesignScreen> createState() =>
@@ -1367,9 +1372,13 @@ class _RetailProductDetailsDesignScreenState
                     FoodexTopBar(
                       title: 'تفاصيل المنتج',
                       actions: [
-                        IconButton(
-                          onPressed: () {},
-                          icon: const Icon(Icons.favorite_border_rounded),
+                        CustomerFavoriteButton(
+                          api: widget.favoritesApi,
+                          storeId: storeId,
+                          productId: productId,
+                          isAuthenticated: widget.session.isAuthenticated,
+                          loginRoute:
+                              '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
                         ),
                       ],
                     ),
