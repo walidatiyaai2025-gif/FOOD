@@ -1427,13 +1427,6 @@ FoodexPalette _wholesalePalette(Map<String, dynamic> theme) {
   return FoodexPalette.wholesale;
 }
 
-Color _colorFromHex(Object? value, Color fallback) {
-  final text = value?.toString().trim() ?? '';
-  final match = RegExp(r'^#([0-9a-fA-F]{6})$').firstMatch(text);
-  if (match == null) return fallback;
-  return Color(int.parse('FF' + match.group(1)!, radix: 16));
-}
-
 String _defaultWholesaleSectionTitle(String type) {
   switch (type) {
     case 'categories':
