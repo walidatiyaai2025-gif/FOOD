@@ -441,13 +441,15 @@ class _ScopedCustomerOrdersApi implements CustomerOrdersApi {
     int page = 1,
     int perPage = 20,
     String? status,
+    String? channel,
     CustomerOrderContext? context,
   }) =>
       delegate.orders(
         page: page,
         perPage: perPage,
         status: status,
-        context: context ?? this.context,
+        channel: channel,
+        context: context ?? (channel == null ? this.context : null),
       );
 
   @override
