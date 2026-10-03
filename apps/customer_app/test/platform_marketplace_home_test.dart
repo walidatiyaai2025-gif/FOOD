@@ -959,7 +959,8 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
     final storeCarousel = tester.widget<PageView>(
       find.byKey(const ValueKey('marketplace-store-carousel')),
