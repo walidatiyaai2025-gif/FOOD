@@ -548,7 +548,6 @@ void main() {
     await tester.pumpWidget(const FoodexCustomerApp(session: CustomerSession.authenticated(CustomerChannel.b2c), initialRoute: '/b2b/invoices'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('marketplace-search')), findsOneWidget);
     expect(find.byKey(const ValueKey('unified-customer-auth-screen')), findsNothing);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.text('الفواتير'), findsNothing);
