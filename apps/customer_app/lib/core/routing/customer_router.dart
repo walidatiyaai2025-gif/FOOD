@@ -364,6 +364,7 @@ class CustomerAppRouter {
             definition: definition,
             location: requestedLocation,
             session: session,
+            currentSession: currentSession,
             catalogApi: b2cCatalogApi,
             accountApi: b2cAccountApi,
             actionApi: actionApi,
