@@ -70,7 +70,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     // stores missing from placements are appended from the public store list.
     // Authentication never locks the customer into the current store.
     final configuredRetail = _rows(data['retail_banners']);
-    _retailStoreFallback =
+    _retailStoreFallback ??=
         await _loadRetailStoreFallback(baseUrl);
     final retailCarousel = _mergeRetailStoreCarousel(
       configuredRetail,
