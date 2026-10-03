@@ -432,39 +432,6 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
       ).toString();
 }
 
-class _ScopedCustomerOrdersApi implements CustomerOrdersApi {
-  const _ScopedCustomerOrdersApi(this.delegate, this.context);
-
-  final CustomerOrdersApi delegate;
-  final CustomerOrderContext context;
-
-  @override
-  Future<CustomerOrderPage> orders({
-    int page = 1,
-    int perPage = 20,
-    String? status,
-    String? channel,
-    CustomerOrderContext? context,
-  }) =>
-      delegate.orders(
-        page: page,
-        perPage: perPage,
-        status: status,
-        channel: channel,
-        context: context ?? (channel == null ? this.context : null),
-      );
-
-  @override
-  Future<CustomerOrderDetails> order({
-    required int orderId,
-    CustomerOrderContext? context,
-  }) =>
-      delegate.order(
-        orderId: orderId,
-        context: context ?? this.context,
-      );
-}
-
 class _RetailContextMissing extends StatelessWidget {
   const _RetailContextMissing();
 
