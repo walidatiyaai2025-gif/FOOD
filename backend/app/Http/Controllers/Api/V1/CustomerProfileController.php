@@ -734,14 +734,35 @@ class CustomerProfileController extends Controller
     ): array {
         $channel ??= $customer instanceof B2bCustomer ? 'b2b' : 'b2c';
         $storeId ??= $this->favoriteStoreId($customer, $channel);
-        $legacyCustomerId = app(CustomerDomainResolver::class)->legacyId($customer);
 
-        return Product::query()
+        $query = Product::query()
             ->select('products.*')
-            ->join('customer_favorites', 'customer_favorites.product_id', '=', 'products.id')
-            ->where('customer_favorites.customer_id', $legacyCustomerId)
-            ->whereExists(function ($query) use ($storeId): void {
-                $query->selectRaw('1')
+            ->join('customer_favorites', 'customer_favorites.product_id', '=', 'products.id');
+
+        if ($customer instanceof B2cCustomer) {
+            $legacyCustomerId = $customer->legacy_customer_id;
+            $query->where(function ($favorites) use ($customer, $legacyCustomerId): void {
+                $favorites->where(
+                    'customer_favorites.b2c_customer_id',
+                    $customer->getKey(),
+                );
+                if ($legacyCustomerId !== null) {
+                    $favorites->orWhere(
+                        'customer_favorites.customer_id',
+                        (int) $legacyCustomerId,
+                    );
+                }
+            });
+        } else {
+            $query->where(
+                'customer_favorites.customer_id',
+                app(CustomerDomainResolver::class)->legacyId($customer),
+            );
+        }
+
+        return $query
+            ->whereExists(function ($storeProducts) use ($storeId): void {
+                $storeProducts->selectRaw('1')
                     ->from('store_products')
                     ->whereColumn('store_products.product_id', 'products.id')
                     ->where('store_products.store_id', $storeId)
