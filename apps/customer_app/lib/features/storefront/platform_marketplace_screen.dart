@@ -429,6 +429,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+        extendBody: true,
         backgroundColor: const Color(0xFFF8FAF9),
         body: SafeArea(
           child: FutureBuilder<Map<String, dynamic>>(
