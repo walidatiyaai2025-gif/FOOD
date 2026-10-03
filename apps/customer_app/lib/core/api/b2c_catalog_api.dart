@@ -267,7 +267,12 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw B2cCatalogException('http_${response.statusCode}');
+      var code = 'http_${response.statusCode}';
+      if (body is Map && body['code'] is String) {
+        final serverCode = (body['code'] as String).trim();
+        if (serverCode.isNotEmpty) code = serverCode;
+      }
+      throw B2cCatalogException(code);
     }
     return body;
   }
@@ -281,5 +286,12 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
 
 class B2cCatalogException implements Exception {
   const B2cCatalogException(this.code);
+
+  static const String selfStorePurchaseNotAllowed =
+      'SELF_STORE_PURCHASE_NOT_ALLOWED';
+
   final String code;
+
+  bool get isSelfStorePurchaseNotAllowed =>
+      code == selfStorePurchaseNotAllowed;
 }

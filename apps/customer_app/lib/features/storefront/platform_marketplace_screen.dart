@@ -203,6 +203,16 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant PlatformMarketplaceScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.session.accessToken != widget.session.accessToken ||
+        oldWidget.session.isAuthenticated != widget.session.isAuthenticated) {
+      _retailStoreFallback = null;
+      _future = _load();
+    }
+  }
+
+  @override
   void dispose() {
     _bannerTimer?.cancel();
     _bannerController.dispose();

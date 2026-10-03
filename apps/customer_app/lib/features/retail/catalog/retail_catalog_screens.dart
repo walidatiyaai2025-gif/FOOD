@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/api/b2c_catalog_api.dart';
 import '../../../core/localization/app_translations.dart';
+import '../../../core/routing/customer_routes.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
 
 typedef RetailProductsNavigation = void Function(
@@ -122,7 +123,10 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError || !snapshot.hasData) {
-            return _CatalogErrorState(onRetry: _reload);
+            return _CatalogErrorState(
+              error: snapshot.error,
+              onRetry: _reload,
+            );
           }
 
           final data = snapshot.data!;
@@ -291,11 +295,9 @@ class _RetailCatalogCategoriesScreenState
             }
 
             if (snapshot.hasError || !snapshot.hasData) {
-              return CustomerStateView(
-                kind: CustomerStateKind.error,
-                title: context.tr('customer.error.offline'),
-                actionLabel: context.tr('customer.action.retry'),
-                onAction: _reload,
+              return _CatalogErrorState(
+                error: snapshot.error,
+                onRetry: _reload,
               );
             }
 
@@ -412,11 +414,9 @@ class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen> {
             }
 
             if (snapshot.hasError || !snapshot.hasData) {
-              return CustomerStateView(
-                kind: CustomerStateKind.error,
-                title: context.tr('customer.error.offline'),
-                actionLabel: context.tr('customer.action.retry'),
-                onAction: _reload,
+              return _CatalogErrorState(
+                error: snapshot.error,
+                onRetry: _reload,
               );
             }
 
@@ -619,6 +619,7 @@ class _RetailCatalogProductsScreenState
                   }
                   if (snapshot.hasError || !snapshot.hasData) {
                     return _CatalogErrorState(
+                      error: snapshot.error,
                       onRetry: () => setState(() => _future = _load()),
                     );
                   }
@@ -755,6 +756,7 @@ class _RetailCatalogProductScreenState
             }
             if (snapshot.hasError || !snapshot.hasData) {
               return _CatalogErrorState(
+                error: snapshot.error,
                 onRetry: () => setState(() => _future = _load()),
               );
             }
@@ -1212,29 +1214,55 @@ class _EmptyMessage extends StatelessWidget {
 }
 
 class _CatalogErrorState extends StatelessWidget {
-  const _CatalogErrorState({required this.onRetry});
+  const _CatalogErrorState({
+    required this.onRetry,
+    this.error,
+  });
 
   final VoidCallback onRetry;
+  final Object? error;
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                context.tr('customer.error.action_failed'),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                key: const ValueKey('retail-catalog-retry'),
-                onPressed: onRetry,
-                child: Text(context.tr('customer.action.retry')),
-              ),
-            ],
+  Widget build(BuildContext context) {
+    final catalogError = error;
+    if (catalogError is B2cCatalogException &&
+        catalogError.isSelfStorePurchaseNotAllowed) {
+      return KeyedSubtree(
+        key: const ValueKey('retail-own-store-blocked'),
+        child: CustomerStateView(
+          kind: CustomerStateKind.error,
+          title: context.tr('customer.store.own_purchase_blocked.title'),
+          message: context.tr('customer.store.own_purchase_blocked.body'),
+          actionLabel:
+              context.tr('customer.store.own_purchase_blocked.action'),
+          onAction: () => Navigator.of(context).pushNamedAndRemoveUntil(
+            CustomerRoutePaths.marketplace,
+            (route) => false,
           ),
+          icon: Icons.storefront_outlined,
         ),
       );
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              context.tr('customer.error.action_failed'),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              key: const ValueKey('retail-catalog-retry'),
+              onPressed: onRetry,
+              child: Text(context.tr('customer.action.retry')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

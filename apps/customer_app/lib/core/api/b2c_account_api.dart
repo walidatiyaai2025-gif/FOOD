@@ -331,7 +331,12 @@ class HttpB2cAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
       throw const B2cAccountException('session_expired');
     }
     if (response.statusCode == 403) {
-      throw const B2cAccountException('forbidden');
+      final serverCode = body is Map && body['code'] is String
+          ? (body['code'] as String).trim()
+          : '';
+      throw B2cAccountException(
+        serverCode.isEmpty ? 'forbidden' : serverCode,
+      );
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw B2cAccountException('http_${response.statusCode}');

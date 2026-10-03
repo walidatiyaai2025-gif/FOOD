@@ -461,7 +461,10 @@ Object? _decodeResponse(http.Response response) {
 
   if (response.statusCode < 200 || response.statusCode >= 300) {
     var code = 'http_${response.statusCode}';
-    if (body is Map && body['message'] is String) {
+    if (body is Map && body['code'] is String) {
+      final serverCode = (body['code'] as String).trim();
+      if (serverCode.isNotEmpty) code = serverCode;
+    } else if (body is Map && body['message'] is String) {
       code = body['message'] as String;
     }
     throw RetailCommerceException(
