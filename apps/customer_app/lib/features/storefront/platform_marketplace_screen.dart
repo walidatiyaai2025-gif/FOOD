@@ -363,7 +363,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     final commerceContext = CustomerCommerceContext(
       channel: CustomerCommerceChannel.wholesale,
       storeId: storeId,
-      source: CustomerCommerceSource.marketplace,
+      source: CustomerCommerceSource.wholesaleEntry,
     );
     Navigator.of(context).pushNamed(
       CustomerRouteLocations.wholesaleProduct(
