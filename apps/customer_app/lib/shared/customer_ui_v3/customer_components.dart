@@ -346,6 +346,8 @@ class CustomerProductCard extends StatelessWidget {
     this.imageUrl,
     this.fallbackAsset,
     this.categoryLabel,
+    this.brandLabel,
+    this.brandImageUrl,
     this.oldPriceLabel,
     this.discountLabel,
     this.favorite = false,
@@ -362,6 +364,8 @@ class CustomerProductCard extends StatelessWidget {
   final String? imageUrl;
   final String? fallbackAsset;
   final String? categoryLabel;
+  final String? brandLabel;
+  final String? brandImageUrl;
   final String? oldPriceLabel;
   final String? discountLabel;
   final bool favorite;
@@ -414,6 +418,38 @@ class CustomerProductCard extends StatelessWidget {
                             selected: favorite,
                             semanticLabel: favoriteSemanticLabel,
                             onPressed: onFavorite,
+                          ),
+                        ),
+                      if (brandImageUrl?.trim().isNotEmpty == true)
+                        PositionedDirectional(
+                          bottom: CustomerUiSpacing.xs,
+                          end: CustomerUiSpacing.xs,
+                          child: Tooltip(
+                            message: brandLabel?.trim() ?? '',
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              padding: const EdgeInsets.all(3),
+                              clipBehavior: Clip.antiAlias,
+                              decoration: BoxDecoration(
+                                color: CustomerUiColors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: CustomerUiColors.border,
+                                ),
+                              ),
+                              child: ClipOval(
+                                child: Image.network(
+                                  brandImageUrl!,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.sell_outlined,
+                                    size: 18,
+                                    color: CustomerUiColors.deepGreenSoft,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                     ],
