@@ -29,7 +29,7 @@ class PlatformMarketplaceScreen extends StatefulWidget {
   final http.Client? client;
   final ValueChanged<Locale>? onLocaleChanged;
   final CustomerSession Function()? sessionProvider;
-  final CustomerCommerceContext Function()? commerceContextProvider;
+  final CustomerCommerceContext? Function()? commerceContextProvider;
   final MarketplaceBarcodeScanner barcodeScanner;
 
   @override
