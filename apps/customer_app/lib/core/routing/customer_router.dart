@@ -57,6 +57,8 @@ class CustomerAppRouter {
     this.marketplaceClient,
     this.marketplaceBarcodeScanner,
     this.currentSession,
+    this.currentCommerceContext,
+    this.onCommerceContextChanged,
   });
 
   final CustomerSession session;
@@ -69,6 +71,8 @@ class CustomerAppRouter {
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
   final CustomerSession Function()? currentSession;
+  final CustomerCommerceContext Function()? currentCommerceContext;
+  final ValueChanged<CustomerCommerceContext>? onCommerceContextChanged;
   final CustomerActionApi actionApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
@@ -144,6 +148,12 @@ class CustomerAppRouter {
             requested,
             requestedLocation,
           );
+
+    final routedCommerceContext =
+        CustomerCommerceContext.tryParseLocation(redirectLocation);
+    if (routedCommerceContext != null) {
+      onCommerceContextChanged?.call(routedCommerceContext);
+    }
 
     return _pageRoute(
       settings: RouteSettings(
@@ -345,6 +355,7 @@ class CustomerAppRouter {
             location: requestedLocation,
             session: session,
             currentSession: currentSession,
+            currentCommerceContext: currentCommerceContext,
             catalogApi: b2cCatalogApi,
             accountApi: b2cAccountApi,
             actionApi: actionApi,
