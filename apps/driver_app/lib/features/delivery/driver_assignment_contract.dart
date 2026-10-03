@@ -102,7 +102,8 @@ class DriverAssignment {
   final DriverInvoice? invoice;
 
   bool get hasNavigation =>
-      navigationLatitude != null && navigationLongitude != null;
+      (navigationLatitude != null && navigationLongitude != null) ||
+      address.trim().isNotEmpty;
 }
 
 abstract interface class DriverAssignmentRepository {
