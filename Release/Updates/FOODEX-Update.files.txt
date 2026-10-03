@@ -400,6 +400,7 @@ backend/config/assistant.php
 backend/config/driver_location.php
 backend/config/foodex.php
 backend/config/permissions.php
+backend/config/ui_translations.php
 backend/database/migrations/2026_09_27_160800_add_brand_image_path.php
 backend/database/migrations/2026_09_27_193800_grant_b2c_store_admin_full_store_permissions.php
 backend/database/migrations/2026_09_27_204500_enforce_channel_role_isolation.php
@@ -439,6 +440,7 @@ backend/database/migrations/2026_10_01_123500_harden_driver_delivery_proof_ledge
 backend/database/migrations/2026_10_01_203000_add_retail_wholesale_owner_identity.php
 backend/database/migrations/2026_10_01_203800_scope_customer_addresses_by_commerce_channel.php
 backend/database/migrations/2026_10_02_123500_add_schedule_to_storefront_banners.php
+backend/database/migrations/2026_10_03_083000_reconcile_retail_merchant_canonical_identity.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/ProductDemoSeeder.php
