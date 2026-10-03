@@ -8,9 +8,11 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/api/wholesale_commerce_api.dart';
 import '../../core/auth/customer_session.dart';
+import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
+import '../../shared/customer_persistent_footer.dart';
 import 'retail_multistore_screens.dart';
 import 'professional_store_selector_screen.dart';
 import 'marketplace_barcode_scanner.dart';
@@ -86,6 +88,21 @@ class MultiStoreDesignScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final commerceContext =
+        CustomerCommerceContext.tryParseLocation(location);
+
+    Widget withFooter(
+      Widget child,
+      CustomerFooterDestination destination,
+    ) {
+      if (commerceContext == null) return child;
+      return CustomerPersistentFooterShell(
+        commerceContext: commerceContext,
+        activeDestination: destination,
+        child: child,
+      );
+    }
+
     switch (definition.pattern) {
       case CustomerRoutePaths.marketplace:
         return PlatformMarketplaceScreen(
@@ -108,56 +125,83 @@ class MultiStoreDesignScreen extends StatelessWidget {
         );
       case CustomerRoutePaths.home:
       case CustomerRoutePaths.retailHome:
-        return RetailStorefrontDesignScreen(
-          location: location,
-          catalogApi: catalogApi,
-          storefrontApi: storefrontApi,
-          actionApi: actionApi,
+        return withFooter(
+          RetailStorefrontDesignScreen(
+            location: location,
+            catalogApi: catalogApi,
+            storefrontApi: storefrontApi,
+            actionApi: actionApi,
+          ),
+          CustomerFooterDestination.home,
         );
       case CustomerRoutePaths.productDetails:
       case CustomerRoutePaths.retailProductDetails:
-        return RetailProductDetailsDesignScreen(
-          location: location,
-          catalogApi: catalogApi,
-          actionApi: actionApi,
+        return withFooter(
+          RetailProductDetailsDesignScreen(
+            location: location,
+            catalogApi: catalogApi,
+            actionApi: actionApi,
+          ),
+          CustomerFooterDestination.products,
         );
       case CustomerRoutePaths.b2bHome:
       case CustomerRoutePaths.b2bProducts:
-        return WholesaleHomeDesignScreen(
-          location: location,
-          session: session,
-          api: b2bApi,
-          storefrontApi: storefrontApi,
-          actionApi: actionApi,
-          pendingActionStore: pendingActionStore,
+        return withFooter(
+          WholesaleHomeDesignScreen(
+            location: location,
+            session: session,
+            api: b2bApi,
+            storefrontApi: storefrontApi,
+            actionApi: actionApi,
+            pendingActionStore: pendingActionStore,
+            showBottomNavigation: false,
+          ),
+          definition.pattern == CustomerRoutePaths.b2bHome
+              ? CustomerFooterDestination.home
+              : CustomerFooterDestination.products,
         );
       case CustomerRoutePaths.b2bProductDetails:
-        return WholesaleProductDetailsDesignScreen(
-          location: location,
-          session: session,
-          api: b2bApi,
-          storefrontApi: storefrontApi,
-          actionApi: actionApi,
-          pendingActionStore: pendingActionStore,
+        return withFooter(
+          WholesaleProductDetailsDesignScreen(
+            location: location,
+            session: session,
+            api: b2bApi,
+            storefrontApi: storefrontApi,
+            actionApi: actionApi,
+            pendingActionStore: pendingActionStore,
+          ),
+          CustomerFooterDestination.products,
         );
       case CustomerRoutePaths.b2bCart:
-        return WholesaleCartDesignScreen(
-          location: location,
-          api: b2bApi,
-          commerceApi: wholesaleApi,
+        return withFooter(
+          WholesaleCartDesignScreen(
+            location: location,
+            api: b2bApi,
+            commerceApi: wholesaleApi,
+          ),
+          CustomerFooterDestination.cart,
         );
       case CustomerRoutePaths.b2bCheckout:
-        return WholesaleCheckoutDesignScreen(
-          location: location,
-          storefrontApi: storefrontApi,
-          commerceApi: wholesaleApi,
+        return withFooter(
+          WholesaleCheckoutDesignScreen(
+            location: location,
+            storefrontApi: storefrontApi,
+            commerceApi: wholesaleApi,
+          ),
+          CustomerFooterDestination.cart,
         );
       case CustomerRoutePaths.b2bOrders:
-        return WholesaleOrdersDesignScreen(api: b2bApi);
+        return withFooter(
+          WholesaleOrdersDesignScreen(api: b2bApi),
+          CustomerFooterDestination.orders,
+        );
       case CustomerRoutePaths.b2bOrderDetails:
-        return WholesaleOrderDetailsDesignScreen(
-          location: location,
-          api: b2bApi,
+        return withFooter(
+          WholesaleOrderDetailsDesignScreen(
+            location: location,
+            api: b2bApi,
+          ),
+          CustomerFooterDestination.orders,
         );
       default:
         return const SizedBox.shrink();
