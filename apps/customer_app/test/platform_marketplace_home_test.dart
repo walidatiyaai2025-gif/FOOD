@@ -935,6 +935,139 @@ void main() {
 
 
   testWidgets(
+      'marketplace renders Dashboard offers and featured products as separate home sections',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final client = MockClient((request) async => http.Response(
+          jsonEncode({
+            'store': {
+              'id': 70,
+              'name': 'FOODEX Wholesale',
+              'channel': 'b2b',
+            },
+            'hero': null,
+            'categories': const [],
+            'sections': [
+              {
+                'key': 'offers',
+                'type': 'offers',
+                'title_ar': 'عروض قوية',
+                'title_en': 'Strong offers',
+                'sort_order': 30,
+                'config': {'limit': 6},
+              },
+              {
+                'key': 'featured_products',
+                'type': 'featured_products',
+                'title_ar': 'مختارات فودكس',
+                'title_en': 'FOODEX picks',
+                'sort_order': 40,
+                'config': {
+                  'limit': 2,
+                  'product_ids': [43, 42],
+                },
+              },
+            ],
+            'offers': [
+              {
+                'id': 91,
+                'name': 'خصم الجملة',
+                'type': 'percentage',
+                'value': 15,
+              },
+            ],
+            'products': {
+              'data': [
+                {
+                  'id': 42,
+                  'name': 'API Water',
+                  'unit_price': 12.5,
+                  'currency': 'EGP',
+                  'image_url': null,
+                },
+                {
+                  'id': 43,
+                  'name': 'API Rice',
+                  'unit_price': 8.75,
+                  'currency': 'EGP',
+                  'image_url': null,
+                },
+              ],
+            },
+            'retail_banners': const [],
+            'currency': 'EGP',
+          }),
+          200,
+        ));
+
+    await tester.pumpWidget(
+      AppTranslations(
+        locale: const Locale('ar'),
+        overrides: const {},
+        child: MaterialApp(
+          locale: const Locale('ar'),
+          home: PlatformMarketplaceScreen(
+            session: const CustomerSession.platformCustomer(
+              accessToken: 'signed-in-token',
+            ),
+            onPlatformRegistered: (_) {},
+            client: client,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('marketplace-offers-section')),
+      findsOneWidget,
+    );
+    expect(find.text('عروض قوية'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('marketplace-offer-91')),
+      findsOneWidget,
+    );
+    expect(find.text('15%'), findsOneWidget);
+
+    expect(
+      find.byKey(const ValueKey('marketplace-featured-section')),
+      findsOneWidget,
+    );
+    expect(find.text('مختارات فودكس'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('marketplace-featured-product-card-43'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('marketplace-featured-product-card-42'),
+      ),
+      findsOneWidget,
+    );
+
+    final firstFeatured = tester.getTopLeft(
+      find.byKey(
+        const ValueKey('marketplace-featured-product-card-43'),
+      ),
+    );
+    final secondFeatured = tester.getTopLeft(
+      find.byKey(
+        const ValueKey('marketplace-featured-product-card-42'),
+      ),
+    );
+    expect(firstFeatured.dx, greaterThan(secondFeatured.dx));
+  });
+
+
+  testWidgets(
       'marketplace reference home binds authoritative API content at narrow phone width',
       (tester) async {
     tester.view.physicalSize = const Size(320, 780);
