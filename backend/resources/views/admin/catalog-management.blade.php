@@ -79,33 +79,25 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 @empty<span class="muted">{{ app()->getLocale()==='ar'?'لا توجد صور':'No images' }}</span>@endforelse
 </div>
 </td><td>
-@php
-    $editCategories = $categories->filter(fn($c) => (int)$c->catalog_id === (int)$p->catalog_id || (int)$c->id === (int)$p->category_id);
-    $editBrands = $brands->filter(function($b) use ($p) {
+
+<form class="inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.products.update',$p->id) }}">@csrf @method('PATCH')
+<input name="sku" value="{{ $p->sku }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: PROD-001':'e.g. PROD-001' }}" required><input name="name" value="{{ $p->name }}" placeholder="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}" required>
+<select name="category_id"><option value="">—</option>@foreach($categories->filter(fn($c) => (int)$c->catalog_id === (int)$p->catalog_id || (int)$c->id === (int)$p->category_id) as $c)<option value="{{ $c->id }}" @selected($p->category_id==$c->id)>{{ $c->name }}</option>@endforeach</select>
+<select name="brand_id"><option value="">—</option>@foreach($brands->filter(function($b) use ($p) {
         if ((int)$b->id === (int)$p->brand_id) return true;
         $scope = (string)($b->scope ?? 'global');
         if ($scope === 'global') return true;
         if ($scope === 'b2b') return strtolower((string)$p->catalog_channel) === 'b2b';
-        return $scope === 'store'
-            && strtolower((string)$p->catalog_channel) === 'b2c'
-            && (int)$b->store_id === (int)$p->catalog_store_id;
-    });
-    $editUnits = $units->filter(function($u) use ($p) {
+        return $scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$b->store_id === (int)$p->catalog_store_id;
+    }) as $b)<option value="{{ $b->id }}" @selected($p->brand_id==$b->id)>{{ $b->name }}</option>@endforeach</select>
+<select name="unit_id">@foreach($units->filter(function($u) use ($p) {
         if ((int)$u->id === (int)$p->unit_id) return true;
         $scope = (string)($u->scope ?? 'global');
         if ($scope === 'global') return true;
         if ($scope === 'b2b') return strtolower((string)$p->catalog_channel) === 'b2b';
-        return $scope === 'store'
-            && strtolower((string)$p->catalog_channel) === 'b2c'
-            && (int)$u->store_id === (int)$p->catalog_store_id;
-    });
-@endphp
-<form class="inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.products.update',$p->id) }}">@csrf @method('PATCH')
-<input name="sku" value="{{ $p->sku }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: PROD-001':'e.g. PROD-001' }}" required><input name="name" value="{{ $p->name }}" placeholder="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}" required>
-<select name="category_id"><option value="">—</option>@foreach($editCategories as $c)<option value="{{ $c->id }}" @selected($p->category_id==$c->id)>{{ $c->name }}</option>@endforeach</select>
-<select name="brand_id"><option value="">—</option>@foreach($editBrands as $b)<option value="{{ $b->id }}" @selected($p->brand_id==$b->id)>{{ $b->name }}</option>@endforeach</select>
-<select name="unit_id">@foreach($editUnits as $u)<option value="{{ $u->id }}" @selected($p->unit_id==$u->id)>{{ $u->name }}</option>@endforeach</select>
-<input type="hidden" name="description" value="{{ $p->description }}"><input class="image-upload js-catalog-image-preview" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple><label class="check"><input type="checkbox" name="is_active" value="1" @checked($p->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></form>
+        return $scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$u->store_id === (int)$p->catalog_store_id;
+    }) as $u)<option value="{{ $u->id }}" @selected($p->unit_id==$u->id)>{{ $u->name }}</option>@endforeach</select>
+<textarea name="description" placeholder="{{ app()->getLocale()==='ar'?'وصف المنتج':'Product description' }}">{{ $p->description }}</textarea><input class="image-upload js-catalog-image-preview" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple><label class="check"><input type="checkbox" name="is_active" value="1" @checked($p->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></form>
 </td><td><form class="inline-form" method="post" action="{{ route('admin.catalog.products.assign',$p->id) }}">@csrf
 <select name="store_id" required>@foreach($stores->where('id',$p->catalog_store_id) as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select><input type="number" step=".001" min="0" name="price" placeholder="{{ app()->getLocale()==='ar'?'السعر':'Price' }}"><input type="hidden" name="is_active" value="1"><button class="btn">{{ app()->getLocale()==='ar'?'ربط/تحديث':'Assign' }}</button></form></td>
 <td><form method="post" action="{{ route('admin.catalog.products.destroy',$p->id) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'تأكيد الحذف؟':'Delete product?' }}')">@csrf @method('DELETE')<button class="btn danger">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form></td></tr>
