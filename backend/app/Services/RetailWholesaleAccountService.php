@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\DB;
 
 final class RetailWholesaleAccountService
 {
-    public function __construct(private readonly B2bCustomerService $customers) {}
+    public function __construct(
+        private readonly B2bCustomerService $customers,
+        private readonly PlatformCustomerService $platformCustomers,
+    ) {}
 
     public function ensureForStore(Store $store, ?int $priceTierId = null, ?User $owner = null): B2bCustomer
     {
@@ -33,7 +36,16 @@ final class RetailWholesaleAccountService
                 }
 
                 $customer = B2bCustomer::query()->findOrFail((int) $existingCustomerId);
-                $this->syncIdentity($locked, $customer, $priceTierId);
+                $this->syncIdentity($locked, $customer, $priceTierId, $owner);
+
+                if ($owner instanceof User) {
+                    $this->platformCustomers->reconcileRetailMerchantIdentity(
+                        $owner,
+                        $customer,
+                        $locked,
+                        'dashboard',
+                    );
+                }
 
                 return $customer->refresh();
             }
@@ -41,7 +53,7 @@ final class RetailWholesaleAccountService
             $customer = $this->customers->create([
                 'name' => (string) $locked->name,
                 'phone' => null,
-                'email' => null,
+                'email' => $owner?->email,
             ]);
 
             B2bAccount::query()->create([
@@ -62,6 +74,17 @@ final class RetailWholesaleAccountService
                 'updated_at' => now(),
             ]);
 
+            $this->syncIdentity($locked, $customer, $priceTierId, $owner);
+
+            if ($owner instanceof User) {
+                $this->platformCustomers->reconcileRetailMerchantIdentity(
+                    $owner,
+                    $customer,
+                    $locked,
+                    'dashboard',
+                );
+            }
+
             return $customer->refresh();
         }, 3);
     }
@@ -80,23 +103,39 @@ final class RetailWholesaleAccountService
         return $storeId === null ? null : (int) $storeId;
     }
 
-    private function syncIdentity(Store $store, B2bCustomer $customer, ?int $priceTierId = null): void
-    {
+    private function syncIdentity(
+        Store $store,
+        B2bCustomer $customer,
+        ?int $priceTierId = null,
+        ?User $owner = null,
+    ): void {
+        $customerUpdates = [
+            'name' => (string) $store->name,
+            'updated_at' => now(),
+        ];
+
+        if ($owner instanceof User) {
+            $customerUpdates['email'] = strtolower(trim((string) $owner->email));
+        }
+
         DB::table('b2b_customers')
             ->where('id', $customer->getKey())
-            ->update([
-                'name' => (string) $store->name,
-                'updated_at' => now(),
-            ]);
+            ->update($customerUpdates);
 
         if ($customer->legacy_customer_id !== null) {
+            $legacyUpdates = [
+                'name' => (string) $store->name,
+                'type' => 'b2b',
+                'updated_at' => now(),
+            ];
+
+            if ($owner instanceof User) {
+                $legacyUpdates['email'] = strtolower(trim((string) $owner->email));
+            }
+
             DB::table('customers')
                 ->where('id', $customer->legacy_customer_id)
-                ->update([
-                    'name' => (string) $store->name,
-                    'type' => 'b2b',
-                    'updated_at' => now(),
-                ]);
+                ->update($legacyUpdates);
         }
 
         abort_if(
