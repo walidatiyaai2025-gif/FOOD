@@ -5,7 +5,7 @@
 - Promote the owner-approved Customer APK baseline from #794 and preserve the final Home, persistent footer, store-switching and Dashboard-aware image behavior across the synchronized release.
 - Complete the corrective Customer Commerce V4 closure: canonical Retail merchant platform identity and linked Wholesale account reconciliation (#797), authoritative own-store exclusion and backend blocking (#798), isolated Wholesale/Retail My Orders tabs with immutable store/channel provenance (#799), and coherent Dashboard primary-owner binding/reassignment (#800).
 - Preserve one platform Customer login across Wholesale and Retail while keeping cart, checkout, order history, operational queues, notifications and driver routing authoritative to the originating store and channel.
-- Include the final integrated corrective gate #775 / PR #805, with Backend/MySQL, Customer Android/iOS, Driver Android/iOS, runtime screenshot evidence, App Preview parity and legacy-route guards green against integrated main.
+- Include the final integrated corrective gate #775 / PR #805, with Backend/MySQL, Customer Android/iOS, Driver Android/iOS, runtime screenshot evidence, App Preview parity and legacy-route guards green against the final integrated main.
 - Synchronize Dashboard, Customer and Driver release identities at 1.0.48 / mobile build 1.0.48+48; retain production minimum-version, force-update, Driver location-enforcement and Assistant activation settings unchanged.
 
 ## 1.0.47 - 2026-10-02
