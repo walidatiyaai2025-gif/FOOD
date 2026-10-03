@@ -844,6 +844,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               commerceContext:
                   widget.commerceContextProvider?.call() ?? fallbackContext,
               activeDestination: CustomerFooterDestination.home,
+              isPlatformHome: true,
             );
           },
         ),
