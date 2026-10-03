@@ -373,54 +373,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
   }
 
-  void _showAuthRequired({String? next}) {
-    _pendingAfterAuth = next;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                context.tr('customer.marketplace.auth_required_title'),
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(context.tr('customer.marketplace.auth_required_body')),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () {
-                  Navigator.pop(sheetContext);
-                  _register();
-                },
-                child: Text(context.tr('customer.marketplace.register')),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.pop(sheetContext);
-                  final target = next ?? '/marketplace';
-                  Navigator.of(context).pushNamed(
-                    Uri(
-                      path: '/auth/checkout',
-                      queryParameters: {'next': target},
-                    ).toString(),
-                  );
-                },
-                child: Text(context.tr('customer.action.login')),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
