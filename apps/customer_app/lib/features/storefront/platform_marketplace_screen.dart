@@ -696,7 +696,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
 
 class _MarketplaceHeader extends StatelessWidget {
   const _MarketplaceHeader({
-    required this.authenticated,
+    required this.isAuthenticated,
     required this.onRegister,
     required this.onLogin,
     required this.onScan,
@@ -712,7 +712,7 @@ class _MarketplaceHeader extends StatelessWidget {
     required this.onSearchClear,
   });
 
-  final bool authenticated;
+  final bool Function() isAuthenticated;
   final VoidCallback onRegister;
   final VoidCallback onLogin;
   final VoidCallback onScan;
@@ -760,7 +760,7 @@ class _MarketplaceHeader extends StatelessWidget {
     Widget accountAction() => PopupMenuButton<String>(
           key: const ValueKey('marketplace-auth-menu'),
           padding: EdgeInsets.zero,
-          tooltip: authenticated
+          tooltip: isAuthenticated()
               ? context.tr('customer.nav.profile')
               : context.tr('customer.action.login'),
           icon: Container(
@@ -802,39 +802,42 @@ class _MarketplaceHeader extends StatelessWidget {
                 return;
             }
           },
-          itemBuilder: (_) => [
-            if (authenticated)
+          itemBuilder: (_) {
+            final authenticated = isAuthenticated();
+            return [
+              if (authenticated)
+                PopupMenuItem(
+                  value: 'profile',
+                  child: Text(context.tr('customer.nav.profile')),
+                )
+              else ...[
+                PopupMenuItem(
+                  value: 'login',
+                  child: Text(context.tr('customer.action.login')),
+                ),
+                PopupMenuItem(
+                  value: 'register',
+                  child: Text(context.tr('customer.marketplace.register')),
+                ),
+              ],
               PopupMenuItem(
-                value: 'profile',
-                child: Text(context.tr('customer.nav.profile')),
-              )
-            else ...[
-              PopupMenuItem(
-                value: 'login',
-                child: Text(context.tr('customer.action.login')),
+                key: const ValueKey('marketplace-scan'),
+                value: 'scan',
+                child: Row(
+                  children: [
+                    const Icon(Icons.qr_code_scanner_rounded, size: 20),
+                    const SizedBox(width: 10),
+                    Text(context.tr('customer.marketplace.scan')),
+                  ],
+                ),
               ),
               PopupMenuItem(
-                value: 'register',
-                child: Text(context.tr('customer.marketplace.register')),
+                key: const ValueKey('marketplace-language'),
+                value: 'language',
+                child: Text(localeCode == 'ar' ? 'English' : 'العربية'),
               ),
-            ],
-            PopupMenuItem(
-              key: const ValueKey('marketplace-scan'),
-              value: 'scan',
-              child: Row(
-                children: [
-                  const Icon(Icons.qr_code_scanner_rounded, size: 20),
-                  const SizedBox(width: 10),
-                  Text(context.tr('customer.marketplace.scan')),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              key: const ValueKey('marketplace-language'),
-              value: 'language',
-              child: Text(localeCode == 'ar' ? 'English' : 'العربية'),
-            ),
-          ],
+            ];
+          },
         );
 
     Widget cartAction() => Stack(
