@@ -554,6 +554,126 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsNothing);
   });
 
+  testWidgets(
+      'B2B order details expose complete authoritative surface in English LTR',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'id': 78,
+      'order_number': 'B2B-78',
+      'status': 'failed',
+      'channel': 'b2b',
+      'created_at': '2026-10-04T10:00:00+00:00',
+      'requested_delivery_date': '2026-10-05',
+      'store': {'id': 7, 'name': 'Wholesale Store'},
+      'currency': 'KWD',
+      'subtotal': 100.0,
+      'discount_total': 5.0,
+      'tax_total': 4.0,
+      'delivery_total': 1.0,
+      'grand_total': 100.0,
+      'payment_method': 'account_credit',
+      'payment': {
+        'status': 'paid',
+        'amount': 100.0,
+        'currency': 'KWD',
+      },
+      'account_credit_impact': {
+        'amount': 100.0,
+        'currency': 'KWD',
+        'status': 'paid',
+      },
+      'delivery_address': {
+        'recipient_name': 'Buyer One',
+        'delivery_phone': '55512345',
+        'line1': 'Street 1',
+        'city': 'Kuwait City',
+        'latitude': 29.37,
+        'longitude': 47.98,
+        'has_coordinates': true,
+      },
+      'tracking': {
+        'driver_name': 'Driver One',
+        'status': 'failed',
+        'assigned_at': '2026-10-04T10:10:00+00:00',
+      },
+      'allowed_actions': {
+        'view_map': true,
+        'view_invoice': true,
+        'cancel': false,
+        'reorder': false,
+        'contact_support': false,
+      },
+      'invoice': {
+        'id': 44,
+        'invoice_number': 'INV-B2B-78',
+        'status': 'issued',
+      },
+      'is_terminal': true,
+      'customer_note': 'Leave at gate',
+      'items': [
+        {
+          'id': 1,
+          'product_id': 42,
+          'sku': 'SKU-42',
+          'name': 'Bulk Water',
+          'quantity': 2,
+          'pack_size': 12,
+          'unit_price': 50.0,
+          'line_total': 100.0,
+        },
+      ],
+      'timeline': [
+        {
+          'stage': 'placed',
+          'occurred_at': '2026-10-04T10:00:00+00:00',
+        },
+        {
+          'stage': 'failed',
+          'occurred_at': '2026-10-04T10:20:00+00:00',
+          'driver_name': 'Driver One',
+          'reason_code': 'customer_no_answer',
+        },
+      ],
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/orders/78',
+        b2bApi: api,
+        locale: const Locale('en'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/orders/78');
+    expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
+    expect(find.text('Order details'), findsOneWidget);
+    expect(find.text('B2B-78'), findsOneWidget);
+    expect(find.text('Wholesale Store'), findsOneWidget);
+    expect(find.text('Price summary'), findsOneWidget);
+    expect(find.text('Account credit'), findsOneWidget);
+    expect(find.text('Paid'), findsOneWidget);
+    expect(find.text('Driver One'), findsWidgets);
+    expect(find.text('Bulk Water'), findsOneWidget);
+    expect(find.text('SKU-42'), findsOneWidget);
+    expect(find.text('Leave at gate'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-order-terminal')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-order-open-map')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-order-open-invoice')),
+      findsOneWidget,
+    );
+    expect(find.text('Customer did not answer'), findsOneWidget);
+    expect(
+      Directionality.of(
+        tester.element(find.byKey(const ValueKey('b2b-order-detail'))),
+      ),
+      TextDirection.ltr,
+    );
+    expect(find.text('تفاصيل الطلب'), findsNothing);
+  });
+
   testWidgets('legacy channel-scoped session cannot enter B2B protected journey', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(session: CustomerSession.authenticated(CustomerChannel.b2c), initialRoute: '/b2b/invoices'));
     await tester.pumpAndSettle();
