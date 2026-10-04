@@ -63,6 +63,7 @@ class B2bWorkspaceController extends Controller
         private readonly B2bDashboardService $dashboard,
         private readonly B2bFinanceInvoiceService $financeInvoices,
         private readonly ManagementReportService $reports,
+        private readonly ReportExportService $reportExports,
         private readonly TenantContextResolver $tenantContext,
         private readonly OperationalTenantScope $operationalScope,
         private readonly CatalogOwnership $catalogs,
@@ -71,7 +72,7 @@ class B2bWorkspaceController extends Controller
         private readonly WholesalePrincipal $principal,
     ) {}
 
-    public function show(Request $request, string $module = 'dashboard'): View
+    public function show(Request $request, string $module = 'dashboard'): View|Response
     {
         $user = $this->actor($request);
         abort_unless(array_key_exists($module, self::MODULE_PERMISSIONS), 404);
@@ -79,6 +80,10 @@ class B2bWorkspaceController extends Controller
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
 
         $storeIds = $this->wholesaleStoreIds($user);
+        if ($module === 'finance' && $request->filled('export')) {
+            return $this->financeExportResponse($request, $user, $storeIds);
+        }
+
         $counts = [
             'warehouses' => DB::table('warehouses')->whereIn('store_id', $storeIds)->where('is_active', true)->count(),
             'clients' => DB::table('b2b_accounts')->whereNotNull('b2b_customer_id')->count(),
@@ -150,38 +155,6 @@ class B2bWorkspaceController extends Controller
             'driverTrackingFeedUrl',
             'driverTrackingPageUrl',
         ));
-    }
-
-    public function exportFinance(Request $request, ReportExportService $exports): Response
-    {
-        $user = $this->actor($request);
-        $this->authorizeModule($user, 'finance');
-        App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
-
-        $validated = $request->validate([
-            ...$this->financeFilterRules(),
-            'format' => ['required', 'in:xlsx,pdf'],
-        ]);
-        $format = (string) $validated['format'];
-        unset($validated['format']);
-
-        $storeIds = $this->wholesaleStoreIds($user);
-        $report = $this->financeInvoices->exportReport($storeIds, $validated, app()->getLocale());
-        $file = $exports->build($report, $format, app()->getLocale());
-        $filename = $exports->filename($report, $file['extension']);
-
-        $this->audit->record('b2b.finance.exported', $user, null, null, [
-            'format' => $format,
-            'store_ids' => $storeIds,
-            'filters' => $report['filters'],
-            'rows' => count((array) $report['rows']),
-        ], $request);
-
-        return response($file['content'], 200, [
-            'Content-Type' => $file['mime'],
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-            'Cache-Control' => 'private, no-store',
-        ]);
     }
 
     public function transitionOrder(
@@ -1544,6 +1517,34 @@ class B2bWorkspaceController extends Controller
                 ->all(),
             'payment_methods' => array_values((array) config('checkout.payment_methods', ['cash_on_delivery'])),
         ];
+    }
+
+    /** @param list<int> $storeIds */
+    private function financeExportResponse(Request $request, User $user, array $storeIds): Response
+    {
+        $validated = $request->validate([
+            ...$this->financeFilterRules(),
+            'export' => ['required', 'in:xlsx,pdf'],
+        ]);
+        $format = (string) $validated['export'];
+        unset($validated['export']);
+
+        $report = $this->financeInvoices->exportReport($storeIds, $validated, app()->getLocale());
+        $file = $this->reportExports->build($report, $format, app()->getLocale());
+        $filename = $this->reportExports->filename($report, $file['extension']);
+
+        $this->audit->record('b2b.finance.exported', $user, null, null, [
+            'format' => $format,
+            'store_ids' => $storeIds,
+            'filters' => $report['filters'],
+            'rows' => count((array) $report['rows']),
+        ], $request);
+
+        return response($file['content'], 200, [
+            'Content-Type' => $file['mime'],
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     /** @return array<string, list<string>> */
