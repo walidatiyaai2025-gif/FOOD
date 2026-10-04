@@ -5,9 +5,10 @@ import 'package:http/http.dart' as http;
 
 abstract class B2bApi {
   Future<Object?> get(String path);
+}
 
-  Future<B2bDownload> download(String path) =>
-      Future<B2bDownload>.error(UnsupportedError('B2B downloads are unavailable.'));
+abstract class B2bDownloadApi {
+  Future<B2bDownload> download(String path);
 }
 
 class B2bDownload {
@@ -22,7 +23,7 @@ class B2bDownload {
   final String filename;
 }
 
-class HttpB2bApi implements B2bApi {
+class HttpB2bApi implements B2bApi, B2bDownloadApi {
   HttpB2bApi({
     required this.baseUrl,
     required this.token,

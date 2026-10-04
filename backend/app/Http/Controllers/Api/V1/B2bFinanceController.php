@@ -149,7 +149,7 @@ class B2bFinanceController extends Controller
 
         $exports = app(ReportExportService::class);
         $format = (string) $filters['format'];
-        $locale = (string) ($filters['locale'] ?? $request->user()?->locale ?? 'en');
+        $locale = (string) ($filters['locale'] ?? $request->user()->locale ?? 'en');
         $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
         $export = $exports->build($report, $format, $locale);
 
