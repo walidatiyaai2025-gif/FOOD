@@ -11,7 +11,7 @@ return [
     'dashboard_permissions' => [
         'security.view', 'users.view', 'roles.manage', 'users.roles.manage', 'users.status.manage', 'stores.view', 'b2b.accounts.view', 'b2b.pricing.view',
         'catalog.view', 'inventory.view', 'orders.view', 'customers.view', 'promotions.view', 'finance.view',
-        'reports.view', 'support.view', 'notifications.view', 'settings.view',
+        'reports.view', 'support.view', 'notifications.view', 'settings.view', 'settings.manage',
     ],
 
     'channels' => [
