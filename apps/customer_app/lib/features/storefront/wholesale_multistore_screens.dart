@@ -2324,24 +2324,37 @@ class _WholesaleProductDetailsDesignScreenState
                 key: const ValueKey('b2b-product-detail-data'),
                 padding: const EdgeInsets.fromLTRB(15, 10, 15, 22),
                 children: [
-                  FoodexTopBar(
-                    title: context.tr('b2b.product.title'),
-                    actions: [
-                      IconButton(
-                        key: const ValueKey('b2b-product-refresh'),
-                        tooltip: context.tr('b2b.product.refresh'),
-                        onPressed: revalidating ? null : _retry,
-                        icon: const Icon(Icons.refresh_rounded),
+                  Container(
+                    key: const ValueKey('b2b-product-detail-header'),
+                    decoration: BoxDecoration(
+                      color: FoodexPalette.wholesale.primaryDark,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: DefaultTextStyle.merge(
+                      style: const TextStyle(color: Colors.white),
+                      child: IconTheme(
+                        data: const IconThemeData(color: Colors.white),
+                        child: FoodexTopBar(
+                          title: context.tr('customer.product.title'),
+                          actions: [
+                            IconButton(
+                              key: const ValueKey('b2b-product-refresh'),
+                              tooltip: context.tr('b2b.product.refresh'),
+                              onPressed: revalidating ? null : _retry,
+                              icon: const Icon(Icons.refresh_rounded),
+                            ),
+                            CustomerFavoriteButton(
+                              api: widget.favoritesApi,
+                              storeId: storeId,
+                              productId: productId,
+                              isAuthenticated: widget.session.isAuthenticated,
+                              loginRoute:
+                                  '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
+                            ),
+                          ],
+                        ),
                       ),
-                      CustomerFavoriteButton(
-                        api: widget.favoritesApi,
-                        storeId: storeId,
-                        productId: productId,
-                        isAuthenticated: widget.session.isAuthenticated,
-                        loginRoute:
-                            '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
-                      ),
-                    ],
+                    ),
                   ),
                   if (stale) ...[
                     const SizedBox(height: 10),
@@ -2369,20 +2382,33 @@ class _WholesaleProductDetailsDesignScreenState
                     ),
                   ],
                   const SizedBox(height: 10),
-                  Opacity(
-                    opacity: isAvailable ? 1 : 0.42,
-                    child: FoodexGallery(
-                      key: const ValueKey('b2b-product-gallery'),
-                      urls: images,
-                      palette: FoodexPalette.wholesale,
+                  Container(
+                    key: const ValueKey('b2b-product-detail-hero'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF6F9F7),
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Opacity(
+                      opacity: isAvailable ? 1 : 0.42,
+                      child: FoodexGallery(
+                        key: const ValueKey('b2b-product-gallery'),
+                        urls: images,
+                        palette: FoodexPalette.wholesale,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
                   Text(
                     row['name']?.toString() ?? '',
                     style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF10233F),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      height: 1.15,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -2398,23 +2424,26 @@ class _WholesaleProductDetailsDesignScreenState
                   ),
                   if (brand.isNotEmpty || category.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        if (brand.isNotEmpty)
-                          _ProductMetaChip(
-                            key: const ValueKey('b2b-product-brand'),
-                            label: context.tr('b2b.product.brand'),
-                            value: brand,
-                          ),
-                        if (category.isNotEmpty)
-                          _ProductMetaChip(
-                            key: const ValueKey('b2b-product-category'),
-                            label: context.tr('b2b.product.category'),
-                            value: category,
-                          ),
-                      ],
+                    KeyedSubtree(
+                      key: const ValueKey('b2b-product-meta'),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (category.isNotEmpty)
+                            _ProductMetaChip(
+                              key: const ValueKey('b2b-product-category'),
+                              label: context.tr('b2b.product.category'),
+                              value: category,
+                            ),
+                          if (brand.isNotEmpty)
+                            _ProductMetaChip(
+                              key: const ValueKey('b2b-product-brand'),
+                              label: context.tr('b2b.product.brand'),
+                              value: brand,
+                            ),
+                        ],
+                      ),
                     ),
                   ],
                   if (promotion != null && promotion.isNotEmpty) ...[
@@ -2426,37 +2455,49 @@ class _WholesaleProductDetailsDesignScreenState
                     ),
                   ],
                   const SizedBox(height: 13),
-                  _PricingPanel(
-                    row: row,
-                    currency: currency,
+                  KeyedSubtree(
+                    key: const ValueKey('b2b-product-price'),
+                    child: _PricingPanel(
+                      row: row,
+                      currency: currency,
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _InfoPill(
-                          icon: Icons.inventory_2_outlined,
-                          label: context.tr('b2b.minimum_order') +
-                              ' ' +
-                              compactNumber(minimum),
+                  Container(
+                    key: const ValueKey('b2b-product-commerce-strip'),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFFE4ECE7)),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _InfoPill(
+                            icon: Icons.inventory_2_outlined,
+                            label: context.tr('b2b.minimum_order') +
+                                ' ' +
+                                compactNumber(minimum),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _InfoPill(
-                          icon: Icons.warehouse_outlined,
-                          label: isAvailable
-                              ? context.tr('b2b.product.inventory') +
-                                  ' ' +
-                                  (availableQuantity == null
-                                      ? context.tr(
-                                          'b2b.product.inventory_unbounded',
-                                        )
-                                      : compactNumber(availableQuantity))
-                              : context.tr('customer.product.out_of_stock'),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _InfoPill(
+                            icon: isAvailable
+                                ? Icons.verified_rounded
+                                : Icons.remove_shopping_cart_outlined,
+                            label: isAvailable
+                                ? context.tr('customer.product.available') +
+                                    (availableQuantity == null
+                                        ? ''
+                                        : ' · ' +
+                                            compactNumber(availableQuantity))
+                                : context.tr('customer.product.out_of_stock'),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                   _InfoPill(
@@ -2534,37 +2575,85 @@ class _WholesaleProductDetailsDesignScreenState
                     ),
                   ],
                   const SizedBox(height: 15),
-                  FoodexDetailAccordion(
-                    title: context.tr('b2b.product.pack_details'),
-                    body: context.tr('b2b.product.pack_size') +
-                        ': ' +
-                        (row['pack_size']?.toString() ?? '1') +
-                        ' · ' +
-                        context.tr('b2b.product.case_size') +
-                        ': ' +
-                        (row['case_size']?.toString() ?? '—') +
-                        ' · ' +
-                        context.tr('b2b.product.quantity_step') +
-                        ': ' +
-                        (row['ordering_increment']?.toString() ?? '1'),
+                  Container(
+                    key: const ValueKey('b2b-product-description-section'),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFFE4ECE7)),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          context.tr('b2b.product.description'),
+                          style: const TextStyle(
+                            color: Color(0xFF10233F),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          description.isNotEmpty
+                              ? description
+                              : context.tr('b2b.product.no_description'),
+                          style: const TextStyle(
+                            color: Color(0xFF6B7785),
+                            fontSize: 13,
+                            height: 1.55,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  FoodexDetailAccordion(
-                    title: context.tr('b2b.product.brand'),
-                    body: brand.isNotEmpty
-                        ? brand
-                        : context.tr('b2b.product.not_specified'),
-                  ),
-                  FoodexDetailAccordion(
-                    title: context.tr('b2b.product.category'),
-                    body: category.isNotEmpty
-                        ? category
-                        : context.tr('b2b.product.not_specified'),
-                  ),
-                  FoodexDetailAccordion(
-                    title: context.tr('b2b.product.description'),
-                    body: description.isNotEmpty
-                        ? description
-                        : context.tr('b2b.product.no_description'),
+                  const SizedBox(height: 10),
+                  Container(
+                    key: const ValueKey('b2b-product-additional-info'),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFFE4ECE7)),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          context.tr('b2b.product.pack_details'),
+                          style: const TextStyle(
+                            color: Color(0xFF10233F),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _ProductInfoLine(
+                          label: context.tr('b2b.product.category'),
+                          value: category.isNotEmpty
+                              ? category
+                              : context.tr('b2b.product.not_specified'),
+                        ),
+                        _ProductInfoLine(
+                          label: context.tr('b2b.product.pack_size'),
+                          value: row['pack_label']?.toString() ??
+                              row['pack_size']?.toString() ??
+                              '1',
+                        ),
+                        _ProductInfoLine(
+                          label: 'SKU',
+                          value: row['sku']?.toString() ?? '—',
+                        ),
+                        _ProductInfoLine(
+                          label: context.tr('b2b.product.brand'),
+                          value: brand.isNotEmpty
+                              ? brand
+                              : context.tr('b2b.product.not_specified'),
+                          showDivider: false,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               );
@@ -2679,6 +2768,55 @@ String? _safeWholesaleSupportReference(String? value) {
   return RegExp(r'^[A-Za-z0-9._:/-]+$').hasMatch(reference)
       ? reference
       : null;
+}
+
+class _ProductInfoLine extends StatelessWidget {
+  const _ProductInfoLine({
+    required this.label,
+    required this.value,
+    this.showDivider = true,
+  });
+
+  final String label;
+  final String value;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFF6B7785),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    color: Color(0xFF10233F),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (showDivider)
+            const Divider(
+              height: 20,
+              color: Color(0xFFE8EEEA),
+            ),
+        ],
+      );
 }
 
 class _PricingPanel extends StatelessWidget {
