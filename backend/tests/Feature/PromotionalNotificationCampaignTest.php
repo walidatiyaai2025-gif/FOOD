@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class PromotionalNotificationCampaignTest extends TestCase
@@ -162,6 +163,142 @@ class PromotionalNotificationCampaignTest extends TestCase
         ]);
     }
 
+    public function test_customer_launch_popups_are_windowed_localized_and_strictly_store_scoped(): void
+    {
+        CarbonImmutable::setTestNow('2026-10-04 08:00:00');
+
+        $storeA = $this->store('B2C', 'POPUP-STORE-A');
+        $storeB = $this->store('B2C', 'POPUP-STORE-B');
+
+        $eligible = $this->launchCampaign([
+            'name' => 'Store A popup',
+            'title_en' => 'Store A launch offer',
+            'target_channel' => 'b2c',
+            'store_id' => $storeA,
+            'popup_frequency' => 'once_per_session',
+            'popup_cta_label_en' => 'View offers',
+            'popup_cta_target' => '/offers',
+        ]);
+        $this->launchCampaign([
+            'name' => 'Foreign store',
+            'target_channel' => 'b2c',
+            'store_id' => $storeB,
+        ]);
+        $this->launchCampaign([
+            'name' => 'Push only',
+            'target_channel' => 'b2c',
+            'store_id' => $storeA,
+            'delivery_channel' => 'push',
+        ]);
+        $this->launchCampaign([
+            'name' => 'Expired',
+            'target_channel' => 'b2c',
+            'store_id' => $storeA,
+            'starts_at' => now()->subHours(2),
+            'ends_at' => now()->subHour(),
+        ]);
+        $this->launchCampaign([
+            'name' => 'Draft',
+            'target_channel' => 'b2c',
+            'store_id' => $storeA,
+            'status' => 'draft',
+        ]);
+        $this->launchCampaign([
+            'name' => 'Driver only',
+            'target_channel' => 'b2c',
+            'store_id' => $storeA,
+            'app' => 'driver',
+        ]);
+
+        $this->getJson(
+            "/api/v1/notification-campaign-popups?channel=b2c&store_id={$storeA}&locale=en&install_id=install-a",
+        )
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $eligible->id)
+            ->assertJsonPath('data.0.title', 'Store A launch offer')
+            ->assertJsonPath('data.0.frequency', 'once_per_session')
+            ->assertJsonPath('data.0.cta_label', 'View offers')
+            ->assertJsonPath('data.0.cta_target', '/offers');
+
+        $this->getJson(
+            "/api/v1/notification-campaign-popups?channel=b2c&store_id={$storeB}&locale=ar&install_id=install-b",
+        )
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.store_id', $storeB);
+
+        $this->getJson('/api/v1/notification-campaign-popups?channel=b2c&locale=en&install_id=missing-store')
+            ->assertStatus(422);
+
+        CarbonImmutable::setTestNow();
+    }
+
+    public function test_customer_popup_audience_and_once_per_user_are_server_authoritative(): void
+    {
+        $store = $this->store('B2C', 'POPUP-USER-STORE');
+        $customer = User::query()->create([
+            'name' => 'Popup Customer',
+            'email' => 'popup-customer@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        DB::table('b2c_customers')->insert([
+            'user_id' => $customer->id,
+            'store_id' => $store,
+            'name' => 'Popup Customer',
+            'email' => $customer->email,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $campaign = $this->launchCampaign([
+            'name' => 'Customer once',
+            'audience' => 'customer',
+            'target_channel' => 'b2c',
+            'store_id' => $store,
+            'popup_frequency' => 'once_per_user',
+        ]);
+
+        $guestUrl = "/api/v1/notification-campaign-popups?channel=b2c&store_id={$store}&locale=en&install_id=guest-install";
+        $this->getJson($guestUrl)
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        Sanctum::actingAs($customer);
+        $headers = ['Authorization' => 'Bearer popup-test-token'];
+        $firstUrl = "/api/v1/notification-campaign-popups?channel=b2c&store_id={$store}&locale=en&install_id=user-install-a";
+
+        $this->withHeaders($headers)->getJson($firstUrl)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $campaign->id);
+
+        $this->withHeaders($headers)->postJson(
+            "/api/v1/notification-campaign-popups/{$campaign->id}/events",
+            [
+                'event' => 'impression',
+                'channel' => 'b2c',
+                'store_id' => $store,
+                'locale' => 'en',
+                'install_id' => 'user-install-a',
+            ],
+        )->assertNoContent();
+
+        $secondUrl = "/api/v1/notification-campaign-popups?channel=b2c&store_id={$store}&locale=en&install_id=user-install-b";
+        $this->withHeaders($headers)->getJson($secondUrl)
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->assertDatabaseHas('notification_campaign_popup_views', [
+            'campaign_id' => $campaign->id,
+            'user_id' => $customer->id,
+            'viewer_key' => hash('sha256', 'user:'.$customer->id),
+            'impression_count' => 1,
+        ]);
+    }
+
     public function test_campaign_rejects_customer_driver_app_mismatch(): void
     {
         $mine = $this->store('B2C', 'APP-MISMATCH-MINE');
@@ -288,10 +425,36 @@ class PromotionalNotificationCampaignTest extends TestCase
             'app' => 'customer',
             'target_channel' => 'b2b',
             'delivery_channel' => 'both',
+            'popup_frequency' => 'once_per_session',
             'schedule_kind' => 'once',
             'starts_at' => '2026-09-28T10:00',
             ...$overrides,
         ];
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function launchCampaign(array $overrides = []): NotificationCampaign
+    {
+        return NotificationCampaign::query()->create([
+            'name' => 'Launch campaign',
+            'type' => 'promotion',
+            'title_ar' => 'عرض التطبيق',
+            'title_en' => 'App offer',
+            'body_ar' => 'عرض متاح الآن',
+            'body_en' => 'Offer available now',
+            'audience' => 'all',
+            'app' => 'customer',
+            'target_channel' => 'all',
+            'delivery_channel' => 'both',
+            'popup_frequency' => 'once_per_session',
+            'schedule_kind' => 'once',
+            'timezone' => 'Asia/Kuwait',
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addHour(),
+            'next_run_at' => now(),
+            'status' => 'active',
+            ...$overrides,
+        ]);
     }
 
     private function store(string $type, string $code): int
@@ -301,6 +464,7 @@ class PromotionalNotificationCampaignTest extends TestCase
             'code' => $code,
             'name' => $code,
             'is_active' => true,
+            'advertising_enabled' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
