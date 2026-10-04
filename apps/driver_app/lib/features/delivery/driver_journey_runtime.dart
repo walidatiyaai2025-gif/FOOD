@@ -44,6 +44,38 @@ class DriverJourneyRuntimePage extends StatelessWidget {
     required DriverCompletionTarget target,
     String? note,
   }) async {
+    List<DriverFailureReasonOption>? failureReasons;
+    final failureCatalog = repository;
+    if (assignment.availableStatuses.contains('failed') &&
+        failureCatalog is DriverFailureReasonCatalog) {
+      try {
+        failureReasons = await failureCatalog.failedDeliveryReasons();
+        if (failureReasons.isEmpty) {
+          throw const DriverApiException(
+            'No active failed-delivery reasons are available.',
+          );
+        }
+      } on DriverSessionExpiredException {
+        onSessionExpired?.call();
+        return;
+      } on DriverOfflineException {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.tr('driver.offline'))),
+          );
+        }
+        return;
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.tr('driver.error'))),
+          );
+        }
+        return;
+      }
+    }
+
+    if (!context.mounted) return;
     await showDriverCompletionDecisionSheet(
       context: context,
       assignmentId: assignment.id,
@@ -52,6 +84,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
         repository: repository,
         channel: channel,
       ),
+      failureReasons: failureReasons,
       initialTarget: target,
       initialNote: note ?? '',
       onSessionExpired: onSessionExpired,
