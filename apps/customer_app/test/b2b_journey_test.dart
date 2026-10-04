@@ -9,6 +9,19 @@ import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/diagnostics/customer_diagnostics.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 
+Future<void> _scrollUntilBuilt(
+  WidgetTester tester,
+  Finder scrollable,
+  Finder target,
+) async {
+  for (var attempt = 0;
+      attempt < 12 && target.evaluate().isEmpty;
+      attempt++) {
+    await tester.drag(scrollable, const Offset(0, -350));
+    await tester.pumpAndSettle();
+  }
+}
+
 void main() {
   const b2b = CustomerSession.authenticated(CustomerChannel.b2b);
 
@@ -334,6 +347,11 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
     expect(find.text('FDX-B2B-4'), findsOneWidget);
     expect(find.text('Wholesale Store'), findsOneWidget);
+    await _scrollUntilBuilt(
+      tester,
+      find.byKey(const ValueKey('b2b-order-detail')),
+      find.text('الدفع عند الاستلام'),
+    );
     expect(find.text('الدفع عند الاستلام'), findsOneWidget);
     expect(find.text('/orders/4/track'), findsNothing);
   });
@@ -543,6 +561,11 @@ void main() {
     expect(find.text('تم التأكيد'), findsNothing);
     expect(find.text('جاري التجهيز'), findsNothing);
     expect(find.text('تم التسليم'), findsNothing);
+    await _scrollUntilBuilt(
+      tester,
+      find.byKey(const ValueKey('b2b-order-detail')),
+      find.text('الدفع عند الاستلام'),
+    );
     expect(find.text('الدفع عند الاستلام'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('b2b-order-refresh')));
@@ -660,60 +683,61 @@ void main() {
     );
     expect(find.text('تفاصيل الطلب'), findsNothing);
 
-    final scrollable = find.byType(Scrollable).first;
+    final scrollable =
+        find.byKey(const ValueKey('b2b-order-detail'));
 
-    await tester.scrollUntilVisible(
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
       find.byKey(const ValueKey('b2b-order-open-map')),
-      300,
-      scrollable: scrollable,
     );
     expect(find.byKey(const ValueKey('b2b-order-open-map')), findsOneWidget);
 
-    await tester.scrollUntilVisible(
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
       find.text('Customer did not answer'),
-      300,
-      scrollable: scrollable,
     );
     expect(find.text('Customer did not answer'), findsOneWidget);
     expect(find.text('Driver One'), findsWidgets);
 
-    await tester.scrollUntilVisible(
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
       find.text('Bulk Water'),
-      300,
-      scrollable: scrollable,
     );
     expect(find.text('Bulk Water'), findsOneWidget);
     expect(find.text('SKU-42'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
       find.text('Price summary'),
-      300,
-      scrollable: scrollable,
     );
     expect(find.text('Price summary'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
       find.text('Account credit'),
-      300,
-      scrollable: scrollable,
     );
     expect(find.text('Account credit'), findsOneWidget);
     expect(find.text('Paid'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
       find.byKey(const ValueKey('b2b-order-open-invoice')),
-      300,
-      scrollable: scrollable,
     );
     expect(
       find.byKey(const ValueKey('b2b-order-open-invoice')),
       findsOneWidget,
     );
 
-    await tester.scrollUntilVisible(
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
       find.text('Leave at gate'),
-      300,
-      scrollable: scrollable,
     );
     expect(find.text('Leave at gate'), findsOneWidget);
   });
