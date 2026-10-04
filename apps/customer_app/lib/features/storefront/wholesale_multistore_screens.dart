@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_interpolation_to_compose_strings, deprecated_member_use
 
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -1879,6 +1880,10 @@ class _WholesaleProductDetailsDesignScreenState
   late final int productId = productIdFromLocation(widget.location);
   late Future<Object?> future = _loadProduct();
   double? quantity;
+  Map<String, dynamic>? _lastProduct;
+  Timer? _stockRefreshTimer;
+  bool stale = false;
+  bool revalidating = false;
 
   String get endpoint =>
       '/api/v1/b2b/products/' +
@@ -1886,38 +1891,59 @@ class _WholesaleProductDetailsDesignScreenState
       '?store_id=' +
       storeId.toString();
 
-  Future<Object?> _loadProduct() async {
-    final api = widget.api;
-    if (api == null) {
-      final storefrontApi = widget.storefrontApi;
-      if (storefrontApi == null || storeId <= 0 || productId <= 0) {
-        return null;
-      }
-      final storefront = await storefrontApi.wholesaleHome(storeId);
-      final rows = mapRows(storefront['products']);
-      Map<String, dynamic>? product;
-      for (final row in rows) {
-        if (intValue(row['id']) == productId) {
-          product = row;
-          break;
-        }
-      }
-      if (product == null) return null;
-      return <String, dynamic>{
-        ...product,
-        'store_id': storeId,
-        'base_wholesale_price': product['price'],
-        'account_price': product['price'],
-        'minimum_order_quantity':
-            product['minimum_order_quantity'] ?? 1,
-        'ordering_increment': product['ordering_increment'] ?? 1,
-        'pack_size': product['pack_size'] ?? 1,
-        'currency': product['currency'] ?? 'EGP',
-      };
+  void _cacheFreshProduct(Map<String, dynamic> row) {
+    stale = false;
+    _lastProduct = Map<String, dynamic>.from(row);
+    _stockRefreshTimer?.cancel();
+    final available = row['is_available'] != false &&
+        row['availability_state'] != 'OUT_OF_STOCK';
+    if (!available) {
+      _stockRefreshTimer = Timer(const Duration(seconds: 15), () {
+        if (mounted) _retry();
+      });
     }
+  }
 
+  Future<Object?> _loadProduct() async {
     try {
-      return await api.get(endpoint);
+      final api = widget.api;
+      Object? result;
+      if (api == null) {
+        final storefrontApi = widget.storefrontApi;
+        if (storefrontApi == null || storeId <= 0 || productId <= 0) {
+          return null;
+        }
+        final storefront = await storefrontApi.wholesaleHome(storeId);
+        final rows = mapRows(storefront['products']);
+        Map<String, dynamic>? product;
+        for (final row in rows) {
+          if (intValue(row['id']) == productId) {
+            product = row;
+            break;
+          }
+        }
+        if (product == null) return null;
+        result = <String, dynamic>{
+          ...product,
+          'store_id': storeId,
+          'base_wholesale_price': product['price'],
+          'account_price': product['price'],
+          'minimum_order_quantity':
+              product['minimum_order_quantity'] ?? 1,
+          'ordering_increment': product['ordering_increment'] ?? 1,
+          'pack_size': product['pack_size'] ?? 1,
+          'currency': product['currency'] ?? 'EGP',
+        };
+      } else {
+        result = await api.get(endpoint);
+      }
+
+      if (result is Map) {
+        final row = Map<String, dynamic>.from(result);
+        _cacheFreshProduct(row);
+        return row;
+      }
+      return result;
     } catch (error, stack) {
       final failure = _wholesaleProductFailureInfo(error);
       CustomerDiagnostics.instance.recordRuntimeFailure(
@@ -1927,14 +1953,195 @@ class _WholesaleProductDetailsDesignScreenState
         statusCode: failure.statusCode,
         supportReference: failure.supportReference,
       );
+      final cached = _lastProduct;
+      if (cached != null) {
+        stale = true;
+        return Map<String, dynamic>.from(cached);
+      }
       Error.throwWithStackTrace(error, stack);
     }
   }
 
   void _retry() {
+    if (!mounted) return;
     setState(() {
       future = _loadProduct();
     });
+  }
+
+  bool _commercialTermsChanged(
+    Map<String, dynamic> previous,
+    Map<String, dynamic> latest,
+  ) {
+    const keys = <String>[
+      'account_price',
+      'base_wholesale_price',
+      'retail_reference_price',
+      'minimum_order_quantity',
+      'ordering_increment',
+      'pack_size',
+      'case_size',
+      'pack_label',
+      'available_quantity',
+      'is_available',
+      'availability_state',
+      'currency',
+    ];
+    for (final key in keys) {
+      if (previous[key]?.toString() != latest[key]?.toString()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _quantityIsValid(Map<String, dynamic> row, double value) {
+    final minimum = doubleValue(row['minimum_order_quantity'], 1);
+    final increment = math.max(
+      .001,
+      doubleValue(row['ordering_increment'], 1),
+    );
+    final available = row['available_quantity'] == null
+        ? null
+        : doubleValue(row['available_quantity'], 0);
+    final isAvailable = row['is_available'] != false &&
+        row['availability_state'] != 'OUT_OF_STOCK';
+    if (!isAvailable || value + .0001 < minimum) return false;
+    final steps = (value - minimum) / increment;
+    if ((steps - steps.round()).abs() >= .0001) return false;
+    return available == null || value <= available + .0001;
+  }
+
+  String? _quantityIssue(
+    BuildContext context,
+    Map<String, dynamic> row,
+    double value,
+  ) {
+    final minimum = doubleValue(row['minimum_order_quantity'], 1);
+    final increment = math.max(
+      .001,
+      doubleValue(row['ordering_increment'], 1),
+    );
+    final available = row['available_quantity'] == null
+        ? null
+        : doubleValue(row['available_quantity'], 0);
+    final isAvailable = row['is_available'] != false &&
+        row['availability_state'] != 'OUT_OF_STOCK';
+    if (!isAvailable) {
+      return context.tr('customer.product.out_of_stock');
+    }
+    if (value + .0001 < minimum) {
+      return context.tr('b2b.product.quantity_minimum') +
+          ' ' +
+          compactNumber(minimum);
+    }
+    final steps = (value - minimum) / increment;
+    if ((steps - steps.round()).abs() >= .0001) {
+      return context.tr('b2b.product.quantity_step') +
+          ' ' +
+          compactNumber(increment);
+    }
+    if (available != null && value > available + .0001) {
+      return context.tr('b2b.product.quantity_stock') +
+          ' ' +
+          compactNumber(available);
+    }
+    return null;
+  }
+
+  Future<void> _addProduct(
+    Map<String, dynamic> row,
+  ) async {
+    if (!widget.session.isAuthenticated) {
+      await _beginWholesaleAddHandoff(
+        context: context,
+        pendingActionStore: widget.pendingActionStore,
+        storeId: storeId,
+        productId: productId,
+        quantity: quantity!,
+        sourceLocation: widget.location,
+      );
+      return;
+    }
+
+    setState(() => revalidating = true);
+    try {
+      final api = widget.api;
+      if (api != null) {
+        final latestRaw = await api.get(endpoint);
+        if (latestRaw is Map) {
+          final latest = Map<String, dynamic>.from(latestRaw);
+          final changed = _commercialTermsChanged(row, latest);
+          _cacheFreshProduct(latest);
+          final latestMinimum =
+              doubleValue(latest['minimum_order_quantity'], 1);
+          final latestAvailable = latest['available_quantity'] == null
+              ? null
+              : doubleValue(latest['available_quantity'], 0);
+          var nextQuantity = quantity ?? latestMinimum;
+          if (nextQuantity < latestMinimum) nextQuantity = latestMinimum;
+          if (latestAvailable != null &&
+              nextQuantity > latestAvailable &&
+              latestAvailable + .0001 >= latestMinimum) {
+            nextQuantity = latestAvailable;
+          }
+          if (changed || !_quantityIsValid(latest, nextQuantity)) {
+            if (!mounted) return;
+            setState(() {
+              quantity = nextQuantity;
+              future = Future<Object?>.value(latest);
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                key: const ValueKey('b2b-product-terms-updated'),
+                content: Text(
+                  context.tr('b2b.product.terms_updated'),
+                ),
+              ),
+            );
+            return;
+          }
+          row = latest;
+        }
+      }
+
+      final selectedQuantity = quantity!;
+      if (!_quantityIsValid(row, selectedQuantity)) {
+        if (!mounted) return;
+        final issue = _quantityIssue(context, row, selectedQuantity);
+        if (issue != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(issue)),
+          );
+        }
+        return;
+      }
+
+      await widget.actionApi.addCartItem(
+        storeId: storeId,
+        productId: productId,
+        quantity: selectedQuantity,
+      );
+      if (mounted) {
+        Navigator.of(context).pushNamed(
+          '/b2b/cart?channel=wholesale&store_id=' +
+              storeId.toString(),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        await showOperationalError(context, error);
+        _retry();
+      }
+    } finally {
+      if (mounted) setState(() => revalidating = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _stockRefreshTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -2004,8 +2211,10 @@ class _WholesaleProductDetailsDesignScreenState
 
               final minimum =
                   doubleValue(row['minimum_order_quantity'], 1);
-              final increment =
-                  doubleValue(row['ordering_increment'], 1);
+              final increment = math.max(
+                .001,
+                doubleValue(row['ordering_increment'], 1),
+              );
               quantity ??= minimum;
               final images =
                   (row['images'] as List? ?? const <Object>[])
@@ -2019,9 +2228,22 @@ class _WholesaleProductDetailsDesignScreenState
                 images.add(primary);
               }
               final currency =
-                  row['currency']?.toString() ?? 'KWD';
+                  row['currency']?.toString().trim().isNotEmpty == true
+                      ? row['currency'].toString().trim().toUpperCase()
+                      : 'EGP';
               final isAvailable = row['is_available'] != false &&
                   row['availability_state'] != 'OUT_OF_STOCK';
+              final availableQuantity = row['available_quantity'] == null
+                  ? null
+                  : doubleValue(row['available_quantity'], 0);
+              final quantityIssue =
+                  _quantityIssue(context, row, quantity!);
+              final brand = row['brand_name']?.toString().trim() ?? '';
+              final category = row['category_name']?.toString().trim() ?? '';
+              final description = row['description']?.toString().trim() ?? '';
+              final promotion = row['promotion'] is Map
+                  ? (row['promotion'] as Map)['name']?.toString().trim()
+                  : row['promotion_name']?.toString().trim();
 
               return ListView(
                 key: const ValueKey('b2b-product-detail-data'),
@@ -2030,6 +2252,12 @@ class _WholesaleProductDetailsDesignScreenState
                   FoodexTopBar(
                     title: context.tr('b2b.product.title'),
                     actions: [
+                      IconButton(
+                        key: const ValueKey('b2b-product-refresh'),
+                        tooltip: context.tr('b2b.product.refresh'),
+                        onPressed: revalidating ? null : _retry,
+                        icon: const Icon(Icons.refresh_rounded),
+                      ),
                       CustomerFavoriteButton(
                         api: widget.favoritesApi,
                         storeId: storeId,
@@ -2040,6 +2268,31 @@ class _WholesaleProductDetailsDesignScreenState
                       ),
                     ],
                   ),
+                  if (stale) ...[
+                    const SizedBox(height: 10),
+                    Material(
+                      key: const ValueKey('b2b-product-stale'),
+                      color: FoodexPalette.wholesale.soft,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.cloud_off_outlined),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                context.tr('b2b.product.stale'),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   Opacity(
                     opacity: isAvailable ? 1 : 0.42,
@@ -2068,29 +2321,33 @@ class _WholesaleProductDetailsDesignScreenState
                       fontSize: 12,
                     ),
                   ),
-                  if ((row['brand_name']?.toString().trim() ?? '').isNotEmpty) ...[
+                  if (brand.isNotEmpty || category.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Container(
-                        key: const ValueKey('b2b-product-brand'),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 11,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE9F7EE),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          'العلامة التجارية: ' + row['brand_name'].toString(),
-                          style: const TextStyle(
-                            color: Color(0xFF006736),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (brand.isNotEmpty)
+                          _ProductMetaChip(
+                            key: const ValueKey('b2b-product-brand'),
+                            label: context.tr('b2b.product.brand'),
+                            value: brand,
                           ),
-                        ),
-                      ),
+                        if (category.isNotEmpty)
+                          _ProductMetaChip(
+                            key: const ValueKey('b2b-product-category'),
+                            label: context.tr('b2b.product.category'),
+                            value: category,
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (promotion != null && promotion.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _ProductMetaChip(
+                      key: const ValueKey('b2b-product-promotion'),
+                      label: context.tr('b2b.product.promotion'),
+                      value: promotion,
                     ),
                   ],
                   const SizedBox(height: 13),
@@ -2104,8 +2361,9 @@ class _WholesaleProductDetailsDesignScreenState
                       Expanded(
                         child: _InfoPill(
                           icon: Icons.inventory_2_outlined,
-                          label:
-                              'الحد الأدنى ' + compactNumber(minimum),
+                          label: context.tr('b2b.minimum_order') +
+                              ' ' +
+                              compactNumber(minimum),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -2113,14 +2371,36 @@ class _WholesaleProductDetailsDesignScreenState
                         child: _InfoPill(
                           icon: Icons.warehouse_outlined,
                           label: isAvailable
-                              ? context.tr('customer.product.available') +
+                              ? context.tr('b2b.product.inventory') +
                                   ' ' +
-                                  (row['available_quantity']?.toString() ?? '0')
+                                  (availableQuantity == null
+                                      ? context.tr(
+                                          'b2b.product.inventory_unbounded',
+                                        )
+                                      : compactNumber(availableQuantity))
                               : context.tr('customer.product.out_of_stock'),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  _InfoPill(
+                    icon: Icons.straighten_rounded,
+                    label: context.tr('b2b.product.quantity_step') +
+                        ' ' +
+                        compactNumber(increment),
+                  ),
+                  if (quantityIssue != null && isAvailable) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      quantityIssue,
+                      key: const ValueKey('b2b-product-quantity-error'),
+                      style: const TextStyle(
+                        color: Color(0xFFB42318),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   FoodexQuantityCta(
                     key: const ValueKey('customer-add-cart'),
@@ -2128,64 +2408,88 @@ class _WholesaleProductDetailsDesignScreenState
                     increment: increment,
                     minimum: minimum,
                     palette: FoodexPalette.wholesale,
-                    label: 'إضافة إلى السلة',
-                    onChanged: isAvailable
-                        ? (value) => setState(() => quantity = value)
-                        : null,
-                    onPressed: isAvailable
-                        ? () async {
-                            if (!widget.session.isAuthenticated) {
-                        await _beginWholesaleAddHandoff(
-                          context: context,
-                          pendingActionStore: widget.pendingActionStore,
-                          storeId: storeId,
-                          productId: productId,
-                          quantity: quantity!,
-                          sourceLocation: widget.location,
-                        );
-                        return;
-                      }
-
-                      try {
-                        await widget.actionApi.addCartItem(
-                          storeId: storeId,
-                          productId: productId,
-                          quantity: quantity!,
-                        );
-                        if (context.mounted) {
-                          Navigator.of(context).pushNamed(
-                            '/b2b/cart?channel=wholesale&store_id=' +
-                                storeId.toString(),
-                          );
-                        }
-                      } catch (error) {
-                        if (context.mounted) {
-                          await showOperationalError(context, error);
-                              }
+                    label: revalidating
+                        ? context.tr('b2b.product.revalidating')
+                        : context.tr('customer.action.add_cart'),
+                    onChanged: isAvailable && !revalidating
+                        ? (value) {
+                            if (availableQuantity != null &&
+                                value > availableQuantity + .0001) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    context.tr(
+                                          'b2b.product.quantity_stock',
+                                    ) +
+                                        ' ' +
+                                        compactNumber(availableQuantity),
+                                  ),
+                                ),
+                              );
+                              return;
                             }
+                            setState(() => quantity = value);
+                          }
+                        : null,
+                    onPressed: isAvailable && !revalidating
+                        ? () async {
+                            final issue =
+                                _quantityIssue(context, row, quantity!);
+                            if (issue != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(issue)),
+                              );
+                              return;
+                            }
+                            await _addProduct(row);
                           }
                         : null,
                   ),
+                  if (!isAvailable) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      context.tr('b2b.product.stock_auto_refresh'),
+                      key: const ValueKey('b2b-product-stock-auto-refresh'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF6B7785),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 15),
                   FoodexDetailAccordion(
-                    title: 'تفاصيل العبوة والتحويل',
-                    body: 'حجم العبوة: ' +
+                    title: context.tr('b2b.product.pack_details'),
+                    body: context.tr('b2b.product.pack_size') +
+                        ': ' +
                         (row['pack_size']?.toString() ?? '1') +
-                        ' · حجم الكرتونة: ' +
+                        ' · ' +
+                        context.tr('b2b.product.case_size') +
+                        ': ' +
                         (row['case_size']?.toString() ?? '—') +
-                        ' · الزيادة: ' +
+                        ' · ' +
+                        context.tr('b2b.product.quantity_step') +
+                        ': ' +
                         (row['ordering_increment']?.toString() ?? '1'),
                   ),
                   FoodexDetailAccordion(
-                    title: 'العلامة التجارية',
-                    body: (row['brand_name']?.toString().trim().isNotEmpty ?? false)
-                        ? row['brand_name'].toString()
-                        : 'غير محددة',
+                    title: context.tr('b2b.product.brand'),
+                    body: brand.isNotEmpty
+                        ? brand
+                        : context.tr('b2b.product.not_specified'),
                   ),
                   FoodexDetailAccordion(
-                    title: 'الوصف',
-                    body: row['description']?.toString() ??
-                        'لا توجد تفاصيل إضافية.',
+                    title: context.tr('b2b.product.category'),
+                    body: category.isNotEmpty
+                        ? category
+                        : context.tr('b2b.product.not_specified'),
+                  ),
+                  FoodexDetailAccordion(
+                    title: context.tr('b2b.product.description'),
+                    body: description.isNotEmpty
+                        ? description
+                        : context.tr('b2b.product.no_description'),
                   ),
                 ],
               );
@@ -2195,6 +2499,34 @@ class _WholesaleProductDetailsDesignScreenState
       ),
     );
   }
+}
+
+class _ProductMetaChip extends StatelessWidget {
+  const _ProductMetaChip({
+    required this.label,
+    required this.value,
+    super.key,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE9F7EE),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          '$label: $value',
+          style: const TextStyle(
+            color: Color(0xFF006736),
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      );
 }
 
 class _WholesaleProductFailureInfo {
