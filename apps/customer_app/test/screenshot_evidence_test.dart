@@ -271,7 +271,39 @@ class _EvidenceB2bApi implements B2bApi {
       };
     }
     if (path.endsWith('/dashboard')) {
-      return {'purchases_total': 321.75, 'open_invoices': 4, 'balance': 88.5, 'currency': 'KWD'};
+      return {
+        'customer': {
+          'id': 9,
+          'name': 'FOODEX Business Buyer',
+          'email': 'buyer@foodex.test',
+        },
+        'account': {
+          'id': 3,
+          'company_name': 'FOODEX Business Demo',
+          'status': 'active',
+        },
+        'finance': {
+          'currency': 'KWD',
+          'balance': 88.5,
+          'balance_direction': 'customer_owes_company',
+          'credit_limit': 500.0,
+          'available_credit_line': 411.5,
+          'open_amount': 146.25,
+          'overdue_amount': 24.0,
+        },
+        'operations': {
+          'purchases_this_month': 321.75,
+          'payments_this_month': 233.25,
+          'invoice_count': 4,
+          'order_count': 6,
+          'active_orders': 2,
+        },
+        'freshness': {
+          'generated_at': DateTime.now().toUtc().toIso8601String(),
+          'stale': false,
+        },
+        'currency': 'KWD',
+      };
     }
     if (path.contains('/reports/purchases')) {
       return {

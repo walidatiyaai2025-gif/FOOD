@@ -114,6 +114,22 @@ void main() {
     expect(api.lastPath, '/api/v1/b2b/dashboard?store_id=7');
     expect(api.calls, 1);
     expect(find.byKey(const ValueKey('b2b-dashboard-data')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-dashboard-balance-hero')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-dashboard-finance-grid')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-dashboard-operations-grid')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-dashboard-offers')),
+      findsOneWidget,
+    );
     expect(find.text('Buyer Co'), findsOneWidget);
     expect(find.text('Buyer'), findsOneWidget);
     expect(find.text('عليك 10.000 KWD'), findsOneWidget);
