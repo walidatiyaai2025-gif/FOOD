@@ -10,9 +10,13 @@ use InvalidArgumentException;
 final class OperationalLookupService
 {
     public const PAYMENT_OPERATION_TYPE = 'payment_operation_type';
+
     public const PAYMENT_METHOD = 'payment_method';
+
     public const PRICE_TIER = 'price_tier';
+
     public const ORDER_STATUS = 'order_status';
+
     public const FAILED_DELIVERY_REASON = 'failed_delivery_reason';
 
     /** @var array<string,string> */
