@@ -166,6 +166,25 @@ class CheckoutController extends Controller
                 true,
             );
 
+            if ($channel === 'b2b' && $paymentMethod === 'account_credit') {
+                abort_unless($customer instanceof B2bCustomer, 500);
+
+                // Serialize credit-backed B2B checkout against the account row, then
+                // recompute the authoritative ledger exposure inside this transaction.
+                B2bAccount::query()
+                    ->where('b2b_customer_id', $customer->getKey())
+                    ->where('status', 'active')
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $financeAtSubmit = app(B2bAccountLedgerService::class)->summary($customer, $storeId);
+                abort_if(
+                    (float) $quote['grand_total'] > (float) $financeAtSubmit['purchasing_power'] + 0.0001,
+                    409,
+                    'Account credit is insufficient for the authoritative order total.',
+                );
+            }
+
             $currency = (string) $quote['currency'];
             $lineSnapshots = array_map(
                 fn (array $line): array => $quotes->orderLineSnapshot($line, $currency),

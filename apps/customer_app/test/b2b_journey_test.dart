@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
@@ -774,6 +776,268 @@ void main() {
   });
 
   testWidgets(
+      'C13 cart shows authoritative line state totals and visible remove/clear actions',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final commerce = _C13WholesaleCommerceApi(
+      cartValue: {
+        'store_id': 7,
+        'currency': 'EGP',
+        'subtotal': 30.0,
+        'has_unavailable_items': false,
+        'quote': {
+          'discount_total': 2.0,
+          'delivery_total': 3.0,
+          'tax_total': 1.0,
+          'grand_total': 32.0,
+        },
+        'items': [
+          {
+            'id': 11,
+            'product': {
+              'id': 101,
+              'name': 'Bulk Water',
+              'sku': 'W-101',
+              'image_url': null,
+            },
+            'quantity': 2.0,
+            'unit_price_snapshot': 10.0,
+            'line_total': 20.0,
+            'is_available': true,
+            'available_quantity': 8.0,
+            'minimum_order_quantity': 1.0,
+            'ordering_increment': 1.0,
+            'pack_label': 'Case 12',
+          },
+          {
+            'id': 12,
+            'product': {
+              'id': 102,
+              'name': 'Bulk Juice',
+              'sku': 'J-102',
+              'image_url': null,
+            },
+            'quantity': 1.0,
+            'unit_price_snapshot': 10.0,
+            'line_total': 10.0,
+            'is_available': true,
+            'available_quantity': 5.0,
+            'minimum_order_quantity': 1.0,
+            'ordering_increment': 1.0,
+          },
+        ],
+      },
+    );
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/cart?store_id=7',
+        wholesaleCommerceApi: commerce,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Wholesale cart'), findsOneWidget);
+    expect(find.text('Bulk Water'), findsOneWidget);
+    expect(find.textContaining('Unit price'), findsWidgets);
+    expect(find.textContaining('Line total'), findsWidgets);
+    expect(find.textContaining('Available: 8'), findsOneWidget);
+    expect(find.text('Discounts'), findsOneWidget);
+    expect(find.text('Delivery'), findsOneWidget);
+    expect(find.text('Tax'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-cart-clear')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-cart-remove-Bulk Water')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-cart-remove-Bulk Water')),
+    );
+    await tester.pumpAndSettle();
+    expect(commerce.removeCalls, 1);
+    expect(find.text('Bulk Water'), findsNothing);
+    expect(find.text('Bulk Juice'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('b2b-cart-clear')));
+    await tester.pumpAndSettle();
+    expect(commerce.removeCalls, 2);
+    expect(find.text('The cart is empty'), findsOneWidget);
+  });
+
+  testWidgets(
+      'C13 checkout exposes financial position and blocks insufficient account credit',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final commerce = _C13WholesaleCommerceApi(
+      cartValue: {
+        'store_id': 7,
+        'currency': 'EGP',
+        'subtotal': 25.0,
+        'has_unavailable_items': false,
+        'quote': {
+          'discount_total': 0.0,
+          'delivery_total': 0.0,
+          'tax_total': 0.0,
+          'grand_total': 25.0,
+        },
+        'items': [
+          {
+            'id': 21,
+            'product': {'id': 201, 'name': 'Credit Item', 'sku': 'C-201'},
+            'quantity': 1.0,
+            'unit_price_snapshot': 25.0,
+            'line_total': 25.0,
+            'is_available': true,
+            'minimum_order_quantity': 1.0,
+            'ordering_increment': 1.0,
+          },
+        ],
+      },
+    );
+    final storefront = _C13CheckoutStorefrontApi({
+      'store_id': 7,
+      'store_name': 'Wholesale Store',
+      'customer_name': 'Acme Buyer',
+      'addresses': [
+        {
+          'id': 1,
+          'label': 'Warehouse',
+          'line1': 'Street 1',
+          'city': 'Cairo',
+        },
+      ],
+      'delivery_dates': ['2026-10-06'],
+      'payment_methods': ['account_credit'],
+      'customer_credit_balance': 1.0,
+      'outstanding_receivable': 8.0,
+      'credit_limit': 20.0,
+      'available_credit_line': 12.0,
+      'purchasing_power': 13.0,
+      'currency': 'EGP',
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/checkout?store_id=7',
+        storefrontApi: storefront,
+        wholesaleCommerceApi: commerce,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Current financial position'), findsOneWidget);
+    expect(find.text('Available purchasing power'), findsOneWidget);
+    expect(find.text('Final review'), findsOneWidget);
+    expect(find.text('Acme Buyer'), findsOneWidget);
+    expect(find.text('Wholesale Store'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-checkout-insufficient-credit')),
+      findsOneWidget,
+    );
+    final submit = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('b2b-checkout-submit')),
+    );
+    expect(submit.onPressed, isNull);
+  });
+
+  testWidgets('C13 checkout prevents double submit with one stable attempt key',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final completer = Completer<Object?>();
+    final commerce = _C13WholesaleCommerceApi(
+      checkoutCompleter: completer,
+      cartValue: {
+        'store_id': 7,
+        'currency': 'EGP',
+        'subtotal': 10.0,
+        'has_unavailable_items': false,
+        'quote': {'grand_total': 10.0},
+        'items': [
+          {
+            'id': 31,
+            'product': {'id': 301, 'name': 'Submit Item', 'sku': 'S-301'},
+            'quantity': 1.0,
+            'unit_price_snapshot': 10.0,
+            'line_total': 10.0,
+            'is_available': true,
+            'minimum_order_quantity': 1.0,
+            'ordering_increment': 1.0,
+          },
+        ],
+      },
+    );
+    final storefront = _C13CheckoutStorefrontApi({
+      'store_id': 7,
+      'store_name': 'Wholesale Store',
+      'customer_name': 'Acme Buyer',
+      'addresses': [
+        {'id': 1, 'label': 'Warehouse', 'line1': 'Street 1'},
+      ],
+      'delivery_dates': ['2026-10-06'],
+      'payment_methods': ['cash_on_delivery'],
+      'purchasing_power': 0.0,
+      'currency': 'EGP',
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/checkout?store_id=7',
+        storefrontApi: storefront,
+        wholesaleCommerceApi: commerce,
+        b2bApi: _StaticB2bApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final submitFinder = find.byKey(const ValueKey('b2b-checkout-submit'));
+    await tester.ensureVisible(submitFinder);
+    await tester.tap(submitFinder);
+    await tester.pump();
+
+    expect(commerce.checkoutCalls, 1);
+    expect(commerce.checkoutKeys, hasLength(1));
+    expect(commerce.checkoutKeys.single.length, greaterThanOrEqualTo(16));
+    expect(
+      tester.widget<FilledButton>(submitFinder).onPressed,
+      isNull,
+    );
+
+    // A second physical tap cannot create a second checkout while the first
+    // authoritative request is still unresolved.
+    await tester.tap(submitFinder, warnIfMissed: false);
+    await tester.pump();
+    expect(commerce.checkoutCalls, 1);
+
+    completer.complete(<String, Object?>{});
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
       'B2B order details refresh route stays on authoritative B2B endpoint',
       (tester) async {
     final api = _FakeB2bApi({
@@ -1540,6 +1804,102 @@ void main() {
       expect(find.byKey(const ValueKey('b2b-error-retry')), findsOneWidget);
     }
   });
+}
+
+class _C13CheckoutStorefrontApi implements StorefrontApi {
+  const _C13CheckoutStorefrontApi(this.options);
+
+  final Map<String, dynamic> options;
+
+  @override
+  Future<Map<String, dynamic>> selection({
+    String? countryCode,
+    String? city,
+    String? area,
+    bool support = false,
+  }) async =>
+      const {};
+
+  @override
+  Future<Map<String, dynamic>> retailHome(int storeId) async => const {};
+
+  @override
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async => const {};
+
+  @override
+  Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
+      Map<String, dynamic>.from(options);
+}
+
+class _C13WholesaleCommerceApi implements WholesaleCommerceApi {
+  _C13WholesaleCommerceApi({
+    required this.cartValue,
+    this.checkoutCompleter,
+  });
+
+  final Map<String, dynamic> cartValue;
+  final Completer<Object?>? checkoutCompleter;
+  int removeCalls = 0;
+  int updateCalls = 0;
+  int checkoutCalls = 0;
+  final Set<int> removedItemIds = <int>{};
+  final List<String> checkoutKeys = <String>[];
+
+  @override
+  Future<Object?> cart(int storeId) async {
+    final snapshot = Map<String, dynamic>.from(cartValue);
+    final items = cartValue['items'];
+    if (items is List) {
+      snapshot['items'] = items
+          .where(
+            (raw) =>
+                raw is! Map ||
+                !removedItemIds.contains(raw['id']),
+          )
+          .toList(growable: false);
+    }
+    return snapshot;
+  }
+
+  @override
+  Future<Object?> addItem(int storeId, int productId, double quantity) async =>
+      null;
+
+  @override
+  Future<Object?> updateItem(int itemId, double quantity) async {
+    updateCalls += 1;
+    final items = (cartValue['items'] as List? ?? <Object>[]);
+    for (final raw in items) {
+      if (raw is Map && raw['id'] == itemId) {
+        raw['quantity'] = quantity;
+      }
+    }
+    return cartValue;
+  }
+
+  @override
+  Future<void> removeItem(int itemId) async {
+    removeCalls += 1;
+    removedItemIds.add(itemId);
+  }
+
+  @override
+  Future<Object?> checkout({
+    required int storeId,
+    required int addressId,
+    required String paymentMethod,
+    String? requestedDeliveryDate,
+    String? note,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async {
+    checkoutCalls += 1;
+    checkoutKeys.add(idempotencyKey);
+    if (checkoutCompleter != null) {
+      return checkoutCompleter!.future;
+    }
+    return <String, Object?>{};
+  }
 }
 
 class _CheckoutStorefrontApi implements StorefrontApi {

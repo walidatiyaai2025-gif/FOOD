@@ -441,13 +441,13 @@ final class StorefrontController extends Controller
             ]);
         }
 
-        $wholesaleExists = DB::table('stores')
+        $wholesaleStore = DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('stores.id', $storeId)
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')
-            ->exists();
-        abort_unless($wholesaleExists, 404);
+            ->first(['stores.id', 'stores.name']);
+        abort_unless($wholesaleStore !== null, 404);
 
         $customer = $customers->b2bFromRequest($user, $request);
         $account = B2bAccount::query()
@@ -500,6 +500,8 @@ final class StorefrontController extends Controller
 
         return response()->json([
             'store_id' => $storeId,
+            'store_name' => (string) $wholesaleStore->name,
+            'customer_name' => (string) $customer->name,
             'account_id' => (int) $account->getKey(),
             'addresses' => $addresses,
             'delivery_dates' => $deliveryDates,
