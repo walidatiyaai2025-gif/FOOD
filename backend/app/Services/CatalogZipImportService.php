@@ -1380,9 +1380,9 @@ final class CatalogZipImportService
             $method = 8;
             [$dosTime, $dosDate] = $this->dosTimestamp();
 
-            $local = pack('VvvvvvVVVvv', 0x04034b50, 20, $flags, $method, $dosTime, $dosDate, $crc, $compressedSize, $uncompressedSize, $nameLength, 0)
+            $local = pack('VvvvvvVVVvv', 0x04034B50, 20, $flags, $method, $dosTime, $dosDate, $crc, $compressedSize, $uncompressedSize, $nameLength, 0)
                 .$name.$compressed;
-            $central = pack('VvvvvvvVVVvvvvvVV', 0x02014b50, 0x0314, 20, $flags, $method, $dosTime, $dosDate, $crc, $compressedSize, $uncompressedSize, $nameLength, 0, 0, 0, 0, 0, $offset)
+            $central = pack('VvvvvvvVVVvvvvvVV', 0x02014B50, 0x0314, 20, $flags, $method, $dosTime, $dosDate, $crc, $compressedSize, $uncompressedSize, $nameLength, 0, 0, 0, 0, 0, $offset)
                 .$name;
             $locals .= $local;
             $centrals .= $central;
@@ -1391,7 +1391,7 @@ final class CatalogZipImportService
         }
         $centralOffset = strlen($locals);
         $centralSize = strlen($centrals);
-        $eocd = pack('VvvvvVVv', 0x06054b50, 0, 0, $count, $count, $centralSize, $centralOffset, 0);
+        $eocd = pack('VvvvvVVv', 0x06054B50, 0, 0, $count, $count, $centralSize, $centralOffset, 0);
 
         return $locals.$centrals.$eocd;
     }
