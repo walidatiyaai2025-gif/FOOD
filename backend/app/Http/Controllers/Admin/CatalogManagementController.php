@@ -233,7 +233,7 @@ final class CatalogManagementController extends Controller
             'catalog_zip' => ['required', 'file', 'max:51200'],
         ]);
         $archive = $request->file('catalog_zip');
-        if (! $archive instanceof UploadedFile) {
+        if (!$archive instanceof UploadedFile) {
             throw ValidationException::withMessages(['catalog_zip' => [$this->msg(
                 'تعذر قراءة ملف ZIP المرفوع.',
                 'The uploaded ZIP could not be read.',
