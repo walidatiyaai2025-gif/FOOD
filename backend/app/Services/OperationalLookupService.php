@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
+use stdClass;
 
 final class OperationalLookupService
 {
@@ -45,7 +46,7 @@ final class OperationalLookupService
         return array_keys(self::PUBLIC_TYPES);
     }
 
-    /** @return Collection<int,object> */
+    /** @return Collection<int, stdClass> */
     public function active(string $type): Collection
     {
         if ($type === self::PRICE_TIER) {
