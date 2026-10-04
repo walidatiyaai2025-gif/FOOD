@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/api/b2b_api.dart';
@@ -474,8 +473,7 @@ class B2bJourneyScreen extends StatelessWidget {
         if (storeId == null || storeId.isEmpty) return null;
         return '/api/v1/b2b/products/${segments.last}?store_id=$storeId';
       case CustomerRoutePaths.b2bInvoices:
-        return '/api/v1/b2b/invoices' +
-            (uri.hasQuery ? '?' + uri.query : '');
+        return '/api/v1/b2b/invoices${uri.hasQuery ? '?${uri.query}' : ''}';
       case CustomerRoutePaths.b2bInvoiceDetails:
         return '/api/v1/b2b/invoices/${segments.last}';
       case CustomerRoutePaths.b2bAccountStatement:
@@ -2523,15 +2521,13 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
     }
     final rawPath = row['pdf_path']?.toString() ?? '';
     if (rawPath.isEmpty) return;
-    final path = rawPath +
-        (rawPath.contains('?') ? '&' : '?') +
-        'locale=' +
-        (ar ? 'ar' : 'en');
+    final path =
+        '${rawPath}${rawPath.contains('?') ? '&' : '?'}locale=${ar ? 'ar' : 'en'}';
     final number = row['invoice_number']?.toString() ?? 'invoice';
     setState(() => _sharingPdf = true);
     try {
       final bytes = await (documentApi as B2bDocumentApi).getBytes(path);
-      final name = number + '.pdf';
+      final name = '$number.pdf';
       await SharePlus.instance.share(
         ShareParams(
           files: [
@@ -2568,7 +2564,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
         row['store_id']?.toString() ?? source.queryParameters['store_id'];
     if (storeId != null && storeId.isNotEmpty) params['store_id'] = storeId;
     return Uri(
-      path: '/b2b/invoices/' + row['id'].toString(),
+      path: '/b2b/invoices/${row['id']}',
       queryParameters: params,
     ).toString();
   }
@@ -2587,15 +2583,13 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
 
   String _money(Object? value, String currency) {
     final amount = double.tryParse(value?.toString() ?? '') ?? 0;
-    return (amount.toStringAsFixed(3) + ' ' + currency).trim();
+    return '${amount.toStringAsFixed(3)} $currency'.trim();
   }
 
   String _date(DateTime date) =>
-      date.year.toString().padLeft(4, '0') +
-      '-' +
-      date.month.toString().padLeft(2, '0') +
-      '-' +
-      date.day.toString().padLeft(2, '0');
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 
   String _displayDate(Object? value) {
     final parsed = DateTime.tryParse(value?.toString() ?? '');
@@ -2663,7 +2657,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   key: const ValueKey('b2b-invoices-status'),
-                  value: _status,
+                  initialValue: _status,
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: ar ? 'الحالة' : 'Status',
@@ -2734,24 +2728,19 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
         ...totals.map((total) {
           final currency = total['currency']?.toString() ?? '';
           return Card(
-            key: ValueKey('b2b-invoices-summary-' + currency),
+            key: ValueKey('b2b-invoices-summary-$currency'),
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Wrap(
                 spacing: 16,
                 runSpacing: 8,
                 children: [
-                  Text((ar ? 'الإجمالي' : 'Total') + ': ' +
-                      _money(total['total'], currency)),
-                  Text((ar ? 'المدفوع' : 'Paid') + ': ' +
-                      _money(total['paid'], currency)),
-                  Text((ar ? 'المتبقي' : 'Outstanding') + ': ' +
-                      _money(total['outstanding'], currency)),
-                  Text((ar ? 'المتأخر' : 'Overdue') + ': ' +
-                      _money(total['overdue'], currency)),
+                  Text('${ar ? 'الإجمالي' : 'Total'}: ${_money(total['total'], currency)}'),
+                  Text('${ar ? 'المدفوع' : 'Paid'}: ${_money(total['paid'], currency)}'),
+                  Text('${ar ? 'المتبقي' : 'Outstanding'}: ${_money(total['outstanding'], currency)}'),
+                  Text('${ar ? 'المتأخر' : 'Overdue'}: ${_money(total['overdue'], currency)}'),
                   if ((double.tryParse(total['credit'].toString()) ?? 0) > 0)
-                    Text((ar ? 'لك' : 'Credit') + ': ' +
-                        _money(total['credit'], currency)),
+                    Text('${ar ? 'لك' : 'Credit'}: ${_money(total['credit'], currency)}'),
                 ],
               ),
             ),
@@ -2776,7 +2765,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                 row['status']?.toString() ??
                 'open';
             return Card(
-              key: ValueKey('b2b-invoice-' + row['id'].toString()),
+              key: ValueKey('b2b-invoice-${row['id']}'),
               child: InkWell(
                 onTap: () => Navigator.of(context).pushNamed(_detailRoute(row)),
                 child: Padding(
@@ -2795,35 +2784,27 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                           Chip(label: Text(_statusLabel(context, status))),
                         ],
                       ),
-                      Text((ar ? 'تاريخ الإصدار' : 'Issued') + ': ' +
-                          _displayDate(row['issued_at'])),
-                      Text((ar ? 'الاستحقاق' : 'Due') + ': ' +
-                          _displayDate(row['due_at'])),
+                      Text('${ar ? 'تاريخ الإصدار' : 'Issued'}: ${_displayDate(row['issued_at'])}'),
+                      Text('${ar ? 'الاستحقاق' : 'Due'}: ${_displayDate(row['due_at'])}'),
                       const SizedBox(height: 6),
-                      Text((ar ? 'الإجمالي' : 'Total') + ': ' +
-                          _money(row['total'], currency)),
-                      Text((ar ? 'المدفوع' : 'Paid') + ': ' +
-                          _money(row['paid_amount'], currency)),
-                      Text((ar ? 'المتبقي' : 'Outstanding') + ': ' +
-                          _money(row['outstanding_amount'], currency)),
+                      Text('${ar ? 'الإجمالي' : 'Total'}: ${_money(row['total'], currency)}'),
+                      Text('${ar ? 'المدفوع' : 'Paid'}: ${_money(row['paid_amount'], currency)}'),
+                      Text('${ar ? 'المتبقي' : 'Outstanding'}: ${_money(row['outstanding_amount'], currency)}'),
                       if ((double.tryParse(row['credit_amount'].toString()) ?? 0) >
                           0)
-                        Text((ar ? 'لك' : 'Credit') + ': ' +
-                            _money(row['credit_amount'], currency)),
+                        Text('${ar ? 'لك' : 'Credit'}: ${_money(row['credit_amount'], currency)}'),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         children: [
                           OutlinedButton.icon(
-                            key: ValueKey(
-                                'b2b-invoice-pdf-' + row['id'].toString()),
+                            key: ValueKey('b2b-invoice-pdf-${row['id']}'),
                             onPressed: _sharingPdf ? null : () => _sharePdf(row),
                             icon: const Icon(Icons.picture_as_pdf_outlined),
                             label: const Text('PDF'),
                           ),
                           FilledButton.tonalIcon(
-                            key: ValueKey(
-                                'b2b-invoice-open-' + row['id'].toString()),
+                            key: ValueKey('b2b-invoice-open-${row['id']}'),
                             onPressed: () => Navigator.of(context)
                                 .pushNamed(_detailRoute(row)),
                             icon: const Icon(Icons.open_in_new_rounded),
@@ -2846,7 +2827,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
               child: Text(ar ? 'السابق' : 'Previous'),
             ),
             const Spacer(),
-            Text((ar ? 'صفحة ' : 'Page ') + _page.toString()),
+            Text('${ar ? 'صفحة' : 'Page'} $_page'),
             const Spacer(),
             OutlinedButton(
               key: const ValueKey('b2b-invoices-next'),
