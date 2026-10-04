@@ -13,10 +13,15 @@ use Throwable;
 final class CatalogZipImportService
 {
     private const MAX_ARCHIVE_BYTES = 52_428_800;
+
     private const MAX_TOTAL_UNCOMPRESSED_BYTES = 73_400_320;
+
     private const MAX_ENTRY_BYTES = 5_242_880;
+
     private const MAX_WORKBOOK_BYTES = 5_242_880;
+
     private const MAX_ENTRIES = 10_000;
+
     private const MAX_ROWS_PER_SHEET = 5_000;
 
     /** @var array<string, string> */
@@ -1006,9 +1011,9 @@ final class CatalogZipImportService
             }
             $this->assertSafeZipPath($name);
             if ((int) $meta['disk_start'] !== 0
-                || (int) $meta['compressed_size'] === 0xFFFFFFFF
-                || (int) $meta['uncompressed_size'] === 0xFFFFFFFF
-                || (int) $meta['local_offset'] === 0xFFFFFFFF) {
+                || (int) $meta['compressed_size'] === 0xffffffff
+                || (int) $meta['uncompressed_size'] === 0xffffffff
+                || (int) $meta['local_offset'] === 0xffffffff) {
                 throw new RuntimeException("ZIP64 or multi-disk entry is not supported: {$name}");
             }
             if (((int) $meta['flags'] & 0x0001) !== 0) {
@@ -1020,8 +1025,8 @@ final class CatalogZipImportService
             if (isset($entries[$name])) {
                 throw new RuntimeException("ZIP contains duplicate entry: {$name}");
             }
-            $mode = ((int) $meta['external_attributes'] >> 16) & 0xF000;
-            if ($mode === 0xA000) {
+            $mode = ((int) $meta['external_attributes'] >> 16) & 0xf000;
+            if ($mode === 0xa000) {
                 throw new RuntimeException("ZIP symbolic links are not allowed: {$name}");
             }
             $uncompressed = (int) $meta['uncompressed_size'];
