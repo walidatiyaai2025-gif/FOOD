@@ -306,6 +306,43 @@ class CartDomainTest extends TestCase
             ->assertJsonPath('subtotal', 3.5);
     }
 
+    public function test_zero_available_stock_is_rejected_and_recovers_when_quantity_returns(): void
+    {
+        Sanctum::actingAs($this->b2cUser);
+
+        DB::table('inventories')
+            ->where('warehouse_id', $this->b2cWarehouseId)
+            ->where('product_id', $this->productId)
+            ->update([
+                'quantity' => 5,
+                'reserved_quantity' => 5,
+                'updated_at' => now(),
+            ]);
+
+        $this->postJson('/api/v1/cart/items', [
+            'store_id' => $this->b2cStoreId,
+            'product_id' => $this->productId,
+            'quantity' => 1,
+        ])->assertConflict();
+
+        DB::table('inventories')
+            ->where('warehouse_id', $this->b2cWarehouseId)
+            ->where('product_id', $this->productId)
+            ->update([
+                'reserved_quantity' => 4,
+                'updated_at' => now(),
+            ]);
+
+        $this->postJson('/api/v1/cart/items', [
+            'store_id' => $this->b2cStoreId,
+            'product_id' => $this->productId,
+            'quantity' => 1,
+        ])->assertCreated()
+            ->assertJsonPath('items.0.is_available', true)
+            ->assertJsonPath('items.0.available_quantity', 1)
+            ->assertJsonPath('items.0.availability_state', 'AVAILABLE');
+    }
+
     public function test_invalid_bearer_token_is_not_downgraded_to_guest_access(): void
     {
         $this->withHeader('Authorization', 'Bearer invalid-token')
