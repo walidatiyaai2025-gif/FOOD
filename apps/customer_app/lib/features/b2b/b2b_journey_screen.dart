@@ -4328,18 +4328,34 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                 Text(
                   '${ar ? 'البائع' : 'Seller'} · ${seller['name']}',
                   key: const ValueKey('b2b-invoice-seller'),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               if ((customer['name']?.toString() ?? '').isNotEmpty)
                 Text(
                   '${ar ? 'العميل' : 'Customer'} · ${customer['name']}',
                   key: const ValueKey('b2b-invoice-customer'),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               if ((customer['email']?.toString() ?? '').isNotEmpty)
-                Text(customer['email'].toString()),
+                Text(
+                  customer['email'].toString(),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
               if ((customer['phone']?.toString() ?? '').isNotEmpty)
-                Text(customer['phone'].toString()),
+                Text(
+                  customer['phone'].toString(),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
               const SizedBox(height: 14),
               FilledButton.icon(
                 key: const ValueKey('b2b-invoice-detail-pdf'),
