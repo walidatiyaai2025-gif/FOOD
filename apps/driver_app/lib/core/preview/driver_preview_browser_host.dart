@@ -40,6 +40,7 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
   JSFunction? _messageListener;
   DriverPreviewRuntime? _runtime;
   String? _error;
+  int _bootstrapGeneration = 0;
 
   static const _configuredApiBaseUrl = String.fromEnvironment(
     'FOODEX_PREVIEW_API_BASE_URL',
@@ -96,6 +97,8 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
       return;
     }
 
+    final generation = ++_bootstrapGeneration;
+
     try {
       final bootstrap = DriverPreviewBootstrap.parse(
         data,
@@ -107,7 +110,7 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
         baseUrl: _apiBaseUrl,
         bootstrap: bootstrap,
         onReadState: (state, endpoint, statusCode, updatedAt) {
-          if (!mounted || attempt != _bootstrapAttempt) return;
+          if (!mounted || generation != _bootstrapGeneration) return;
           final code = state == 'ready'
               ? null
               : (state == 'disconnected'
@@ -205,6 +208,7 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
 
   @override
   void dispose() {
+    _bootstrapGeneration++;
     final listener = _messageListener;
     if (listener != null) {
       _previewWindow.removeEventListener('message', listener);
