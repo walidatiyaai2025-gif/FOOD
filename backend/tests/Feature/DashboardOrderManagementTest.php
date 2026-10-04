@@ -281,7 +281,11 @@ class DashboardOrderManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Approve order')
             ->assertSee('Reject order')
-            ->assertSee('Rejection reason (required)');
+            ->assertSee('Rejection reason (required)')
+            ->assertSee('Financial settlement review')
+            ->assertSee('Customer credit balance')
+            ->assertSee('Aggregate outstanding')
+            ->assertSee('Credit limit');
 
         $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
             'status' => 'cancelled',
