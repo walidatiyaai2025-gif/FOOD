@@ -23,6 +23,7 @@ void main() {
     '/retail/7/home',
     '/retail/8/home',
     '/b2b/home?store_id=70',
+    '/b2b/products?store_id=70',
     '/retail/7/products/42',
     '/b2b/products/42?store_id=70',
     '/b2b/cart?store=70',
