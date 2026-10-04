@@ -119,7 +119,10 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
 }
 
 class HttpDriverAssignmentRepository
-    implements DriverProofAssignmentRepository, DriverFailureReasonCatalog {
+    implements
+        DriverProofAssignmentRepository,
+        DriverInvoiceDocumentRepository,
+        DriverFailureReasonCatalog {
   HttpDriverAssignmentRepository(
     String baseUrl,
     this.token, {
@@ -222,6 +225,10 @@ class HttpDriverAssignmentRepository
             unit: (item['unit'] ?? '').toString(),
             note: (item['note'] ?? '').toString(),
             quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
+            quantityConversionFactor:
+                (item['quantity_conversion_factor'] as num?)?.toDouble() ?? 1,
+            packSize: (item['pack_size'] as num?)?.toDouble() ?? 0,
+            caseSize: (item['case_size'] as num?)?.toDouble() ?? 0,
             unitPrice: (item['unit_price'] as num?)?.toDouble() ?? 0,
             lineTotal: (item['line_total'] as num?)?.toDouble() ?? 0,
           );
@@ -265,8 +272,39 @@ class HttpDriverAssignmentRepository
             grandTotal: (invoiceMap['grand_total'] as num?)?.toDouble() ?? 0,
             paymentMethod: (invoiceMap['payment_method'] ?? '').toString(),
             paymentStatus: (invoiceMap['payment_status'] ?? '').toString(),
+            outstandingAmount:
+                (invoiceMap['outstanding_amount'] as num?)?.toDouble() ?? 0,
+            downloadPath: (invoiceMap['download_path'] ?? '').toString(),
             issuedAt: (invoiceMap['issued_at'] ?? '').toString(),
             items: invoiceItems,
+          );
+
+    final settlementMap = order['settlement'] is Map
+        ? Map<String, dynamic>.from(order['settlement'] as Map)
+        : null;
+    final settlement = settlementMap == null
+        ? null
+        : DriverSettlement(
+            currency:
+                (settlementMap['currency'] ?? order['currency'] ?? 'KWD').toString(),
+            orderTotal:
+                (settlementMap['order_total'] as num?)?.toDouble() ?? 0,
+            balanceApplied:
+                (settlementMap['balance_applied'] as num?)?.toDouble() ?? 0,
+            paidAmount:
+                (settlementMap['paid_amount'] as num?)?.toDouble() ?? 0,
+            remainingAmount:
+                (settlementMap['remaining_amount'] as num?)?.toDouble() ?? 0,
+            remainderMethod:
+                (settlementMap['remainder_method'] ?? '').toString(),
+            paymentState:
+                (settlementMap['payment_state'] ?? '').toString(),
+            amountToCollectNow:
+                (settlementMap['amount_to_collect_now'] as num?)?.toDouble() ?? 0,
+            invoiceOutstandingAmount:
+                (settlementMap['invoice_outstanding_amount'] as num?)
+                        ?.toDouble() ??
+                    0,
           );
 
     return DriverAssignment(
@@ -292,6 +330,7 @@ class HttpDriverAssignmentRepository
       paymentMethod: (order['payment_method'] ?? '').toString(),
       paymentStatus: (payment['status'] ?? '').toString(),
       customerNote: (order['customer_note'] ?? '').toString(),
+      settlement: settlement,
       items: items,
       invoice: invoice,
       availableStatuses: (map['available_statuses'] as List? ?? const [])
@@ -331,6 +370,26 @@ class HttpDriverAssignmentRepository
             option.labelAr.trim().isNotEmpty &&
             option.labelEn.trim().isNotEmpty)
         .toList(growable: false);
+  }
+
+  @override
+  Future<List<int>> downloadInvoicePdf(
+    int assignmentId, {
+    required String locale,
+  }) async {
+    final response = await _request(
+      () => _client.get(
+        _endpoint('driver/assignments/$assignmentId/invoice/download').replace(
+          queryParameters: {'locale': locale == 'ar' ? 'ar' : 'en'},
+        ),
+        headers: _headers,
+      ),
+    );
+    final contentType = response.headers['content-type']?.toLowerCase() ?? '';
+    if (!contentType.contains('application/pdf') || response.bodyBytes.isEmpty) {
+      throw const DriverApiException('Invalid invoice PDF response.');
+    }
+    return response.bodyBytes;
   }
 
   @override
