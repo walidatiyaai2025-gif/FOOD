@@ -3851,9 +3851,15 @@ class _CheckoutSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = mapRows(cart['items']);
     final currency = cart['currency']?.toString() ?? 'EGP';
+    final quote = cart['quote'] is Map
+        ? Map<String, dynamic>.from(cart['quote'] as Map)
+        : <String, dynamic>{};
     final subtotal = cart['subtotal'];
-    final delivery = cart['delivery_total'] ?? cart['delivery_fee'];
-    final grandTotal = cart['grand_total'] ?? cart['total'] ?? subtotal;
+    final discount = quote['discount_total'];
+    final delivery = quote['delivery_total'];
+    final tax = quote['tax_total'];
+    final grandTotal =
+        quote['grand_total'] ?? cart['grand_total'] ?? cart['total'] ?? subtotal;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -3865,16 +3871,16 @@ class _CheckoutSummary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'ملخص الطلب',
-            style: TextStyle(
+          Text(
+            context.tr('b2b.checkout.order_summary'),
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
             ),
           ),
           if (items.isNotEmpty) ...[
             const SizedBox(height: 10),
-            ...items.take(3).map(
+            ...items.map(
               (item) => Padding(
                 padding: const EdgeInsets.only(bottom: 7),
                 child: Row(
@@ -3885,8 +3891,8 @@ class _CheckoutSummary extends StatelessWidget {
                             (item['product'] is Map
                                 ? (item['product'] as Map)['name']
                                         ?.toString() ??
-                                    'منتج'
-                                : 'منتج'),
+                                    context.tr('b2b.checkout.product')
+                                : context.tr('b2b.checkout.product')),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 12),
@@ -3894,11 +3900,23 @@ class _CheckoutSummary extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '× ' +
-                          (item['quantity']?.toString() ?? '1'),
+                      '× ' + (item['quantity']?.toString() ?? '1'),
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF6B7785),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      money(
+                        item['line_total'] ??
+                            item['unit_price_snapshot'] ??
+                            item['unit_price'],
+                        currency: currency,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],
@@ -3908,24 +3926,34 @@ class _CheckoutSummary extends StatelessWidget {
           ],
           const Divider(height: 18),
           _SummaryRow(
-            label: 'الإجمالي الفرعي',
+            label: context.tr('b2b.cart.subtotal'),
             value: money(subtotal, currency: currency),
           ),
+          if (doubleValue(discount, 0) > 0)
+            _SummaryRow(
+              label: context.tr('b2b.cart.discount'),
+              value: '- ' + money(discount, currency: currency),
+            ),
           if (delivery != null)
             _SummaryRow(
-              label: 'التوصيل',
+              label: context.tr('b2b.cart.delivery'),
               value: money(delivery, currency: currency),
+            ),
+          if (tax != null)
+            _SummaryRow(
+              label: context.tr('b2b.cart.tax'),
+              value: money(tax, currency: currency),
             ),
           const SizedBox(height: 7),
           _SummaryRow(
-            label: 'الإجمالي',
+            label: context.tr('b2b.cart.total'),
             value: money(grandTotal, currency: currency),
             strong: true,
           ),
           const SizedBox(height: 7),
-          const Text(
-            'يتم التحقق من السعر والحد الأدنى والكميات مرة أخرى على الخادم عند التأكيد.',
-            style: TextStyle(
+          Text(
+            context.tr('b2b.cart.revalidation'),
+            style: const TextStyle(
               fontSize: 10,
               height: 1.4,
               color: Color(0xFF6B7785),
@@ -3982,36 +4010,32 @@ class _CheckoutStepper extends StatelessWidget {
   const _CheckoutStepper();
 
   @override
-  Widget build(BuildContext context) => const Row(
+  Widget build(BuildContext context) => Row(
         children: [
           Expanded(
             child: _StepDot(
               number: '1',
-              label: 'العنوان',
+              label: context.tr('b2b.checkout.selected_address'),
               active: true,
             ),
           ),
-          Expanded(
-            child: Divider(
-              color: Color(0xFF92D853),
-            ),
+          const Expanded(
+            child: Divider(color: Color(0xFF92D853)),
           ),
           Expanded(
             child: _StepDot(
               number: '2',
-              label: 'التوصيل',
+              label: context.tr('b2b.checkout.selected_delivery'),
               active: true,
             ),
           ),
-          Expanded(
-            child: Divider(
-              color: Color(0xFF92D853),
-            ),
+          const Expanded(
+            child: Divider(color: Color(0xFF92D853)),
           ),
           Expanded(
             child: _StepDot(
               number: '3',
-              label: 'الدفع',
+              label: context.tr('b2b.checkout.selected_payment'),
               active: false,
             ),
           ),
