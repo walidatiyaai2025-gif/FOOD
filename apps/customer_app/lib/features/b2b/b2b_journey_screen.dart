@@ -217,10 +217,10 @@ class B2bJourneyScreen extends StatelessWidget {
                         )
                       : definition.pattern == CustomerRoutePaths.b2bTopProducts
                           ? _TopProductsRemoteState(
-                          api: api!,
-                          endpoint: _endpoint()!,
-                        )
-                      : definition.pattern == CustomerRoutePaths.b2bInvoices
+                              api: api!,
+                              endpoint: _endpoint()!,
+                            )
+                          : definition.pattern == CustomerRoutePaths.b2bInvoices
                           ? _InvoicesRemoteState(
                               api: api!,
                               endpoint: _endpoint()!,
@@ -1795,8 +1795,8 @@ class _PurchaseReportRemoteStateState
                     onPressed: () => _pickDate(from: true),
                     icon: const Icon(Icons.calendar_today_outlined),
                     label: Text(
-                      '\${context.tr('b2b.purchase_reports.from')}: '
-                      '\${_from == null ? '—' : _isoDate(_from!)}',
+                      '${context.tr('b2b.purchase_reports.from')}: '
+                      '${_from == null ? '—' : _isoDate(_from!)}',
                     ),
                   ),
                   OutlinedButton.icon(
@@ -1804,8 +1804,8 @@ class _PurchaseReportRemoteStateState
                     onPressed: () => _pickDate(from: false),
                     icon: const Icon(Icons.event_available_outlined),
                     label: Text(
-                      '\${context.tr('b2b.purchase_reports.to')}: '
-                      '\${_to == null ? '—' : _isoDate(_to!)}',
+                      '${context.tr('b2b.purchase_reports.to')}: '
+                      '${_to == null ? '—' : _isoDate(_to!)}',
                     ),
                   ),
                   IconButton.filledTonal(
@@ -1880,7 +1880,7 @@ class _PurchaseReportRemoteStateState
                           padding: const EdgeInsets.all(12),
                           child: Column(
                             key: ValueKey(
-                              'b2b-purchases-summary-\${item.keyName}',
+                              'b2b-purchases-summary-${item.keyName}',
                             ),
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1922,7 +1922,7 @@ class _PurchaseReportRemoteStateState
     final prefix = change > 0 ? '+' : '';
     final percentText = percent == null
         ? '—'
-        : '\${_reportDouble(percent).toStringAsFixed(1)}%';
+        : '${_reportDouble(percent).toStringAsFixed(1)}%';
 
     return Card(
       key: const ValueKey('b2b-purchases-comparison'),
@@ -1932,11 +1932,11 @@ class _PurchaseReportRemoteStateState
         ),
         title: Text(context.tr('b2b.purchase_reports.comparison')),
         subtitle: Text(
-          '\${context.tr('b2b.purchase_reports.previous_period_total')}: '
-          '\${_reportMoney(comparison['total_purchases'], currency)}',
+          '${context.tr('b2b.purchase_reports.previous_period_total')}: '
+          '${_reportMoney(comparison['total_purchases'], currency)}',
         ),
         trailing: Text(
-          '\$prefix\${_reportMoney(change, currency)}\n\$percentText',
+          '$prefix${_reportMoney(change, currency)}\n$percentText',
           textAlign: TextAlign.end,
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
@@ -2035,11 +2035,11 @@ class _PurchaseReportRemoteStateState
                     ? currency
                     : rowCurrency;
                 return ListTile(
-                  key: ValueKey('b2b-purchases-order-\${id ?? orderNumber}'),
+                  key: ValueKey('b2b-purchases-order-${id ?? orderNumber}'),
                   leading: const Icon(Icons.receipt_long_outlined),
                   title: Text(orderNumber),
                   subtitle: Text(
-                    '\${row['created_at'] ?? ''} · \${row['status'] ?? ''}',
+                    '${row['created_at'] ?? ''} · ${row['status'] ?? ''}',
                   ),
                   trailing: Text(
                     _reportMoney(row['grand_total'], displayCurrency),
@@ -2050,11 +2050,11 @@ class _PurchaseReportRemoteStateState
                       : () {
                           final query = <String, String>{
                             'channel': 'wholesale',
-                            if (storeId != null) 'store_id': '\$storeId',
+                            if (storeId != null) 'store_id': '$storeId',
                           };
                           Navigator.of(context).pushNamed(
                             Uri(
-                              path: '/b2b/orders/\$id',
+                              path: '/b2b/orders/$id',
                               queryParameters: query,
                             ).toString(),
                           );
@@ -2065,7 +2065,7 @@ class _PurchaseReportRemoteStateState
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '\${context.tr('b2b.purchase_reports.page')} \$currentPage',
+                    '${context.tr('b2b.purchase_reports.page')} $currentPage',
                   ),
                   Wrap(
                     spacing: 6,
@@ -2103,9 +2103,9 @@ class _PurchaseReportRemoteStateState
       DateTime(value.year, value.month, value.day);
 
   static String _isoDate(DateTime value) =>
-      '\${value.year.toString().padLeft(4, '0')}-'
-      '\${value.month.toString().padLeft(2, '0')}-'
-      '\${value.day.toString().padLeft(2, '0')}';
+      '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
 }
 
 class _PurchaseTrendBars extends StatelessWidget {
@@ -2153,7 +2153,7 @@ class _PurchaseTrendBars extends StatelessWidget {
                       child: Tooltip(
                         message: _reportMoney(value, currency),
                         child: Container(
-                          key: ValueKey('b2b-purchases-bar-\$period'),
+                          key: ValueKey('b2b-purchases-bar-$period'),
                           width: 22,
                           height: math.max(8.0, 96 * ratio),
                           decoration: BoxDecoration(
@@ -2244,8 +2244,8 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '\${percentage.toStringAsFixed(1)}% · '
-                  '\${_reportMoney(row['purchase_total'], currency)}',
+                  '${percentage.toStringAsFixed(1)}% · '
+                  '${_reportMoney(row['purchase_total'], currency)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -2318,7 +2318,7 @@ List<Map<Object?, Object?>> _reportRows(Object? value) => value is List
     : const <Map<Object?, Object?>>[];
 
 double _reportDouble(Object? value) =>
-    value is num ? value.toDouble() : double.tryParse('\$value') ?? 0;
+    value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
 
 String _reportMoney(Object? value, String currency) {
   final amount = _reportDouble(value);
@@ -2328,15 +2328,15 @@ String _reportMoney(Object? value, String currency) {
             RegExp(r'\.$'),
             '',
           );
-  return currency.trim().isEmpty ? formatted : '\$formatted \$currency';
+  return currency.trim().isEmpty ? formatted : '$formatted $currency';
 }
 
 String _reportCompactNumber(double value) {
   if (value.abs() >= 1000000) {
-    return '\${(value / 1000000).toStringAsFixed(1)}M';
+    return '${(value / 1000000).toStringAsFixed(1)}M';
   }
   if (value.abs() >= 1000) {
-    return '\${(value / 1000).toStringAsFixed(1)}K';
+    return '${(value / 1000).toStringAsFixed(1)}K';
   }
   return value == value.roundToDouble()
       ? value.toStringAsFixed(0)
@@ -2346,8 +2346,8 @@ String _reportCompactNumber(double value) {
 String _shortReportPeriod(String value) {
   final parsed = DateTime.tryParse(value);
   if (parsed == null) return value;
-  return '\${parsed.month.toString().padLeft(2, '0')}/'
-      '\${parsed.day.toString().padLeft(2, '0')}';
+  return '${parsed.month.toString().padLeft(2, '0')}/'
+      '${parsed.day.toString().padLeft(2, '0')}';
 }
 
 class _RemoteState extends StatefulWidget {
