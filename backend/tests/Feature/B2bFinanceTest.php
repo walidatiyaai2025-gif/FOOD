@@ -20,12 +20,23 @@ class B2bFinanceTest extends TestCase
     {
         $this->seed(CoreReferenceSeeder::class);
         [$user, $customer] = $this->buyer('finance-buyer@example.test', 'active');
-        $invoice = Invoice::query()->create(['customer_id' => $customer->id, 'invoice_number' => 'INV-58-1', 'status' => 'issued', 'currency' => 'KWD', 'total' => 12.500, 'issued_at' => now()]);
+        $invoice = Invoice::query()->create(['customer_id' => $customer->id, 'invoice_number' => 'INV-58-1', 'status' => 'issued', 'currency' => 'KWD', 'total' => 12.500, 'issued_at' => now(), 'due_at' => now()->addDay()]);
         DB::table('invoice_items')->insert(['invoice_id' => $invoice->id, 'description' => 'Wholesale item', 'quantity' => 1, 'unit_price' => 12.500, 'line_total' => 12.500, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('payments')->insert(['invoice_id' => $invoice->id, 'provider' => 'account', 'provider_reference' => 'PAY-58', 'status' => 'paid', 'amount' => 5, 'currency' => 'KWD', 'created_at' => now(), 'updated_at' => now()]);
         Sanctum::actingAs($user);
 
-        $this->getJson('/api/v1/b2b/invoices')->assertOk()->assertJsonPath('data.0.invoice_number', 'INV-58-1');
+        $this->getJson('/api/v1/b2b/invoices?status=partially_paid&q=INV-58-1')
+            ->assertOk()
+            ->assertJsonPath('data.0.invoice_number', 'INV-58-1')
+            ->assertJsonPath('data.0.display_status', 'partially_paid')
+            ->assertJsonPath('data.0.paid_amount', 5)
+            ->assertJsonPath('data.0.outstanding_amount', 7.5)
+            ->assertJsonPath('summary.invoice_count', 1)
+            ->assertJsonPath('summary.totals.0.currency', 'KWD')
+            ->assertJsonPath('summary.totals.0.total', 12.5)
+            ->assertJsonPath('summary.totals.0.paid', 5)
+            ->assertJsonPath('summary.totals.0.outstanding', 7.5)
+            ->assertJsonPath('meta.has_more', false);
         $this->getJson('/api/v1/b2b/invoices/'.$invoice->id)->assertOk()->assertJsonPath('data.items.0.description', 'Wholesale item');
         $this->getJson('/api/v1/b2b/account-statement')->assertOk()->assertJsonPath('data.total_debits', 12.5)->assertJsonPath('data.total_credits', 5)->assertJsonPath('data.balance', 7.5);
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.invoice_viewed']);
