@@ -327,15 +327,16 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     if (widget.previewContext != null) return;
     final token = _session.accessToken;
     final baseUrl = FoodexEnvironment.apiBaseUrl;
-    if (token == null || token.isEmpty || baseUrl.isEmpty) return;
+    if (token == null || token.isEmpty || baseUrl.isEmpty) {
+      _diagnostics.clearInspectorUpload();
+      return;
+    }
 
-    unawaited(
-      _diagnostics.flushToInspector(
-        baseUrl: baseUrl,
-        token: token,
-        channel: _session.channel?.name,
-        storeId: _session.b2bRetailStoreId,
-      ),
+    _diagnostics.configureInspectorUpload(
+      baseUrl: baseUrl,
+      token: token,
+      channel: _session.channel?.name,
+      storeId: _session.b2bRetailStoreId,
     );
   }
 
@@ -448,6 +449,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       _session = session;
     });
     unawaited(_persistSession(session));
+    _flushDiagnostics();
   }
 
   void _onSessionExpired() {
@@ -459,6 +461,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
     unawaited(_clearPersistedSession());
+    _diagnostics.clearInspectorUpload();
     _guestSession.clear();
     setState(() {
       _session = const CustomerSession.guest();
@@ -472,6 +475,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   Future<void> _logout(CustomerActionApi actionApi) async {
     if (widget.previewContext != null) return;
     await _clearPersistedSession();
+    _diagnostics.clearInspectorUpload();
     final service = widget.pushService;
     if (service != null) {
       await service.revokeSession();
