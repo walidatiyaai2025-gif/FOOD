@@ -379,7 +379,12 @@ void main() {
         items: [
           DriverOrderItem(
             name: 'Product A',
+            sku: 'PROD-A',
+            variant: 'Large',
+            unit: 'Box',
+            note: 'Handle with care',
             quantity: 2,
+            unitPrice: 6.25,
             lineTotal: 12.5,
           ),
         ],
@@ -438,6 +443,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.descendant(of: detail, matching: find.text('Product A')),
+      findsOneWidget,
+    );
+    expect(find.descendant(of: detail, matching: find.text('PROD-A')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: detail,
+        matching: find.textContaining('Variant / option: Large'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: detail, matching: find.textContaining('Unit: Box')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: detail,
+        matching: find.textContaining('Line note: Handle with care'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('driver-detail-item-image-5-0')),
       findsOneWidget,
     );
 
