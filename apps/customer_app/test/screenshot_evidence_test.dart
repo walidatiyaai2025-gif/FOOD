@@ -112,6 +112,17 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 150));
 
+        if (item.route == '/b2b/account-statement') {
+          expect(
+            find.byKey(const ValueKey('b2b-statement-summary-closing')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('b2b-statement-direction-chip')),
+            findsOneWidget,
+          );
+        }
+
         await tester.runAsync(() async {
           final boundary =
               boundaryKey.currentContext!.findRenderObject()!
