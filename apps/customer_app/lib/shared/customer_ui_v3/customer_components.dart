@@ -410,6 +410,7 @@ class CustomerProductCard extends StatelessWidget {
                           bottom: CustomerUiSpacing.xs,
                           start: CustomerUiSpacing.xs,
                           child: DecoratedBox(
+                            key: const ValueKey('customer-product-out-of-stock'),
                             decoration: BoxDecoration(
                               color: CustomerUiColors.white,
                               borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
