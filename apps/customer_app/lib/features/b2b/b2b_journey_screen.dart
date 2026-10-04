@@ -2202,8 +2202,12 @@ class _B2bAccountStatementRemoteStateState
       'format': format,
       'locale': locale,
     };
+    final subject = context.tr('b2b.statement.title');
     try {
-      final download = await widget.api.download(
+      if (widget.api is! B2bDownloadApi) {
+        throw UnsupportedError('B2B statement export is unavailable.');
+      }
+      final download = await (widget.api as B2bDownloadApi).download(
         Uri(
           path: '/api/v1/b2b/account-statement/export',
           queryParameters: query,
@@ -2218,7 +2222,7 @@ class _B2bAccountStatementRemoteStateState
               name: download.filename,
             ),
           ],
-          subject: context.tr('b2b.statement.title'),
+          subject: subject,
         ),
       );
     } catch (_) {
