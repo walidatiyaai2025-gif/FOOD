@@ -80,6 +80,11 @@ class DriverRuntimeInspector {
   String? _lastRoute;
   String? _lastUploadedAt;
   bool _flushInProgress = false;
+  bool _flushRequested = false;
+  String? _uploadBaseUrl;
+  String? _uploadToken;
+  String? _uploadChannel;
+  int? _uploadStoreId;
 
   int get eventCount => _events.length;
   String? get lastRoute => _lastRoute;
@@ -124,6 +129,53 @@ class DriverRuntimeInspector {
     } catch (_) {
       // Diagnostics must never interfere with app startup.
     }
+  }
+
+  void configureInspectorUpload({
+    required String baseUrl,
+    required String token,
+    required String channel,
+    int? storeId,
+  }) {
+    if (baseUrl.trim().isEmpty || token.trim().isEmpty) {
+      clearInspectorUpload();
+      return;
+    }
+
+    _uploadBaseUrl = baseUrl.trim();
+    _uploadToken = token.trim();
+    _uploadChannel = channel;
+    _uploadStoreId = storeId;
+    _scheduleAutomaticFlush();
+  }
+
+  void clearInspectorUpload() {
+    _uploadBaseUrl = null;
+    _uploadToken = null;
+    _uploadChannel = null;
+    _uploadStoreId = null;
+    _flushRequested = false;
+  }
+
+  void _scheduleAutomaticFlush() {
+    final baseUrl = _uploadBaseUrl;
+    final token = _uploadToken;
+    final channel = _uploadChannel;
+    if (baseUrl == null || token == null || channel == null) return;
+
+    if (_flushInProgress) {
+      _flushRequested = true;
+      return;
+    }
+
+    unawaited(
+      flushToInspector(
+        baseUrl: baseUrl,
+        token: token,
+        channel: channel,
+        storeId: _uploadStoreId,
+      ),
+    );
   }
 
   void recordNavigation(String route) {
@@ -454,6 +506,12 @@ class DriverRuntimeInspector {
       _events.removeRange(0, _events.length - maxEvents);
     }
     _schedulePersist();
+    final type = event['type']?.toString().toLowerCase() ?? '';
+    if (type.contains('error') ||
+        type.contains('failure') ||
+        type.contains('exception')) {
+      _scheduleAutomaticFlush();
+    }
   }
 
   void _schedulePersist() {
@@ -592,6 +650,10 @@ class DriverDiagnosticHttpClient extends http.BaseClient {
     } finally {
       if (ownsClient) transport.close();
       _flushInProgress = false;
+      if (_flushRequested) {
+        _flushRequested = false;
+        _scheduleAutomaticFlush();
+      }
     }
   }
 
