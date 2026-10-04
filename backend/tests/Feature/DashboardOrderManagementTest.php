@@ -276,6 +276,18 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertSame(5.0, (float) DB::table('inventories')->where('id', $inventory)->value('reserved_quantity'));
         $this->assertDatabaseMissing('invoices', ['order_id' => $order->id]);
 
+        $this->actingAs($admin)
+            ->get('/admin/b2b/orders')
+            ->assertOk()
+            ->assertSee('Approve order')
+            ->assertSee('Reject order')
+            ->assertSee('Rejection reason (required)');
+
+        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
+            'status' => 'cancelled',
+        ])->assertSessionHasErrors('note');
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending']);
+
         $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
             'status' => 'confirmed',
             'note' => 'Commercially approved',
