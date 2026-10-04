@@ -39,7 +39,7 @@ require_text apps/customer_app/test/b2b_journey_test.dart   'B2B order timeline 
 
 # Lane D — mandatory, channel-safe address books.
 require_text backend/tests/Feature/PlatformCustomerAddressTest.php   'test_b2b_and_b2c_address_books_and_checkout_options_do_not_cross_over'
-require_text apps/customer_app/test/b2b_journey_test.dart   'B2B profile exposes the unified customer address book'
+require_text apps/customer_app/test/b2b_journey_test.dart   'B2B profile is the complete visible account and finance hub'
 require_text apps/customer_app/test/retail_commerce_test.dart   'checkout offers Add Address when no valid address exists'
 
 # Lane F/G — Driver tenant scope, complete shell/navigation and authoritative assignment lifecycle.

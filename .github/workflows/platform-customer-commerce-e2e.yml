@@ -12,27 +12,27 @@ permissions:
 jobs:
   backend-validation:
     name: Backend + MySQL commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') }}
     uses: ./.github/workflows/backend-ci.yml
 
   customer-validation:
     name: Customer Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') }}
     uses: ./.github/workflows/customer-app-ci.yml
 
   driver-validation:
     name: Driver Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') }}
     uses: ./.github/workflows/driver-app-ci.yml
 
   runtime-evidence:
     name: Runtime screenshot evidence
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') }}
     uses: ./.github/workflows/screenshot-evidence.yml
 
   release-gate:
     name: Platform Customer commerce release gate
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-')) }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-')) }}
     needs:
       - backend-validation
       - customer-validation
@@ -87,7 +87,7 @@ jobs:
           grep -Fq "driver app renders English LTR from the bilingual catalog" apps/driver_app/test/localization_test.dart
 
       - name: Verify Customer UI V3 full-journey convergence evidence
-        if: ${{ startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') }}
+        if: ${{ startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -114,7 +114,7 @@ jobs:
           grep -Fq '/profile?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
 
       - name: Verify Commerce Isolation A-H/J convergence evidence
-        if: ${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') }}
+        if: ${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -164,7 +164,7 @@ jobs:
           grep -Fq 'test_driver_discovery_is_deterministic_and_exact_store_scoped_for_auto_launch' backend/tests/Feature/AppPreviewDashboardBridgeTest.php
 
       - name: Verify #734 release identity and independent acceptance guard
-        if: ${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') }}
+        if: ${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -194,7 +194,7 @@ jobs:
           grep -Fq 'test_unregistered_fcm_token_is_revoked_and_not_retried' backend/tests/Feature/PushLifecyclePayloadTest.php
           grep -Fq 'test_push_token_refresh_revokes_only_the_previous_token_for_same_installation' backend/tests/Feature/EngagementOpsIsolationTest.php
 
-          grep -Fq 'B2B profile exposes the unified customer address book' apps/customer_app/test/b2b_journey_test.dart
+          grep -Fq 'B2B profile is the complete visible account and finance hub' apps/customer_app/test/b2b_journey_test.dart
           grep -Fq 'address book saves authoritative GPS location with address' apps/customer_app/test/customer_account_surfaces_test.dart
           grep -Fq "customer-address-map" apps/customer_app/lib/features/customer_account/customer_address_book_screen.dart
           grep -Fq "location_source': source" apps/customer_app/lib/features/customer_account/customer_address_book_screen.dart
@@ -210,7 +210,7 @@ jobs:
           grep -Fq 'capture My Addresses edit with location' apps/customer_app/test/screenshot_evidence_test.dart
 
       - name: Verify CJ-V2 Guest integrated acceptance
-        if: ${{ startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') }}
+        if: ${{ startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -233,6 +233,13 @@ jobs:
           grep -Fq 'test_wholesale_registration_notifies_b2b_audience_and_login_never_reemits_registration' backend/tests/Feature/PlatformCustomerOperationalNotificationTest.php
           grep -Fq 'test_platform_customer_orders_aggregate_wholesale_and_retail_with_store_provenance' backend/tests/Feature/PlatformCustomerUnifiedOrdersTest.php
           grep -Fq 'B2B checkout with order id navigates to B2B details and uses B2B API' apps/customer_app/test/b2b_journey_test.dart
+      - name: Verify C13 integrated 13-screen acceptance
+        if: ${{ startsWith(github.head_ref, 'test/873-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ./scripts/c13-integrated-acceptance.sh
+
       - name: Write exact release evidence manifest
         shell: bash
         run: |
@@ -249,11 +256,16 @@ jobs:
             echo "runtime_evidence=${{ needs.runtime-evidence.result }}"
             echo "journeys=12"
             echo "pcx09_address_lifecycle_contracts=${{ startsWith(github.head_ref, 'feat/436-') || startsWith(github.ref_name, 'feat/436-') }}"
-            echo "commerce_isolation_convergence=${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') }}"
-            echo "commerce_isolation_734_final=${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') }}"
+            echo "commerce_isolation_convergence=${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') }}"
+            echo "commerce_isolation_734_final=${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') }}"
             echo "commerce_isolation_734_next_release=1.0.46"
             echo "corrective_customer_commerce_v4=${{ startsWith(github.head_ref, 'test/775-') }}"
             echo "corrective_release_target=1.0.48"
+            echo "c13_integrated_e2e=${{ startsWith(github.head_ref, 'test/873-') }}"
+            echo "c13_parent_issue=858"
+            echo "c13_gate_issue=873"
+            echo "c13_integrated_main_sha=${{ github.event.pull_request.base.sha }}"
+            echo "c13_route_inventory=13"
             echo "release_gate=PASS"
           } > artifacts/platform-customer-commerce-e2e.txt
 

@@ -22,6 +22,7 @@ jobs:
       preview_runtime_distribution: ${{ steps.filter.outputs.preview_runtime_distribution }}
       mobile_prod_ux_acceptance: ${{ steps.filter.outputs.mobile_prod_ux_acceptance }}
       operational_completion_e2e: ${{ steps.filter.outputs.operational_completion_e2e }}
+      c13_integrated_e2e: ${{ steps.filter.outputs.c13_integrated_e2e }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,6 +47,7 @@ jobs:
           preview_runtime_distribution=false
           mobile_prod_ux_acceptance=false
           operational_completion_e2e=false
+          c13_integrated_e2e=false
 
           if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$)' changed-files.txt; then
             backend=true
@@ -81,6 +83,15 @@ jobs:
             preview_runtime_distribution=true
           fi
 
+          if [[ "${GITHUB_HEAD_REF:-}" == "test/873-c13-integrated-e2e" ]]; then
+            c13_integrated_e2e=true
+            backend=true
+            customer=true
+            driver=true
+            app_preview_visual=true
+            preview_runtime_distribution=true
+          fi
+
           if grep -Eq '^(apps/(customer_app|driver_app)/(lib/core/preview/|lib/preview_main\.dart|test/(customer|driver)_preview)|backend/(config/app_preview\.php|resources/views/admin/app-preview\.blade\.php)|scripts/app_preview_visual_parity\.mjs|docs/quality/APP_PREVIEW_VISUAL_PARITY\.md|\.github/workflows/app-preview-(acceptance-ci|visual-parity)\.yml|\.github/workflows/required-ci-gate\.yml)' changed-files.txt; then
             app_preview_visual=true
           fi
@@ -97,6 +108,7 @@ jobs:
             echo "preview_runtime_distribution=$preview_runtime_distribution"
             echo "mobile_prod_ux_acceptance=$mobile_prod_ux_acceptance"
             echo "operational_completion_e2e=$operational_completion_e2e"
+            echo "c13_integrated_e2e=$c13_integrated_e2e"
           } >> "$GITHUB_OUTPUT"
 
   repository-policy:
@@ -170,6 +182,48 @@ jobs:
       - name: Validate synchronized release readiness
         run: bash ./scripts/release-readiness.sh
 
+  c13-integrated-e2e:
+    name: C13 integrated Customer journey gate
+    needs: changes
+    if: ${{ needs.changes.outputs.c13_integrated_e2e == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate 13-screen Customer journey contracts
+        run: bash ./scripts/c13-integrated-acceptance.sh
+
+      - name: Record integrated C13 evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          version="$(tr -d '\r\n' < VERSION)"
+          {
+            echo "C13 Integrated Customer Journey"
+            echo "parent_issue=858"
+            echo "gate_issue=873"
+            echo "integrated_main_sha=${{ github.event.pull_request.base.sha }}"
+            echo "candidate_head_sha=${{ github.event.pull_request.head.sha }}"
+            echo "version=$version"
+            echo "canonical_screen_count=13"
+            echo "checkout_subsurface=present"
+            echo "finance_contract=B2bAccountLedgerContractTest"
+            echo "server_credit_cap_contract=AuthoritativePricingQuoteTest"
+            echo "isolation_contract=scripts/commerce-isolation-acceptance.sh"
+            echo "gate=PASS"
+          } > artifacts/c13-integrated-e2e.txt
+
+      - name: Upload C13 integrated evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: c13-integrated-e2e-${{ github.event.pull_request.head.sha }}
+          path: artifacts/c13-integrated-e2e.txt
+          if-no-files-found: error
+          retention-days: 30
+
   required-ci-gate:
     name: required-ci-gate
     if: ${{ always() }}
@@ -183,6 +237,7 @@ jobs:
       - preview-runtime-distribution
       - screenshot-evidence
       - operational-completion-e2e
+      - c13-integrated-e2e
     runs-on: ubuntu-latest
     steps:
       - name: Enforce applicable validation results
@@ -204,6 +259,8 @@ jobs:
           MOBILE_PROD_UX_ACCEPTANCE: ${{ needs.changes.outputs.mobile_prod_ux_acceptance }}
           OPERATIONAL_COMPLETION_E2E: ${{ needs.changes.outputs.operational_completion_e2e }}
           OPERATIONAL_COMPLETION_E2E_RESULT: ${{ needs.operational-completion-e2e.result }}
+          C13_INTEGRATED_E2E: ${{ needs.changes.outputs.c13_integrated_e2e }}
+          C13_INTEGRATED_E2E_RESULT: ${{ needs.c13-integrated-e2e.result }}
         run: |
           set -euo pipefail
 
@@ -238,6 +295,7 @@ jobs:
           require_applicable_success "$APP_PREVIEW_VISUAL_CHANGED" "APP-PREVIEW visual runtime parity" "$APP_PREVIEW_VISUAL_RESULT"
           require_applicable_success "$PREVIEW_RUNTIME_DISTRIBUTION_CHANGED" "Preview runtime distribution" "$PREVIEW_RUNTIME_DISTRIBUTION_RESULT"
           require_applicable_success "$OPERATIONAL_COMPLETION_E2E" "Operational completion integrated gate" "$OPERATIONAL_COMPLETION_E2E_RESULT"
+          require_applicable_success "$C13_INTEGRATED_E2E" "C13 integrated Customer journey gate" "$C13_INTEGRATED_E2E_RESULT"
 
           if [[ "$MOBILE_PROD_UX_ACCEPTANCE" == "true" || "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" || "${{ github.head_ref }}" == "ci/184-screenshot-evidence-guards" ]]; then
             require_success "Runtime screenshot evidence" "$SCREENSHOT_RESULT"
