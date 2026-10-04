@@ -96,6 +96,11 @@ class CustomerOrderSummary {
     this.itemCount = 0,
     this.nextStatuses = const <String>[],
     this.reorderItems = const <CustomerOrderItem>[],
+    this.approvalStatus,
+    this.invoiceOutstandingAmount,
+    this.appliedCustomerCreditAmount,
+    this.remainderMethod,
+    this.fullySettled,
   });
 
   final int id;
@@ -112,6 +117,25 @@ class CustomerOrderSummary {
   final List<String> nextStatuses;
   final List<CustomerOrderItem> reorderItems;
 
+  /// Optional customer-visible approval state supplied by the authoritative
+  /// order/approval contract. When absent, the UI may only infer the safe
+  /// pending/approved lifecycle bucket from [status].
+  final String? approvalStatus;
+
+  /// Authoritative invoice remainder. Null means the order-list payload did
+  /// not expose settlement data; callers must not derive debt from grand total.
+  final double? invoiceOutstandingAmount;
+
+  /// Authoritative amount consumed from positive customer credit/balance.
+  final double? appliedCustomerCreditAmount;
+
+  /// Authoritative remainder settlement method (for example account_debt or
+  /// cash_on_delivery). This is presentation metadata, never a balance source.
+  final String? remainderMethod;
+
+  /// Explicit fully-settled flag when supplied by the finance contract.
+  final bool? fullySettled;
+
   CustomerOrderContext get context =>
       CustomerOrderContext(storeId: storeId, channel: channel);
 
@@ -121,6 +145,46 @@ class CustomerOrderSummary {
     final store = json['store'] is Map
         ? Map<String, dynamic>.from(json['store'] as Map)
         : const <String, dynamic>{};
+    final settlement = _map(
+      json['settlement'] ?? json['financial_settlement'],
+    );
+    final invoice = _map(json['invoice']);
+
+    final invoiceOutstandingAmount = _firstNullableDouble(<Object?>[
+      json['invoice_outstanding_amount'],
+      json['outstanding_amount'],
+      json['remaining_amount'],
+      settlement['invoice_outstanding_amount'],
+      settlement['outstanding_amount'],
+      settlement['remaining_amount'],
+      invoice['outstanding_amount'],
+      invoice['remaining_amount'],
+    ]);
+    final appliedCustomerCreditAmount = _firstNullableDouble(<Object?>[
+      json['applied_customer_credit'],
+      json['customer_credit_applied'],
+      json['balance_applied'],
+      settlement['applied_customer_credit'],
+      settlement['customer_credit_applied'],
+      settlement['balance_applied'],
+    ]);
+    final remainderMethod = _firstNullableText(<Object?>[
+      json['remainder_method'],
+      json['settlement_method'],
+      json['remaining_payment_method'],
+      settlement['remainder_method'],
+      settlement['settlement_method'],
+      settlement['remaining_payment_method'],
+    ]);
+    final explicitFullySettled = _firstNullableBool(<Object?>[
+      json['fully_settled'],
+      settlement['fully_settled'],
+      invoice['fully_settled'],
+    ]);
+    final fullySettled = explicitFullySettled ??
+        (invoiceOutstandingAmount == null
+            ? null
+            : invoiceOutstandingAmount <= 0.0000001);
     final reorderItems = json['items'] is List
         ? (json['items'] as List)
             .whereType<Map>()
@@ -151,6 +215,14 @@ class CustomerOrderSummary {
       itemCount: _int(json['item_count'], fallback: reorderItems.length),
       nextStatuses: nextStatuses,
       reorderItems: reorderItems,
+      approvalStatus: _firstNullableText(<Object?>[
+        json['approval_status'],
+        settlement['approval_status'],
+      ])?.toLowerCase(),
+      invoiceOutstandingAmount: invoiceOutstandingAmount,
+      appliedCustomerCreditAmount: appliedCustomerCreditAmount,
+      remainderMethod: remainderMethod?.toLowerCase(),
+      fullySettled: fullySettled,
     );
   }
 }
@@ -344,6 +416,38 @@ class CustomerOrderRefreshPolicy {
       terminalStatuses.contains(status.toLowerCase());
 
   static bool shouldPoll(String status) => !isTerminal(status);
+}
+
+Map<String, dynamic> _map(Object? value) =>
+    value is Map ? Map<String, dynamic>.from(value) : const <String, dynamic>{};
+
+double? _firstNullableDouble(List<Object?> values) {
+  for (final value in values) {
+    if (value == null) continue;
+    if (value is num) return value.toDouble();
+    final parsed = double.tryParse(value.toString());
+    if (parsed != null) return parsed;
+  }
+  return null;
+}
+
+String? _firstNullableText(List<Object?> values) {
+  for (final value in values) {
+    final text = _nullableText(value);
+    if (text != null) return text;
+  }
+  return null;
+}
+
+bool? _firstNullableBool(List<Object?> values) {
+  for (final value in values) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase();
+    if (normalized == 'true' || normalized == '1') return true;
+    if (normalized == 'false' || normalized == '0') return false;
+  }
+  return null;
 }
 
 int _int(Object? value, {int fallback = 0}) {
