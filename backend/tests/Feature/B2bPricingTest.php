@@ -31,7 +31,13 @@ class B2bPricingTest extends TestCase
         B2bAccount::query()->create(['customer_id' => $customer->id, 'price_tier_id' => $tierId, 'company_name' => 'Buyer Co', 'status' => 'active']);
         Sanctum::actingAs($buyer);
 
-        $this->getJson("/api/v1/b2b/products?store_id={$storeId}")->assertOk()->assertJsonPath('data.0.unit_price', 7.25)->assertJsonPath('data.0.minimum_quantity', 5);
+        $this->getJson("/api/v1/b2b/products?store_id={$storeId}")
+            ->assertOk()
+            ->assertJsonPath('data.0.unit_price', 7.25)
+            ->assertJsonPath('data.0.minimum_quantity', 5)
+            ->assertJsonPath('data.0.available_quantity', 8)
+            ->assertJsonPath('data.0.is_available', true)
+            ->assertJsonPath('data.0.availability_state', 'AVAILABLE');
         $this->getJson("/api/v1/b2b/products/{$productId}?store_id={$storeId}")
             ->assertOk()
             ->assertJsonPath('id', $productId)
@@ -48,7 +54,34 @@ class B2bPricingTest extends TestCase
             ->assertJsonPath('price_tier', 'GOLD')
             ->assertJsonPath('available_quantity', 8)
             ->assertJsonPath('is_available', true)
+            ->assertJsonPath('availability_state', 'AVAILABLE')
             ->assertJsonPath('currency', 'EGP');
+
+        DB::table('inventories')
+            ->where('product_id', $productId)
+            ->update(['reserved_quantity' => 10, 'updated_at' => now()]);
+
+        $this->getJson("/api/v1/b2b/products?store_id={$storeId}")
+            ->assertOk()
+            ->assertJsonPath('data.0.available_quantity', 0)
+            ->assertJsonPath('data.0.is_available', false)
+            ->assertJsonPath('data.0.availability_state', 'OUT_OF_STOCK');
+
+        $this->getJson("/api/v1/b2b/products/{$productId}?store_id={$storeId}")
+            ->assertOk()
+            ->assertJsonPath('available_quantity', 0)
+            ->assertJsonPath('is_available', false)
+            ->assertJsonPath('availability_state', 'OUT_OF_STOCK');
+
+        $this->postJson('/api/v1/cart/items', [
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'quantity' => 5,
+        ])->assertConflict();
+
+        DB::table('inventories')
+            ->where('product_id', $productId)
+            ->update(['reserved_quantity' => 2, 'updated_at' => now()]);
         $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 1])->assertConflict();
         $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 6])->assertConflict();
         $this->postJson('/api/v1/cart/items', ['store_id' => $storeId, 'product_id' => $productId, 'quantity' => 5])

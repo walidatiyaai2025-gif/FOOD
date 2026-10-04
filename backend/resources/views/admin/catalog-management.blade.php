@@ -63,8 +63,14 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
 <button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة المنتج':'Add product' }}</button>
 </form></section>
-<section class="card table-wrap"><table class="table"><thead><tr><th>{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}</th><th>{{ app()->getLocale()==='ar'?'المنتج':'Product' }}</th><th>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}</th><th>{{ app()->getLocale()==='ar'?'الصور':'Images' }}</th><th>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</th><th>{{ app()->getLocale()==='ar'?'ربط بمتجر':'Assign store' }}</th><th>{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</th></tr></thead><tbody>
-@forelse($products as $p)<tr><td>{{ $p->sku }}</td><td>{{ $p->name }}</td><td>{{ $p->category ?: '—' }}</td><td>
+<section class="card table-wrap"><table class="table"><thead><tr><th>{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}</th><th>{{ app()->getLocale()==='ar'?'المنتج':'Product' }}</th><th>{{ app()->getLocale()==='ar'?'المخزون':'Stock' }}</th><th>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}</th><th>{{ app()->getLocale()==='ar'?'الصور':'Images' }}</th><th>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</th><th>{{ app()->getLocale()==='ar'?'ربط بمتجر':'Assign store' }}</th><th>{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</th></tr></thead><tbody>
+@forelse($products as $p)<tr><td>{{ $p->sku }}</td><td>{{ $p->name }}</td><td>
+@if($p->is_available)
+<span class="notice ok" data-availability-state="AVAILABLE">{{ app()->getLocale()==='ar'?'متوفر':'Available' }} · {{ number_format((float)$p->available_quantity,3) }}</span>
+@else
+<span class="notice err" data-availability-state="OUT_OF_STOCK">{{ app()->getLocale()==='ar'?'نفد من المخزون':'Out of stock' }}</span>
+@endif
+</td><td>{{ $p->category ?: '—' }}</td><td>
 @php($images=$productImages->get($p->id,collect()))
 <div class="image-grid">
 @forelse($images as $image)
@@ -90,7 +96,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 </td><td><form class="inline-form" method="post" action="{{ route('admin.catalog.products.assign',$p->id) }}">@csrf
 <select name="store_id" required>@foreach($stores->where('id',$p->catalog_store_id) as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select><input type="number" step=".001" min="0" name="price" placeholder="{{ app()->getLocale()==='ar'?'السعر':'Price' }}"><input type="hidden" name="is_active" value="1"><button class="btn">{{ app()->getLocale()==='ar'?'ربط/تحديث':'Assign' }}</button></form></td>
 <td><form method="post" action="{{ route('admin.catalog.products.destroy',$p->id) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'تأكيد الحذف؟':'Delete product?' }}')">@csrf @method('DELETE')<button class="btn danger">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form></td></tr>
-@empty<tr><td colspan="7">{{ app()->getLocale()==='ar'?'لا توجد منتجات. ابدأ من نموذج الإضافة.':'No products yet. Use the add form.' }}</td></tr>@endforelse
+@empty<tr><td colspan="8">{{ app()->getLocale()==='ar'?'لا توجد منتجات. ابدأ من نموذج الإضافة.':'No products yet. Use the add form.' }}</td></tr>@endforelse
 </tbody></table></section></div>
 
 @elseif($tab==='import')

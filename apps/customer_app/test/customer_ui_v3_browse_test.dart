@@ -194,6 +194,79 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets(
+    'out-of-stock product is dimmed, labeled and cannot be added or increased',
+    (tester) async {
+      var addCalls = 0;
+      final api = _OutOfStockBrowseApi();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: RetailCatalogProductsScreen(
+              storeId: 19,
+              catalogApi: api,
+              onAddToCart: ({
+                required int storeId,
+                required int productId,
+                required double quantity,
+              }) async {
+                addCalls++;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('customer-product-out-of-stock')),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.add_rounded), findsNothing);
+      expect(addCalls, 0);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: RetailCatalogProductScreen(
+              storeId: 19,
+              productId: 18,
+              catalogApi: api,
+              onAddToCart: ({
+                required int storeId,
+                required int productId,
+                required double quantity,
+              }) async {
+                addCalls++;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('retail-product-out-of-stock')),
+        findsOneWidget,
+      );
+      final plus = tester.widget<IconButton>(
+        find.byKey(const ValueKey('retail-product-plus')),
+      );
+      final add = tester.widget<FilledButton>(
+        find.byKey(const ValueKey('retail-product-add-cart')),
+      );
+      expect(plus.onPressed, isNull);
+      expect(add.onPressed, isNull);
+      expect(addCalls, 0);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
 }
 
 class _BrowseFakeApi implements B2cCatalogApi {
@@ -283,4 +356,52 @@ class _PendingBrowseApi implements B2cCatalogApi {
 
   @override
   Future<List<B2cBanner>> banners(int storeId) async => const <B2cBanner>[];
+}
+
+class _OutOfStockBrowseApi implements B2cCatalogApi {
+  @override
+  Future<List<B2cStore>> stores() async => const <B2cStore>[];
+
+  @override
+  Future<List<B2cCategory>> categories(int storeId) async =>
+      const <B2cCategory>[];
+
+  @override
+  Future<List<B2cOffer>> offers(int storeId) async => const <B2cOffer>[];
+
+  @override
+  Future<List<B2cBanner>> banners(int storeId) async => const <B2cBanner>[];
+
+  @override
+  Future<List<B2cProduct>> products(
+    int storeId, {
+    String? query,
+    int? categoryId,
+    String? sort,
+    String? direction,
+  }) async => const <B2cProduct>[
+        B2cProduct(
+          id: 18,
+          name: 'Sold Out Coffee',
+          sku: 'OOS-18',
+          price: 2.5,
+          currency: 'KWD',
+          availableQuantity: 0,
+          isAvailable: false,
+          availabilityState: 'OUT_OF_STOCK',
+        ),
+      ];
+
+  @override
+  Future<B2cProduct> product(int productId, {required int storeId}) async =>
+      B2cProduct(
+        id: productId,
+        name: 'Sold Out Coffee',
+        sku: 'OOS-18',
+        price: 2.5,
+        currency: 'KWD',
+        availableQuantity: 0,
+        isAvailable: false,
+        availabilityState: 'OUT_OF_STOCK',
+      );
 }

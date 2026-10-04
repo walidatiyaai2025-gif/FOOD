@@ -444,6 +444,7 @@ class GuestCartController extends Controller
             'price' => (float) $storeProduct->price,
             'available_quantity' => $availableQuantity,
             'is_available' => $availableQuantity === null || $availableQuantity > 0,
+            'availability_state' => $availableQuantity !== null && $availableQuantity <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
         ];
     }
 
@@ -546,6 +547,7 @@ class GuestCartController extends Controller
                 'line_total' => $line['line_total'],
                 'is_available' => (bool) $line['is_available'],
                 'available_quantity' => $line['available_quantity'],
+                'availability_state' => $line['availability_state'],
                 'minimum_order_quantity' => $line['minimum_order_quantity'],
                 'ordering_increment' => $line['ordering_increment'],
                 'pack_size' => $line['pack_size'],

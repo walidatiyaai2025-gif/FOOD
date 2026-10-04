@@ -23,7 +23,24 @@ class PlatformCustomerMarketplaceTest extends TestCase
 
     public function test_guest_platform_home_exposes_platform_retail_placements_without_leaking_store_internal_banners(): void
     {
-        [$wholesaleStore, $retailStore, $wholesaleProduct] = $this->marketplaceFixture();
+        [$wholesaleStore, $retailStore, $wholesaleProduct, $retailProduct] = $this->marketplaceFixture();
+
+        $retailWarehouse = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $retailStore,
+            'code' => 'RETAIL-OOS-WH',
+            'name' => 'Retail Out Of Stock Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('inventories')->insert([
+            'warehouse_id' => $retailWarehouse,
+            'product_id' => $retailProduct,
+            'quantity' => 4,
+            'reserved_quantity' => 4,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $wholesaleCategory = (int) DB::table('products')
             ->where('id', $wholesaleProduct)
             ->value('category_id');
@@ -88,7 +105,28 @@ class PlatformCustomerMarketplaceTest extends TestCase
 
         $this->getJson('/api/v1/stores/'.$retailStore.'/products')
             ->assertOk()
-            ->assertJsonCount(1, 'data');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $retailProduct)
+            ->assertJsonPath('data.0.available_quantity', 0)
+            ->assertJsonPath('data.0.is_available', false)
+            ->assertJsonPath('data.0.availability_state', 'OUT_OF_STOCK');
+
+        $this->getJson('/api/v1/products/'.$retailProduct.'?store='.$retailStore)
+            ->assertOk()
+            ->assertJsonPath('available_quantity', 0)
+            ->assertJsonPath('is_available', false)
+            ->assertJsonPath('availability_state', 'OUT_OF_STOCK');
+
+        DB::table('inventories')
+            ->where('warehouse_id', $retailWarehouse)
+            ->where('product_id', $retailProduct)
+            ->update(['reserved_quantity' => 3, 'updated_at' => now()]);
+
+        $this->getJson('/api/v1/stores/'.$retailStore.'/products')
+            ->assertOk()
+            ->assertJsonPath('data.0.available_quantity', 1)
+            ->assertJsonPath('data.0.is_available', true)
+            ->assertJsonPath('data.0.availability_state', 'AVAILABLE');
     }
 
     public function test_retail_merchant_own_store_is_hidden_and_direct_browse_is_forbidden(): void

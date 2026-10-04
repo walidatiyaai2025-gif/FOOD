@@ -56,6 +56,9 @@ class B2cProduct {
     this.brandImageUrl,
     this.imageUrl,
     this.images = const [],
+    this.availableQuantity,
+    this.isAvailable = true,
+    this.availabilityState = 'AVAILABLE',
   });
 
   final int id;
@@ -70,6 +73,12 @@ class B2cProduct {
   final String? brandImageUrl;
   final String? imageUrl;
   final List<String> images;
+  final double? availableQuantity;
+  final bool isAvailable;
+  final String availabilityState;
+
+  bool get isOutOfStock =>
+      availabilityState == 'OUT_OF_STOCK' || !isAvailable;
 
   factory B2cProduct.fromJson(Map<String, dynamic> json) => B2cProduct(
         id: (json['id'] as num).toInt(),
@@ -87,6 +96,10 @@ class B2cProduct {
                 ?.whereType<String>()
                 .toList(growable: false) ??
             const [],
+        availableQuantity: (json['available_quantity'] as num?)?.toDouble(),
+        isAvailable: json['is_available'] as bool? ?? true,
+        availabilityState: json['availability_state'] as String? ??
+            (json['is_available'] == false ? 'OUT_OF_STOCK' : 'AVAILABLE'),
       );
 }
 

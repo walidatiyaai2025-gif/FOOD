@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ProductAvailabilityService;
 use App\Services\RetailMerchantIdentityService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 final class PlatformMarketplaceController extends Controller
 {
-    public function __construct(private readonly RetailMerchantIdentityService $retailMerchants) {}
+    public function __construct(
+        private readonly RetailMerchantIdentityService $retailMerchants,
+        private readonly ProductAvailabilityService $availability,
+    ) {}
 
     public function home(Request $request): JsonResponse
     {
@@ -59,28 +63,13 @@ final class PlatformMarketplaceController extends Controller
             ->values()
             ->all();
 
-        $inventoryRows = DB::table('inventories')
-            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-            ->where('warehouses.store_id', $storeId)
-            ->where('warehouses.is_active', true)
-            ->where('inventories.product_id', $product)
-            ->get(['inventories.quantity', 'inventories.reserved_quantity']);
-
-        $available = $inventoryRows->isEmpty()
-            ? null
-            : (float) $inventoryRows->sum(
-                static fn (object $inventory): float => max(
-                    0.0,
-                    (float) $inventory->quantity - (float) $inventory->reserved_quantity,
-                ),
-            );
+        $availability = $this->availability->forStoreProduct($storeId, $product);
 
         return response()->json([
             ...$this->productPayload($row),
             'description' => $row->description,
             'images' => $images,
-            'available_quantity' => $available,
-            'is_available' => $available === null || $available > 0,
+            ...$availability,
         ]);
     }
 
@@ -526,6 +515,7 @@ final class PlatformMarketplaceController extends Controller
             'image_url' => $this->assetUrl($row->primary_image_path),
             'store_id' => (int) $row->store_id,
             'currency' => 'EGP',
+            ...$this->availability->forStoreProduct((int) $row->store_id, (int) $row->id),
         ];
     }
 

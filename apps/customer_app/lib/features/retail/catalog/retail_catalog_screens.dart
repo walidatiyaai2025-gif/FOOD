@@ -773,16 +773,22 @@ class _RetailCatalogProductScreenState
               ),
               children: [
                 if (image?.trim().isNotEmpty == true)
-                  CustomerProductImage(
-                    imageUrl: image,
-                    aspectRatio: 1.15,
+                  Opacity(
+                    opacity: product.isAvailable ? 1 : 0.42,
+                    child: CustomerProductImage(
+                      imageUrl: image,
+                      aspectRatio: 1.15,
+                    ),
                   )
                 else
                   SizedBox(
                     height: 136,
-                    child: CustomerProductImage(
-                      imageUrl: image,
-                      aspectRatio: 2.4,
+                    child: Opacity(
+                      opacity: product.isAvailable ? 1 : 0.42,
+                      child: CustomerProductImage(
+                        imageUrl: image,
+                        aspectRatio: 2.4,
+                      ),
                     ),
                   ),
                 const SizedBox(height: CustomerUiSpacing.md),
@@ -823,6 +829,31 @@ class _RetailCatalogProductScreenState
                                 ),
                           ),
                         ],
+                        const SizedBox(height: CustomerUiSpacing.sm),
+                        Text(
+                          product.isAvailable
+                              ? context.tr('customer.product.available')
+                              : context.tr('customer.product.out_of_stock'),
+                          key: ValueKey(
+                            product.isAvailable
+                                ? 'retail-product-available'
+                                : 'retail-product-out-of-stock',
+                          ),
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                color: product.isAvailable
+                                    ? CustomerUiColors.deepGreenStrong
+                                    : CustomerUiColors.muted,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        if (product.availableQuantity != null)
+                          Text(
+                            product.availableQuantity!.toStringAsFixed(3),
+                            key: const ValueKey('retail-product-available-quantity'),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: CustomerUiColors.muted,
+                                ),
+                          ),
                         if (product.description?.trim().isNotEmpty == true) ...[
                           const SizedBox(height: CustomerUiSpacing.lg),
                           Text(
@@ -848,7 +879,7 @@ class _RetailCatalogProductScreenState
                                 children: [
                                   IconButton(
                                     key: const ValueKey('retail-product-minus'),
-                                    onPressed: _quantity <= 1
+                                    onPressed: !product.isAvailable || _quantity <= 1
                                         ? null
                                         : () =>
                                             setState(() => _quantity -= 1),
@@ -869,8 +900,9 @@ class _RetailCatalogProductScreenState
                                   ),
                                   IconButton(
                                     key: const ValueKey('retail-product-plus'),
-                                    onPressed: () =>
-                                        setState(() => _quantity += 1),
+                                    onPressed: product.isAvailable
+                                        ? () => setState(() => _quantity += 1)
+                                        : null,
                                     icon: const Icon(Icons.add_rounded),
                                   ),
                                 ],
@@ -883,8 +915,9 @@ class _RetailCatalogProductScreenState
                             child: FilledButton.icon(
                               key:
                                   const ValueKey('retail-product-add-cart'),
-                              onPressed:
-                                  _submitting ? null : () => _add(product),
+                              onPressed: _submitting || !product.isAvailable
+                                  ? null
+                                  : () => _add(product),
                               icon:
                                   const Icon(Icons.add_shopping_cart_rounded),
                               label:
@@ -933,6 +966,8 @@ class _BrowseProductCard extends StatelessWidget {
       imageUrl: image,
       brandLabel: product.brandName,
       brandImageUrl: product.brandImageUrl,
+      isAvailable: product.isAvailable,
+      unavailableLabel: context.tr('customer.product.out_of_stock'),
       onTap: openProduct == null
           ? null
           : () => openProduct(
@@ -940,7 +975,7 @@ class _BrowseProductCard extends StatelessWidget {
                 storeId: storeId,
                 productId: product.id,
               ),
-      onAdd: onAddToCart == null
+      onAdd: !product.isAvailable || onAddToCart == null
           ? null
           : () => onAddToCart!(
                 storeId: storeId,

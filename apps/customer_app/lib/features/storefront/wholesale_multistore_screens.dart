@@ -834,6 +834,8 @@ class _WholesaleProductGrid extends StatelessWidget {
         );
         final brand = row['brand_name']?.toString().trim() ?? '';
         final currency = row['currency']?.toString() ?? 'EGP';
+        final isAvailable = row['is_available'] != false &&
+            row['availability_state'] != 'OUT_OF_STOCK';
 
         return Material(
           key: ValueKey('wholesale-product-card-$id'),
@@ -867,11 +869,39 @@ class _WholesaleProductGrid extends StatelessWidget {
                     child: Stack(
                       children: [
                         Positioned.fill(
-                          child: FoodexProductImage(
-                            url: row['image_url']?.toString(),
-                            palette: palette,
+                          child: Opacity(
+                            opacity: isAvailable ? 1 : 0.42,
+                            child: FoodexProductImage(
+                              url: row['image_url']?.toString(),
+                              palette: palette,
+                            ),
                           ),
                         ),
+                        if (!isAvailable)
+                          PositionedDirectional(
+                            start: 0,
+                            bottom: 0,
+                            child: Container(
+                              key: ValueKey('wholesale-product-out-of-stock-$id'),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: palette.soft),
+                              ),
+                              child: Text(
+                                context.tr('customer.product.out_of_stock'),
+                                style: TextStyle(
+                                  color: palette.muted,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
                         if (brand.isNotEmpty)
                           PositionedDirectional(
                             top: 0,
@@ -1629,6 +1659,8 @@ class _WholesaleProductDetailsDesignScreenState
               }
               final currency =
                   row['currency']?.toString() ?? 'KWD';
+              final isAvailable = row['is_available'] != false &&
+                  row['availability_state'] != 'OUT_OF_STOCK';
 
               return ListView(
                 key: const ValueKey('b2b-product-detail-data'),
@@ -1648,10 +1680,13 @@ class _WholesaleProductDetailsDesignScreenState
                     ],
                   ),
                   const SizedBox(height: 10),
-                  FoodexGallery(
-                    key: const ValueKey('b2b-product-gallery'),
-                    urls: images,
-                    palette: FoodexPalette.wholesale,
+                  Opacity(
+                    opacity: isAvailable ? 1 : 0.42,
+                    child: FoodexGallery(
+                      key: const ValueKey('b2b-product-gallery'),
+                      urls: images,
+                      palette: FoodexPalette.wholesale,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Text(
@@ -1716,9 +1751,11 @@ class _WholesaleProductDetailsDesignScreenState
                       Expanded(
                         child: _InfoPill(
                           icon: Icons.warehouse_outlined,
-                          label: 'متاح ' +
-                              (row['available_quantity']?.toString() ??
-                                  '—'),
+                          label: isAvailable
+                              ? context.tr('customer.product.available') +
+                                  ' ' +
+                                  (row['available_quantity']?.toString() ?? '0')
+                              : context.tr('customer.product.out_of_stock'),
                         ),
                       ),
                     ],
@@ -1731,10 +1768,12 @@ class _WholesaleProductDetailsDesignScreenState
                     minimum: minimum,
                     palette: FoodexPalette.wholesale,
                     label: 'إضافة إلى السلة',
-                    onChanged: (value) =>
-                        setState(() => quantity = value),
-                    onPressed: () async {
-                      if (!widget.session.isAuthenticated) {
+                    onChanged: isAvailable
+                        ? (value) => setState(() => quantity = value)
+                        : null,
+                    onPressed: isAvailable
+                        ? () async {
+                            if (!widget.session.isAuthenticated) {
                         await _beginWholesaleAddHandoff(
                           context: context,
                           pendingActionStore: widget.pendingActionStore,
@@ -1761,9 +1800,10 @@ class _WholesaleProductDetailsDesignScreenState
                       } catch (error) {
                         if (context.mounted) {
                           await showOperationalError(context, error);
-                        }
-                      }
-                    },
+                              }
+                            }
+                          }
+                        : null,
                   ),
                   const SizedBox(height: 15),
                   FoodexDetailAccordion(

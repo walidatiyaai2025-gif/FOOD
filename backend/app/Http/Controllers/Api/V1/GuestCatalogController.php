@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\ProductAvailabilityService;
 use App\Services\RetailMerchantIdentityService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +18,10 @@ use Illuminate\Support\Facades\Storage;
 
 class GuestCatalogController extends Controller
 {
-    public function __construct(private readonly RetailMerchantIdentityService $retailMerchants) {}
+    public function __construct(
+        private readonly RetailMerchantIdentityService $retailMerchants,
+        private readonly ProductAvailabilityService $availability,
+    ) {}
 
     public function categories(Request $request, int $store): JsonResponse
     {
@@ -128,6 +132,7 @@ class GuestCatalogController extends Controller
                 ->map(fn (Product $product): array => $this->productSummary(
                     $product,
                     $product->getAttribute('store_price'),
+                    $store,
                 ))
                 ->values()
                 ->all(),
@@ -174,7 +179,7 @@ class GuestCatalogController extends Controller
             ->all();
 
         return response()->json([
-            ...$this->productSummary($item, $price),
+            ...$this->productSummary($item, $price, $storeId),
             'description' => $item->description,
             'images' => $images,
         ]);
@@ -275,7 +280,7 @@ class GuestCatalogController extends Controller
             ->firstOrFail();
     }
 
-    private function productSummary(Product $product, mixed $price): array
+    private function productSummary(Product $product, mixed $price, int $storeId): array
     {
         $primaryImage = DB::table('product_images')
             ->where('product_id', $product->id)
@@ -289,6 +294,8 @@ class GuestCatalogController extends Controller
                 ->where('id', $product->brand_id)
                 ->first(['name', 'image_path']);
 
+        $availability = $this->availability->forStoreProduct($storeId, (int) $product->id);
+
         return [
             'id' => (int) $product->id,
             'sku' => $product->sku,
@@ -301,6 +308,7 @@ class GuestCatalogController extends Controller
             'price' => $price === null ? null : (float) $price,
             'currency' => 'KWD',
             'image_url' => $this->assetUrl($primaryImage),
+            ...$availability,
         ];
     }
 

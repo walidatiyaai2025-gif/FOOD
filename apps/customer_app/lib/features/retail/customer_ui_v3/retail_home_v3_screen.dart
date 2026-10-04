@@ -305,6 +305,9 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
                       imageUrl: product.imageUrl,
                       brandLabel: product.brandName,
                       brandImageUrl: product.brandImageUrl,
+                      isAvailable: product.isAvailable,
+                      unavailableLabel:
+                          context.tr('customer.product.out_of_stock'),
                       categoryLabel: product.categoryId == null
                           ? null
                           : categoryNames[product.categoryId],
@@ -315,7 +318,8 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
                                 storeId: widget.storeId,
                                 productId: product.id,
                               ),
-                      onAdd: widget.onAddToCart == null
+                      onAdd: !product.isAvailable ||
+                              widget.onAddToCart == null
                           ? null
                           : () => _addProduct(product),
                       addSemanticLabel:

@@ -356,6 +356,8 @@ class CustomerProductCard extends StatelessWidget {
     this.onAdd,
     this.addSemanticLabel,
     this.favoriteSemanticLabel,
+    this.isAvailable = true,
+    this.unavailableLabel,
     super.key,
   });
 
@@ -374,6 +376,8 @@ class CustomerProductCard extends StatelessWidget {
   final VoidCallback? onAdd;
   final String? addSemanticLabel;
   final String? favoriteSemanticLabel;
+  final bool isAvailable;
+  final String? unavailableLabel;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -394,10 +398,39 @@ class CustomerProductCard extends StatelessWidget {
                 children: [
                   Stack(
                     children: [
-                      CustomerProductImage(
-                        imageUrl: imageUrl,
-                        fallbackAsset: fallbackAsset,
+                      Opacity(
+                        opacity: isAvailable ? 1 : 0.42,
+                        child: CustomerProductImage(
+                          imageUrl: imageUrl,
+                          fallbackAsset: fallbackAsset,
+                        ),
                       ),
+                      if (!isAvailable && unavailableLabel?.trim().isNotEmpty == true)
+                        PositionedDirectional(
+                          bottom: CustomerUiSpacing.xs,
+                          start: CustomerUiSpacing.xs,
+                          child: DecoratedBox(
+                            key: const ValueKey('customer-product-out-of-stock'),
+                            decoration: BoxDecoration(
+                              color: CustomerUiColors.white,
+                              borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+                              border: Border.all(color: CustomerUiColors.border),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: CustomerUiSpacing.sm,
+                                vertical: CustomerUiSpacing.xxs,
+                              ),
+                              child: Text(
+                                unavailableLabel!,
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: CustomerUiColors.muted,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ),
                       if (discountLabel?.trim().isNotEmpty == true)
                         PositionedDirectional(
                           top: CustomerUiSpacing.xs,
@@ -500,7 +533,7 @@ class CustomerProductCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (onAdd != null)
+                      if (isAvailable && onAdd != null)
                         Semantics(
                           button: true,
                           label: addSemanticLabel,

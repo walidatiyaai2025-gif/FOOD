@@ -9,6 +9,7 @@ import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/engagement/live_ad_service.dart';
 import '../../core/engagement/notification_campaign_popup_service.dart';
+import '../../core/localization/app_translations.dart';
 import '../../shared/customer_favorite_button.dart';
 import 'storefront_design_system.dart';
 
@@ -1256,9 +1257,12 @@ class _RetailProductGrid extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: FoodexProductImage(
-                      url: product.imageUrl,
-                      palette: palette,
+                    child: Opacity(
+                      opacity: product.isAvailable ? 1 : 0.42,
+                      child: FoodexProductImage(
+                        url: product.imageUrl,
+                        palette: palette,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -1272,6 +1276,18 @@ class _RetailProductGrid extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 5),
+                  if (!product.isAvailable) ...[
+                    Text(
+                      context.tr('customer.product.out_of_stock'),
+                      key: ValueKey('b2c-home-product-out-of-stock-${product.id}'),
+                      style: const TextStyle(
+                        color: Color(0xFF6B7785),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                   Row(
                     children: [
                       Expanded(
@@ -1297,19 +1313,21 @@ class _RetailProductGrid extends StatelessWidget {
                             backgroundColor: palette.primary,
                             shape: const CircleBorder(),
                           ),
-                          onPressed: () async {
-                            try {
-                              await actionApi.addCartItem(
-                                storeId: storeId,
-                                productId: product.id,
-                                quantity: 1,
-                              );
-                            } catch (error) {
-                              if (context.mounted) {
-                                await showOperationalError(context, error);
-                              }
-                            }
-                          },
+                          onPressed: product.isAvailable
+                              ? () async {
+                                  try {
+                                    await actionApi.addCartItem(
+                                      storeId: storeId,
+                                      productId: product.id,
+                                      quantity: 1,
+                                    );
+                                  } catch (error) {
+                                    if (context.mounted) {
+                                      await showOperationalError(context, error);
+                                    }
+                                  }
+                                }
+                              : null,
                           child: const Icon(Icons.add_rounded, size: 20),
                         ),
                       ),
@@ -1396,10 +1414,13 @@ class _RetailProductDetailsDesignScreenState
                       ],
                     ),
                     const SizedBox(height: 10),
-                    FoodexGallery(
-                      key: const ValueKey('b2c-product-gallery'),
-                      urls: images,
-                      palette: FoodexPalette.grocery,
+                    Opacity(
+                      opacity: product.isAvailable ? 1 : 0.42,
+                      child: FoodexGallery(
+                        key: const ValueKey('b2c-product-gallery'),
+                        urls: images,
+                        palette: FoodexPalette.grocery,
+                      ),
                     ),
                     const SizedBox(height: 18),
                     Text(
@@ -1431,11 +1452,21 @@ class _RetailProductDetailsDesignScreenState
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'متوفر في المخزون',
+                    Text(
+                      product.isAvailable
+                          ? context.tr('customer.product.available')
+                          : context.tr('customer.product.out_of_stock'),
+                      key: ValueKey(
+                        product.isAvailable
+                            ? 'b2c-product-available'
+                            : 'b2c-product-out-of-stock',
+                      ),
                       style: TextStyle(
-                        color: Color(0xFF078A43),
+                        color: product.isAvailable
+                            ? const Color(0xFF078A43)
+                            : const Color(0xFF6B7785),
                         fontSize: 12,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -1445,21 +1476,24 @@ class _RetailProductDetailsDesignScreenState
                       minimum: 1,
                       palette: FoodexPalette.grocery,
                       label: 'إضافة إلى السلة',
-                      onChanged: (value) =>
-                          setState(() => quantity = value),
-                      onPressed: () async {
-                        try {
-                          await widget.actionApi.addCartItem(
-                            storeId: storeId,
-                            productId: productId,
-                            quantity: quantity,
-                          );
-                        } catch (error) {
-                          if (context.mounted) {
-                            await showOperationalError(context, error);
-                          }
-                        }
-                      },
+                      onChanged: product.isAvailable
+                          ? (value) => setState(() => quantity = value)
+                          : null,
+                      onPressed: product.isAvailable
+                          ? () async {
+                              try {
+                                await widget.actionApi.addCartItem(
+                                  storeId: storeId,
+                                  productId: productId,
+                                  quantity: quantity,
+                                );
+                              } catch (error) {
+                                if (context.mounted) {
+                                  await showOperationalError(context, error);
+                                }
+                              }
+                            }
+                          : null,
                     ),
                     const SizedBox(height: 18),
                     FoodexDetailAccordion(
