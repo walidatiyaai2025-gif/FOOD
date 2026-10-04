@@ -102,6 +102,8 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/assignments', [DriverAssignmentController::class, 'index']);
             Route::get('/assignments/{assignment}', [DriverAssignmentController::class, 'show'])
                 ->whereNumber('assignment');
+            Route::get('/lookups/{type}', LookupOptionsController::class)
+                ->whereIn('type', ['failed-delivery-reasons']);
         });
 
     Route::prefix('app-preview/customer')
@@ -115,6 +117,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
             Route::get('/invoices', [CustomerInvoiceController::class, 'index']);
             Route::get('/invoices/{invoice}', [CustomerInvoiceController::class, 'show'])->whereNumber('invoice');
+            Route::get('/notification-campaign-popups', [NotificationCampaignPopupController::class, 'index']);
             Route::get('/store-selector', [StorefrontController::class, 'selector']);
             Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show'])->whereNumber('store');
         });
@@ -130,6 +133,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/invoices', [B2bFinanceController::class, 'invoices']);
             Route::get('/invoices/{invoice}', [B2bFinanceController::class, 'invoice'])->whereNumber('invoice');
             Route::get('/account-statement', [B2bFinanceController::class, 'statement']);
+            Route::get('/notification-campaign-popups', [NotificationCampaignPopupController::class, 'index']);
             Route::get('/store-selector', [StorefrontController::class, 'selector']);
             Route::get('/stores/{store}/storefront', [StorefrontController::class, 'showWholesale'])->whereNumber('store');
             Route::get('/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);
