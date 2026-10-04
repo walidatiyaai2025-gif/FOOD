@@ -44,6 +44,145 @@ class B2bReportingTest extends TestCase
             ->assertJsonPath('data.0.currency', 'KWD');
     }
 
+    public function test_top_products_use_current_catalog_state_and_store_scoped_pagination(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$user, $customer] = $this->buyer('top-products-current@example.test', 'active');
+
+        $storeType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $store = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $storeType,
+            'code' => 'TOP-C13',
+            'name' => 'Top Products Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $catalog = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $store,
+            'channel' => 'b2b',
+            'code' => 'top-c13',
+            'name' => 'Top C13 Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $unit = (int) DB::table('units')->insertGetId([
+            'code' => 'TOP-C13-EA',
+            'name' => 'Each',
+            'decimal_places' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $product = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog,
+            'unit_id' => $unit,
+            'sku' => 'TOP-C13-1',
+            'name' => 'Ranked Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->insert([
+            'store_id' => $store,
+            'product_id' => $product,
+            'price' => 12,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $tier = (int) DB::table('b2b_price_tiers')->insertGetId([
+            'code' => 'TOP-C13-GOLD',
+            'name' => 'Top C13 Gold',
+            'priority' => 20,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        B2bAccount::query()
+            ->where('b2b_customer_id', $customer->id)
+            ->update(['price_tier_id' => $tier]);
+        DB::table('b2b_price_rules')->insert([
+            'price_tier_id' => $tier,
+            'store_id' => $store,
+            'product_id' => $product,
+            'unit_price' => 7.25,
+            'minimum_quantity' => 5,
+            'ordering_increment' => 5,
+            'pack_size' => 12,
+            'pack_label' => 'Case 12',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $warehouse = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $store,
+            'code' => 'TOP-C13-WH',
+            'name' => 'Top C13 Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('inventories')->insert([
+            'warehouse_id' => $warehouse,
+            'product_id' => $product,
+            'quantity' => 20,
+            'reserved_quantity' => 2,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $order = $this->order($store, $customer->id, 36.25, 'delivered');
+        DB::table('order_items')->insert([
+            'order_id' => $order,
+            'product_id' => $product,
+            'sku_snapshot' => 'TOP-C13-OLD-SKU',
+            'name_snapshot' => 'Ranked Product',
+            'quantity' => 5,
+            'unit_price' => 6,
+            'line_total' => 30,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($user);
+        $from = now()->subDay()->toDateString();
+        $to = now()->addDay()->toDateString();
+
+        $this->getJson("/api/v1/b2b/products/top?store_id={$store}&from={$from}&to={$to}&q=Ranked&sort=value&page=1&per_page=1")
+            ->assertOk()
+            ->assertJsonPath('sort', 'value')
+            ->assertJsonPath('meta.page', 1)
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.has_more', false)
+            ->assertJsonPath('data.0.rank', 1)
+            ->assertJsonPath('data.0.product_id', $product)
+            ->assertJsonPath('data.0.store_id', $store)
+            ->assertJsonPath('data.0.sku', 'TOP-C13-1')
+            ->assertJsonPath('data.0.quantity', 5)
+            ->assertJsonPath('data.0.total', 30)
+            ->assertJsonPath('data.0.account_price', 7.25)
+            ->assertJsonPath('data.0.minimum_order_quantity', 5)
+            ->assertJsonPath('data.0.ordering_increment', 5)
+            ->assertJsonPath('data.0.pack_size', 12)
+            ->assertJsonPath('data.0.pack_label', 'Case 12')
+            ->assertJsonPath('data.0.availability_state', 'AVAILABLE')
+            ->assertJsonPath('data.0.can_repurchase', true)
+            ->assertJsonPath('data.0.unavailable_reason', null);
+
+        DB::table('inventories')
+            ->where('product_id', $product)
+            ->update(['reserved_quantity' => 20, 'updated_at' => now()]);
+
+        $this->getJson("/api/v1/b2b/products/top?store_id={$store}&q=Ranked")
+            ->assertOk()
+            ->assertJsonPath('data.0.account_price', 7.25)
+            ->assertJsonPath('data.0.availability_state', 'OUT_OF_STOCK')
+            ->assertJsonPath('data.0.can_repurchase', false)
+            ->assertJsonPath('data.0.unavailable_reason', 'OUT_OF_STOCK');
+    }
+
     public function test_reporting_rejects_unapproved_account_and_invalid_date_range(): void
     {
         $this->seed(CoreReferenceSeeder::class);
