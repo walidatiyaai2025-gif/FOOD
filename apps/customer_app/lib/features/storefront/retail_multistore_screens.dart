@@ -8,6 +8,7 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/engagement/live_ad_service.dart';
+import '../../core/engagement/notification_campaign_popup_service.dart';
 import '../../shared/customer_favorite_button.dart';
 import 'storefront_design_system.dart';
 
@@ -590,6 +591,7 @@ class _B2bBadge extends StatelessWidget {
 class RetailStorefrontDesignScreen extends StatefulWidget {
   const RetailStorefrontDesignScreen({
     required this.location,
+    required this.session,
     required this.catalogApi,
     required this.storefrontApi,
     required this.actionApi,
@@ -597,6 +599,7 @@ class RetailStorefrontDesignScreen extends StatefulWidget {
   });
 
   final String location;
+  final CustomerSession session;
   final B2cCatalogApi catalogApi;
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
@@ -611,6 +614,7 @@ class _RetailStorefrontDesignScreenState
   late final int storeId = retailStoreId(widget.location);
   late Future<_RetailHomeData> future = _load();
   final search = TextEditingController();
+  final campaignPopups = CustomerNotificationCampaignPopupService();
   final liveAds = CustomerLiveAdService();
   bool _liveAdScheduled = false;
 
@@ -664,9 +668,18 @@ class _RetailStorefrontDesignScreenState
 
           if (!_liveAdScheduled) {
             _liveAdScheduled = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
               if (!mounted) return;
-              liveAds
+              await campaignPopups
+                  .showForContext(
+                    context,
+                    channel: 'b2c',
+                    storeId: storeId,
+                    accessToken: widget.session.accessToken,
+                  )
+                  .catchError((_) {});
+              if (!mounted) return;
+              await liveAds
                   .showForContext(
                     context,
                     channel: 'b2c',
