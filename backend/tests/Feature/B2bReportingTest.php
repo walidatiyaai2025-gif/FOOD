@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\B2bAccount;
 use App\Models\Customer;
 use App\Models\User;
+use App\Services\CustomerDomainResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -154,7 +155,7 @@ class B2bReportingTest extends TestCase
             'updated_at' => now()->subDay(),
         ]);
 
-        $domain = app(\App\Services\CustomerDomainResolver::class)->b2b($user);
+        $domain = app(CustomerDomainResolver::class)->b2b($user);
         B2bAccount::query()
             ->where('b2b_customer_id', $domain->id)
             ->update(['price_tier_id' => $tier]);
