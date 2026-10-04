@@ -302,7 +302,7 @@ class _ProfileHero extends StatelessWidget {
     final title = displayName.isEmpty
         ? (isArabic ? 'عميل الأعمال' : 'Business customer')
         : displayName;
-    final initial = title.characters.first.toUpperCase();
+    final initial = title.substring(0, 1).toUpperCase();
     final active = accountStatus.toLowerCase() == 'active';
     final statusText = accountStatus.isEmpty
         ? typeLabel
@@ -966,63 +966,6 @@ class _MiniValue extends StatelessWidget {
             ),
           ),
         ],
-      );
-}
-
-class _StatusTile extends StatelessWidget {
-  const _StatusTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: const Color(0xFFF6FAF7),
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2ECE6)),
-            ),
-            child: Column(
-              children: [
-                Icon(icon, color: const Color(0xFF078A43), size: 24),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Color(0xFF17231D),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 11,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF68766E),
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       );
 }
 
