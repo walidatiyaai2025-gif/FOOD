@@ -18,7 +18,26 @@
 @endphp
 
 <div id="order-{{ $row['_id'] }}" style="display:grid;gap:8px;min-width:260px">
-    @if(count($statusTransitions))
+    @if($isB2bOrder && $row['status']==='pending')
+    <div class="workspace-inline-form" style="margin:0;display:grid;gap:10px;border-color:#f4c27a;background:#fffaf2">
+        <strong>{{ app()->getLocale()==='ar'?'قرار خدمة العملاء':'Customer Service approval' }}</strong>
+        <div class="muted">{{ app()->getLocale()==='ar'?'راجع تفاصيل الطلب والتسوية المالية قبل الاعتماد أو الرفض.':'Review order and settlement details before approving or rejecting.' }}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" style="margin:0">
+                @csrf
+                <input type="hidden" name="status" value="confirmed">
+                <input type="hidden" name="note" value="customer_service_approved">
+                <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'اعتماد الطلب':'Approve order' }}</button>
+            </form>
+            <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" style="margin:0;display:flex;gap:8px;flex-wrap:wrap">
+                @csrf
+                <input type="hidden" name="status" value="cancelled">
+                <input name="note" maxlength="1000" required placeholder="{{ app()->getLocale()==='ar'?'سبب الرفض (إلزامي)':'Rejection reason (required)' }}">
+                <button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'رفض الطلب':'Reject order' }}</button>
+            </form>
+        </div>
+    </div>
+    @elseif(count($statusTransitions))
     <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
         @csrf
         @if(!$isB2bOrder)
@@ -35,7 +54,7 @@
     </form>
     @endif
 
-    @if(!in_array($row['status'],['delivered','cancelled'],true) && !empty($moduleData['drivers']))
+    @if((!$isB2bOrder || $row['status']!=='pending') && !in_array($row['status'],['delivered','cancelled'],true) && !empty($moduleData['drivers']))
         @if(empty($row['_assignment_id']))
         <form method="post" action="{{ route($driverRoute) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
             @csrf
