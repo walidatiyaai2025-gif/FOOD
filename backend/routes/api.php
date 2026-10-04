@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RetailCheckoutOptionsController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
+use App\Http\Controllers\Api\V1\RuntimeDiagnosticController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\StorefrontRevisionController;
@@ -149,6 +150,8 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/runtime-diagnostics/events', RuntimeDiagnosticController::class)
+            ->middleware('throttle:60,1');
         Route::post('/runtime-inspector/events', MobileSystemInspectorEventController::class)
             ->middleware('throttle:60,1')
             ->name('api.runtime-inspector.events');
