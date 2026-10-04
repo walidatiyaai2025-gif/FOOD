@@ -214,6 +214,119 @@ void main() {
     expect(find.textContaining('current prices and stock'), findsOneWidget);
   });
 
+  testWidgets(
+      'B2B cards separate approval from authoritative account-debt settlement',
+      (tester) async {
+    final api = _FakeOrdersApi(
+      responder: (channel, page) async => _page(
+        channel: channel,
+        orderId: channel == 'b2b' ? 501 : 601,
+        status: 'pending',
+        approvalStatus: 'pending',
+        invoiceOutstandingAmount: 70,
+        appliedCustomerCreditAmount: 30,
+        remainderMethod: 'account_debt',
+        fullySettled: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _TestApp(
+        child: CustomerOrdersScreen(api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Order received'), findsOneWidget);
+    expect(find.textContaining('Pending customer-service approval'), findsOneWidget);
+    expect(find.textContaining('Account debt 70.000 KWD'), findsOneWidget);
+    expect(find.textContaining('Balance applied: 30.000 KWD'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-order-approval-501')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('customer-order-financial-501')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'approved B2B card keeps COD due separate and renders fully settled only explicitly',
+      (tester) async {
+    var settled = false;
+    final api = _FakeOrdersApi(
+      responder: (channel, page) async => _page(
+        channel: channel,
+        orderId: channel == 'b2b' ? 502 : 602,
+        status: 'confirmed',
+        approvalStatus: 'approved',
+        invoiceOutstandingAmount: settled ? 0 : 15.5,
+        remainderMethod: 'cash_on_delivery',
+        fullySettled: settled,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _TestApp(
+        child: CustomerOrdersScreen(api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Approval: Approved'), findsOneWidget);
+    expect(find.textContaining('Due on delivery 15.500 KWD'), findsOneWidget);
+
+    settled = true;
+    await tester.tap(find.byKey(const ValueKey('customer-orders-refresh')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Fully settled'), findsOneWidget);
+    expect(find.textContaining('Due on delivery 15.500 KWD'), findsNothing);
+  });
+
+  test('order summary consumes nested authoritative settlement without deriving debt',
+      () {
+    final order = CustomerOrderSummary.fromJson(
+      <String, dynamic>{
+        'id': 503,
+        'order_number': 'WH-503',
+        'store_id': 7,
+        'channel': 'b2b',
+        'status': 'confirmed',
+        'currency': 'KWD',
+        'grand_total': 100,
+        'settlement': <String, dynamic>{
+          'approval_status': 'approved',
+          'outstanding_amount': 70,
+          'balance_applied': 30,
+          'remainder_method': 'account_debt',
+          'fully_settled': false,
+        },
+      },
+    );
+
+    expect(order.approvalStatus, 'approved');
+    expect(order.invoiceOutstandingAmount, 70);
+    expect(order.appliedCustomerCreditAmount, 30);
+    expect(order.remainderMethod, 'account_debt');
+    expect(order.fullySettled, isFalse);
+
+    final noSettlement = CustomerOrderSummary.fromJson(
+      <String, dynamic>{
+        'id': 504,
+        'order_number': 'WH-504',
+        'store_id': 7,
+        'channel': 'b2b',
+        'status': 'confirmed',
+        'currency': 'KWD',
+        'grand_total': 100,
+      },
+    );
+    expect(noSettlement.invoiceOutstandingAmount, isNull);
+    expect(noSettlement.fullySettled, isNull);
+  });
+
   testWidgets('cross-channel API leakage is never rendered in the wrong tab',
       (tester) async {
     final api = _FakeOrdersApi(
@@ -278,6 +391,11 @@ CustomerOrderPage _page({
   List<String> statusCodes = const <String>[],
   Map<String, int> statusCounts = const <String, int>{},
   List<CustomerOrderItem> reorderItems = const <CustomerOrderItem>[],
+  String? approvalStatus,
+  double? invoiceOutstandingAmount,
+  double? appliedCustomerCreditAmount,
+  String? remainderMethod,
+  bool? fullySettled,
 }) =>
     CustomerOrderPage(
       orders: [
@@ -294,6 +412,11 @@ CustomerOrderPage _page({
           createdAt: DateTime.utc(2026, 10, 1, 10),
           itemCount: reorderItems.length,
           reorderItems: reorderItems,
+          approvalStatus: approvalStatus,
+          invoiceOutstandingAmount: invoiceOutstandingAmount,
+          appliedCustomerCreditAmount: appliedCustomerCreditAmount,
+          remainderMethod: remainderMethod,
+          fullySettled: fullySettled,
         ),
       ],
       currentPage: currentPage,
