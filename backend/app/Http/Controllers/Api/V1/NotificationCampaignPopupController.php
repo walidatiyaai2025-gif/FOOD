@@ -168,13 +168,19 @@ final class NotificationCampaignPopupController extends Controller
         $channel = (string) $data['channel'];
         $storeId = isset($data['store_id']) ? (int) $data['store_id'] : null;
         $now = now();
+        $isCustomer = $user instanceof User
+            && $this->isCustomerForContext($data, $user);
 
         return NotificationCampaign::query()
             ->whereIn('status', ['active', 'completed'])
             ->whereIn('delivery_channel', ['in_app', 'both'])
             ->whereIn('app', ['all', 'customer'])
-            ->where(function (Builder $audience) use ($user): void {
-                $audience->whereIn('audience', ['all', 'customer']);
+            ->where(function (Builder $audience) use ($user, $isCustomer): void {
+                $audience->where('audience', 'all');
+
+                if ($isCustomer) {
+                    $audience->orWhere('audience', 'customer');
+                }
 
                 if ($user instanceof User) {
                     $audience->orWhere(function (Builder $targeted) use ($user): void {
@@ -201,6 +207,34 @@ final class NotificationCampaignPopupController extends Controller
             ->where(function (Builder $ends) use ($now): void {
                 $ends->whereNull('ends_at')->orWhere('ends_at', '>', $now);
             });
+    }
+
+    /** @param array<string, mixed> $data */
+    private function isCustomerForContext(array $data, User $user): bool
+    {
+        $channel = (string) $data['channel'];
+        $storeId = isset($data['store_id']) ? (int) $data['store_id'] : null;
+
+        if ($channel === 'b2c') {
+            return $storeId !== null
+                && DB::table('b2c_customers')
+                    ->where('user_id', $user->getKey())
+                    ->where('store_id', $storeId)
+                    ->exists();
+        }
+
+        if ($channel === 'b2b') {
+            return DB::table('b2b_customers')
+                ->where('user_id', $user->getKey())
+                ->exists();
+        }
+
+        return DB::table('b2c_customers')
+            ->where('user_id', $user->getKey())
+            ->exists()
+            || DB::table('b2b_customers')
+                ->where('user_id', $user->getKey())
+                ->exists();
     }
 
     private function optionalUser(Request $request): ?User
