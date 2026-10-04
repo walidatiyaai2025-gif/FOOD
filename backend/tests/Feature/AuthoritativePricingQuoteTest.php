@@ -134,6 +134,54 @@ class AuthoritativePricingQuoteTest extends TestCase
             ->assertConflict();
     }
 
+    public function test_wholesale_account_credit_checkout_rejects_total_above_authoritative_purchasing_power(): void
+    {
+        $user = $this->platformCustomer('wholesale-credit-cap@example.test');
+        $resolver = app(CustomerDomainResolver::class);
+        $b2b = $resolver->b2b($user);
+        $legacyId = (int) DB::table('platform_customers')
+            ->where('user_id', $user->id)
+            ->value('legacy_customer_id');
+
+        DB::table('b2b_accounts')
+            ->where('b2b_customer_id', $b2b->id)
+            ->update([
+                'credit_limit' => 10.000,
+                'updated_at' => now(),
+            ]);
+
+        $address = Address::query()->create([
+            'customer_id' => $legacyId,
+            'b2b_customer_id' => $b2b->id,
+            'label' => 'Warehouse',
+            'line1' => 'Wholesale credit street',
+            'city' => 'Cairo',
+            'country_code' => 'EG',
+            'is_default' => true,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/cart/items', [
+            'store_id' => $this->wholesale,
+            'product_id' => $this->wholesaleProduct,
+            'quantity' => 1,
+        ])->assertCreated();
+
+        $this->withHeader('Idempotency-Key', 'pricing-credit-cap-000001')
+            ->postJson('/api/v1/checkout', [
+                'store_id' => $this->wholesale,
+                'address_id' => $address->id,
+                'payment_method' => 'account_credit',
+            ])
+            ->assertConflict();
+
+        $this->assertDatabaseMissing('orders', [
+            'b2b_customer_id' => $b2b->id,
+            'store_id' => $this->wholesale,
+        ]);
+    }
+
     public function test_checkout_reprices_live_price_and_historical_snapshot_does_not_drift(): void
     {
         $user = $this->platformCustomer('live-reprice@example.test');
