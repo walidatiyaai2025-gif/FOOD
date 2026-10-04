@@ -188,11 +188,7 @@ class PlatformCustomerMarketplaceTest extends TestCase
         $this->getJson('/api/v1/store-selector')
             ->assertOk()
             ->assertJsonMissing(['id' => $ownedStore])
-            ->assertJsonPath('retail_stores.0.id', $foreignStore)
-            ->assertJsonCount(1, 'wholesale_stores')
-            ->assertJsonPath('wholesale_stores.0.id', $wholesaleStore)
-            ->assertJsonPath('wholesale_stores.0.is_platform_principal', true)
-            ->assertJsonPath('entitlements.principal_wholesale_store_id', $wholesaleStore);
+            ->assertJsonPath('retail_stores.0.id', $foreignStore);
 
         $this->getJson('/api/v1/stores')
             ->assertOk()
@@ -208,6 +204,61 @@ class PlatformCustomerMarketplaceTest extends TestCase
                 ->assertJsonPath('code', SelfStorePurchaseNotAllowed::ERROR_CODE)
                 ->assertJsonPath('store_id', $ownedStore);
         }
+    }
+
+    public function test_store_selector_exposes_only_the_authoritative_principal_wholesale_target(): void
+    {
+        [$wholesaleStore] = $this->marketplaceFixture();
+        $now = now();
+
+        $tier = (int) DB::table('b2b_price_tiers')->insertGetId([
+            'code' => 'SWITCH-PRINCIPAL',
+            'name' => 'Switch Principal',
+            'priority' => 10,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $user = User::query()->create([
+            'name' => 'Wholesale Switch Buyer',
+            'email' => 'wholesale-switch@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $legacyCustomerId = (int) DB::table('customers')->insertGetId([
+            'user_id' => $user->id,
+            'type' => 'b2b',
+            'name' => 'Wholesale Switch Buyer',
+            'email' => $user->email,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $b2bCustomerId = (int) DB::table('b2b_customers')->insertGetId([
+            'legacy_customer_id' => $legacyCustomerId,
+            'user_id' => $user->id,
+            'name' => 'Wholesale Switch Buyer',
+            'email' => $user->email,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        DB::table('b2b_accounts')->insert([
+            'customer_id' => $legacyCustomerId,
+            'b2b_customer_id' => $b2bCustomerId,
+            'price_tier_id' => $tier,
+            'company_name' => 'Wholesale Switch Buyer',
+            'status' => 'active',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $this->withToken($user->createToken('customer-app')->plainTextToken)
+            ->getJson('/api/v1/store-selector')
+            ->assertOk()
+            ->assertJsonCount(1, 'wholesale_stores')
+            ->assertJsonPath('wholesale_stores.0.id', $wholesaleStore)
+            ->assertJsonPath('wholesale_stores.0.is_platform_principal', true)
+            ->assertJsonPath('entitlements.direct_b2b', true)
+            ->assertJsonPath('entitlements.principal_wholesale_store_id', $wholesaleStore);
     }
 
     public function test_registered_customer_identity_materializes_per_store_and_routes_carts_by_purchase_store(): void
