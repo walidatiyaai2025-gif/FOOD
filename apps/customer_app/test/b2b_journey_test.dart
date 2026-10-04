@@ -345,6 +345,49 @@ void main() {
       find.byKey(const ValueKey('wholesale-catalog-search')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('wholesale-category-all')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-category-filter-3')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-catalog-count')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-catalog-grid-view')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-catalog-list-view')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('wholesale-catalog-list-view')),
+    );
+    await tester.pump();
+    var grid = tester.widget<GridView>(
+      find.byKey(const ValueKey('wholesale-product-grid')),
+    );
+    var delegate =
+        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(delegate.crossAxisCount, 1);
+
+    await tester.tap(
+      find.byKey(const ValueKey('wholesale-catalog-grid-view')),
+    );
+    await tester.pump();
+    grid = tester.widget<GridView>(
+      find.byKey(const ValueKey('wholesale-product-grid')),
+    );
+    delegate =
+        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(delegate.crossAxisCount, 2);
+
     expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
     expect(storefront.lastStoreId, 70);
   });
