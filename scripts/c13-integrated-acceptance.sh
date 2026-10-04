@@ -44,7 +44,7 @@ done
 
 # Screen 12 owns checkout as a sub-surface; it is not a fourteenth canonical screen.
 require_text "$routes" "pattern: CustomerRoutePaths.b2bCheckout,"
-require_text "$plan" "The existing checkout/address-payment route is an owned sub-surface of Screen 12"
+require_text "$plan" "checkout/address-payment route is an owned sub-surface of Screen 12"
 
 # Visible/reachable Customer behavior across the 13-screen journey.
 require_text "$journey" "B2B unauthenticated protected route hides internal redirect details"
