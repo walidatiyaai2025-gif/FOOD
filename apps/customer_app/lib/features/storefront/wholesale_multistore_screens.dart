@@ -2488,11 +2488,13 @@ class _WholesaleProductDetailsDesignScreenState
                                 ? Icons.verified_rounded
                                 : Icons.remove_shopping_cart_outlined,
                             label: isAvailable
-                                ? context.tr('customer.product.available') +
+                                ? context.tr('b2b.product.inventory') +
+                                    ' ' +
                                     (availableQuantity == null
-                                        ? ''
-                                        : ' · ' +
-                                            compactNumber(availableQuantity))
+                                        ? context.tr(
+                                            'b2b.product.inventory_unbounded',
+                                          )
+                                        : compactNumber(availableQuantity))
                                 : context.tr('customer.product.out_of_stock'),
                           ),
                         ),
