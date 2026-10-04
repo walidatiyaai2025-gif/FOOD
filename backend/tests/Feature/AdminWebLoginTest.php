@@ -111,6 +111,64 @@ class AdminWebLoginTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_super_admin_normal_login_defaults_to_b2b_dashboard(): void
+    {
+        $user = $this->userWithGlobalRole('SUPER_ADMIN');
+
+        $this->post('/admin/b2c/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+        ])->assertRedirect(route('admin.b2b.dashboard'));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_guest_admin_request_records_intended_url_for_post_login_return(): void
+    {
+        $intended = url('/admin/b2b/orders');
+
+        $this->get('/admin/b2b/orders')
+            ->assertRedirect(route('admin.b2c.login'))
+            ->assertSessionHas('url.intended', $intended);
+    }
+
+    public function test_login_preserves_authorized_internal_intended_url(): void
+    {
+        $user = $this->userWithGlobalRole('B2B_ADMIN');
+        $intended = route('admin.b2b.module', ['module' => 'orders']);
+
+        $this->withSession(['url.intended' => $intended])
+            ->post('/admin/b2c/login', [
+                'email' => $user->email,
+                'password' => 'correct-password',
+            ])
+            ->assertRedirect($intended);
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_login_rejects_cross_channel_or_external_intended_url(): void
+    {
+        $user = $this->userWithGlobalRole('B2B_ADMIN');
+
+        $this->withSession(['url.intended' => route('admin.b2c.dashboard')])
+            ->post('/admin/b2c/login', [
+                'email' => $user->email,
+                'password' => 'correct-password',
+            ])
+            ->assertRedirect(route('admin.b2b.dashboard'));
+
+        $this->post('/admin/logout')->assertRedirect(route('admin.b2c.login'));
+        $this->assertGuest();
+
+        $this->withSession(['url.intended' => 'https://example.invalid/admin/b2b/dashboard'])
+            ->post('/admin/b2b/login', [
+                'email' => $user->email,
+                'password' => 'correct-password',
+            ])
+            ->assertRedirect(route('admin.b2b.dashboard'));
+    }
+
     public function test_inactive_and_non_management_identities_are_denied_without_creating_session(): void
     {
         $inactive = $this->userWithGlobalRole('B2B_ADMIN');

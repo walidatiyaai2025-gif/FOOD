@@ -84,7 +84,7 @@ class AdminLoginController extends Controller
             ]);
         }
 
-        $target = $this->targetChannel($user, $channel);
+        $target = $this->targetChannel($user, 'b2b');
 
         if ($target === null) {
             Log::notice('Management login denied', [
@@ -119,8 +119,10 @@ class AdminLoginController extends Controller
             'user_id' => $user->getKey(),
         ]);
 
-        if ($user->hasRole('SUPER_ADMIN')) {
-            return redirect()->route('admin.index');
+        $intended = $this->authorizedIntendedUrl($request, $user);
+
+        if ($intended !== null) {
+            return redirect()->to($intended);
         }
 
         return redirect()->route("admin.{$target}.dashboard");
@@ -160,6 +162,57 @@ class AdminLoginController extends Controller
         );
 
         return in_array($locale, ['ar', 'en'], true) ? $locale : 'ar';
+    }
+
+    private function authorizedIntendedUrl(Request $request, User $user): ?string
+    {
+        $intended = $request->session()->pull('url.intended');
+
+        if (! is_string($intended) || trim($intended) === '') {
+            return null;
+        }
+
+        $parts = parse_url($intended);
+
+        if ($parts === false) {
+            return null;
+        }
+
+        $host = $parts['host'] ?? null;
+        $scheme = $parts['scheme'] ?? null;
+        $port = $parts['port'] ?? null;
+        $path = (string) ($parts['path'] ?? '');
+
+        if ($host !== null && strcasecmp((string) $host, $request->getHost()) !== 0) {
+            return null;
+        }
+
+        if ($scheme !== null && strtolower((string) $scheme) !== $request->getScheme()) {
+            return null;
+        }
+
+        if ($port !== null && (int) $port !== $request->getPort()) {
+            return null;
+        }
+
+        if ($path !== '/admin' && ! str_starts_with($path, '/admin/')) {
+            return null;
+        }
+
+        if (in_array($path, ['/admin/b2b/login', '/admin/b2c/login', '/admin/logout'], true)) {
+            return null;
+        }
+
+        foreach (['b2b', 'b2c'] as $channel) {
+            $prefix = "/admin/{$channel}";
+
+            if (($path === $prefix || str_starts_with($path, "{$prefix}/"))
+                && ! $this->navigation->canAccess($user, $channel)) {
+                return null;
+            }
+        }
+
+        return $intended;
     }
 
     private function targetChannel(User $user, string $preferred): ?string

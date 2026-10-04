@@ -18,7 +18,7 @@ class EnsureManagementDashboardAccess
         $user = $request->user();
 
         if (! $user instanceof User) {
-            return redirect()->route('admin.b2c.login');
+            return redirect()->guest(route('admin.b2c.login'));
         }
 
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
