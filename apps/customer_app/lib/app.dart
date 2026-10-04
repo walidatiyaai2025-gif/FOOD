@@ -62,6 +62,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.previewBootstrap,
     this.marketplaceClient,
     this.marketplaceBarcodeScanner,
+    this.notificationCampaignPopupService,
   });
 
   factory FoodexCustomerApp.preview({
@@ -80,6 +81,7 @@ class FoodexCustomerApp extends StatefulWidget {
     TranslationFetcher? translationFetcher,
     ThemeData? theme,
     CustomerPreviewBootstrap? previewBootstrap,
+    CustomerNotificationCampaignPopupService? notificationCampaignPopupService,
   }) {
     if (previewContext.channel == CustomerChannel.b2b &&
         (b2bApi == null || wholesaleCommerceApi == null)) {
@@ -115,6 +117,7 @@ class FoodexCustomerApp extends StatefulWidget {
       previewBootstrap: previewBootstrap,
       marketplaceClient: PreviewReadOnlyHttpClient(marketplaceClient),
       marketplaceBarcodeScanner: (context) async => null,
+      notificationCampaignPopupService: notificationCampaignPopupService,
     );
   }
 
@@ -143,6 +146,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final CustomerPreviewBootstrap? previewBootstrap;
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
+  final CustomerNotificationCampaignPopupService? notificationCampaignPopupService;
 
   @override
   State<FoodexCustomerApp> createState() => _FoodexCustomerAppState();
@@ -163,8 +167,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   CustomerAppRouter? _activeRouter;
   StreamSubscription<String>? _pushRouteSubscription;
   StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
-  final CustomerNotificationCampaignPopupService _launchCampaignPopups =
-      CustomerNotificationCampaignPopupService();
+  late final CustomerNotificationCampaignPopupService _launchCampaignPopups;
   bool _launchCampaignPopupScheduled = false;
   Timer? _versionFooterTimer;
   bool _showVersionFooter = false;
@@ -178,6 +181,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   void initState() {
     super.initState();
     _translations = Map<String, String>.from(widget.translationOverrides);
+    _launchCampaignPopups = widget.notificationCampaignPopupService ??
+        CustomerNotificationCampaignPopupService();
     _session = widget.session;
     _authPreferences = widget.authPreferences;
     _activeCommerceContext =
@@ -261,7 +266,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   }
 
   void _scheduleLaunchCampaignPopup() {
-    if (_launchCampaignPopupScheduled || widget.previewContext != null) return;
+    if (_launchCampaignPopupScheduled) return;
     _launchCampaignPopupScheduled = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -269,15 +274,28 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       final popupContext = _navigatorKey.currentContext;
       if (popupContext == null) return;
 
-      unawaited(
-        _launchCampaignPopups
-            .showForContext(
-              popupContext,
-              channel: 'all',
-              accessToken: _session.accessToken,
-            )
-            .catchError((_) {}),
-      );
+      final preview = widget.previewContext;
+      unawaited(() async {
+        try {
+          await _launchCampaignPopups.showForContext(
+            popupContext,
+            channel: preview?.channel.name ?? 'all',
+            storeId: preview?.storeId,
+            accessToken: preview == null ? _session.accessToken : null,
+          );
+        } catch (_) {
+          if (!mounted || preview == null) return;
+          _messengerKey.currentState?.showSnackBar(
+            SnackBar(
+              content: Text(
+                _locale.languageCode == 'ar'
+                    ? 'تعذر تحميل بيانات الحملة الحالية في المعاينة.'
+                    : 'Current campaign data is unavailable in preview.',
+              ),
+            ),
+          );
+        }
+      }());
     });
   }
 

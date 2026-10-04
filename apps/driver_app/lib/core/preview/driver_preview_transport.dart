@@ -15,6 +15,7 @@ class DriverPreviewReadHttpClient extends http.BaseClient {
   DriverPreviewReadHttpClient(
     this.delegate, {
     required this.credential,
+    this.onReadState,
   }) {
     if (credential.trim().isEmpty) {
       throw ArgumentError.value(
@@ -27,9 +28,15 @@ class DriverPreviewReadHttpClient extends http.BaseClient {
 
   final http.Client delegate;
   final String credential;
+  final void Function(
+    String state,
+    String endpoint,
+    int? statusCode,
+    String updatedAt,
+  )? onReadState;
 
   @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final method = request.method.toUpperCase();
     if (method != 'GET' && method != 'HEAD') {
       return Future<http.StreamedResponse>.error(
@@ -39,18 +46,23 @@ class DriverPreviewReadHttpClient extends http.BaseClient {
 
     final path = request.url.path;
     const productionPrefix = '/api/v1/driver/assignments';
-    if (path != productionPrefix && !path.startsWith('$productionPrefix/')) {
+    const failureReasons = '/api/v1/lookups/failed-delivery-reasons';
+
+    final mappedPath = path == failureReasons
+        ? '/api/v1/app-preview/driver/lookups/failed-delivery-reasons'
+        : (path == productionPrefix || path.startsWith('$productionPrefix/')
+            ? path.replaceFirst(
+                productionPrefix,
+                '/api/v1/app-preview/driver/assignments',
+              )
+            : null);
+    if (mappedPath == null) {
       return Future<http.StreamedResponse>.error(
         const DriverPreviewMutationBlocked('read.path'),
       );
     }
 
-    final targetUrl = request.url.replace(
-      path: path.replaceFirst(
-        productionPrefix,
-        '/api/v1/app-preview/driver/assignments',
-      ),
-    );
+    final targetUrl = request.url.replace(path: mappedPath);
     final forwarded = http.Request(method, targetUrl)
       ..followRedirects = request.followRedirects
       ..maxRedirects = request.maxRedirects
@@ -68,7 +80,21 @@ class DriverPreviewReadHttpClient extends http.BaseClient {
     });
     forwarded.headers['X-Foodex-Preview-Token'] = credential;
 
-    return delegate.send(forwarded);
+    String updatedAt() => DateTime.now().toUtc().toIso8601String();
+    try {
+      final response = await delegate.send(forwarded);
+      final status = response.statusCode;
+      final state = status == 401
+          ? 'expired'
+          : (status == 403
+              ? 'forbidden'
+              : (status >= 200 && status < 300 ? 'ready' : 'error'));
+      onReadState?.call(state, targetUrl.path, status, updatedAt());
+      return response;
+    } catch (_) {
+      onReadState?.call('disconnected', targetUrl.path, null, updatedAt());
+      rethrow;
+    }
   }
 
   @override
@@ -82,11 +108,18 @@ class DriverPreviewAssignmentBundle {
     required String baseUrl,
     required String credential,
     http.Client? client,
+    void Function(
+      String state,
+      String endpoint,
+      int? statusCode,
+      String updatedAt,
+    )? onReadState,
   })  : owner = client ?? http.Client(),
         ownsOwner = client == null {
     transport = DriverPreviewReadHttpClient(
       owner,
       credential: credential,
+      onReadState: onReadState,
     );
     assignments = HttpDriverAssignmentRepository(
       baseUrl,

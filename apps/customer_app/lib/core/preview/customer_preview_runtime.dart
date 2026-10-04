@@ -11,6 +11,7 @@ import '../api/customer_action_api.dart';
 import '../api/storefront_api.dart';
 import '../api/wholesale_commerce_api.dart';
 import '../auth/customer_session.dart';
+import '../engagement/notification_campaign_popup_service.dart';
 import '../routing/customer_routes.dart';
 import 'customer_preview_bootstrap.dart';
 import 'customer_preview_configuration.dart';
@@ -113,7 +114,16 @@ class CustomerPreviewRuntime {
           initialRoute: initialRoute,
           locale: Locale(bootstrap.locale),
           previewBootstrap: bootstrap,
+          notificationCampaignPopupService:
+              CustomerNotificationCampaignPopupService(
+            client: bundle.transport,
+            baseUrl: baseUrl,
+            recordEvents: false,
+            strictReadErrors: true,
+          ),
         );
+
+        final loadedAt = DateTime.now().toUtc().toIso8601String();
 
         return CustomerPreviewRuntime._(
           app: app,
@@ -126,6 +136,8 @@ class CustomerPreviewRuntime {
           safeStatusMetadata: {
             ...bootstrap.safeStatusMetadata,
             ...configuration.safeStatusMetadata,
+            'loaded_at': loadedAt,
+            'updated_at': loadedAt,
           },
         );
       } catch (_) {
@@ -186,7 +198,16 @@ class CustomerPreviewRuntime {
         initialRoute: initialRoute,
         locale: Locale(bootstrap.locale),
         previewBootstrap: bootstrap,
+        notificationCampaignPopupService:
+            CustomerNotificationCampaignPopupService(
+          client: transportOwner,
+          baseUrl: baseUrl,
+          recordEvents: false,
+          strictReadErrors: true,
+        ),
       );
+
+      final loadedAt = DateTime.now().toUtc().toIso8601String();
 
       return CustomerPreviewRuntime._(
         app: app,
@@ -198,6 +219,8 @@ class CustomerPreviewRuntime {
         safeStatusMetadata: {
           ...bootstrap.safeStatusMetadata,
           ...configuration.safeStatusMetadata,
+          'loaded_at': loadedAt,
+          'updated_at': loadedAt,
         },
       );
     } catch (_) {

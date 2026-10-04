@@ -30,6 +30,77 @@ void main() {
     expect(popup.ctaTarget, '/offers');
   });
 
+  testWidgets('preview popup is read-only and surfaces authoritative read failure',
+      (tester) async {
+    final requests = <http.Request>[];
+    final client = MockClient((request) async {
+      requests.add(request);
+      return http.Response(
+        jsonEncode({
+          'data': [
+            {
+              'id': 840,
+              'title': 'Preview campaign',
+              'body': 'Authoritative current campaign',
+              'frequency': 'once_per_session',
+            },
+          ],
+        }),
+        200,
+        headers: const {'content-type': 'application/json'},
+      );
+    });
+    final service = CustomerNotificationCampaignPopupService(
+      client: client,
+      baseUrl: 'https://foodex.test',
+      recordEvents: false,
+      strictReadErrors: true,
+    );
+
+    late BuildContext popupContext;
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: Builder(
+          builder: (context) {
+            popupContext = context;
+            return const Scaffold(body: Text('Home'));
+          },
+        ),
+      ),
+    );
+
+    final popupFuture = service.showForContext(
+      popupContext,
+      channel: 'b2c',
+      storeId: 7,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Preview campaign'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+    await popupFuture;
+
+    expect(requests, hasLength(1));
+    expect(requests.single.method, 'GET');
+
+    final failing = CustomerNotificationCampaignPopupService(
+      client: MockClient((_) async => http.Response('unavailable', 503)),
+      baseUrl: 'https://foodex.test',
+      recordEvents: false,
+      strictReadErrors: true,
+    );
+
+    await expectLater(
+      failing.showForContext(
+        popupContext,
+        channel: 'b2c',
+        storeId: 7,
+      ),
+      throwsA(isA<CustomerNotificationCampaignPopupException>()),
+    );
+  });
+
   testWidgets('launch popup records impression and deterministic dismiss event',
       (tester) async {
     final requests = <http.Request>[];

@@ -40,6 +40,7 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
   JSFunction? _messageListener;
   DriverPreviewRuntime? _runtime;
   String? _error;
+  int _bootstrapGeneration = 0;
 
   static const _configuredApiBaseUrl = String.fromEnvironment(
     'FOODEX_PREVIEW_API_BASE_URL',
@@ -96,15 +97,38 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
       return;
     }
 
+    final generation = ++_bootstrapGeneration;
+
     try {
       final bootstrap = DriverPreviewBootstrap.parse(
         data,
         origin: event.origin,
         expectedOrigin: _allowedOrigin,
       );
+      final loadedAt = DateTime.now().toUtc().toIso8601String();
       final next = DriverPreviewRuntime.create(
         baseUrl: _apiBaseUrl,
         bootstrap: bootstrap,
+        onReadState: (state, endpoint, statusCode, updatedAt) {
+          if (!mounted || generation != _bootstrapGeneration) return;
+          final code = state == 'ready'
+              ? null
+              : (state == 'disconnected'
+                  ? 'preview_driver_read_disconnected'
+                  : 'preview_driver_read_http_${statusCode ?? 0}');
+          _postStatus(
+            state,
+            code: code,
+            retryable: state == 'disconnected' || state == 'error',
+            metadata: {
+              ...bootstrap.safeStatusMetadata,
+              'loaded_at': loadedAt,
+              'updated_at': updatedAt,
+              'last_api_endpoint': endpoint,
+              if (statusCode != null) 'last_api_status': statusCode,
+            },
+          );
+        },
       );
 
       final previous = _runtime;
@@ -119,17 +143,36 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
       });
       previous?.close();
 
-      _post({
-        'type': 'foodex.preview.status',
-        'version': DriverPreviewHostContract.version,
-        'state': 'ready',
-        'metadata': bootstrap.safeStatusMetadata,
-      });
+      _postStatus(
+        'ready',
+        metadata: {
+          ...bootstrap.safeStatusMetadata,
+          'loaded_at': loadedAt,
+          'updated_at': loadedAt,
+        },
+      );
     } on DriverPreviewBootstrapException catch (error) {
       _setError(error.code);
     } catch (_) {
       _setError('preview_bootstrap_failed');
     }
+  }
+
+  void _postStatus(
+    String state, {
+    String? code,
+    bool? retryable,
+    Map<String, Object?>? metadata,
+  }) {
+    if (_allowedOrigin.isEmpty) return;
+    _post({
+      'type': 'foodex.preview.status',
+      'version': DriverPreviewHostContract.version,
+      'state': state,
+      if (code != null) 'code': code,
+      if (retryable != null) 'retryable': retryable,
+      if (metadata != null) 'metadata': metadata,
+    });
   }
 
   Map<String, dynamic>? _map(JSAny? value) {
@@ -152,12 +195,7 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
       });
     }
     if (_allowedOrigin.isNotEmpty) {
-      _post({
-        'type': 'foodex.preview.status',
-        'version': DriverPreviewHostContract.version,
-        'state': 'error',
-        'code': code,
-      });
+      _postStatus('error', code: code, retryable: false);
     }
   }
 
@@ -170,6 +208,7 @@ class _DriverPreviewBrowserHostState extends State<DriverPreviewBrowserHost> {
 
   @override
   void dispose() {
+    _bootstrapGeneration++;
     final listener = _messageListener;
     if (listener != null) {
       _previewWindow.removeEventListener('message', listener);

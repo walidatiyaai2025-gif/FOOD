@@ -21,6 +21,12 @@ class DriverPreviewRuntime {
     required String baseUrl,
     required DriverPreviewBootstrap bootstrap,
     http.Client? client,
+    void Function(
+      String state,
+      String endpoint,
+      int? statusCode,
+      String updatedAt,
+    )? onReadState,
   }) {
     if (baseUrl.trim().isEmpty) {
       throw const DriverPreviewBootstrapException('preview_api_base_missing');
@@ -30,6 +36,7 @@ class DriverPreviewRuntime {
       baseUrl: baseUrl,
       credential: bootstrap.credential,
       client: client,
+      onReadState: onReadState,
     );
     final channel = bootstrap.context.channel;
     final initialRoute = channel == DriverChannel.b2c

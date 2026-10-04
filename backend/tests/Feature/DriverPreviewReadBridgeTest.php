@@ -31,16 +31,25 @@ class DriverPreviewReadBridgeTest extends TestCase
         [, $otherDriver] = $this->driver($storeId, 'driver-preview-other@example.test');
 
         $targetOrder = $this->order($storeId, 'DRV-PREVIEW-ORDER-A');
+        $failedOrder = $this->order($storeId, 'DRV-PREVIEW-ORDER-FAILED');
         $otherOrder = $this->order($storeId, 'DRV-PREVIEW-ORDER-B');
 
         $targetAssignment = $this->assignment($targetDriver->id, $targetOrder->id, $storeId);
+        $failedAssignment = $this->assignment($targetDriver->id, $failedOrder->id, $storeId);
+        DB::table('driver_assignments')
+            ->where('id', $failedAssignment)
+            ->update([
+                'status' => 'failed',
+                'completed_at' => now(),
+                'updated_at' => now(),
+            ]);
         $this->assignment($otherDriver->id, $otherOrder->id, $storeId);
 
         $token = $this->previewToken($admin, $targetUser, $storeId);
         $this->app['auth']->forgetGuards();
 
         $this->withHeader('X-Foodex-Preview-Token', $token)
-            ->getJson('/api/v1/app-preview/driver/assignments?scope=all')
+            ->getJson('/api/v1/app-preview/driver/assignments?scope=active')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $targetAssignment)
@@ -50,6 +59,47 @@ class DriverPreviewReadBridgeTest extends TestCase
             ->getJson('/api/v1/app-preview/driver/assignments/'.$targetAssignment)
             ->assertOk()
             ->assertJsonPath('data.id', $targetAssignment);
+
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->getJson('/api/v1/app-preview/driver/assignments?scope=failed')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $failedAssignment)
+            ->assertJsonPath('data.0.status', 'failed')
+            ->assertJsonPath('meta.scope', 'failed');
+    }
+
+    public function test_preview_failed_delivery_reasons_reuse_authoritative_lookup_contract(): void
+    {
+        $storeId = $this->retailStore('DRV-PREVIEW-LOOKUPS');
+        $admin = $this->storeAdmin($storeId, 'driver-preview-lookups-admin@example.test');
+        [$driverUser] = $this->driver($storeId, 'driver-preview-lookups@example.test');
+
+        $expected = collect(
+            $this->getJson('/api/v1/lookups/failed-delivery-reasons')
+                ->assertOk()
+                ->json('data'),
+        )->map(fn (array $row): array => [
+            'code' => $row['code'],
+            'label_ar' => $row['label_ar'],
+            'label_en' => $row['label_en'],
+        ])->values()->all();
+
+        $token = $this->previewToken($admin, $driverUser, $storeId);
+        $this->app['auth']->forgetGuards();
+
+        $response = $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->getJson('/api/v1/app-preview/driver/lookups/failed-delivery-reasons')
+            ->assertOk();
+
+        $actual = collect($response->json('data'))
+            ->map(fn (array $row): array => [
+                'code' => $row['code'],
+                'label_ar' => $row['label_ar'],
+                'label_en' => $row['label_en'],
+            ])->values()->all();
+
+        $this->assertSame($expected, $actual);
     }
 
     public function test_preview_credential_is_header_only_and_cannot_be_normal_bearer_or_mutate(): void
