@@ -8,6 +8,7 @@ use App\Models\B2bPriceRule;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CustomerDomainResolver;
+use App\Services\ProductAvailabilityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\Gate;
 
 class B2bPricingController extends Controller
 {
+    public function __construct(private readonly ProductAvailabilityService $availability) {}
+
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('b2b.pricing.manage');
@@ -139,21 +142,7 @@ class B2bPricingController extends Controller
 
         abort_if($row === null, 404, 'B2B product is not available for this account and store.');
 
-        $inventoryRows = DB::table('inventories')
-            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-            ->where('warehouses.store_id', $storeId)
-            ->where('warehouses.is_active', true)
-            ->where('inventories.product_id', $product)
-            ->get(['inventories.quantity', 'inventories.reserved_quantity']);
-
-        $availableQuantity = $inventoryRows->isEmpty()
-            ? null
-            : (float) $inventoryRows->sum(
-                static fn (object $inventory): float => max(
-                    0.0,
-                    (float) $inventory->quantity - (float) $inventory->reserved_quantity,
-                ),
-            );
+        $availability = $this->availability->forStoreProduct($storeId, $product);
 
         $images = DB::table('product_images')
             ->where('product_id', $product)
@@ -189,8 +178,7 @@ class B2bPricingController extends Controller
             'case_size' => $row->case_size === null ? null : (float) $row->case_size,
             'pack_label' => $row->pack_label,
             'price_tier' => (string) $row->price_tier,
-            'available_quantity' => $availableQuantity,
-            'is_available' => $availableQuantity === null || $availableQuantity > 0,
+            ...$availability,
             'currency' => 'EGP',
         ]);
     }
@@ -285,6 +273,7 @@ class B2bPricingController extends Controller
                 'case_size' => $row->case_size === null ? null : (float) $row->case_size,
                 'pack_label' => $row->pack_label,
                 'image_url' => $this->assetUrl($row->primary_image_path),
+                ...$this->availability->forStoreProduct((int) $row->store_id, (int) $row->id),
             ]);
 
         return response()->json(['data' => $rows, 'currency' => 'EGP']);
