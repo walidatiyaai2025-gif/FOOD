@@ -49,7 +49,7 @@ class DriverPreviewReadBridgeTest extends TestCase
         $this->app['auth']->forgetGuards();
 
         $this->withHeader('X-Foodex-Preview-Token', $token)
-            ->getJson('/api/v1/app-preview/driver/assignments?scope=all')
+            ->getJson('/api/v1/app-preview/driver/assignments?scope=active')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $targetAssignment)
