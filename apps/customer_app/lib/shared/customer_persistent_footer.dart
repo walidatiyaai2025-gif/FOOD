@@ -10,6 +10,7 @@ enum CustomerFooterDestination {
   products,
   cart,
   orders,
+  invoices,
   account,
 }
 
@@ -106,38 +107,65 @@ class CustomerPersistentFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = <_FooterItem>[
-      _FooterItem(
-        destination: CustomerFooterDestination.home,
-        label: context.tr('customer.nav.home'),
-        icon: Icons.home_outlined,
-        activeIcon: Icons.home_rounded,
-      ),
-      _FooterItem(
-        destination: CustomerFooterDestination.products,
-        label: context.tr('customer.nav.products'),
-        icon: Icons.grid_view_outlined,
-        activeIcon: Icons.grid_view_rounded,
-      ),
-      _FooterItem(
-        destination: CustomerFooterDestination.cart,
-        label: context.tr('customer.nav.cart'),
-        icon: Icons.shopping_bag_outlined,
-        activeIcon: Icons.shopping_bag_rounded,
-      ),
-      _FooterItem(
-        destination: CustomerFooterDestination.orders,
-        label: context.tr('customer.profile.orders'),
-        icon: Icons.receipt_long_outlined,
-        activeIcon: Icons.receipt_long_rounded,
-      ),
-      _FooterItem(
-        destination: CustomerFooterDestination.account,
-        label: context.tr('customer.nav.profile'),
-        icon: Icons.person_outline_rounded,
-        activeIcon: Icons.person_rounded,
-      ),
-    ];
+    final items = commerceContext.isWholesale
+        ? <_FooterItem>[
+            _FooterItem(
+              destination: CustomerFooterDestination.products,
+              label: context.tr('customer.nav.shopping'),
+              icon: Icons.storefront_outlined,
+              activeIcon: Icons.storefront_rounded,
+            ),
+            _FooterItem(
+              destination: CustomerFooterDestination.orders,
+              label: context.tr('customer.profile.orders'),
+              icon: Icons.receipt_long_outlined,
+              activeIcon: Icons.receipt_long_rounded,
+            ),
+            _FooterItem(
+              destination: CustomerFooterDestination.invoices,
+              label: context.tr('customer.nav.invoices'),
+              icon: Icons.description_outlined,
+              activeIcon: Icons.description_rounded,
+            ),
+            _FooterItem(
+              destination: CustomerFooterDestination.account,
+              label: context.tr('customer.nav.more'),
+              icon: Icons.more_horiz_rounded,
+              activeIcon: Icons.more_horiz_rounded,
+            ),
+          ]
+        : <_FooterItem>[
+            _FooterItem(
+              destination: CustomerFooterDestination.home,
+              label: context.tr('customer.nav.home'),
+              icon: Icons.home_outlined,
+              activeIcon: Icons.home_rounded,
+            ),
+            _FooterItem(
+              destination: CustomerFooterDestination.products,
+              label: context.tr('customer.nav.products'),
+              icon: Icons.grid_view_outlined,
+              activeIcon: Icons.grid_view_rounded,
+            ),
+            _FooterItem(
+              destination: CustomerFooterDestination.cart,
+              label: context.tr('customer.nav.cart'),
+              icon: Icons.shopping_bag_outlined,
+              activeIcon: Icons.shopping_bag_rounded,
+            ),
+            _FooterItem(
+              destination: CustomerFooterDestination.orders,
+              label: context.tr('customer.profile.orders'),
+              icon: Icons.receipt_long_outlined,
+              activeIcon: Icons.receipt_long_rounded,
+            ),
+            _FooterItem(
+              destination: CustomerFooterDestination.account,
+              label: context.tr('customer.nav.profile'),
+              icon: Icons.person_outline_rounded,
+              activeIcon: Icons.person_rounded,
+            ),
+          ];
 
     return Material(
       key: const ValueKey('customer-persistent-footer'),
@@ -166,7 +194,8 @@ class CustomerPersistentFooter extends StatelessWidget {
                       ),
                       item: item,
                       active: item.destination == activeDestination,
-                      onTap: item.destination == activeDestination &&
+                      onTap: commerceContext.isRetail &&
+                              item.destination == activeDestination &&
                               (item.destination !=
                                       CustomerFooterDestination.home ||
                                   isPlatformHome)
@@ -198,6 +227,8 @@ class CustomerPersistentFooter extends StatelessWidget {
           return CustomerRouteLocations.retailCart(commerceContext);
         case CustomerFooterDestination.orders:
           return CustomerRouteLocations.retailOrders(commerceContext);
+        case CustomerFooterDestination.invoices:
+          return CustomerRouteLocations.retailProfile(commerceContext);
         case CustomerFooterDestination.account:
           return CustomerRouteLocations.retailProfile(commerceContext);
       }
@@ -205,16 +236,17 @@ class CustomerPersistentFooter extends StatelessWidget {
 
     switch (destination) {
       case CustomerFooterDestination.home:
-        return CustomerRoutePaths.marketplace;
       case CustomerFooterDestination.products:
-        return Uri(
-          path: CustomerRoutePaths.b2bProducts,
-          queryParameters: commerceContext.toQueryParameters(),
-        ).toString();
+        return CustomerRouteLocations.wholesaleHome(commerceContext);
       case CustomerFooterDestination.cart:
         return CustomerRouteLocations.wholesaleCart(commerceContext);
       case CustomerFooterDestination.orders:
         return CustomerRouteLocations.wholesaleOrders(commerceContext);
+      case CustomerFooterDestination.invoices:
+        return Uri(
+          path: CustomerRoutePaths.b2bInvoices,
+          queryParameters: commerceContext.toQueryParameters(),
+        ).toString();
       case CustomerFooterDestination.account:
         return CustomerRouteLocations.wholesaleProfile(commerceContext);
     }

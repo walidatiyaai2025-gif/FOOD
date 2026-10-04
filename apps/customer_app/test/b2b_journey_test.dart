@@ -54,7 +54,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(Directionality.of(tester.element(find.text('لوحة الأعمال'))), TextDirection.rtl);
     expect(find.text('المشتريات'), findsOneWidget);
-    expect(find.text('الفواتير'), findsOneWidget);
+    expect(find.text('الفواتير'), findsWidgets);
     expect(find.text('كشف الحساب'), findsOneWidget);
   });
 
@@ -254,7 +254,7 @@ void main() {
     expect(find.text('1000.000 KWD'), findsOneWidget);
     expect(find.text('875.000 KWD'), findsWidgets);
     expect(find.text('طلباتي'), findsWidgets);
-    expect(find.text('الفواتير'), findsOneWidget);
+    expect(find.text('الفواتير'), findsWidgets);
     expect(find.text('كشف الحساب'), findsWidgets);
     expect(find.text('تقرير المشتريات'), findsOneWidget);
     expect(find.text('الإشعارات'), findsOneWidget);

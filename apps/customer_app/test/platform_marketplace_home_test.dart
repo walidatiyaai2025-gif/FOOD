@@ -666,10 +666,9 @@ void main() {
       findsOneWidget,
     );
     for (final destination in [
-      'home',
       'products',
-      'cart',
       'orders',
+      'invoices',
       'account',
     ]) {
       expect(
@@ -677,6 +676,8 @@ void main() {
         findsOneWidget,
       );
     }
+    expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
+    expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
     expect(
       find.byKey(const ValueKey('marketplace-notifications')),
       findsOneWidget,
@@ -1226,12 +1227,45 @@ void main() {
     Navigator.of(tester.element(find.byKey(const ValueKey('route-name')))).pop();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('customer-footer-cart')));
+    for (final destination in ['products', 'orders', 'invoices', 'account']) {
+      expect(
+        find.byKey(ValueKey('customer-footer-$destination')),
+        findsOneWidget,
+      );
+    }
+    expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
+    expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('customer-footer-products')));
     await tester.pumpAndSettle();
     route = Uri.parse(
       tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
     );
-    expect(route.path, '/b2b/cart');
+    expect(route.path, '/b2b/home');
+    expect(route.queryParameters['store_id'], '70');
+    expect(route.queryParameters['channel'], 'wholesale');
+
+    Navigator.of(tester.element(find.byKey(const ValueKey('route-name')))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('customer-footer-invoices')));
+    await tester.pumpAndSettle();
+    route = Uri.parse(
+      tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+    );
+    expect(route.path, '/b2b/invoices');
+    expect(route.queryParameters['store_id'], '70');
+    expect(route.queryParameters['channel'], 'wholesale');
+
+    Navigator.of(tester.element(find.byKey(const ValueKey('route-name')))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('customer-footer-account')));
+    await tester.pumpAndSettle();
+    route = Uri.parse(
+      tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+    );
+    expect(route.path, '/b2b/profile');
     expect(route.queryParameters['store_id'], '70');
     expect(route.queryParameters['channel'], 'wholesale');
   });
