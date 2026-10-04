@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.53 - 2026-10-04
+
+- Publish C13 umbrella #858 after final integrated gate #873 / PR #890: the complete 13-screen Customer journey is now merged and accepted on authoritative main.
+- Ship the shared authoritative B2B customer ledger and Customer 360 finance contract, with explicit عليك/لك balance direction, credit limit, available credit, purchasing power, partial-payment, overpayment, refund/credit-note and adjustment reconciliation.
+- Complete the Customer Dashboard, Purchases Report, Top Purchased Products, Invoices, Account Statement, Orders/Tracking, Invoice Details, Products, Product Details, Cart/Checkout and Profile surfaces with visible navigation and authoritative live data.
+- Preserve exact store/account isolation, server-side stock/price/credit enforcement, idempotent checkout, AR/EN + RTL/LTR behavior, and explicit loading/empty/error/stale/disconnected states without fake live fallback.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.53 / mobile build 1.0.53+53 without changing production force-update or minimum-version policy.
+
 ## 1.0.52 - 2026-10-04
 
 - Publish the completed FOODEX operational-completion wave #828 after the final integrated #841 gate: gated Add Store and New Order popup wizards, central stable-code operational lookups, and the admin login default to the B2B dashboard.
