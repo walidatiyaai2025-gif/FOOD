@@ -141,11 +141,11 @@ class B2bReportController extends Controller
         $total = (clone $query)->distinct()->count('order_items.product_id');
 
         $aggregate = $query
-            ->groupBy('order_items.product_id', 'order_items.sku_snapshot', 'order_items.name_snapshot')
+            ->groupBy('order_items.product_id')
             ->select([
                 'order_items.product_id',
-                'order_items.sku_snapshot as sku',
-                'order_items.name_snapshot as name',
+                DB::raw('MAX(order_items.sku_snapshot) as sku'),
+                DB::raw('MAX(order_items.name_snapshot) as name'),
                 DB::raw('SUM(order_items.quantity) as quantity'),
                 DB::raw('SUM(order_items.line_total) as total'),
                 DB::raw('MAX(orders.created_at) as last_purchased_at'),
