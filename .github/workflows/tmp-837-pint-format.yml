@@ -1,0 +1,48 @@
+name: TEMP 837 Pint Format
+
+on:
+  push:
+    branches:
+      - feat/837-orders-status-tabs-lifecycle
+    paths:
+      - .github/workflows/tmp-837-pint-format.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout task branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/837-orders-status-tabs-lifecycle
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Apply exact Pint formatting
+        working-directory: backend
+        run: vendor/bin/pint app/Http/Controllers/Admin/OrderOperationsController.php
+
+      - name: Commit exact formatter delta
+        shell: bash
+        run: |
+          if git diff --quiet -- backend/app/Http/Controllers/Admin/OrderOperationsController.php; then
+            echo "No formatter delta."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/app/Http/Controllers/Admin/OrderOperationsController.php
+          git commit -m "style(#837): apply exact Pint formatter"
+          git push origin HEAD:feat/837-orders-status-tabs-lifecycle
