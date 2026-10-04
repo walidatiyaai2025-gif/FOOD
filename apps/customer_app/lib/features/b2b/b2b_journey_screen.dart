@@ -2455,6 +2455,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
     final targetPage = page ?? _page;
     if (targetPage > 1) params['page'] = targetPage.toString();
     if (_perPage != 20) params['per_page'] = _perPage.toString();
+    if (params.isEmpty) return uri.path;
     return uri.replace(queryParameters: params).toString();
   }
 
