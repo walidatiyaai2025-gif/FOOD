@@ -652,6 +652,10 @@ void main() {
     expect(api.lastPath, '/api/v1/b2b/products/42?store_id=7');
     expect(find.byKey(const ValueKey('b2b-product-detail-data')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-product-gallery')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-product-detail-hero')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-product-price')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-product-commerce-strip')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-product-meta')), findsOneWidget);
     expect(find.byType(PageView), findsOneWidget);
     expect(find.text('Wholesale Product'), findsOneWidget);
     expect(find.textContaining('7.25 KWD'), findsOneWidget);
