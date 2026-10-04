@@ -194,7 +194,8 @@ class CustomerPersistentFooter extends StatelessWidget {
                       ),
                       item: item,
                       active: item.destination == activeDestination,
-                      onTap: item.destination == activeDestination &&
+                      onTap: commerceContext.isRetail &&
+                              item.destination == activeDestination &&
                               (item.destination !=
                                       CustomerFooterDestination.home ||
                                   isPlatformHome)
