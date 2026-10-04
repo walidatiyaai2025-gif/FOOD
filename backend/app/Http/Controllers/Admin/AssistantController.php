@@ -13,6 +13,7 @@ use App\Domain\Assistant\Support\AssistantPageContext;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AssistantRuntimeSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
