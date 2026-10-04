@@ -30,10 +30,43 @@ class _StatusRepo implements DriverAssignmentRepository {
         DriverAssignment(
           id: 4,
           channel: DriverChannel.b2c,
+          reference: 'FAILED-1',
+          status: 'failed',
+        ),
+        DriverAssignment(
+          id: 5,
+          channel: DriverChannel.b2c,
           reference: 'DONE-1',
           status: 'delivered',
         ),
       ];
+
+  @override
+  Future<void> transition(
+    int id,
+    DriverChannel channel,
+    String status, {
+    String? note,
+    String? failureReason,
+  }) async {}
+}
+
+class _LiveStatusRepo implements DriverAssignmentRepository {
+  List<DriverAssignment> rows = const [
+    DriverAssignment(
+      id: 10,
+      channel: DriverChannel.b2c,
+      reference: 'LIVE-ACCEPTED',
+      status: 'accepted',
+    ),
+  ];
+  int listCalls = 0;
+
+  @override
+  Future<List<DriverAssignment>> list(DriverChannel channel) async {
+    listCalls++;
+    return List<DriverAssignment>.unmodifiable(rows);
+  }
 
   @override
   Future<void> transition(
@@ -119,7 +152,7 @@ void main() {
     expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 
-  testWidgets('driver home shows four status cards and opens an exact filtered list',
+  testWidgets('driver home shows five status cards and opens failed deliveries exactly',
       (tester) async {
     final repo = _StatusRepo();
     await tester.pumpWidget(
@@ -136,23 +169,23 @@ void main() {
     expect(find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-picked_up')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-out_for_delivery')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-status-failed')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-delivered')), findsOneWidget);
 
-    final outForDeliveryCard =
-        find.byKey(const Key('driver-home-status-out_for_delivery'));
+    final failedCard = find.byKey(const Key('driver-home-status-failed'));
     await tester.scrollUntilVisible(
-      outForDeliveryCard,
+      failedCard,
       180,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
-    final outForDeliveryTapTarget = find.descendant(
-      of: outForDeliveryCard,
+    final failedTapTarget = find.descendant(
+      of: failedCard,
       matching: find.byType(InkWell),
     );
-    expect(outForDeliveryTapTarget, findsOneWidget);
-    await tester.tap(outForDeliveryTapTarget);
+    expect(failedTapTarget, findsOneWidget);
+    await tester.tap(failedTapTarget);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('driver-shell')), findsOneWidget);
@@ -164,9 +197,72 @@ void main() {
       DriverShellDestination.deliveries.index,
     );
     expect(find.byKey(const Key('driver-active-status-filter')), findsOneWidget);
-    expect(find.text('OUT-1'), findsOneWidget);
+    expect(find.text('FAILED-1'), findsOneWidget);
+    expect(find.text('OUT-1'), findsNothing);
     expect(find.text('ACCEPTED-1'), findsNothing);
     expect(find.text('DONE-1'), findsNothing);
+  });
+
+  testWidgets('home status cards refresh from server data without manual refresh',
+      (tester) async {
+    final repo = _LiveStatusRepo();
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => repo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final failedCard = find.byKey(const Key('driver-home-status-failed'));
+    expect(
+      find.descendant(of: failedCard, matching: find.text('0')),
+      findsOneWidget,
+    );
+
+    repo.rows = const [
+      DriverAssignment(
+        id: 10,
+        channel: DriverChannel.b2c,
+        reference: 'LIVE-ACCEPTED',
+        status: 'accepted',
+      ),
+      DriverAssignment(
+        id: 11,
+        channel: DriverChannel.b2c,
+        reference: 'LIVE-FAILED',
+        status: 'failed',
+      ),
+    ];
+
+    final callsBeforePoll = repo.listCalls;
+    await tester.pump(const Duration(seconds: 15));
+    await tester.pump();
+
+    expect(repo.listCalls, greaterThan(callsBeforePoll));
+    expect(
+      find.descendant(of: failedCard, matching: find.text('1')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('home live refresh timer is stopped when the page is disposed',
+      (tester) async {
+    final repo = _LiveStatusRepo();
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => repo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    final callsAfterDispose = repo.listCalls;
+
+    await tester.pump(const Duration(seconds: 45));
+    expect(repo.listCalls, callsAfterDispose);
   });
 
   testWidgets('B2C driver cannot navigate into B2B routes', (tester) async {

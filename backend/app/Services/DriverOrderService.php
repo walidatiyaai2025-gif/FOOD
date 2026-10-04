@@ -6,7 +6,6 @@ use App\Models\DeliveryProof;
 use App\Models\Driver;
 use App\Models\DriverAssignment;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -21,6 +20,7 @@ final class DriverOrderService
         private readonly AuditLogger $audit,
         private readonly DashboardOperationalNotifier $notifier,
         private readonly OrderInventoryReservationService $reservations,
+        private readonly OperationalLookupService $lookups,
     ) {}
 
     /** @return list<string> */
@@ -84,18 +84,46 @@ final class DriverOrderService
             ->where('id', $order->store_id)
             ->first(['name', 'code']);
 
-        $items = OrderItem::query()
-            ->where('order_id', $order->getKey())
-            ->orderBy('id')
-            ->get()
-            ->map(static fn (OrderItem $item): array => [
-                'product_id' => (int) $item->product_id,
-                'sku' => (string) $item->sku_snapshot,
-                'name' => (string) $item->name_snapshot,
-                'quantity' => (float) $item->quantity,
-                'unit_price' => (float) $item->unit_price,
-                'line_total' => (float) $item->line_total,
+        $items = DB::table('order_items')
+            ->leftJoin('products', 'products.id', '=', 'order_items.product_id')
+            ->leftJoin('units', 'units.id', '=', 'products.unit_id')
+            ->where('order_items.order_id', $order->getKey())
+            ->orderBy('order_items.id')
+            ->get([
+                'order_items.product_id',
+                'order_items.sku_snapshot',
+                'order_items.name_snapshot',
+                'order_items.quantity',
+                'order_items.unit_price',
+                'order_items.line_total',
+                'units.code as unit_code',
+                'units.name as unit_name',
+                DB::raw('(select path from product_images where product_images.product_id = order_items.product_id order by is_primary desc, sort_order asc, id asc limit 1) as image_path'),
             ])
+            ->map(static function (object $item): array {
+                $imagePath = trim((string) ($item->image_path ?? ''));
+                $imageUrl = $imagePath === ''
+                    ? null
+                    : (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')
+                        ? $imagePath
+                        : url('/'.ltrim($imagePath, '/')));
+                $unitName = trim((string) ($item->unit_name ?? ''));
+                $unitCode = trim((string) ($item->unit_code ?? ''));
+                $unit = $unitName !== '' ? $unitName : $unitCode;
+
+                return [
+                    'product_id' => (int) $item->product_id,
+                    'sku' => (string) $item->sku_snapshot,
+                    'name' => (string) $item->name_snapshot,
+                    'image_url' => $imageUrl,
+                    'variant' => null,
+                    'quantity' => (float) $item->quantity,
+                    'unit' => $unit,
+                    'note' => null,
+                    'unit_price' => (float) $item->unit_price,
+                    'line_total' => (float) $item->line_total,
+                ];
+            })
             ->values()
             ->all();
 
@@ -385,15 +413,7 @@ final class DriverOrderService
                         $normalizedFailureReason === null
                         || ! in_array(
                             $normalizedFailureReason,
-                            [
-                                'customer_no_answer',
-                                'wrong_address',
-                                'customer_refused',
-                                'customer_absent',
-                                'payment_issue',
-                                'order_issue',
-                                'other',
-                            ],
+                            $this->lookups->activeCodes(OperationalLookupService::FAILED_DELIVERY_REASON),
                             true,
                         )
                     ) {

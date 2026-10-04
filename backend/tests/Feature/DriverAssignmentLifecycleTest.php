@@ -206,6 +206,17 @@ class DriverAssignmentLifecycleTest extends TestCase
         ])->assertUnprocessable()
             ->assertJsonValidationErrors(['failure_reason']);
 
+        DB::table('operational_lookups')
+            ->where('type', 'failed_delivery_reason')
+            ->where('code', 'wrong_address')
+            ->update(['is_active' => false]);
+
+        $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
+            'status' => 'failed',
+            'failure_reason' => 'wrong_address',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['failure_reason']);
+
         $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
             'status' => 'failed',
             'failure_reason' => 'other',
@@ -574,6 +585,48 @@ class DriverAssignmentLifecycleTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
         [$storeId, $order] = $this->order('b2c');
 
+        $unit = DB::table('units')->orderBy('id')->first(['id', 'name']);
+        $this->assertNotNull($unit);
+        $catalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $storeId,
+            'channel' => 'b2c',
+            'code' => 'driver-detail',
+            'name' => 'Driver Detail Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalogId,
+            'unit_id' => $unit->id,
+            'sku' => 'DRIVER-LINE-1',
+            'name' => 'Current catalog name',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('product_images')->insert([
+            'product_id' => $productId,
+            'path' => '/demo/products/driver-line.svg',
+            'sort_order' => 0,
+            'is_primary' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('order_items')->insert([
+            'order_id' => $order->id,
+            'product_id' => $productId,
+            'sku_snapshot' => 'DRIVER-LINE-SNAPSHOT',
+            'name_snapshot' => 'Driver line snapshot',
+            'quantity' => 2,
+            'quantity_conversion_factor' => 1,
+            'unit_price' => 0.5,
+            'line_total' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $address = Address::query()->create([
             'customer_id' => $order->customer_id,
             'label' => 'Home',
@@ -637,7 +690,16 @@ class DriverAssignmentLifecycleTest extends TestCase
             ->assertJsonPath('data.order.address.has_coordinates', true)
             ->assertJsonPath('data.order.navigation.available', true)
             ->assertJsonPath('data.order.navigation.latitude', 30.04442)
-            ->assertJsonPath('data.order.navigation.longitude', 31.235712);
+            ->assertJsonPath('data.order.navigation.longitude', 31.235712)
+            ->assertJsonPath('data.order.items.0.sku', 'DRIVER-LINE-SNAPSHOT')
+            ->assertJsonPath('data.order.items.0.name', 'Driver line snapshot')
+            ->assertJsonPath('data.order.items.0.image_url', url('/demo/products/driver-line.svg'))
+            ->assertJsonPath('data.order.items.0.variant', null)
+            ->assertJsonPath('data.order.items.0.quantity', 2)
+            ->assertJsonPath('data.order.items.0.unit', (string) $unit->name)
+            ->assertJsonPath('data.order.items.0.note', null)
+            ->assertJsonPath('data.order.items.0.unit_price', 0.5)
+            ->assertJsonPath('data.order.items.0.line_total', 1);
     }
 
     public function test_admin_can_reassign_and_unassign_order_while_preserving_history(): void

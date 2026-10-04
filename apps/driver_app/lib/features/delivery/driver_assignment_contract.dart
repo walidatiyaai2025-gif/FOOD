@@ -6,11 +6,21 @@ class DriverOrderItem {
     required this.quantity,
     required this.lineTotal,
     this.sku = '',
+    this.imageUrl = '',
+    this.variant = '',
+    this.unit = '',
+    this.note = '',
+    this.unitPrice = 0,
   });
 
   final String name;
   final String sku;
+  final String imageUrl;
+  final String variant;
+  final String unit;
+  final String note;
   final double quantity;
+  final double unitPrice;
   final double lineTotal;
 }
 

@@ -32,6 +32,25 @@ class DriverFailureReason {
       value != null && values.contains(value);
 }
 
+class DriverFailureReasonOption {
+  const DriverFailureReasonOption({
+    required this.code,
+    required this.labelAr,
+    required this.labelEn,
+  });
+
+  final String code;
+  final String labelAr;
+  final String labelEn;
+
+  String labelFor(String languageCode) =>
+      languageCode.toLowerCase() == 'ar' ? labelAr : labelEn;
+}
+
+abstract interface class DriverFailureReasonCatalog {
+  Future<List<DriverFailureReasonOption>> failedDeliveryReasons();
+}
+
 class DriverProofAttachment {
   const DriverProofAttachment({
     required this.path,
