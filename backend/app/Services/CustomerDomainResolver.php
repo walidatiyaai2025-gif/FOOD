@@ -26,7 +26,7 @@ final class CustomerDomainResolver
         }
 
         $platform = app(PlatformCustomerService::class)->forUser($user);
-        if ($platform !== null && $platform->legacy_customer_id !== null) {
+        if ($platform !== null) {
             $legacyLinked = B2bCustomer::query()
                 ->where('legacy_customer_id', $platform->legacy_customer_id)
                 ->first();
