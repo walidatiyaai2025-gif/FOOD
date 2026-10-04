@@ -301,6 +301,19 @@ final class DriverOrderService
             }
         }
 
+        $contractRemaining = null;
+        foreach (['remaining_amount', 'remainder_amount', 'amount_after_balance'] as $key) {
+            if (isset($metadata[$key]) && is_numeric($metadata[$key])) {
+                $contractRemaining = round(max(0, (float) $metadata[$key]), 3);
+                break;
+            }
+        }
+        if ($contractRemaining === null && $balanceApplied > 0.0001) {
+            $afterBalance = round(max((float) $order->grand_total - $balanceApplied, 0), 3);
+            $paymentAmount = $payment === null ? $afterBalance : round(max(0, (float) $payment->amount), 3);
+            $contractRemaining = min($afterBalance, $paymentAmount);
+        }
+
         $paidAmount = 0.0;
         $outstanding = round(max(0, (float) $order->grand_total), 3);
         if ($invoice instanceof Invoice) {
@@ -318,6 +331,17 @@ final class DriverOrderService
         } elseif ($payment !== null && (string) $payment->status === 'paid') {
             $paidAmount = round((float) $payment->amount, 3);
             $outstanding = round(max((float) $order->grand_total - $paidAmount, 0), 3);
+        }
+
+        if ($contractRemaining !== null) {
+            $outstanding = min($outstanding, $contractRemaining);
+            if (
+                $payment !== null
+                && (string) $payment->status === 'paid'
+                && (float) $payment->amount + 0.0001 >= $contractRemaining
+            ) {
+                $outstanding = 0.0;
+            }
         }
 
         $rawRemainderMethod = strtolower(trim((string) (
