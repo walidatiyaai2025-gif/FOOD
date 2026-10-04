@@ -16,6 +16,7 @@ use App\Services\ReportExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 
 class B2bFinanceController extends Controller
 {
@@ -24,19 +25,83 @@ class B2bFinanceController extends Controller
     public function invoices(Request $request): JsonResponse
     {
         $customer = $this->approvedCustomer($request);
+        $filters = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'store_id' => ['nullable', 'integer', 'min:1'],
+            'status' => ['nullable', 'string', 'max:40'],
+            'q' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
         app(AuditLogger::class)->record('b2b.finance.invoices_viewed', $request->user(), $customer, null, null, $request);
 
-        $paginator = Invoice::query()
+        $page = (int) ($filters['page'] ?? 1);
+        $perPage = (int) ($filters['per_page'] ?? 20);
+        $storeId = isset($filters['store_id']) ? (int) $filters['store_id'] : null;
+        $search = trim((string) ($filters['q'] ?? ''));
+        $status = strtolower(trim((string) ($filters['status'] ?? '')));
+
+        $rows = Invoice::query()
             ->where('b2b_customer_id', $customer->getKey())
+            ->when($storeId, fn ($query, int $id) => $query->where('store_id', $id))
+            ->when($filters['from'] ?? null, fn ($query, string $from) => $query->whereDate('issued_at', '>=', $from))
+            ->when($filters['to'] ?? null, fn ($query, string $to) => $query->whereDate('issued_at', '<=', $to))
+            ->when($search !== '', fn ($query) => $query->where('invoice_number', 'like', '%'.addcslashes($search, '%_\\').'%'))
+            ->latest('issued_at')
             ->latest('id')
-            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
+            ->get()
+            ->map(fn (Invoice $invoice): array => $this->invoicePayload($invoice));
+
+        if ($status !== '') {
+            $rows = $rows
+                ->filter(fn (array $row): bool => $row['display_status'] === $status)
+                ->values();
+        }
+
+        $totals = $rows
+            ->groupBy(fn (array $row): string => (string) $row['currency'])
+            ->map(function ($currencyRows, string $currency): array {
+                return [
+                    'currency' => $currency,
+                    'total' => round((float) $currencyRows->sum('total'), 3),
+                    'paid' => round((float) $currencyRows->sum('paid_amount'), 3),
+                    'outstanding' => round((float) $currencyRows->sum('outstanding_amount'), 3),
+                    'credit' => round((float) $currencyRows->sum('credit_amount'), 3),
+                    'overdue' => round((float) $currencyRows
+                        ->where('display_status', 'overdue')
+                        ->sum('outstanding_amount'), 3),
+                ];
+            })
+            ->values();
+
+        $total = $rows->count();
+        $offset = ($page - 1) * $perPage;
+        $pageRows = $rows->slice($offset, $perPage)->values();
 
         return response()->json([
-            'data' => collect($paginator->items())->map(fn (Invoice $invoice) => $this->invoicePayload($invoice))->values(),
-            'meta' => [
-                'total' => $paginator->total(),
-                'account' => $this->ledger->summary($customer, $this->storeId($request)),
+            'data' => $pageRows,
+            'filters' => [
+                'from' => $filters['from'] ?? null,
+                'to' => $filters['to'] ?? null,
+                'store_id' => $storeId,
+                'status' => $status !== '' ? $status : null,
+                'q' => $search !== '' ? $search : null,
             ],
+            'summary' => [
+                'invoice_count' => $total,
+                'overdue_count' => $rows->where('display_status', 'overdue')->count(),
+                'totals' => $totals,
+            ],
+            'meta' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'has_more' => ($offset + $pageRows->count()) < $total,
+                'account' => $this->ledger->summary($customer, $storeId),
+            ],
+            'generated_at' => now()->toAtomString(),
         ]);
     }
 
@@ -188,10 +253,13 @@ class B2bFinanceController extends Controller
     {
         $amounts = $this->ledger->invoiceAmounts($invoice);
 
+        $displayStatus = $this->invoiceDisplayStatus($invoice, $amounts);
+
         $payload = [
             'id' => (int) $invoice->getKey(),
             'invoice_number' => (string) $invoice->invoice_number,
             'status' => (string) $invoice->status,
+            'display_status' => $displayStatus,
             'currency' => (string) $invoice->currency,
             'total' => $amounts['invoice_total'],
             'paid_amount' => $amounts['paid_amount'],
@@ -199,8 +267,11 @@ class B2bFinanceController extends Controller
             'credit_adjustments' => $amounts['credit_adjustments'],
             'outstanding_amount' => $amounts['outstanding_amount'],
             'credit_amount' => $amounts['credit_amount'],
+            'store_id' => (int) $invoice->store_id,
+            'order_id' => $invoice->order_id === null ? null : (int) $invoice->order_id,
             'issued_at' => $invoice->issued_at,
             'due_at' => $invoice->due_at,
+            'pdf_path' => '/api/v1/invoices/'.(int) $invoice->getKey().'/download?channel=b2b&store_id='.(int) $invoice->store_id,
         ];
 
         if ($withItems) {
@@ -218,6 +289,29 @@ class B2bFinanceController extends Controller
         }
 
         return $payload;
+    }
+
+    /** @param array{invoice_total:float,paid_amount:float,debit_adjustments:float,credit_adjustments:float,outstanding_amount:float,credit_amount:float} $amounts */
+    private function invoiceDisplayStatus(Invoice $invoice, array $amounts): string
+    {
+        $raw = strtolower(trim((string) $invoice->status));
+        if (in_array($raw, ['cancelled', 'canceled', 'void', 'voided'], true)) {
+            return 'cancelled';
+        }
+        if ($amounts['credit_amount'] > 0.0005) {
+            return 'credited';
+        }
+        if ($amounts['outstanding_amount'] <= 0.0005) {
+            return 'paid';
+        }
+        if ($invoice->due_at !== null && Carbon::parse((string) $invoice->due_at)->isPast()) {
+            return 'overdue';
+        }
+        if ($amounts['paid_amount'] > 0.0005 || $amounts['credit_adjustments'] > 0.0005) {
+            return 'partially_paid';
+        }
+
+        return 'open';
     }
 
     private function storeId(Request $request): ?int
