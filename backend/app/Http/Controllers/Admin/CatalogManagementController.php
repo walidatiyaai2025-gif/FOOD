@@ -214,7 +214,7 @@ final class CatalogManagementController extends Controller
         $targetScopeKey = $channel === 'b2b' ? LookupScopeService::B2B : LookupScopeService::STORE.':'.$storeId;
         $unitCode = DB::table('units')
             ->where('is_active', true)
-            ->whereIn('scope_key', array_values(array_filter([$targetScopeKey, LookupScopeService::GLOBAL])))
+            ->whereIn('scope_key', [$targetScopeKey, LookupScopeService::GLOBAL])
             ->orderByRaw('CASE WHEN scope_key = ? THEN 0 ELSE 1 END', [$targetScopeKey])
             ->value('code');
         $unitCode = is_string($unitCode) && trim($unitCode) !== '' ? $unitCode : 'PCS';

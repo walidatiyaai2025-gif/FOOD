@@ -711,7 +711,7 @@ final class CatalogZipImportService
         foreach (array_keys($parents) as $start) {
             $seen = [];
             $cursor = $start;
-            while ($cursor !== null && isset($parents[$cursor])) {
+            while (isset($parents[$cursor])) {
                 if (isset($seen[$cursor])) {
                     $errors[] = "Category hierarchy contains a cycle involving {$cursor}.";
                     break;
@@ -771,7 +771,7 @@ final class CatalogZipImportService
             return;
         }
         $info = @getimagesizefromstring($bytes);
-        $mime = is_array($info) ? (string) ($info['mime'] ?? '') : '';
+        $mime = is_array($info) ? (string) $info['mime'] : '';
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         if (! isset(self::IMAGE_EXTENSIONS[$extension]) || self::IMAGE_EXTENSIONS[$extension] !== $mime) {
             $errors[] = "{$context}: image content/type does not match an allowed JPG/JPEG/PNG/WEBP file: {$path}";
@@ -1016,7 +1016,7 @@ final class CatalogZipImportService
             $extraLength = (int) $meta['extra_length'];
             $commentLength = (int) $meta['comment_length'];
             $name = substr($data, $offset + 46, $nameLength);
-            if (! is_string($name) || $name === '') {
+            if ($name === '') {
                 throw new RuntimeException('ZIP contains an unnamed entry.');
             }
             $this->assertSafeZipPath($name);
@@ -1103,7 +1103,7 @@ final class CatalogZipImportService
         }
         $payloadOffset = $localOffset + 30 + (int) $local['name_length'] + (int) $local['extra_length'];
         $compressed = substr($data, $payloadOffset, (int) $entry['compressed_size']);
-        if (! is_string($compressed) || strlen($compressed) !== (int) $entry['compressed_size']) {
+        if (strlen($compressed) !== (int) $entry['compressed_size']) {
             throw new RuntimeException("ZIP payload is truncated: {$path}");
         }
         if ((int) $entry['method'] === 0) {
@@ -1136,7 +1136,7 @@ final class CatalogZipImportService
         $relationships = $this->entryBytes($xlsx, 'xl/_rels/workbook.xml.rels');
         $sheetRid = null;
         preg_match_all('/<sheet\b[^>]*\/?\s*>/i', $workbook, $sheetTags);
-        foreach ($sheetTags[0] ?? [] as $tag) {
+        foreach ($sheetTags[0] as $tag) {
             $attrs = $this->xmlAttributes($tag);
             if (($attrs['name'] ?? '') === $sheetName) {
                 $sheetRid = $attrs['r:id'] ?? $attrs['id'] ?? null;
@@ -1149,7 +1149,7 @@ final class CatalogZipImportService
 
         $target = null;
         preg_match_all('/<Relationship\b[^>]*\/?\s*>/i', $relationships, $relationshipTags);
-        foreach ($relationshipTags[0] ?? [] as $tag) {
+        foreach ($relationshipTags[0] as $tag) {
             $attrs = $this->xmlAttributes($tag);
             if (($attrs['Id'] ?? '') === $sheetRid) {
                 $target = $attrs['Target'] ?? null;
