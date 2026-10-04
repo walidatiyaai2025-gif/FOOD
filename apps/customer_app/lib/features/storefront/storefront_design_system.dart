@@ -222,8 +222,8 @@ class FoodexQuantityCta extends StatelessWidget {
   final double minimum;
   final FoodexPalette palette;
   final String label;
-  final ValueChanged<double> onChanged;
-  final VoidCallback onPressed;
+  final ValueChanged<double>? onChanged;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -237,8 +237,9 @@ class FoodexQuantityCta extends StatelessWidget {
             child: Row(
               children: [
                 IconButton(
-                  onPressed: quantity - increment + .0001 >= minimum
-                      ? () => onChanged(quantity - increment)
+                  onPressed: onChanged != null &&
+                          quantity - increment + .0001 >= minimum
+                      ? () => onChanged!(quantity - increment)
                       : null,
                   icon: const Icon(Icons.remove_rounded),
                 ),
@@ -251,7 +252,7 @@ class FoodexQuantityCta extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  onPressed: () => onChanged(quantity + increment),
+                  onPressed: onChanged == null ? null : () => onChanged!(quantity + increment),
                   icon: const Icon(Icons.add_rounded),
                 ),
               ],
