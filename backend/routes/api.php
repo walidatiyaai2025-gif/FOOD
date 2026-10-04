@@ -189,6 +189,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/b2b/reports/purchases', [B2bReportController::class, 'purchases']);
         Route::get('/b2b/products/top', [B2bReportController::class, 'topProducts']);
         Route::get('/b2b/products/{product}', [B2bPricingController::class, 'product']);
+        Route::get('/b2b/account-summary', [B2bFinanceController::class, 'summary']);
         Route::get('/b2b/invoices', [B2bFinanceController::class, 'invoices']);
         Route::get('/b2b/invoices/{invoice}', [B2bFinanceController::class, 'invoice']);
         Route::get('/b2b/account-statement', [B2bFinanceController::class, 'statement']);
