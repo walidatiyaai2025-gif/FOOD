@@ -58,7 +58,7 @@ final class B2bFinanceFilterExportTest extends TestCase
         $admin = $this->admin('finance-export@example.test', 'ar');
         $query = '?from=2026-10-01&to=2026-10-03&customer_id='.$customerA;
 
-        $xlsx = $this->actingAs($admin)->get('/admin/b2b/finance/export'.$query.'&format=xlsx');
+        $xlsx = $this->actingAs($admin)->get('/admin/b2b/finance'.$query.'&export=xlsx');
         $xlsx->assertOk()->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
         $path = tempnam(sys_get_temp_dir(), 'foodex-finance-test-');
@@ -77,12 +77,12 @@ final class B2bFinanceFilterExportTest extends TestCase
         $this->assertStringContainsString('75', $sheet);
         $this->assertStringContainsString('25', $sheet);
 
-        $pdf = $this->actingAs($admin)->get('/admin/b2b/finance/export'.$query.'&format=pdf');
+        $pdf = $this->actingAs($admin)->get('/admin/b2b/finance'.$query.'&export=pdf');
         $pdf->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertStringStartsWith('%PDF-', $pdf->getContent());
 
         $empty = $this->actingAs($admin)
-            ->get('/admin/b2b/finance/export?from=2035-01-01&to=2035-01-02&format=xlsx');
+            ->get('/admin/b2b/finance?from=2035-01-01&to=2035-01-02&export=xlsx');
         $empty->assertOk()->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         $this->assertNotSame('', $empty->getContent());
     }
