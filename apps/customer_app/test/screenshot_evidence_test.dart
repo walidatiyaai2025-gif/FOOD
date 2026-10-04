@@ -243,9 +243,51 @@ class _EvidenceB2bApi implements B2bApi {
     if (path.contains('/products/top')) {
       return {
         'data': [
-          {'rank': 1, 'product_id': 42, 'sku': 'TOP-1', 'name': 'FOODEX Bulk Rice', 'quantity': 24, 'total': 174, 'currency': 'KWD'},
-          {'rank': 2, 'product_id': 43, 'sku': 'TOP-2', 'name': 'FOODEX Olive Oil', 'quantity': 18, 'total': 333, 'currency': 'KWD'},
+          {
+            'rank': 1,
+            'product_id': 42,
+            'store_id': 7,
+            'sku': 'TOP-1',
+            'name': 'FOODEX Bulk Rice',
+            'quantity': 24,
+            'total': 174,
+            'currency': 'KWD',
+            'last_purchased_at': '2026-09-28',
+            'pack_label': 'Case 12',
+            'account_price': 7.25,
+            'current_price_currency': 'KWD',
+            'available_quantity': 240,
+            'availability_state': 'AVAILABLE',
+            'can_repurchase': true,
+            'unavailable_reason': null,
+          },
+          {
+            'rank': 2,
+            'product_id': 43,
+            'store_id': 7,
+            'sku': 'TOP-2',
+            'name': 'FOODEX Olive Oil',
+            'quantity': 18,
+            'total': 333,
+            'currency': 'KWD',
+            'last_purchased_at': '2026-09-23',
+            'pack_label': 'Carton 6',
+            'account_price': 18.5,
+            'current_price_currency': 'KWD',
+            'available_quantity': 0,
+            'availability_state': 'OUT_OF_STOCK',
+            'can_repurchase': false,
+            'unavailable_reason': 'OUT_OF_STOCK',
+          },
         ],
+        'period': {'from': null, 'to': null},
+        'sort': 'quantity',
+        'meta': {
+          'page': 1,
+          'per_page': 20,
+          'total': 2,
+          'has_more': false,
+        },
       };
     }
     if (path.contains('/products/42')) {
