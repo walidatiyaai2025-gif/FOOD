@@ -126,6 +126,7 @@ Route::prefix('admin')
         Route::patch('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('profile.password');
         Route::patch('/profile/locale', [AdminProfileController::class, 'updateLocale'])->name('profile.locale');
         Route::get('/b2b/dashboard', [B2bWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2b.dashboard');
+        Route::get('/b2b/finance/export', [B2bWorkspaceController::class, 'exportFinance'])->name('b2b.finance.export');
         Route::post('/b2b/orders/quote', [B2bWorkspaceController::class, 'quoteOrder'])->name('b2b.orders.quote');
         Route::post('/b2b/orders', [B2bWorkspaceController::class, 'storeOrder'])->name('b2b.orders.store');
         Route::patch('/b2b/orders/{order}', [B2bWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2b.orders.update');
