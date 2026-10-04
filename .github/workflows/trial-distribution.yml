@@ -196,6 +196,11 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/build-dashboard-update.sh Release/Updates "$PREVIOUS_VERSION" "$CURRENT_VERSION" "$UPDATE_BASE_REF"
+          if [[ -f Release/Updates/FOODEX-Update.zip ]]; then
+            update_sha="$(sha256sum Release/Updates/FOODEX-Update.zip | awk '{print $1}')"
+            printf '%s  %s\n' "$update_sha" "FOODEX-Update.zip" > Release/Updates/FOODEX-Update.sha256.txt
+            unzip -Z1 Release/Updates/FOODEX-Update.zip > Release/Updates/FOODEX-Update.files.txt
+          fi
 
       - name: Write bundle manifest
         shell: bash
@@ -211,64 +216,25 @@ jobs:
           fi
           python3 scripts/write-trial-bundle-manifest.py --version "$CURRENT_VERSION" --source-commit "$GITHUB_SHA" --run-number "$GITHUB_RUN_NUMBER" --mobile-build-number "$MOBILE_BUILD_NUMBER" --api-base-url "$FOODEX_API_BASE_URL" --customer Release/FOODEX-Customer.apk --driver Release/FOODEX-Driver.apk --setup Release/FOODEX-Laravel-Setup.zip --customer-firebase "$customer_firebase" --driver-firebase "$driver_firebase" --output Release/BUILD_INFO.json
 
-      - name: Reconcile immutable Dashboard update release assets
+      - name: Guard immutable published release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           tag="v$CURRENT_VERSION"
-
-          # If this immutable version is already tagged/released, repair the
-          # Dashboard Update Center assets strictly from that exact tag. Never
-          # take replacement bytes from a newer main commit.
           git fetch --force origin "refs/tags/$tag:refs/tags/$tag" 2>/dev/null || true
           published_sha="$(git rev-list -n 1 "$tag" 2>/dev/null || true)"
           if [[ -z "$published_sha" ]]; then
-            echo "No immutable tag exists yet for $tag; normal publication will upload the update assets."
+            echo "No immutable tag exists yet for $tag; current commit is eligible for publication."
             exit 0
           fi
-          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Tag $tag exists but no GitHub Release exists yet; normal publication will create it."
+          if [[ "$published_sha" != "$GITHUB_SHA" ]]; then
+            echo "FOODEX $CURRENT_VERSION is already published from $published_sha; refusing to replace immutable assets from $GITHUB_SHA."
+            echo "RELEASE_PUBLICATION_SKIPPED=true" >> "$GITHUB_ENV"
             exit 0
           fi
-
-          stage="$(mktemp -d)"
-          for file in             FOODEX-Update.zip             FOODEX-Update.json             FOODEX-Update.sha256.txt             FOODEX-Update.files.txt
-          do
-            git show "$tag:Release/Updates/$file" > "$stage/$file"
-            test -s "$stage/$file"
-          done
-
-          CURRENT_VERSION="$CURRENT_VERSION" python3 - "$stage" <<'PY'
-          import hashlib
-          import json
-          import os
-          from pathlib import Path
-          import sys
-
-          root = Path(sys.argv[1])
-          package = root / "FOODEX-Update.zip"
-          manifest = json.loads((root / "FOODEX-Update.json").read_text(encoding="utf-8"))
-          checksum = (root / "FOODEX-Update.sha256.txt").read_text(encoding="utf-8").strip().split()[0]
-          digest = hashlib.sha256(package.read_bytes()).hexdigest()
-          expected_version = os.environ["CURRENT_VERSION"]
-
-          assert manifest["target_version"] == expected_version
-          assert manifest["package"] == "FOODEX-Update.zip"
-          assert manifest["sha256"] == digest
-          assert checksum == digest
-          print("Verified immutable Dashboard update asset set:", expected_version, digest)
-          PY
-
-          gh release upload "$tag"             "$stage/FOODEX-Update.zip"             "$stage/FOODEX-Update.json"             "$stage/FOODEX-Update.sha256.txt"             "$stage/FOODEX-Update.files.txt"             --repo "$GITHUB_REPOSITORY"             --clobber
-
-          assets="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
-          grep -Fx "FOODEX-Update.zip" <<<"$assets"
-          grep -Fx "FOODEX-Update.json" <<<"$assets"
-          grep -Fx "FOODEX-Update.sha256.txt" <<<"$assets"
-          grep -Fx "FOODEX-Update.files.txt" <<<"$assets"
-
+          echo "Existing tag $tag already points to this commit; workspace artifacts may be reconciled safely."
       - name: Publish version-locked mobile APK assets
         shell: bash
         env:
@@ -370,63 +336,50 @@ jobs:
           print("Verified published Driver artifact:", expected_version, expected_build, digest)
           PY
 
-      - name: Finalize immutable Dashboard update release assets
+      - name: Finalize Dashboard update release assets
+        if: env.RELEASE_PUBLICATION_SKIPPED != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           tag="v$CURRENT_VERSION"
-
-          # Mobile publication may build a smaller previous-tag incremental update
-          # in the workspace. The Dashboard Update Center contract is the cumulative
-          # package committed at the immutable release tag, so make that asset set
-          # the final writer to the GitHub Release.
-          git fetch --force origin "refs/tags/$tag:refs/tags/$tag"
-          published_sha="$(git rev-list -n 1 "$tag")"
-          test -n "$published_sha"
           gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null
-
-          stage="$(mktemp -d)"
           for file in \
             FOODEX-Update.zip \
             FOODEX-Update.json \
             FOODEX-Update.sha256.txt \
             FOODEX-Update.files.txt
           do
-            git show "$tag:Release/Updates/$file" > "$stage/$file"
-            test -s "$stage/$file"
+            test -s "Release/Updates/$file"
           done
 
-          CURRENT_VERSION="$CURRENT_VERSION" python3 - "$stage" <<'PY'
+          CURRENT_VERSION="$CURRENT_VERSION" python3 - <<'PY'
           import hashlib
           import json
           import os
           from pathlib import Path
-          import sys
 
-          root = Path(sys.argv[1])
+          root = Path("Release/Updates")
           package = root / "FOODEX-Update.zip"
           manifest = json.loads((root / "FOODEX-Update.json").read_text(encoding="utf-8"))
           checksum = (root / "FOODEX-Update.sha256.txt").read_text(encoding="utf-8").strip().split()[0]
           digest = hashlib.sha256(package.read_bytes()).hexdigest()
           expected_version = os.environ["CURRENT_VERSION"]
-
           assert manifest["target_version"] == expected_version
           assert manifest["package"] == "FOODEX-Update.zip"
           assert manifest["sha256"] == digest
           assert checksum == digest
-          print("Final immutable Dashboard update asset set:", expected_version, digest)
+          print("Verified Dashboard update asset set:", expected_version, digest)
           PY
 
           gh release upload "$tag" \
-            "$stage/FOODEX-Update.zip" \
-            "$stage/FOODEX-Update.json" \
-            "$stage/FOODEX-Update.sha256.txt" \
-            "$stage/FOODEX-Update.files.txt" \
+            Release/Updates/FOODEX-Update.zip \
+            Release/Updates/FOODEX-Update.json \
+            Release/Updates/FOODEX-Update.sha256.txt \
+            Release/Updates/FOODEX-Update.files.txt \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
-
       - name: Validate bundle files
         shell: bash
         run: |
