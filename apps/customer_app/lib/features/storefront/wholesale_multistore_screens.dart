@@ -2749,6 +2749,7 @@ class _WholesaleCartDesignScreenState
     extends State<WholesaleCartDesignScreen> {
   late int storeId = wholesaleStoreId(widget.location);
   late Future<Object?> future = _load();
+  final Set<int> _removedItemIds = <int>{};
 
   Future<Object?> _load() {
     if (widget.commerceApi != null && storeId > 0) {
@@ -2761,12 +2762,18 @@ class _WholesaleCartDesignScreenState
     return widget.api?.get(endpoint) ?? Future<Object?>.value(null);
   }
 
-  Future<void> _mutate(Future<void> Function() action) async {
+  Future<void> _mutate(
+    Future<void> Function() action, {
+    Iterable<int> removedItemIds = const <int>[],
+  }) async {
     try {
       await action();
       final refreshed = await _load();
       if (mounted) {
-        setState(() => future = Future<Object?>.value(refreshed));
+        setState(() {
+          _removedItemIds.addAll(removedItemIds);
+          future = Future<Object?>.value(refreshed);
+        });
       }
     } catch (error) {
       if (mounted) {
@@ -2789,7 +2796,10 @@ class _WholesaleCartDesignScreenState
   Future<void> _remove(int id) async {
     final api = widget.commerceApi;
     if (api == null) return;
-    await _mutate(() => api.removeItem(id));
+    await _mutate(
+      () => api.removeItem(id),
+      removedItemIds: <int>[id],
+    );
   }
 
   Future<void> _clear(List<Map<String, dynamic>> rows) async {
@@ -2802,7 +2812,7 @@ class _WholesaleCartDesignScreenState
           await api.removeItem(id);
         }
       }
-    });
+    }, removedItemIds: rows.map((row) => intValue(row['id'])).where((id) => id > 0));
   }
 
   @override
@@ -2833,7 +2843,11 @@ class _WholesaleCartDesignScreenState
                 if (storeId <= 0) {
                   storeId = intValue(cart['store_id']);
                 }
-                final rows = mapRows(cart['items']);
+                final rows = mapRows(cart['items'])
+                    .where(
+                      (row) => !_removedItemIds.contains(intValue(row['id'])),
+                    )
+                    .toList(growable: false);
                 final hasUnavailable = cart['has_unavailable_items'] == true ||
                     rows.any((row) => row['is_available'] == false);
 
