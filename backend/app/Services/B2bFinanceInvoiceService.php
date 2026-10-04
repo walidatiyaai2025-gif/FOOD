@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 final class B2bFinanceInvoiceService
 {
@@ -19,7 +20,7 @@ final class B2bFinanceInvoiceService
 
         return [
             'columns' => ['invoice', 'company', 'client', 'status', 'amount', 'paid', 'balance', 'issued_at', 'due', 'actions'],
-            'rows' => $rows->map(function (object $row) use ($isAr, $locale): array {
+            'rows' => $rows->map(function (stdClass $row) use ($isAr, $locale): array {
                 $total = (float) $row->total;
                 $paid = (float) $row->paid_total;
 
@@ -92,7 +93,7 @@ final class B2bFinanceInvoiceService
                 'issued_at',
                 'due',
             ],
-            'rows' => $rows->map(function (object $row): array {
+            'rows' => $rows->map(function (stdClass $row): array {
                 $total = (float) $row->total;
                 $paid = (float) $row->paid_total;
 
@@ -115,7 +116,7 @@ final class B2bFinanceInvoiceService
     /**
      * @param  list<int>  $storeIds
      * @param  array{from?:?string,to?:?string,customer_id?:?int}  $filters
-     * @return Collection<int, object>
+     * @return Collection<int, stdClass>
      */
     private function filteredRows(array $storeIds, array $filters): Collection
     {
@@ -203,23 +204,21 @@ final class B2bFinanceInvoiceService
         return [
             'from' => isset($filters['from']) && $filters['from'] !== '' ? (string) $filters['from'] : null,
             'to' => isset($filters['to']) && $filters['to'] !== '' ? (string) $filters['to'] : null,
-            'customer_id' => isset($filters['customer_id']) && $filters['customer_id'] !== null
-                ? (int) $filters['customer_id']
-                : null,
+            'customer_id' => isset($filters['customer_id']) ? (int) $filters['customer_id'] : null,
         ];
     }
 
     /**
-     * @param  Collection<int, object>  $rows
+     * @param  Collection<int, stdClass>  $rows
      * @return list<array{currency:string,total:float,paid:float,balance:float}>
      */
     private function currencyTotals(Collection $rows): array
     {
         return $rows
-            ->groupBy(fn (object $row): string => (string) $row->currency)
+            ->groupBy(fn (stdClass $row): string => (string) $row->currency)
             ->map(function (Collection $currencyRows, string $currency): array {
-                $total = (float) $currencyRows->sum(fn (object $row): float => (float) $row->total);
-                $paid = (float) $currencyRows->sum(fn (object $row): float => (float) $row->paid_total);
+                $total = (float) $currencyRows->sum(fn (stdClass $row): float => (float) $row->total);
+                $paid = (float) $currencyRows->sum(fn (stdClass $row): float => (float) $row->paid_total);
 
                 return [
                     'currency' => $currency,
@@ -232,7 +231,7 @@ final class B2bFinanceInvoiceService
             ->all();
     }
 
-    /** @param Collection<int, object> $rows */
+    /** @param Collection<int, stdClass> $rows */
     private function currencyTotalsText(Collection $rows): string
     {
         $totals = $this->currencyTotals($rows);
