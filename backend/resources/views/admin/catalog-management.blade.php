@@ -40,6 +40,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 @foreach(['products'=>'المنتجات','categories'=>'التصنيفات'] as $key=>$ar)
 <a class="{{ $tab===$key?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>$key], $scopeParams)) }}">{{ app()->getLocale()==='ar'?$ar:ucfirst($key) }}</a>
 @endforeach
+<a class="{{ $tab==='import'?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>'import'], $scopeParams)) }}">{{ app()->getLocale()==='ar'?'استيراد ZIP':'ZIP Import' }}</a>
 @if($canManageStores)
 <a class="{{ $tab==='stores'?'active':'' }}" href="{{ route('admin.catalog.index',['tab'=>'stores']) }}">{{ app()->getLocale()==='ar'?'المتاجر':'Stores' }}</a>
 @endif
@@ -91,6 +92,76 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <td><form method="post" action="{{ route('admin.catalog.products.destroy',$p->id) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'تأكيد الحذف؟':'Delete product?' }}')">@csrf @method('DELETE')<button class="btn danger">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form></td></tr>
 @empty<tr><td colspan="7">{{ app()->getLocale()==='ar'?'لا توجد منتجات. ابدأ من نموذج الإضافة.':'No products yet. Use the add form.' }}</td></tr>@endforelse
 </tbody></table></section></div>
+
+@elseif($tab==='import')
+@php($importPreview=session('catalog_import_preview'))
+@php($importResult=session('catalog_import_result'))
+<div class="grid">
+<section class="card">
+<h2>{{ app()->getLocale()==='ar'?'استيراد الكتالوج من ZIP':'Catalog ZIP Import' }}</h2>
+<p class="muted">{{ app()->getLocale()==='ar'?'الاستيراد يمر أولاً بمعاينة كاملة بدون حفظ أي بيانات. بعد نجاح التحقق يظهر زر التأكيد النهائي.':'Import always starts with a full validation preview. Nothing is persisted until validation passes and you confirm the final import.' }}</p>
+<ol>
+<li>{{ app()->getLocale()==='ar'?'حمّل ملف العينة الجاهز.':'Download the ready-to-use sample package.' }}</li>
+<li>{{ app()->getLocale()==='ar'?'عدّل catalog.xlsx مع الحفاظ على أسماء أوراق Products وCategories وBrands.':'Edit catalog.xlsx without renaming the Products, Categories, or Brands sheets.' }}</li>
+<li>{{ app()->getLocale()==='ar'?'ضع الصور في مجلد products أو categories أو brands المخصص داخل images.':'Place images in the matching images/products, images/categories, or images/brands folder.' }}</li>
+<li>{{ app()->getLocale()==='ar'?'ارفع ZIP للمعاينة، راجع الأخطاء، ثم أكد الاستيراد فقط بعد نجاح التحقق.':'Upload the ZIP for preview, review any errors, then confirm only after validation succeeds.' }}</li>
+</ol>
+<p><a class="btn" href="{{ route('admin.catalog.import.sample', $scopeParams) }}">{{ app()->getLocale()==='ar'?'تحميل ZIP العينة':'Download sample ZIP' }}</a></p>
+<form class="form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.import.preview') }}">@csrf
+@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
+<label>{{ app()->getLocale()==='ar'?'المتجر الهدف':'Target store' }}<select name="store_id" required>@foreach($stores as $s)<option value="{{ $s->id }}" @selected((int)request('store_id')===(int)$s->id)>{{ $s->name }} — {{ $s->type_code }}</option>@endforeach</select></label>
+<label>{{ app()->getLocale()==='ar'?'ملف الكتالوج ZIP':'Catalog ZIP package' }}<input type="file" name="catalog_zip" accept=".zip,application/zip" required></label>
+<button class="btn primary">{{ app()->getLocale()==='ar'?'فحص ومعاينة':'Validate & Preview' }}</button>
+</form>
+</section>
+
+<section class="card">
+<h2>{{ app()->getLocale()==='ar'?'نتيجة المعاينة':'Preview Result' }}</h2>
+@if($importPreview)
+<div class="row">
+<div><strong>{{ (int)($importPreview['counts']['products'] ?? 0) }}</strong><div class="muted">{{ app()->getLocale()==='ar'?'منتجات':'Products' }}</div></div>
+<div><strong>{{ (int)($importPreview['counts']['categories'] ?? 0) }}</strong><div class="muted">{{ app()->getLocale()==='ar'?'تصنيفات':'Categories' }}</div></div>
+<div><strong>{{ (int)($importPreview['counts']['brands'] ?? 0) }}</strong><div class="muted">{{ app()->getLocale()==='ar'?'علامات':'Brands' }}</div></div>
+<div><strong>{{ (int)($importPreview['counts']['images'] ?? 0) }}</strong><div class="muted">{{ app()->getLocale()==='ar'?'صور':'Images' }}</div></div>
+</div>
+@if(!empty($importPreview['errors']))
+<div class="notice err"><strong>{{ app()->getLocale()==='ar'?'يجب إصلاح الأخطاء التالية وإعادة رفع الملف:':'Fix these errors and upload the package again:' }}</strong>
+<ul>@foreach($importPreview['errors'] as $error)<li>{{ $error }}</li>@endforeach</ul>
+</div>
+@else
+<div class="notice ok">{{ app()->getLocale()==='ar'?'التحقق ناجح. لم يتم حفظ أي بيانات حتى الآن. يمكنك تأكيد الاستيراد.':'Validation passed. No catalog data has been persisted yet. You can now confirm the import.' }}</div>
+@if(!empty($importPreview['warnings']))
+<div class="notice"><strong>{{ app()->getLocale()==='ar'?'تنبيهات:':'Warnings:' }}</strong><ul>@foreach($importPreview['warnings'] as $warning)<li>{{ $warning }}</li>@endforeach</ul></div>
+@endif
+@if(!empty($importPreview['token']))
+<form method="post" action="{{ route('admin.catalog.import.commit') }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'تأكيد الاستيراد النهائي؟':'Confirm final catalog import?' }}')">@csrf
+@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
+<input type="hidden" name="preview_token" value="{{ $importPreview['token'] }}">
+<button class="btn primary">{{ app()->getLocale()==='ar'?'تأكيد الاستيراد':'Confirm Import' }}</button>
+</form>
+@endif
+@endif
+@else
+<p class="muted">{{ app()->getLocale()==='ar'?'ارفع الحزمة أولاً لعرض عدد الصفوف والصور وأي أخطاء قبل الاستيراد.':'Upload a package to see row/image counts and validation errors before import.' }}</p>
+@endif
+
+@if($importResult)
+<hr>
+<h3>{{ app()->getLocale()==='ar'?'آخر نتيجة استيراد':'Latest Import Result' }}</h3>
+<div class="row">
+<div>{{ app()->getLocale()==='ar'?'منتجات جديدة':'Products created' }}: <strong>{{ (int)($importResult['counts']['products_created'] ?? 0) }}</strong></div>
+<div>{{ app()->getLocale()==='ar'?'منتجات محدثة':'Products updated' }}: <strong>{{ (int)($importResult['counts']['products_updated'] ?? 0) }}</strong></div>
+<div>{{ app()->getLocale()==='ar'?'تصنيفات جديدة':'Categories created' }}: <strong>{{ (int)($importResult['counts']['categories_created'] ?? 0) }}</strong></div>
+<div>{{ app()->getLocale()==='ar'?'تصنيفات محدثة':'Categories updated' }}: <strong>{{ (int)($importResult['counts']['categories_updated'] ?? 0) }}</strong></div>
+<div>{{ app()->getLocale()==='ar'?'علامات جديدة':'Brands created' }}: <strong>{{ (int)($importResult['counts']['brands_created'] ?? 0) }}</strong></div>
+<div>{{ app()->getLocale()==='ar'?'علامات محدثة':'Brands updated' }}: <strong>{{ (int)($importResult['counts']['brands_updated'] ?? 0) }}</strong></div>
+</div>
+@if(!empty($importResult['media_errors']))
+<div class="notice err"><strong>{{ app()->getLocale()==='ar'?'أخطاء حفظ الصور:':'Media persistence errors:' }}</strong><ul>@foreach($importResult['media_errors'] as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+@endif
+@endif
+</section>
+</div>
 
 @elseif($tab==='categories')
 <div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة تصنيف':'Add category' }}</h2><form class="form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.categories.store') }}">@csrf
