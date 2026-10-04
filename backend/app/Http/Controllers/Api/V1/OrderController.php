@@ -253,6 +253,9 @@ class OrderController extends Controller
 
             if ($targetStatus === 'cancelled') {
                 app(OrderInventoryReservationService::class)->release($locked, $user);
+                if (strtolower((string) $locked->channel) === 'b2b') {
+                    $this->reverseCheckoutSettlementEntries($locked, $user);
+                }
 
                 $activeAssignment = DriverAssignment::query()
                     ->where('order_id', $locked->getKey())
@@ -332,6 +335,51 @@ class OrderController extends Controller
         $dashboardNotifier->orderStatusChanged($fresh, $previousStatus, (string) $fresh->status);
 
         return response()->json($this->orderPayload($fresh));
+    }
+
+    private function reverseCheckoutSettlementEntries(Order $order, User $actor): void
+    {
+        $entries = DB::table('customer_account_ledger_entries')
+            ->where('order_id', $order->getKey())
+            ->where(function ($query): void {
+                $query->where('source', 'like', 'checkout%')
+                    ->orWhere('source', 'customer_checkout');
+            })
+            ->where(function ($query): void {
+                $query->where('debit', '>', 0)
+                    ->orWhere('credit', '>', 0);
+            })
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($entries as $entry) {
+            $reference = 'order-cancel:'.$order->getKey().':entry:'.$entry->id;
+            if (DB::table('customer_account_ledger_entries')->where('reference', $reference)->exists()) {
+                continue;
+            }
+
+            DB::table('customer_account_ledger_entries')->insert([
+                'b2b_customer_id' => (int) $entry->b2b_customer_id,
+                'store_id' => $entry->store_id === null ? (int) $order->store_id : (int) $entry->store_id,
+                'invoice_id' => $entry->invoice_id,
+                'order_id' => (int) $order->getKey(),
+                'entry_type' => 'adjustment_negative',
+                'reference' => $reference,
+                'description' => 'Reversal of checkout settlement after order cancellation',
+                'debit' => round((float) $entry->credit, 3),
+                'credit' => round((float) $entry->debit, 3),
+                'currency' => (string) $entry->currency,
+                'actor_user_id' => (int) $actor->getKey(),
+                'source' => 'order_cancellation',
+                'metadata' => json_encode([
+                    'reversed_entry_id' => (int) $entry->id,
+                    'reason' => 'pending_order_rejected',
+                ], JSON_THROW_ON_ERROR),
+                'occurred_at' => now(),
+                'created_at' => now(),
+            ]);
+        }
     }
 
     private function assertB2bPendingApprovalFinance(Order $order): void
