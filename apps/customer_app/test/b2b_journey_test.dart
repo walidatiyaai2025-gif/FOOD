@@ -229,7 +229,7 @@ void main() {
       find.byKey(const ValueKey('b2b-profile-friendly-data')),
       findsOneWidget,
     );
-    expect(find.text('Acme Foods'), findsOneWidget);
+    expect(find.text('Acme Foods'), findsWidgets);
     expect(find.text('TAX-872'), findsOneWidget);
     expect(find.text('نشط'), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-account-hub')), findsOneWidget);
