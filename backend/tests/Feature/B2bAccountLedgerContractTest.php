@@ -12,6 +12,7 @@ use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -154,7 +155,7 @@ final class B2bAccountLedgerContractTest extends TestCase
         $this->assertSame(9.0, $summary['total_credits']);
         $this->assertSame(14.0, $summary['balance']);
         $this->assertSame(6, DB::table('customer_account_ledger_entries')->where('b2b_customer_id', $customer->id)->count());
-        $this->assertSame(0, DB::table('customer_account_ledger_entries')->whereNotNull('updated_at')->count());
+        $this->assertFalse(Schema::hasColumn('customer_account_ledger_entries', 'updated_at'));
     }
 
     /** @return array{0:User,1:Customer,2:\App\Models\B2bCustomer,3:int} */
