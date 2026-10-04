@@ -3825,6 +3825,11 @@ class _B2bAccountStatementRemoteStateState
         : closing < 0
             ? context.tr('b2b.statement.owed_to_you')
             : context.tr('b2b.statement.settled');
+    final currentDirection = current > 0
+        ? context.tr('b2b.statement.you_owe')
+        : current < 0
+            ? context.tr('b2b.statement.owed_to_you')
+            : context.tr('b2b.statement.settled');
 
     return Column(
       key: const ValueKey('b2b-statement-data'),
@@ -3895,6 +3900,72 @@ class _B2bAccountStatementRemoteStateState
           ),
         ],
         const SizedBox(height: 10),
+        Card(
+          key: const ValueKey('b2b-statement-summary-closing'),
+          color: Theme.of(context).colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('b2b.statement.closing_balance'),
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$direction · ${_money(closing.abs(), currency)}',
+                        key: const ValueKey('b2b-statement-closing-value'),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${context.tr('b2b.statement.current_balance')}: '
+                        '$currentDirection · ${_money(current.abs(), currency)}',
+                        key: const ValueKey('b2b-statement-current-direction'),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                Chip(
+                  key: const ValueKey('b2b-statement-direction-chip'),
+                  label: Text(direction),
+                  avatar: Icon(
+                    closing == 0
+                        ? Icons.check_circle_outline
+                        : closing > 0
+                            ? Icons.arrow_upward_rounded
+                            : Icons.arrow_downward_rounded,
+                    size: 18,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -3915,14 +3986,9 @@ class _B2bAccountStatementRemoteStateState
               _money(data['period_credits'], currency),
             ),
             _summaryCard(
-              'closing',
-              context.tr('b2b.statement.closing_balance'),
-              '$direction · ${_money(closing.abs(), currency)}',
-            ),
-            _summaryCard(
               'current',
               context.tr('b2b.statement.current_balance'),
-              _money(current.abs(), currency),
+              '$currentDirection · ${_money(current.abs(), currency)}',
             ),
           ],
         ),
