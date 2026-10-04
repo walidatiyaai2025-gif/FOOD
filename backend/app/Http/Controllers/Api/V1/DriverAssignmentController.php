@@ -5,15 +5,18 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Driver;
 use App\Models\DriverAssignment;
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverOrderService;
 use App\Services\DriverTenantScope;
+use App\Services\InvoiceService;
 use App\Services\OperationalTenantScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -115,6 +118,11 @@ class DriverAssignmentController extends Controller
             $driverStoreId === (int) $order->store_id,
             409,
             'Driver and order must belong to the same authoritative store.',
+        );
+        abort_if(
+            (string) $order->status === 'pending',
+            409,
+            'Order must be approved by Customer Service before driver assignment.',
         );
         abort_if(
             in_array((string) $order->status, ['delivered', 'cancelled'], true),
@@ -242,6 +250,51 @@ class DriverAssignmentController extends Controller
         );
 
         return response()->json(['data' => $assignment->fresh()]);
+    }
+
+    public function downloadInvoice(
+        Request $request,
+        int $assignment,
+        InvoiceService $invoices,
+    ): Response {
+        $validated = $request->validate([
+            'locale' => ['nullable', Rule::in(['ar', 'en'])],
+        ]);
+        [$driver, $channel] = $this->driverContext($request);
+
+        $model = DriverAssignment::query()
+            ->whereKey($assignment)
+            ->where('driver_id', $driver->getKey())
+            ->where('assignment_type', $channel)
+            ->where('store_id', (int) $driver->store_id)
+            ->whereNotIn('status', ['cancelled', 'unassigned', 'reassigned'])
+            ->firstOrFail();
+
+        $order = Order::query()
+            ->whereKey($model->order_id)
+            ->where('store_id', (int) $driver->store_id)
+            ->where('channel', $channel)
+            ->firstOrFail();
+
+        $invoice = Invoice::query()
+            ->where('order_id', $order->getKey())
+            ->where('store_id', (int) $order->store_id)
+            ->where('channel', $channel)
+            ->whereIn('status', ['issued', 'reissued'])
+            ->orderByDesc('revision')
+            ->orderByDesc('id')
+            ->firstOrFail();
+
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $locale = (string) ($validated['locale'] ?? $user->locale ?? 'en');
+        $pdf = $invoices->renderPdf($invoice, $locale);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$invoice->invoice_number.'.pdf"',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     public function transition(
