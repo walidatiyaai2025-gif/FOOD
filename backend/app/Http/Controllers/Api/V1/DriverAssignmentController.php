@@ -117,6 +117,11 @@ class DriverAssignmentController extends Controller
             'Driver and order must belong to the same authoritative store.',
         );
         abort_if(
+            $channel === 'b2b' && (string) $order->status === 'pending',
+            409,
+            'Pending B2B orders require Customer Service approval before driver assignment.',
+        );
+        abort_if(
             in_array((string) $order->status, ['delivered', 'cancelled'], true),
             409,
             'Completed or cancelled orders cannot be assigned.',

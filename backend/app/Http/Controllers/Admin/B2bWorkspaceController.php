@@ -8,15 +8,18 @@ use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
+use App\Models\B2bCustomer;
 use App\Models\Category;
 use App\Models\Driver;
 use App\Models\Inventory;
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
+use App\Services\B2bAccountLedgerService;
 use App\Services\B2bCustomerService;
 use App\Services\B2bDashboardService;
 use App\Services\B2bFinanceInvoiceService;
@@ -62,6 +65,7 @@ class B2bWorkspaceController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly B2bDashboardService $dashboard,
         private readonly B2bFinanceInvoiceService $financeInvoices,
+        private readonly B2bAccountLedgerService $accountLedger,
         private readonly ManagementReportService $reports,
         private readonly ReportExportService $reportExports,
         private readonly TenantContextResolver $tenantContext,
@@ -1395,7 +1399,7 @@ class B2bWorkspaceController extends Controller
                 $payment = DB::table('payments')
                     ->where('order_id', $row->id)
                     ->orderByDesc('id')
-                    ->first(['provider', 'status', 'amount', 'currency']);
+                    ->first(['provider', 'status', 'amount', 'currency', 'metadata']);
 
                 $history = DB::table('order_status_history')
                     ->where('order_id', $row->id)
@@ -1440,6 +1444,48 @@ class B2bWorkspaceController extends Controller
                     ->orderByDesc('id')
                     ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
                 $pricingSnapshot = json_decode((string) ($row->pricing_snapshot ?? ''), true);
+                $paymentMetadata = $payment === null
+                    ? []
+                    : (json_decode((string) ($payment->metadata ?? ''), true) ?: []);
+
+                $accountFinance = null;
+                if (
+                    DB::table('b2b_accounts')
+                        ->where('b2b_customer_id', $row->b2b_customer_id)
+                        ->where('status', 'active')
+                        ->exists()
+                ) {
+                    $customerModel = B2bCustomer::query()->find((int) $row->b2b_customer_id);
+                    if ($customerModel instanceof B2bCustomer) {
+                        $accountFinance = $this->accountLedger->summary(
+                            $customerModel,
+                            (int) $row->store_id,
+                        );
+                    }
+                }
+
+                $invoiceAmounts = null;
+                if ($invoice !== null && in_array((string) $invoice->status, ['issued', 'reissued'], true)) {
+                    $invoiceModel = Invoice::query()->find((int) $invoice->id);
+                    if ($invoiceModel instanceof Invoice) {
+                        $invoiceAmounts = $this->accountLedger->invoiceAmounts($invoiceModel);
+                    }
+                }
+
+                $balanceApplied = data_get($paymentMetadata, 'settlement.balance_applied')
+                    ?? data_get($paymentMetadata, 'balance_applied')
+                    ?? data_get($paymentMetadata, 'customer_balance_applied')
+                    ?? data_get($pricingSnapshot, 'settlement.balance_applied')
+                    ?? data_get($pricingSnapshot, 'balance_applied');
+                $remainingAfterBalance = data_get($paymentMetadata, 'settlement.remaining_amount')
+                    ?? data_get($paymentMetadata, 'remaining_amount')
+                    ?? data_get($paymentMetadata, 'remainder_amount')
+                    ?? data_get($pricingSnapshot, 'settlement.remaining_amount')
+                    ?? data_get($pricingSnapshot, 'remaining_amount');
+                $remainderMethod = data_get($paymentMetadata, 'settlement.remainder_method')
+                    ?? data_get($paymentMetadata, 'remainder_method')
+                    ?? data_get($pricingSnapshot, 'settlement.remainder_method')
+                    ?? $row->payment_method;
 
                 return [
                     '_id' => (int) $row->id,
@@ -1463,6 +1509,29 @@ class B2bWorkspaceController extends Controller
                         'status' => $payment->status,
                         'amount' => (float) $payment->amount,
                         'currency' => $payment->currency,
+                    ],
+                    '_settlement' => [
+                        'currency' => (string) ($accountFinance['currency'] ?? $row->currency),
+                        'customer_credit_balance' => isset($accountFinance['customer_credit_balance'])
+                            ? (float) $accountFinance['customer_credit_balance']
+                            : null,
+                        'aggregate_outstanding' => isset($accountFinance['outstanding_receivable'])
+                            ? (float) $accountFinance['outstanding_receivable']
+                            : null,
+                        'credit_limit' => isset($accountFinance['credit_limit'])
+                            ? (float) $accountFinance['credit_limit']
+                            : null,
+                        'available_credit_line' => isset($accountFinance['available_credit_line'])
+                            ? (float) $accountFinance['available_credit_line']
+                            : null,
+                        'balance_applied' => is_numeric($balanceApplied) ? (float) $balanceApplied : null,
+                        'remaining_after_balance' => is_numeric($remainingAfterBalance)
+                            ? (float) $remainingAfterBalance
+                            : null,
+                        'invoice_outstanding' => isset($invoiceAmounts['outstanding_amount'])
+                            ? (float) $invoiceAmounts['outstanding_amount']
+                            : null,
+                        'remainder_method' => is_string($remainderMethod) ? $remainderMethod : null,
                     ],
                     '_history' => $history,
                     '_driver_history' => $driverHistory,

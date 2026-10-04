@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\DriverAssignment;
@@ -13,6 +14,7 @@ use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\CustomerOrderTimelineService;
 use App\Services\DashboardOperationalNotifier;
@@ -28,6 +30,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
@@ -195,7 +198,27 @@ class OrderController extends Controller
 
         $previousStatus = (string) $model->status;
         $targetStatus = (string) $validated['status'];
-        $note = isset($validated['note']) ? (string) $validated['note'] : null;
+        $note = isset($validated['note']) ? trim((string) $validated['note']) : null;
+
+        if (
+            strtolower((string) $model->channel) === 'b2b'
+            && $previousStatus === 'pending'
+            && $targetStatus === 'cancelled'
+            && ($note === null || $note === '')
+        ) {
+            throw ValidationException::withMessages([
+                'note' => ['A rejection reason is required for a pending B2B order.'],
+            ]);
+        }
+
+        if (
+            strtolower((string) $model->channel) === 'b2b'
+            && $previousStatus === 'pending'
+            && $targetStatus === 'confirmed'
+            && ($note === null || $note === '')
+        ) {
+            $note = 'customer_service_approved';
+        }
 
         /** @var Order $updated */
         $updated = DB::transaction(function () use (
@@ -220,8 +243,19 @@ class OrderController extends Controller
                 "Order cannot transition from {$currentStatus} to {$targetStatus}.",
             );
 
+            if (
+                strtolower((string) $locked->channel) === 'b2b'
+                && $currentStatus === 'pending'
+                && $targetStatus === 'confirmed'
+            ) {
+                $this->assertB2bPendingApprovalFinance($locked);
+            }
+
             if ($targetStatus === 'cancelled') {
                 app(OrderInventoryReservationService::class)->release($locked, $user);
+                if (strtolower((string) $locked->channel) === 'b2b') {
+                    $this->reverseCheckoutSettlementEntries($locked, $user);
+                }
 
                 $activeAssignment = DriverAssignment::query()
                     ->where('order_id', $locked->getKey())
@@ -301,6 +335,98 @@ class OrderController extends Controller
         $dashboardNotifier->orderStatusChanged($fresh, $previousStatus, (string) $fresh->status);
 
         return response()->json($this->orderPayload($fresh));
+    }
+
+    private function reverseCheckoutSettlementEntries(Order $order, User $actor): void
+    {
+        $entries = DB::table('customer_account_ledger_entries')
+            ->where('order_id', $order->getKey())
+            ->where(function ($query): void {
+                $query->where('source', 'like', 'checkout%')
+                    ->orWhere('source', 'customer_checkout');
+            })
+            ->where(function ($query): void {
+                $query->where('debit', '>', 0)
+                    ->orWhere('credit', '>', 0);
+            })
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($entries as $entry) {
+            $reference = 'order-cancel:'.$order->getKey().':entry:'.$entry->id;
+            if (DB::table('customer_account_ledger_entries')->where('reference', $reference)->exists()) {
+                continue;
+            }
+
+            DB::table('customer_account_ledger_entries')->insert([
+                'b2b_customer_id' => (int) $entry->b2b_customer_id,
+                'store_id' => $entry->store_id === null ? (int) $order->store_id : (int) $entry->store_id,
+                'invoice_id' => $entry->invoice_id,
+                'order_id' => (int) $order->getKey(),
+                'entry_type' => (float) $entry->debit > 0
+                    ? 'adjustment_negative'
+                    : 'adjustment_positive',
+                'reference' => $reference,
+                'description' => 'Reversal of checkout settlement after order cancellation',
+                'debit' => round((float) $entry->credit, 3),
+                'credit' => round((float) $entry->debit, 3),
+                'currency' => (string) $entry->currency,
+                'actor_user_id' => (int) $actor->getKey(),
+                'source' => 'order_cancellation',
+                'metadata' => json_encode([
+                    'reversed_entry_id' => (int) $entry->id,
+                    'reason' => 'pending_order_rejected',
+                ], JSON_THROW_ON_ERROR),
+                'occurred_at' => now(),
+                'created_at' => now(),
+            ]);
+        }
+    }
+
+    private function assertB2bPendingApprovalFinance(Order $order): void
+    {
+        if ((string) $order->payment_method !== 'account_credit') {
+            return;
+        }
+
+        $customer = B2bCustomer::query()->findOrFail((int) $order->b2b_customer_id);
+        $account = B2bAccount::query()
+            ->where('b2b_customer_id', $customer->getKey())
+            ->where('status', 'active')
+            ->lockForUpdate()
+            ->first();
+
+        if (! $account instanceof B2bAccount) {
+            throw ValidationException::withMessages([
+                'status' => ['The B2B account is no longer active and cannot be approved for account credit.'],
+            ]);
+        }
+
+        $finance = app(B2bAccountLedgerService::class)->summary(
+            $customer,
+            (int) $order->store_id,
+        );
+        $alreadyInLedger = Invoice::query()
+            ->where('order_id', $order->getKey())
+            ->whereIn('status', ['issued', 'reissued'])
+            ->exists();
+
+        if ($alreadyInLedger) {
+            if ((float) $finance['outstanding_receivable'] > (float) $finance['credit_limit'] + 0.0001) {
+                throw ValidationException::withMessages([
+                    'status' => ['Account credit exposure exceeds the current authoritative credit limit.'],
+                ]);
+            }
+
+            return;
+        }
+
+        if ((float) $order->grand_total > (float) $finance['purchasing_power'] + 0.0001) {
+            throw ValidationException::withMessages([
+                'status' => ['Account credit is insufficient for the authoritative order total at approval time.'],
+            ]);
+        }
     }
 
     /** @return array{0: B2bCustomer|B2cCustomer, 1: string} */
