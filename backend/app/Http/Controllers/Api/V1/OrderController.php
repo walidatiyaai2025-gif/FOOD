@@ -483,7 +483,6 @@ class OrderController extends Controller
                     'driver_assignments.driver_id',
                     'driver_assignments.status',
                     'driver_assignments.assigned_at',
-                    'driver_assignments.accepted_at',
                     'driver_assignments.completed_at',
                     'users.name as driver_name',
                 ]);
@@ -554,7 +553,6 @@ class OrderController extends Controller
                 'driver_name' => $tracking->driver_name === null ? null : (string) $tracking->driver_name,
                 'status' => (string) $tracking->status,
                 'assigned_at' => $tracking->assigned_at,
-                'accepted_at' => $tracking->accepted_at,
                 'completed_at' => $tracking->completed_at,
             ],
             'allowed_actions' => [
