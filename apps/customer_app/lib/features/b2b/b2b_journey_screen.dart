@@ -770,7 +770,7 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     key: const ValueKey('b2b-top-products-sort'),
-                    value: _sort,
+                    initialValue: _sort,
                     decoration: InputDecoration(
                       labelText: context.tr('b2b.top_products.sort'),
                     ),
