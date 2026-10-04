@@ -1780,9 +1780,12 @@ void main() {
     expect(api.lastPath, contains('/api/v1/b2b/account-statement'));
     expect(api.lastPath, contains('store_id=7'));
 
-    await tester.tap(
-      find.byKey(const ValueKey('b2b-statement-reference-invoice:31')),
+    final invoiceReference = find.byKey(
+      const ValueKey('b2b-statement-reference-invoice:31'),
     );
+    await tester.ensureVisible(invoiceReference);
+    await tester.pumpAndSettle();
+    await tester.tap(invoiceReference);
     await tester.pumpAndSettle();
     expect(api.lastPath, '/api/v1/b2b/invoices/31');
   });
