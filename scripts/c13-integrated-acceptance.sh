@@ -98,6 +98,7 @@ require_text "$pricing" "test_wholesale_order_keeps_tier_and_price_snapshot_afte
 # Canonical launch order and discoverable Wholesale navigation.
 require_text "$navigation" "entry route renders the C13 business login without Marketplace bypass"
 require_text "$navigation" "successful C13 login lands on Screen 2 dashboard"
+require_text "$journey" "B2B dashboard Store icon resolves principal Wholesale and opens canonical home"
 require_text "$footer" "Wholesale footer has four destinations and active Shopping returns home"
 require_text "$marketplace" "signed-in marketplace keeps store switcher open and management routes follow origin store"
 require_text "$marketplace" "stale owned Retail context is rejected by marketplace header and footer"
