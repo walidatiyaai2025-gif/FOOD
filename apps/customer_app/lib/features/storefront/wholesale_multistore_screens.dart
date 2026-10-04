@@ -12,6 +12,7 @@ import '../../core/api/wholesale_commerce_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/engagement/live_ad_service.dart';
+import '../../core/engagement/notification_campaign_popup_service.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_pending_action.dart';
@@ -47,6 +48,7 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
 class _WholesaleHomeDesignScreenState
     extends State<WholesaleHomeDesignScreen> {
   final search = TextEditingController();
+  final campaignPopups = CustomerNotificationCampaignPopupService();
   final liveAds = CustomerLiveAdService();
   late final int storeId = wholesaleStoreId(widget.location);
   late Future<Map<String, dynamic>> future = _load();
@@ -130,9 +132,18 @@ class _WholesaleHomeDesignScreenState
 
             if (!_liveAdScheduled) {
               _liveAdScheduled = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (!mounted) return;
-                liveAds
+                await campaignPopups
+                    .showForContext(
+                      context,
+                      channel: 'b2b',
+                      storeId: storeId > 0 ? storeId : null,
+                      accessToken: widget.session.accessToken,
+                    )
+                    .catchError((_) {});
+                if (!mounted) return;
+                await liveAds
                     .showForContext(
                       context,
                       channel: 'b2b',
