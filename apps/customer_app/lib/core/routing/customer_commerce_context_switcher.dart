@@ -191,7 +191,7 @@ class CustomerCommerceContextSwitcher {
     required String fallback,
   }) {
     final raw = row['name'];
-    final value = raw == null ? null : raw.toString().trim();
+    final value = raw?.toString().trim();
     return value == null || value.isEmpty ? fallback : value;
   }
 }
