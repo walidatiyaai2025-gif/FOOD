@@ -413,6 +413,145 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     }
   }
 
+  Widget _buildC13BusinessEntry(
+    BuildContext context, {
+    required Locale locale,
+    required TextDirection textDirection,
+  }) {
+    return Directionality(
+      textDirection: textDirection,
+      child: Scaffold(
+        key: const ValueKey('unified-customer-auth-screen'),
+        backgroundColor: CustomerUiColors.mint,
+        appBar: AppBar(
+          title: Text(context.tr('b2b.app.title')),
+          backgroundColor: CustomerUiColors.white,
+          foregroundColor: CustomerUiColors.ink,
+          elevation: 0,
+          actions: [
+            if (widget.onLocaleChanged != null)
+              TextButton(
+                key: const ValueKey('customer-auth-language-toggle'),
+                onPressed: _busy ? null : _toggleLocale,
+                child: Text(
+                  locale.languageCode == 'ar' ? 'English' : 'العربية',
+                  style: const TextStyle(color: CustomerUiColors.ink),
+                ),
+              ),
+          ],
+        ),
+        body: SafeArea(
+          top: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                CustomerUiSpacing.lg,
+                CustomerUiSpacing.xl,
+                CustomerUiSpacing.lg,
+                CustomerUiSpacing.xxl,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      context.tr('b2b.login.title'),
+                      key: const ValueKey('c13-business-login-title'),
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: CustomerUiSpacing.xs),
+                    Text(
+                      context.tr('b2b.login.subtitle'),
+                      key: const ValueKey('unified-customer-auth-subtitle'),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: CustomerUiColors.muted,
+                          ),
+                    ),
+                    const SizedBox(height: CustomerUiSpacing.lg),
+                    TextField(
+                      key: const ValueKey('unified-auth-email'),
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      decoration: InputDecoration(
+                        labelText: context.tr('customer.login.email'),
+                        errorText: _fieldErrorText(context, 'email'),
+                        filled: true,
+                        fillColor: CustomerUiColors.white,
+                      ),
+                    ),
+                    const SizedBox(height: CustomerUiSpacing.sm),
+                    TextField(
+                      key: const ValueKey('unified-auth-password'),
+                      controller: _password,
+                      obscureText: true,
+                      textInputAction: TextInputAction.done,
+                      decoration: InputDecoration(
+                        labelText: context.tr('customer.login.password'),
+                        errorText: _fieldErrorText(context, 'password'),
+                        filled: true,
+                        fillColor: CustomerUiColors.white,
+                      ),
+                      onSubmitted: (_) => _submit(),
+                    ),
+                    if (_errorKey != null) ...[
+                      const SizedBox(height: CustomerUiSpacing.sm),
+                      Text(
+                        context.tr(_errorKey!),
+                        key: const ValueKey('unified-auth-error'),
+                        style: const TextStyle(
+                          color: CustomerUiColors.destructive,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: CustomerUiSpacing.md),
+                    SizedBox(
+                      height: 52,
+                      child: FilledButton(
+                        key: const ValueKey('unified-auth-submit'),
+                        onPressed: _busy ? null : _submit,
+                        child: _busy
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(context.tr('customer.action.login')),
+                      ),
+                    ),
+                    if (_checkingBiometric)
+                      const Padding(
+                        padding: EdgeInsets.only(top: CustomerUiSpacing.sm),
+                        child: LinearProgressIndicator(
+                          key: ValueKey('customer-auth-biometric-checking'),
+                        ),
+                      ),
+                    if (_biometricAvailable && _biometricEnabled) ...[
+                      const SizedBox(height: CustomerUiSpacing.sm),
+                      OutlinedButton.icon(
+                        key: const ValueKey('customer-auth-biometric-login'),
+                        onPressed: _busy ? null : _authenticateWithBiometrics,
+                        icon: const Icon(Icons.fingerprint_rounded),
+                        label: Text(
+                          context.tr('customer.auth.biometric_login'),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = context.tr(
@@ -424,6 +563,18 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         const Locale('ar');
     final textDirection =
         locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr;
+    final isC13BusinessEntry =
+        widget.nextRoute == CustomerRoutePaths.b2bDashboard &&
+        widget.commerceContext == null &&
+        !widget.registerInitially;
+
+    if (isC13BusinessEntry) {
+      return _buildC13BusinessEntry(
+        context,
+        locale: locale,
+        textDirection: textDirection,
+      );
+    }
 
     return Directionality(
       textDirection: textDirection,

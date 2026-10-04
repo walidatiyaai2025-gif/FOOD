@@ -43,7 +43,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.authPreferenceStore,
     this.biometricAuthenticator,
     this.pendingActionStore,
-    this.initialRoute = CustomerRoutePaths.marketplace,
+    this.initialRoute = CustomerRoutePaths.entry,
     this.b2bApi,
     this.b2cCatalogApi,
     this.b2cAccountApi,
@@ -444,7 +444,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       _session = const CustomerSession.guest();
     });
     _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      CustomerRoutePaths.marketplace,
+      CustomerRoutePaths.entry,
       (route) => false,
     );
   }
@@ -469,7 +469,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       _session = const CustomerSession.guest();
     });
     _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      CustomerRoutePaths.marketplace,
+      CustomerRoutePaths.entry,
       (route) => false,
     );
   }
