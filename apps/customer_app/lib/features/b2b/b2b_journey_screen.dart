@@ -177,13 +177,21 @@ class B2bJourneyScreen extends StatelessWidget {
                       showEmpty: false,
                     ),
             if (hasRemoteState && !keepLocalActions && !isProfile)
-              definition.pattern == CustomerRoutePaths.b2bTopProducts
-                  ? _TopProductsRemoteState(api: api!, endpoint: _endpoint()!)
-                  : _RemoteState(
+              definition.pattern == CustomerRoutePaths.b2bDashboard
+                  ? _B2bDashboardRemoteState(
                       api: api!,
                       endpoint: _endpoint()!,
-                      routePattern: definition.pattern,
-                    ),
+                    )
+                  : definition.pattern == CustomerRoutePaths.b2bTopProducts
+                      ? _TopProductsRemoteState(
+                          api: api!,
+                          endpoint: _endpoint()!,
+                        )
+                      : _RemoteState(
+                          api: api!,
+                          endpoint: _endpoint()!,
+                          routePattern: definition.pattern,
+                        ),
             ],
           ),
         ),
@@ -410,7 +418,7 @@ class B2bJourneyScreen extends StatelessWidget {
     final segments = uri.pathSegments;
     switch (definition.pattern) {
       case CustomerRoutePaths.b2bDashboard:
-        return '/api/v1/b2b/dashboard';
+        return '/api/v1/b2b/dashboard${uri.hasQuery ? '?${uri.query}' : ''}';
       case CustomerRoutePaths.b2bPurchaseReports:
         return '/api/v1/b2b/reports/purchases';
       case CustomerRoutePaths.b2bTopProducts:
@@ -470,6 +478,351 @@ class B2bJourneyScreen extends StatelessWidget {
       );
 }
 
+
+
+class _B2bDashboardRemoteState extends StatefulWidget {
+  const _B2bDashboardRemoteState({
+    required this.api,
+    required this.endpoint,
+  });
+
+  final B2bApi api;
+  final String endpoint;
+
+  @override
+  State<_B2bDashboardRemoteState> createState() =>
+      _B2bDashboardRemoteStateState();
+}
+
+class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
+    with WidgetsBindingObserver {
+  late Future<Object?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _future = _loadB2bRemote(widget.api, widget.endpoint);
+  }
+
+  @override
+  void didUpdateWidget(covariant _B2bDashboardRemoteState oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.api != widget.api || oldWidget.endpoint != widget.endpoint) {
+      _future = _loadB2bRemote(widget.api, widget.endpoint);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reload();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  void _reload() {
+    if (!mounted) return;
+    setState(() {
+      _future = _loadB2bRemote(widget.api, widget.endpoint);
+    });
+  }
+
+  String _scopedRoute(String path) {
+    final source = Uri.parse(widget.endpoint);
+    final params = <String, String>{};
+    for (final key in const [
+      'channel',
+      'store_id',
+      'store',
+      'retail_store_id',
+    ]) {
+      final value = source.queryParameters[key];
+      if (value != null && value.isNotEmpty) {
+        params[key] = value;
+      }
+    }
+    return Uri(
+      path: path,
+      queryParameters: params.isEmpty ? null : params,
+    ).toString();
+  }
+
+  String _money(Object? value, String currency) {
+    final amount = double.tryParse(value?.toString() ?? '');
+    if (amount == null) return '—';
+    return amount.toStringAsFixed(3) + ' ' + currency;
+  }
+
+  Widget _metric(
+    BuildContext context, {
+    required String keyName,
+    required String label,
+    required String value,
+    required IconData icon,
+    required String route,
+  }) {
+    return Card(
+      key: ValueKey('b2b-dashboard-' + keyName),
+      child: InkWell(
+        onTap: () => Navigator.of(context).pushNamed(_scopedRoute(route)),
+        child: ListTile(
+          leading: Icon(icon),
+          title: Text(label),
+          subtitle: Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Object?>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              key: ValueKey('b2b-loading'),
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return _B2bRemoteErrorCard(
+              error: snapshot.error,
+              onRetry: _reload,
+            );
+          }
+
+          final value = snapshot.data;
+          if (value is! Map) {
+            return Card(
+              key: const ValueKey('b2b-empty'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(context.tr('b2b.remote.empty')),
+              ),
+            );
+          }
+
+          final data = Map<Object?, Object?>.from(value);
+          final customer = data['customer'] is Map
+              ? Map<Object?, Object?>.from(data['customer'] as Map)
+              : <Object?, Object?>{};
+          final account = data['account'] is Map
+              ? Map<Object?, Object?>.from(data['account'] as Map)
+              : <Object?, Object?>{};
+          final finance = data['finance'] is Map
+              ? Map<Object?, Object?>.from(data['finance'] as Map)
+              : <Object?, Object?>{};
+          final operations = data['operations'] is Map
+              ? Map<Object?, Object?>.from(data['operations'] as Map)
+              : <Object?, Object?>{};
+          final freshness = data['freshness'] is Map
+              ? Map<Object?, Object?>.from(data['freshness'] as Map)
+              : <Object?, Object?>{};
+
+          final currency = finance['currency']?.toString() ??
+              data['currency']?.toString() ??
+              '';
+          final rawBalance =
+              double.tryParse(finance['balance']?.toString() ?? '') ?? 0;
+          final balanceDirection =
+              finance['balance_direction']?.toString() ?? 'settled';
+          final directionLabel = switch (balanceDirection) {
+            'customer_owes_company' =>
+              context.tr('b2b.dashboard.balance.you_owe'),
+            'company_owes_customer' =>
+              context.tr('b2b.dashboard.balance.credit'),
+            _ => context.tr('b2b.dashboard.balance.settled'),
+          };
+          final generatedAt = freshness['generated_at']?.toString();
+          final generatedDate =
+              generatedAt == null ? null : DateTime.tryParse(generatedAt);
+          final age = generatedDate == null
+              ? null
+              : DateTime.now().toUtc().difference(generatedDate.toUtc());
+          final stale = freshness['stale'] == true ||
+              (age != null &&
+                  !age.isNegative &&
+                  age > const Duration(minutes: 5));
+
+          return Column(
+            key: const ValueKey('b2b-dashboard-data'),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Card(
+                key: const ValueKey('b2b-dashboard-identity'),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        account['company_name']?.toString() ?? '—',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(customer['name']?.toString() ?? '—'),
+                      if ((customer['email']?.toString() ?? '').isNotEmpty)
+                        Text(customer['email'].toString()),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              context.tr('b2b.dashboard.last_updated') +
+                                  ': ' +
+                                  (generatedAt ?? '—'),
+                              key: const ValueKey(
+                                'b2b-dashboard-last-updated',
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            key: const ValueKey('b2b-dashboard-refresh'),
+                            tooltip: context.tr('b2b.dashboard.refresh'),
+                            onPressed: _reload,
+                            icon: const Icon(Icons.refresh_rounded),
+                          ),
+                        ],
+                      ),
+                      if (stale)
+                        Text(
+                          context.tr('b2b.dashboard.stale'),
+                          key: const ValueKey('b2b-dashboard-stale'),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                context.tr('b2b.dashboard.finance'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              _metric(
+                context,
+                keyName: 'balance',
+                label: context.tr('b2b.dashboard.balance'),
+                value: directionLabel +
+                    ' ' +
+                    _money(rawBalance.abs(), currency),
+                icon: Icons.account_balance_wallet_outlined,
+                route: CustomerRoutePaths.b2bAccountStatement,
+              ),
+              _metric(
+                context,
+                keyName: 'credit-limit',
+                label: context.tr('b2b.dashboard.credit_limit'),
+                value: _money(finance['credit_limit'], currency),
+                icon: Icons.credit_score_outlined,
+                route: CustomerRoutePaths.b2bAccountStatement,
+              ),
+              _metric(
+                context,
+                keyName: 'available-credit',
+                label: context.tr('b2b.dashboard.available_credit'),
+                value: _money(finance['available_credit_line'], currency),
+                icon: Icons.savings_outlined,
+                route: CustomerRoutePaths.b2bAccountStatement,
+              ),
+              _metric(
+                context,
+                keyName: 'open-invoices',
+                label: context.tr('b2b.dashboard.open_invoices'),
+                value: _money(finance['open_amount'], currency),
+                icon: Icons.receipt_long_outlined,
+                route: CustomerRoutePaths.b2bInvoices,
+              ),
+              _metric(
+                context,
+                keyName: 'overdue',
+                label: context.tr('b2b.dashboard.overdue'),
+                value: _money(finance['overdue_amount'], currency),
+                icon: Icons.warning_amber_rounded,
+                route: CustomerRoutePaths.b2bInvoices,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                context.tr('b2b.dashboard.operations'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              _metric(
+                context,
+                keyName: 'purchases-month',
+                label: context.tr('b2b.dashboard.purchases_month'),
+                value: _money(operations['purchases_this_month'], currency),
+                icon: Icons.shopping_bag_outlined,
+                route: CustomerRoutePaths.b2bPurchaseReports,
+              ),
+              _metric(
+                context,
+                keyName: 'payments-month',
+                label: context.tr('b2b.dashboard.payments_month'),
+                value: _money(operations['payments_this_month'], currency),
+                icon: Icons.payments_outlined,
+                route: CustomerRoutePaths.b2bAccountStatement,
+              ),
+              _metric(
+                context,
+                keyName: 'invoice-count',
+                label: context.tr('b2b.dashboard.invoice_count'),
+                value: operations['invoice_count']?.toString() ?? '0',
+                icon: Icons.description_outlined,
+                route: CustomerRoutePaths.b2bInvoices,
+              ),
+              _metric(
+                context,
+                keyName: 'order-count',
+                label: context.tr('b2b.dashboard.order_count'),
+                value: operations['order_count']?.toString() ?? '0',
+                icon: Icons.inventory_2_outlined,
+                route: CustomerRoutePaths.b2bOrders,
+              ),
+              _metric(
+                context,
+                keyName: 'active-orders',
+                label: context.tr('b2b.dashboard.active_orders'),
+                value: operations['active_orders']?.toString() ?? '0',
+                icon: Icons.local_shipping_outlined,
+                route: CustomerRoutePaths.b2bOrders,
+              ),
+              const SizedBox(height: 8),
+              Card(
+                key: const ValueKey('b2b-dashboard-offers'),
+                child: ListTile(
+                  leading: const Icon(Icons.local_offer_outlined),
+                  title: Text(context.tr('b2b.dashboard.offers')),
+                  subtitle: Text(context.tr('b2b.dashboard.offers_cta')),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.of(context).pushNamed(
+                    _scopedRoute(CustomerRoutePaths.b2bTopProducts),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+}
 
 class _B2bProductDetailRemoteState extends StatefulWidget {
   const _B2bProductDetailRemoteState({
