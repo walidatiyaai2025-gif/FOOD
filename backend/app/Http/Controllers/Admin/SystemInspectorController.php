@@ -27,6 +27,7 @@ final class SystemInspectorController extends Controller
         $severity = trim((string) $request->query('severity', ''));
         $search = trim((string) $request->query('q', ''));
         $appVersion = trim((string) $request->query('app_version', ''));
+        $appBuild = trim((string) $request->query('app_build', ''));
         $channel = trim((string) $request->query('channel', ''));
         $storeId = $request->integer('store_id');
 
@@ -35,14 +36,14 @@ final class SystemInspectorController extends Controller
             ->when($source !== '', fn ($builder) => $builder->where('source', $source))
             ->when($severity !== '', fn ($builder) => $builder->where('severity', $severity))
             ->when($appVersion !== '', fn ($builder) => $builder->where('context->app_version', $appVersion))
+            ->when($appBuild !== '', fn ($builder) => $builder->where('context->app_build', $appBuild))
             ->when(in_array($channel, ['b2b', 'b2c'], true), fn ($builder) => $builder->where('context->channel', $channel))
             ->when($storeId > 0, fn ($builder) => $builder->where('store_id', $storeId))
             ->when($search !== '', fn ($builder) => $builder->where(function ($builder) use ($search): void {
                 $builder->where('message', 'like', "%{$search}%")
                     ->orWhere('route_name', 'like', "%{$search}%")
                     ->orWhere('url', 'like', "%{$search}%")
-                    ->orWhere('correlation_id', 'like', "%{$search}%")
-                    ->orWhere('context', 'like', "%{$search}%");
+                    ->orWhere('correlation_id', 'like', "%{$search}%");
             }))
             ->orderByDesc('occurred_at')
             ->orderByDesc('id');
@@ -58,11 +59,13 @@ final class SystemInspectorController extends Controller
             'severity' => $severity,
             'search' => $search,
             'appVersion' => $appVersion,
+            'appBuild' => $appBuild,
             'channel' => $channel,
             'storeId' => $storeId,
             'stats' => [
                 'total' => SystemInspectorEvent::query()->count(),
                 'errors_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('severity', 'error')->count(),
+                'javascript_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->whereIn('source', ['javascript', 'fetch'])->count(),
                 'mobile_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->whereIn('source', ['customer_app', 'driver_app'])->count(),
                 'routes_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('source', 'route')->count(),
             ],
