@@ -118,7 +118,6 @@ class _B2bBusinessAccountProfileState
               _ProfileHero(
                 isArabic: isArabic,
                 displayName: accountName.isEmpty ? companyName : accountName,
-                companyName: companyName,
                 email: email,
                 accountStatus: accountStatus,
                 typeLabel: typeLabel,
@@ -284,7 +283,6 @@ class _ProfileHero extends StatelessWidget {
   const _ProfileHero({
     required this.isArabic,
     required this.displayName,
-    required this.companyName,
     required this.email,
     required this.accountStatus,
     required this.typeLabel,
@@ -292,7 +290,6 @@ class _ProfileHero extends StatelessWidget {
 
   final bool isArabic;
   final String displayName;
-  final String companyName;
   final String email;
   final String accountStatus;
   final String typeLabel;
@@ -370,19 +367,6 @@ class _ProfileHero extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    if (companyName.isNotEmpty && companyName != title) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        companyName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFD8EAE2),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
                     if (email.isNotEmpty) ...[
                       const SizedBox(height: 3),
                       Text(
