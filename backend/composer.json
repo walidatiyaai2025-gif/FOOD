@@ -37,9 +37,7 @@
             "@php artisan test"
         ],
         "lint": [
-            "vendor/bin/pint app routes tests",
-            "git --no-pager diff -- app/Http/Controllers/Admin/CatalogManagementController.php app/Services/CatalogZipImportService.php",
-            "git diff --quiet -- app routes tests"
+            "vendor/bin/pint --test app routes tests"
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=1G"

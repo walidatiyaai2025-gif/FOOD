@@ -433,6 +433,7 @@ final class CatalogZipImportService
         $workbookEntry = $zip['entries']['catalog.xlsx'];
         if ((int) $workbookEntry['uncompressed_size'] > self::MAX_WORKBOOK_BYTES) {
             $errors[] = 'catalog.xlsx may not exceed 5 MB uncompressed.';
+
             return [
                 'rows' => ['Products' => [], 'Categories' => [], 'Brands' => []],
                 'counts' => ['products' => 0, 'categories' => 0, 'brands' => 0, 'images' => 0],
@@ -474,6 +475,7 @@ final class CatalogZipImportService
             $name = trim((string) ($row['name'] ?? ''));
             if ($code === null || ! $this->validCode($code)) {
                 $errors[] = "Categories row {$line}: code is required and may contain only letters, numbers, dot, underscore, and hyphen.";
+
                 continue;
             }
             if (isset($categoryCodes[$code])) {
@@ -533,6 +535,7 @@ final class CatalogZipImportService
             $nameEn = trim((string) ($row['name_en'] ?? ''));
             if ($code === null || ! $this->validCode($code)) {
                 $errors[] = "Brands row {$line}: code is required and invalid.";
+
                 continue;
             }
             if (isset($brandCodes[$code])) {
@@ -569,6 +572,7 @@ final class CatalogZipImportService
             $name = trim((string) ($row['name'] ?? ''));
             if ($sku === '' || ! $this->validSku($sku)) {
                 $errors[] = "Products row {$line}: sku is required and invalid.";
+
                 continue;
             }
             $normalizedSku = $this->normalizeSku($sku);
@@ -613,6 +617,7 @@ final class CatalogZipImportService
             foreach ($imageFiles as $image) {
                 if (! $this->validImageFilename($image)) {
                     $errors[] = "Products row {$line}: invalid image filename {$image}.";
+
                     continue;
                 }
                 $path = "images/products/{$image}";
@@ -662,6 +667,7 @@ final class CatalogZipImportService
     {
         if ($rows === []) {
             $errors[] = "Sheet {$sheet} is missing or empty.";
+
             return;
         }
         $headers = array_keys($rows[0]);
@@ -680,15 +686,16 @@ final class CatalogZipImportService
             foreach ($row as $key => $value) {
                 $normalized[strtolower(trim((string) $key))] = trim((string) $value);
             }
+
             return $normalized;
         }, $rows), static fn (array $row): bool => collect($row)->contains(static fn ($value): bool => trim((string) $value) !== '')));
     }
 
     /**
-     * @param list<array<string,mixed>> $incoming
-     * @param list<object> $existing
-     * @param array<int,string> $idToCode
-     * @param list<string> $errors
+     * @param  list<array<string,mixed>>  $incoming
+     * @param  list<object>  $existing
+     * @param  array<int,string>  $idToCode
+     * @param  list<string>  $errors
      */
     private function validateCategoryGraph(array $incoming, array $existing, array $idToCode, array &$errors): void
     {
@@ -747,17 +754,20 @@ final class CatalogZipImportService
     {
         if (! isset($zip['entries'][$path])) {
             $errors[] = "{$context}: referenced image is missing: {$path}";
+
             return;
         }
         $entry = $zip['entries'][$path];
         if ((int) $entry['uncompressed_size'] > self::MAX_ENTRY_BYTES) {
             $errors[] = "{$context}: image exceeds 5 MB: {$path}";
+
             return;
         }
         try {
             $bytes = $this->entryBytes($zip, $path);
         } catch (Throwable $exception) {
             $errors[] = "{$context}: image could not be read: {$path}";
+
             return;
         }
         $info = @getimagesizefromstring($bytes);
@@ -1117,7 +1127,7 @@ final class CatalogZipImportService
     }
 
     /**
-     * @param array{data:string,entries:array<string,array<string,int|string>>} $xlsx
+     * @param  array{data:string,entries:array<string,array<string,int|string>>}  $xlsx
      * @return list<array<string,string>>
      */
     private function sheetRows(array $xlsx, string $sheetName): array
@@ -1282,6 +1292,7 @@ final class CatalogZipImportService
                     throw new RuntimeException('XLSX relationship escapes the workbook root.');
                 }
                 array_pop($parts);
+
                 continue;
             }
             $parts[] = $part;
