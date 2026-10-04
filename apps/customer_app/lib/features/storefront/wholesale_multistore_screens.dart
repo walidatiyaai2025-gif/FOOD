@@ -3346,6 +3346,13 @@ class _WholesaleOrderDetailsDesignScreenState
                                 context.tr('b2b.order.total'),
                                 money(total, currency: currency),
                               ),
+                              (
+                                context.tr('b2b.order.payment_method'),
+                                _paymentMethodText(
+                                  context,
+                                  paymentMethod,
+                                ),
+                              ),
                               if ((order['requested_delivery_date']
                                           ?.toString() ??
                                       '')
