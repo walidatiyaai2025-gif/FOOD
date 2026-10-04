@@ -231,6 +231,130 @@ class B2bReportingTest extends TestCase
             ->assertJsonPath('data.0.unavailable_reason', 'OUT_OF_STOCK');
     }
 
+    public function test_purchase_report_reconciles_filtered_metrics_categories_comparison_and_customer_scope(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$user, $customer] = $this->buyer('purchase-report-c13@example.test', 'active');
+        [, $otherCustomer] = $this->buyer('purchase-report-other@example.test', 'active');
+
+        $storeType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $store = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $storeType,
+            'code' => 'PURCHASE-C13',
+            'name' => 'Purchase Report Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $unit = (int) DB::table('units')->insertGetId([
+            'code' => 'PURCHASE-C13-EA',
+            'name' => 'Each',
+            'decimal_places' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $category = (int) DB::table('categories')->insertGetId([
+            'name' => 'Beverages',
+            'slug' => 'purchase-c13-beverages',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $product = (int) DB::table('products')->insertGetId([
+            'category_id' => $category,
+            'unit_id' => $unit,
+            'sku' => 'PURCHASE-C13-1',
+            'name' => 'Purchase Report Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $currentAt = now()->subDay()->setTime(12, 0);
+        $previousAt = now()->subDays(2)->setTime(12, 0);
+        $currentOrder = $this->order($store, $customer->id, 60, 'delivered');
+        $previousOrder = $this->order($store, $customer->id, 30, 'delivered');
+        $otherOrder = $this->order($store, $otherCustomer->id, 500, 'delivered');
+
+        DB::table('orders')->where('id', $currentOrder)->update([
+            'created_at' => $currentAt,
+            'updated_at' => $currentAt,
+        ]);
+        DB::table('orders')->where('id', $previousOrder)->update([
+            'created_at' => $previousAt,
+            'updated_at' => $previousAt,
+        ]);
+        DB::table('orders')->where('id', $otherOrder)->update([
+            'created_at' => $currentAt,
+            'updated_at' => $currentAt,
+        ]);
+
+        DB::table('order_items')->insert([
+            [
+                'order_id' => $currentOrder,
+                'product_id' => $product,
+                'sku_snapshot' => 'PURCHASE-C13-1',
+                'name_snapshot' => 'Purchase Report Product',
+                'quantity' => 2,
+                'unit_price' => 20,
+                'line_total' => 40,
+                'created_at' => $currentAt,
+                'updated_at' => $currentAt,
+            ],
+            [
+                'order_id' => $previousOrder,
+                'product_id' => $product,
+                'sku_snapshot' => 'PURCHASE-C13-1',
+                'name_snapshot' => 'Purchase Report Product',
+                'quantity' => 1,
+                'unit_price' => 30,
+                'line_total' => 30,
+                'created_at' => $previousAt,
+                'updated_at' => $previousAt,
+            ],
+        ]);
+
+        DB::table('invoices')->insert([
+            'customer_id' => $customer->id,
+            'order_id' => $currentOrder,
+            'store_id' => $store,
+            'invoice_number' => 'PURCHASE-C13-INV',
+            'status' => 'issued',
+            'currency' => 'KWD',
+            'total' => 60,
+            'issued_at' => $currentAt,
+            'created_at' => $currentAt,
+            'updated_at' => $currentAt,
+        ]);
+
+        Sanctum::actingAs($user);
+        $date = $currentAt->toDateString();
+
+        $this->getJson("/api/v1/b2b/reports/purchases?store_id={$store}&from={$date}&to={$date}&page=1&per_page=10")
+            ->assertOk()
+            ->assertJsonPath('currency', 'KWD')
+            ->assertJsonPath('summary.total_purchases', 60)
+            ->assertJsonPath('summary.order_count', 1)
+            ->assertJsonPath('summary.invoice_count', 1)
+            ->assertJsonPath('summary.average_order_value', 60)
+            ->assertJsonPath('data.0.period', $date)
+            ->assertJsonPath('data.0.orders_count', 1)
+            ->assertJsonPath('data.0.purchase_total', 60)
+            ->assertJsonPath('comparison.total_purchases', 30)
+            ->assertJsonPath('comparison.order_count', 1)
+            ->assertJsonPath('comparison.change_amount', 30)
+            ->assertJsonPath('comparison.change_percent', 100)
+            ->assertJsonPath('categories.0.category_id', $category)
+            ->assertJsonPath('categories.0.category_name', 'Beverages')
+            ->assertJsonPath('categories.0.purchase_total', 60)
+            ->assertJsonPath('categories.0.percentage', 100)
+            ->assertJsonPath('orders.0.id', $currentOrder)
+            ->assertJsonPath('orders.0.grand_total', 60)
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.has_more', false)
+            ->assertJsonMissing(['order_number' => DB::table('orders')->where('id', $otherOrder)->value('order_number')]);
+    }
+
     public function test_reporting_rejects_unapproved_account_and_invalid_date_range(): void
     {
         $this->seed(CoreReferenceSeeder::class);

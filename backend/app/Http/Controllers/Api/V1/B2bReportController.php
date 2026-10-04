@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\ProductAvailabilityService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -129,27 +130,203 @@ class B2bReportController extends Controller
         $validated = $request->validate([
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'store_id' => ['nullable', 'integer', 'min:1'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
-        $query = DB::table('orders')
+        $storeId = isset($validated['store_id']) ? (int) $validated['store_id'] : null;
+        $page = (int) ($validated['page'] ?? 1);
+        $perPage = (int) ($validated['per_page'] ?? 20);
+
+        $orders = DB::table('orders')
             ->where('b2b_customer_id', $customer->getKey())
             ->where('channel', 'b2b')
-            ->where('status', '!=', 'cancelled');
+            ->where('status', '!=', 'cancelled')
+            ->when($storeId, fn ($query, int $id) => $query->where('store_id', $id));
 
         if (isset($validated['from'])) {
-            $query->whereDate('created_at', '>=', $validated['from']);
+            $orders->whereDate('created_at', '>=', $validated['from']);
         }
         if (isset($validated['to'])) {
-            $query->whereDate('created_at', '<=', $validated['to']);
+            $orders->whereDate('created_at', '<=', $validated['to']);
         }
 
-        $rows = $query
+        $currencies = (clone $orders)
+            ->whereNotNull('currency')
+            ->distinct()
+            ->pluck('currency')
+            ->map(static fn ($currency): string => strtoupper(trim((string) $currency)))
+            ->filter(static fn (string $currency): bool => preg_match('/^[A-Z]{3}$/', $currency) === 1)
+            ->unique()
+            ->values();
+        abort_if(
+            $currencies->count() > 1,
+            409,
+            'Purchase report contains mixed currencies and cannot be combined safely.',
+        );
+
+        $currency = $currencies->first()
+            ?? app(B2bAccountLedgerService::class)->currencyFor($customer, $storeId);
+
+        $totalPurchases = round((float) (clone $orders)->sum('grand_total'), 3);
+        $orderCount = (clone $orders)->count();
+        $averageOrderValue = $orderCount > 0
+            ? round($totalPurchases / $orderCount, 3)
+            : 0.0;
+
+        $invoiceCount = DB::table('invoices')
+            ->where('b2b_customer_id', $customer->getKey())
+            ->whereNotIn('status', ['cancelled', 'void', 'voided'])
+            ->whereIn('order_id', (clone $orders)->select('id'))
+            ->count();
+
+        $trend = (clone $orders)
             ->selectRaw('DATE(created_at) as period, COUNT(*) as orders_count, SUM(grand_total) as purchase_total')
             ->groupByRaw('DATE(created_at)')
             ->orderBy('period')
-            ->get();
+            ->get()
+            ->map(static fn (object $row): array => [
+                'period' => (string) $row->period,
+                'orders_count' => (int) $row->orders_count,
+                'purchase_total' => round((float) $row->purchase_total, 3),
+            ])
+            ->values();
 
-        return response()->json(['data' => $rows, 'currency' => 'KWD']);
+        $categoryQuery = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->leftJoin('products', 'products.id', '=', 'order_items.product_id')
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->where('orders.b2b_customer_id', $customer->getKey())
+            ->where('orders.channel', 'b2b')
+            ->where('orders.status', '!=', 'cancelled')
+            ->when($storeId, fn ($query, int $id) => $query->where('orders.store_id', $id));
+
+        if (isset($validated['from'])) {
+            $categoryQuery->whereDate('orders.created_at', '>=', $validated['from']);
+        }
+        if (isset($validated['to'])) {
+            $categoryQuery->whereDate('orders.created_at', '<=', $validated['to']);
+        }
+
+        $rawCategories = $categoryQuery
+            ->groupBy('products.category_id', 'categories.name')
+            ->orderByDesc(DB::raw('SUM(order_items.line_total)'))
+            ->get([
+                'products.category_id',
+                'categories.name as category_name',
+                DB::raw('SUM(order_items.line_total) as raw_total'),
+            ]);
+        $rawCategoryTotal = (float) $rawCategories->sum(
+            static fn (object $row): float => (float) $row->raw_total,
+        );
+
+        $categories = [];
+        $allocated = 0.0;
+        foreach ($rawCategories->values() as $index => $row) {
+            $isLast = $index === $rawCategories->count() - 1;
+            $amount = $rawCategoryTotal > 0
+                ? round($totalPurchases * ((float) $row->raw_total / $rawCategoryTotal), 3)
+                : 0.0;
+            if ($isLast) {
+                $amount = round($totalPurchases - $allocated, 3);
+            }
+            $allocated = round($allocated + $amount, 3);
+
+            $categories[] = [
+                'category_id' => $row->category_id === null ? null : (int) $row->category_id,
+                'category_name' => $row->category_name === null
+                    ? 'Uncategorized'
+                    : (string) $row->category_name,
+                'purchase_total' => $amount,
+                'percentage' => $totalPurchases > 0
+                    ? round(($amount / $totalPurchases) * 100, 2)
+                    : 0.0,
+            ];
+        }
+        if ($categories === [] && $totalPurchases > 0) {
+            $categories[] = [
+                'category_id' => null,
+                'category_name' => 'Uncategorized',
+                'purchase_total' => $totalPurchases,
+                'percentage' => 100.0,
+            ];
+        }
+
+        $comparison = null;
+        if (isset($validated['from'], $validated['to'])) {
+            $from = CarbonImmutable::parse((string) $validated['from'])->startOfDay();
+            $to = CarbonImmutable::parse((string) $validated['to'])->startOfDay();
+            $periodDays = $from->diffInDays($to) + 1;
+            $previousTo = $from->subDay();
+            $previousFrom = $previousTo->subDays($periodDays - 1);
+
+            $previousOrders = DB::table('orders')
+                ->where('b2b_customer_id', $customer->getKey())
+                ->where('channel', 'b2b')
+                ->where('status', '!=', 'cancelled')
+                ->when($storeId, fn ($query, int $id) => $query->where('store_id', $id))
+                ->whereDate('created_at', '>=', $previousFrom->toDateString())
+                ->whereDate('created_at', '<=', $previousTo->toDateString());
+
+            $previousTotal = round((float) (clone $previousOrders)->sum('grand_total'), 3);
+            $changeAmount = round($totalPurchases - $previousTotal, 3);
+
+            $comparison = [
+                'from' => $previousFrom->toDateString(),
+                'to' => $previousTo->toDateString(),
+                'total_purchases' => $previousTotal,
+                'order_count' => (clone $previousOrders)->count(),
+                'change_amount' => $changeAmount,
+                'change_percent' => $previousTotal > 0
+                    ? round(($changeAmount / $previousTotal) * 100, 2)
+                    : null,
+            ];
+        }
+
+        $totalRows = (clone $orders)->count();
+        $offset = ($page - 1) * $perPage;
+        $recentOrders = (clone $orders)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->offset($offset)
+            ->limit($perPage)
+            ->get(['id', 'order_number', 'store_id', 'status', 'currency', 'grand_total', 'created_at'])
+            ->map(static fn (object $order): array => [
+                'id' => (int) $order->id,
+                'order_number' => (string) $order->order_number,
+                'store_id' => (int) $order->store_id,
+                'status' => (string) $order->status,
+                'currency' => (string) $order->currency,
+                'grand_total' => round((float) $order->grand_total, 3),
+                'created_at' => (string) $order->created_at,
+            ])
+            ->values();
+
+        return response()->json([
+            'data' => $trend,
+            'period' => [
+                'from' => $validated['from'] ?? null,
+                'to' => $validated['to'] ?? null,
+            ],
+            'currency' => $currency,
+            'summary' => [
+                'total_purchases' => $totalPurchases,
+                'order_count' => $orderCount,
+                'invoice_count' => $invoiceCount,
+                'average_order_value' => $averageOrderValue,
+            ],
+            'comparison' => $comparison,
+            'categories' => $categories,
+            'orders' => $recentOrders,
+            'meta' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $totalRows,
+                'has_more' => ($offset + $recentOrders->count()) < $totalRows,
+            ],
+            'generated_at' => now()->toAtomString(),
+        ]);
     }
 
     public function topProducts(Request $request): JsonResponse
