@@ -409,7 +409,6 @@ class CustomerOrderRefreshPolicy {
 
   static const Set<String> terminalStatuses = <String>{
     'delivered',
-    'failed',
     'cancelled',
   };
 
