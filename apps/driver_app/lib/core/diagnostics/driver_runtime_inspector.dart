@@ -67,6 +67,8 @@ class DriverRuntimeInspector {
   static final DriverRuntimeInspector instance = DriverRuntimeInspector();
 
   static const _storageKey = 'foodex_driver_runtime_inspector_v1';
+  static const _uploadCheckpointKey =
+      'foodex_driver_runtime_inspector_upload_checkpoint_v1';
 
   final int maxEvents;
   final List<Map<String, dynamic>> _events = <Map<String, dynamic>>[];
@@ -76,6 +78,8 @@ class DriverRuntimeInspector {
   String _appVersion = driverAppVersion;
   String _appBuild = driverAppBuild;
   String? _lastRoute;
+  String? _lastUploadedAt;
+  bool _flushInProgress = false;
 
   int get eventCount => _events.length;
   String? get lastRoute => _lastRoute;
@@ -92,6 +96,7 @@ class DriverRuntimeInspector {
     try {
       final preferences = await SharedPreferences.getInstance();
       _preferences = preferences;
+      _lastUploadedAt = preferences.getString(_uploadCheckpointKey);
       final raw = preferences.getString(_storageKey);
       if (raw == null || raw.trim().isEmpty) return;
 
@@ -383,6 +388,267 @@ class DriverRuntimeInspector {
         if (event['platform'] != null)
           'policy_platform': event['platform'],
       },
+    };
+  }
+
+  Future<void> flushToInspector({
+    required String baseUrl,
+    required String token,
+    required String channel,
+    int? storeId,
+    http.Client? client,
+  }) async {
+    if (_flushInProgress ||
+        baseUrl.trim().isEmpty ||
+        token.trim().isEmpty) {
+      return;
+    }
+
+    final pending = _events.where((event) {
+      final timestamp = event['timestamp']?.toString() ?? '';
+      if (timestamp.isEmpty ||
+          (_lastUploadedAt != null &&
+              timestamp.compareTo(_lastUploadedAt!) <= 0)) {
+        return false;
+      }
+
+      final type = event['type']?.toString().toLowerCase() ?? '';
+      return type.contains('error') ||
+          type.contains('failure') ||
+          type.contains('exception');
+    }).take(20).toList(growable: false);
+
+    if (pending.isEmpty) return;
+
+    _flushInProgress = true;
+    final ownsClient = client == null;
+    final transport = client ?? http.Client();
+
+    try {
+      final root = baseUrl.trim().replaceFirst(RegExp(r'/+    try {
+      await _persistChain;
+    } catch (_) {
+      // Keep clearing even if a previous preference write failed.
+    }
+    _events.clear();
+    _lastRoute = null;
+    _lastUploadedAt = null;
+    final preferences = _preferences;
+    if (preferences != null) {
+      try {
+        await preferences.remove(_storageKey);
+        await preferences.remove(_uploadCheckpointKey);
+      } catch (_) {
+        // Clearing diagnostics must not break the UI.
+      }
+    }
+  }
+
+  void _append(Map<String, dynamic> event) {
+    final timestamp = DateTime.now().toUtc().toIso8601String();
+    _events.add(<String, dynamic>{
+      'timestamp': timestamp,
+      ...event,
+    });
+    if (_events.length > maxEvents) {
+      _events.removeRange(0, _events.length - maxEvents);
+    }
+    _schedulePersist();
+  }
+
+  void _schedulePersist() {
+    final preferences = _preferences;
+    if (preferences == null) return;
+
+    final payload = jsonEncode(_events);
+    _persistChain = _persistChain
+        .then((_) => preferences.setString(_storageKey, payload))
+        .then<void>((_) {})
+        .catchError((_) {});
+  }
+
+  String _safeEndpoint(Uri uri) {
+    final segments = uri.pathSegments.map((segment) {
+      if (RegExp(r'^\d+$').hasMatch(segment)) return ':id';
+      if (RegExp(
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+        caseSensitive: false,
+      ).hasMatch(segment)) {
+        return ':id';
+      }
+      return sanitizeForDiagnostics(segment, maxLength: 160);
+    }).join('/');
+
+    final port = uri.hasPort &&
+            !((uri.scheme == 'https' && uri.port == 443) ||
+                (uri.scheme == 'http' && uri.port == 80))
+        ? ':${uri.port}'
+        : '';
+    final path = segments.isEmpty ? '/' : '/$segments';
+    return '${uri.scheme}://${uri.host}$port$path';
+  }
+}
+
+class DriverDiagnosticHttpClient extends http.BaseClient {
+  DriverDiagnosticHttpClient(
+    this._inner, {
+    DriverRuntimeInspector? inspector,
+  }) : _inspector = inspector ?? DriverRuntimeInspector.instance;
+
+  final http.Client _inner;
+  final DriverRuntimeInspector _inspector;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      final response = await _inner.send(request);
+      stopwatch.stop();
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        _inspector.recordHttpFailure(
+          method: request.method,
+          uri: request.url,
+          statusCode: response.statusCode,
+          elapsed: stopwatch.elapsed,
+        );
+      }
+      final authorization = request.headers['Authorization'] ??
+          request.headers['authorization'];
+      if (authorization != null && authorization.trim().isNotEmpty) {
+        unawaited(
+          _inspector.flushRemote(
+            client: _inner,
+            requestUri: request.url,
+            authorization: authorization,
+          ),
+        );
+      }
+      return response;
+    } catch (error) {
+      stopwatch.stop();
+      _inspector.recordHttpFailure(
+        method: request.method,
+        uri: request.url,
+        elapsed: stopwatch.elapsed,
+        error: error,
+      );
+      final authorization = request.headers['Authorization'] ??
+          request.headers['authorization'];
+      if (authorization != null && authorization.trim().isNotEmpty) {
+        unawaited(
+          _inspector.flushRemote(
+            client: _inner,
+            requestUri: request.url,
+            authorization: authorization,
+          ),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  void close() => _inner.close();
+}
+), '');
+      final endpoint = Uri.parse('$root/api/v1/runtime/diagnostics');
+
+      for (final event in pending) {
+        http.Response response;
+        try {
+          response = await transport.post(
+            endpoint,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(
+              _inspectorPayload(
+                event,
+                channel: channel,
+                storeId: storeId,
+              ),
+            ),
+          );
+        } catch (_) {
+          break;
+        }
+
+        if (response.statusCode != 202) {
+          break;
+        }
+
+        final timestamp = event['timestamp']?.toString();
+        if (timestamp != null && timestamp.isNotEmpty) {
+          _lastUploadedAt = timestamp;
+          try {
+            await _preferences?.setString(_uploadCheckpointKey, timestamp);
+          } catch (_) {
+            // The in-memory checkpoint still prevents duplicate sends.
+          }
+        }
+      }
+    } finally {
+      if (ownsClient) transport.close();
+      _flushInProgress = false;
+    }
+  }
+
+  Map<String, dynamic> _inspectorPayload(
+    Map<String, dynamic> event, {
+    required String channel,
+    int? storeId,
+  }) {
+    final type = event['type']?.toString() ?? 'runtime_failure';
+    final status = (event['status_code'] as num?)?.toInt();
+    final message = event['message'] ??
+        event['error'] ??
+        event['code'] ??
+        event['failure_class'] ??
+        type;
+    final isError = status == null ||
+        status >= 500 ||
+        type == 'error' ||
+        type.contains('exception');
+
+    return <String, dynamic>{
+      'app': 'driver',
+      'source': sanitizeForDiagnostics(type, maxLength: 80),
+      'category': sanitizeForDiagnostics(
+        event['failure_class'] ?? event['code'] ?? type,
+        maxLength: 80,
+      ),
+      'severity': isError ? 'error' : 'warning',
+      'message': sanitizeForDiagnostics(message, maxLength: 2000),
+      'app_version': sanitizeForDiagnostics(_appVersion, maxLength: 80),
+      'app_build': sanitizeForDiagnostics(_appBuild, maxLength: 80),
+      'platform': sanitizeForDiagnostics(driverOperatingSystem, maxLength: 40),
+      'os_version': sanitizeForDiagnostics(
+        driverOperatingSystemVersion,
+        maxLength: 1000,
+      ),
+      if (_lastRoute != null)
+        'route': sanitizeForDiagnostics(_lastRoute, maxLength: 1000),
+      'channel': channel,
+      if (storeId != null && storeId > 0) 'store_id': storeId,
+      if (event['endpoint'] != null)
+        'path': sanitizeForDiagnostics(event['endpoint'], maxLength: 4096),
+      if (event['method'] != null)
+        'method': sanitizeForDiagnostics(event['method'], maxLength: 12),
+      if (status != null) 'status': status,
+      if (event['correlation_id'] != null)
+        'correlation_id':
+            sanitizeForDiagnostics(event['correlation_id'], maxLength: 160),
+      if (event['attempt'] is num)
+        'retry': (event['attempt'] as num).toInt(),
+      if (event['duration_ms'] is num)
+        'elapsed_ms': (event['duration_ms'] as num).toInt(),
+      if (event['stack'] != null)
+        'stack': sanitizeForDiagnostics(event['stack'], maxLength: 10000),
+      if (event['error_type'] != null)
+        'error_type':
+            sanitizeForDiagnostics(event['error_type'], maxLength: 255),
     };
   }
 
