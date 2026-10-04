@@ -960,11 +960,13 @@ class _EvidenceStorefrontApi implements StorefrontApi {
             'name': 'FOODEX Wholesale',
             'theme_code': 'wholesale_b2b',
             'retail_context_ids': [7],
+            'is_platform_principal': true,
           },
         ],
         'entitlements': {
           'retail_context_ids': [7],
-          'direct_b2b': false,
+          'direct_b2b': true,
+          'principal_wholesale_store_id': 70,
         },
       };
 
