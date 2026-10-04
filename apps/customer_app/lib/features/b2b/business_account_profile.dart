@@ -7,12 +7,18 @@ class B2bBusinessAccountProfile extends StatefulWidget {
     required this.api,
     required this.endpoint,
     required this.addressesRoute,
+    this.onSwitchStore,
     super.key,
   });
 
   final B2bApi api;
   final String endpoint;
   final String addressesRoute;
+
+  /// UI hook consumed by the cross-cutting C13 navigation lane (#894).
+  /// Screen 13 owns the visible action; #408/#894 own switch authorization
+  /// and commerce-context mutation.
+  final VoidCallback? onSwitchStore;
 
   @override
   State<B2bBusinessAccountProfile> createState() =>
@@ -109,67 +115,36 @@ class _B2bBusinessAccountProfileState
             key: const ValueKey('b2b-profile-friendly-data'),
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              _ProfileHero(
+                isArabic: isArabic,
+                displayName: accountName.isEmpty ? companyName : accountName,
+                companyName: companyName,
+                email: email,
+                accountStatus: accountStatus,
+                typeLabel: typeLabel,
+              ),
+              const SizedBox(height: 14),
               _QuickActions(
                 isArabic: isArabic,
                 addressesRoute: widget.addressesRoute,
                 locale: locale,
                 roles: roles,
-              ),
-              const SizedBox(height: 14),
-              _ProfileCard(
-                icon: Icons.person_outline_rounded,
-                title: isArabic ? 'ملخص الحساب' : 'Account summary',
-                subtitle: isArabic
-                    ? 'المعلومات الأساسية عن حسابك'
-                    : 'Core information about your account',
-                children: [
-                  _ProfileRow(
-                    icon: Icons.badge_outlined,
-                    label: isArabic ? 'رقم الحساب' : 'Account ID',
-                    value: customerId.isEmpty ? '—' : customerId,
-                  ),
-                  _ProfileRow(
-                    icon: Icons.layers_outlined,
-                    label: isArabic ? 'نوع الحساب' : 'Account type',
-                    value: typeLabel,
-                  ),
-                  if (accountStatus.isNotEmpty)
-                    _ProfileRow(
-                      icon: Icons.verified_user_outlined,
-                      label: isArabic ? 'حالة الحساب' : 'Account status',
-                      value: accountStatus.toLowerCase() == 'active'
-                          ? (isArabic ? 'نشط' : 'Active')
-                          : accountStatus,
-                    ),
-                  _ProfileRow(
-                    icon: Icons.language_rounded,
-                    label: isArabic ? 'اللغة' : 'Language',
-                    value: locale.isEmpty ? '—' : locale.toUpperCase(),
-                  ),
-                  _ProfileRow(
-                    icon: Icons.storefront_outlined,
-                    label: isArabic ? 'حساب تاجر تجزئة' : 'Retail merchant',
-                    value: retailMerchant
-                        ? (isArabic ? 'نعم' : 'Yes')
-                        : (isArabic ? 'لا' : 'No'),
-                    isLast: true,
-                  ),
-                ],
+                addressesCount: addresses.length,
+                favoritesCount: favorites.length,
+                onSwitchStore: widget.onSwitchStore,
               ),
               const SizedBox(height: 14),
               _ProfileCard(
                 icon: Icons.business_outlined,
-                title: isArabic
-                    ? 'بيانات الشركة والتواصل'
-                    : 'Company & contact',
+                title: isArabic ? 'بيانات الحساب' : 'Account details',
                 subtitle: isArabic
-                    ? 'البيانات المسجلة لهذا الحساب'
-                    : 'Details registered for this account',
+                    ? 'بيانات الشركة والتواصل المسجلة'
+                    : 'Registered company and contact information',
                 children: [
                   if (companyName.isNotEmpty)
                     _ProfileRow(
                       icon: Icons.apartment_rounded,
-                      label: isArabic ? 'الشركة / الحساب' : 'Company / account',
+                      label: isArabic ? 'الشركة' : 'Company',
                       value: companyName,
                     ),
                   if (accountName.isNotEmpty && accountName != companyName)
@@ -184,6 +159,12 @@ class _B2bBusinessAccountProfileState
                       label: isArabic ? 'البريد الإلكتروني' : 'Email',
                       value: email,
                     ),
+                  if (phone.isNotEmpty)
+                    _ProfileRow(
+                      icon: Icons.phone_outlined,
+                      label: isArabic ? 'الهاتف' : 'Phone',
+                      value: phone,
+                    ),
                   if (taxNumber.isNotEmpty)
                     _ProfileRow(
                       icon: Icons.receipt_long_outlined,
@@ -191,139 +172,105 @@ class _B2bBusinessAccountProfileState
                       value: taxNumber,
                     ),
                   _ProfileRow(
-                    icon: Icons.phone_outlined,
-                    label: isArabic ? 'الهاتف' : 'Phone',
-                    value: phone.isEmpty ? '—' : phone,
+                    icon: Icons.badge_outlined,
+                    label: isArabic ? 'رقم الحساب' : 'Account ID',
+                    value: customerId.isEmpty ? '—' : customerId,
+                  ),
+                  _ProfileRow(
+                    icon: Icons.layers_outlined,
+                    label: isArabic ? 'نوع الحساب' : 'Account type',
+                    value: typeLabel,
                     isLast: true,
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              _ProfileCard(
-                icon: Icons.hub_outlined,
-                title: isArabic
-                    ? 'المتاجر والحسابات المرتبطة'
-                    : 'Linked stores & accounts',
-                subtitle: isArabic
-                    ? 'ملخص الارتباطات التجارية لهذا الحساب'
-                    : 'Commerce relationships linked to this account',
-                children: [
-                  _Metrics(
-                    items: [
-                      _Metric(
-                        isArabic ? 'متاجر مرتبطة' : 'Linked stores',
-                        retailStoreIds.length.toString(),
-                        Icons.storefront_outlined,
-                      ),
-                      _Metric(
-                        isArabic ? 'متاجر أملكها' : 'Owned stores',
-                        ownedStoreIds.length.toString(),
-                        Icons.home_work_outlined,
-                      ),
-                      _Metric(
-                        isArabic ? 'متاجر أديرها' : 'Managed stores',
-                        managedStoreIds.length.toString(),
-                        Icons.admin_panel_settings_outlined,
-                      ),
-                      _Metric(
-                        isArabic ? 'حسابات جملة' : 'Wholesale accounts',
-                        b2bCustomerIds.length.toString(),
-                        Icons.groups_2_outlined,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _ProfileCard(
-                icon: Icons.link_rounded,
-                title: isArabic
-                    ? 'حسابات الجملة المرتبطة'
-                    : 'Linked wholesale accounts',
-                subtitle: isArabic
-                    ? 'ربط متجر التجزئة بحساب الشراء بالجملة'
-                    : 'Retail-store to wholesale-account links',
-                children: [
-                  if (linkedAccounts.isEmpty)
-                    _InlineEmpty(
-                      text: isArabic
-                          ? 'لا توجد حسابات جملة مرتبطة.'
-                          : 'No linked wholesale accounts.',
-                    )
-                  else
-                    ...linkedAccounts.asMap().entries.map((entry) {
-                      final row = entry.value;
-                      return _LinkedAccountRow(
-                        retailStoreId: _first(row['retail_store_id']),
-                        b2bCustomerId: _first(row['b2b_customer_id']),
-                        isArabic: isArabic,
-                        isLast: entry.key == linkedAccounts.length - 1,
-                      );
-                    }),
-                ],
-              ),
-              if (customer.isNotEmpty) ...[
+              if (retailStoreIds.isNotEmpty ||
+                  ownedStoreIds.isNotEmpty ||
+                  managedStoreIds.isNotEmpty ||
+                  b2bCustomerIds.isNotEmpty ||
+                  linkedAccounts.isNotEmpty) ...[
                 const SizedBox(height: 14),
                 _ProfileCard(
-                  icon: Icons.assignment_ind_outlined,
-                  title: isArabic ? 'ملف العميل' : 'Customer profile',
+                  icon: Icons.hub_outlined,
+                  title: isArabic ? 'الوصول التجاري' : 'Commerce access',
                   subtitle: isArabic
-                      ? 'الهوية التجارية المستخدمة في الشراء'
-                      : 'Commerce identity used for purchasing',
+                      ? 'الجملة والتجزئة المرتبطان بنفس الحساب'
+                      : 'Wholesale and Retail access linked to this account',
                   children: [
-                    _ProfileRow(
-                      icon: Icons.badge_outlined,
-                      label: isArabic ? 'رقم العميل' : 'Customer ID',
-                      value: _first(customer['id'], '—'),
+                    _Metrics(
+                      items: [
+                        _Metric(
+                          isArabic ? 'متاجر مرتبطة' : 'Linked stores',
+                          retailStoreIds.length.toString(),
+                          Icons.storefront_outlined,
+                        ),
+                        _Metric(
+                          isArabic ? 'متاجر أملكها' : 'Owned stores',
+                          ownedStoreIds.length.toString(),
+                          Icons.home_work_outlined,
+                        ),
+                        _Metric(
+                          isArabic ? 'متاجر أديرها' : 'Managed stores',
+                          managedStoreIds.length.toString(),
+                          Icons.admin_panel_settings_outlined,
+                        ),
+                        _Metric(
+                          isArabic ? 'حسابات جملة' : 'Wholesale accounts',
+                          b2bCustomerIds.length.toString(),
+                          Icons.groups_2_outlined,
+                        ),
+                      ],
                     ),
-                    _ProfileRow(
-                      icon: Icons.layers_outlined,
-                      label: isArabic ? 'النوع' : 'Type',
-                      value: typeLabel,
-                    ),
-                    _ProfileRow(
-                      icon: Icons.store_outlined,
-                      label: isArabic ? 'نطاق المتجر' : 'Store scope',
-                      value: customerStoreId.isNotEmpty
-                          ? customerStoreId
-                          : (isArabic ? 'منصة الجملة' : 'Wholesale platform'),
-                      isLast: true,
-                    ),
+                    if (linkedAccounts.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      ...linkedAccounts.asMap().entries.map((entry) {
+                        final row = entry.value;
+                        return _LinkedAccountRow(
+                          retailStoreId: _first(row['retail_store_id']),
+                          b2bCustomerId: _first(row['b2b_customer_id']),
+                          isArabic: isArabic,
+                          isLast: entry.key == linkedAccounts.length - 1,
+                        );
+                      }),
+                    ],
                   ],
                 ),
               ],
               const SizedBox(height: 14),
               _ProfileCard(
-                icon: Icons.info_outline_rounded,
-                title: isArabic ? 'الحالة' : 'Status',
+                icon: Icons.verified_user_outlined,
+                title: isArabic ? 'حالة الحساب' : 'Account status',
                 subtitle: isArabic
-                    ? 'بياناتك المحفوظة داخل الحساب'
-                    : 'Data currently saved in your account',
+                    ? 'ملخص الهوية والإعدادات الحالية'
+                    : 'Current identity and settings summary',
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatusTile(
-                          icon: Icons.location_on_outlined,
-                          label: isArabic ? 'العناوين' : 'Addresses',
-                          value: addresses.isEmpty
-                              ? (isArabic ? 'لا توجد بيانات' : 'No data')
-                              : '${addresses.length}',
-                          onTap: () => Navigator.of(context)
-                              .pushNamed(widget.addressesRoute),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _StatusTile(
-                          icon: Icons.favorite_border_rounded,
-                          label: isArabic ? 'المفضلة' : 'Favorites',
-                          value: favorites.isEmpty
-                              ? (isArabic ? 'لا توجد بيانات' : 'No data')
-                              : '${favorites.length}',
-                        ),
-                      ),
-                    ],
+                  if (accountStatus.isNotEmpty)
+                    _ProfileRow(
+                      icon: Icons.verified_user_outlined,
+                      label: isArabic ? 'الحالة' : 'Status',
+                      value: accountStatus.toLowerCase() == 'active'
+                          ? (isArabic ? 'نشط' : 'Active')
+                          : accountStatus,
+                    ),
+                  _ProfileRow(
+                    icon: Icons.language_rounded,
+                    label: isArabic ? 'اللغة' : 'Language',
+                    value: locale.isEmpty ? '—' : locale.toUpperCase(),
+                  ),
+                  _ProfileRow(
+                    icon: Icons.store_outlined,
+                    label: isArabic ? 'نطاق المتجر' : 'Store scope',
+                    value: customerStoreId.isNotEmpty
+                        ? customerStoreId
+                        : (isArabic ? 'منصة الجملة' : 'Wholesale platform'),
+                  ),
+                  _ProfileRow(
+                    icon: Icons.storefront_outlined,
+                    label: isArabic ? 'حساب تاجر تجزئة' : 'Retail merchant',
+                    value: retailMerchant
+                        ? (isArabic ? 'نعم' : 'Yes')
+                        : (isArabic ? 'لا' : 'No'),
+                    isLast: true,
                   ),
                 ],
               ),
@@ -333,122 +280,373 @@ class _B2bBusinessAccountProfileState
       );
 }
 
+class _ProfileHero extends StatelessWidget {
+  const _ProfileHero({
+    required this.isArabic,
+    required this.displayName,
+    required this.companyName,
+    required this.email,
+    required this.accountStatus,
+    required this.typeLabel,
+  });
+
+  final bool isArabic;
+  final String displayName;
+  final String companyName;
+  final String email;
+  final String accountStatus;
+  final String typeLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = displayName.isEmpty
+        ? (isArabic ? 'عميل الأعمال' : 'Business customer')
+        : displayName;
+    final initial = title.characters.first.toUpperCase();
+    final active = accountStatus.toLowerCase() == 'active';
+    final statusText = accountStatus.isEmpty
+        ? typeLabel
+        : active
+            ? (isArabic ? 'حساب نشط' : 'Active account')
+            : accountStatus;
+
+    return Container(
+      key: const ValueKey('b2b-profile-hero'),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF005B3E),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x2200452F),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            isArabic ? 'حسابي' : 'My account',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 21,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE7F8D7),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    color: Color(0xFF005B3E),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (companyName.isNotEmpty && companyName != title) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        companyName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFFD8EAE2),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                    if (email.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textDirection: TextDirection.ltr,
+                        style: const TextStyle(
+                          color: Color(0xFFBFD8CD),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Align(
+            alignment:
+                isArabic ? Alignment.centerRight : Alignment.centerLeft,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0x24FFFFFF),
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(color: const Color(0x4DFFFFFF)),
+              ),
+              child: Text(
+                statusText,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _QuickActions extends StatelessWidget {
   const _QuickActions({
     required this.isArabic,
     required this.addressesRoute,
     required this.locale,
     required this.roles,
+    required this.addressesCount,
+    required this.favoritesCount,
+    required this.onSwitchStore,
   });
 
   final bool isArabic;
   final String addressesRoute;
   final String locale;
   final List<String> roles;
+  final int addressesCount;
+  final int favoritesCount;
+  final VoidCallback? onSwitchStore;
 
   @override
-  Widget build(BuildContext context) => Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _ActionChip(
-            icon: Icons.business_outlined,
-            label: isArabic ? 'بيانات الشركة' : 'Company details',
-            selected: true,
-          ),
-          _ActionChip(
-            icon: Icons.location_on_outlined,
-            label: isArabic ? 'إدارة العناوين' : 'Manage addresses',
-            onTap: () => Navigator.of(context).pushNamed(addressesRoute),
-          ),
-          _ActionChip(
-            icon: Icons.settings_outlined,
-            label: isArabic ? 'الإعدادات' : 'Settings',
-            onTap: () => showModalBottomSheet<void>(
-              context: context,
-              showDragHandle: true,
-              builder: (sheetContext) => SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        isArabic ? 'إعدادات الحساب' : 'Account settings',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(sheetContext)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(height: 16),
-                      _ProfileRow(
-                        icon: Icons.language_rounded,
-                        label: isArabic ? 'اللغة' : 'Language',
-                        value: locale.isEmpty ? '—' : locale.toUpperCase(),
-                      ),
-                      _ProfileRow(
-                        icon: Icons.security_outlined,
-                        label: isArabic ? 'عدد الصلاحيات' : 'Role count',
-                        value: roles.length.toString(),
-                        isLast: true,
-                      ),
-                    ],
+  Widget build(BuildContext context) => Container(
+        key: const ValueKey('b2b-profile-actions'),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFDDE8E1)),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = (constraints.maxWidth - 10) / 2;
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                SizedBox(
+                  width: itemWidth,
+                  child: _AccountActionTile(
+                    key: const ValueKey('b2b-profile-addresses-action'),
+                    icon: Icons.location_on_outlined,
+                    label: isArabic ? 'العناوين' : 'Addresses',
+                    caption: isArabic
+                        ? '$addressesCount عنوان محفوظ'
+                        : '$addressesCount saved',
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(addressesRoute),
                   ),
                 ),
-              ),
+                SizedBox(
+                  width: itemWidth,
+                  child: _AccountActionTile(
+                    key: const ValueKey('b2b-profile-settings-action'),
+                    icon: Icons.settings_outlined,
+                    label: isArabic ? 'الإعدادات' : 'Settings',
+                    caption: isArabic ? 'اللغة والحساب' : 'Language & account',
+                    onTap: () => _showSettings(
+                      context,
+                      isArabic: isArabic,
+                      locale: locale,
+                      roles: roles,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: itemWidth,
+                  child: _AccountActionTile(
+                    key: const ValueKey('b2b-profile-switch-store'),
+                    icon: Icons.swap_horiz_rounded,
+                    label: isArabic ? 'تبديل المتجر' : 'Switch store',
+                    caption: isArabic
+                        ? 'الجملة والتجزئة'
+                        : 'Wholesale / Retail',
+                    onTap: onSwitchStore,
+                    pendingIntegration: onSwitchStore == null,
+                  ),
+                ),
+                SizedBox(
+                  width: itemWidth,
+                  child: _AccountActionTile(
+                    key: const ValueKey('b2b-profile-favorites-summary'),
+                    icon: Icons.favorite_border_rounded,
+                    label: isArabic ? 'المفضلة' : 'Favorites',
+                    caption: isArabic
+                        ? '$favoritesCount عنصر محفوظ'
+                        : '$favoritesCount saved',
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
+  static Future<void> _showSettings(
+    BuildContext context, {
+    required bool isArabic,
+    required String locale,
+    required List<String> roles,
+  }) =>
+      showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  isArabic ? 'إعدادات الحساب' : 'Account settings',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(sheetContext)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 16),
+                _ProfileRow(
+                  icon: Icons.language_rounded,
+                  label: isArabic ? 'اللغة' : 'Language',
+                  value: locale.isEmpty ? '—' : locale.toUpperCase(),
+                ),
+                _ProfileRow(
+                  icon: Icons.security_outlined,
+                  label: isArabic ? 'عدد الصلاحيات' : 'Role count',
+                  value: roles.length.toString(),
+                  isLast: true,
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       );
 }
 
-class _ActionChip extends StatelessWidget {
-  const _ActionChip({
+class _AccountActionTile extends StatelessWidget {
+  const _AccountActionTile({
+    required super.key,
     required this.icon,
     required this.label,
-    this.selected = false,
+    required this.caption,
     this.onTap,
+    this.pendingIntegration = false,
   });
 
   final IconData icon;
   final String label;
-  final bool selected;
+  final String caption;
   final VoidCallback? onTap;
+  final bool pendingIntegration;
 
   @override
   Widget build(BuildContext context) => Material(
-        color: selected ? const Color(0xFF005B3E) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFF6FAF7),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            constraints: const BoxConstraints(minHeight: 98),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: selected
-                    ? const Color(0xFF005B3E)
-                    : const Color(0xFFDDE8E1),
-              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2ECE6)),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  icon,
-                  size: 18,
-                  color: selected ? Colors.white : const Color(0xFF005B3E),
+                Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE7F8D7),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        icon,
+                        color: const Color(0xFF078A43),
+                        size: 19,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (onTap != null)
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFF8A9991),
+                        size: 20,
+                      ),
+                  ],
                 ),
-                const SizedBox(width: 7),
+                const SizedBox(height: 9),
                 Text(
                   label,
-                  style: TextStyle(
-                    color: selected ? Colors.white : const Color(0xFF17231D),
-                    fontWeight: FontWeight.w800,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF17231D),
+                    fontWeight: FontWeight.w900,
                     fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  pendingIntegration
+                      ? (Localizations.localeOf(context).languageCode == 'ar'
+                          ? '$caption · من المزيد'
+                          : '$caption · from More')
+                      : caption,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF68766E),
+                    fontSize: 9.5,
+                    height: 1.25,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
