@@ -28,7 +28,7 @@
             <div>
                 <span class="foodex-subtitle">FOODEX · Runtime Diagnostics</span>
                 <h1>{{ __('admin.system_inspector') }}</h1>
-                <p>{{ $ar?'يجمع أخطاء Dashboard وAPI وتطبيق العميل وتطبيق السائق في تقرير تشخيص مركزي واحد.':'Combines Dashboard, API, Customer App and Driver App failures in one central diagnostic report.' }}</p>
+                <p>{{ $ar?'يجمع أخطاء الخادم والراوت وJavaScript وطلبات Fetch، ويصدر تقريرًا واحدًا قابلًا للتنزيل والمشاركة.':'Captures server, route, JavaScript and Fetch failures and exports one shareable diagnostic report.' }}</p>
             </div>
             <div class="inspector-actions">
                 @include('admin._live-notifications',['user'=>auth()->user()])
@@ -42,6 +42,7 @@
         <section class="inspector-grid">
             <article class="foodex-card inspector-stat"><strong>{{ $ar?'إجمالي الأحداث':'Total events' }}</strong><b class="foodex-number">{{ $stats['total'] }}</b></article>
             <article class="foodex-card inspector-stat"><strong>{{ $ar?'أخطاء آخر 24 ساعة':'Errors · 24h' }}</strong><b class="foodex-number">{{ $stats['errors_24h'] }}</b></article>
+            <article class="foodex-card inspector-stat"><strong>{{ $ar?'JavaScript / Fetch · 24 ساعة':'JavaScript / Fetch · 24h' }}</strong><b class="foodex-number">{{ $stats['javascript_24h'] }}</b></article>
             <article class="foodex-card inspector-stat"><strong>{{ $ar?'تطبيقات الموبايل · 24 ساعة':'Mobile apps · 24h' }}</strong><b class="foodex-number">{{ $stats['mobile_24h'] }}</b></article>
             <article class="foodex-card inspector-stat"><strong>{{ $ar?'أخطاء الراوت · 24 ساعة':'Route errors · 24h' }}</strong><b class="foodex-number">{{ $stats['routes_24h'] }}</b></article>
         </section>
@@ -60,13 +61,14 @@
         <form class="foodex-card inspector-toolbar" method="get" action="{{ route('admin.inspector.index') }}">
             <label>{{ $ar?'المصدر':'Source' }}
                 <select name="source"><option value="">{{ $ar?'الكل':'All' }}</option>
-                    @foreach(['server','api','route','javascript','fetch','customer_app','driver_app'] as $item)<option value="{{ $item }}" @selected($source===$item)>{{ $item }}</option>@endforeach
+                    @foreach(['dashboard','server','api','route','javascript','fetch','customer_app','driver_app'] as $item)<option value="{{ $item }}" @selected($source===$item)>{{ $item }}</option>@endforeach
                 </select>
             </label>
             <label>{{ $ar?'الخطورة':'Severity' }}
                 <select name="severity"><option value="">{{ $ar?'الكل':'All' }}</option><option value="error" @selected($severity==='error')>error</option><option value="warning" @selected($severity==='warning')>warning</option></select>
             </label>
-            <label>{{ $ar?'الإصدار':'App version' }}<input name="app_version" value="{{ $appVersion }}" placeholder="1.0.53"></label>
+            <label>{{ $ar?'إصدار التطبيق':'App version' }}<input name="app_version" value="{{ $appVersion }}" placeholder="1.0.53"></label>
+            <label>Build<input name="app_build" value="{{ $appBuild }}" placeholder="53"></label>
             <label>{{ $ar?'القناة':'Channel' }}
                 <select name="channel"><option value="">{{ $ar?'الكل':'All' }}</option><option value="b2b" @selected($channel==='b2b')>B2B</option><option value="b2c" @selected($channel==='b2c')>B2C</option></select>
             </label>
