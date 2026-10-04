@@ -134,7 +134,7 @@ void main() {
     expect(find.text('Buyer'), findsOneWidget);
     expect(find.text('عليك 10.000 KWD'), findsOneWidget);
     expect(find.text('حد الائتمان'), findsOneWidget);
-    expect(find.text('الائتمان المتاح'), findsOneWidget);
+    expect(find.text('الائتمان المتاح'), findsNWidgets(2));
     expect(find.text('الفواتير المفتوحة'), findsOneWidget);
     expect(find.text('المبلغ المتأخر'), findsOneWidget);
     expect(find.text('مشتريات هذا الشهر'), findsOneWidget);
@@ -188,7 +188,7 @@ void main() {
       TextDirection.ltr,
     );
     expect(find.text('Credit to you 20.000 KWD'), findsOneWidget);
-    expect(find.text('Available credit'), findsOneWidget);
+    expect(find.text('Available credit'), findsNWidgets(2));
     expect(find.text('Active orders'), findsOneWidget);
   });
 
