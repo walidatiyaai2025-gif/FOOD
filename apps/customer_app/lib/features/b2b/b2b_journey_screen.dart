@@ -4132,6 +4132,57 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
         ),
       );
 
+  Widget _settlementMetric({
+    required String label,
+    required String value,
+    required IconData icon,
+    bool emphasized = false,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 88),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color: emphasized
+              ? scheme.primaryContainer
+              : scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: emphasized ? scheme.primary : scheme.outlineVariant,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: emphasized ? scheme.primary : scheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+            const SizedBox(height: 3),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _body(Object? raw, {bool stale = false}) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     final envelope = _map(raw);
@@ -4180,79 +4231,161 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
               ),
             ),
           ),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
+        Container(
+          key: const ValueKey('b2b-invoice-hero'),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.receipt_long_rounded),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          ar ? 'تفاصيل الفاتورة' : 'Invoice details',
+                          style:
+                              Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          data['invoice_number']?.toString() ?? '—',
+                          style:
+                              Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Chip(
+                    key: const ValueKey('b2b-invoice-status-chip'),
+                    label: Text(_statusLabel(status, ar)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  Text(
+                    '${ar ? 'الإصدار' : 'Issued'} · ${_displayDate(data['issued_at'])}',
+                  ),
+                  Text(
+                    '${ar ? 'الاستحقاق' : 'Due'} · ${_displayDate(data['due_at'])}',
+                  ),
+                  Text('${ar ? 'العملة' : 'Currency'} · $currency'),
+                ],
+              ),
+              if ((seller['name']?.toString() ?? '').isNotEmpty ||
+                  (customer['name']?.toString() ?? '').isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+              ],
+              if ((seller['name']?.toString() ?? '').isNotEmpty)
+                Text(
+                  '${ar ? 'البائع' : 'Seller'} · ${seller['name']}',
+                  key: const ValueKey('b2b-invoice-seller'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              if ((customer['name']?.toString() ?? '').isNotEmpty)
+                Text(
+                  '${ar ? 'العميل' : 'Customer'} · ${customer['name']}',
+                  key: const ValueKey('b2b-invoice-customer'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              if ((customer['email']?.toString() ?? '').isNotEmpty)
+                Text(customer['email'].toString()),
+              if ((customer['phone']?.toString() ?? '').isNotEmpty)
+                Text(customer['phone'].toString()),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                key: const ValueKey('b2b-invoice-detail-pdf'),
+                onPressed: _sharingPdf ? null : () => _sharePdf(data),
+                icon: _sharingPdf
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.picture_as_pdf_rounded),
+                label: Text(
+                  ar ? 'تحميل الفاتورة PDF' : 'Download invoice PDF',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  if (orderRoute != null)
                     Expanded(
-                      child: Text(
-                        data['invoice_number']?.toString() ?? '—',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ),
-                    Chip(label: Text(_statusLabel(status, ar))),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${ar ? 'تاريخ الإصدار: ' : 'Issued: '}${_displayDate(data['issued_at'])}',
-                ),
-                Text(
-                  '${ar ? 'تاريخ الاستحقاق: ' : 'Due: '}${_displayDate(data['due_at'])}',
-                ),
-                Text('${ar ? 'العملة: ' : 'Currency: '}$currency'),
-                if ((seller['name']?.toString() ?? '').isNotEmpty)
-                  Text(
-                    '${ar ? 'البائع: ' : 'Seller: '}${seller['name']}',
-                    key: const ValueKey('b2b-invoice-seller'),
-                  ),
-                if ((customer['name']?.toString() ?? '').isNotEmpty)
-                  Text(
-                    '${ar ? 'العميل: ' : 'Customer: '}${customer['name']}',
-                    key: const ValueKey('b2b-invoice-customer'),
-                  ),
-                if ((customer['email']?.toString() ?? '').isNotEmpty)
-                  Text(customer['email'].toString()),
-                if ((customer['phone']?.toString() ?? '').isNotEmpty)
-                  Text(customer['phone'].toString()),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      key: const ValueKey('b2b-invoice-detail-pdf'),
-                      onPressed: _sharingPdf ? null : () => _sharePdf(data),
-                      icon: const Icon(Icons.picture_as_pdf_outlined),
-                      label: Text(
-                        ar ? 'تحميل / مشاركة PDF' : 'Download / share PDF',
-                      ),
-                    ),
-                    if (orderRoute != null)
-                      FilledButton.tonalIcon(
+                      child: FilledButton.tonalIcon(
                         key: const ValueKey('b2b-invoice-related-order'),
                         onPressed: () =>
                             Navigator.of(context).pushNamed(orderRoute),
-                        icon: const Icon(Icons.receipt_long_outlined),
+                        icon: const Icon(Icons.local_shipping_outlined),
                         label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
                       ),
-                    IconButton(
-                      key: const ValueKey('b2b-invoice-detail-refresh'),
-                      tooltip: ar ? 'تحديث' : 'Refresh',
-                      onPressed: _reload,
-                      icon: const Icon(Icons.refresh_rounded),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  if (orderRoute != null) const SizedBox(width: 8),
+                  IconButton.filledTonal(
+                    key: const ValueKey('b2b-invoice-detail-refresh'),
+                    tooltip: ar ? 'تحديث' : 'Refresh',
+                    onPressed: _reload,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+                ],
+              ),
+            ],
           ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          key: const ValueKey('b2b-invoice-settlement-strip'),
+          children: [
+            _settlementMetric(
+              label: ar ? 'الإجمالي' : 'Total',
+              value: _money(data['total'], currency),
+              icon: Icons.receipt_long_outlined,
+            ),
+            const SizedBox(width: 8),
+            _settlementMetric(
+              label: ar ? 'المدفوع' : 'Paid',
+              value: _money(data['paid_amount'], currency),
+              icon: Icons.check_circle_outline_rounded,
+            ),
+            const SizedBox(width: 8),
+            _settlementMetric(
+              label: credit > 0.0005
+                  ? (ar ? 'لك' : 'Credit')
+                  : (ar ? 'عليك' : 'Outstanding'),
+              value: credit > 0.0005
+                  ? _money(data['credit_amount'], currency)
+                  : _money(data['outstanding_amount'], currency),
+              icon: credit > 0.0005
+                  ? Icons.savings_outlined
+                  : Icons.account_balance_wallet_outlined,
+              emphasized: credit > 0.0005 || outstanding > 0.0005,
+            ),
+          ],
         ),
         Card(
           key: const ValueKey('b2b-invoice-detail-totals'),
