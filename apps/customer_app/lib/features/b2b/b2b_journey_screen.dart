@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -212,17 +214,22 @@ class B2bJourneyScreen extends StatelessWidget {
                           api: api!,
                           endpoint: _endpoint()!,
                         )
-                      : definition.pattern ==
-                              CustomerRoutePaths.b2bAccountStatement
-                          ? _B2bAccountStatementRemoteState(
+                      : definition.pattern == CustomerRoutePaths.b2bInvoices
+                          ? _InvoicesRemoteState(
                               api: api!,
                               endpoint: _endpoint()!,
                             )
-                          : _RemoteState(
-                              api: api!,
-                              endpoint: _endpoint()!,
-                              routePattern: definition.pattern,
-                            ),
+                          : definition.pattern ==
+                                  CustomerRoutePaths.b2bAccountStatement
+                              ? _B2bAccountStatementRemoteState(
+                                  api: api!,
+                                  endpoint: _endpoint()!,
+                                )
+                              : _RemoteState(
+                                  api: api!,
+                                  endpoint: _endpoint()!,
+                                  routePattern: definition.pattern,
+                                ),
             ],
           ),
         ),
@@ -472,7 +479,7 @@ class B2bJourneyScreen extends StatelessWidget {
         if (storeId == null || storeId.isEmpty) return null;
         return '/api/v1/b2b/products/${segments.last}?store_id=$storeId';
       case CustomerRoutePaths.b2bInvoices:
-        return '/api/v1/b2b/invoices';
+        return '/api/v1/b2b/invoices${uri.hasQuery ? '?${uri.query}' : ''}';
       case CustomerRoutePaths.b2bInvoiceDetails:
         return '/api/v1/b2b/invoices/${segments.last}';
       case CustomerRoutePaths.b2bAccountStatement:
@@ -2035,6 +2042,313 @@ class _AuthoritativeDataView extends StatelessWidget {
   }
 }
 
+class _B2bAccountHub extends StatefulWidget {
+  const _B2bAccountHub({
+    required this.api,
+    required this.financeEndpoint,
+    required this.purchasesRoute,
+    required this.invoicesRoute,
+    required this.statementRoute,
+    required this.ordersRoute,
+    required this.notificationsRoute,
+    required this.addressesRoute,
+    this.onLocaleChanged,
+    this.onLogout,
+  });
+
+  final B2bApi api;
+  final String financeEndpoint;
+  final String purchasesRoute;
+  final String invoicesRoute;
+  final String statementRoute;
+  final String ordersRoute;
+  final String notificationsRoute;
+  final String addressesRoute;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
+
+  @override
+  State<_B2bAccountHub> createState() => _B2bAccountHubState();
+}
+
+class _B2bAccountHubState extends State<_B2bAccountHub> {
+  late Future<Object?> _finance = widget.api.get(widget.financeEndpoint);
+
+  @override
+  void didUpdateWidget(covariant _B2bAccountHub oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.api != widget.api ||
+        oldWidget.financeEndpoint != widget.financeEndpoint) {
+      _finance = widget.api.get(widget.financeEndpoint);
+    }
+  }
+
+  void _retryFinance() {
+    setState(() => _finance = widget.api.get(widget.financeEndpoint));
+  }
+
+  void _open(String route) {
+    Navigator.of(context).pushNamed(route);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final shortcuts = <({IconData icon, String label, String route})>[
+      (
+        icon: Icons.shopping_bag_outlined,
+        label: isArabic ? 'طلباتي' : 'My orders',
+        route: widget.ordersRoute,
+      ),
+      (
+        icon: Icons.receipt_long_outlined,
+        label: isArabic ? 'الفواتير' : 'Invoices',
+        route: widget.invoicesRoute,
+      ),
+      (
+        icon: Icons.account_balance_wallet_outlined,
+        label: isArabic ? 'كشف الحساب' : 'Account statement',
+        route: widget.statementRoute,
+      ),
+      (
+        icon: Icons.insights_outlined,
+        label: isArabic ? 'تقرير المشتريات' : 'Purchases report',
+        route: widget.purchasesRoute,
+      ),
+      (
+        icon: Icons.notifications_none_rounded,
+        label: isArabic ? 'الإشعارات' : 'Notifications',
+        route: widget.notificationsRoute,
+      ),
+      (
+        icon: Icons.location_on_outlined,
+        label: isArabic ? 'العناوين' : 'Addresses',
+        route: widget.addressesRoute,
+      ),
+    ];
+
+    return Column(
+      key: const ValueKey('b2b-account-hub'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          key: const ValueKey('b2b-finance-summary'),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: FutureBuilder<Object?>(
+              future: _finance,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        isArabic
+                            ? 'تعذر تحميل الملخص المالي.'
+                            : 'Financial summary could not be loaded.',
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _retryFinance,
+                        icon: const Icon(Icons.refresh),
+                        label: Text(isArabic ? 'إعادة المحاولة' : 'Retry'),
+                      ),
+                    ],
+                  );
+                }
+
+                final envelope = snapshot.data is Map
+                    ? Map<Object?, Object?>.from(snapshot.data as Map)
+                    : <Object?, Object?>{};
+                final data = envelope['data'] is Map
+                    ? Map<Object?, Object?>.from(envelope['data'] as Map)
+                    : envelope;
+                final balance = _number(data['balance']);
+                final currency = data['currency']?.toString() ?? '';
+                final direction = data['balance_direction']?.toString() ?? '';
+                final directionLabel = switch (direction) {
+                  'customer_owes_company' => isArabic ? 'عليك' : 'You owe',
+                  'company_owes_customer' => isArabic ? 'لك' : 'Credit due to you',
+                  _ => isArabic ? 'متوازن' : 'Settled',
+                };
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      isArabic ? 'ملخص الحساب المالي' : 'Financial account summary',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    _FinanceValue(
+                      label: directionLabel,
+                      value: _money(balance.abs(), currency),
+                      emphasis: true,
+                    ),
+                    _FinanceValue(
+                      label: isArabic ? 'حد الائتمان' : 'Credit limit',
+                      value: _money(_number(data['credit_limit']), currency),
+                    ),
+                    _FinanceValue(
+                      label: isArabic ? 'الائتمان المتاح' : 'Available credit',
+                      value: _money(
+                        _number(data['available_credit_line']),
+                        currency,
+                      ),
+                    ),
+                    _FinanceValue(
+                      label: isArabic ? 'القوة الشرائية' : 'Purchasing power',
+                      value: _money(
+                        _number(data['purchasing_power']),
+                        currency,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      key: const ValueKey('b2b-profile-open-statement'),
+                      onPressed: () => _open(widget.statementRoute),
+                      icon: const Icon(Icons.open_in_new_rounded),
+                      label: Text(
+                        isArabic
+                            ? 'فتح كشف الحساب والتفاصيل'
+                            : 'Open statement and details',
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                title: Text(
+                  isArabic ? 'اختصارات الحساب' : 'Account shortcuts',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  isArabic
+                      ? 'كل وظائف رحلة العميل من مكان واحد'
+                      : 'All customer-journey account functions in one place',
+                ),
+              ),
+              ...shortcuts.map(
+                (item) => ListTile(
+                  leading: Icon(item.icon),
+                  title: Text(item.label),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => _open(item.route),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Card(
+          key: const ValueKey('b2b-profile-settings-security'),
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: Text(isArabic ? 'الإعدادات' : 'Settings'),
+                subtitle: Text(
+                  isArabic
+                      ? 'اللغة والإشعارات والمساعدة والأمان'
+                      : 'Language, notifications, help and security',
+                ),
+              ),
+              if (widget.onLocaleChanged != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'ar', label: Text('العربية')),
+                      ButtonSegment(value: 'en', label: Text('English')),
+                    ],
+                    selected: {isArabic ? 'ar' : 'en'},
+                    onSelectionChanged: (value) {
+                      widget.onLocaleChanged!(Locale(value.first));
+                    },
+                  ),
+                ),
+              ListTile(
+                leading: const Icon(Icons.notifications_active_outlined),
+                title: Text(
+                  isArabic
+                      ? 'الإشعارات وتفضيلات التنبيه'
+                      : 'Notifications & alert preferences',
+                ),
+                subtitle: Text(
+                  isArabic
+                      ? 'عرض مركز الإشعارات الحالي'
+                      : 'Open the current notification center',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => _open(widget.notificationsRoute),
+              ),
+              ListTile(
+                leading: const Icon(Icons.support_agent_outlined),
+                title: Text(isArabic ? 'المساعدة والدعم' : 'Help & support'),
+                subtitle: Text(
+                  isArabic
+                      ? 'تشخيص التطبيق ومعلومات يمكن مشاركتها مع الدعم'
+                      : 'App diagnostics and support-safe information',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => _open(CustomerRoutePaths.diagnostics),
+              ),
+              if (widget.onLogout != null)
+                ListTile(
+                  key: const ValueKey('b2b-profile-security-action'),
+                  leading: const Icon(Icons.security_outlined),
+                  title: Text(
+                    isArabic ? 'الأمان وتسجيل الدخول' : 'Security & sign-in',
+                  ),
+                  subtitle: Text(
+                    isArabic
+                        ? 'تسجيل خروج آمن ومسح الجلسة المحمية ثم تسجيل الدخول من جديد'
+                        : 'Securely sign out, clear the protected session, then sign in again',
+                  ),
+                  trailing: const Icon(Icons.logout_rounded),
+                  onTap: widget.onLogout,
+                ),
+            ],
+          ),
+        ),
+        if (widget.onLogout != null) ...[
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            key: const ValueKey('b2b-profile-logout'),
+            onPressed: widget.onLogout,
+            icon: const Icon(Icons.logout_rounded),
+            label: Text(isArabic ? 'تسجيل الخروج' : 'Sign out'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  double _number(Object? value) =>
+      value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+
+  String _money(double value, String currency) {
+    final suffix = currency.isEmpty ? '' : ' $currency';
+    return '${value.toStringAsFixed(3)}$suffix';
+  }
+}
 
 class _B2bAccountStatementRemoteState extends StatefulWidget {
   const _B2bAccountStatementRemoteState({
@@ -2945,3 +3259,506 @@ class _FinanceValue extends StatelessWidget {
         ),
       );
 }
+
+class _InvoicesRemoteState extends StatefulWidget {
+  const _InvoicesRemoteState({
+    required this.api,
+    required this.endpoint,
+  });
+
+  final B2bApi api;
+  final String endpoint;
+
+  @override
+  State<_InvoicesRemoteState> createState() => _InvoicesRemoteStateState();
+}
+
+class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
+    with WidgetsBindingObserver {
+  late TextEditingController _searchController;
+  late Future<Object?> _future;
+  Object? _lastGood;
+  DateTime? _from;
+  DateTime? _to;
+  String _status = '';
+  int _page = 1;
+  int _perPage = 20;
+  bool _sharingPdf = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _syncFromEndpoint();
+    _future = _fetch();
+  }
+
+  @override
+  void didUpdateWidget(covariant _InvoicesRemoteState oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.api != widget.api || oldWidget.endpoint != widget.endpoint) {
+      _searchController.dispose();
+      _syncFromEndpoint();
+      _future = _fetch();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _reload();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _syncFromEndpoint() {
+    final uri = Uri.parse(widget.endpoint);
+    _from = DateTime.tryParse(uri.queryParameters['from'] ?? '');
+    _to = DateTime.tryParse(uri.queryParameters['to'] ?? '');
+    _status = uri.queryParameters['status'] ?? '';
+    _page = int.tryParse(uri.queryParameters['page'] ?? '') ?? 1;
+    _perPage = int.tryParse(uri.queryParameters['per_page'] ?? '') ?? 20;
+    _searchController =
+        TextEditingController(text: uri.queryParameters['q'] ?? '');
+  }
+
+  String _effectiveEndpoint({int? page}) {
+    final uri = Uri.parse(widget.endpoint);
+    final params = Map<String, String>.from(uri.queryParameters)
+      ..remove('from')
+      ..remove('to')
+      ..remove('status')
+      ..remove('q')
+      ..remove('page')
+      ..remove('per_page');
+    if (_from != null) params['from'] = _date(_from!);
+    if (_to != null) params['to'] = _date(_to!);
+    if (_status.isNotEmpty) params['status'] = _status;
+    final search = _searchController.text.trim();
+    if (search.isNotEmpty) params['q'] = search;
+    final targetPage = page ?? _page;
+    if (targetPage > 1) params['page'] = targetPage.toString();
+    if (_perPage != 20) params['per_page'] = _perPage.toString();
+    if (params.isEmpty) return uri.path;
+    return uri.replace(queryParameters: params).toString();
+  }
+
+  Future<Object?> _fetch() async {
+    final value = await widget.api.get(_effectiveEndpoint());
+    _lastGood = value;
+    return value;
+  }
+
+  void _reload({int? page}) {
+    final targetPage = page ?? _page;
+    setState(() {
+      _page = targetPage;
+      _future = _fetch();
+    });
+  }
+
+  Future<void> _pickDate({required bool from}) async {
+    final initial = from ? (_from ?? DateTime.now()) : (_to ?? DateTime.now());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 366)),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (from) {
+        _from = picked;
+        if (_to != null && picked.isAfter(_to!)) _to = picked;
+      } else {
+        _to = picked;
+        if (_from != null && picked.isBefore(_from!)) _from = picked;
+      }
+    });
+    _reload(page: 1);
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _from = null;
+      _to = null;
+      _status = '';
+      _searchController.clear();
+    });
+    _reload(page: 1);
+  }
+
+  Future<void> _sharePdf(Map<Object?, Object?> row) async {
+    if (_sharingPdf) return;
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final documentApi = widget.api;
+    if (documentApi is! B2bDocumentApi) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ar
+                ? 'تنزيل PDF غير متاح في وضع المعاينة.'
+                : 'PDF download is unavailable in preview mode.',
+          ),
+        ),
+      );
+      return;
+    }
+    final rawPath = row['pdf_path']?.toString() ?? '';
+    if (rawPath.isEmpty) return;
+    final path =
+        '$rawPath${rawPath.contains('?') ? '&' : '?'}locale=${ar ? 'ar' : 'en'}';
+    final number = row['invoice_number']?.toString() ?? 'invoice';
+    setState(() => _sharingPdf = true);
+    try {
+      final bytes = await (documentApi as B2bDocumentApi).getBytes(path);
+      final name = '$number.pdf';
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              Uint8List.fromList(bytes),
+              mimeType: 'application/pdf',
+              name: name,
+            ),
+          ],
+          fileNameOverrides: [name],
+          subject: number,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ar
+                ? 'تعذر تنزيل ملف الفاتورة. أعد المحاولة.'
+                : 'Invoice PDF could not be downloaded. Try again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _sharingPdf = false);
+    }
+  }
+
+  String _detailRoute(Map<Object?, Object?> row) {
+    final source = Uri.parse(widget.endpoint);
+    final params = <String, String>{'channel': 'wholesale'};
+    final storeId =
+        row['store_id']?.toString() ?? source.queryParameters['store_id'];
+    if (storeId != null && storeId.isNotEmpty) params['store_id'] = storeId;
+    return Uri(
+      path: '/b2b/invoices/${row['id']}',
+      queryParameters: params,
+    ).toString();
+  }
+
+  String _statusLabel(BuildContext context, String value) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return switch (value) {
+      'paid' => ar ? 'مدفوعة' : 'Paid',
+      'partially_paid' => ar ? 'مدفوعة جزئياً' : 'Partially paid',
+      'overdue' => ar ? 'متأخرة' : 'Overdue',
+      'cancelled' => ar ? 'ملغاة' : 'Cancelled',
+      'credited' => ar ? 'رصيد دائن' : 'Credited',
+      _ => ar ? 'مفتوحة' : 'Open',
+    };
+  }
+
+  String _money(Object? value, String currency) {
+    final amount = double.tryParse(value?.toString() ?? '') ?? 0;
+    return '${amount.toStringAsFixed(3)} $currency'.trim();
+  }
+
+  String _date(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+
+  String _displayDate(Object? value) {
+    final parsed = DateTime.tryParse(value?.toString() ?? '');
+    return parsed == null ? '—' : _date(parsed.toLocal());
+  }
+
+  List<Map<Object?, Object?>> _rows(Object? raw) {
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((row) => Map<Object?, Object?>.from(row))
+        .toList(growable: false);
+  }
+
+  Widget _body(Object? raw, {bool stale = false}) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final envelope = raw is Map
+        ? Map<Object?, Object?>.from(raw)
+        : <Object?, Object?>{};
+    final rows = _rows(envelope['data']);
+    final summary = envelope['summary'] is Map
+        ? Map<Object?, Object?>.from(envelope['summary'] as Map)
+        : <Object?, Object?>{};
+    final meta = envelope['meta'] is Map
+        ? Map<Object?, Object?>.from(envelope['meta'] as Map)
+        : <Object?, Object?>{};
+    final totals = _rows(summary['totals']);
+    final hasMore = meta['has_more'] == true;
+
+    return Column(
+      key: const ValueKey('b2b-invoices-data'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (stale)
+          Card(
+            key: const ValueKey('b2b-invoices-stale'),
+            child: ListTile(
+              leading: const Icon(Icons.cloud_off_outlined),
+              title: Text(
+                ar
+                    ? 'تعذر التحديث؛ يتم عرض آخر بيانات مؤكدة.'
+                    : 'Refresh failed; showing the last confirmed data.',
+              ),
+              trailing: IconButton(
+                onPressed: _reload,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ),
+          ),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                TextField(
+                  key: const ValueKey('b2b-invoices-search'),
+                  controller: _searchController,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    labelText: ar ? 'بحث برقم الفاتورة' : 'Search invoice number',
+                    prefixIcon: const Icon(Icons.search),
+                  ),
+                  onSubmitted: (_) => _reload(page: 1),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  key: const ValueKey('b2b-invoices-status'),
+                  initialValue: _status,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: ar ? 'الحالة' : 'Status',
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Text(ar ? 'كل الحالات' : 'All statuses'),
+                    ),
+                    for (final value in const [
+                      'open',
+                      'partially_paid',
+                      'paid',
+                      'overdue',
+                      'credited',
+                      'cancelled',
+                    ])
+                      DropdownMenuItem(
+                        value: value,
+                        child: Text(_statusLabel(context, value)),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    setState(() => _status = value ?? '');
+                    _reload(page: 1);
+                  },
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      key: const ValueKey('b2b-invoices-from'),
+                      onPressed: () => _pickDate(from: true),
+                      icon: const Icon(Icons.date_range_outlined),
+                      label: Text(_from == null
+                          ? (ar ? 'من' : 'From')
+                          : _date(_from!)),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey('b2b-invoices-to'),
+                      onPressed: () => _pickDate(from: false),
+                      icon: const Icon(Icons.event_outlined),
+                      label: Text(
+                        _to == null ? (ar ? 'إلى' : 'To') : _date(_to!),
+                      ),
+                    ),
+                    TextButton.icon(
+                      key: const ValueKey('b2b-invoices-clear-filters'),
+                      onPressed: _clearFilters,
+                      icon: const Icon(Icons.filter_alt_off_outlined),
+                      label: Text(ar ? 'مسح الفلاتر' : 'Clear filters'),
+                    ),
+                    IconButton(
+                      key: const ValueKey('b2b-invoices-refresh'),
+                      tooltip: ar ? 'تحديث' : 'Refresh',
+                      onPressed: _reload,
+                      icon: const Icon(Icons.refresh_rounded),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...totals.map((total) {
+          final currency = total['currency']?.toString() ?? '';
+          return Card(
+            key: ValueKey('b2b-invoices-summary-$currency'),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                children: [
+                  Text('${ar ? 'الإجمالي' : 'Total'}: ${_money(total['total'], currency)}'),
+                  Text('${ar ? 'المدفوع' : 'Paid'}: ${_money(total['paid'], currency)}'),
+                  Text('${ar ? 'المتبقي' : 'Outstanding'}: ${_money(total['outstanding'], currency)}'),
+                  Text('${ar ? 'المتأخر' : 'Overdue'}: ${_money(total['overdue'], currency)}'),
+                  if ((double.tryParse(total['credit'].toString()) ?? 0) > 0)
+                    Text('${ar ? 'لك' : 'Credit'}: ${_money(total['credit'], currency)}'),
+                ],
+              ),
+            ),
+          );
+        }),
+        if (rows.isEmpty)
+          Card(
+            key: const ValueKey('b2b-empty'),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                ar
+                    ? 'لا توجد فواتير مطابقة للفلاتر الحالية.'
+                    : 'No invoices match the current filters.',
+              ),
+            ),
+          )
+        else
+          ...rows.map((row) {
+            final currency = row['currency']?.toString() ?? '';
+            final status = row['display_status']?.toString() ??
+                row['status']?.toString() ??
+                'open';
+            return Card(
+              key: ValueKey('b2b-invoice-${row['id']}'),
+              child: InkWell(
+                onTap: () => Navigator.of(context).pushNamed(_detailRoute(row)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              row['invoice_number']?.toString() ?? '—',
+                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          Chip(label: Text(_statusLabel(context, status))),
+                        ],
+                      ),
+                      Text('${ar ? 'تاريخ الإصدار' : 'Issued'}: ${_displayDate(row['issued_at'])}'),
+                      Text('${ar ? 'الاستحقاق' : 'Due'}: ${_displayDate(row['due_at'])}'),
+                      const SizedBox(height: 6),
+                      Text('${ar ? 'الإجمالي' : 'Total'}: ${_money(row['total'], currency)}'),
+                      Text('${ar ? 'المدفوع' : 'Paid'}: ${_money(row['paid_amount'], currency)}'),
+                      Text('${ar ? 'المتبقي' : 'Outstanding'}: ${_money(row['outstanding_amount'], currency)}'),
+                      if ((double.tryParse(row['credit_amount'].toString()) ?? 0) >
+                          0)
+                        Text('${ar ? 'لك' : 'Credit'}: ${_money(row['credit_amount'], currency)}'),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            key: ValueKey('b2b-invoice-pdf-${row['id']}'),
+                            onPressed: _sharingPdf ? null : () => _sharePdf(row),
+                            icon: const Icon(Icons.picture_as_pdf_outlined),
+                            label: const Text('PDF'),
+                          ),
+                          FilledButton.tonalIcon(
+                            key: ValueKey('b2b-invoice-open-${row['id']}'),
+                            onPressed: () => Navigator.of(context)
+                                .pushNamed(_detailRoute(row)),
+                            icon: const Icon(Icons.open_in_new_rounded),
+                            label: Text(ar ? 'التفاصيل' : 'Details'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            OutlinedButton(
+              key: const ValueKey('b2b-invoices-previous'),
+              onPressed: _page > 1 ? () => _reload(page: _page - 1) : null,
+              child: Text(ar ? 'السابق' : 'Previous'),
+            ),
+            const Spacer(),
+            Text('${ar ? 'صفحة' : 'Page'} $_page'),
+            const Spacer(),
+            OutlinedButton(
+              key: const ValueKey('b2b-invoices-next'),
+              onPressed: hasMore ? () => _reload(page: _page + 1) : null,
+              child: Text(ar ? 'التالي' : 'Next'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Object?>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done &&
+              _lastGood == null) {
+            return const Center(
+              key: ValueKey('b2b-loading'),
+              child: CircularProgressIndicator(),
+            );
+          }
+          if (snapshot.hasError) {
+            if (_lastGood != null) return _body(_lastGood, stale: true);
+            return _B2bRemoteErrorCard(
+              error: snapshot.error,
+              onRetry: _reload,
+            );
+          }
+          final value = snapshot.data ?? _lastGood;
+          if (value is! Map) {
+            return Card(
+              key: const ValueKey('b2b-empty'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(context.tr('b2b.remote.empty')),
+              ),
+            );
+          }
+          return _body(value);
+        },
+      );
+}
+
