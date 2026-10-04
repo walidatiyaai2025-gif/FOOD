@@ -2454,18 +2454,17 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
   String _money(Object? value, String currency) {
     final amount = double.tryParse(value?.toString() ?? '');
     if (amount == null) return '—';
-    return amount.toStringAsFixed(3) + (currency.isEmpty ? '' : ' ' + currency);
+    final suffix = currency.isEmpty ? '' : ' $currency';
+    return '${amount.toStringAsFixed(3)}$suffix';
   }
 
   String _displayDate(Object? value) {
     final parsed = DateTime.tryParse(value?.toString() ?? '');
     if (parsed == null) return '—';
     final local = parsed.toLocal();
-    return local.year.toString().padLeft(4, '0') +
-        '-' +
-        local.month.toString().padLeft(2, '0') +
-        '-' +
-        local.day.toString().padLeft(2, '0');
+    return '${local.year.toString().padLeft(4, '0')}-'
+        '${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')}';
   }
 
   String _statusLabel(String value, bool ar) => switch (value) {
@@ -2496,15 +2495,13 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
       return;
     }
 
-    final path = rawPath +
-        (rawPath.contains('?') ? '&' : '?') +
-        'locale=' +
-        (ar ? 'ar' : 'en');
+    final path =
+        '$rawPath${rawPath.contains('?') ? '&' : '?'}locale=${ar ? 'ar' : 'en'}';
     final number = data['invoice_number']?.toString() ?? 'invoice';
     setState(() => _sharingPdf = true);
     try {
       final bytes = await (documentApi as B2bDocumentApi).getBytes(path);
-      final name = number + '.pdf';
+      final name = '$number.pdf';
       await SharePlus.instance.share(
         ShareParams(
           files: [
@@ -2539,7 +2536,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
     if (orderId == null || orderId <= 0) return null;
     final storeId = data['store_id']?.toString();
     return Uri(
-      path: '/b2b/orders/' + orderId.toString(),
+      path: '/b2b/orders/$orderId',
       queryParameters: <String, String>{
         'channel': 'wholesale',
         if (storeId != null && storeId.isNotEmpty) 'store_id': storeId,
@@ -2631,20 +2628,21 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text((ar ? 'تاريخ الإصدار: ' : 'Issued: ') +
-                    _displayDate(data['issued_at'])),
-                Text((ar ? 'تاريخ الاستحقاق: ' : 'Due: ') +
-                    _displayDate(data['due_at'])),
-                Text((ar ? 'العملة: ' : 'Currency: ') + currency),
+                Text(
+                  '${ar ? 'تاريخ الإصدار: ' : 'Issued: '}${_displayDate(data['issued_at'])}',
+                ),
+                Text(
+                  '${ar ? 'تاريخ الاستحقاق: ' : 'Due: '}${_displayDate(data['due_at'])}',
+                ),
+                Text('${ar ? 'العملة: ' : 'Currency: '}$currency'),
                 if ((seller['name']?.toString() ?? '').isNotEmpty)
                   Text(
-                    (ar ? 'البائع: ' : 'Seller: ') + seller['name'].toString(),
+                    '${ar ? 'البائع: ' : 'Seller: '}${seller['name']}',
                     key: const ValueKey('b2b-invoice-seller'),
                   ),
                 if ((customer['name']?.toString() ?? '').isNotEmpty)
                   Text(
-                    (ar ? 'العميل: ' : 'Customer: ') +
-                        customer['name'].toString(),
+                    '${ar ? 'العميل: ' : 'Customer: '}${customer['name']}',
                     key: const ValueKey('b2b-invoice-customer'),
                   ),
                 if ((customer['email']?.toString() ?? '').isNotEmpty)
@@ -2758,7 +2756,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
             final tax =
                 double.tryParse(item['tax_total']?.toString() ?? '') ?? 0;
             return Card(
-              key: ValueKey('b2b-invoice-item-' + item['id'].toString()),
+              key: ValueKey('b2b-invoice-item-${item['id']}'),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -2769,26 +2767,24 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                     if ((item['sku']?.toString() ?? '').isNotEmpty)
-                      Text('SKU: ' + item['sku'].toString()),
+                      Text('SKU: ${item['sku']}'),
                     Text(
-                      (ar ? 'الكمية: ' : 'Qty: ') +
-                          item['quantity'].toString() +
-                          ' × ' +
-                          _money(item['unit_price'], itemCurrency),
+                      '${ar ? 'الكمية: ' : 'Qty: '}${item['quantity']} × '
+                      '${_money(item['unit_price'], itemCurrency)}',
                     ),
                     if (discount > 0.0005)
                       Text(
-                        (ar ? 'خصم: ' : 'Discount: ') +
-                            _money(item['discount_total'], itemCurrency),
+                        '${ar ? 'خصم: ' : 'Discount: '}'
+                        '${_money(item['discount_total'], itemCurrency)}',
                       ),
                     if (tax > 0.0005)
                       Text(
-                        (ar ? 'ضريبة: ' : 'Tax: ') +
-                            _money(item['tax_total'], itemCurrency),
+                        '${ar ? 'ضريبة: ' : 'Tax: '}'
+                        '${_money(item['tax_total'], itemCurrency)}',
                       ),
                     Text(
-                      (ar ? 'إجمالي البند: ' : 'Line total: ') +
-                          _money(item['line_total'], itemCurrency),
+                      '${ar ? 'إجمالي البند: ' : 'Line total: '}'
+                      '${_money(item['line_total'], itemCurrency)}',
                     ),
                   ],
                 ),
