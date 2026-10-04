@@ -63,6 +63,36 @@ void main() {
     expect(captured?.headers.containsKey('X-FOODEX-Customer-Domain'), isFalse);
   });
 
+  test('orders preserve authoritative status filter and count metadata', () async {
+    http.Request? captured;
+    final api = HttpCustomerOrdersApi(
+      baseUrl: 'https://foodex.example',
+      token: 'platform-token',
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response(
+          '{"data":[],"meta":{"current_page":1,"per_page":20,"total":1,'
+          '"all_total":3,"scope":"b2b","status_codes":["pending","delivered"],'
+          '"status_counts":{"pending":2,"delivered":1}}}',
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
+
+    final page = await api.orders(
+      channel: 'b2b',
+      status: 'delivered',
+    );
+
+    expect(captured?.url.queryParameters['channel'], 'b2b');
+    expect(captured?.url.queryParameters['status'], 'delivered');
+    expect(page.allTotal, 3);
+    expect(page.statusCodes, <String>['pending', 'delivered']);
+    expect(page.statusCounts['pending'], 2);
+    expect(page.statusCounts['delivered'], 1);
+  });
+
   test('orders reject an explicit channel that conflicts with store context',
       () async {
     final api = HttpCustomerOrdersApi(

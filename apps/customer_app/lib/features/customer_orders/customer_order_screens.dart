@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/api/customer_action_api.dart';
 import '../../core/localization/app_translations.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_order_models.dart';
@@ -11,21 +12,27 @@ class CustomerOrdersScreen extends StatefulWidget {
   const CustomerOrdersScreen({
     required this.api,
     this.onOpenOrder,
+    this.actionApi,
+    this.onOpenCart,
     super.key,
   });
 
   final CustomerOrdersApi api;
   final ValueChanged<CustomerOrderSummary>? onOpenOrder;
+  final CustomerActionApi? actionApi;
+  final ValueChanged<CustomerOrderSummary>? onOpenCart;
 
   @override
   State<CustomerOrdersScreen> createState() => _CustomerOrdersScreenState();
 }
 
 class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const _channels = <String>['b2b', 'b2c'];
 
   late final TabController _tabController;
+  Timer? _refreshTimer;
+  final Set<int> _reordering = <int>{};
   final Map<String, _OrdersTabState> _tabs = <String, _OrdersTabState>{
     'b2b': _OrdersTabState(),
     'b2c': _OrdersTabState(),
@@ -36,19 +43,41 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: _channels.length, vsync: this)
       ..addListener(_onTabChanged);
     for (final channel in _channels) {
       unawaited(_loadChannel(channel));
     }
+    _refreshTimer = Timer.periodic(
+      CustomerOrderRefreshPolicy.openOrderPollInterval,
+      (_) => _refreshActiveOpenOrders(),
+    );
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _refreshTimer?.cancel();
     _tabController
       ..removeListener(_onTabChanged)
       ..dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      unawaited(_loadChannel(_activeChannel));
+    }
+  }
+
+  void _refreshActiveOpenOrders() {
+    if (!mounted) return;
+    final tab = _tabs[_activeChannel]!;
+    if (tab.loading || tab.loadingMore || tab.orders.isEmpty) return;
+    if (tab.orders.every((order) => order.isTerminal)) return;
+    unawaited(_loadChannel(_activeChannel));
   }
 
   void _onTabChanged() {
@@ -79,6 +108,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
       final page = await widget.api.orders(
         page: targetPage,
         channel: channel,
+        status: tab.selectedStatus,
       );
 
       final mixedChannel = page.orders.any(
@@ -95,6 +125,9 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
             : _mergeOrders(tab.orders, page.orders);
         tab.currentPage = page.currentPage;
         tab.total = page.total;
+        tab.allTotal = page.allTotal;
+        tab.statusCodes = List<String>.of(page.statusCodes);
+        tab.statusCounts = Map<String, int>.of(page.statusCounts);
         tab.loading = false;
         tab.loadingMore = false;
         tab.error = null;
@@ -165,9 +198,127 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
   Widget _channelBody(BuildContext context, String channel) {
     final tab = _tabs[channel]!;
 
-    return RefreshIndicator(
-      onRefresh: () => _loadChannel(channel),
-      child: _channelContent(context, channel, tab),
+    return Column(
+      children: [
+        if (tab.statusCodes.isNotEmpty)
+          _statusFilters(context, channel, tab),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => _loadChannel(channel),
+            child: _channelContent(context, channel, tab),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _statusFilters(
+    BuildContext context,
+    String channel,
+    _OrdersTabState tab,
+  ) {
+    return SizedBox(
+      height: 58,
+      child: ListView(
+        key: ValueKey('customer-orders-status-filters-$channel'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 6),
+        children: [
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 8),
+            child: FilterChip(
+              key: ValueKey('customer-orders-status-$channel-all'),
+              label: Text(
+                '${context.tr('customer.orders.status.all')} (${tab.allTotal})',
+              ),
+              selected: tab.selectedStatus == null,
+              onSelected: (_) => _selectStatus(channel, null),
+            ),
+          ),
+          for (final status in tab.statusCodes)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8),
+              child: FilterChip(
+                key: ValueKey('customer-orders-status-$channel-$status'),
+                label: Text(
+                  '${_statusText(context, status)} '
+                  '(${tab.statusCounts[status] ?? 0})',
+                ),
+                selected: tab.selectedStatus == status,
+                onSelected: (_) => _selectStatus(channel, status),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _selectStatus(String channel, String? status) {
+    final tab = _tabs[channel]!;
+    if (tab.selectedStatus == status || tab.loading) return;
+    setState(() {
+      tab.selectedStatus = status;
+    });
+    unawaited(_loadChannel(channel));
+  }
+
+  Future<void> _reorder(CustomerOrderSummary order) async {
+    final actionApi = widget.actionApi;
+    if (actionApi == null ||
+        order.reorderItems.isEmpty ||
+        _reordering.contains(order.id)) {
+      return;
+    }
+
+    setState(() => _reordering.add(order.id));
+    final failed = <String>[];
+    var added = 0;
+
+    for (final item in order.reorderItems) {
+      try {
+        await actionApi.addCartItem(
+          storeId: order.storeId,
+          productId: item.productId,
+          quantity: item.quantity,
+        );
+        added += 1;
+      } catch (_) {
+        failed.add(item.name.trim().isEmpty ? item.sku : item.name.trim());
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _reordering.remove(order.id));
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+
+    if (added == 0) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '${context.tr('customer.orders.reorder_failed')}'
+            '${failed.isEmpty ? '' : ': ${failed.join(', ')}'}',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final message = failed.isEmpty
+        ? context.tr('customer.orders.reorder_success')
+        : '${context.tr('customer.orders.reorder_partial')}: '
+            '${failed.join(', ')}';
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: widget.onOpenCart == null
+            ? null
+            : SnackBarAction(
+                label: context.tr('customer.orders.open_cart'),
+                onPressed: () => widget.onOpenCart!(order),
+              ),
+      ),
     );
   }
 
@@ -221,6 +372,10 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
             onTap: widget.onOpenOrder == null
                 ? null
                 : () => widget.onOpenOrder!(order),
+            onReorder: widget.actionApi != null && _canReorder(order)
+                ? () => unawaited(_reorder(order))
+                : null,
+            reordering: _reordering.contains(order.id),
           );
         }
 
@@ -230,7 +385,8 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
             child: Column(
               children: [
                 Text(
-                  _errorText(context, tab.error!),
+                  '${context.tr('customer.orders.stale')} '
+                  '${_errorText(context, tab.error!)}',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -272,6 +428,10 @@ class _OrdersTabState {
   List<CustomerOrderSummary> orders = <CustomerOrderSummary>[];
   int currentPage = 0;
   int total = 0;
+  int allTotal = 0;
+  List<String> statusCodes = <String>[];
+  Map<String, int> statusCounts = <String, int>{};
+  String? selectedStatus;
   bool loading = false;
   bool loadingMore = false;
   Object? error;
@@ -536,10 +696,17 @@ class _CustomerOrderDetailsScreenState
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order, required this.onTap});
+  const _OrderCard({
+    required this.order,
+    required this.onTap,
+    required this.onReorder,
+    required this.reordering,
+  });
 
   final CustomerOrderSummary order;
   final VoidCallback? onTap;
+  final VoidCallback? onReorder;
+  final bool reordering;
 
   @override
   Widget build(BuildContext context) {
@@ -640,6 +807,53 @@ class _OrderCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: CustomerUiSpacing.xs),
+                      Wrap(
+                        spacing: CustomerUiSpacing.sm,
+                        runSpacing: CustomerUiSpacing.xxs,
+                        children: [
+                          if (order.createdAt != null)
+                            Text(
+                              _formatDateTime(order.createdAt!),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: CustomerUiColors.muted,
+                                  ),
+                            ),
+                          Text(
+                            '${context.tr('customer.orders.items_count')}: '
+                            '${order.itemCount}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: CustomerUiColors.muted,
+                                ),
+                          ),
+                        ],
+                      ),
+                      if (_nextMeaningfulStatus(order) != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: CustomerUiSpacing.xxs),
+                          child: Text(
+                            '${context.tr('customer.orders.next')}: '
+                            '${_statusText(context, _nextMeaningfulStatus(order)!)}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: CustomerUiColors.deepGreenSoft,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      if (onReorder != null) ...[
+                        const SizedBox(height: CustomerUiSpacing.sm),
+                        OutlinedButton.icon(
+                          key: ValueKey('customer-order-reorder-${order.id}'),
+                          onPressed: reordering ? null : onReorder,
+                          icon: reordering
+                              ? const SizedBox.square(
+                                  dimension: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.replay_rounded),
+                          label: Text(context.tr('customer.orders.reorder')),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1169,6 +1383,18 @@ IconData _statusIcon(String status) {
     default:
       return Icons.schedule_rounded;
   }
+}
+
+bool _canReorder(CustomerOrderSummary order) =>
+    order.reorderItems.isNotEmpty &&
+    const <String>{'delivered', 'failed', 'cancelled'}
+        .contains(order.status.toLowerCase());
+
+String? _nextMeaningfulStatus(CustomerOrderSummary order) {
+  for (final status in order.nextStatuses) {
+    if (status.toLowerCase() != 'cancelled') return status;
+  }
+  return null;
 }
 
 String _statusText(BuildContext context, String status) {

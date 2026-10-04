@@ -20,6 +20,9 @@ class CustomerOrderPage {
     required this.perPage,
     required this.total,
     required this.scope,
+    this.allTotal = 0,
+    this.statusCodes = const <String>[],
+    this.statusCounts = const <String, int>{},
   });
 
   final List<CustomerOrderSummary> orders;
@@ -27,6 +30,9 @@ class CustomerOrderPage {
   final int perPage;
   final int total;
   final String scope;
+  final int allTotal;
+  final List<String> statusCodes;
+  final Map<String, int> statusCounts;
 
   factory CustomerOrderPage.fromJson(Map<String, dynamic> json) {
     final raw = json['data'];
@@ -43,12 +49,34 @@ class CustomerOrderPage {
             .toList(growable: false)
         : const <CustomerOrderSummary>[];
 
+    final rawCounts = meta['status_counts'] is Map
+        ? Map<String, dynamic>.from(meta['status_counts'] as Map)
+        : const <String, dynamic>{};
+    final statusCounts = <String, int>{
+      for (final entry in rawCounts.entries)
+        entry.key.toLowerCase(): _int(entry.value),
+    };
+    final statusCodes = meta['status_codes'] is List
+        ? (meta['status_codes'] as List)
+            .map((value) => value.toString().toLowerCase())
+            .where((value) => value.isNotEmpty)
+            .toList(growable: false)
+        : statusCounts.keys.toList(growable: false);
+
     return CustomerOrderPage(
       orders: orders,
       currentPage: _int(meta['current_page'], fallback: 1),
       perPage: _int(meta['per_page'], fallback: orders.length),
       total: _int(meta['total'], fallback: orders.length),
       scope: meta['scope']?.toString() ?? '',
+      allTotal: _int(
+        meta['all_total'],
+        fallback: statusCounts.isEmpty
+            ? _int(meta['total'], fallback: orders.length)
+            : statusCounts.values.fold<int>(0, (sum, value) => sum + value),
+      ),
+      statusCodes: statusCodes,
+      statusCounts: statusCounts,
     );
   }
 }
@@ -65,6 +93,9 @@ class CustomerOrderSummary {
     required this.currency,
     required this.grandTotal,
     required this.createdAt,
+    this.itemCount = 0,
+    this.nextStatuses = const <String>[],
+    this.reorderItems = const <CustomerOrderItem>[],
   });
 
   final int id;
@@ -77,6 +108,9 @@ class CustomerOrderSummary {
   final String currency;
   final double grandTotal;
   final DateTime? createdAt;
+  final int itemCount;
+  final List<String> nextStatuses;
+  final List<CustomerOrderItem> reorderItems;
 
   CustomerOrderContext get context =>
       CustomerOrderContext(storeId: storeId, channel: channel);
@@ -87,6 +121,21 @@ class CustomerOrderSummary {
     final store = json['store'] is Map
         ? Map<String, dynamic>.from(json['store'] as Map)
         : const <String, dynamic>{};
+    final reorderItems = json['items'] is List
+        ? (json['items'] as List)
+            .whereType<Map>()
+            .map((item) => CustomerOrderItem.fromJson(
+                  Map<String, dynamic>.from(item),
+                ))
+            .where((item) => item.productId > 0 && item.quantity > 0)
+            .toList(growable: false)
+        : const <CustomerOrderItem>[];
+    final nextStatuses = json['next_statuses'] is List
+        ? (json['next_statuses'] as List)
+            .map((value) => value.toString().toLowerCase())
+            .where((value) => value.isNotEmpty)
+            .toList(growable: false)
+        : const <String>[];
 
     return CustomerOrderSummary(
       id: _int(json['id']),
@@ -99,6 +148,9 @@ class CustomerOrderSummary {
       currency: json['currency']?.toString() ?? '',
       grandTotal: _double(json['grand_total'] ?? json['total']),
       createdAt: _date(json['created_at']),
+      itemCount: _int(json['item_count'], fallback: reorderItems.length),
+      nextStatuses: nextStatuses,
+      reorderItems: reorderItems,
     );
   }
 }

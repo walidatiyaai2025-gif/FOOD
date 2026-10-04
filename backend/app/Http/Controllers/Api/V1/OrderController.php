@@ -71,10 +71,6 @@ class OrderController extends Controller
         ) {
             $query = $this->platformCustomerOrders($user)
                 ->when(
-                    isset($validated['status']),
-                    fn ($query) => $query->where('status', $validated['status']),
-                )
-                ->when(
                     isset($validated['store_id']),
                     fn ($query) => $query->where('store_id', (int) $validated['store_id']),
                 )
@@ -82,8 +78,13 @@ class OrderController extends Controller
                     isset($validated['channel']),
                     fn ($query) => $query->where('channel', (string) $validated['channel']),
                 );
+            $statusCounts = $this->statusCounts($query);
 
             $paginator = $query
+                ->when(
+                    isset($validated['status']),
+                    fn ($query) => $query->where('status', $validated['status']),
+                )
                 ->latest('id')
                 ->paginate((int) ($validated['per_page'] ?? 20));
 
@@ -96,7 +97,10 @@ class OrderController extends Controller
                     'current_page' => $paginator->currentPage(),
                     'per_page' => $paginator->perPage(),
                     'total' => $paginator->total(),
+                    'all_total' => array_sum($statusCounts),
                     'scope' => 'platform_customer',
+                    'status_codes' => self::statusCodes(),
+                    'status_counts' => $statusCounts,
                 ],
             ]);
         }
@@ -104,9 +108,12 @@ class OrderController extends Controller
         [$customer, $channel] = $this->customerContext($request);
         $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
 
-        $paginator = Order::query()
+        $query = Order::query()
             ->where($customerColumn, $customer->getKey())
-            ->where('channel', $channel)
+            ->where('channel', $channel);
+        $statusCounts = $this->statusCounts($query);
+
+        $paginator = $query
             ->when(
                 isset($validated['status']),
                 fn ($query) => $query->where('status', $validated['status']),
@@ -123,7 +130,10 @@ class OrderController extends Controller
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
+                'all_total' => array_sum($statusCounts),
                 'scope' => $channel,
+                'status_codes' => self::statusCodes(),
+                'status_counts' => $statusCounts,
             ],
         ]);
     }
@@ -375,6 +385,24 @@ class OrderController extends Controller
         );
     }
 
+    /**
+     * @return array<string, int>
+     */
+    private function statusCounts(Builder $query): array
+    {
+        $counts = (clone $query)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $result = [];
+        foreach (self::statusCodes() as $status) {
+            $result[$status] = (int) ($counts[$status] ?? 0);
+        }
+
+        return $result;
+    }
+
     private function orderPayload(Order $order, bool $includeTimeline = false): array
     {
         $items = OrderItem::query()
@@ -440,6 +468,8 @@ class OrderController extends Controller
             'delivery_total' => (float) $order->delivery_total,
             'grand_total' => (float) $order->grand_total,
             'payment_method' => $order->payment_method,
+            'item_count' => count($items),
+            'next_statuses' => self::allowedTransitions((string) $order->status),
             'items' => $items,
             'status_history' => $history,
             'timeline' => $includeTimeline
