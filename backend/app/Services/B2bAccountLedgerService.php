@@ -234,7 +234,7 @@ final class B2bAccountLedgerService
         ];
     }
 
-    /** @return Collection<int,array<string,mixed>> */
+    /** @return Collection<int,array{id:int,type:string,reference:mixed,description:mixed,debit:float,credit:float,currency:string,actor_user_id:int|null,source:string,occurred_at:string}> */
     public function invoiceLedgerEntries(Invoice $invoice): Collection
     {
         return DB::table('customer_account_ledger_entries')
