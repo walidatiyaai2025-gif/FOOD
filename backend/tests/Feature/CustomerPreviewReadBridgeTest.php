@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\B2cCustomer;
+use App\Models\NotificationCampaign;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\B2bCustomerService;
@@ -69,6 +70,84 @@ class CustomerPreviewReadBridgeTest extends TestCase
         $this->withHeader('X-Foodex-Preview-Token', $token)
             ->getJson('/api/v1/app-preview/customer/orders?store_id='.$storeB)
             ->assertNotFound();
+    }
+
+    public function test_authenticated_preview_campaigns_use_selected_persona_and_store_scope(): void
+    {
+        $storeA = $this->store('B2C', 'PREVIEW-CAMPAIGN-A');
+        $storeB = $this->store('B2C', 'PREVIEW-CAMPAIGN-B');
+        $admin = $this->storeAdmin($storeA, 'preview-campaign-admin@example.test');
+        $target = $this->user('Campaign Customer', 'preview-campaign-customer@example.test');
+        app(B2cCustomerService::class)->create($storeA, [
+            'name' => 'Campaign Customer',
+            'email' => $target->email,
+        ], $target);
+
+        $eligible = NotificationCampaign::query()->create([
+            'name' => 'Preview targeted campaign',
+            'type' => 'promotion',
+            'title_ar' => 'حملة المعاينة',
+            'title_en' => 'Preview campaign',
+            'body_ar' => 'بيانات حالية',
+            'body_en' => 'Current authoritative data',
+            'audience' => 'customer',
+            'app' => 'customer',
+            'target_channel' => 'b2c',
+            'store_id' => $storeA,
+            'delivery_channel' => 'in_app',
+            'popup_frequency' => 'once_per_session',
+            'schedule_kind' => 'once',
+            'timezone' => 'Asia/Kuwait',
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addHour(),
+            'next_run_at' => now(),
+            'status' => 'active',
+        ]);
+        NotificationCampaign::query()->create([
+            'name' => 'Foreign preview campaign',
+            'type' => 'promotion',
+            'title_ar' => 'متجر آخر',
+            'title_en' => 'Foreign store',
+            'body_ar' => 'غير مسموح',
+            'body_en' => 'Must not leak',
+            'audience' => 'all',
+            'app' => 'customer',
+            'target_channel' => 'b2c',
+            'store_id' => $storeB,
+            'delivery_channel' => 'in_app',
+            'popup_frequency' => 'once_per_session',
+            'schedule_kind' => 'once',
+            'timezone' => 'Asia/Kuwait',
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addHour(),
+            'next_run_at' => now(),
+            'status' => 'active',
+        ]);
+
+        $token = $this->customerPreviewToken($admin, $target, 'b2c', $storeA);
+        $this->app['auth']->forgetGuards();
+
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->getJson(
+                '/api/v1/app-preview/customer/notification-campaign-popups'
+                .'?channel=b2c&store_id='.$storeA
+                .'&locale=en&install_id=preview-840',
+            )
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $eligible->id)
+            ->assertJsonPath('data.0.title', 'Preview campaign')
+            ->assertJsonPath('data.0.store_id', $storeA);
+
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->getJson(
+                '/api/v1/app-preview/customer/notification-campaign-popups'
+                .'?channel=b2c&store_id='.$storeB
+                .'&locale=en&install_id=preview-840',
+            )
+            ->assertNotFound();
+
+        $this->assertDatabaseCount('notification_campaign_popup_views', 0);
     }
 
     public function test_preview_credential_is_header_only_read_only_and_not_normal_bearer_auth(): void
@@ -275,6 +354,7 @@ class CustomerPreviewReadBridgeTest extends TestCase
             'code' => $code,
             'name' => $code,
             'is_active' => true,
+            'advertising_enabled' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
