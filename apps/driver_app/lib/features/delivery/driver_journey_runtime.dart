@@ -45,16 +45,17 @@ class DriverJourneyRuntimePage extends StatelessWidget {
     String? note,
   }) async {
     List<DriverFailureReasonOption>? failureReasons;
-    final failureCatalog = repository;
     if (assignment.availableStatuses.contains('failed') &&
-        failureCatalog is DriverFailureReasonCatalog) {
+        repository is DriverFailureReasonCatalog) {
       try {
-        failureReasons = await failureCatalog.failedDeliveryReasons();
-        if (failureReasons.isEmpty) {
+        final catalog = repository as DriverFailureReasonCatalog;
+        final reasons = await catalog.failedDeliveryReasons();
+        if (reasons.isEmpty) {
           throw const DriverApiException(
             'No active failed-delivery reasons are available.',
           );
         }
+        failureReasons = reasons;
       } on DriverSessionExpiredException {
         onSessionExpired?.call();
         return;
