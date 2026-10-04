@@ -10,7 +10,9 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
+use App\Services\CustomerDomainResolver;
 use App\Services\OperationalTenantScope;
+use App\Services\RetailMerchantIdentityService;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -220,9 +222,8 @@ final class Customer360Controller extends Controller
         abort_unless($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage'), 403);
         abort_if($access['mode'] === 'b2c', 403);
 
-        $domain = B2bCustomer::query()
-            ->where('user_id', $customer->user_id)
-            ->firstOrFail();
+        $domain = $this->wholesaleDomain($customer, $access);
+        abort_unless($domain instanceof B2bCustomer, 404);
 
         $validated = $request->validate([
             'entry_type' => ['required', Rule::in(B2bAccountLedgerService::MANUAL_TYPES)],
@@ -586,9 +587,26 @@ final class Customer360Controller extends Controller
         }
 
         if ($access['mode'] === 'b2b') {
-            $query->whereIn('platform_customers.user_id', DB::table('b2b_customers')
-                ->select('user_id')
-                ->whereNotNull('user_id'));
+            $query->where(function ($visible): void {
+                $visible->whereIn(
+                    'platform_customers.user_id',
+                    DB::table('b2b_customers')
+                        ->select('user_id')
+                        ->whereNotNull('user_id'),
+                )->orWhereIn(
+                    'platform_customers.user_id',
+                    DB::table('retail_wholesale_accounts')
+                        ->join(
+                            'b2b_accounts',
+                            'b2b_accounts.b2b_customer_id',
+                            '=',
+                            'retail_wholesale_accounts.b2b_customer_id',
+                        )
+                        ->select('retail_wholesale_accounts.owner_user_id')
+                        ->whereNotNull('retail_wholesale_accounts.owner_user_id')
+                        ->where('b2b_accounts.status', 'active'),
+                );
+            });
 
             return;
         }
@@ -682,14 +700,25 @@ final class Customer360Controller extends Controller
         ];
     }
 
+    private function wholesaleDomain(PlatformCustomer $customer, array $access): ?B2bCustomer
+    {
+        if ($access['mode'] === 'b2c') {
+            return null;
+        }
+
+        $user = $customer->user;
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        return app(CustomerDomainResolver::class)->existingB2b($user);
+    }
+
     /** @return array{b2b_id:?int,b2c_ids:list<int>} */
     private function domainIds(PlatformCustomer $customer, array $access): array
     {
-        $b2bId = null;
-        if ($access['mode'] !== 'b2c') {
-            $value = DB::table('b2b_customers')->where('user_id', $customer->user_id)->value('id');
-            $b2bId = $value === null ? null : (int) $value;
-        }
+        $domain = $this->wholesaleDomain($customer, $access);
+        $b2bId = $domain instanceof B2bCustomer ? (int) $domain->getKey() : null;
 
         $b2c = DB::table('b2c_customers')
             ->where('user_id', $customer->user_id)
@@ -768,14 +797,15 @@ final class Customer360Controller extends Controller
     /** @return array<string,mixed>|null */
     private function wholesaleInfo(PlatformCustomer $customer, array $access): ?array
     {
-        if ($access['mode'] === 'b2c') {
+        $domain = $this->wholesaleDomain($customer, $access);
+        if (! $domain instanceof B2bCustomer) {
             return null;
         }
 
         $row = DB::table('b2b_customers')
             ->leftJoin('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
             ->leftJoin('b2b_price_tiers', 'b2b_price_tiers.id', '=', 'b2b_accounts.price_tier_id')
-            ->where('b2b_customers.user_id', $customer->user_id)
+            ->where('b2b_customers.id', $domain->getKey())
             ->first([
                 'b2b_customers.id as customer_id',
                 'b2b_accounts.id as account_id',
@@ -791,8 +821,7 @@ final class Customer360Controller extends Controller
             return null;
         }
 
-        $domain = B2bCustomer::query()->find((int) $row->customer_id);
-        $financial = $domain instanceof B2bCustomer && strtolower((string) $row->status) === 'active'
+        $financial = strtolower((string) $row->status) === 'active'
             ? app(B2bAccountLedgerService::class)->summary($domain)
             : null;
 
@@ -816,12 +845,33 @@ final class Customer360Controller extends Controller
             return [];
         }
 
-        return DB::table('b2c_customers')
-            ->join('stores', 'stores.id', '=', 'b2c_customers.store_id')
-            ->where('b2c_customers.user_id', $customer->user_id)
-            ->when($access['mode'] === 'b2c', fn ($q) => $q->whereIn('b2c_customers.store_id', $access['b2c_store_ids']))
-            ->orderBy('stores.name')
-            ->get(['stores.id', 'stores.name', 'stores.code'])
+        $storeIds = DB::table('b2c_customers')
+            ->where('user_id', $customer->user_id)
+            ->pluck('store_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
+        $user = $customer->user;
+        if ($user instanceof User) {
+            $storeIds = [
+                ...$storeIds,
+                ...app(RetailMerchantIdentityService::class)->retailStoreIds($user),
+            ];
+        }
+
+        $storeIds = array_values(array_unique(array_map('intval', $storeIds)));
+        if ($access['mode'] === 'b2c') {
+            $storeIds = array_values(array_intersect($storeIds, $access['b2c_store_ids']));
+        }
+
+        if ($storeIds === []) {
+            return [];
+        }
+
+        return DB::table('stores')
+            ->whereIn('id', $storeIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code'])
             ->map(fn (object $row): array => [
                 'id' => (int) $row->id,
                 'name' => (string) $row->name,
