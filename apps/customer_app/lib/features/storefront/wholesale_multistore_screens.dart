@@ -2761,23 +2761,54 @@ class _WholesaleCartDesignScreenState
     return widget.api?.get(endpoint) ?? Future<Object?>.value(null);
   }
 
-  Future<void> _update(int id, double value) async {
-    if (widget.commerceApi == null) return;
+  Future<void> _mutate(Future<void> Function() action) async {
     try {
-      await widget.commerceApi!.updateItem(id, value);
-      setState(() => future = _load());
+      await action();
+      if (mounted) {
+        setState(() => future = _load());
+      }
     } catch (error) {
       if (mounted) {
         await showOperationalError(context, error);
+        if (mounted) {
+          setState(() => future = _load());
+        }
       }
     }
+  }
+
+  Future<void> _update(int id, double value) async {
+    final api = widget.commerceApi;
+    if (api == null) return;
+    await _mutate(() async {
+      await api.updateItem(id, value);
+    });
+  }
+
+  Future<void> _remove(int id) async {
+    final api = widget.commerceApi;
+    if (api == null) return;
+    await _mutate(() => api.removeItem(id));
+  }
+
+  Future<void> _clear(List<Map<String, dynamic>> rows) async {
+    final api = widget.commerceApi;
+    if (api == null) return;
+    await _mutate(() async {
+      for (final row in rows) {
+        final id = intValue(row['id']);
+        if (id > 0) {
+          await api.removeItem(id);
+        }
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: Color(0xFFF8FBF9),
+          backgroundColor: const Color(0xFFF8FBF9),
           body: SafeArea(
             child: FutureBuilder<Object?>(
               future: future,
@@ -2790,9 +2821,8 @@ class _WholesaleCartDesignScreenState
                 if (snapshot.hasError) {
                   return FoodexErrorState(
                     key: const ValueKey('b2b-error'),
-                    message: 'تعذر تحميل سلة الجملة.',
-                    onRetry: () =>
-                        setState(() => future = _load()),
+                    message: context.tr('b2b.cart.subtitle'),
+                    onRetry: () => setState(() => future = _load()),
                   );
                 }
 
@@ -2803,73 +2833,97 @@ class _WholesaleCartDesignScreenState
                   storeId = intValue(cart['store_id']);
                 }
                 final rows = mapRows(cart['items']);
+                final hasUnavailable = cart['has_unavailable_items'] == true ||
+                    rows.any((row) => row['is_available'] == false);
 
                 return ListView(
+                  key: const ValueKey('b2b-cart-data'),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
-                    const FoodexTopBar(title: 'سلة الجملة'),
-                    const SizedBox(height: 8),
+                    FoodexTopBar(title: context.tr('b2b.cart.title')),
+                    const SizedBox(height: 5),
+                    Text(
+                      context.tr('b2b.cart.subtitle'),
+                      style: const TextStyle(
+                        color: Color(0xFF6B7785),
+                        fontSize: 11,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     Container(
                       height: 38,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: Color(0xFFF1F8F4),
+                        color: const Color(0xFFF1F8F4),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.warehouse_outlined,
-                            color:
-                                Color(0xFF078A43),
+                            color: Color(0xFF078A43),
                             size: 19,
                           ),
-                          SizedBox(width: 8),
-                          Text(
-                            'متجر الجملة',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              context.tr('b2b.cart.store'),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700),
                             ),
                           ),
+                          if (rows.isNotEmpty && widget.commerceApi != null)
+                            TextButton.icon(
+                              key: const ValueKey('b2b-cart-clear'),
+                              onPressed: () => _clear(rows),
+                              icon: const Icon(Icons.delete_sweep_outlined,
+                                  size: 18),
+                              label: Text(context.tr('b2b.cart.clear')),
+                            ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 10),
                     if (rows.isEmpty)
-                      const FoodexEmptyState(
-                        key: ValueKey('b2b-empty'),
-                        title: 'السلة فارغة',
-                        subtitle: 'أضف منتجات من كتالوج الجملة.',
+                      FoodexEmptyState(
+                        key: const ValueKey('b2b-empty'),
+                        title: context.tr('b2b.cart.empty'),
+                        subtitle: context.tr('b2b.cart.subtitle'),
                       )
                     else
                       ...rows.map((row) {
                         final product = row['product'] is Map
-                            ? Map<String, dynamic>.from(
-                                row['product'] as Map,
-                              )
+                            ? Map<String, dynamic>.from(row['product'] as Map)
                             : row;
                         final id = intValue(row['id']);
-                        final qty =
-                            doubleValue(row['quantity'], 1);
-                        final increment = doubleValue(
-                          row['ordering_increment'],
-                          1,
-                        );
-                        final minimum = doubleValue(
-                          row['minimum_order_quantity'],
-                          1,
-                        );
+                        final qty = doubleValue(row['quantity'], 1);
+                        final increment =
+                            doubleValue(row['ordering_increment'], 1);
+                        final minimum =
+                            doubleValue(row['minimum_order_quantity'], 1);
+                        final available = row['available_quantity'] == null
+                            ? null
+                            : doubleValue(row['available_quantity'], 0);
 
                         return _CartLine(
                           name: product['name']?.toString() ??
                               row['name']?.toString() ??
                               '',
-                          subtitle:
-                              product['sku']?.toString() ?? '',
+                          subtitle: [
+                            product['sku']?.toString(),
+                            row['pack_label']?.toString(),
+                          ]
+                              .where((value) =>
+                                  value != null && value.trim().isNotEmpty)
+                              .join(' • '),
+                          imageUrl: product['image_url']?.toString(),
                           quantity: qty,
-                          price:
-                              row['line_total'] ?? row['unit_price'],
+                          unitPrice:
+                              row['unit_price_snapshot'] ?? row['unit_price'],
+                          lineTotal: row['line_total'],
+                          availableQuantity: available,
+                          isAvailable: row['is_available'] != false,
                           onMinus: widget.commerceApi == null
                               ? null
                               : () {
@@ -2877,20 +2931,24 @@ class _WholesaleCartDesignScreenState
                                       math.max(minimum, qty - increment);
                                   _update(id, next.toDouble());
                                 },
-                          onPlus: widget.commerceApi == null
+                          onPlus: widget.commerceApi == null ||
+                                  (available != null &&
+                                      qty + increment > available + .0001)
                               ? null
                               : () => _update(id, qty + increment),
+                          onRemove: widget.commerceApi == null || id <= 0
+                              ? null
+                              : () => _remove(id),
                         );
                       }),
                     const SizedBox(height: 14),
                     _CartTotalPanel(
-                      subtotal: cart['subtotal'],
-                      enabled: rows.isNotEmpty && storeId > 0,
-                      onCheckout: () => Navigator.of(context)
-                          .pushNamed(
-                            '/b2b/checkout?store_id=' +
-                                storeId.toString(),
-                          ),
+                      cart: cart,
+                      enabled:
+                          rows.isNotEmpty && storeId > 0 && !hasUnavailable,
+                      onCheckout: () => Navigator.of(context).pushNamed(
+                        '/b2b/checkout?store_id=' + storeId.toString(),
+                      ),
                     ),
                   ],
                 );
@@ -2906,57 +2964,104 @@ class _CartLine extends StatelessWidget {
     required this.name,
     required this.subtitle,
     required this.quantity,
-    required this.price,
+    required this.unitPrice,
+    required this.lineTotal,
+    required this.availableQuantity,
+    required this.isAvailable,
     required this.onMinus,
     required this.onPlus,
+    required this.onRemove,
+    this.imageUrl,
   });
 
   final String name;
   final String subtitle;
+  final String? imageUrl;
   final double quantity;
-  final Object? price;
+  final Object? unitPrice;
+  final Object? lineTotal;
+  final double? availableQuantity;
+  final bool isAvailable;
   final VoidCallback? onMinus;
   final VoidCallback? onPlus;
+  final VoidCallback? onRemove;
 
   @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(11),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: const Color(0xFFE9E3F0)),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(
+  Widget build(BuildContext context) {
+    final validImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
+    final availability = !isAvailable
+        ? context.tr('b2b.cart.unavailable')
+        : availableQuantity == null
+            ? context.tr('b2b.cart.available')
+            : context.tr('b2b.cart.available') +
+                ': ' +
+                compactNumber(availableQuantity!);
+
+    Widget imageFallback() => const DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color(0xFFF1F8F4),
+            borderRadius: BorderRadius.all(Radius.circular(14)),
+          ),
+          child: Center(
+            child: Icon(
+              Icons.inventory_2_outlined,
+              color: Color(0xFF078A43),
+            ),
+          ),
+        );
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: const Color(0xFFE9E3F0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: SizedBox(
               width: 66,
               height: 66,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Color(0xFFF1F8F4),
-                  borderRadius:
-                      BorderRadius.all(Radius.circular(14)),
-                ),
-                child: Icon(
-                  Icons.inventory_2_outlined,
-                  color: Color(0xFF078A43),
-                ),
-              ),
+              child: validImage
+                  ? Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => imageFallback(),
+                    )
+                  : imageFallback(),
             ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ),
-                  ),
+                    if (onRemove != null)
+                      IconButton(
+                        key: ValueKey('b2b-cart-remove-$name'),
+                        tooltip: context.tr('b2b.cart.remove'),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onRemove,
+                        icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                      ),
+                  ],
+                ),
+                if (subtitle.isNotEmpty)
                   Text(
                     subtitle,
                     style: const TextStyle(
@@ -2964,44 +3069,61 @@ class _CartLine extends StatelessWidget {
                       color: Color(0xFF6B7785),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _MiniStep(
-                        icon: Icons.remove,
-                        onTap: onMinus,
-                      ),
-                      Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 9),
-                        child: Text(
-                          compactNumber(quantity),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      _MiniStep(
-                        icon: Icons.add,
-                        onTap: onPlus,
-                      ),
-                      const Spacer(),
-                      Text(
-                        money(price),
-                        style: const TextStyle(
-                          color:
-                              Color(0xFF078A43),
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 5),
+                Text(
+                  availability,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: isAvailable
+                        ? const Color(0xFF078A43)
+                        : const Color(0xFFB3261E),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 7),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      context.tr('b2b.cart.unit_price') +
+                          ': ' +
+                          money(unitPrice),
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    Text(
+                      context.tr('b2b.cart.line_total') +
+                          ': ' +
+                          money(lineTotal),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF078A43),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _MiniStep(icon: Icons.remove, onTap: onMinus),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 9),
+                      child: Text(
+                        compactNumber(quantity),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    _MiniStep(icon: Icons.add, onTap: onPlus),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _MiniStep extends StatelessWidget {
@@ -3031,53 +3153,119 @@ class _MiniStep extends StatelessWidget {
 
 class _CartTotalPanel extends StatelessWidget {
   const _CartTotalPanel({
-    required this.subtotal,
+    required this.cart,
     required this.enabled,
     required this.onCheckout,
   });
 
-  final Object? subtotal;
+  final Map<String, dynamic> cart;
   final bool enabled;
   final VoidCallback onCheckout;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Color(0xFF006736),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'الإجمالي',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ),
-                Text(
-                  money(subtotal),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
+  Widget build(BuildContext context) {
+    final quote = cart['quote'] is Map
+        ? Map<String, dynamic>.from(cart['quote'] as Map)
+        : <String, dynamic>{};
+    final currency = cart['currency']?.toString() ?? 'EGP';
+    final subtotal = cart['subtotal'];
+    final discount = quote['discount_total'];
+    final delivery = quote['delivery_total'];
+    final tax = quote['tax_total'];
+    final total = quote['grand_total'] ?? cart['grand_total'] ?? subtotal;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF006736),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          _CartMoneyRow(
+            label: context.tr('b2b.cart.subtotal'),
+            value: money(subtotal, currency: currency),
+          ),
+          if (doubleValue(discount, 0) > 0)
+            _CartMoneyRow(
+              label: context.tr('b2b.cart.discount'),
+              value: '- ' + money(discount, currency: currency),
             ),
-            const SizedBox(height: 13),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: enabled ? onCheckout : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor:
-                      Color(0xFF006736),
+          if (delivery != null)
+            _CartMoneyRow(
+              label: context.tr('b2b.cart.delivery'),
+              value: money(delivery, currency: currency),
+            ),
+          if (tax != null)
+            _CartMoneyRow(
+              label: context.tr('b2b.cart.tax'),
+              value: money(tax, currency: currency),
+            ),
+          const Divider(color: Colors.white24, height: 18),
+          _CartMoneyRow(
+            label: context.tr('b2b.cart.total'),
+            value: money(total, currency: currency),
+            strong: true,
+          ),
+          const SizedBox(height: 9),
+          Text(
+            context.tr('b2b.cart.revalidation'),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 10,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 13),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              key: const ValueKey('b2b-cart-checkout'),
+              onPressed: enabled ? onCheckout : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF006736),
+              ),
+              child: Text(context.tr('b2b.action.checkout')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartMoneyRow extends StatelessWidget {
+  const _CartMoneyRow({
+    required this.label,
+    required this.value,
+    this.strong = false,
+  });
+
+  final String label;
+  final String value;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: strong ? Colors.white : Colors.white70,
+                  fontWeight: strong ? FontWeight.w800 : FontWeight.w500,
                 ),
-                child: const Text('إتمام الطلب'),
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: strong ? 20 : 13,
+                fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
               ),
             ),
           ],
