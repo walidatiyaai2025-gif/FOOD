@@ -9,6 +9,7 @@ return [
         'customers' => 'العملاء والجملة',
         'operations' => 'المتاجر والعمليات',
         'finance_invoices' => 'المالية والفواتير',
+        'account_statement' => 'كشف الحساب',
     ],
     'filters' => [
         'from' => 'من',
@@ -60,6 +61,11 @@ return [
         'balance' => 'الرصيد',
         'issued_at' => 'تاريخ الإصدار',
         'due' => 'الاستحقاق',
+        'reference' => 'المرجع',
+        'description' => 'البيان',
+        'debit' => 'مدين',
+        'credit' => 'دائن',
+        'running_balance' => 'الرصيد الجاري',
     ],
     'kpis' => [
         'orders' => 'عدد الطلبات',
@@ -82,6 +88,11 @@ return [
         'invoice_count' => 'عدد الفواتير',
         'customer_filter' => 'فلتر العميل',
         'currency_totals' => 'الإجماليات حسب العملة (الإجمالي / المدفوع / الرصيد)',
+        'opening_balance' => 'الرصيد الافتتاحي',
+        'period_debits' => 'مدين الفترة',
+        'period_credits' => 'دائن الفترة',
+        'closing_balance' => 'الرصيد الختامي',
+        'current_balance' => 'الرصيد الحالي',
     ],
     'breakdowns' => [
         'status_breakdown' => 'توزيع حالات الطلبات',
