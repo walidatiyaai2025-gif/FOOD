@@ -261,6 +261,8 @@ Route::prefix('admin')
         Route::delete('/security/roles/{role}', [SecurityController::class, 'destroyRole'])->name('security.roles.destroy');
         Route::get('/apps/customer/download', [MobileAppDownloadController::class, 'customer'])->name('mobile-apps.customer.download');
         Route::get('/apps/driver/download', [MobileAppDownloadController::class, 'driver'])->name('mobile-apps.driver.download');
+        Route::get('/settings/assistant', [AssistantSettingsController::class, 'index'])->name('assistant-settings.index');
+        Route::put('/settings/assistant', [AssistantSettingsController::class, 'update'])->name('assistant-settings.update');
         Route::get('/settings/app-versions', [AppVersionController::class, 'index'])->name('app-versions.index');
         Route::post('/settings/app-versions', [AppVersionController::class, 'store'])->name('app-versions.store');
         Route::get('/settings/mobile', [MobileSettingsController::class, 'index'])->name('mobile-settings.index');
