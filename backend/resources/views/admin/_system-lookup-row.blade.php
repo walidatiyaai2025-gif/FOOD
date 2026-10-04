@@ -1,9 +1,13 @@
 @php
     $ar = app()->getLocale() === 'ar';
-    $isTier = $definition['type'] === \App\Services\OperationalLookupService::PRICE_TIER;
+    $isTier = $record instanceof \App\Models\B2bPriceTier;
     $labelAr = $isTier ? ($record->name_ar ?? $record->name) : $record->label_ar;
     $labelEn = $isTier ? ($record->name_en ?? $record->name) : $record->label_en;
     $sort = $isTier ? $record->priority : $record->sort_order;
+    $typeKey = (string) request()->query('type', 'payment-operation-types');
+    $lookupUser = auth()->user();
+    $canManage = $lookupUser?->hasRole('SUPER_ADMIN') === true
+        && $lookupUser?->hasPermission('lookups.manage') === true;
 @endphp
 <tr>
 <td>{{ $record->id }}</td>
