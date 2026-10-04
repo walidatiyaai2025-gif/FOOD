@@ -32,6 +32,17 @@ final class B2bAccountLedgerService
             ->firstOrFail();
 
         $transactions = $this->transactions($customer, $storeId);
+        $transactionCurrencies = $transactions
+            ->pluck('currency')
+            ->filter(fn (mixed $currency): bool => is_string($currency) && $currency !== '')
+            ->unique()
+            ->values();
+        abort_if(
+            $transactionCurrencies->count() > 1,
+            409,
+            'Account financial history contains mixed currencies and cannot be combined safely.',
+        );
+
         $totalDebits = round((float) $transactions->sum('debit'), 3);
         $totalCredits = round((float) $transactions->sum('credit'), 3);
         $balance = round($totalDebits - $totalCredits, 3);
@@ -39,7 +50,7 @@ final class B2bAccountLedgerService
         $outstandingReceivable = round(max($balance, 0), 3);
         $customerCreditBalance = round(max(-$balance, 0), 3);
         $availableCreditLine = round(max($creditLimit - $outstandingReceivable, 0), 3);
-        $currency = $this->currencyFor($customer, $storeId);
+        $currency = $transactionCurrencies->first() ?? $this->currencyFor($customer, $storeId);
         [$openAmount, $overdueAmount] = $this->invoiceExposure($customer, $storeId);
 
         $lastPayment = $transactions
@@ -137,9 +148,29 @@ final class B2bAccountLedgerService
             throw ValidationException::withMessages(['amount' => ['Exactly one of debit or credit must be greater than zero.']]);
         }
 
+        $requiredDirection = match ($type) {
+            'payment', 'credit_note', 'return', 'adjustment_negative' => 'credit',
+            'debit_note', 'refund', 'adjustment_positive' => 'debit',
+            default => null,
+        };
+        if ($requiredDirection === 'credit' && $credit <= 0) {
+            throw ValidationException::withMessages(['amount' => ['This entry type must be recorded as a credit.']]);
+        }
+        if ($requiredDirection === 'debit' && $debit <= 0) {
+            throw ValidationException::withMessages(['amount' => ['This entry type must be recorded as a debit.']]);
+        }
+
         $currency = strtoupper(trim((string) ($data['currency'] ?? '')));
         if (preg_match('/^[A-Z]{3}$/', $currency) !== 1) {
             throw ValidationException::withMessages(['currency' => ['A valid three-letter currency is required.']]);
+        }
+
+        $storeId = isset($data['store_id']) && (int) $data['store_id'] > 0 ? (int) $data['store_id'] : null;
+        $expectedCurrency = $this->currencyFor($customer, $storeId);
+        if ($expectedCurrency !== null && $currency !== $expectedCurrency) {
+            throw ValidationException::withMessages([
+                'currency' => ["Currency must match the account currency {$expectedCurrency}."],
+            ]);
         }
 
         $invoiceId = isset($data['invoice_id']) ? (int) $data['invoice_id'] : null;
@@ -153,7 +184,7 @@ final class B2bAccountLedgerService
 
         return (int) DB::table('customer_account_ledger_entries')->insertGetId([
             'b2b_customer_id' => (int) $customer->getKey(),
-            'store_id' => isset($data['store_id']) && (int) $data['store_id'] > 0 ? (int) $data['store_id'] : null,
+            'store_id' => $storeId,
             'invoice_id' => $invoiceId && $invoiceId > 0 ? $invoiceId : null,
             'order_id' => isset($data['order_id']) && (int) $data['order_id'] > 0 ? (int) $data['order_id'] : null,
             'entry_type' => $type,
