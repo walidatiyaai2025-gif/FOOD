@@ -121,6 +121,91 @@ void main() {
     );
   });
 
+  testWidgets('entry route renders canonical unified customer login controls',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(initialRoute: '/entry'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('unified-customer-auth-screen')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('unified-auth-submit')), findsOneWidget);
+    expect(find.byKey(const ValueKey('customer-auth-guest')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-auth-language-toggle')),
+      findsOneWidget,
+    );
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('customer-auth-language-toggle')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Customer sign in'), findsWidgets);
+    expect(find.text('Business Customer login'), findsNothing);
+  });
+
+  testWidgets('entry register mode exposes the existing registration controls',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(initialRoute: '/entry?entry=register'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('unified-auth-name')), findsOneWidget);
+    expect(find.byKey(const ValueKey('unified-auth-phone')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('unified-auth-password-confirmation')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('entry validation is visible at the owning fields',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(initialRoute: '/entry'),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    await tester.pump();
+
+    expect(find.text('أدخل البريد الإلكتروني'), findsOneWidget);
+    expect(find.text('أدخل كلمة المرور'), findsOneWidget);
+  });
+
+  testWidgets('entry maps locked-account failures to a safe visible state',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(
+        initialRoute: '/entry',
+        actionApi: _LockedCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-email')),
+      'locked@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'password-123',
+    );
+    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('الحساب مقفل حاليًا. تواصل مع الدعم أو حاول لاحقًا.'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('unified-auth-submit')), findsOneWidget);
+  });
+
   testWidgets('guest resolves store-scoped Retail catalog on the NEW surface',
       (tester) async {
     await tester.pumpWidget(
@@ -336,6 +421,36 @@ void main() {
       findsNothing,
     );
   });
+}
+
+class _LockedCustomerActionApi implements CustomerActionApi {
+  const _LockedCustomerActionApi();
+
+  @override
+  Future<CustomerLoginResult> login({required String username}) async {
+    throw const CustomerActionException('account_locked');
+  }
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<Object?> addCartItem({
+    required int storeId,
+    required int productId,
+    required double quantity,
+  }) async =>
+      null;
+
+  @override
+  Future<Object?> checkout({
+    required int addressId,
+    int? storeId,
+    String? paymentMethod,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async =>
+      null;
 }
 
 class _SuccessfulCustomerActionApi implements CustomerActionApi {
