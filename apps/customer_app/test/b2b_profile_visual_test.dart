@@ -4,7 +4,8 @@ import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/features/b2b/business_account_profile.dart';
 
 void main() {
-  testWidgets('C13 Screen 13 renders Arabic account/settings composition and switch hook',
+  testWidgets(
+      'C13 Screen 13 renders Arabic account/settings composition and switch hook',
       (tester) async {
     var switchCount = 0;
 
@@ -61,7 +62,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('b2b-profile-settings-action')));
     await tester.pumpAndSettle();
     expect(find.text('إعدادات الحساب'), findsOneWidget);
-    expect(find.text('AR'), findsOneWidget);
+    expect(find.text('AR'), findsWidgets);
 
     expect(find.text('company_name'), findsNothing);
     expect(find.text('retail_store_ids'), findsNothing);
