@@ -422,8 +422,7 @@ final class OrderOperationsController extends Controller
         Order $order,
         array $statusLabels,
         array $activeStatusCodes,
-    ): array
-    {
+    ): array {
         $row = $this->row($order, $statusLabels, $activeStatusCodes);
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
