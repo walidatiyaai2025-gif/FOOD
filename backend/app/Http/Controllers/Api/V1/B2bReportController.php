@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\User;
+use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\ProductAvailabilityService;
 use Illuminate\Http\JsonResponse;
@@ -14,35 +15,67 @@ use Illuminate\Support\Facades\DB;
 
 class B2bReportController extends Controller
 {
+    public function __construct(private readonly B2bAccountLedgerService $ledger) {}
+
     public function dashboard(Request $request): JsonResponse
     {
         $customer = $this->approvedCustomer($request);
+        $validated = $request->validate([
+            'store_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $storeId = isset($validated['store_id']) ? (int) $validated['store_id'] : null;
+
+        $account = B2bAccount::query()
+            ->where('b2b_customer_id', $customer->getKey())
+            ->where('status', 'active')
+            ->firstOrFail();
+        $finance = $this->ledger->summary($customer, $storeId);
 
         $orders = DB::table('orders')
             ->where('b2b_customer_id', $customer->getKey())
             ->where('channel', 'b2b');
+        if ($storeId !== null) {
+            $orders->where('store_id', $storeId);
+        }
 
-        $openOrders = (clone $orders)->whereNotIn('status', ['delivered', 'cancelled'])->count();
-        $purchased = (float) (clone $orders)->where('status', '!=', 'cancelled')->sum('grand_total');
+        $activeOrders = (clone $orders)
+            ->whereNotIn('status', ['delivered', 'cancelled'])
+            ->count();
+        $orderCount = (clone $orders)->count();
+        $purchased = (float) (clone $orders)
+            ->where('status', '!=', 'cancelled')
+            ->sum('grand_total');
+        $purchasesThisMonth = (float) (clone $orders)
+            ->where('status', '!=', 'cancelled')
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->sum('grand_total');
 
-        $invoiceTotal = (float) DB::table('invoices')
-            ->where('b2b_customer_id', $customer->getKey())
-            ->whereIn('status', ['issued', 'overdue'])
-            ->sum('total');
+        $invoices = DB::table('invoices')
+            ->where('b2b_customer_id', $customer->getKey());
+        if ($storeId !== null) {
+            $invoices->where('store_id', $storeId);
+        }
+        $invoiceCount = (clone $invoices)->count();
 
-        $paidTotal = (float) DB::table('payments')
+        $payments = DB::table('payments')
             ->join('invoices', 'invoices.id', '=', 'payments.invoice_id')
             ->where('invoices.b2b_customer_id', $customer->getKey())
             ->where('payments.status', 'paid')
-            ->sum('payments.amount');
+            ->where('payments.created_at', '>=', now()->startOfMonth());
+        if ($storeId !== null) {
+            $payments->where('invoices.store_id', $storeId);
+        }
+        $paymentsThisMonth = (float) $payments->sum('payments.amount');
 
-        $outstanding = max(0.0, $invoiceTotal - $paidTotal);
-
-        $top = DB::table('order_items')
+        $topQuery = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('orders.b2b_customer_id', $customer->getKey())
             ->where('orders.channel', 'b2b')
-            ->where('orders.status', '!=', 'cancelled')
+            ->where('orders.status', '!=', 'cancelled');
+        if ($storeId !== null) {
+            $topQuery->where('orders.store_id', $storeId);
+        }
+        $top = $topQuery
             ->groupBy('order_items.product_id', 'order_items.sku_snapshot', 'order_items.name_snapshot')
             ->orderByDesc(DB::raw('SUM(order_items.quantity)'))
             ->limit(5)
@@ -55,10 +88,37 @@ class B2bReportController extends Controller
             ]);
 
         return response()->json([
-            'open_orders' => $openOrders,
+            'customer' => [
+                'id' => (int) $customer->getKey(),
+                'name' => (string) $customer->name,
+                'email' => $customer->email,
+                'phone' => $customer->phone,
+            ],
+            'account' => [
+                'id' => (int) $account->getKey(),
+                'company_name' => (string) $account->company_name,
+                'status' => (string) $account->status,
+            ],
+            'finance' => $finance,
+            'operations' => [
+                'purchases_this_month' => round($purchasesThisMonth, 3),
+                'payments_this_month' => round($paymentsThisMonth, 3),
+                'invoice_count' => $invoiceCount,
+                'order_count' => $orderCount,
+                'active_orders' => $activeOrders,
+            ],
+            'freshness' => [
+                'generated_at' => now()->toIso8601String(),
+                'stale' => false,
+            ],
+            'store_id' => $storeId,
+
+            // Backward-compatible summary keys for existing clients while Screen 2
+            // consumes the authoritative finance/operations read model above.
+            'open_orders' => $activeOrders,
             'purchase_total' => round($purchased, 3),
-            'outstanding_balance' => round($outstanding, 3),
-            'currency' => 'KWD',
+            'outstanding_balance' => $finance['outstanding_receivable'],
+            'currency' => $finance['currency'],
             'top_products' => $top,
         ]);
     }

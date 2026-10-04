@@ -33,7 +33,40 @@ class B2bReportingTest extends TestCase
         DB::table('payments')->insert(['invoice_id' => $invoice, 'provider' => 'account', 'status' => 'paid', 'amount' => 15, 'currency' => 'KWD', 'created_at' => now(), 'updated_at' => now()]);
         Sanctum::actingAs($user);
 
-        $this->getJson('/api/v1/b2b/dashboard')->assertOk()->assertJsonPath('open_orders', 1)->assertJsonPath('purchase_total', 25)->assertJsonPath('outstanding_balance', 10)->assertJsonPath('top_products.0.sku', 'TOP-1');
+        $dashboard = $this->getJson('/api/v1/b2b/dashboard')
+            ->assertOk()
+            ->assertJsonPath('customer.name', 'Buyer')
+            ->assertJsonPath('account.company_name', 'Buyer Co')
+            ->assertJsonPath('finance.balance', 10)
+            ->assertJsonPath('finance.balance_direction', 'customer_owes_company')
+            ->assertJsonPath('finance.open_amount', 10)
+            ->assertJsonPath('finance.overdue_amount', 0)
+            ->assertJsonPath('operations.purchases_this_month', 25)
+            ->assertJsonPath('operations.payments_this_month', 15)
+            ->assertJsonPath('operations.invoice_count', 1)
+            ->assertJsonPath('operations.order_count', 2)
+            ->assertJsonPath('operations.active_orders', 1)
+            ->assertJsonPath('freshness.stale', false)
+            ->assertJsonPath('open_orders', 1)
+            ->assertJsonPath('purchase_total', 25)
+            ->assertJsonPath('outstanding_balance', 10)
+            ->assertJsonPath('currency', 'KWD')
+            ->assertJsonPath('top_products.0.sku', 'TOP-1');
+
+        $invoices = $this->getJson('/api/v1/b2b/invoices')->assertOk();
+        $this->assertSame(
+            $invoices->json('meta.account.balance'),
+            $dashboard->json('finance.balance'),
+        );
+        $this->assertSame(
+            $invoices->json('meta.account.open_amount'),
+            $dashboard->json('finance.open_amount'),
+        );
+        $this->assertSame(
+            $invoices->json('meta.account.overdue_amount'),
+            $dashboard->json('finance.overdue_amount'),
+        );
+
         $this->getJson('/api/v1/b2b/reports/purchases')->assertOk()->assertJsonPath('data.0.orders_count', 1)->assertJsonPath('data.0.purchase_total', 25);
         $this->getJson('/api/v1/b2b/products/top?limit=5')
             ->assertOk()

@@ -43,6 +43,124 @@ void main() {
     expect(find.text('كشف الحساب'), findsOneWidget);
   });
 
+  testWidgets(
+      'B2B dashboard renders authoritative account metrics and refreshes in place',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final api = _FakeB2bApi({
+      'customer': {
+        'id': 9,
+        'name': 'Buyer',
+        'email': 'buyer@example.test',
+      },
+      'account': {
+        'id': 3,
+        'company_name': 'Buyer Co',
+        'status': 'active',
+      },
+      'finance': {
+        'currency': 'KWD',
+        'balance': 10,
+        'balance_direction': 'customer_owes_company',
+        'credit_limit': 500,
+        'available_credit_line': 490,
+        'open_amount': 10,
+        'overdue_amount': 2,
+      },
+      'operations': {
+        'purchases_this_month': 125.5,
+        'payments_this_month': 75,
+        'invoice_count': 4,
+        'order_count': 6,
+        'active_orders': 2,
+      },
+      'freshness': {
+        'generated_at': DateTime.now().toUtc().toIso8601String(),
+        'stale': false,
+      },
+      'currency': 'KWD',
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/dashboard?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/dashboard?store_id=7');
+    expect(api.calls, 1);
+    expect(find.byKey(const ValueKey('b2b-dashboard-data')), findsOneWidget);
+    expect(find.text('Buyer Co'), findsOneWidget);
+    expect(find.text('Buyer'), findsOneWidget);
+    expect(find.text('عليك 10.000 KWD'), findsOneWidget);
+    expect(find.text('حد الائتمان'), findsOneWidget);
+    expect(find.text('الائتمان المتاح'), findsOneWidget);
+    expect(find.text('الفواتير المفتوحة'), findsOneWidget);
+    expect(find.text('المبلغ المتأخر'), findsOneWidget);
+    expect(find.text('مشتريات هذا الشهر'), findsOneWidget);
+    expect(find.text('مدفوعات هذا الشهر'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-dashboard-refresh')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('b2b-dashboard-refresh')));
+    await tester.pumpAndSettle();
+    expect(api.calls, 2);
+  });
+
+  testWidgets('B2B dashboard shows credit direction in English LTR',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'customer': {'name': 'Buyer'},
+      'account': {'company_name': 'Buyer Co', 'status': 'active'},
+      'finance': {
+        'currency': 'KWD',
+        'balance': -20,
+        'balance_direction': 'company_owes_customer',
+        'credit_limit': 500,
+        'available_credit_line': 500,
+        'open_amount': 0,
+        'overdue_amount': 0,
+      },
+      'operations': {
+        'purchases_this_month': 0,
+        'payments_this_month': 20,
+        'invoice_count': 1,
+        'order_count': 1,
+        'active_orders': 0,
+      },
+      'freshness': {
+        'generated_at': DateTime.now().toUtc().toIso8601String(),
+        'stale': false,
+      },
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/dashboard',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      Directionality.of(tester.element(find.text('Business dashboard'))),
+      TextDirection.ltr,
+    );
+    expect(find.text('Credit to you 20.000 KWD'), findsOneWidget);
+    expect(find.text('Available credit'), findsOneWidget);
+    expect(find.text('Active orders'), findsOneWidget);
+  });
+
   testWidgets('B2B profile exposes the unified customer address book',
       (tester) async {
     await tester.pumpWidget(
@@ -963,10 +1081,28 @@ void main() {
       (
         route: '/b2b/dashboard',
         payload: {
-          'purchases_total': 321.75,
-          'open_invoices': 4,
-          'balance': 88.5,
-          'currency': 'KWD',
+          'customer': {'name': 'Acme Buyer'},
+          'account': {'company_name': 'Acme Foods'},
+          'finance': {
+            'currency': 'KWD',
+            'balance': 88.5,
+            'balance_direction': 'customer_owes_company',
+            'credit_limit': 500.0,
+            'available_credit_line': 411.5,
+            'open_amount': 88.5,
+            'overdue_amount': 0.0,
+          },
+          'operations': {
+            'purchases_this_month': 321.75,
+            'payments_this_month': 50.0,
+            'invoice_count': 4,
+            'order_count': 3,
+            'active_orders': 1,
+          },
+          'freshness': {
+            'generated_at': '2026-10-04T14:00:00+00:00',
+            'stale': false,
+          },
         },
         expected: '321.75',
       ),
@@ -1356,8 +1492,14 @@ class _FakeB2bApi implements B2bApi {
   _FakeB2bApi(this.value);
   final Object? value;
   String? lastPath;
+  int calls = 0;
+
   @override
-  Future<Object?> get(String path) async { lastPath = path; return value; }
+  Future<Object?> get(String path) async {
+    calls++;
+    lastPath = path;
+    return value;
+  }
 }
 
 
