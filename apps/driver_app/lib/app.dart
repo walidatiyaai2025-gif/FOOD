@@ -211,7 +211,6 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     );
   }
 
-
   void _configureDiagnostics(DriverSession session) {
     if (widget.previewContext != null || _baseUrl.isEmpty) {
       DriverRuntimeInspector.instance.clearInspectorUpload();
