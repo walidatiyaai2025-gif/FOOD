@@ -40,6 +40,7 @@ final class AssistantController extends Controller
         private readonly AssistantBrainInterface $brain,
         private readonly AssistantToolRegistry $tools,
         private readonly AssistantPageContext $pageContext,
+        private readonly AssistantRuntimeSettings $runtimeSettings,
     ) {}
 
     public function bootstrap(Request $request): JsonResponse
@@ -261,8 +262,8 @@ final class AssistantController extends Controller
 
     private function assistantUser(Request $request): User
     {
-        abort_unless((bool) config('assistant.enabled', false), 404);
-        abort_unless((bool) config('assistant.read_only', true), 503);
+        abort_unless($this->runtimeSettings->enabled(), 404);
+        abort_unless($this->runtimeSettings->readOnly(), 503);
 
         $user = $request->user();
         abort_unless($user instanceof User, 401);
