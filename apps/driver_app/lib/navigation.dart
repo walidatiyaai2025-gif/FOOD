@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'core/auth/driver_session.dart';
@@ -180,31 +182,74 @@ class _DriverHomePage extends StatefulWidget {
   State<_DriverHomePage> createState() => _DriverHomePageState();
 }
 
-class _DriverHomePageState extends State<_DriverHomePage> {
+class _DriverHomePageState extends State<_DriverHomePage>
+    with WidgetsBindingObserver {
+  static const _summaryRefreshInterval = Duration(seconds: 15);
+
   bool _loading = true;
   bool _loadFailed = false;
+  bool _refreshInFlight = false;
+  Timer? _summaryRefreshTimer;
   List<DriverAssignment> _assignments = const [];
 
   static const _statuses = [
     ('accepted', Icons.verified_rounded),
     ('picked_up', Icons.inventory_2_rounded),
     ('out_for_delivery', Icons.local_shipping_rounded),
+    ('failed', Icons.report_problem_rounded),
     ('delivered', Icons.task_alt_rounded),
   ];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSummary();
+    _startLiveRefresh();
   }
 
-  Future<void> _loadSummary() async {
-    if (mounted) {
+  @override
+  void dispose() {
+    _stopLiveRefresh();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadSummary(showLoading: false);
+      _startLiveRefresh();
+      return;
+    }
+
+    _stopLiveRefresh();
+  }
+
+  void _startLiveRefresh() {
+    _summaryRefreshTimer?.cancel();
+    _summaryRefreshTimer = Timer.periodic(
+      _summaryRefreshInterval,
+      (_) => _loadSummary(showLoading: false),
+    );
+  }
+
+  void _stopLiveRefresh() {
+    _summaryRefreshTimer?.cancel();
+    _summaryRefreshTimer = null;
+  }
+
+  Future<void> _loadSummary({bool showLoading = true}) async {
+    if (_refreshInFlight) return;
+    _refreshInFlight = true;
+
+    if (mounted && showLoading) {
       setState(() {
         _loading = true;
         _loadFailed = false;
       });
     }
+
     try {
       final rows = await widget.repository.list(widget.channel);
       if (!mounted) return;
@@ -222,16 +267,19 @@ class _DriverHomePageState extends State<_DriverHomePage> {
             )
             .toList(growable: false);
         _loading = false;
+        _loadFailed = false;
       });
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
     } catch (_) {
-      if (mounted) {
+      if (mounted && (showLoading || _assignments.isEmpty)) {
         setState(() {
           _loading = false;
           _loadFailed = true;
         });
       }
+    } finally {
+      _refreshInFlight = false;
     }
   }
 
