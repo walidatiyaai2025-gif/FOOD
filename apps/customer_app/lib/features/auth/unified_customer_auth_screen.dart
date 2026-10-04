@@ -436,6 +436,16 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         foregroundColor: CustomerUiColors.white,
         actions: [
           IconButton(
+            key: const ValueKey('customer-login-diagnostics'),
+            onPressed: _busy
+                ? null
+                : () => Navigator.of(context).pushNamed(
+                      CustomerRoutePaths.diagnostics,
+                    ),
+            tooltip: context.tr('customer.diagnostics.open'),
+            icon: const Icon(Icons.bug_report_outlined),
+          ),
+          IconButton(
             key: const ValueKey('customer-auth-guest'),
             onPressed: _busy
                 ? null
@@ -691,15 +701,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: CustomerUiSpacing.md),
-            OutlinedButton.icon(
-              key: const ValueKey('customer-login-diagnostics'),
-              onPressed: () => Navigator.of(context).pushNamed(
-                CustomerRoutePaths.diagnostics,
-              ),
-              icon: const Icon(Icons.bug_report_outlined),
-              label: Text(context.tr('customer.diagnostics.open')),
             ),
           ],
         ),
