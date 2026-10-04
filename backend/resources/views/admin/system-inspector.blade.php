@@ -66,6 +66,12 @@
             <label>{{ $ar?'الخطورة':'Severity' }}
                 <select name="severity"><option value="">{{ $ar?'الكل':'All' }}</option><option value="error" @selected($severity==='error')>error</option><option value="warning" @selected($severity==='warning')>warning</option></select>
             </label>
+            <label>{{ $ar?'الإصدار':'Version' }}<input name="version" value="{{ $version }}" placeholder="1.0.52"></label>
+            <label>Build<input name="build" value="{{ $build }}" placeholder="52"></label>
+            <label>{{ $ar?'القناة':'Channel' }}
+                <select name="channel"><option value="">{{ $ar?'الكل':'All' }}</option><option value="b2b" @selected($channel==='b2b')>B2B</option><option value="b2c" @selected($channel==='b2c')>B2C</option></select>
+            </label>
+            <label>{{ $ar?'المتجر':'Store ID' }}<input name="store_id" type="number" min="1" value="{{ $storeId ?: '' }}"></label>
             <label>{{ $ar?'الإصدار':'App version' }}<input name="app_version" value="{{ $appVersion }}" placeholder="1.0.53"></label>
             <label>{{ $ar?'القناة':'Channel' }}
                 <select name="channel"><option value="">{{ $ar?'الكل':'All' }}</option><option value="b2b" @selected($channel==='b2b')>B2B</option><option value="b2c" @selected($channel==='b2c')>B2C</option></select>
