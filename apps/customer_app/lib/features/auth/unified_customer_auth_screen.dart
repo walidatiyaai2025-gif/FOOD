@@ -435,6 +435,16 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         backgroundColor: CustomerUiColors.deepGreen,
         foregroundColor: CustomerUiColors.white,
         actions: [
+          IconButton(
+            key: const ValueKey('customer-auth-guest'),
+            onPressed: _busy
+                ? null
+                : () => Navigator.of(context).pushReplacementNamed(
+                      CustomerRoutePaths.marketplace,
+                    ),
+            tooltip: context.tr('customer.action.guest'),
+            icon: const Icon(Icons.storefront_outlined),
+          ),
           if (widget.onLocaleChanged != null)
             TextButton(
               key: const ValueKey('customer-auth-language-toggle'),
@@ -683,17 +693,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
               ),
             ),
             const SizedBox(height: CustomerUiSpacing.md),
-            OutlinedButton.icon(
-              key: const ValueKey('customer-auth-guest'),
-              onPressed: _busy
-                  ? null
-                  : () => Navigator.of(context).pushReplacementNamed(
-                        CustomerRoutePaths.marketplace,
-                      ),
-              icon: const Icon(Icons.storefront_outlined),
-              label: Text(context.tr('customer.action.guest')),
-            ),
-            const SizedBox(height: CustomerUiSpacing.sm),
             OutlinedButton.icon(
               key: const ValueKey('customer-login-diagnostics'),
               onPressed: () => Navigator.of(context).pushNamed(
