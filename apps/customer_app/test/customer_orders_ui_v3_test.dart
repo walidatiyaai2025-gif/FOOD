@@ -325,6 +325,7 @@ void main() {
     );
     expect(noSettlement.invoiceOutstandingAmount, isNull);
     expect(noSettlement.fullySettled, isNull);
+    expect(CustomerOrderRefreshPolicy.isTerminal('failed'), isTrue);
   });
 
   testWidgets('cross-channel API leakage is never rendered in the wrong tab',
