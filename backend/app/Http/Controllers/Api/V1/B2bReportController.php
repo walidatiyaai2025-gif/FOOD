@@ -258,8 +258,8 @@ class B2bReportController extends Controller
                 return [
                     'rank' => $offset + $index + 1,
                     'product_id' => $productId,
-                    'sku' => $current?->sku ?? (string) $row->sku,
-                    'name' => $current?->name ?? (string) $row->name,
+                    'sku' => $current->sku ?? (string) $row->sku,
+                    'name' => $current->name ?? (string) $row->name,
                     'quantity' => (float) $row->quantity,
                     'total' => round((float) $row->total, 3),
                     'currency' => (string) ($row->currency ?? ''),
