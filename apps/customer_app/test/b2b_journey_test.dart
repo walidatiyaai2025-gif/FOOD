@@ -9,6 +9,19 @@ import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/diagnostics/customer_diagnostics.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 
+Future<void> _scrollUntilBuilt(
+  WidgetTester tester,
+  Finder scrollable,
+  Finder target,
+) async {
+  for (var attempt = 0;
+      attempt < 12 && target.evaluate().isEmpty;
+      attempt++) {
+    await tester.drag(scrollable, const Offset(0, -350));
+    await tester.pumpAndSettle();
+  }
+}
+
 void main() {
   const b2b = CustomerSession.authenticated(CustomerChannel.b2b);
 
@@ -723,6 +736,11 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
     expect(find.text('FDX-B2B-4'), findsOneWidget);
     expect(find.text('Wholesale Store'), findsOneWidget);
+    await _scrollUntilBuilt(
+      tester,
+      find.byKey(const ValueKey('b2b-order-detail')),
+      find.text('الدفع عند الاستلام'),
+    );
     expect(find.text('الدفع عند الاستلام'), findsOneWidget);
     expect(find.text('/orders/4/track'), findsNothing);
   });
@@ -932,6 +950,11 @@ void main() {
     expect(find.text('تم التأكيد'), findsNothing);
     expect(find.text('جاري التجهيز'), findsNothing);
     expect(find.text('تم التسليم'), findsNothing);
+    await _scrollUntilBuilt(
+      tester,
+      find.byKey(const ValueKey('b2b-order-detail')),
+      find.text('الدفع عند الاستلام'),
+    );
     expect(find.text('الدفع عند الاستلام'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('b2b-order-refresh')));
@@ -941,6 +964,171 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-timeline-1-delivered')), findsOneWidget);
     expect(find.text('تم التسليم'), findsWidgets);
     expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsNothing);
+  });
+
+  testWidgets(
+      'B2B order details expose complete authoritative surface in English LTR',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'id': 78,
+      'order_number': 'B2B-78',
+      'status': 'failed',
+      'channel': 'b2b',
+      'created_at': '2026-10-04T10:00:00+00:00',
+      'requested_delivery_date': '2026-10-05',
+      'store': {'id': 7, 'name': 'Wholesale Store'},
+      'currency': 'KWD',
+      'subtotal': 100.0,
+      'discount_total': 5.0,
+      'tax_total': 4.0,
+      'delivery_total': 1.0,
+      'grand_total': 100.0,
+      'payment_method': 'account_credit',
+      'payment': {
+        'status': 'paid',
+        'amount': 100.0,
+        'currency': 'KWD',
+      },
+      'account_credit_impact': {
+        'amount': 100.0,
+        'currency': 'KWD',
+        'status': 'paid',
+      },
+      'delivery_address': {
+        'recipient_name': 'Buyer One',
+        'delivery_phone': '55512345',
+        'line1': 'Street 1',
+        'city': 'Kuwait City',
+        'latitude': 29.37,
+        'longitude': 47.98,
+        'has_coordinates': true,
+      },
+      'tracking': {
+        'driver_name': 'Driver One',
+        'status': 'failed',
+        'assigned_at': '2026-10-04T10:10:00+00:00',
+      },
+      'allowed_actions': {
+        'view_map': true,
+        'view_invoice': true,
+        'cancel': false,
+        'reorder': false,
+        'contact_support': false,
+      },
+      'invoice': {
+        'id': 44,
+        'invoice_number': 'INV-B2B-78',
+        'status': 'issued',
+      },
+      'is_terminal': true,
+      'customer_note': 'Leave at gate',
+      'items': [
+        {
+          'id': 1,
+          'product_id': 42,
+          'sku': 'SKU-42',
+          'name': 'Bulk Water',
+          'quantity': 2,
+          'pack_size': 12,
+          'unit_price': 50.0,
+          'line_total': 100.0,
+        },
+      ],
+      'timeline': [
+        {
+          'stage': 'placed',
+          'occurred_at': '2026-10-04T10:00:00+00:00',
+        },
+        {
+          'stage': 'failed',
+          'occurred_at': '2026-10-04T10:20:00+00:00',
+          'driver_name': 'Driver One',
+          'reason_code': 'customer_no_answer',
+        },
+      ],
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/orders/78',
+        b2bApi: api,
+        locale: const Locale('en'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/orders/78');
+    expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
+    expect(find.text('Order details'), findsOneWidget);
+    expect(find.text('B2B-78'), findsOneWidget);
+    expect(find.text('Wholesale Store'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-order-terminal')), findsOneWidget);
+    expect(
+      Directionality.of(
+        tester.element(find.byKey(const ValueKey('b2b-order-detail'))),
+      ),
+      TextDirection.ltr,
+    );
+    expect(find.text('تفاصيل الطلب'), findsNothing);
+
+    final scrollable =
+        find.byKey(const ValueKey('b2b-order-detail'));
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.byKey(const ValueKey('b2b-order-open-map')),
+    );
+    expect(find.byKey(const ValueKey('b2b-order-open-map')), findsOneWidget);
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.text('Customer did not answer'),
+    );
+    expect(find.text('Customer did not answer'), findsOneWidget);
+    expect(find.text('Driver One'), findsWidgets);
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.text('Bulk Water'),
+    );
+    expect(find.text('Bulk Water'), findsOneWidget);
+    expect(find.text('SKU-42'), findsOneWidget);
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.text('Price summary'),
+    );
+    expect(find.text('Price summary'), findsOneWidget);
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.text('Account credit'),
+    );
+    expect(find.text('Account credit'), findsOneWidget);
+    expect(find.text('Paid'), findsOneWidget);
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.byKey(const ValueKey('b2b-order-open-invoice')),
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-order-open-invoice')),
+      findsOneWidget,
+    );
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.text('Leave at gate'),
+    );
+    expect(find.text('Leave at gate'), findsOneWidget);
   });
 
   testWidgets('legacy channel-scoped session cannot enter B2B protected journey', (tester) async {

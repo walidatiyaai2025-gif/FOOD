@@ -353,7 +353,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('تفاصيل طلب الجملة'), findsOneWidget);
+    expect(find.text('تفاصيل الطلب'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('b2b-order-detail-empty')),
       findsOneWidget,
