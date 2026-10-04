@@ -529,7 +529,25 @@ class GuestCartController extends Controller
         );
 
         $currency = (string) $quote['currency'];
-        $items = collect($quote['items'])->map(static function (array $line) use ($currency): array {
+        $productIds = collect($quote['items'])
+            ->pluck('product_id')
+            ->filter()
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $primaryImages = $productIds->isEmpty()
+            ? collect()
+            : DB::table('product_images')
+                ->whereIn('product_id', $productIds->all())
+                ->orderByDesc('is_primary')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get(['product_id', 'path'])
+                ->groupBy('product_id')
+                ->map(static fn ($rows) => $rows->first()?->path);
+
+        $items = collect($quote['items'])->map(function (array $line) use ($currency, $primaryImages): array {
             return [
                 'id' => isset($line['cart_item_id']) ? (int) $line['cart_item_id'] : null,
                 'product' => [
@@ -541,6 +559,7 @@ class GuestCartController extends Controller
                     'is_active' => $line['sku'] !== null,
                     'price' => $line['base_unit_price'],
                     'currency' => $currency,
+                    'image_url' => $this->assetUrl($primaryImages->get((int) $line['product_id'])),
                 ],
                 'quantity' => (float) $line['quantity'],
                 'unit_price_snapshot' => $line['unit_price'],
@@ -582,5 +601,19 @@ class GuestCartController extends Controller
                 'pricing_source' => $quote['pricing_source'],
             ],
         ];
+    }
+
+    private function assetUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $value = trim($path);
+        if (str_starts_with($value, 'https://') || str_starts_with($value, 'http://')) {
+            return $value;
+        }
+
+        return url('/'.ltrim($value, '/'));
     }
 }
