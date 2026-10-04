@@ -135,6 +135,19 @@ final class NotificationCampaignPopupController extends Controller
         $channel = (string) $data['channel'];
         $storeId = isset($data['store_id']) ? (int) $data['store_id'] : null;
 
+        if ($request->attributes->get('app_preview_read_only') === true) {
+            $previewChannel = (string) $request->attributes->get('app_preview_channel', '');
+            $previewStoreId = (int) $request->attributes->get('app_preview_store_id', 0);
+
+            abort_unless(
+                $previewStoreId > 0
+                    && $channel === $previewChannel
+                    && $storeId === $previewStoreId,
+                404,
+                'Preview campaign scope does not match the selected persona/store.',
+            );
+        }
+
         if ($channel === 'all') {
             abort_unless($storeId === null, 422);
 
@@ -239,6 +252,12 @@ final class NotificationCampaignPopupController extends Controller
 
     private function optionalUser(Request $request): ?User
     {
+        if ($request->attributes->get('app_preview_read_only') === true) {
+            $user = $request->user();
+
+            return $user instanceof User ? $user : null;
+        }
+
         if ($request->bearerToken() === null) {
             return null;
         }
