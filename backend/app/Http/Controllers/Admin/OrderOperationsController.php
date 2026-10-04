@@ -11,6 +11,7 @@ use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
+use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverDeliveryEvidenceService;
@@ -19,6 +20,7 @@ use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -180,8 +182,287 @@ final class OrderOperationsController extends Controller
             'statusTabs' => $statusTabs,
             'statusTotal' => array_sum($statusCounts),
             'selectedStatus' => $selectedStatus,
+            'newOrderWizard' => $this->newOrderWizard($actor),
             'isAr' => app()->getLocale() === 'ar',
         ]);
+    }
+
+    public function quoteNewOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
+    {
+        $actor = $this->actor($request);
+        [$channel, $storeId] = $this->newOrderScope($request, $actor);
+
+        return response()->json([
+            'data' => $orders->quote($request, $channel, $storeId),
+        ]);
+    }
+
+    public function storeNewOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        [$channel, $storeId] = $this->newOrderScope($request, $actor);
+        $order = $orders->create($request, $actor, $channel, $storeId);
+
+        return redirect()
+            ->route('admin.operations.orders.index', [
+                'channel' => $channel,
+                'store_id' => $storeId,
+                'status' => 'pending',
+                'order' => $order->getKey(),
+            ])
+            ->with('status', $this->msg(
+                'تم إنشاء الطلب '.$order->order_number.'.',
+                'Order '.$order->order_number.' created.',
+            ));
+    }
+
+    /** @return array{0:string,1:int} */
+    private function newOrderScope(Request $request, User $actor): array
+    {
+        $data = $request->validate([
+            'channel' => ['required', 'string', Rule::in(['b2b', 'b2c'])],
+            'store_id' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $channel = (string) $data['channel'];
+        $storeId = (int) $data['store_id'];
+
+        if ($channel === 'b2b') {
+            $principalStoreId = app(WholesalePrincipal::class)->storeId();
+            abort_unless($storeId === $principalStoreId, 404);
+        }
+
+        $this->scope->assertStore($actor, $storeId, 'orders.manage', $channel);
+
+        return [$channel, $storeId];
+    }
+
+    /** @return array{channels:list<array<string,mixed>>,payment_methods:list<array{code:string,label:string}>} */
+    private function newOrderWizard(User $actor): array
+    {
+        $channels = [];
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        $b2bStoreIds = array_values(array_filter(
+            $this->scope->allowedStoreIds($actor, 'orders.manage', 'b2b'),
+            static fn (int $storeId): bool => $storeId === $principalStoreId,
+        ));
+
+        if ($b2bStoreIds !== []) {
+            $channels[] = [
+                'code' => 'b2b',
+                'label' => $this->msg('الجملة', 'Wholesale'),
+                'stores' => [$this->newOrderStoreData('b2b', $principalStoreId)],
+            ];
+        }
+
+        $b2cStoreIds = $this->scope->allowedStoreIds($actor, 'orders.manage', 'b2c');
+        if ($b2cStoreIds !== []) {
+            $channels[] = [
+                'code' => 'b2c',
+                'label' => $this->msg('التجزئة', 'Retail'),
+                'stores' => array_map(
+                    fn (int $storeId): array => $this->newOrderStoreData('b2c', $storeId),
+                    $b2cStoreIds,
+                ),
+            ];
+        }
+
+        $configuredPaymentMethods = array_values(array_unique(array_map(
+            static fn ($method): string => (string) $method,
+            (array) config('checkout.payment_methods', ['cash_on_delivery']),
+        )));
+        $lookupPaymentMethods = $this->lookups
+            ->active(OperationalLookupService::PAYMENT_METHOD)
+            ->keyBy(static fn (object $row): string => (string) $row->code);
+        $paymentMethods = [];
+
+        foreach ($configuredPaymentMethods as $code) {
+            if ($lookupPaymentMethods->isNotEmpty() && ! $lookupPaymentMethods->has($code)) {
+                continue;
+            }
+
+            $lookup = $lookupPaymentMethods->get($code);
+            $label = $lookup === null
+                ? $code
+                : (app()->getLocale() === 'ar' ? (string) $lookup->label_ar : (string) $lookup->label_en);
+
+            $paymentMethods[] = ['code' => $code, 'label' => $label ?: $code];
+        }
+
+        if ($paymentMethods === []) {
+            $paymentMethods = array_map(
+                static fn (string $code): array => ['code' => $code, 'label' => $code],
+                $configuredPaymentMethods,
+            );
+        }
+
+        return [
+            'channels' => $channels,
+            'payment_methods' => $paymentMethods,
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private function newOrderStoreData(string $channel, int $storeId): array
+    {
+        $store = DB::table('stores')
+            ->where('id', $storeId)
+            ->where('is_active', true)
+            ->first(['id', 'code', 'name']);
+        abort_unless($store !== null, 404);
+
+        if ($channel === 'b2b') {
+            $customers = DB::table('b2b_customers')
+                ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
+                ->where('b2b_accounts.status', 'active')
+                ->orderBy('b2b_accounts.company_name')
+                ->orderBy('b2b_customers.name')
+                ->get([
+                    'b2b_customers.id',
+                    'b2b_customers.name',
+                    'b2b_accounts.company_name',
+                ])
+                ->map(static fn (object $row): array => [
+                    'id' => (int) $row->id,
+                    'name' => trim(($row->company_name ? $row->company_name.' · ' : '').$row->name),
+                ])
+                ->values()
+                ->all();
+
+            $products = DB::table('products')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->join('store_products', function ($join): void {
+                    $join->on('store_products.product_id', '=', 'products.id')
+                        ->on('store_products.store_id', '=', 'catalogs.store_id');
+                })
+                ->where('catalogs.store_id', $storeId)
+                ->where('catalogs.channel', 'b2b')
+                ->where('catalogs.is_migration_quarantine', false)
+                ->where('catalogs.is_active', true)
+                ->where('products.is_active', true)
+                ->where('store_products.is_active', true)
+                ->orderBy('products.name')
+                ->get(['products.id', 'products.sku', 'products.name', 'store_products.price'])
+                ->map(static fn (object $row): array => [
+                    'id' => (int) $row->id,
+                    'sku' => (string) $row->sku,
+                    'name' => (string) $row->name,
+                    'price' => $row->price === null ? null : (float) $row->price,
+                ])
+                ->values()
+                ->all();
+
+            $warehouses = DB::table('warehouses')
+                ->where('store_id', $storeId)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'code', 'name'])
+                ->map(static fn (object $row): array => [
+                    'id' => (int) $row->id,
+                    'code' => (string) $row->code,
+                    'name' => (string) $row->name,
+                ])
+                ->values()
+                ->all();
+
+            $customerIds = collect($customers)->pluck('id')->all();
+            $addresses = $this->newOrderAddresses('b2b_customer_id', $customerIds);
+
+            return [
+                'id' => (int) $store->id,
+                'code' => (string) $store->code,
+                'name' => (string) $store->name,
+                'customers' => $customers,
+                'products' => $products,
+                'warehouses' => $warehouses,
+                'addresses' => $addresses,
+            ];
+        }
+
+        $customers = DB::table('b2c_customers')
+            ->where('store_id', $storeId)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(static fn (object $row): array => [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+            ])
+            ->values()
+            ->all();
+
+        $products = DB::table('store_products')
+            ->join('products', 'products.id', '=', 'store_products.product_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->where('store_products.store_id', $storeId)
+            ->whereColumn('catalogs.store_id', 'store_products.store_id')
+            ->where('catalogs.channel', 'b2c')
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('catalogs.is_active', true)
+            ->where('products.is_active', true)
+            ->where('store_products.is_active', true)
+            ->whereNotNull('store_products.price')
+            ->orderBy('products.name')
+            ->get(['products.id', 'products.sku', 'products.name', 'store_products.price'])
+            ->map(static fn (object $row): array => [
+                'id' => (int) $row->id,
+                'sku' => (string) $row->sku,
+                'name' => (string) $row->name,
+                'price' => (float) $row->price,
+            ])
+            ->values()
+            ->all();
+
+        $customerIds = collect($customers)->pluck('id')->all();
+
+        return [
+            'id' => (int) $store->id,
+            'code' => (string) $store->code,
+            'name' => (string) $store->name,
+            'customers' => $customers,
+            'products' => $products,
+            'warehouses' => [],
+            'addresses' => $this->newOrderAddresses('b2c_customer_id', $customerIds),
+        ];
+    }
+
+    /** @param list<int> $customerIds
+     *  @return list<array{id:int,customer_id:int,label:string}>
+     */
+    private function newOrderAddresses(string $customerColumn, array $customerIds): array
+    {
+        if ($customerIds === []) {
+            return [];
+        }
+
+        return DB::table('addresses')
+            ->whereIn($customerColumn, $customerIds)
+            ->whereNull('deleted_at')
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get(['id', $customerColumn, 'label', 'line1', 'city', 'area', 'block', 'street', 'building'])
+            ->map(static function (object $row) use ($customerColumn): array {
+                $parts = array_values(array_filter([
+                    trim((string) ($row->area ?? '')),
+                    trim((string) ($row->block ?? '')),
+                    trim((string) ($row->street ?? '')),
+                    trim((string) ($row->building ?? '')),
+                    trim((string) ($row->line1 ?? '')),
+                    trim((string) ($row->city ?? '')),
+                ], static fn (string $part): bool => $part !== ''));
+                $label = trim((string) ($row->label ?? ''));
+
+                if ($parts !== []) {
+                    $label = trim(($label !== '' ? $label.' · ' : '').implode(', ', array_unique($parts)));
+                }
+
+                return [
+                    'id' => (int) $row->id,
+                    'customer_id' => (int) $row->{$customerColumn},
+                    'label' => $label !== '' ? $label : 'Address #'.$row->id,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function remindDriver(
