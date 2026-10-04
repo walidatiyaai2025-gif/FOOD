@@ -139,7 +139,7 @@ final class B2bAccountLedgerService
     public function appendManual(B2bCustomer $customer, array $data, User $actor): int
     {
         $type = (string) ($data['entry_type'] ?? '');
-        if (!in_array($type, self::MANUAL_TYPES, true)) {
+        if (! in_array($type, self::MANUAL_TYPES, true)) {
             throw ValidationException::withMessages(['entry_type' => ['Unsupported ledger entry type.']]);
         }
 
@@ -411,7 +411,7 @@ final class B2bAccountLedgerService
 
     private function normalizeCurrency(mixed $value): ?string
     {
-        if (!is_string($value)) {
+        if (! is_string($value)) {
             return null;
         }
         $currency = strtoupper(trim($value));
