@@ -68,7 +68,7 @@ final class OrderOperationsController extends Controller
         abort_if($storeIds === [], 403);
 
         $selectedStoreId = isset($data['store_id']) ? (int) $data['store_id'] : null;
-        if ($selectedStoreId !== null && !collect($storeIds)->containsStrict($selectedStoreId)) {
+        if ($selectedStoreId !== null && ! collect($storeIds)->containsStrict($selectedStoreId)) {
             abort(404);
         }
 
@@ -334,8 +334,8 @@ final class OrderOperationsController extends Controller
     }
 
     /**
-     * @param array<string,string> $statusLabels
-     * @param list<string> $activeStatusCodes
+     * @param  array<string,string>  $statusLabels
+     * @param  list<string>  $activeStatusCodes
      * @return array<string,mixed>
      */
     private function row(Order $order, array $statusLabels, array $activeStatusCodes): array
@@ -413,8 +413,8 @@ final class OrderOperationsController extends Controller
     }
 
     /**
-     * @param array<string,string> $statusLabels
-     * @param list<string> $activeStatusCodes
+     * @param  array<string,string>  $statusLabels
+     * @param  list<string>  $activeStatusCodes
      * @return array<string,mixed>
      */
     private function detail(User $actor, Order $order, array $statusLabels, array $activeStatusCodes): array
