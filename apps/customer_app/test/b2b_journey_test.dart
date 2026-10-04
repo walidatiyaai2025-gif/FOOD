@@ -146,6 +146,57 @@ void main() {
     expect(api.calls, 2);
   });
 
+  testWidgets(
+      'B2B dashboard Store icon resolves principal Wholesale and opens canonical home',
+      (tester) async {
+    final storefront = _FakeWholesaleStorefrontApi();
+    final api = _FakeB2bApi({
+      'customer': {'name': 'Buyer'},
+      'account': {'company_name': 'Buyer Co', 'status': 'active'},
+      'finance': {
+        'currency': 'KWD',
+        'balance': 0,
+        'balance_direction': 'settled',
+        'credit_limit': 500,
+        'available_credit_line': 500,
+        'open_amount': 0,
+        'overdue_amount': 0,
+      },
+      'operations': {
+        'purchases_this_month': 0,
+        'payments_this_month': 0,
+        'invoice_count': 0,
+        'order_count': 0,
+        'active_orders': 0,
+      },
+      'freshness': {
+        'generated_at': DateTime.now().toUtc().toIso8601String(),
+        'stale': false,
+      },
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/dashboard',
+        b2bApi: api,
+        storefrontApi: storefront,
+        actionApi: _FakeCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final shopping =
+        find.byKey(const ValueKey('b2b-dashboard-shopping'));
+    expect(shopping, findsOneWidget);
+
+    await tester.tap(shopping);
+    await tester.pumpAndSettle();
+
+    expect(storefront.selectionCalls, 1);
+    expect(storefront.lastStoreId, 70);
+  });
+
   testWidgets('B2B dashboard shows credit direction in English LTR',
       (tester) async {
     final api = _FakeB2bApi({
@@ -2658,6 +2709,7 @@ class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
 
 class _FakeWholesaleStorefrontApi implements StorefrontApi {
   int? lastStoreId;
+  int selectionCalls = 0;
 
   @override
   Future<Map<String, dynamic>> selection({
@@ -2665,8 +2717,23 @@ class _FakeWholesaleStorefrontApi implements StorefrontApi {
     String? city,
     String? area,
     bool support = false,
-  }) async =>
-      const {};
+  }) async {
+    selectionCalls += 1;
+    return const {
+      'retail_stores': <Object>[],
+      'wholesale_stores': [
+        {
+          'id': 70,
+          'name': 'Principal Wholesale',
+          'is_platform_principal': true,
+        },
+      ],
+      'entitlements': {
+        'direct_b2b': true,
+        'principal_wholesale_store_id': 70,
+      },
+    };
+  }
 
   @override
   Future<Map<String, dynamic>> retailHome(int storeId) async => const {};
