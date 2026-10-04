@@ -828,6 +828,8 @@ class _OrderCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: CustomerUiSpacing.sm),
+                      _OrderDualStatus(order: order),
                       if (_nextMeaningfulStatus(order) != null)
                         Padding(
                           padding: const EdgeInsets.only(top: CustomerUiSpacing.xxs),
@@ -875,6 +877,106 @@ class _OrderCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _OrderDualStatus extends StatelessWidget {
+  const _OrderDualStatus({required this.order});
+
+  final CustomerOrderSummary order;
+
+  @override
+  Widget build(BuildContext context) {
+    final approval = _approvalText(context, order);
+    final financial = _financialText(context, order);
+    final appliedCredit = order.appliedCustomerCreditAmount;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CustomerUiColors.mint,
+        borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
+        border: Border.all(color: CustomerUiColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(CustomerUiSpacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _OrderStatusLine(
+              key: ValueKey('customer-order-approval-${order.id}'),
+              icon: Icons.verified_outlined,
+              label: context.tr('customer.orders.approval.label'),
+              value: approval,
+            ),
+            const SizedBox(height: CustomerUiSpacing.xs),
+            _OrderStatusLine(
+              key: ValueKey('customer-order-financial-${order.id}'),
+              icon: Icons.account_balance_wallet_outlined,
+              label: context.tr('customer.orders.financial.label'),
+              value: financial,
+            ),
+            if (appliedCredit != null && appliedCredit > 0) ...[
+              const SizedBox(height: CustomerUiSpacing.xs),
+              _OrderStatusLine(
+                key: ValueKey('customer-order-balance-applied-${order.id}'),
+                icon: Icons.savings_outlined,
+                label: context.tr('customer.orders.financial.balance_applied'),
+                value:
+                    '${appliedCredit.toStringAsFixed(3)} ${order.currency}',
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderStatusLine extends StatelessWidget {
+  const _OrderStatusLine({
+    required this.icon,
+    required this.label,
+    required this.value,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: CustomerUiColors.deepGreenStrong,
+          ),
+          const SizedBox(width: CustomerUiSpacing.xs),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: CustomerUiColors.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  TextSpan(
+                    text: value,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: CustomerUiColors.deepGreenStrong,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
 }
 
 class _OrderHeader extends StatelessWidget {
@@ -1395,6 +1497,76 @@ String? _nextMeaningfulStatus(CustomerOrderSummary order) {
     if (status.toLowerCase() != 'cancelled') return status;
   }
   return null;
+}
+
+String _approvalText(
+  BuildContext context,
+  CustomerOrderSummary order,
+) {
+  final explicit = order.approvalStatus?.trim().toLowerCase();
+  switch (explicit) {
+    case 'pending':
+    case 'pending_approval':
+    case 'awaiting_approval':
+      return context.tr('customer.orders.approval.pending');
+    case 'approved':
+    case 'confirmed':
+      return context.tr('customer.orders.approval.approved');
+    case 'rejected':
+    case 'declined':
+      return context.tr('customer.orders.approval.rejected');
+    case 'cancelled':
+    case 'canceled':
+      return context.tr('customer.orders.approval.cancelled');
+  }
+
+  switch (order.status.toLowerCase()) {
+    case 'pending':
+      return context.tr('customer.orders.approval.pending');
+    case 'confirmed':
+    case 'accepted':
+    case 'preparing':
+    case 'ready':
+    case 'assigned':
+    case 'picked_up':
+    case 'out_for_delivery':
+    case 'delivered':
+    case 'failed':
+      return context.tr('customer.orders.approval.approved');
+    case 'cancelled':
+      return context.tr('customer.orders.approval.cancelled');
+    default:
+      return _statusText(context, order.status);
+  }
+}
+
+String _financialText(
+  BuildContext context,
+  CustomerOrderSummary order,
+) {
+  final outstanding = order.invoiceOutstandingAmount;
+  if (order.fullySettled == true ||
+      (outstanding != null && outstanding <= 0.0000001)) {
+    return context.tr('customer.orders.financial.settled');
+  }
+
+  if (outstanding == null) {
+    return context.tr('customer.orders.financial.unavailable');
+  }
+
+  final amount = '${outstanding.toStringAsFixed(3)} ${order.currency}';
+  switch (order.remainderMethod?.trim().toLowerCase()) {
+    case 'account_debt':
+    case 'account':
+    case 'debt':
+    case 'credit_account':
+      return '${context.tr('customer.orders.financial.debt')} $amount';
+    case 'cash_on_delivery':
+    case 'cod':
+      return '${context.tr('customer.orders.financial.cod')} $amount';
+    default:
+      return '${context.tr('customer.orders.financial.amount_due')} $amount';
+  }
 }
 
 String _statusText(BuildContext context, String status) {
