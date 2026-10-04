@@ -9,6 +9,19 @@ import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/diagnostics/customer_diagnostics.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 
+Future<void> _scrollUntilBuilt(
+  WidgetTester tester,
+  Finder scrollable,
+  Finder target,
+) async {
+  for (var attempt = 0;
+      attempt < 12 && target.evaluate().isEmpty;
+      attempt++) {
+    await tester.drag(scrollable, const Offset(0, -350));
+    await tester.pumpAndSettle();
+  }
+}
+
 void main() {
   const b2b = CustomerSession.authenticated(CustomerChannel.b2b);
 
@@ -41,6 +54,124 @@ void main() {
     expect(find.text('المشتريات'), findsOneWidget);
     expect(find.text('الفواتير'), findsOneWidget);
     expect(find.text('كشف الحساب'), findsOneWidget);
+  });
+
+  testWidgets(
+      'B2B dashboard renders authoritative account metrics and refreshes in place',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final api = _FakeB2bApi({
+      'customer': {
+        'id': 9,
+        'name': 'Buyer',
+        'email': 'buyer@example.test',
+      },
+      'account': {
+        'id': 3,
+        'company_name': 'Buyer Co',
+        'status': 'active',
+      },
+      'finance': {
+        'currency': 'KWD',
+        'balance': 10,
+        'balance_direction': 'customer_owes_company',
+        'credit_limit': 500,
+        'available_credit_line': 490,
+        'open_amount': 10,
+        'overdue_amount': 2,
+      },
+      'operations': {
+        'purchases_this_month': 125.5,
+        'payments_this_month': 75,
+        'invoice_count': 4,
+        'order_count': 6,
+        'active_orders': 2,
+      },
+      'freshness': {
+        'generated_at': DateTime.now().toUtc().toIso8601String(),
+        'stale': false,
+      },
+      'currency': 'KWD',
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/dashboard?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/dashboard?store_id=7');
+    expect(api.calls, 1);
+    expect(find.byKey(const ValueKey('b2b-dashboard-data')), findsOneWidget);
+    expect(find.text('Buyer Co'), findsOneWidget);
+    expect(find.text('Buyer'), findsOneWidget);
+    expect(find.text('عليك 10.000 KWD'), findsOneWidget);
+    expect(find.text('حد الائتمان'), findsOneWidget);
+    expect(find.text('الائتمان المتاح'), findsOneWidget);
+    expect(find.text('الفواتير المفتوحة'), findsOneWidget);
+    expect(find.text('المبلغ المتأخر'), findsOneWidget);
+    expect(find.text('مشتريات هذا الشهر'), findsOneWidget);
+    expect(find.text('مدفوعات هذا الشهر'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-dashboard-refresh')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('b2b-dashboard-refresh')));
+    await tester.pumpAndSettle();
+    expect(api.calls, 2);
+  });
+
+  testWidgets('B2B dashboard shows credit direction in English LTR',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'customer': {'name': 'Buyer'},
+      'account': {'company_name': 'Buyer Co', 'status': 'active'},
+      'finance': {
+        'currency': 'KWD',
+        'balance': -20,
+        'balance_direction': 'company_owes_customer',
+        'credit_limit': 500,
+        'available_credit_line': 500,
+        'open_amount': 0,
+        'overdue_amount': 0,
+      },
+      'operations': {
+        'purchases_this_month': 0,
+        'payments_this_month': 20,
+        'invoice_count': 1,
+        'order_count': 1,
+        'active_orders': 0,
+      },
+      'freshness': {
+        'generated_at': DateTime.now().toUtc().toIso8601String(),
+        'stale': false,
+      },
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/dashboard',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      Directionality.of(tester.element(find.text('Business dashboard'))),
+      TextDirection.ltr,
+    );
+    expect(find.text('Credit to you 20.000 KWD'), findsOneWidget);
+    expect(find.text('Available credit'), findsOneWidget);
+    expect(find.text('Active orders'), findsOneWidget);
   });
 
   testWidgets('B2B profile is the complete visible account and finance hub',
@@ -424,6 +555,186 @@ void main() {
     expect(api.lastPath, '/api/v1/cart?store=7');
   });
 
+  testWidgets(
+      'B2B product detail revalidates changed commercial terms before add',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final api = _SequenceB2bApi([
+      {
+        'id': 42,
+        'sku': 'LIVE-42',
+        'name': 'Live Wholesale Product',
+        'store_id': 7,
+        'brand_name': 'FOODEX',
+        'category_name': 'Beverages',
+        'description': 'Fresh authoritative description',
+        'account_price': 7.25,
+        'base_wholesale_price': 8.0,
+        'retail_reference_price': 9.5,
+        'minimum_order_quantity': 5,
+        'ordering_increment': 5,
+        'pack_size': 12,
+        'case_size': 24,
+        'pack_label': 'Case 12',
+        'available_quantity': 30,
+        'is_available': true,
+        'availability_state': 'AVAILABLE',
+        'currency': 'EGP',
+      },
+      {
+        'id': 42,
+        'sku': 'LIVE-42',
+        'name': 'Live Wholesale Product',
+        'store_id': 7,
+        'brand_name': 'FOODEX',
+        'category_name': 'Beverages',
+        'description': 'Fresh authoritative description',
+        'account_price': 8.0,
+        'base_wholesale_price': 8.5,
+        'retail_reference_price': 9.5,
+        'minimum_order_quantity': 10,
+        'ordering_increment': 5,
+        'pack_size': 12,
+        'case_size': 24,
+        'pack_label': 'Case 12',
+        'available_quantity': 20,
+        'is_available': true,
+        'availability_state': 'AVAILABLE',
+        'currency': 'EGP',
+      },
+    ]);
+    final actionApi = _CountingCustomerActionApi();
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/products/42?store_id=7',
+        b2bApi: api,
+        actionApi: actionApi,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Brand: FOODEX'), findsOneWidget);
+    expect(find.text('Category: Beverages'), findsOneWidget);
+    expect(find.textContaining('7.25 EGP'), findsOneWidget);
+
+    final descriptionDisclosure = find.text('Description');
+    expect(descriptionDisclosure, findsOneWidget);
+    await tester.ensureVisible(descriptionDisclosure);
+    await tester.tap(descriptionDisclosure);
+    await tester.pumpAndSettle();
+    expect(find.text('Fresh authoritative description'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('customer-add-cart')),
+    );
+    await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
+    await tester.pumpAndSettle();
+
+    expect(api.calls, 2);
+    expect(actionApi.addCalls, 0);
+    expect(
+      find.byKey(const ValueKey('b2b-product-terms-updated')),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Price or stock changed'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('8.00 EGP'), findsOneWidget);
+    expect(find.textContaining('Minimum order 10'), findsOneWidget);
+  });
+
+  testWidgets(
+      'B2B product detail enforces max stock and auto-recovers from out of stock',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final api = _SequenceB2bApi([
+      {
+        'id': 42,
+        'sku': 'STOCK-42',
+        'name': 'Stock Product',
+        'store_id': 7,
+        'account_price': 10,
+        'minimum_order_quantity': 5,
+        'ordering_increment': 5,
+        'pack_size': 1,
+        'available_quantity': 0,
+        'is_available': false,
+        'availability_state': 'OUT_OF_STOCK',
+        'currency': 'EGP',
+      },
+      {
+        'id': 42,
+        'sku': 'STOCK-42',
+        'name': 'Stock Product',
+        'store_id': 7,
+        'account_price': 10,
+        'minimum_order_quantity': 5,
+        'ordering_increment': 5,
+        'pack_size': 1,
+        'available_quantity': 6,
+        'is_available': true,
+        'availability_state': 'AVAILABLE',
+        'currency': 'EGP',
+      },
+    ]);
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/products/42?store_id=7',
+        b2bApi: api,
+        actionApi: _CountingCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Out of stock'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('b2b-product-stock-auto-refresh')),
+      findsOneWidget,
+    );
+    expect(api.calls, 1);
+
+    await tester.pump(const Duration(seconds: 15));
+    await tester.pumpAndSettle();
+
+    expect(api.calls, 2);
+    expect(
+      find.byKey(const ValueKey('b2b-product-stock-auto-refresh')),
+      findsNothing,
+    );
+    expect(find.textContaining('Available quantity 6'), findsOneWidget);
+
+    final quantityCta = find.byKey(const ValueKey('customer-add-cart'));
+    final plus = find.descendant(
+      of: quantityCta,
+      matching: find.byIcon(Icons.add_rounded),
+    );
+    expect(plus, findsOneWidget);
+    await tester.tap(plus);
+    await tester.pump();
+
+    expect(find.textContaining('Maximum available 6'), findsOneWidget);
+    expect(find.text('5'), findsWidgets);
+  });
+
   testWidgets('B2B cart exposes authoritative checkout action', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart', b2bApi: _StaticB2bApi()));
     await tester.pumpAndSettle();
@@ -475,6 +786,11 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
     expect(find.text('FDX-B2B-4'), findsOneWidget);
     expect(find.text('Wholesale Store'), findsOneWidget);
+    await _scrollUntilBuilt(
+      tester,
+      find.byKey(const ValueKey('b2b-order-detail')),
+      find.text('الدفع عند الاستلام'),
+    );
     expect(find.text('الدفع عند الاستلام'), findsOneWidget);
     expect(find.text('/orders/4/track'), findsNothing);
   });
@@ -684,6 +1000,11 @@ void main() {
     expect(find.text('تم التأكيد'), findsNothing);
     expect(find.text('جاري التجهيز'), findsNothing);
     expect(find.text('تم التسليم'), findsNothing);
+    await _scrollUntilBuilt(
+      tester,
+      find.byKey(const ValueKey('b2b-order-detail')),
+      find.text('الدفع عند الاستلام'),
+    );
     expect(find.text('الدفع عند الاستلام'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('b2b-order-refresh')));
@@ -693,6 +1014,171 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-timeline-1-delivered')), findsOneWidget);
     expect(find.text('تم التسليم'), findsWidgets);
     expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsNothing);
+  });
+
+  testWidgets(
+      'B2B order details expose complete authoritative surface in English LTR',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'id': 78,
+      'order_number': 'B2B-78',
+      'status': 'failed',
+      'channel': 'b2b',
+      'created_at': '2026-10-04T10:00:00+00:00',
+      'requested_delivery_date': '2026-10-05',
+      'store': {'id': 7, 'name': 'Wholesale Store'},
+      'currency': 'KWD',
+      'subtotal': 100.0,
+      'discount_total': 5.0,
+      'tax_total': 4.0,
+      'delivery_total': 1.0,
+      'grand_total': 100.0,
+      'payment_method': 'account_credit',
+      'payment': {
+        'status': 'paid',
+        'amount': 100.0,
+        'currency': 'KWD',
+      },
+      'account_credit_impact': {
+        'amount': 100.0,
+        'currency': 'KWD',
+        'status': 'paid',
+      },
+      'delivery_address': {
+        'recipient_name': 'Buyer One',
+        'delivery_phone': '55512345',
+        'line1': 'Street 1',
+        'city': 'Kuwait City',
+        'latitude': 29.37,
+        'longitude': 47.98,
+        'has_coordinates': true,
+      },
+      'tracking': {
+        'driver_name': 'Driver One',
+        'status': 'failed',
+        'assigned_at': '2026-10-04T10:10:00+00:00',
+      },
+      'allowed_actions': {
+        'view_map': true,
+        'view_invoice': true,
+        'cancel': false,
+        'reorder': false,
+        'contact_support': false,
+      },
+      'invoice': {
+        'id': 44,
+        'invoice_number': 'INV-B2B-78',
+        'status': 'issued',
+      },
+      'is_terminal': true,
+      'customer_note': 'Leave at gate',
+      'items': [
+        {
+          'id': 1,
+          'product_id': 42,
+          'sku': 'SKU-42',
+          'name': 'Bulk Water',
+          'quantity': 2,
+          'pack_size': 12,
+          'unit_price': 50.0,
+          'line_total': 100.0,
+        },
+      ],
+      'timeline': [
+        {
+          'stage': 'placed',
+          'occurred_at': '2026-10-04T10:00:00+00:00',
+        },
+        {
+          'stage': 'failed',
+          'occurred_at': '2026-10-04T10:20:00+00:00',
+          'driver_name': 'Driver One',
+          'reason_code': 'customer_no_answer',
+        },
+      ],
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/orders/78',
+        b2bApi: api,
+        locale: const Locale('en'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/orders/78');
+    expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
+    expect(find.text('Order details'), findsOneWidget);
+    expect(find.text('B2B-78'), findsOneWidget);
+    expect(find.text('Wholesale Store'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-order-terminal')), findsOneWidget);
+    expect(
+      Directionality.of(
+        tester.element(find.byKey(const ValueKey('b2b-order-detail'))),
+      ),
+      TextDirection.ltr,
+    );
+    expect(find.text('تفاصيل الطلب'), findsNothing);
+
+    final scrollable =
+        find.byKey(const ValueKey('b2b-order-detail'));
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.byKey(const ValueKey('b2b-order-open-map')),
+    );
+    expect(find.byKey(const ValueKey('b2b-order-open-map')), findsOneWidget);
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.text('Customer did not answer'),
+    );
+    expect(find.text('Customer did not answer'), findsOneWidget);
+    expect(find.text('Driver One'), findsWidgets);
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.text('Bulk Water'),
+    );
+    expect(find.text('Bulk Water'), findsOneWidget);
+    expect(find.text('SKU-42'), findsOneWidget);
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.text('Price summary'),
+    );
+    expect(find.text('Price summary'), findsOneWidget);
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.text('Account credit'),
+    );
+    expect(find.text('Account credit'), findsOneWidget);
+    expect(find.text('Paid'), findsOneWidget);
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.byKey(const ValueKey('b2b-order-open-invoice')),
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-order-open-invoice')),
+      findsOneWidget,
+    );
+
+    await _scrollUntilBuilt(
+      tester,
+      scrollable,
+      find.text('Leave at gate'),
+    );
+    expect(find.text('Leave at gate'), findsOneWidget);
   });
 
   testWidgets('legacy channel-scoped session cannot enter B2B protected journey', (tester) async {
@@ -833,10 +1319,28 @@ void main() {
       (
         route: '/b2b/dashboard',
         payload: {
-          'purchases_total': 321.75,
-          'open_invoices': 4,
-          'balance': 88.5,
-          'currency': 'KWD',
+          'customer': {'name': 'Acme Buyer'},
+          'account': {'company_name': 'Acme Foods'},
+          'finance': {
+            'currency': 'KWD',
+            'balance': 88.5,
+            'balance_direction': 'customer_owes_company',
+            'credit_limit': 500.0,
+            'available_credit_line': 411.5,
+            'open_amount': 88.5,
+            'overdue_amount': 0.0,
+          },
+          'operations': {
+            'purchases_this_month': 321.75,
+            'payments_this_month': 50.0,
+            'invoice_count': 4,
+            'order_count': 3,
+            'active_orders': 1,
+          },
+          'freshness': {
+            'generated_at': '2026-10-04T14:00:00+00:00',
+            'stale': false,
+          },
         },
         expected: '321.75',
       ),
@@ -1226,8 +1730,14 @@ class _FakeB2bApi implements B2bApi {
   _FakeB2bApi(this.value);
   final Object? value;
   String? lastPath;
+  int calls = 0;
+
   @override
-  Future<Object?> get(String path) async { lastPath = path; return value; }
+  Future<Object?> get(String path) async {
+    calls++;
+    lastPath = path;
+    return value;
+  }
 }
 
 
