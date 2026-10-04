@@ -2764,8 +2764,9 @@ class _WholesaleCartDesignScreenState
   Future<void> _mutate(Future<void> Function() action) async {
     try {
       await action();
+      final refreshed = await _load();
       if (mounted) {
-        setState(() => future = _load());
+        setState(() => future = Future<Object?>.value(refreshed));
       }
     } catch (error) {
       if (mounted) {
