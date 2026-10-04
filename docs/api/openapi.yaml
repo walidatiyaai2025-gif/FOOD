@@ -1280,11 +1280,32 @@ paths:
           name: to
           schema: { type: string, format: date }
         - in: query
+          name: store_id
+          description: Optional B2B store context used to scope history and current repurchase eligibility.
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: q
+          description: Search historical purchased product name or SKU.
+          schema: { type: string, maxLength: 120 }
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [quantity, value]
+            default: quantity
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: per_page
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - in: query
           name: limit
-          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+          description: Backward-compatible page-size alias.
+          schema: { type: integer, minimum: 1, maximum: 50 }
       responses:
         "200":
-          description: Deterministically ranked B2B products for the selected period
+          description: Deterministically ranked purchase history enriched with current account catalog state for safe repurchase.
           content:
             application/json:
               schema:
@@ -1294,7 +1315,7 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          description: Invalid date range or limit
+          description: Invalid filters, date range, sort or pagination
 
   /b2b/products:
     get:
@@ -2834,13 +2855,17 @@ components:
 
     B2bTopProduct:
       type: object
-      required: [rank, product_id, sku, name, quantity, total, currency]
+      required:
+        [rank, product_id, sku, name, quantity, total, currency, availability_state, can_repurchase]
       properties:
         rank:
           type: integer
           minimum: 1
         product_id:
           type: integer
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
         sku:
           type: string
         name:
@@ -2855,11 +2880,49 @@ components:
           multipleOf: 0.001
         currency:
           type: string
-          enum: [EGP]
+          description: Historical order-line spend currency.
+        last_purchased_at:
+          type: [string, "null"]
+          format: date-time
+        image_url:
+          type: [string, "null"]
+          format: uri
+        account_price:
+          type: [number, "null"]
+          minimum: 0
+          multipleOf: 0.001
+          description: Current account-tier price; never derived from the historical order-line price.
+        current_price_currency:
+          type: [string, "null"]
+        minimum_order_quantity:
+          type: [number, "null"]
+          minimum: 0
+        ordering_increment:
+          type: [number, "null"]
+          minimum: 0
+        pack_size:
+          type: [number, "null"]
+          minimum: 0
+        case_size:
+          type: [number, "null"]
+          minimum: 0
+        pack_label:
+          type: [string, "null"]
+        available_quantity:
+          type: [number, "null"]
+          minimum: 0
+        availability_state:
+          type: string
+          enum: [AVAILABLE, OUT_OF_STOCK, UNAVAILABLE_FOR_ACCOUNT]
+        can_repurchase:
+          type: boolean
+        unavailable_reason:
+          type: [string, "null"]
+          enum: [OUT_OF_STOCK, BELOW_MINIMUM_ORDER, UNAVAILABLE_FOR_ACCOUNT, null]
 
     B2bTopProductCollection:
       type: object
-      required: [data, period]
+      required: [data, period, sort, meta]
       properties:
         data:
           type: array
@@ -2875,6 +2938,25 @@ components:
             to:
               type: [string, "null"]
               format: date
+        sort:
+          type: string
+          enum: [quantity, value]
+        meta:
+          type: object
+          required: [page, per_page, total, has_more]
+          properties:
+            page:
+              type: integer
+              minimum: 1
+            per_page:
+              type: integer
+              minimum: 1
+              maximum: 50
+            total:
+              type: integer
+              minimum: 0
+            has_more:
+              type: boolean
 
     B2bDashboard:
       type: object
