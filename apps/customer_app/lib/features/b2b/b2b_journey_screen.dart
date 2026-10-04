@@ -165,7 +165,10 @@ class B2bJourneyScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(content.$2),
             const SizedBox(height: 20),
-            if (!hasRemoteState || keepLocalActions) ...content.$3,
+            if (!hasRemoteState ||
+                (keepLocalActions &&
+                    definition.pattern != CustomerRoutePaths.b2bProductDetails))
+              ...content.$3,
             if (hasRemoteState && isProfile) ...[
               B2bBusinessAccountProfile(
                 api: api!,
@@ -205,6 +208,9 @@ class B2bJourneyScreen extends StatelessWidget {
                       routePattern: definition.pattern,
                       showEmpty: false,
                     ),
+            if (hasRemoteState &&
+                definition.pattern == CustomerRoutePaths.b2bProductDetails)
+              ...content.$3,
             if (hasRemoteState && !keepLocalActions && !isProfile)
               definition.pattern == CustomerRoutePaths.b2bDashboard
                   ? _B2bDashboardRemoteState(
@@ -1216,6 +1222,10 @@ class _B2bProductDetailRemoteStateState
           final available = value['available_quantity']?.toString();
           final currency = value['currency']?.toString() ?? 'KWD';
           final tier = value['price_tier']?.toString() ?? '-';
+          final category = value['category_name']?.toString().trim() ?? '';
+          final brand = value['brand_name']?.toString().trim() ?? '';
+          final isAvailable = value['is_available'] != false &&
+              value['availability_state'] != 'OUT_OF_STOCK';
           final images = (value['images'] as List? ?? const [])
               .whereType<String>()
               .where((url) => url.trim().isNotEmpty)
@@ -1227,49 +1237,225 @@ class _B2bProductDetailRemoteStateState
                   ? const <String>[]
                   : <String>[primaryImage]);
 
-          return Card(
+          return Material(
             key: const ValueKey('b2b-product-detail-data'),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (gallery.isNotEmpty)
-                    SizedBox(
-                      key: const ValueKey('b2b-product-gallery'),
-                      height: 240,
-                      child: PageView.builder(
-                        itemCount: gallery.length,
-                        itemBuilder: (_, index) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _B2bCatalogImage(url: gallery[index]),
-                        ),
+            color: CustomerUiColors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
+              side: const BorderSide(color: CustomerUiColors.border),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (gallery.isNotEmpty)
+                  SizedBox(
+                    key: const ValueKey('b2b-product-gallery'),
+                    height: 270,
+                    child: PageView.builder(
+                      itemCount: gallery.length,
+                      itemBuilder: (_, index) => _B2bCatalogImage(
+                        url: gallery[index],
                       ),
                     ),
-                  Text(
-                    name,
-                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 6),
-                  Text(sku),
-                  const SizedBox(height: 12),
-                  Text(
-                    '${context.tr('b2b.product.account_price')}: $price $currency',
+                Padding(
+                  padding: const EdgeInsets.all(CustomerUiSpacing.md),
+                  child: Column(
+                    key: const ValueKey('b2b-product-detail-hero'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: CustomerUiColors.ink,
+                                  ),
+                            ),
+                          ),
+                          if (category.isNotEmpty) ...[
+                            const SizedBox(width: CustomerUiSpacing.xs),
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: CustomerUiColors.limeSoft,
+                                borderRadius:
+                                    BorderRadius.circular(CustomerUiRadii.sm),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: CustomerUiSpacing.sm,
+                                  vertical: CustomerUiSpacing.xxs,
+                                ),
+                                child: Text(
+                                  category,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: CustomerUiColors.deepGreen,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: CustomerUiSpacing.xs),
+                      Text(
+                        '$price $currency',
+                        key: const ValueKey('b2b-product-price'),
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: CustomerUiColors.deepGreen,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                      ),
+                      Text(
+                        context.tr('b2b.product.account_price'),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: CustomerUiColors.muted,
+                            ),
+                      ),
+                      if (sku.isNotEmpty) ...[
+                        const SizedBox(height: CustomerUiSpacing.xs),
+                        Text(
+                          sku,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: CustomerUiColors.muted,
+                              ),
+                        ),
+                      ],
+                      const SizedBox(height: CustomerUiSpacing.md),
+                      Container(
+                        key: const ValueKey('b2b-product-commerce-strip'),
+                        padding: const EdgeInsets.all(CustomerUiSpacing.md),
+                        decoration: BoxDecoration(
+                          color: CustomerUiColors.mint,
+                          borderRadius:
+                              BorderRadius.circular(CustomerUiRadii.md),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _B2bProductFact(
+                                icon: Icons.verified_outlined,
+                                label: isAvailable
+                                    ? context.tr('customer.product.available')
+                                    : context.tr('customer.product.out_of_stock'),
+                                value: available ??
+                                    context.tr(
+                                      'b2b.product.inventory_unbounded',
+                                    ),
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 42,
+                              color: CustomerUiColors.border,
+                            ),
+                            Expanded(
+                              child: _B2bProductFact(
+                                icon: Icons.inventory_2_outlined,
+                                label: context.tr('b2b.minimum_order'),
+                                value: minimum,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: CustomerUiSpacing.md),
+                      Wrap(
+                        key: const ValueKey('b2b-product-meta'),
+                        spacing: CustomerUiSpacing.xs,
+                        runSpacing: CustomerUiSpacing.xs,
+                        children: [
+                          if (brand.isNotEmpty)
+                            Chip(
+                              avatar: const Icon(
+                                Icons.sell_outlined,
+                                size: 16,
+                              ),
+                              label: Text(brand),
+                            ),
+                          Chip(
+                            avatar: const Icon(
+                              Icons.workspace_premium_outlined,
+                              size: 16,
+                            ),
+                            label: Text(
+                              '${context.tr('b2b.product.price_tier')}: $tier',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+}
+
+class _B2bProductFact extends StatelessWidget {
+  const _B2bProductFact({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: CustomerUiSpacing.sm),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: CustomerUiColors.deepGreen,
+            ),
+            const SizedBox(width: CustomerUiSpacing.xs),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    '${context.tr('b2b.minimum_order')}: $minimum',
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: CustomerUiColors.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
+                  const SizedBox(height: CustomerUiSpacing.xxs),
                   Text(
-                    '${context.tr('b2b.product.inventory')}: ${available ?? context.tr('b2b.product.inventory_unbounded')}',
-                  ),
-                  Text(
-                    '${context.tr('b2b.product.price_tier')}: $tier',
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: CustomerUiColors.ink,
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                 ],
               ),
             ),
-          );
-        },
+          ],
+        ),
       );
 }
 
