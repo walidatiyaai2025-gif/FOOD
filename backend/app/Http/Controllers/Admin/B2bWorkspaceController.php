@@ -19,11 +19,13 @@ use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
 use App\Services\B2bCustomerService;
 use App\Services\B2bDashboardService;
+use App\Services\B2bFinanceInvoiceService;
 use App\Services\CatalogOwnership;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\LookupScopeService;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
+use App\Services\ReportExportService;
 use App\Services\StorefrontDraftEditorService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
@@ -37,6 +39,7 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 
 class B2bWorkspaceController extends Controller
 {
@@ -58,6 +61,7 @@ class B2bWorkspaceController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly B2bDashboardService $dashboard,
+        private readonly B2bFinanceInvoiceService $financeInvoices,
         private readonly ManagementReportService $reports,
         private readonly TenantContextResolver $tenantContext,
         private readonly OperationalTenantScope $operationalScope,
@@ -98,7 +102,11 @@ class B2bWorkspaceController extends Controller
                 ->whereIn('store_id', $storeIds)
                 ->count(),
             'pricing' => DB::table('b2b_price_rules')->whereIn('store_id', $storeIds)->count(),
-            'finance' => DB::table('invoices')->whereNotNull('b2b_customer_id')->count(),
+            'finance' => DB::table('invoices')
+                ->whereIn('store_id', $storeIds)
+                ->where('channel', 'b2b')
+                ->whereNotNull('b2b_customer_id')
+                ->count(),
         ];
 
         $navGroups = $this->navigation->groupsFor($user);
@@ -122,7 +130,7 @@ class B2bWorkspaceController extends Controller
         $dashboard = $module === 'dashboard'
             ? $this->dashboard->build($user, $storeIds, $dashboardFrom, $dashboardTo)
             : null;
-        $moduleData = $module === 'dashboard' ? null : $this->moduleData($module, $storeIds, $user);
+        $moduleData = $module === 'dashboard' ? null : $this->moduleData($module, $storeIds, $user, $request);
         $visibleModules = array_values(array_filter(
             array_keys(self::MODULE_PERMISSIONS),
             fn (string $candidate): bool => $this->canOpenModule($user, $candidate),
@@ -142,6 +150,38 @@ class B2bWorkspaceController extends Controller
             'driverTrackingFeedUrl',
             'driverTrackingPageUrl',
         ));
+    }
+
+    public function exportFinance(Request $request, ReportExportService $exports): Response
+    {
+        $user = $this->actor($request);
+        $this->authorizeModule($user, 'finance');
+        App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
+
+        $validated = $request->validate([
+            ...$this->financeFilterRules(),
+            'format' => ['required', 'in:xlsx,pdf'],
+        ]);
+        $format = (string) $validated['format'];
+        unset($validated['format']);
+
+        $storeIds = $this->wholesaleStoreIds($user);
+        $report = $this->financeInvoices->exportReport($storeIds, $validated, app()->getLocale());
+        $file = $exports->build($report, $format, app()->getLocale());
+        $filename = $exports->filename($report, $file['extension']);
+
+        $this->audit->record('b2b.finance.exported', $user, null, null, [
+            'format' => $format,
+            'store_ids' => $storeIds,
+            'filters' => $report['filters'],
+            'rows' => count((array) $report['rows']),
+        ], $request);
+
+        return response($file['content'], 200, [
+            'Content-Type' => $file['mime'],
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     public function transitionOrder(
@@ -866,60 +906,11 @@ class B2bWorkspaceController extends Controller
         ];
     }
 
-    private function financeModuleData(array $storeIds): array
+    private function financeModuleData(array $storeIds, Request $request): array
     {
-        $rows = DB::table('invoices')
-            ->join('b2b_customers', 'b2b_customers.id', '=', 'invoices.b2b_customer_id')
-            ->leftJoin('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
-            ->leftJoin('orders', 'orders.id', '=', 'invoices.order_id')
-            ->whereNotNull('invoices.b2b_customer_id')
-            ->where(function ($query) use ($storeIds): void {
-                $query->whereNull('invoices.order_id')
-                    ->orWhere(function ($order) use ($storeIds): void {
-                        $order->where('orders.channel', 'b2b')->whereIn('orders.store_id', $storeIds);
-                    });
-            })
-            ->orderByDesc('invoices.id')
-            ->limit(150)
-            ->get([
-                'invoices.id',
-                'invoices.invoice_number',
-                'invoices.status',
-                'invoices.currency',
-                'invoices.total',
-                'invoices.due_at',
-                'b2b_customers.name as client',
-                'b2b_accounts.company_name as company',
-            ])
-            ->map(function ($row): array {
-                $paid = (float) DB::table('payments')
-                    ->where('invoice_id', $row->id)
-                    ->where('status', 'paid')
-                    ->sum('amount');
-                $total = (float) $row->total;
+        $filters = $request->validate($this->financeFilterRules());
 
-                return [
-                    '_id' => (int) $row->id,
-                    'invoice' => $row->invoice_number,
-                    'company' => $row->company ?: '-',
-                    'client' => $row->client,
-                    'status' => $row->status,
-                    'amount' => $row->currency.' '.number_format($total, 3),
-                    'paid' => $row->currency.' '.number_format($paid, 3),
-                    'balance' => $row->currency.' '.number_format(max(0, $total - $paid), 3),
-                    'due' => $row->due_at === null ? '-' : (string) $row->due_at,
-                    'actions' => [
-                        ['label' => $this->msg('تفاصيل', 'Details'), 'url' => route('admin.invoices.show', ['invoice' => $row->id])],
-                        ['label' => 'PDF', 'url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()])],
-                    ],
-                ];
-            })
-            ->all();
-
-        return [
-            'columns' => ['invoice', 'company', 'client', 'status', 'amount', 'paid', 'balance', 'due', 'actions'],
-            'rows' => $rows,
-        ];
+        return $this->financeInvoices->viewModel($storeIds, $filters, app()->getLocale());
     }
 
     private function inventoryModuleData(array $storeIds): array
@@ -1070,7 +1061,7 @@ class B2bWorkspaceController extends Controller
         ];
     }
 
-    private function moduleData(string $module, array $storeIds, User $user): array
+    private function moduleData(string $module, array $storeIds, User $user, Request $request): array
     {
         return match ($module) {
             'dashboard' => [
@@ -1279,7 +1270,7 @@ class B2bWorkspaceController extends Controller
                     ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name, 'sku' => $row->sku])
                     ->all(),
             ],
-            'finance' => $this->financeModuleData($storeIds),
+            'finance' => $this->financeModuleData($storeIds, $request),
             'reports' => $this->reportModuleData($user, $storeIds),
             'storefront' => $this->storefrontModuleData($storeIds),
             'settings' => $this->settingsModuleData($user, $storeIds),
@@ -1552,6 +1543,16 @@ class B2bWorkspaceController extends Controller
                 ])
                 ->all(),
             'payment_methods' => array_values((array) config('checkout.payment_methods', ['cash_on_delivery'])),
+        ];
+    }
+
+    /** @return array<string, list<string>> */
+    private function financeFilterRules(): array
+    {
+        return [
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'customer_id' => ['nullable', 'integer', 'min:1'],
         ];
     }
 
