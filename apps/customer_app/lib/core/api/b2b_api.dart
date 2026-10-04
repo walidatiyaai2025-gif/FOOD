@@ -1,8 +1,25 @@
 import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:http/http.dart' as http;
 
 abstract class B2bApi {
   Future<Object?> get(String path);
+
+  Future<B2bDownload> download(String path) =>
+      Future<B2bDownload>.error(UnsupportedError('B2B downloads are unavailable.'));
+}
+
+class B2bDownload {
+  const B2bDownload({
+    required this.bytes,
+    required this.mimeType,
+    required this.filename,
+  });
+
+  final Uint8List bytes;
+  final String mimeType;
+  final String filename;
 }
 
 class HttpB2bApi implements B2bApi {
@@ -44,6 +61,43 @@ class HttpB2bApi implements B2bApi {
       );
     }
     return response.body.isEmpty ? null : jsonDecode(response.body);
+  }
+
+  @override
+  Future<B2bDownload> download(String path) async {
+    final response = await _client.get(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        'Accept': 'application/pdf, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/octet-stream',
+        'Authorization': 'Bearer $token',
+        if (retailStoreContextId != null)
+          'X-FOODEX-Retail-Store-ID': retailStoreContextId.toString(),
+      },
+    );
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw B2bApiException(
+        'not_authorized',
+        statusCode: response.statusCode,
+        supportReference: _supportReference(response.headers),
+      );
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw B2bApiException(
+        'http_${response.statusCode}',
+        statusCode: response.statusCode,
+        supportReference: _supportReference(response.headers),
+      );
+    }
+
+    final disposition = response.headers['content-disposition'] ?? '';
+    final filenameMatch = RegExp(r'filename="?([^";]+)"?', caseSensitive: false)
+        .firstMatch(disposition);
+    final mime = response.headers['content-type']?.split(';').first.trim();
+    return B2bDownload(
+      bytes: response.bodyBytes,
+      mimeType: mime == null || mime.isEmpty ? 'application/octet-stream' : mime,
+      filename: filenameMatch?.group(1) ?? 'foodex-account-statement',
+    );
   }
 }
 

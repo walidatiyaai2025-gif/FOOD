@@ -1709,6 +1709,124 @@ void main() {
     }
   });
 
+
+  testWidgets('C13 Screen 6 reconciles statement totals, direction and references',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'data': {
+        'currency': 'EGP',
+        'opening_balance': 10.0,
+        'period_debits': 60.0,
+        'period_credits': 20.0,
+        'closing_balance': 50.0,
+        'balance': 50.0,
+        'transactions': [
+          {
+            'id': 'invoice:31',
+            'type': 'invoice',
+            'reference': 'INV-31',
+            'description': 'Invoice INV-31',
+            'debit': 60.0,
+            'credit': 0.0,
+            'running_balance': 70.0,
+            'currency': 'EGP',
+            'invoice_id': 31,
+            'order_id': 77,
+            'occurred_at': '2026-10-01T10:00:00Z',
+          },
+          {
+            'id': 'payment:9',
+            'type': 'payment',
+            'reference': 'PAY-9',
+            'description': 'Payment',
+            'debit': 0.0,
+            'credit': 20.0,
+            'running_balance': 50.0,
+            'currency': 'EGP',
+            'invoice_id': 31,
+            'occurred_at': '2026-10-02T10:00:00Z',
+          },
+        ],
+        'pagination': {
+          'current_page': 1,
+          'per_page': 30,
+          'total': 2,
+          'last_page': 1,
+          'has_more': false,
+        },
+      },
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/account-statement?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2b-statement-data')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-statement-summary-opening')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-statement-summary-closing')), findsOneWidget);
+    expect(find.textContaining('50.000 EGP'), findsWidgets);
+    expect(find.textContaining('عليك'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-statement-export-pdf')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-statement-export-xlsx')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-statement-running-invoice:31')),
+      findsOneWidget,
+    );
+    expect(api.lastPath, contains('/api/v1/b2b/account-statement'));
+    expect(api.lastPath, contains('store_id=7'));
+
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-statement-reference-invoice:31')),
+    );
+    await tester.pumpAndSettle();
+    expect(api.lastPath, '/api/v1/b2b/invoices/31');
+  });
+
+  testWidgets('C13 Screen 6 quick period preset reloads authoritative query',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'data': {
+        'currency': 'EGP',
+        'opening_balance': 0,
+        'period_debits': 0,
+        'period_credits': 0,
+        'closing_balance': 0,
+        'balance': 0,
+        'transactions': <Object?>[],
+        'pagination': {
+          'current_page': 1,
+          'per_page': 30,
+          'total': 0,
+          'last_page': 1,
+          'has_more': false,
+        },
+      },
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/account-statement?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-statement-preset-30')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, contains('from='));
+    expect(api.lastPath, contains('to='));
+    expect(api.lastPath, contains('page=1'));
+    expect(api.lastPath, contains('per_page=30'));
+  });
+
   testWidgets('B2B collections expose approved detail navigation', (tester) async {
     final api = _FakeB2bApi({
       'data': [
