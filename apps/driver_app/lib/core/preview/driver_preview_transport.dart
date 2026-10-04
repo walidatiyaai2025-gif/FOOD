@@ -80,7 +80,7 @@ class DriverPreviewReadHttpClient extends http.BaseClient {
     });
     forwarded.headers['X-Foodex-Preview-Token'] = credential;
 
-    final updatedAt = () => DateTime.now().toUtc().toIso8601String();
+    String updatedAt() => DateTime.now().toUtc().toIso8601String();
     try {
       final response = await delegate.send(forwarded);
       final status = response.statusCode;
