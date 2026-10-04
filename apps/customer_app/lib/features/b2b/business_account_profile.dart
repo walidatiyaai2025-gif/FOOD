@@ -80,7 +80,6 @@ class _B2bBusinessAccountProfileState
           final companyName = _first(
             businessAccount['company_name'],
             data['company_name'],
-            customer['company_name'],
             customer['name'],
             data['name'],
           );
