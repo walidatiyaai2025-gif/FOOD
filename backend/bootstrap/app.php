@@ -39,6 +39,18 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Throwable $exception, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')
+                && ! $exception instanceof \\Illuminate\\Validation\\ValidationException
+                && ! $exception instanceof \\Illuminate\\Auth\\AuthenticationException) {
+                $status = $exception instanceof \\Symfony\\Component\\HttpKernel\\Exception\\HttpExceptionInterface
+                    ? $exception->getStatusCode()
+                    : 500;
+
+                if ($status >= 500) {
+                    app(SystemInspectorRecorder::class)->recordException($exception, $request);
+                }
+            }
+
             if ($request->is('admin/*')) {
                 app(SystemInspectorRecorder::class)->recordException($exception, $request);
 
