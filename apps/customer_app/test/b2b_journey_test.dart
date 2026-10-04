@@ -1536,6 +1536,88 @@ void main() {
     expect(api.lastPath, '/api/v1/b2b/products/42?store_id=7');
   });
 
+  testWidgets('C13 Screen 4 period presets match purchases report semantics', (tester) async {
+    final api = _FakeB2bApi({
+      'data': [
+        {
+          'rank': 1,
+          'product_id': 42,
+          'store_id': 7,
+          'sku': 'TOP-1',
+          'name': 'Top Product',
+          'quantity': 12,
+          'total': 144.5,
+          'currency': 'KWD',
+          'last_purchased_at': '2026-09-30T11:30:00Z',
+          'account_price': 7.25,
+          'current_price_currency': 'KWD',
+          'pack_label': 'Case 12',
+          'can_repurchase': true,
+          'unavailable_reason': null,
+        },
+      ],
+      'meta': {
+        'page': 1,
+        'per_page': 20,
+        'total': 1,
+        'has_more': false,
+      },
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/products/top?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('b2b-top-products-current-period')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-top-products-previous-period')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('b2b-top-product-rank-1')), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-top-products-current-period')),
+    );
+    await tester.pumpAndSettle();
+
+    var uri = Uri.parse(api.lastPath!);
+    expect(uri.queryParameters['store_id'], '7');
+    expect(uri.queryParameters['from'], isNotNull);
+    expect(uri.queryParameters['to'], isNotNull);
+    expect(uri.queryParameters['page'], '1');
+
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-top-products-previous-period')),
+    );
+    await tester.pumpAndSettle();
+
+    uri = Uri.parse(api.lastPath!);
+    expect(uri.queryParameters['from'], isNotNull);
+    expect(uri.queryParameters['to'], isNotNull);
+    expect(
+      DateTime.parse(uri.queryParameters['from']!).day,
+      1,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-top-products-all-time')),
+    );
+    await tester.pumpAndSettle();
+
+    uri = Uri.parse(api.lastPath!);
+    expect(uri.queryParameters.containsKey('from'), isFalse);
+    expect(uri.queryParameters.containsKey('to'), isFalse);
+    expect(uri.queryParameters['store_id'], '7');
+  });
+
   testWidgets('B2B top products visibly disable repurchase when authoritative stock is empty', (tester) async {
     final api = _FakeB2bApi({
       'data': [
