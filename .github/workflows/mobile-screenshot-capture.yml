@@ -6,6 +6,9 @@ on:
     paths:
       - "apps/customer_app/lib/app.dart"
       - "apps/customer_app/lib/core/theme/foodex_theme.dart"
+      - "apps/customer_app/lib/shared/customer_persistent_footer.dart"
+      - "apps/customer_app/lib/features/b2b/b2b_journey_screen.dart"
+      - "apps/customer_app/lib/features/storefront/multistore_design_screen.dart"
       - "apps/customer_app/test/screenshot_evidence_test.dart"
       - "apps/driver_app/lib/app.dart"
       - "apps/driver_app/lib/core/theme/foodex_theme.dart"
