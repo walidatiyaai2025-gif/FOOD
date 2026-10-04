@@ -2287,7 +2287,7 @@ class _B2bAccountStatementRemoteStateState
                       onPressed: () => _pickDate(from: true),
                       icon: const Icon(Icons.calendar_today_outlined),
                       label: Text(
-                        '\${context.tr('b2b.statement.from')}: \${_from ?? context.tr('b2b.statement.any_date')}',
+                        '${context.tr('b2b.statement.from')}: ${_from ?? context.tr('b2b.statement.any_date')}',
                       ),
                     ),
                     OutlinedButton.icon(
@@ -2295,7 +2295,7 @@ class _B2bAccountStatementRemoteStateState
                       onPressed: () => _pickDate(from: false),
                       icon: const Icon(Icons.event_available_outlined),
                       label: Text(
-                        '\${context.tr('b2b.statement.to')}: \${_to ?? context.tr('b2b.statement.any_date')}',
+                        '${context.tr('b2b.statement.to')}: ${_to ?? context.tr('b2b.statement.any_date')}',
                       ),
                     ),
                   ],
@@ -2353,7 +2353,7 @@ class _B2bAccountStatementRemoteStateState
             _summaryCard(
               'closing',
               context.tr('b2b.statement.closing_balance'),
-              '$direction · \${_money(closing.abs(), currency)}',
+              '$direction · ${_money(closing.abs(), currency)}',
             ),
             _summaryCard(
               'current',
@@ -2431,7 +2431,7 @@ class _B2bAccountStatementRemoteStateState
                 child: Text(context.tr('b2b.statement.previous_page')),
               ),
               Text(
-                '\${context.tr('b2b.statement.page')} $currentPage / $lastPage',
+                '${context.tr('b2b.statement.page')} $currentPage / $lastPage',
                 key: const ValueKey('b2b-statement-page'),
               ),
               OutlinedButton(
@@ -2491,7 +2491,7 @@ class _B2bAccountStatementRemoteStateState
     final route = _referenceRoute(row);
 
     return Card(
-      key: ValueKey('b2b-statement-row-\${row['id']}'),
+      key: ValueKey('b2b-statement-row-${row['id']}'),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
@@ -2515,18 +2515,18 @@ class _B2bAccountStatementRemoteStateState
             const SizedBox(height: 6),
             if (route == null)
               Text(
-                '\${context.tr('b2b.statement.reference')}: $reference',
-                key: ValueKey('b2b-statement-reference-\${row['id']}'),
+                '${context.tr('b2b.statement.reference')}: $reference',
+                key: ValueKey('b2b-statement-reference-${row['id']}'),
               )
             else
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: TextButton.icon(
-                  key: ValueKey('b2b-statement-reference-\${row['id']}'),
+                  key: ValueKey('b2b-statement-reference-${row['id']}'),
                   onPressed: () => Navigator.of(context).pushNamed(route),
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: Text(
-                    '\${context.tr('b2b.statement.reference')}: $reference',
+                    '${context.tr('b2b.statement.reference')}: $reference',
                   ),
                 ),
               ),
@@ -2536,14 +2536,14 @@ class _B2bAccountStatementRemoteStateState
               runSpacing: 6,
               children: [
                 Text(
-                  '\${context.tr('b2b.statement.debit')}: \${_money(row['debit'], currency)}',
+                  '${context.tr('b2b.statement.debit')}: ${_money(row['debit'], currency)}',
                 ),
                 Text(
-                  '\${context.tr('b2b.statement.credit')}: \${_money(row['credit'], currency)}',
+                  '${context.tr('b2b.statement.credit')}: ${_money(row['credit'], currency)}',
                 ),
                 Text(
-                  '\${context.tr('b2b.statement.running_balance')}: \${_money(row['running_balance'], currency)}',
-                  key: ValueKey('b2b-statement-running-\${row['id']}'),
+                  '${context.tr('b2b.statement.running_balance')}: ${_money(row['running_balance'], currency)}',
+                  key: ValueKey('b2b-statement-running-${row['id']}'),
                 ),
               ],
             ),
@@ -2591,7 +2591,7 @@ class _B2bAccountStatementRemoteStateState
   static String _money(Object? value, String currency) {
     final amount = _amount(value);
     final suffix = currency.isEmpty ? '' : ' $currency';
-    return '\${amount.toStringAsFixed(3)}$suffix';
+    return '${amount.toStringAsFixed(3)}$suffix';
   }
 
   static String _shortDate(String? value) {
@@ -2601,9 +2601,9 @@ class _B2bAccountStatementRemoteStateState
   }
 
   static String _isoDate(DateTime date) =>
-      '\${date.year.toString().padLeft(4, '0')}-'
-      '\${date.month.toString().padLeft(2, '0')}-'
-      '\${date.day.toString().padLeft(2, '0')}';
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 }
 
 class _B2bAccountHub extends StatefulWidget {
