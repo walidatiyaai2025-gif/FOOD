@@ -141,6 +141,18 @@ class B2bReportingTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $olderOrder = $this->order($store, $customer->id, 10, 'delivered');
+        DB::table('order_items')->insert([
+            'order_id' => $olderOrder,
+            'product_id' => $product,
+            'sku_snapshot' => 'TOP-C13-OLDER-SKU',
+            'name_snapshot' => 'Ranked Product Old Label',
+            'quantity' => 2,
+            'unit_price' => 5,
+            'line_total' => 10,
+            'created_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
+        ]);
 
         $domain = app(\App\Services\CustomerDomainResolver::class)->b2b($user);
         B2bAccount::query()
@@ -162,8 +174,8 @@ class B2bReportingTest extends TestCase
             ->assertJsonPath('data.0.product_id', $product)
             ->assertJsonPath('data.0.store_id', $store)
             ->assertJsonPath('data.0.sku', 'TOP-C13-1')
-            ->assertJsonPath('data.0.quantity', 5)
-            ->assertJsonPath('data.0.total', 30)
+            ->assertJsonPath('data.0.quantity', 7)
+            ->assertJsonPath('data.0.total', 40)
             ->assertJsonPath('data.0.account_price', 7.25)
             ->assertJsonPath('data.0.minimum_order_quantity', 5)
             ->assertJsonPath('data.0.ordering_increment', 5)
