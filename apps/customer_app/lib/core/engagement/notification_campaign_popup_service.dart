@@ -43,13 +43,17 @@ class CustomerNotificationCampaignPopup {
 enum _CampaignPopupAction { dismiss, open }
 
 class CustomerNotificationCampaignPopupService {
-  CustomerNotificationCampaignPopupService({http.Client? client})
-      : _client = client ?? http.Client();
+  CustomerNotificationCampaignPopupService({
+    http.Client? client,
+    String? baseUrl,
+  })  : _client = client ?? http.Client(),
+        _baseUrl = baseUrl ?? FoodexEnvironment.apiBaseUrl;
 
   static const _installIdKey = 'foodex.notification_campaign.install_id';
   static final Set<int> _shownThisProcess = <int>{};
 
   final http.Client _client;
+  final String _baseUrl;
 
   Future<void> showForContext(
     BuildContext context, {
@@ -179,7 +183,7 @@ class CustomerNotificationCampaignPopupService {
     int? storeId,
     String? accessToken,
   }) async {
-    final baseUrl = FoodexEnvironment.apiBaseUrl;
+    final baseUrl = _baseUrl;
     if (baseUrl.isEmpty) return const [];
 
     try {
@@ -227,7 +231,7 @@ class CustomerNotificationCampaignPopupService {
     int? storeId,
     String? accessToken,
   }) async {
-    final baseUrl = FoodexEnvironment.apiBaseUrl;
+    final baseUrl = _baseUrl;
     if (baseUrl.isEmpty) return;
 
     try {
