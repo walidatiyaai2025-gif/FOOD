@@ -112,6 +112,15 @@ class DriverAssignmentLifecycleTest extends TestCase
             ->assertJsonPath('data.order.status', 'delivered')
             ->assertJsonCount(0, 'data.available_statuses');
 
+        $this->getJson('/api/v1/driver/assignments?scope=active')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->getJson('/api/v1/driver/assignments?scope=completed')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $id)
+            ->assertJsonPath('data.0.status', 'delivered');
+
         $customerUserId = (int) DB::table('customers')
             ->where('id', $order->customer_id)
             ->value('user_id');
