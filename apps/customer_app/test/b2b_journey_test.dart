@@ -1710,10 +1710,36 @@ void main() {
       (
         route: '/b2b/reports/purchases',
         payload: {
+          'currency': 'KWD',
           'period': {'from': '2026-09-01', 'to': '2026-09-30'},
+          'summary': {
+            'total_purchases': 48.0,
+            'order_count': 1,
+            'invoice_count': 1,
+            'average_order_value': 48.0,
+          },
+          'comparison': null,
           'data': [
-            {'product_name': 'Bulk Rice', 'quantity': 12, 'total': 48.0},
+            {
+              'period': '2026-09-01',
+              'orders_count': 1,
+              'purchase_total': 48.0,
+            },
           ],
+          'categories': [
+            {
+              'category_name': 'Bulk Rice',
+              'purchase_total': 48.0,
+              'percentage': 100.0,
+            },
+          ],
+          'orders': <Object?>[],
+          'meta': {
+            'page': 1,
+            'per_page': 5,
+            'total': 0,
+            'has_more': false,
+          },
         },
         expected: 'Bulk Rice',
       ),
