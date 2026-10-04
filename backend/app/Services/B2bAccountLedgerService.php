@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
+use App\Models\Invoice;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -201,6 +202,59 @@ final class B2bAccountLedgerService
         ]);
     }
 
+    /** @return array{invoice_total:float,paid_amount:float,debit_adjustments:float,credit_adjustments:float,outstanding_amount:float,credit_amount:float} */
+    public function invoiceAmounts(Invoice $invoice): array
+    {
+        $paid = round((float) DB::table('payments')
+            ->where('invoice_id', $invoice->getKey())
+            ->where('status', 'paid')
+            ->sum('amount'), 3);
+
+        $ledger = DB::table('customer_account_ledger_entries')
+            ->where('invoice_id', $invoice->getKey())
+            ->selectRaw('COALESCE(SUM(debit), 0) as debits')
+            ->selectRaw('COALESCE(SUM(credit), 0) as credits')
+            ->selectRaw("COALESCE(SUM(CASE WHEN entry_type = 'payment' THEN credit ELSE 0 END), 0) as payment_credits")
+            ->first();
+
+        $manualDebits = round((float) ($ledger->debits ?? 0), 3);
+        $manualCredits = round((float) ($ledger->credits ?? 0), 3);
+        $manualPayments = round((float) ($ledger->payment_credits ?? 0), 3);
+        $invoiceTotal = round((float) $invoice->total, 3);
+        $net = round($invoiceTotal + $manualDebits - $paid - $manualCredits, 3);
+
+        return [
+            'invoice_total' => $invoiceTotal,
+            'paid_amount' => round($paid + $manualPayments, 3),
+            'debit_adjustments' => $manualDebits,
+            'credit_adjustments' => round(max($manualCredits - $manualPayments, 0), 3),
+            'outstanding_amount' => round(max($net, 0), 3),
+            'credit_amount' => round(max(-$net, 0), 3),
+        ];
+    }
+
+    /** @return Collection<int,array<string,mixed>> */
+    public function invoiceLedgerEntries(Invoice $invoice): Collection
+    {
+        return DB::table('customer_account_ledger_entries')
+            ->where('invoice_id', $invoice->getKey())
+            ->orderBy('occurred_at')
+            ->orderBy('id')
+            ->get()
+            ->map(static fn (object $entry): array => [
+                'id' => (int) $entry->id,
+                'type' => (string) $entry->entry_type,
+                'reference' => $entry->reference,
+                'description' => $entry->description,
+                'debit' => (float) $entry->debit,
+                'credit' => (float) $entry->credit,
+                'currency' => (string) $entry->currency,
+                'actor_user_id' => $entry->actor_user_id === null ? null : (int) $entry->actor_user_id,
+                'source' => (string) $entry->source,
+                'occurred_at' => (string) $entry->occurred_at,
+            ]);
+    }
+
     public function currencyFor(B2bCustomer $customer, ?int $storeId = null): ?string
     {
         $invoiceCurrency = DB::table('invoices')
@@ -340,11 +394,12 @@ final class B2bAccountLedgerService
         $open = 0.0;
         $overdue = 0.0;
         foreach ($invoices as $invoice) {
-            $paid = (float) DB::table('payments')
-                ->where('invoice_id', $invoice->id)
-                ->where('status', 'paid')
-                ->sum('amount');
-            $remaining = round(max((float) $invoice->total - $paid, 0), 3);
+            $model = Invoice::query()->find((int) $invoice->id);
+            if (! $model instanceof Invoice) {
+                continue;
+            }
+            $amounts = $this->invoiceAmounts($model);
+            $remaining = (float) $amounts['outstanding_amount'];
             $open += $remaining;
             if ($remaining > 0 && $invoice->due_at !== null && CarbonImmutable::parse($invoice->due_at)->isPast()) {
                 $overdue += $remaining;
