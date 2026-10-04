@@ -206,6 +206,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     }
     _loadRemoteTranslations();
     _configurePush();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _flushDiagnostics());
     _scheduleLaunchCampaignPopup();
   }
 
@@ -314,9 +315,28 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   void _bindPushSession() {
     final service = widget.pushService;
     final token = _session.accessToken;
-    if (service != null && token != null && token.isNotEmpty) {
+    if (token == null || token.isEmpty) return;
+
+    if (service != null) {
       unawaited(service.bindSession(token));
     }
+    _flushDiagnostics();
+  }
+
+  void _flushDiagnostics() {
+    if (widget.previewContext != null) return;
+    final token = _session.accessToken;
+    final baseUrl = FoodexEnvironment.apiBaseUrl;
+    if (token == null || token.isEmpty || baseUrl.isEmpty) return;
+
+    unawaited(
+      _diagnostics.flushToInspector(
+        baseUrl: baseUrl,
+        token: token,
+        channel: _session.channel?.name,
+        storeId: _session.b2bRetailStoreId,
+      ),
+    );
   }
 
   void _navigateFromPush(String route) {
