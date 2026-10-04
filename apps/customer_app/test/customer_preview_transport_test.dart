@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/preview/customer_preview_context.dart';
@@ -160,6 +161,50 @@ void main() {
     expect(seen.headers.containsKey('x-foodex-preview-token'), isFalse);
     expect(seen.headers.containsKey('authorization'), isFalse);
     expect(seen.headers.containsKey('cookie'), isFalse);
+  });
+
+  test('retail preview consumes production out-of-stock payload unchanged',
+      () async {
+    late http.Request seen;
+    final transport = CustomerPreviewReadHttpClient(
+      MockClient((request) async {
+        seen = request;
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {
+                'id': 99,
+                'name': 'Zero Stock',
+                'sku': 'OOS-99',
+                'price': 2.5,
+                'currency': 'KWD',
+                'available_quantity': 0,
+                'is_available': false,
+                'availability_state': 'OUT_OF_STOCK',
+              },
+            ],
+          }),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      }),
+      credential: 'opaque-preview-secret',
+      channel: CustomerChannel.b2c,
+    );
+    final api = HttpB2cCatalogApi(
+      baseUrl: 'https://foodex.example',
+      client: transport,
+    );
+
+    final products = await api.products(7);
+
+    expect(seen.url.path, '/api/v1/stores/7/products');
+    expect(seen.headers.containsKey('x-foodex-preview-token'), isFalse);
+    expect(products, hasLength(1));
+    expect(products.single.availableQuantity, 0);
+    expect(products.single.isAvailable, isFalse);
+    expect(products.single.availabilityState, 'OUT_OF_STOCK');
+    expect(products.single.isOutOfStock, isTrue);
   });
 
   test('preview transport blocks mutations and unmapped authenticated paths',
