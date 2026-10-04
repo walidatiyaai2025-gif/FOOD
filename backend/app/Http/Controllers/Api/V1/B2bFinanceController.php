@@ -102,20 +102,19 @@ class B2bFinanceController extends Controller
 
     private function invoicePayload(Invoice $invoice, bool $withItems = false): array
     {
-        $paidAmount = round((float) Payment::query()
-            ->where('invoice_id', $invoice->getKey())
-            ->where('status', 'paid')
-            ->sum('amount'), 3);
-        $total = round((float) $invoice->total, 3);
+        $amounts = $this->ledger->invoiceAmounts($invoice);
 
         $payload = [
             'id' => (int) $invoice->getKey(),
             'invoice_number' => (string) $invoice->invoice_number,
             'status' => (string) $invoice->status,
             'currency' => (string) $invoice->currency,
-            'total' => $total,
-            'paid_amount' => $paidAmount,
-            'outstanding_amount' => round(max($total - $paidAmount, 0), 3),
+            'total' => $amounts['invoice_total'],
+            'paid_amount' => $amounts['paid_amount'],
+            'debit_adjustments' => $amounts['debit_adjustments'],
+            'credit_adjustments' => $amounts['credit_adjustments'],
+            'outstanding_amount' => $amounts['outstanding_amount'],
+            'credit_amount' => $amounts['credit_amount'],
             'issued_at' => $invoice->issued_at,
             'due_at' => $invoice->due_at,
         ];
@@ -131,6 +130,7 @@ class B2bFinanceController extends Controller
                 ->orderBy('created_at')
                 ->orderBy('id')
                 ->get(['id', 'provider', 'provider_reference', 'amount', 'currency', 'created_at']);
+            $payload['ledger_entries'] = $this->ledger->invoiceLedgerEntries($invoice)->values();
         }
 
         return $payload;
