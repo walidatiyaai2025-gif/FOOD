@@ -12,6 +12,7 @@ use App\Services\CatalogImageService;
 use App\Services\CatalogOwnership;
 use App\Services\CatalogZipImportService;
 use App\Services\LookupScopeService;
+use App\Services\ProductAvailabilityService;
 use App\Services\RetailWholesaleAccountService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
@@ -33,6 +34,7 @@ final class CatalogManagementController extends Controller
         private readonly CatalogOwnership $catalogs,
         private readonly TenantContextResolver $tenantContext,
         private readonly LookupScopeService $lookups,
+        private readonly ProductAvailabilityService $availability,
         private readonly CatalogImageService $images,
         private readonly CatalogZipImportService $catalogImports,
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
@@ -118,7 +120,18 @@ final class CatalogManagementController extends Controller
                     'brands.name as brand',
                     'units.name as unit',
                     DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
-                ]),
+                ])
+                ->map(function (object $product): object {
+                    $availability = $this->availability->forStoreProduct(
+                        (int) $product->catalog_store_id,
+                        (int) $product->id,
+                    );
+                    $product->available_quantity = $availability['available_quantity'];
+                    $product->availability_state = $availability['availability_state'];
+                    $product->is_available = $availability['is_available'];
+
+                    return $product;
+                }),
             'categories' => DB::table('categories')
                 ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
                 ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
