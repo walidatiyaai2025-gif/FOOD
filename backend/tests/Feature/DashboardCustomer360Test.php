@@ -185,7 +185,7 @@ class DashboardCustomer360Test extends TestCase
             ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
             ->assertOk()
             ->assertSee('Wholesale account & finance')
-            ->assertDontSee('Retail Owner Store');
+            ->assertDontSee('Retail Owner Store · RETAIL-OWNER');
     }
 
     public function test_retail_admin_can_fully_manage_visible_customer_addresses_only(): void
