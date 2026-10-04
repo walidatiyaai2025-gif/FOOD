@@ -2522,7 +2522,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
     final rawPath = row['pdf_path']?.toString() ?? '';
     if (rawPath.isEmpty) return;
     final path =
-        '${rawPath}${rawPath.contains('?') ? '&' : '?'}locale=${ar ? 'ar' : 'en'}';
+        '$rawPath${rawPath.contains('?') ? '&' : '?'}locale=${ar ? 'ar' : 'en'}';
     final number = row['invoice_number']?.toString() ?? 'invoice';
     setState(() => _sharingPdf = true);
     try {
