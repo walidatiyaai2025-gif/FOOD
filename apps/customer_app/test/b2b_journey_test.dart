@@ -1518,10 +1518,24 @@ class _C13WholesaleCommerceApi implements WholesaleCommerceApi {
   int removeCalls = 0;
   int updateCalls = 0;
   int checkoutCalls = 0;
+  final Set<int> removedItemIds = <int>{};
   final List<String> checkoutKeys = <String>[];
 
   @override
-  Future<Object?> cart(int storeId) async => cartValue;
+  Future<Object?> cart(int storeId) async {
+    final snapshot = Map<String, dynamic>.from(cartValue);
+    final items = cartValue['items'];
+    if (items is List) {
+      snapshot['items'] = items
+          .where(
+            (raw) =>
+                raw is! Map ||
+                !removedItemIds.contains(raw['id']),
+          )
+          .toList(growable: false);
+    }
+    return snapshot;
+  }
 
   @override
   Future<Object?> addItem(int storeId, int productId, double quantity) async =>
@@ -1542,10 +1556,7 @@ class _C13WholesaleCommerceApi implements WholesaleCommerceApi {
   @override
   Future<void> removeItem(int itemId) async {
     removeCalls += 1;
-    final items = cartValue['items'];
-    if (items is List) {
-      items.removeWhere((raw) => raw is Map && raw['id'] == itemId);
-    }
+    removedItemIds.add(itemId);
   }
 
   @override
