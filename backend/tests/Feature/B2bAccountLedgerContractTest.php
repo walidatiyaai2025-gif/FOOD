@@ -147,7 +147,7 @@ final class B2bAccountLedgerContractTest extends TestCase
             ->assertJsonPath('data.period_credits', 10)
             ->assertJsonPath('data.closing_balance', -50)
             ->assertJsonPath('data.transactions.0.type', 'payment')
-            ->assertJsonPath('data.transactions.0.running_balance', 50)
+            ->assertJsonPath('data.transactions.0.running_balance', -50)
             ->assertJsonPath('data.pagination.current_page', 1)
             ->assertJsonPath('data.pagination.per_page', 1)
             ->assertJsonPath('data.pagination.total', 1)
