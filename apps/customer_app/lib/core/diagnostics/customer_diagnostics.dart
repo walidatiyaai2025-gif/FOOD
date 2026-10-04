@@ -32,6 +32,11 @@ class CustomerDiagnostics {
   String _networkState = 'unknown';
   String? _lastUploadedAt;
   bool _flushInProgress = false;
+  bool _flushRequested = false;
+  String? _uploadBaseUrl;
+  String? _uploadToken;
+  String? _uploadChannel;
+  int? _uploadStoreId;
 
   List<Map<String, dynamic>> get events =>
       List<Map<String, dynamic>>.unmodifiable(_events);
@@ -102,6 +107,53 @@ class CustomerDiagnostics {
       _events.removeRange(0, _events.length - maxEvents);
     }
     _persist();
+    _scheduleAutomaticFlush();
+  }
+
+  void configureInspectorUpload({
+    required String baseUrl,
+    required String token,
+    String? channel,
+    int? storeId,
+  }) {
+    if (baseUrl.trim().isEmpty || token.trim().isEmpty) {
+      clearInspectorUpload();
+      return;
+    }
+
+    _uploadBaseUrl = baseUrl.trim();
+    _uploadToken = token.trim();
+    _uploadChannel = channel;
+    _uploadStoreId = storeId;
+    _scheduleAutomaticFlush();
+  }
+
+  void clearInspectorUpload() {
+    _uploadBaseUrl = null;
+    _uploadToken = null;
+    _uploadChannel = null;
+    _uploadStoreId = null;
+    _flushRequested = false;
+  }
+
+  void _scheduleAutomaticFlush() {
+    final baseUrl = _uploadBaseUrl;
+    final token = _uploadToken;
+    if (baseUrl == null || token == null) return;
+
+    if (_flushInProgress) {
+      _flushRequested = true;
+      return;
+    }
+
+    unawaited(
+      flushToInspector(
+        baseUrl: baseUrl,
+        token: token,
+        channel: _uploadChannel,
+        storeId: _uploadStoreId,
+      ),
+    );
   }
 
   void recordFlutterError(FlutterErrorDetails details) {
@@ -719,6 +771,10 @@ class CustomerDiagnosticsNavigatorObserver extends NavigatorObserver {
     } finally {
       if (ownsClient) transport.close();
       _flushInProgress = false;
+      if (_flushRequested) {
+        _flushRequested = false;
+        _scheduleAutomaticFlush();
+      }
     }
   }
 
