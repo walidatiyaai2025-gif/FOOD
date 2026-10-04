@@ -8,6 +8,7 @@ return [
         'products' => 'Products & Catalog',
         'customers' => 'Customers & B2B',
         'operations' => 'Stores & Operations',
+        'finance_invoices' => 'Finance & Invoices',
     ],
     'filters' => [
         'from' => 'From',
@@ -51,6 +52,14 @@ return [
         'segment' => 'Segment',
         'delivered' => 'Delivered',
         'cancelled' => 'Cancelled',
+        'invoice' => 'Invoice',
+        'client' => 'Client',
+        'currency' => 'Currency',
+        'invoice_total' => 'Invoice total',
+        'paid' => 'Paid',
+        'balance' => 'Balance',
+        'issued_at' => 'Issued',
+        'due' => 'Due',
     ],
     'kpis' => [
         'orders' => 'Orders',
@@ -70,6 +79,9 @@ return [
         'average_delivery_minutes' => 'Average delivery minutes',
         'inventory_quantity' => 'Inventory quantity',
         'reserved_quantity' => 'Reserved quantity',
+        'invoice_count' => 'Invoices',
+        'customer_filter' => 'Customer filter',
+        'currency_totals' => 'Totals by currency (total / paid / balance)',
     ],
     'breakdowns' => [
         'status_breakdown' => 'Order status breakdown',

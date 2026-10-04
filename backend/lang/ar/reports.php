@@ -8,6 +8,7 @@ return [
         'products' => 'المنتجات والكتالوج',
         'customers' => 'العملاء والجملة',
         'operations' => 'المتاجر والعمليات',
+        'finance_invoices' => 'المالية والفواتير',
     ],
     'filters' => [
         'from' => 'من',
@@ -51,6 +52,14 @@ return [
         'segment' => 'الشريحة',
         'delivered' => 'تم التسليم',
         'cancelled' => 'ملغي',
+        'invoice' => 'الفاتورة',
+        'client' => 'العميل',
+        'currency' => 'العملة',
+        'invoice_total' => 'إجمالي الفاتورة',
+        'paid' => 'المدفوع',
+        'balance' => 'الرصيد',
+        'issued_at' => 'تاريخ الإصدار',
+        'due' => 'الاستحقاق',
     ],
     'kpis' => [
         'orders' => 'عدد الطلبات',
@@ -70,6 +79,9 @@ return [
         'average_delivery_minutes' => 'متوسط دقائق التوصيل',
         'inventory_quantity' => 'كمية المخزون',
         'reserved_quantity' => 'الكمية المحجوزة',
+        'invoice_count' => 'عدد الفواتير',
+        'customer_filter' => 'فلتر العميل',
+        'currency_totals' => 'الإجماليات حسب العملة (الإجمالي / المدفوع / الرصيد)',
     ],
     'breakdowns' => [
         'status_breakdown' => 'توزيع حالات الطلبات',
