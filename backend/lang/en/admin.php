@@ -149,6 +149,7 @@ return [
     'security_center' => 'Users & Permissions',
     'catalog_management' => 'Catalog & Categories Management',
     'lookup_management' => 'Brands & Units',
+    'system_lookups' => 'System Settings / Lookups',
     'business_management' => 'Operations & Data Management',
     'order_management' => 'Order Management',
     'retail_store_provisioning' => 'Retail Stores / Provisioning',
