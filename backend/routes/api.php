@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\GuestStoreController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\LiveAdController;
+use App\Http\Controllers\Api\V1\LookupOptionsController;
 use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\MobileRuntimeController;
 use App\Http\Controllers\Api\V1\OrderController;
@@ -55,6 +56,13 @@ Route::prefix('v1')->group(function (): void {
         ->middleware('throttle:60,1');
     Route::get('/mobile/runtime', MobileRuntimeController::class);
     Route::get('/translations/{locale}', TranslationController::class)->whereIn('locale', ['ar', 'en']);
+    Route::get('/lookups/{type}', LookupOptionsController::class)->whereIn('type', [
+        'payment-operation-types',
+        'payment-methods',
+        'pricing-tiers',
+        'order-statuses',
+        'failed-delivery-reasons',
+    ]);
 
     Route::post('/auth/register', [AuthController::class, 'register'])
         ->middleware('throttle:login');

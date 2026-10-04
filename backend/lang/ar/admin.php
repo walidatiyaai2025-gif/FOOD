@@ -149,6 +149,7 @@ return [
     'security_center' => 'المستخدمون والصلاحيات',
     'catalog_management' => 'إدارة الكتالوج والتصنيفات',
     'lookup_management' => 'العلامات والوحدات',
+    'system_lookups' => 'إعدادات النظام / القيم المرجعية',
     'business_management' => 'إدارة العمليات والبيانات',
     'order_management' => 'إدارة الطلبات',
     'retail_store_provisioning' => 'متاجر التجزئة / التهيئة',
