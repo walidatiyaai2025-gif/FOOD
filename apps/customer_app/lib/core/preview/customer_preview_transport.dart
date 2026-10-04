@@ -85,6 +85,10 @@ class CustomerPreviewReadHttpClient extends http.BaseClient {
         ? '$api/b2b/app-preview/customer'
         : '$api/app-preview/customer';
 
+    if (path == '$api/notification-campaign-popups') {
+      return '$previewPrefix/notification-campaign-popups';
+    }
+
     const commonRoots = <String>[
       '/profile',
       '/orders',
