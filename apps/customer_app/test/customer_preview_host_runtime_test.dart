@@ -85,6 +85,9 @@ void main() {
     expect(app.initialRoute, '/retail/7/home');
     expect(runtime.configuration.revisionId, 'revision-published-1');
     expect(runtime.configuration.mode, 'published');
+    expect(runtime.safeStatusMetadata['loaded_at'], isA<String>());
+    expect(runtime.safeStatusMetadata['updated_at'], isA<String>());
+    expect(app.notificationCampaignPopupService, isNotNull);
 
     runtime.close();
   });
