@@ -110,8 +110,7 @@ class CustomerAppRouter {
       );
     }
 
-    if (requested.pattern == CustomerRoutePaths.splash ||
-        requested.pattern == CustomerRoutePaths.entry) {
+    if (requested.pattern == CustomerRoutePaths.splash) {
       requestedLocation = CustomerRoutePaths.marketplace;
       requested = definitionFor(requestedLocation)!;
     }
@@ -284,6 +283,22 @@ class CustomerAppRouter {
     return MaterialPageRoute<void>(
       settings: settings,
       builder: (_) {
+        if (definition.pattern == CustomerRoutePaths.entry) {
+          final uri = Uri.parse(requestedLocation);
+          return UnifiedCustomerAuthScreen(
+            nextRoute: CustomerRoutePaths.marketplace,
+            actionApi: actionApi,
+            onAuthenticated: onUnifiedAuthenticated ??
+                (token, preferences) async => onPlatformRegistered(token),
+            sessionStore: sessionStore,
+            preferences: authPreferences,
+            biometricAuthenticator: biometricAuthenticator,
+            resumeAuthenticatedRoute: onAuthenticatedRouteResume,
+            onLocaleChanged: onLocaleChanged,
+            registerInitially: uri.queryParameters['entry'] == 'register',
+          );
+        }
+
         if (definition.pattern == CustomerRoutePaths.diagnostics) {
           return const CustomerDiagnosticsScreen();
         }
@@ -337,6 +352,7 @@ class CustomerAppRouter {
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
             resumeAuthenticatedRoute: onAuthenticatedRouteResume,
+            onLocaleChanged: onLocaleChanged,
             registerInitially: uri.queryParameters['entry'] == 'register',
           );
         }
