@@ -12,6 +12,8 @@ class CustomerDiagnostics {
   static final CustomerDiagnostics instance = CustomerDiagnostics();
 
   static const _storageKey = 'foodex.customer.diagnostics.events.v1';
+  static const _uploadCheckpointKey =
+      'foodex.customer.diagnostics.upload_checkpoint.v1';
   static const schemaVersion = 1;
 
   final int maxEvents;
@@ -28,6 +30,8 @@ class CustomerDiagnostics {
   String? _currentRoute;
   String? _lastSuccessfulApiAt;
   String _networkState = 'unknown';
+  String? _lastUploadedAt;
+  bool _flushInProgress = false;
 
   List<Map<String, dynamic>> get events =>
       List<Map<String, dynamic>>.unmodifiable(_events);
@@ -38,6 +42,7 @@ class CustomerDiagnostics {
 
   Future<void> initialize() async {
     _preferences ??= await SharedPreferences.getInstance();
+    _lastUploadedAt = _preferences?.getString(_uploadCheckpointKey);
     final raw = _preferences?.getString(_storageKey);
     if (raw == null || raw.isEmpty) return;
 
@@ -298,9 +303,480 @@ class CustomerDiagnostics {
     };
   }
 
+  Future<void> flushToInspector({
+    required String baseUrl,
+    required String token,
+    String? channel,
+    int? storeId,
+    http.Client? client,
+  }) async {
+    if (_flushInProgress ||
+        baseUrl.trim().isEmpty ||
+        token.trim().isEmpty) {
+      return;
+    }
+
+    final pending = _events.where((event) {
+      final timestamp = event['timestamp']?.toString() ?? '';
+      if (timestamp.isEmpty ||
+          (_lastUploadedAt != null &&
+              timestamp.compareTo(_lastUploadedAt!) <= 0)) {
+        return false;
+      }
+
+      final type = event['type']?.toString().toLowerCase() ?? '';
+      return type.contains('error') ||
+          type.contains('failure') ||
+          type.contains('exception');
+    }).take(20).toList(growable: false);
+
+    if (pending.isEmpty) return;
+
+    _flushInProgress = true;
+    final ownsClient = client == null;
+    final transport = client ?? http.Client();
+
+    try {
+      final root = baseUrl.trim().replaceFirst(RegExp(r'/+    _events.clear();
+    await _preferences?.remove(_storageKey);
+  }
+
+  Map<String, dynamic> exportPayload({String? note}) {
+    final now = DateTime.now().toUtc().toIso8601String();
+    return <String, dynamic>{
+      'schema_version': schemaVersion,
+      'generated_at': now,
+      'app': {
+        'name': 'FOODEX Customer',
+        'version': _appVersion ?? 'unknown',
+        'platform': Platform.operatingSystem,
+        'os_version': Platform.operatingSystemVersion,
+        'locale': _locale ?? 'unknown',
+      },
+      'environment': {
+        'api_base_url': _apiBaseUrl ?? '',
+        'network_state': _networkState,
+        'last_successful_api_at': _lastSuccessfulApiAt,
+      },
+      'session': {
+        'state': _authState ?? 'unknown',
+        'channel': _channel,
+        'platform_wide': _platformWide,
+        'retail_store_context_id': _retailStoreContextId,
+      },
+      'navigation': {
+        'current_route': _currentRoute,
+      },
+      if (note != null && note.trim().isNotEmpty)
+        'user_note': redact(note.trim()),
+      'event_count': _events.length,
+      'events': _events.map((event) => redact(event)).toList(growable: false),
+    };
+  }
+
+  String exportJson({String? note}) =>
+      const JsonEncoder.withIndent('  ').convert(exportPayload(note: note));
+
+  String summary({String? note}) {
+    final payload = exportPayload(note: note);
+    return [
+      'FOODEX Customer diagnostics',
+      'Version: ${payload['app']['version']}',
+      'Platform: ${payload['app']['platform']}',
+      'Route: ${payload['navigation']['current_route'] ?? '-'}',
+      'Network: ${payload['environment']['network_state']}',
+      'Events: ${payload['event_count']}',
+      if (note != null && note.trim().isNotEmpty)
+        'Note: ${redact(note.trim())}',
+    ].join('\n');
+  }
+
+  Future<File> writeExportFile({String? note}) async {
+    final directory = Directory.systemTemp;
+    final timestamp = DateTime.now()
+        .toUtc()
+        .toIso8601String()
+        .replaceAll(':', '')
+        .replaceAll('.', '');
+    final file = File(
+      '${directory.path}/foodex-customer-diagnostics-$timestamp.json',
+    );
+    await file.writeAsString(exportJson(note: note), flush: true);
+    return file;
+  }
+
+  static Object? redact(Object? value, {String? key}) {
+    if (key != null && _isSensitiveKey(key)) {
+      return '[REDACTED]';
+    }
+
+    if (value is Map) {
+      return value.map<String, dynamic>(
+        (rawKey, rawValue) => MapEntry(
+          rawKey.toString(),
+          redact(rawValue, key: rawKey.toString()),
+        ),
+      );
+    }
+
+    if (value is Iterable) {
+      return value.map((item) => redact(item)).toList(growable: false);
+    }
+
+    if (value is String) {
+      return _redactString(value);
+    }
+
+    return value;
+  }
+
+  static bool _isSensitiveKey(String key) {
+    final normalized = key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    const exact = <String>{
+      'password',
+      'passwordconfirmation',
+      'authorization',
+      'cookie',
+      'setcookie',
+      'token',
+      'accesstoken',
+      'refreshtoken',
+      'fcmtoken',
+      'pushtoken',
+      'guesttoken',
+      'secret',
+      'clientsecret',
+      'credential',
+      'credentials',
+      'email',
+      'phone',
+      'phonenumber',
+      'civilid',
+      'civilnumber',
+      'address',
+      'addressline1',
+      'addressline2',
+      'line1',
+      'line2',
+      'recipientname',
+      'latitude',
+      'longitude',
+      'coordinates',
+      'locationcoordinates',
+      'paymentcard',
+      'cardnumber',
+      'cvv',
+    };
+    if (exact.contains(normalized)) return true;
+
+    return normalized.endsWith('password') ||
+        normalized.endsWith('token') ||
+        normalized.endsWith('secret') ||
+        normalized.endsWith('authorization') ||
+        normalized.endsWith('cookie') ||
+        normalized.endsWith('email') ||
+        normalized.endsWith('phone') ||
+        normalized.endsWith('civilnumber') ||
+        normalized.endsWith('latitude') ||
+        normalized.endsWith('longitude');
+  }
+
+  static String _redactString(String input) {
+    var value = input;
+    // Strip coordinate pairs before generic key/value redaction. Otherwise a
+    // value such as "coordinates=29.375859,47.977405" can be partially
+    // consumed at the comma and leak the second coordinate.
+    value = value.replaceAll(
+      RegExp(
+        r'(?<!\d)-?\d{1,3}\.\d{4,}\s*[,/]\s*-?\d{1,3}\.\d{4,}(?!\d)',
+      ),
+      '[REDACTED_COORDINATES]',
+    );
+    value = value.replaceAllMapped(
+      RegExp(
+        r'\b(password|passcode|token|access[_-]?token|refresh[_-]?token|fcm[_-]?token|push[_-]?token|guest[_-]?token|authorization|cookie|secret|client[_-]?secret|email|phone(?:[_-]?number)?|civil(?:[_-]?(?:id|number))?|address|latitude|longitude|coordinates|card[_-]?number|cvv)\s*[:=]\s*[^\n;,&]+',
+        caseSensitive: false,
+      ),
+      (match) => '${match.group(1)}=[REDACTED]',
+    );
+    value = value.replaceAll(
+      RegExp(r'Bearer\s+[^\s,;]+', caseSensitive: false),
+      'Bearer [REDACTED]',
+    );
+    value = value.replaceAll(
+      RegExp(r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}', caseSensitive: false),
+      '[REDACTED_EMAIL]',
+    );
+    value = value.replaceAll(
+      RegExp(r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'),
+      '[REDACTED_TOKEN]',
+    );
+    value = value.replaceAll(
+      RegExp(r'(?<!\d)(?:\+?965[\s-]?)?[24569]\d{7}(?!\d)'),
+      '[REDACTED_PHONE]',
+    );
+    value = value.replaceAll(
+      RegExp(r'(?<!\d)\d{12}(?!\d)'),
+      '[REDACTED_CIVIL_ID]',
+    );
+    return value.length > 4000 ? '${value.substring(0, 4000)}…' : value;
+  }
+
+  static String? _sanitizeRoute(String? route) {
+    if (route == null || route.trim().isEmpty) return null;
+    try {
+      final uri = Uri.parse(route);
+      return uri.replace(query: '', fragment: '').toString();
+    } catch (_) {
+      return route.split('?').first;
+    }
+  }
+
+  static String _sanitizeUri(Uri uri) {
+    final safeQuery = <String, String>{};
+    uri.queryParameters.forEach((key, value) {
+      safeQuery[key] = _isSensitiveKey(key)
+          ? '[REDACTED]'
+          : _redactString(value);
+    });
+    return uri
+        .replace(
+          userInfo: '',
+          queryParameters: safeQuery.isEmpty ? null : safeQuery,
+          fragment: '',
+        )
+        .toString();
+  }
+
+  static String _sanitizeBaseUrl(String value) {
+    try {
+      final uri = Uri.parse(value);
+      return uri.replace(userInfo: '', query: '', fragment: '').toString();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  static String? _correlationId(Map<String, String> headers) {
+    for (final key in const [
+      'x-request-id',
+      'x-correlation-id',
+      'request-id',
+      'traceparent',
+    ]) {
+      final value = headers[key];
+      if (value != null && value.trim().isNotEmpty) {
+        return _redactString(value.trim());
+      }
+    }
+    return null;
+  }
+
+  static String? _boundedStack(StackTrace? stack) {
+    if (stack == null) return null;
+    final lines = stack.toString().split('\n').take(20);
+    return _redactString(lines.join('\n'));
+  }
+
+  void _persist() {
+    final preferences = _preferences;
+    if (preferences == null) return;
+    final payload = jsonEncode(_events);
+    unawaited(
+      preferences.setString(_storageKey, payload).then<void>((_) {}),
+    );
+  }
+}
+
+class CustomerDiagnosticsHttpClient extends http.BaseClient {
+  CustomerDiagnosticsHttpClient(
+    this._inner, {
+    CustomerDiagnostics? diagnostics,
+  }) : diagnostics = diagnostics ?? CustomerDiagnostics.instance;
+
+  final http.Client _inner;
+  final CustomerDiagnostics diagnostics;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      final response = await _inner.send(request);
+      stopwatch.stop();
+      diagnostics.recordApiResponse(
+        method: request.method,
+        uri: request.url,
+        statusCode: response.statusCode,
+        headers: response.headers,
+        elapsed: stopwatch.elapsed,
+      );
+      final authorization = request.headers['Authorization'] ??
+          request.headers['authorization'];
+      if (authorization != null && authorization.trim().isNotEmpty) {
+        unawaited(
+          diagnostics.flushRemote(
+            client: _inner,
+            requestUri: request.url,
+            authorization: authorization,
+          ),
+        );
+      }
+      return response;
+    } catch (error) {
+      stopwatch.stop();
+      diagnostics.recordApiError(
+        method: request.method,
+        uri: request.url,
+        error: error,
+        elapsed: stopwatch.elapsed,
+      );
+      final authorization = request.headers['Authorization'] ??
+          request.headers['authorization'];
+      if (authorization != null && authorization.trim().isNotEmpty) {
+        unawaited(
+          diagnostics.flushRemote(
+            client: _inner,
+            requestUri: request.url,
+            authorization: authorization,
+          ),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  void close() => _inner.close();
+}
+
+class CustomerDiagnosticsNavigatorObserver extends NavigatorObserver {
+  CustomerDiagnosticsNavigatorObserver([CustomerDiagnostics? diagnostics])
+      : diagnostics = diagnostics ?? CustomerDiagnostics.instance;
+
+  final CustomerDiagnostics diagnostics;
+
+  void _record(Route<dynamic>? route) {
+    diagnostics.updateRoute(route?.settings.name);
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _record(route);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    _record(previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    _record(newRoute);
+  }
+}
+), '');
+      final endpoint = Uri.parse('$root/api/v1/runtime/diagnostics');
+
+      for (final event in pending) {
+        final payload = _inspectorPayload(
+          event,
+          channel: channel,
+          storeId: storeId,
+        );
+
+        http.Response response;
+        try {
+          response = await transport.post(
+            endpoint,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(payload),
+          );
+        } catch (_) {
+          break;
+        }
+
+        if (response.statusCode != 202) {
+          break;
+        }
+
+        final timestamp = event['timestamp']?.toString();
+        if (timestamp != null && timestamp.isNotEmpty) {
+          _lastUploadedAt = timestamp;
+          try {
+            await _preferences?.setString(_uploadCheckpointKey, timestamp);
+          } catch (_) {
+            // The in-memory checkpoint still prevents duplicate sends.
+          }
+        }
+      }
+    } finally {
+      if (ownsClient) transport.close();
+      _flushInProgress = false;
+    }
+  }
+
+  Map<String, dynamic> _inspectorPayload(
+    Map<String, dynamic> event, {
+    String? channel,
+    int? storeId,
+  }) {
+    final type = event['type']?.toString() ?? 'runtime_failure';
+    final details = event['details'] is Map
+        ? Map<String, dynamic>.from(event['details'] as Map)
+        : <String, dynamic>{};
+    final status = (details['status_code'] as num?)?.toInt();
+    final isServerFailure = status != null && status >= 500;
+    final isException = type.contains('error') ||
+        type.contains('exception') ||
+        type == 'flutter_error' ||
+        type == 'dart_error';
+    final message = details['exception'] ??
+        details['error'] ??
+        details['category'] ??
+        details['operation'] ??
+        type;
+
+    return Map<String, dynamic>.from(redact({
+      'app': 'customer',
+      'source': type,
+      'category': details['category'] ?? type,
+      'severity': isServerFailure || isException ? 'error' : 'warning',
+      'message': message.toString(),
+      if (_appVersion != null) 'app_version': _appVersion,
+      'platform': Platform.operatingSystem,
+      'os_version': Platform.operatingSystemVersion,
+      if (_currentRoute != null) 'route': _currentRoute,
+      if (channel != null && channel.isNotEmpty)
+        'channel': channel
+      else if (_channel != null)
+        'channel': _channel,
+      if (storeId != null && storeId > 0)
+        'store_id': storeId
+      else if (_retailStoreContextId != null)
+        'store_id': _retailStoreContextId,
+      if (details['path'] != null) 'path': details['path'],
+      if (details['method'] != null) 'method': details['method'],
+      if (status != null) 'status': status,
+      if (details['correlation_id'] != null)
+        'correlation_id': details['correlation_id'],
+      if (details['elapsed_ms'] != null) 'elapsed_ms': details['elapsed_ms'],
+      if (details['stack'] != null) 'stack': details['stack'],
+      if (details['error_type'] != null) 'error_type': details['error_type'],
+    }) as Map);
+  }
+
   Future<void> clear() async {
     _events.clear();
+    _lastUploadedAt = null;
     await _preferences?.remove(_storageKey);
+    await _preferences?.remove(_uploadCheckpointKey);
   }
 
   Map<String, dynamic> exportPayload({String? note}) {
