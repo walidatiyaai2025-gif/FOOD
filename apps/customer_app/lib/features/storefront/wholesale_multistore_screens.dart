@@ -2412,38 +2412,38 @@ class _WholesaleProductDetailsDesignScreenState
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    (row['sku']?.toString() ?? '') +
-                        (row['pack_label'] == null
-                            ? ''
-                            : ' · ' + row['pack_label'].toString()),
-                    style: const TextStyle(
-                      color: Color(0xFF6B7785),
-                      fontSize: 12,
+                  KeyedSubtree(
+                    key: const ValueKey('b2b-product-meta'),
+                    child: Text(
+                      (row['sku']?.toString() ?? '') +
+                          (row['pack_label'] == null
+                              ? ''
+                              : ' · ' + row['pack_label'].toString()),
+                      style: const TextStyle(
+                        color: Color(0xFF6B7785),
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                   if (brand.isNotEmpty || category.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    KeyedSubtree(
-                      key: const ValueKey('b2b-product-meta'),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (category.isNotEmpty)
-                            _ProductMetaChip(
-                              key: const ValueKey('b2b-product-category'),
-                              label: context.tr('b2b.product.category'),
-                              value: category,
-                            ),
-                          if (brand.isNotEmpty)
-                            _ProductMetaChip(
-                              key: const ValueKey('b2b-product-brand'),
-                              label: context.tr('b2b.product.brand'),
-                              value: brand,
-                            ),
-                        ],
-                      ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (category.isNotEmpty)
+                          _ProductMetaChip(
+                            key: const ValueKey('b2b-product-category'),
+                            label: context.tr('b2b.product.category'),
+                            value: category,
+                          ),
+                        if (brand.isNotEmpty)
+                          _ProductMetaChip(
+                            key: const ValueKey('b2b-product-brand'),
+                            label: context.tr('b2b.product.brand'),
+                            value: brand,
+                          ),
+                      ],
                     ),
                   ],
                   if (promotion != null && promotion.isNotEmpty) ...[
@@ -2830,37 +2830,67 @@ class _PricingPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Color(0xFFF1F8F4),
-          borderRadius: BorderRadius.circular(16),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _PriceRow(
-              label: context.tr('b2b.product.base_price'),
-              value: money(
-                row['base_wholesale_price'],
-                currency: currency,
-              ),
-            ),
-            const Divider(height: 18),
-            _PriceRow(
-              label: context.tr('b2b.product.account_price'),
-              value: money(
+            Text(
+              money(
                 row['account_price'],
                 currency: currency,
               ),
-              emphasize: true,
+              style: const TextStyle(
+                color: Color(0xFF078A43),
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                height: 1,
+              ),
             ),
-            if (row['retail_reference_price'] != null) ...[
-              const Divider(height: 18),
-              _PriceRow(
-                label: context.tr('b2b.product.retail_reference_price'),
-                value: money(
-                  row['retail_reference_price'],
-                  currency: currency,
-                ),
+            const SizedBox(height: 5),
+            Text(
+              context.tr('b2b.product.account_price'),
+              style: const TextStyle(
+                color: Color(0xFF6B7785),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (row['base_wholesale_price'] != null ||
+                row['retail_reference_price'] != null) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 16,
+                runSpacing: 6,
+                children: [
+                  if (row['base_wholesale_price'] != null)
+                    Text(
+                      context.tr('b2b.product.base_price') +
+                          ': ' +
+                          money(
+                            row['base_wholesale_price'],
+                            currency: currency,
+                          ),
+                      style: const TextStyle(
+                        color: Color(0xFF6B7785),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  if (row['retail_reference_price'] != null)
+                    Text(
+                      context.tr('b2b.product.retail_reference_price') +
+                          ': ' +
+                          money(
+                            row['retail_reference_price'],
+                            currency: currency,
+                          ),
+                      style: const TextStyle(
+                        color: Color(0xFF6B7785),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
               ),
             ],
           ],
