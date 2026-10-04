@@ -92,8 +92,10 @@ class SystemInspectorTest extends TestCase
         $this->assertStringContainsString('foodex-feedback-modal', $partial);
         $this->assertStringContainsString('foodex-image-preview', $partial);
         $this->assertStringContainsString('admin.inspector.client-events', $partial);
-        $this->assertStringContainsString('foodex-step-tabs', $stores);
-        $this->assertStringContainsString('data-step-panel="store-manager"', $stores);
+        $this->assertStringContainsString('data-open-store-wizard', $stores);
+        $this->assertStringContainsString('data-store-create-modal', $stores);
+        $this->assertStringContainsString('data-wizard-panel="manager"', $stores);
+        $this->assertStringContainsString('data-wizard-panel="review"', $stores);
     }
 
     private function userWithRole(string $roleCode, string $email): User

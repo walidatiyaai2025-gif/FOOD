@@ -139,10 +139,10 @@ final class RetailStoreProvisioningController extends Controller
             'live_ads_enabled' => ['nullable', 'boolean'],
             'coupons_enabled' => ['nullable', 'boolean'],
             'manager_mode' => ['required', Rule::in(['existing', 'new'])],
-            'manager_user_id' => ['nullable', 'integer', 'exists:users,id'],
-            'manager_name' => ['nullable', 'string', 'max:255'],
-            'manager_email' => ['nullable', 'email', 'max:255'],
-            'manager_password' => ['nullable', 'string', 'min:8', 'max:255'],
+            'manager_user_id' => ['nullable', 'required_if:manager_mode,existing', 'integer', 'exists:users,id'],
+            'manager_name' => ['nullable', 'required_if:manager_mode,new', 'string', 'max:255'],
+            'manager_email' => ['nullable', 'required_if:manager_mode,new', 'email', 'max:255', 'unique:users,email'],
+            'manager_password' => ['nullable', 'required_if:manager_mode,new', 'string', 'min:8', 'max:255'],
         ]);
 
         $store = DB::transaction(function () use ($request, $data, $actor): Store {
