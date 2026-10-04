@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:http/http.dart' as http;
 
 abstract class B2bApi {
   Future<Object?> get(String path);
+}
+
+abstract class B2bDocumentApi {
+  Future<List<int>> getBytes(String path);
 }
 
 abstract class B2bDownloadApi {
@@ -23,7 +26,7 @@ class B2bDownload {
   final String filename;
 }
 
-class HttpB2bApi implements B2bApi, B2bDownloadApi {
+class HttpB2bApi implements B2bApi, B2bDocumentApi, B2bDownloadApi {
   HttpB2bApi({
     required this.baseUrl,
     required this.token,
@@ -35,6 +38,34 @@ class HttpB2bApi implements B2bApi, B2bDownloadApi {
   final String token;
   final int? retailStoreContextId;
   final http.Client _client;
+
+  @override
+  Future<List<int>> getBytes(String path) async {
+    final response = await _client.get(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        'Accept': 'application/pdf',
+        'Authorization': 'Bearer $token',
+        if (retailStoreContextId != null)
+          'X-FOODEX-Retail-Store-ID': retailStoreContextId.toString(),
+      },
+    );
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw B2bApiException(
+        'not_authorized',
+        statusCode: response.statusCode,
+        supportReference: _supportReference(response.headers),
+      );
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw B2bApiException(
+        'http_${response.statusCode}',
+        statusCode: response.statusCode,
+        supportReference: _supportReference(response.headers),
+      );
+    }
+    return response.bodyBytes;
+  }
 
   @override
   Future<Object?> get(String path) async {
