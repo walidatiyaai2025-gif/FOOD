@@ -846,7 +846,10 @@ void main() {
       find.byKey(const ValueKey('b2b-product-stock-auto-refresh')),
       findsNothing,
     );
-    expect(find.textContaining('Available quantity 6'), findsOneWidget);
+    expect(
+      find.textContaining('Available · 6'),
+      findsOneWidget,
+    );
 
     final quantityCta = find.byKey(const ValueKey('customer-add-cart'));
     final plus = find.descendant(
