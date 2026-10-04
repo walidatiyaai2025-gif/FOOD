@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverDeliveryEvidenceService;
+use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\WholesalePrincipal;
@@ -26,32 +27,28 @@ use Illuminate\View\View;
 
 final class OrderOperationsController extends Controller
 {
-    private const STATUSES = [
-        'pending',
-        'confirmed',
-        'preparing',
-        'ready',
-        'out_for_delivery',
-        'failed',
-        'delivered',
-        'cancelled',
-    ];
-
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly OperationalTenantScope $scope,
         private readonly DriverDeliveryEvidenceService $deliveryEvidence,
+        private readonly OperationalLookupService $lookups,
     ) {}
 
     public function index(Request $request): View
     {
         $actor = $this->actor($request);
 
+        $statusOptions = $this->orderStatusOptions();
+        $statusCodes = array_values(array_unique(array_map(
+            static fn (array $option): string => (string) $option['code'],
+            $statusOptions,
+        )));
+
         $data = $request->validate([
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
             'order_number' => ['nullable', 'string', 'max:80'],
-            'status' => ['nullable', 'string', Rule::in(self::STATUSES)],
+            'status' => ['nullable', 'string', Rule::in($statusCodes)],
             'driver_id' => ['nullable', 'integer', 'min:1'],
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
@@ -75,10 +72,9 @@ final class OrderOperationsController extends Controller
             abort(404);
         }
 
-        $orders = Order::query()
+        $orderQuery = Order::query()
             ->where(fn ($query) => $this->applyOperationalScopes($query, $scopes))
             ->when($selectedStoreId !== null, fn ($query) => $query->where('store_id', $selectedStoreId))
-            ->when(isset($data['status']), fn ($query) => $query->where('status', $data['status']))
             ->when(isset($data['from']), fn ($query) => $query->whereDate('created_at', '>=', $data['from']))
             ->when(isset($data['to']), fn ($query) => $query->whereDate('created_at', '<=', $data['to']))
             ->when(
@@ -94,13 +90,38 @@ final class OrderOperationsController extends Controller
                         ->where('driver_assignments.driver_id', (int) $data['driver_id'])
                         ->whereNotIn('driver_assignments.status', ['unassigned', 'reassigned', 'cancelled']);
                 }),
-            )
+            );
+
+        $statusCounts = (clone $orderQuery)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(static fn ($count): int => (int) $count)
+            ->all();
+
+        $selectedStatus = isset($data['status']) ? (string) $data['status'] : null;
+        $orders = (clone $orderQuery)
+            ->when($selectedStatus !== null, fn ($query) => $query->where('status', $selectedStatus))
             ->latest('id')
             ->paginate(50)
             ->withQueryString();
 
+        $statusLabels = collect($statusOptions)
+            ->mapWithKeys(static fn (array $option): array => [
+                (string) $option['code'] => (string) $option['label'],
+            ])
+            ->all();
+        $activeStatusCodes = $this->activeOrderStatusCodes();
+        $statusTabs = collect($statusOptions)
+            ->map(static fn (array $option): array => [
+                ...$option,
+                'count' => (int) ($statusCounts[(string) $option['code']] ?? 0),
+            ])
+            ->values()
+            ->all();
+
         $rows = collect($orders->items())
-            ->map(fn (Order $order): array => $this->row($order))
+            ->map(fn (Order $order): array => $this->row($order, $statusLabels, $activeStatusCodes))
             ->all();
 
         $stores = DB::table('stores')
@@ -138,7 +159,7 @@ final class OrderOperationsController extends Controller
                 ->whereKey((int) $data['order'])
                 ->where(fn ($query) => $this->applyOperationalScopes($query, $scopes))
                 ->firstOrFail();
-            $detail = $this->detail($actor, $detailOrder);
+            $detail = $this->detail($actor, $detailOrder, $statusLabels, $activeStatusCodes);
         }
 
         return view('admin.order-operations', [
@@ -151,7 +172,14 @@ final class OrderOperationsController extends Controller
             'stores' => $stores,
             'drivers' => $drivers,
             'detail' => $detail,
-            'statuses' => self::STATUSES,
+            'statuses' => array_map(
+                static fn (array $option): string => (string) $option['code'],
+                $statusOptions,
+            ),
+            'statusOptions' => $statusOptions,
+            'statusTabs' => $statusTabs,
+            'statusTotal' => array_sum($statusCounts),
+            'selectedStatus' => $selectedStatus,
             'isAr' => app()->getLocale() === 'ar',
         ]);
     }
@@ -166,7 +194,7 @@ final class OrderOperationsController extends Controller
 
         $assignment = DriverAssignment::query()
             ->where('order_id', $model->getKey())
-            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered'])
+            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
             ->latest('id')
             ->first();
 
@@ -230,6 +258,9 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
+        $request->validate([
+            'status' => ['required', 'string', Rule::in($this->activeOrderStatusCodes())],
+        ]);
         $request->merge(['store_id' => (int) $model->store_id]);
 
         $orders->transition($request, $order, $audit, $notifier);
@@ -303,11 +334,16 @@ final class OrderOperationsController extends Controller
     }
 
     /** @return array<string,mixed> */
-    private function row(Order $order): array
+    /**
+     * @param array<string,string> $statusLabels
+     * @param list<string> $activeStatusCodes
+     * @return array<string,mixed>
+     */
+    private function row(Order $order, array $statusLabels, array $activeStatusCodes): array
     {
         $assignment = DriverAssignment::query()
             ->where('order_id', $order->getKey())
-            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled'])
+            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
             ->latest('id')
             ->first();
 
@@ -341,6 +377,12 @@ final class OrderOperationsController extends Controller
             ? 'dashboard'
             : ($sourceNote === 'checkout' ? 'customer_checkout' : 'legacy');
 
+        $status = (string) $order->status;
+        $availableStatuses = array_values(array_filter(
+            OrderController::allowedTransitions($status),
+            static fn (string $candidate): bool => in_array($candidate, $activeStatusCodes, true),
+        ));
+
         return [
             'id' => (int) $order->getKey(),
             'number' => (string) $order->order_number,
@@ -349,7 +391,15 @@ final class OrderOperationsController extends Controller
             'store' => $storeLabel,
             'source' => $source,
             'customer' => $customerName ?? '-',
-            'status' => (string) $order->status,
+            'status' => $status,
+            'status_label' => $statusLabels[$status] ?? $status,
+            'available_statuses' => array_map(
+                static fn (string $candidate): array => [
+                    'code' => $candidate,
+                    'label' => $statusLabels[$candidate] ?? $candidate,
+                ],
+                $availableStatuses,
+            ),
             'total' => (float) $order->grand_total,
             'currency' => (string) $order->currency,
             'created_at' => $order->created_at,
@@ -364,9 +414,18 @@ final class OrderOperationsController extends Controller
     }
 
     /** @return array<string,mixed> */
-    private function detail(User $actor, Order $order): array
-    {
-        $row = $this->row($order);
+    /**
+     * @param array<string,string> $statusLabels
+     * @param list<string> $activeStatusCodes
+     * @return array<string,mixed>
+     */
+    private function detail(
+        User $actor,
+        Order $order,
+        array $statusLabels,
+        array $activeStatusCodes,
+    ): array {
+        $row = $this->row($order, $statusLabels, $activeStatusCodes);
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
         $history = OrderStatusHistory::query()
@@ -407,6 +466,66 @@ final class OrderOperationsController extends Controller
             'assignments' => $assignments,
             'delivery_evidence' => $this->deliveryEvidence->order($actor, $order),
         ];
+    }
+
+    /**
+     * @return list<array{code:string,label:string,label_ar:string,label_en:string,active:bool}>
+     */
+    private function orderStatusOptions(): array
+    {
+        $locale = app()->getLocale();
+        $options = DB::table('operational_lookups')
+            ->where('type', OperationalLookupService::ORDER_STATUS)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['code', 'label_ar', 'label_en', 'is_active'])
+            ->map(static function (object $row) use ($locale): array {
+                $code = (string) $row->code;
+                $labelAr = trim((string) $row->label_ar);
+                $labelEn = trim((string) $row->label_en);
+
+                return [
+                    'code' => $code,
+                    'label' => ($locale === 'ar' ? $labelAr : $labelEn) ?: $code,
+                    'label_ar' => $labelAr ?: $code,
+                    'label_en' => $labelEn ?: $code,
+                    'active' => (bool) $row->is_active,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $known = array_fill_keys(array_map(
+            static fn (array $option): string => (string) $option['code'],
+            $options,
+        ), true);
+
+        foreach (OrderController::statusCodes() as $code) {
+            if (isset($known[$code])) {
+                continue;
+            }
+
+            $options[] = [
+                'code' => $code,
+                'label' => $code,
+                'label_ar' => $code,
+                'label_en' => $code,
+                'active' => true,
+            ];
+        }
+
+        return $options;
+    }
+
+    /** @return list<string> */
+    private function activeOrderStatusCodes(): array
+    {
+        $codes = $this->lookups->activeCodes(OperationalLookupService::ORDER_STATUS);
+        if ($codes === []) {
+            return OrderController::statusCodes();
+        }
+
+        return array_values(array_intersect(OrderController::statusCodes(), $codes));
     }
 
     /** @return array{b2b:array<int,int>,b2c:array<int,int>} */
