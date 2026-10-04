@@ -40,12 +40,24 @@ class OrderController extends Controller
         'cancelled' => [],
     ];
 
+    /** @return list<string> */
+    public static function statusCodes(): array
+    {
+        return array_keys(self::TRANSITIONS);
+    }
+
+    /** @return list<string> */
+    public static function allowedTransitions(string $status): array
+    {
+        return self::TRANSITIONS[$status] ?? [];
+    }
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'status' => ['nullable', 'string', Rule::in(array_keys(self::TRANSITIONS))],
+            'status' => ['nullable', 'string', Rule::in(self::statusCodes())],
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', 'string', Rule::in(['b2b', 'b2c'])],
         ]);
@@ -158,7 +170,7 @@ class OrderController extends Controller
             'status' => [
                 'required',
                 'string',
-                Rule::in(array_keys(self::TRANSITIONS)),
+                Rule::in(self::statusCodes()),
             ],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
@@ -189,7 +201,7 @@ class OrderController extends Controller
                 return $locked;
             }
 
-            $allowed = self::TRANSITIONS[$currentStatus] ?? [];
+            $allowed = self::allowedTransitions($currentStatus);
             abort_unless(
                 in_array($targetStatus, $allowed, true),
                 409,
