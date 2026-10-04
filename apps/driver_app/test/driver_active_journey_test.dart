@@ -5,7 +5,8 @@ import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/features/delivery/active/driver_active_journey.dart';
 import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 
-class _FakeActiveRepo implements DriverAssignmentRepository {
+class _FakeActiveRepo
+    implements DriverAssignmentRepository, DriverInvoiceDocumentRepository {
   _FakeActiveRepo(this.current, {this.offline = false});
 
   DriverAssignment current;
@@ -13,12 +14,24 @@ class _FakeActiveRepo implements DriverAssignmentRepository {
   String? transitionedStatus;
   String? transitionedNote;
   int transitionCount = 0;
+  int? downloadedInvoiceAssignmentId;
+  String? downloadedInvoiceLocale;
   final List<String> transitionedStatuses = <String>[];
 
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async {
     if (offline) throw const DriverOfflineException();
     return [current];
+  }
+
+  @override
+  Future<List<int>> downloadInvoicePdf(
+    int assignmentId, {
+    required String locale,
+  }) async {
+    downloadedInvoiceAssignmentId = assignmentId;
+    downloadedInvoiceLocale = locale;
+    return const [37, 80, 68, 70];
   }
 
   @override
@@ -60,6 +73,7 @@ class _FakeActiveRepo implements DriverAssignmentRepository {
       paymentMethod: current.paymentMethod,
       paymentStatus: current.paymentStatus,
       customerNote: current.customerNote,
+      settlement: current.settlement,
       items: current.items,
       availableStatuses: nextAvailable,
       assignedAt: current.assignedAt,
@@ -589,6 +603,17 @@ void main() {
         channel: DriverChannel.b2c,
         reference: 'INV-ORDER-40',
         status: 'accepted',
+        settlement: DriverSettlement(
+          currency: 'KWD',
+          orderTotal: 100,
+          balanceApplied: 30,
+          paidAmount: 0,
+          remainingAmount: 70,
+          remainderMethod: 'cash_on_delivery',
+          paymentState: 'partially_settled',
+          amountToCollectNow: 70,
+          invoiceOutstandingAmount: 70,
+        ),
         invoice: DriverInvoice(
           id: 91,
           number: 'INV-B2C-40',
@@ -599,6 +624,8 @@ void main() {
           deliveryTotal: 2,
           paymentMethod: 'cash_on_delivery',
           paymentStatus: 'pending',
+          outstandingAmount: 70,
+          downloadPath: '/api/v1/driver/assignments/40/invoice/download',
           items: [
             DriverOrderItem(
               name: 'Rice',
@@ -622,6 +649,16 @@ void main() {
       find.byKey(const Key('driver-active-open-invoice-40')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const Key('driver-active-download-invoice-40')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('driver-settlement-40')), findsOneWidget);
+    expect(find.text('Customer balance applied'), findsOneWidget);
+    expect(find.text('Cash on delivery'), findsWidgets);
+    expect(find.text('Partially settled'), findsOneWidget);
+    expect(find.text('Amount to collect now'), findsOneWidget);
+    expect(find.text('70.000 KWD'), findsWidgets);
     await tester.tap(
       find.byKey(const Key('driver-active-open-invoice-40')),
     );
@@ -633,6 +670,40 @@ void main() {
     );
     expect(find.textContaining('INV-B2C-40'), findsWidgets);
     expect(find.textContaining('27.000 KWD'), findsWidgets);
+  });
+
+  testWidgets('account debt remainder explicitly tells driver not to collect',
+      (tester) async {
+    final repo = _FakeActiveRepo(
+      const DriverAssignment(
+        id: 41,
+        channel: DriverChannel.b2c,
+        reference: 'DEBT-41',
+        status: 'accepted',
+        settlement: DriverSettlement(
+          currency: 'KWD',
+          orderTotal: 100,
+          balanceApplied: 30,
+          paidAmount: 0,
+          remainingAmount: 70,
+          remainderMethod: 'account_debt',
+          paymentState: 'partially_settled',
+          amountToCollectNow: 0,
+          invoiceOutstandingAmount: 70,
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('driver-active-assignment-41')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-settlement-41')), findsOneWidget);
+    expect(find.text('Account debt'), findsOneWidget);
+    expect(find.text('Do not collect'), findsOneWidget);
   });
 
   testWidgets('Arabic host keeps the new journey RTL', (tester) async {
