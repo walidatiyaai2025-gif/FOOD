@@ -901,10 +901,28 @@ void main() {
       (
         route: '/b2b/dashboard',
         payload: {
-          'purchases_total': 321.75,
-          'open_invoices': 4,
-          'balance': 88.5,
-          'currency': 'KWD',
+          'customer': {'name': 'Acme Buyer'},
+          'account': {'company_name': 'Acme Foods'},
+          'finance': {
+            'currency': 'KWD',
+            'balance': 88.5,
+            'balance_direction': 'customer_owes_company',
+            'credit_limit': 500.0,
+            'available_credit_line': 411.5,
+            'open_amount': 88.5,
+            'overdue_amount': 0.0,
+          },
+          'operations': {
+            'purchases_this_month': 321.75,
+            'payments_this_month': 50.0,
+            'invoice_count': 4,
+            'order_count': 3,
+            'active_orders': 1,
+          },
+          'freshness': {
+            'generated_at': '2026-10-04T14:00:00+00:00',
+            'stale': false,
+          },
         },
         expected: '321.75',
       ),
