@@ -448,6 +448,107 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertSame(2, DB::table('invoice_items')->where('invoice_id', $invoice->id)->count());
     }
 
+    public function test_central_new_order_wizard_is_scoped_and_final_create_reprices_authoritatively(): void
+    {
+        $storeA = $this->store('B2C', 'WIZARD-STORE-A');
+        $storeB = $this->store('B2C', 'WIZARD-STORE-B');
+        [$productA, $inventoryA] = $this->product($storeA, 'b2c', 'WIZARD-A-SKU', 4.500, 20);
+        [$productB] = $this->product($storeB, 'b2c', 'WIZARD-B-SKU', 8.000, 20);
+        $admin = $this->storeAdmin($storeA, 'wizard-retail@example.test');
+        $customerA = app(B2cCustomerService::class)->create($storeA, [
+            'name' => 'Wizard Buyer A',
+            'email' => 'wizard-a@example.test',
+        ]);
+        app(B2cCustomerService::class)->create($storeB, [
+            'name' => 'Wizard Buyer B',
+            'email' => 'wizard-b@example.test',
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertSee('data-new-order-open', false)
+            ->assertSee('data-new-order-modal', false)
+            ->assertSee('data-wizard-step="0"', false)
+            ->assertSee('data-wizard-step="5"', false)
+            ->assertSee('WIZARD-STORE-A')
+            ->assertSee('Wizard Buyer A')
+            ->assertSee('WIZARD-A-SKU')
+            ->assertDontSee('WIZARD-STORE-B')
+            ->assertDontSee('Wizard Buyer B')
+            ->assertDontSee('WIZARD-B-SKU');
+
+        $payload = [
+            'channel' => 'b2c',
+            'store_id' => $storeA,
+            'customer_id' => $customerA->id,
+            'payment_method' => 'cash_on_delivery',
+            'items' => [
+                ['product_id' => $productA, 'quantity' => 2],
+            ],
+        ];
+
+        $quote = $this->actingAs($admin)
+            ->postJson('/admin/operations/orders/quote', $payload)
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame(9.0, (float) $quote['subtotal']);
+        $this->assertFalse((bool) $quote['has_unavailable_items']);
+
+        DB::table('store_products')
+            ->where('store_id', $storeA)
+            ->where('product_id', $productA)
+            ->update(['price' => 7.000, 'updated_at' => now()]);
+
+        $response = $this->actingAs($admin)->post('/admin/operations/orders', $payload);
+        $response->assertRedirect();
+
+        $order = DB::table('orders')
+            ->where('store_id', $storeA)
+            ->where('channel', 'b2c')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($order);
+        $this->assertSame(14.0, (float) $order->subtotal);
+        $this->assertSame(2.0, (float) DB::table('inventories')->where('id', $inventoryA)->value('reserved_quantity'));
+        $response->assertRedirect(route('admin.operations.orders.index', [
+            'channel' => 'b2c',
+            'store_id' => $storeA,
+            'status' => 'pending',
+            'order' => $order->id,
+        ]));
+    }
+
+    public function test_central_new_order_endpoint_rejects_invalid_and_foreign_store_submissions_without_partial_order(): void
+    {
+        $storeA = $this->store('B2C', 'WIZARD-SCOPE-A');
+        $storeB = $this->store('B2C', 'WIZARD-SCOPE-B');
+        [$productA] = $this->product($storeA, 'b2c', 'WIZARD-SCOPE-A-SKU', 3.000, 10);
+        $admin = $this->storeAdmin($storeA, 'wizard-scope@example.test');
+        $customerA = app(B2cCustomerService::class)->create($storeA, ['name' => 'Wizard Scope Buyer']);
+
+        $this->actingAs($admin)->post('/admin/operations/orders', [
+            'channel' => 'b2c',
+            'store_id' => $storeA,
+            'customer_id' => $customerA->id,
+            'items' => [['product_id' => $productA, 'quantity' => 1]],
+        ])->assertSessionHasErrors('payment_method');
+
+        $this->assertDatabaseCount('orders', 0);
+
+        $this->actingAs($admin)->post('/admin/operations/orders', [
+            'channel' => 'b2c',
+            'store_id' => $storeB,
+            'customer_id' => $customerA->id,
+            'payment_method' => 'cash_on_delivery',
+            'items' => [['product_id' => $productA, 'quantity' => 1]],
+        ])->assertNotFound();
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
     private function store(string $type, string $code): int
     {
         return (int) DB::table('stores')->insertGetId([

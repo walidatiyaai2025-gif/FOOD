@@ -15,9 +15,11 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 <body>
 <div class="shell foodex-admin-layout">
 <main class="main foodex-admin-main foodex-admin-page">
-<header class="foodex-page-header"><div><h1>{{ $isAr?'إدارة الطلبات':'Order Management' }}</h1><p>{{ $isAr?'متابعة وتشغيل كل الطلبات المسموح بها حسب المنصة والمتجر.':'Monitor and operate every order allowed by the current platform/store scope.' }}</p></div></header>
+<header class="foodex-page-header"><div><h1>{{ $isAr?'إدارة الطلبات':'Order Management' }}</h1><p>{{ $isAr?'متابعة وتشغيل كل الطلبات المسموح بها حسب المنصة والمتجر.':'Monitor and operate every order allowed by the current platform/store scope.' }}</p></div>@if(count($newOrderWizard['channels'] ?? []))<button type="button" class="foodex-primary" data-new-order-open style="font-size:1rem;padding:12px 18px;white-space:nowrap">+ {{ $isAr?'طلب جديد':'New Order' }}</button>@endif</header>
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+
+@include('admin._order-new-wizard')
 
 @php($tabQuery=request()->except(['status','page','order']))
 <nav class="status-tabs" aria-label="{{ $isAr?'حالات الطلبات':'Order statuses' }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}">
