@@ -166,7 +166,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/b2b/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);
         Route::get('/b2b/product-mappings', [RetailWholesaleProductMappingController::class, 'index']);
         Route::put('/b2b/product-mappings/{sourceProduct}', [RetailWholesaleProductMappingController::class, 'upsert']);
-        Route::post('/push/devices', [PushDeviceController::class, 'store']);
+        Route::post('/push/devices', [PushDeviceController::class, 'store']);\n        Route::post('/runtime/diagnostics', SystemInspectorIngestionController::class)\n            ->middleware('throttle:30,1');
         Route::delete('/push/devices/{device}', [PushDeviceController::class, 'destroy']);
         Route::get('/admin/security/permissions', [SecurityController::class, 'permissions']);
         Route::get('/admin/security/roles', [SecurityController::class, 'roles']);
