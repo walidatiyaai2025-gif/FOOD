@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\V1\LiveAdController;
 use App\Http\Controllers\Api\V1\LookupOptionsController;
 use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\MobileRuntimeController;
+use App\Http\Controllers\Api\V1\MobileSystemInspectorEventController;
 use App\Http\Controllers\Api\V1\NotificationCampaignPopupController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PlatformMarketplaceController;
@@ -148,6 +149,9 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/runtime-inspector/events', MobileSystemInspectorEventController::class)
+            ->middleware('throttle:60,1')
+            ->name('api.runtime-inspector.events');
         Route::post('/admin/app-preview/sessions', [AppPreviewSessionController::class, 'store']);
         Route::delete('/admin/app-preview/sessions/{session}', [AppPreviewSessionController::class, 'destroy'])
             ->whereNumber('session');

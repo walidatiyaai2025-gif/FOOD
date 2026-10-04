@@ -28,6 +28,10 @@ class CustomerDiagnostics {
   String? _currentRoute;
   String? _lastSuccessfulApiAt;
   String _networkState = 'unknown';
+  bool _flushInProgress = false;
+  bool _flushRequested = false;
+  String? _uploadBaseUrl;
+  String? _uploadToken;
 
   List<Map<String, dynamic>> get events =>
       List<Map<String, dynamic>>.unmodifiable(_events);
@@ -97,6 +101,9 @@ class CustomerDiagnostics {
       _events.removeRange(0, _events.length - maxEvents);
     }
     _persist();
+    if (_isRemoteEligible(type)) {
+      _scheduleAutomaticFlush();
+    }
   }
 
   void recordFlutterError(FlutterErrorDetails details) {
@@ -125,6 +132,7 @@ class CustomerDiagnostics {
     _networkState = 'reachable';
     if (statusCode >= 200 && statusCode < 400) {
       _lastSuccessfulApiAt = DateTime.now().toUtc().toIso8601String();
+      notifyConnectivityRecovered();
       return;
     }
 
@@ -176,6 +184,176 @@ class CustomerDiagnostics {
     });
   }
 
+  void configureInspectorUpload({
+    required String baseUrl,
+    required String token,
+  }) {
+    final normalizedBaseUrl = baseUrl.trim();
+    final normalizedToken = token.trim();
+    if (normalizedBaseUrl.isEmpty || normalizedToken.isEmpty) {
+      clearInspectorUpload();
+      return;
+    }
+
+    _uploadBaseUrl = normalizedBaseUrl;
+    _uploadToken = normalizedToken;
+    _scheduleAutomaticFlush();
+  }
+
+  void clearInspectorUpload() {
+    _uploadBaseUrl = null;
+    _uploadToken = null;
+    _flushRequested = false;
+  }
+
+  void notifyConnectivityRecovered() {
+    _scheduleAutomaticFlush();
+  }
+
+  void _scheduleAutomaticFlush() {
+    final baseUrl = _uploadBaseUrl;
+    final token = _uploadToken;
+    if (baseUrl == null || token == null) return;
+
+    if (_flushInProgress) {
+      _flushRequested = true;
+      return;
+    }
+
+    unawaited(flushToInspector(baseUrl: baseUrl, token: token));
+  }
+
+  Future<int> flushToInspector({
+    required String baseUrl,
+    required String token,
+    http.Client? client,
+    int limit = 5,
+  }) async {
+    final normalizedBaseUrl = baseUrl.trim();
+    final normalizedToken = token.trim();
+    if (_flushInProgress ||
+        normalizedBaseUrl.isEmpty ||
+        normalizedToken.isEmpty ||
+        limit <= 0) {
+      return 0;
+    }
+
+    final pending = _events
+        .where((event) =>
+            event['remote_submitted_at'] == null &&
+            _isRemoteEligible(event['type']?.toString()))
+        .take(limit)
+        .toList(growable: false);
+    if (pending.isEmpty) return 0;
+
+    _flushInProgress = true;
+    final ownsClient = client == null;
+    final transport = client ?? http.Client();
+    var submitted = 0;
+
+    try {
+      final root = normalizedBaseUrl.replaceFirst(RegExp(r'/+$'), '');
+      final endpoint = Uri.parse('$root/api/v1/runtime-inspector/events');
+
+      for (final event in pending) {
+        final payload = _inspectorPayload(event);
+        if (payload == null) continue;
+
+        try {
+          final response = await transport.post(
+            endpoint,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $normalizedToken',
+            },
+            body: jsonEncode(payload),
+          );
+          if (response.statusCode != 202) break;
+
+          event['remote_submitted_at'] =
+              DateTime.now().toUtc().toIso8601String();
+          submitted++;
+        } catch (_) {
+          break;
+        }
+      }
+
+      if (submitted > 0) {
+        _persist();
+      }
+      return submitted;
+    } finally {
+      if (ownsClient) transport.close();
+      _flushInProgress = false;
+      if (_flushRequested) {
+        _flushRequested = false;
+        _scheduleAutomaticFlush();
+      }
+    }
+  }
+
+  bool _isRemoteEligible(String? type) => const {
+        'flutter_error',
+        'dart_error',
+        'api_failure',
+        'api_error',
+        'runtime_failure',
+      }.contains(type);
+
+  Map<String, dynamic>? _inspectorPayload(Map<String, dynamic> event) {
+    final type = event['type']?.toString();
+    if (!_isRemoteEligible(type)) return null;
+
+    final details = event['details'] is Map
+        ? Map<String, dynamic>.from(event['details'] as Map)
+        : <String, dynamic>{};
+    final status = (details['status_code'] as num?)?.toInt();
+    final message = switch (type) {
+      'flutter_error' =>
+        (details['exception'] ?? 'Flutter runtime error').toString(),
+      'dart_error' => (details['error'] ?? 'Dart runtime error').toString(),
+      'api_failure' => 'Customer API request failed',
+      'api_error' =>
+        (details['error'] ?? 'Customer API network failure').toString(),
+      'runtime_failure' =>
+        (details['operation'] ??
+                details['category'] ??
+                'Customer runtime failure')
+            .toString(),
+      _ => 'Customer runtime failure',
+    };
+
+    return <String, dynamic>{
+      'app': 'customer',
+      'category': type,
+      'severity': status != null && status < 500 ? 'warning' : 'error',
+      'message': redact(message),
+      'app_version': _appVersion ?? 'unknown',
+      'platform': Platform.operatingSystem,
+      'os_version': redact(Platform.operatingSystemVersion),
+      if (_currentRoute != null) 'current_route': _currentRoute,
+      if (_channel != null) 'channel': _channel,
+      if (_retailStoreContextId != null) 'store_id': _retailStoreContextId,
+      if (details['method'] != null) 'method': details['method'],
+      if (details['path'] != null) 'path': details['path'],
+      if (status != null) 'status': status,
+      if (details['correlation_id'] != null)
+        'correlation_id': details['correlation_id'],
+      if (details['correlation_id'] == null &&
+          details['support_reference'] != null)
+        'correlation_id': details['support_reference'],
+      if (details['stack'] != null) 'stack': details['stack'],
+      'metadata': redact({
+        if (details['library'] != null) 'library': details['library'],
+        if (details['context'] != null) 'context': details['context'],
+        if (details['elapsed_ms'] != null)
+          'elapsed_ms': details['elapsed_ms'],
+        if (details['category'] != null)
+          'failure_category': details['category'],
+      }),
+    };
+  }
   Future<void> clear() async {
     _events.clear();
     await _preferences?.remove(_storageKey);

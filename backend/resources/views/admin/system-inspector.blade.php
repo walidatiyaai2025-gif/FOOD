@@ -43,6 +43,7 @@
             <article class="foodex-card inspector-stat"><strong>{{ $ar?'إجمالي الأحداث':'Total events' }}</strong><b class="foodex-number">{{ $stats['total'] }}</b></article>
             <article class="foodex-card inspector-stat"><strong>{{ $ar?'أخطاء آخر 24 ساعة':'Errors · 24h' }}</strong><b class="foodex-number">{{ $stats['errors_24h'] }}</b></article>
             <article class="foodex-card inspector-stat"><strong>{{ $ar?'JavaScript / Fetch · 24 ساعة':'JavaScript / Fetch · 24h' }}</strong><b class="foodex-number">{{ $stats['javascript_24h'] }}</b></article>
+            <article class="foodex-card inspector-stat"><strong>{{ $ar?'تطبيقات الموبايل · 24 ساعة':'Mobile apps · 24h' }}</strong><b class="foodex-number">{{ $stats['mobile_24h'] }}</b></article>
             <article class="foodex-card inspector-stat"><strong>{{ $ar?'أخطاء الراوت · 24 ساعة':'Route errors · 24h' }}</strong><b class="foodex-number">{{ $stats['routes_24h'] }}</b></article>
         </section>
 
@@ -60,12 +61,18 @@
         <form class="foodex-card inspector-toolbar" method="get" action="{{ route('admin.inspector.index') }}">
             <label>{{ $ar?'المصدر':'Source' }}
                 <select name="source"><option value="">{{ $ar?'الكل':'All' }}</option>
-                    @foreach(['server','route','javascript','fetch'] as $item)<option value="{{ $item }}" @selected($source===$item)>{{ $item }}</option>@endforeach
+                    @foreach(['dashboard','server','api','route','javascript','fetch','customer_app','driver_app'] as $item)<option value="{{ $item }}" @selected($source===$item)>{{ $item }}</option>@endforeach
                 </select>
             </label>
             <label>{{ $ar?'الخطورة':'Severity' }}
                 <select name="severity"><option value="">{{ $ar?'الكل':'All' }}</option><option value="error" @selected($severity==='error')>error</option><option value="warning" @selected($severity==='warning')>warning</option></select>
             </label>
+            <label>{{ $ar?'إصدار التطبيق':'App version' }}<input name="app_version" value="{{ $appVersion }}" placeholder="1.0.53"></label>
+            <label>Build<input name="app_build" value="{{ $appBuild }}" placeholder="53"></label>
+            <label>{{ $ar?'القناة':'Channel' }}
+                <select name="channel"><option value="">{{ $ar?'الكل':'All' }}</option><option value="b2b" @selected($channel==='b2b')>B2B</option><option value="b2c" @selected($channel==='b2c')>B2C</option></select>
+            </label>
+            <label>{{ $ar?'المتجر':'Store ID' }}<input name="store_id" type="number" min="1" value="{{ $storeId > 0 ? $storeId : '' }}"></label>
             <label>{{ $ar?'بحث':'Search' }}<input name="q" value="{{ $search }}" placeholder="{{ $ar?'الرسالة أو الراوت أو Correlation ID':'Message, route or correlation ID' }}"></label>
             <button class="foodex-action-primary foodex-filter-action" type="submit">{{ $ar?'تصفية':'Filter' }}</button>
         </form>

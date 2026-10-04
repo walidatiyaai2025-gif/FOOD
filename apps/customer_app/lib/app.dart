@@ -206,6 +206,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     }
     _loadRemoteTranslations();
     _configurePush();
+    _configureDiagnostics();
     _scheduleLaunchCampaignPopup();
   }
 
@@ -221,6 +222,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     if (oldWidget.session != widget.session) {
       _session = widget.session;
       _bindPushSession();
+      _configureDiagnostics();
     }
     if (oldWidget.pushService != widget.pushService) {
       unawaited(_pushRouteSubscription?.cancel());
@@ -311,6 +313,32 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _bindPushSession();
   }
 
+  void _configureDiagnostics() {
+    if (widget.previewContext != null) {
+      _diagnostics.clearInspectorUpload();
+      return;
+    }
+
+    final baseUrl = FoodexEnvironment.apiBaseUrl;
+    final token = _session.accessToken;
+    _diagnostics.updateContext(
+      appVersion: _appVersion,
+      apiBaseUrl: baseUrl,
+      locale: _locale.languageCode,
+      authenticated: _session.isAuthenticated,
+      channel: _session.channel?.name,
+      platformWide: _session.platformWide,
+      retailStoreContextId: _session.b2bRetailStoreId,
+    );
+
+    if (token == null || token.isEmpty || baseUrl.isEmpty) {
+      _diagnostics.clearInspectorUpload();
+      return;
+    }
+
+    _diagnostics.configureInspectorUpload(baseUrl: baseUrl, token: token);
+  }
+
   void _bindPushSession() {
     final service = widget.pushService;
     final token = _session.accessToken;
@@ -380,6 +408,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     });
     unawaited(_persistSession(session));
     _bindPushSession();
+    _configureDiagnostics();
 
     // Complete only after MaterialApp/Navigator has received the router built
     // from the authenticated platform session. The auth screen awaits this
@@ -428,6 +457,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       _session = session;
     });
     unawaited(_persistSession(session));
+    _configureDiagnostics();
   }
 
   void _onSessionExpired() {
@@ -438,6 +468,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     }
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
+    _diagnostics.clearInspectorUpload();
     unawaited(_clearPersistedSession());
     _guestSession.clear();
     setState(() {
@@ -451,6 +482,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
 
   Future<void> _logout(CustomerActionApi actionApi) async {
     if (widget.previewContext != null) return;
+    _diagnostics.clearInspectorUpload();
     await _clearPersistedSession();
     final service = widget.pushService;
     if (service != null) {

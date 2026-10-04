@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
@@ -181,4 +183,70 @@ void main() {
       findsOneWidget,
     );
   });
+
+  test('central inspector keeps offline Customer failure pending until accepted',
+      () async {
+    final diagnostics = CustomerDiagnostics(maxEvents: 10)
+      ..updateContext(
+        appVersion: '1.0.53',
+        apiBaseUrl: 'https://foodex.example.test',
+        locale: 'en',
+        authenticated: true,
+        channel: 'b2c',
+        platformWide: true,
+        retailStoreContextId: 7,
+      )
+      ..recordRuntimeFailure(
+        operation: 'orders_load',
+        path: '/api/v1/orders?token=body-secret',
+        category: 'server_failure',
+        statusCode: 503,
+        supportReference: 'cid-customer-896',
+      );
+
+    final offline = await diagnostics.flushToInspector(
+      baseUrl: 'https://foodex.example.test',
+      token: 'transport-secret',
+      client: MockClient((request) async {
+        throw http.ClientException('offline');
+      }),
+    );
+    expect(offline, 0);
+    expect(diagnostics.events.single['remote_submitted_at'], isNull);
+
+    final requests = <http.Request>[];
+    final onlineClient = MockClient((request) async {
+      requests.add(request);
+      return http.Response('', 202);
+    });
+
+    final submitted = await diagnostics.flushToInspector(
+      baseUrl: 'https://foodex.example.test',
+      token: 'transport-secret',
+      client: onlineClient,
+    );
+    final repeated = await diagnostics.flushToInspector(
+      baseUrl: 'https://foodex.example.test',
+      token: 'transport-secret',
+      client: onlineClient,
+    );
+
+    expect(submitted, 1);
+    expect(repeated, 0);
+    expect(requests, hasLength(1));
+    expect(requests.single.url.path, '/api/v1/runtime-inspector/events');
+
+    final payload =
+        Map<String, dynamic>.from(jsonDecode(requests.single.body) as Map);
+    expect(payload['app'], 'customer');
+    expect(payload['category'], 'runtime_failure');
+    expect(payload['status'], 503);
+    expect(payload['store_id'], 7);
+    expect(payload['channel'], 'b2c');
+    expect(payload['correlation_id'], 'cid-customer-896');
+    expect(requests.single.body, isNot(contains('body-secret')));
+    expect(requests.single.body, isNot(contains('transport-secret')));
+    expect(diagnostics.events.single['remote_submitted_at'], isNotNull);
+  });
+
 }

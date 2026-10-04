@@ -39,8 +39,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Throwable $exception, \Illuminate\Http\Request $request) {
+            app(SystemInspectorRecorder::class)->recordException($exception, $request);
+
             if ($request->is('admin/*')) {
-                app(SystemInspectorRecorder::class)->recordException($exception, $request);
 
                 if (! $request->expectsJson()
                     && ! $request->isMethod('GET')

@@ -147,6 +147,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     }
     final session = _session;
     if (session != null) {
+      _configureDiagnostics(session);
       _configureLocationTracking(session);
     }
   }
@@ -163,6 +164,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
       _locationGateReady = false;
       _session = widget.initialSession;
       _bindPushSession();
+      _configureDiagnostics(widget.initialSession!);
       _configureLocationTracking(widget.initialSession!);
     }
     if (oldWidget.pushService != widget.pushService) {
@@ -178,6 +180,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     if (_appInForeground == foreground) return;
     _appInForeground = foreground;
     _locationTracking?.setAppInForeground(foreground);
+    if (foreground) {
+      DriverRuntimeInspector.instance.notifyConnectivityRecovered();
+    }
   }
 
   DriverAuthRepository? _authRepository() {
@@ -203,6 +208,20 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     return HttpDriverNotificationRepository(
       baseUrl: _baseUrl,
       token: session.token,
+    );
+  }
+
+  void _configureDiagnostics(DriverSession session) {
+    if (widget.previewContext != null || _baseUrl.isEmpty) {
+      DriverRuntimeInspector.instance.clearInspectorUpload();
+      return;
+    }
+
+    DriverRuntimeInspector.instance.configureInspectorUpload(
+      baseUrl: _baseUrl,
+      token: session.token,
+      channel: session.channel == DriverChannel.b2c ? 'b2c' : 'b2b',
+      storeId: session.storeId,
     );
   }
 
@@ -342,6 +361,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     }
     if (mounted) setState(() => _session = session);
     _bindPushSession();
+    _configureDiagnostics(session);
     _configureLocationTracking(session);
   }
 
@@ -358,6 +378,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     _locationGateReady = false;
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
+    DriverRuntimeInspector.instance.clearInspectorUpload();
     DriverRuntimeInspector.instance.recordNavigation('driver.login');
     if (widget.previewContext == null) {
       unawaited(_clearRememberedSession());
@@ -384,6 +405,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     _locationGateReady = false;
     final service = widget.pushService;
     if (service != null) await service.revokeSession();
+    DriverRuntimeInspector.instance.clearInspectorUpload();
     DriverRuntimeInspector.instance.recordNavigation('driver.login');
     unawaited(_clearRememberedSession());
     if (mounted) setState(() => _session = null);

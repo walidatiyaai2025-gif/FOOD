@@ -76,6 +76,12 @@ class DriverRuntimeInspector {
   String _appVersion = driverAppVersion;
   String _appBuild = driverAppBuild;
   String? _lastRoute;
+  bool _flushInProgress = false;
+  bool _flushRequested = false;
+  String? _uploadBaseUrl;
+  String? _uploadToken;
+  String? _uploadChannel;
+  int? _uploadStoreId;
 
   int get eventCount => _events.length;
   String? get lastRoute => _lastRoute;
@@ -266,6 +272,201 @@ class DriverRuntimeInspector {
     );
   }
 
+  void configureInspectorUpload({
+    required String baseUrl,
+    required String token,
+    required String channel,
+    int? storeId,
+  }) {
+    final normalizedBaseUrl = baseUrl.trim();
+    final normalizedToken = token.trim();
+    final normalizedChannel = channel.trim();
+    if (normalizedBaseUrl.isEmpty ||
+        normalizedToken.isEmpty ||
+        normalizedChannel.isEmpty) {
+      clearInspectorUpload();
+      return;
+    }
+
+    _uploadBaseUrl = normalizedBaseUrl;
+    _uploadToken = normalizedToken;
+    _uploadChannel = normalizedChannel;
+    _uploadStoreId = storeId;
+    _scheduleAutomaticFlush();
+  }
+
+  void clearInspectorUpload() {
+    _uploadBaseUrl = null;
+    _uploadToken = null;
+    _uploadChannel = null;
+    _uploadStoreId = null;
+    _flushRequested = false;
+  }
+
+  void notifyConnectivityRecovered() {
+    _scheduleAutomaticFlush();
+  }
+
+  void _scheduleAutomaticFlush() {
+    final baseUrl = _uploadBaseUrl;
+    final token = _uploadToken;
+    final channel = _uploadChannel;
+    if (baseUrl == null || token == null || channel == null) return;
+
+    if (_flushInProgress) {
+      _flushRequested = true;
+      return;
+    }
+
+    unawaited(
+      flushToInspector(
+        baseUrl: baseUrl,
+        token: token,
+        channel: channel,
+        storeId: _uploadStoreId,
+      ),
+    );
+  }
+
+  Future<int> flushToInspector({
+    required String baseUrl,
+    required String token,
+    required String channel,
+    int? storeId,
+    http.Client? client,
+    int limit = 5,
+  }) async {
+    final normalizedBaseUrl = baseUrl.trim();
+    final normalizedToken = token.trim();
+    final normalizedChannel = channel.trim();
+    if (_flushInProgress ||
+        normalizedBaseUrl.isEmpty ||
+        normalizedToken.isEmpty ||
+        normalizedChannel.isEmpty ||
+        limit <= 0) {
+      return 0;
+    }
+
+    final pending = _events
+        .where((event) =>
+            event['remote_submitted_at'] == null &&
+            _isRemoteEligible(event['type']?.toString()))
+        .take(limit)
+        .toList(growable: false);
+    if (pending.isEmpty) return 0;
+
+    _flushInProgress = true;
+    final ownsClient = client == null;
+    final transport = client ?? http.Client();
+    var submitted = 0;
+
+    try {
+      final root = normalizedBaseUrl.replaceFirst(RegExp(r'/+$'), '');
+      final endpoint = Uri.parse('$root/api/v1/runtime-inspector/events');
+
+      for (final event in pending) {
+        final payload = _inspectorPayload(
+          event,
+          channel: normalizedChannel,
+          storeId: storeId,
+        );
+        if (payload == null) continue;
+
+        try {
+          final response = await transport.post(
+            endpoint,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $normalizedToken',
+            },
+            body: jsonEncode(payload),
+          );
+          if (response.statusCode != 202) break;
+
+          event['remote_submitted_at'] =
+              DateTime.now().toUtc().toIso8601String();
+          submitted++;
+        } catch (_) {
+          break;
+        }
+      }
+
+      if (submitted > 0) {
+        _schedulePersist();
+      }
+      return submitted;
+    } finally {
+      if (ownsClient) transport.close();
+      _flushInProgress = false;
+      if (_flushRequested) {
+        _flushRequested = false;
+        _scheduleAutomaticFlush();
+      }
+    }
+  }
+
+  bool _isRemoteEligible(String? type) => const {
+        'error',
+        'http_failure',
+        'driver_version_policy_failure',
+        'driver_tracking_failure',
+      }.contains(type);
+
+  Map<String, dynamic>? _inspectorPayload(
+    Map<String, dynamic> event, {
+    required String channel,
+    int? storeId,
+  }) {
+    final type = event['type']?.toString();
+    if (!_isRemoteEligible(type)) return null;
+
+    final status = (event['status_code'] as num?)?.toInt();
+    final message = switch (type) {
+      'error' =>
+        event['message'] ?? event['error_type'] ?? 'Driver runtime error',
+      'http_failure' => event['error'] ?? 'Driver API request failed',
+      'driver_version_policy_failure' =>
+        event['failure_class'] ?? 'Driver version policy failure',
+      'driver_tracking_failure' =>
+        event['code'] ?? 'Driver tracking failure',
+      _ => 'Driver runtime failure',
+    };
+
+    return <String, dynamic>{
+      'app': 'driver',
+      'category': type,
+      'severity': status != null && status < 500 ? 'warning' : 'error',
+      'message': sanitizeForDiagnostics(message, maxLength: 2000),
+      'app_version': _appVersion,
+      'app_build': _appBuild,
+      'platform': driverOperatingSystem,
+      'os_version': sanitizeForDiagnostics(
+        driverOperatingSystemVersion,
+        maxLength: 240,
+      ),
+      if (_lastRoute != null) 'current_route': _lastRoute,
+      'channel': channel,
+      if (storeId != null && storeId > 0) 'store_id': storeId,
+      if (event['method'] != null) 'method': event['method'],
+      if (event['endpoint'] != null) 'path': event['endpoint'],
+      if (status != null) 'status': status,
+      if (event['correlation_id'] != null)
+        'correlation_id': event['correlation_id'],
+      if (event['attempt'] != null) 'attempt': event['attempt'],
+      if (event['stack'] != null) 'stack': event['stack'],
+      'metadata': {
+        if (event['source'] != null) 'runtime_source': event['source'],
+        if (event['error_type'] != null) 'error_type': event['error_type'],
+        if (event['duration_ms'] != null)
+          'duration_ms': event['duration_ms'],
+        if (event['operation'] != null) 'operation': event['operation'],
+        if (event['failure_class'] != null)
+          'failure_class': event['failure_class'],
+        if (event['code'] != null) 'failure_code': event['code'],
+      },
+    };
+  }
   Future<void> clear() async {
     try {
       await _persistChain;
@@ -294,6 +495,9 @@ class DriverRuntimeInspector {
       _events.removeRange(0, _events.length - maxEvents);
     }
     _schedulePersist();
+    if (_isRemoteEligible(event['type']?.toString())) {
+      _scheduleAutomaticFlush();
+    }
   }
 
   void _schedulePersist() {
@@ -351,6 +555,8 @@ class DriverDiagnosticHttpClient extends http.BaseClient {
           statusCode: response.statusCode,
           elapsed: stopwatch.elapsed,
         );
+      } else {
+        _inspector.notifyConnectivityRecovered();
       }
       return response;
     } catch (error) {
