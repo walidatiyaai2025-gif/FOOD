@@ -4158,13 +4158,17 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
             Icon(
               icon,
               size: 20,
-              color: emphasized ? scheme.primary : scheme.onSurfaceVariant,
+              color: emphasized
+                  ? scheme.onPrimaryContainer
+                  : scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 6),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelMedium,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: emphasized ? scheme.onPrimaryContainer : null,
+                  ),
             ),
             const SizedBox(height: 3),
             FittedBox(
@@ -4173,6 +4177,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                 value,
                 maxLines: 1,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: emphasized ? scheme.onPrimaryContainer : null,
                       fontWeight: FontWeight.w900,
                     ),
               ),
@@ -4262,6 +4267,9 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                           ar ? 'تفاصيل الفاتورة' : 'Invoice details',
                           style:
                               Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
                                     fontWeight: FontWeight.w800,
                                   ),
                         ),
@@ -4270,6 +4278,9 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                           data['invoice_number']?.toString() ?? '—',
                           style:
                               Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
                                     fontWeight: FontWeight.w900,
                                   ),
                         ),
@@ -4289,11 +4300,22 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                 children: [
                   Text(
                     '${ar ? 'الإصدار' : 'Issued'} · ${_displayDate(data['issued_at'])}',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
                   ),
                   Text(
                     '${ar ? 'الاستحقاق' : 'Due'} · ${_displayDate(data['due_at'])}',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
                   ),
-                  Text('${ar ? 'العملة' : 'Currency'} · $currency'),
+                  Text(
+                    '${ar ? 'العملة' : 'Currency'} · $currency',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
                 ],
               ),
               if ((seller['name']?.toString() ?? '').isNotEmpty ||
