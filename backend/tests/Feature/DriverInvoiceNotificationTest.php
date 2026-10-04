@@ -121,7 +121,7 @@ class DriverInvoiceNotificationTest extends TestCase
             'is_available' => true,
             'is_active' => true,
         ]);
-        Driver::query()->create([
+        $otherDriver = Driver::query()->create([
             'user_id' => $otherDriverUser->id,
             'store_id' => $storeId,
             'driver_type' => 'b2c',
@@ -141,9 +141,21 @@ class DriverInvoiceNotificationTest extends TestCase
             ->assertJsonPath('data.order.invoice.number', 'INV-DRV-1')
             ->assertJsonPath('data.order.invoice.grand_total', 27)
             ->assertJsonPath('data.order.invoice.payment_method', 'cash_on_delivery')
+            ->assertJsonPath('data.order.invoice.outstanding_amount', 27)
+            ->assertJsonPath('data.order.invoice.download_path', '/api/v1/driver/assignments/'.$assignmentId.'/invoice/download')
+            ->assertJsonPath('data.order.settlement.order_total', 27)
+            ->assertJsonPath('data.order.settlement.balance_applied', 0)
+            ->assertJsonPath('data.order.settlement.remaining_amount', 27)
+            ->assertJsonPath('data.order.settlement.remainder_method', 'cash_on_delivery')
+            ->assertJsonPath('data.order.settlement.payment_state', 'unpaid')
+            ->assertJsonPath('data.order.settlement.amount_to_collect_now', 27)
             ->assertJsonPath('data.order.invoice.items.0.sku', 'DRV-SKU')
             ->assertJsonMissingPath('data.order.invoice.customer_email')
             ->assertJsonMissingPath('data.order.invoice.b2b_account_id');
+
+        $this->get('/api/v1/driver/assignments/'.$assignmentId.'/invoice/download?locale=en')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
 
         $this->postJson('/api/v1/driver/assignments/'.$assignmentId.'/status', [
             'status' => 'accepted',
@@ -168,6 +180,154 @@ class DriverInvoiceNotificationTest extends TestCase
 
         Sanctum::actingAs($otherDriverUser);
         $this->getJson('/api/v1/driver/assignments/'.$assignmentId)->assertNotFound();
+        $this->get('/api/v1/driver/assignments/'.$assignmentId.'/invoice/download?locale=en')
+            ->assertNotFound();
+
+        Sanctum::actingAs($admin);
+        $replacementAssignmentId = $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $otherDriver->id,
+            'order_id' => $order->id,
+            'replace_existing' => true,
+        ])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($driverUser);
+        $this->get('/api/v1/driver/assignments/'.$assignmentId.'/invoice/download?locale=en')
+            ->assertNotFound();
+
+        Sanctum::actingAs($otherDriverUser);
+        $this->get('/api/v1/driver/assignments/'.$replacementAssignmentId.'/invoice/download?locale=en')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_pending_order_cannot_be_assigned_before_customer_service_approval(): void
+    {
+        $storeId = $this->store('DRIVER-APPROVAL-GATE');
+        $customer = app(B2cCustomerService::class)->create($storeId, [
+            'name' => 'Pending Buyer',
+            'email' => 'pending-driver-buyer@example.test',
+        ]);
+        $order = Order::query()->create([
+            'store_id' => $storeId,
+            'customer_id' => $customer->legacy_customer_id,
+            'b2c_customer_id' => $customer->id,
+            'order_number' => 'DRV-PENDING-1',
+            'channel' => 'b2c',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 10,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'tax_total' => 0,
+            'grand_total' => 10,
+            'payment_method' => 'cash_on_delivery',
+        ]);
+        $admin = $this->storeAdmin($storeId, 'driver-approval-admin@example.test');
+        $driverUser = $this->roleUser('B2C_DRIVER', 'driver-approval-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+        $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertConflict();
+
+        $this->assertDatabaseMissing('driver_assignments', [
+            'order_id' => $order->id,
+            'driver_id' => $driver->id,
+        ]);
+    }
+
+    public function test_checkout_settlement_snapshot_controls_driver_collection_instruction(): void
+    {
+        $storeId = $this->store('DRIVER-SETTLEMENT');
+        $customer = app(B2cCustomerService::class)->create($storeId, [
+            'name' => 'Settlement Buyer',
+            'email' => 'driver-settlement@example.test',
+        ]);
+        $driverUser = $this->roleUser('B2C_DRIVER', 'driver-settlement-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        foreach ([
+            ['number' => 'DRV-COD-70', 'method' => 'cash_on_delivery', 'collect' => 70],
+            ['number' => 'DRV-DEBT-70', 'method' => 'account_debt', 'collect' => 0],
+        ] as $case) {
+            $order = Order::query()->create([
+                'store_id' => $storeId,
+                'customer_id' => $customer->legacy_customer_id,
+                'b2c_customer_id' => $customer->id,
+                'order_number' => $case['number'],
+                'channel' => 'b2c',
+                'status' => 'ready',
+                'currency' => 'KWD',
+                'subtotal' => 100,
+                'discount_total' => 0,
+                'delivery_total' => 0,
+                'tax_total' => 0,
+                'grand_total' => 100,
+                'payment_method' => $case['method'],
+            ]);
+            $invoice = Invoice::query()->create([
+                'order_id' => $order->id,
+                'store_id' => $storeId,
+                'customer_id' => $customer->legacy_customer_id,
+                'b2c_customer_id' => $customer->id,
+                'invoice_number' => 'INV-'.$case['number'],
+                'status' => 'issued',
+                'channel' => 'b2c',
+                'order_number_snapshot' => $case['number'],
+                'currency' => 'KWD',
+                'total' => 100,
+                'payment_method_snapshot' => $case['method'],
+                'payment_status_snapshot' => 'pending',
+                'revision' => 1,
+                'issued_at' => now(),
+            ]);
+            Payment::query()->create([
+                'order_id' => $order->id,
+                'invoice_id' => $invoice->id,
+                'provider' => $case['method'],
+                'status' => 'pending',
+                'amount' => 70,
+                'currency' => 'KWD',
+                'metadata' => [
+                    'customer_balance_applied' => 30,
+                    'remaining_amount' => 70,
+                    'remainder_method' => $case['method'],
+                ],
+            ]);
+            $assignment = DriverAssignment::query()->create([
+                'driver_id' => $driver->id,
+                'order_id' => $order->id,
+                'store_id' => $storeId,
+                'assignment_type' => 'b2c',
+                'status' => 'assigned',
+                'assigned_at' => now(),
+            ]);
+
+            Sanctum::actingAs($driverUser);
+            $this->getJson('/api/v1/driver/assignments/'.$assignment->id)
+                ->assertOk()
+                ->assertJsonPath('data.order.settlement.order_total', 100)
+                ->assertJsonPath('data.order.settlement.balance_applied', 30)
+                ->assertJsonPath('data.order.settlement.remaining_amount', 70)
+                ->assertJsonPath('data.order.settlement.invoice_outstanding_amount', 70)
+                ->assertJsonPath('data.order.settlement.remainder_method', $case['method'])
+                ->assertJsonPath('data.order.settlement.payment_state', 'partially_settled')
+                ->assertJsonPath('data.order.settlement.amount_to_collect_now', $case['collect']);
+        }
     }
 
     public function test_retail_operational_notifications_are_store_scoped_deduplicated_and_have_authorized_deep_links(): void
