@@ -131,6 +131,7 @@ backend/app/Services/AppPreviewInvalidationService.php
 backend/app/Services/AppPreviewInvalidationStream.php
 backend/app/Services/AppPreviewSessionService.php
 backend/app/Services/AppPreviewTargetService.php
+backend/app/Services/B2bAccountLedgerService.php
 backend/app/Services/B2bDashboardService.php
 backend/app/Services/B2bFinanceInvoiceService.php
 backend/app/Services/B2cCustomerService.php
@@ -452,6 +453,7 @@ backend/database/migrations/2026_10_02_123500_add_schedule_to_storefront_banners
 backend/database/migrations/2026_10_03_083000_reconcile_retail_merchant_canonical_identity.php
 backend/database/migrations/2026_10_04_052700_add_operational_system_lookups.php
 backend/database/migrations/2026_10_04_053000_add_notification_campaign_launch_popups.php
+backend/database/migrations/2026_10_04_133500_create_customer_account_ledger_entries.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/ProductDemoSeeder.php
