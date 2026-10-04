@@ -148,6 +148,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     final session = _session;
     if (session != null) {
       _configureLocationTracking(session);
+      _flushDiagnostics(session);
     }
   }
 
@@ -164,6 +165,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
       _session = widget.initialSession;
       _bindPushSession();
       _configureLocationTracking(widget.initialSession!);
+      _flushDiagnostics(widget.initialSession!);
     }
     if (oldWidget.pushService != widget.pushService) {
       unawaited(_pushOpenSubscription?.cancel());
@@ -178,6 +180,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     if (_appInForeground == foreground) return;
     _appInForeground = foreground;
     _locationTracking?.setAppInForeground(foreground);
+    if (foreground && _session != null) {
+      _flushDiagnostics(_session!);
+    }
   }
 
   DriverAuthRepository? _authRepository() {
@@ -284,9 +289,25 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     if (widget.previewContext != null) return;
     final service = widget.pushService;
     final session = _session;
-    if (service != null && session != null) {
+    if (session == null) return;
+
+    if (service != null) {
       unawaited(service.bindSession(session.token));
     }
+    _flushDiagnostics(session);
+  }
+
+  void _flushDiagnostics(DriverSession session) {
+    if (widget.previewContext != null || _baseUrl.isEmpty) return;
+
+    unawaited(
+      DriverRuntimeInspector.instance.flushToInspector(
+        baseUrl: _baseUrl,
+        token: session.token,
+        channel: session.channel == DriverChannel.b2c ? 'b2c' : 'b2b',
+        storeId: session.storeId,
+      ),
+    );
   }
 
   void _openFromPush(DriverPushOpen open) {
