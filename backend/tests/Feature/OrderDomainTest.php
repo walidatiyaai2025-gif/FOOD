@@ -310,7 +310,13 @@ class OrderDomainTest extends TestCase
             ->assertJsonPath('timeline.5.stage', 'accepted')
             ->assertJsonPath('timeline.6.stage', 'picked_up')
             ->assertJsonPath('timeline.7.stage', 'out_for_delivery')
-            ->assertJsonPath('timeline.8.stage', 'delivered');
+            ->assertJsonPath('timeline.8.stage', 'delivered')
+            ->assertJsonPath('tracking.driver_name', 'Wholesale Driver')
+            ->assertJsonPath('tracking.status', 'delivered')
+            ->assertJsonPath('allowed_actions.cancel', false)
+            ->assertJsonPath('allowed_actions.reorder', false)
+            ->assertJsonPath('is_terminal', true)
+            ->assertJsonPath('tax_total', 0);
 
         $payload = (string) $response->getContent();
         $this->assertStringNotContainsString('INTERNAL ORDER NOTE', $payload);
@@ -379,7 +385,10 @@ class OrderDomainTest extends TestCase
         $response = $this->getJson("/api/v1/b2b/orders/{$order->id}")
             ->assertOk()
             ->assertJsonPath('timeline.2.stage', 'failed')
-            ->assertJsonPath('timeline.2.reason_code', 'customer_no_answer');
+            ->assertJsonPath('timeline.2.reason_code', 'customer_no_answer')
+            ->assertJsonPath('tracking.driver_name', 'Failed Wholesale Driver')
+            ->assertJsonPath('tracking.status', 'failed')
+            ->assertJsonPath('is_terminal', true);
 
         $this->assertStringNotContainsString(
             'DO NOT SHOW THIS FAILURE NOTE',
