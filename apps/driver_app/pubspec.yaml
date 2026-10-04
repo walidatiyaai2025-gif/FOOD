@@ -1,7 +1,7 @@
 name: foodex_driver_app
 description: FOODEX Driver bootstrap foundation.
 publish_to: "none"
-version: 1.0.51+51
+version: 1.0.52+52
 
 environment:
   sdk: ">=3.5.0 <4.0.0"

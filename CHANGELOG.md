@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.52 - 2026-10-04
+
+- Publish the completed FOODEX operational-completion wave #828 after the final integrated #841 gate: gated Add Store and New Order popup wizards, central stable-code operational lookups, and the admin login default to the B2B dashboard.
+- Ship the cumulative Catalog ZIP sample/preview/import flow for Products, Categories, Brands and images, plus server-authoritative OUT_OF_STOCK enforcement across API, Dashboard and Customer purchasing surfaces.
+- Converge order lifecycle/status tabs and preserve Delivered history while removing completed work from active Driver queues; add complete Driver pickup/delivery details, Failed Delivery / تعذر التوصيل, and lifecycle-aware live Home card refresh.
+- Publish Customer launch notification-campaign popups with authoritative eligibility/frequency/store-channel scoping, and Finance invoice From/To/customer filters with matching PDF and Excel exports.
+- Publish current authoritative Customer and Driver App Review/Preview parity with visible freshness/stale/disconnected state and no fake live-data fallback.
+- Preserve B2B/B2C/store isolation, AR/EN + RTL/LTR behavior and the green final integrated release gate; synchronize Dashboard, Customer and Driver release identities at 1.0.52 / mobile build 1.0.52+52 without changing production force-update or minimum-version policy.
+
 ## 1.0.51 - 2026-10-03
 
 - Publish the approved Customer B2B visual convergence from #823 / PR #824: separate Home discovery from the full Products catalog, lock Wholesale surfaces to the FOODEx green identity, use readable two-column phone cards, surface Brand identity, and remove per-card cart shortcuts while preserving product-detail purchasing.
