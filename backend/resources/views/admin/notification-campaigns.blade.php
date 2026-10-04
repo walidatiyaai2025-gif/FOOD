@@ -61,6 +61,10 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
 
                 <div><label>{{ __('notifications.store') }}</label><select name="store_id" class="js-campaign-store" @if(!$canAllChannels && !$canB2b) required @endif>@if($canAllChannels || $canB2b)<option value="">{{ __('notifications.all_stores') }}</option>@else<option value="" disabled>{{ __('notifications.choose_store') }}</option>@endif @foreach($b2bStores as $store)<option value="{{ $store['id'] }}" data-channel="b2b">{{ $store['name'] }}</option>@endforeach @foreach($b2cStores as $store)<option value="{{ $store['id'] }}" data-channel="b2c">{{ $store['name'] }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.delivery_channel') }}</label><select name="delivery_channel">@foreach(['both','push','in_app'] as $v)<option value="{{ $v }}">{{ __('notifications.delivery_options.'.$v) }}</option>@endforeach</select></div>
+                <div><label>{{ __('notifications.popup_frequency') }}</label><select name="popup_frequency">@foreach(['once_per_user','once_per_session','every_open'] as $v)<option value="{{ $v }}" @selected(old('popup_frequency','once_per_session')===$v)>{{ __('notifications.popup_frequency_options.'.$v) }}</option>@endforeach</select></div>
+                <div><label>{{ __('notifications.popup_cta_target') }}</label><input name="popup_cta_target" value="{{ old('popup_cta_target') }}" placeholder="/offers" dir="ltr"></div>
+                <div><label>{{ __('notifications.popup_cta_label_ar') }}</label><input name="popup_cta_label_ar" value="{{ old('popup_cta_label_ar') }}" dir="rtl"></div>
+                <div><label>{{ __('notifications.popup_cta_label_en') }}</label><input name="popup_cta_label_en" value="{{ old('popup_cta_label_en') }}" dir="ltr"></div>
                 <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" placeholder="{{ app()->getLocale()==='ar'?'رقم المستخدم - اختياري':'User ID - optional' }}"></div>
 
                 <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" required dir="rtl" placeholder="عنوان الحملة بالعربية"></div>
@@ -112,6 +116,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <div><small>{{ __('notifications.next_run') }}</small><strong>{{ $campaign->next_run_at?->timezone('Asia/Kuwait')->format('Y-m-d H:i') ?? '—' }}</strong></div>
                 <div><small>{{ __('notifications.last_run') }}</small><strong>{{ $campaign->last_run_at?->timezone('Asia/Kuwait')->format('Y-m-d H:i') ?? '—' }}</strong></div>
                 <div><small>{{ __('notifications.run_count') }}</small><strong>{{ $campaign->run_count }}</strong></div>
+                <div><small>{{ __('notifications.popup_frequency') }}</small><strong>{{ __('notifications.popup_frequency_options.'.($campaign->popup_frequency ?? 'once_per_session')) }}</strong></div>
             </div>
 
             @if(!in_array($campaign->status,['completed','cancelled'],true))
@@ -133,6 +138,10 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
 
                         <div><label>{{ __('notifications.store') }}</label><select name="store_id" class="js-campaign-store" @if(!$canAllChannels && !$canB2b) required @endif>@if($canAllChannels || $canB2b)<option value="">{{ __('notifications.all_stores') }}</option>@else<option value="" disabled>{{ __('notifications.choose_store') }}</option>@endif @foreach($b2bStores as $store)<option value="{{ $store['id'] }}" data-channel="b2b" @selected((int)$campaign->store_id===$store['id'])>{{ $store['name'] }}</option>@endforeach @foreach($b2cStores as $store)<option value="{{ $store['id'] }}" data-channel="b2c" @selected((int)$campaign->store_id===$store['id'])>{{ $store['name'] }}</option>@endforeach</select></div>
                         <div><label>{{ __('notifications.delivery_channel') }}</label><select name="delivery_channel">@foreach(['both','push','in_app'] as $v)<option value="{{ $v }}" @selected($campaign->delivery_channel===$v)>{{ __('notifications.delivery_options.'.$v) }}</option>@endforeach</select></div>
+                        <div><label>{{ __('notifications.popup_frequency') }}</label><select name="popup_frequency">@foreach(['once_per_user','once_per_session','every_open'] as $v)<option value="{{ $v }}" @selected(($campaign->popup_frequency ?? 'once_per_session')===$v)>{{ __('notifications.popup_frequency_options.'.$v) }}</option>@endforeach</select></div>
+                        <div><label>{{ __('notifications.popup_cta_target') }}</label><input name="popup_cta_target" value="{{ $campaign->popup_cta_target }}" placeholder="/offers" dir="ltr"></div>
+                        <div><label>{{ __('notifications.popup_cta_label_ar') }}</label><input name="popup_cta_label_ar" value="{{ $campaign->popup_cta_label_ar }}" dir="rtl"></div>
+                        <div><label>{{ __('notifications.popup_cta_label_en') }}</label><input name="popup_cta_label_en" value="{{ $campaign->popup_cta_label_en }}" dir="ltr"></div>
                         <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" value="{{ $campaign->user_id }}"></div>
                         <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" value="{{ $campaign->title_ar }}" required dir="rtl"></div>
                         <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" value="{{ $campaign->title_en }}" required dir="ltr"></div>
