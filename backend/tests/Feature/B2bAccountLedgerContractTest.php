@@ -128,6 +128,51 @@ final class B2bAccountLedgerContractTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.statement_viewed']);
     }
 
+    public function test_invoice_outstanding_reconciles_allocated_ledger_payments_and_credit_notes(): void
+    {
+        [$user, $legacyCustomer, $customer, $storeId] = $this->account(100);
+        $invoice = $this->invoice($legacyCustomer->id, $customer->id, $storeId, 60, now()->addWeek());
+        $this->payment($invoice->id, 10);
+
+        $ledger = app(B2bAccountLedgerService::class);
+        $ledger->appendManual($customer, [
+            'entry_type' => 'payment',
+            'credit' => 15,
+            'debit' => 0,
+            'currency' => 'EGP',
+            'invoice_id' => $invoice->id,
+            'reference' => 'ALLOC-PAY-15',
+        ], $user);
+        $ledger->appendManual($customer, [
+            'entry_type' => 'credit_note',
+            'credit' => 5,
+            'debit' => 0,
+            'currency' => 'EGP',
+            'invoice_id' => $invoice->id,
+            'reference' => 'CN-5',
+        ], $user);
+
+        $amounts = $ledger->invoiceAmounts($invoice);
+        $this->assertSame(60.0, $amounts['invoice_total']);
+        $this->assertSame(25.0, $amounts['paid_amount']);
+        $this->assertSame(5.0, $amounts['credit_adjustments']);
+        $this->assertSame(30.0, $amounts['outstanding_amount']);
+        $this->assertSame(0.0, $amounts['credit_amount']);
+
+        Sanctum::actingAs($user);
+        $this->getJson('/api/v1/b2b/invoices/'.$invoice->id)
+            ->assertOk()
+            ->assertJsonPath('data.paid_amount', 25)
+            ->assertJsonPath('data.credit_adjustments', 5)
+            ->assertJsonPath('data.outstanding_amount', 30)
+            ->assertJsonPath('data.ledger_entries.0.type', 'payment')
+            ->assertJsonPath('data.ledger_entries.1.type', 'credit_note');
+
+        $summary = $ledger->summary($customer, $storeId);
+        $this->assertSame(30.0, $summary['balance']);
+        $this->assertSame(30.0, $summary['open_amount']);
+    }
+
     public function test_opening_notes_returns_and_adjustments_are_append_only_supported_types(): void
     {
         [$user, , $customer] = $this->account(200);
