@@ -1750,47 +1750,6 @@ void main() {
         b2bApi: api,
       ),
     );
-testWidgets('B2B collections expose approved detail navigation', (tester) async {
-    final api = _FakeB2bApi({
-      'data': [
-        {
-          'id': 31,
-          'invoice_number': 'INV-31',
-          'display_status': 'partially_paid',
-          'currency': 'KWD',
-          'total': 20.0,
-          'paid_amount': 5.0,
-          'outstanding_amount': 15.0,
-          'credit_amount': 0.0,
-          'store_id': 7,
-          'issued_at': '2026-10-01T10:00:00Z',
-          'due_at': '2026-10-20T10:00:00Z',
-          'pdf_path':
-              '/api/v1/invoices/31/download?channel=b2b&store_id=7',
-        },
-      ],
-      'summary': {
-        'invoice_count': 1,
-        'totals': [
-          {
-            'currency': 'KWD',
-            'total': 20.0,
-            'paid': 5.0,
-            'outstanding': 15.0,
-            'overdue': 0.0,
-            'credit': 0.0,
-          },
-        ],
-      },
-      'meta': {'page': 1, 'per_page': 20, 'total': 1, 'has_more': false},
-    });
-    await tester.pumpWidget(
-      FoodexCustomerApp(
-        session: b2b,
-        initialRoute: '/b2b/invoices',
-        b2bApi: api,
-      ),
-    );
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('b2b-invoices-search')), findsOneWidget);
