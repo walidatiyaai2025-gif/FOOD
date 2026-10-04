@@ -792,7 +792,7 @@ final class Customer360Controller extends Controller
         }
 
         $domain = B2bCustomer::query()->find((int) $row->customer_id);
-        $financial = $domain instanceof B2bCustomer
+        $financial = $domain instanceof B2bCustomer && strtolower((string) $row->status) === 'active'
             ? app(B2bAccountLedgerService::class)->summary($domain)
             : null;
 
