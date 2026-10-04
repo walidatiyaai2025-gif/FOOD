@@ -385,7 +385,8 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
             child: Column(
               children: [
                 Text(
-                  _errorText(context, tab.error!),
+                  '${context.tr('customer.orders.stale')} '
+                  '${_errorText(context, tab.error!)}',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -827,12 +828,12 @@ class _OrderCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (_nextMeaningfulStatus(order) case final next?)
+                      if (_nextMeaningfulStatus(order) != null)
                         Padding(
                           padding: const EdgeInsets.only(top: CustomerUiSpacing.xxs),
                           child: Text(
                             '${context.tr('customer.orders.next')}: '
-                            '${_statusText(context, next)}',
+                            '${_statusText(context, _nextMeaningfulStatus(order)!)}',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: CustomerUiColors.deepGreenSoft,
                                   fontWeight: FontWeight.w700,
