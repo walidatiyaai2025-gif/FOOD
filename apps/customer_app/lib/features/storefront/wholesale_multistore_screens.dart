@@ -1649,6 +1649,7 @@ class _WholesaleCatalogDesignScreenState
                             key: const ValueKey('wholesale-catalog-sort'),
                             value: sortMode,
                             isDense: true,
+                            isExpanded: true,
                             decoration: const InputDecoration(
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 12,

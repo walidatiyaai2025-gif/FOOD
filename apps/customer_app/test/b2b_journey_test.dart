@@ -176,8 +176,41 @@ void main() {
     expect(find.text('Active orders'), findsOneWidget);
   });
 
-  testWidgets('B2B profile exposes the unified customer address book',
+  testWidgets('B2B profile is the complete visible account and finance hub',
       (tester) async {
+    final api = _PathB2bApi({
+      '/api/v1/profile': {
+        'name': 'Buyer One',
+        'email': 'buyer@example.test',
+        'locale': 'ar',
+        'customer': {
+          'id': 19,
+          'type': 'b2b',
+          'name': 'Buyer One',
+          'phone': '55512345',
+          'email': 'buyer@example.test',
+        },
+        'business_account': {
+          'id': 27,
+          'company_name': 'Acme Foods',
+          'status': 'active',
+          'tax_number': 'TAX-872',
+        },
+        'addresses': const <Object>[],
+        'favorites': const <Object>[],
+      },
+      '/api/v1/b2b/account-summary?store_id=7': {
+        'data': {
+          'currency': 'KWD',
+          'balance': 125.0,
+          'balance_direction': 'customer_owes_company',
+          'credit_limit': 1000.0,
+          'available_credit_line': 875.0,
+          'purchasing_power': 875.0,
+        },
+      },
+    });
+
     await tester.pumpWidget(
       FoodexCustomerApp(
         session: const CustomerSession.authenticated(
@@ -185,11 +218,9 @@ void main() {
           accessToken: 'token',
           platformWide: true,
         ),
-        initialRoute: '/b2b/profile',
-        b2bApi: _FakeB2bApi({
-          'company_name': 'Acme Foods',
-          'email': 'buyer@example.test',
-        }),
+        initialRoute:
+            '/b2b/profile?channel=wholesale&store_id=7',
+        b2bApi: api,
       ),
     );
     await tester.pumpAndSettle();
@@ -198,12 +229,31 @@ void main() {
       find.byKey(const ValueKey('b2b-profile-friendly-data')),
       findsOneWidget,
     );
-    expect(find.text('ملخص الحساب'), findsOneWidget);
-    expect(find.text('بيانات الشركة والتواصل'), findsOneWidget);
     expect(find.text('Acme Foods'), findsOneWidget);
-    expect(find.text('buyer@example.test'), findsOneWidget);
-    expect(find.text('إدارة العناوين'), findsOneWidget);
-    expect(find.text('العناوين'), findsOneWidget);
+    expect(find.text('TAX-872'), findsOneWidget);
+    expect(find.text('نشط'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-account-hub')), findsOneWidget);
+    expect(find.text('عليك'), findsOneWidget);
+    expect(find.text('125.000 KWD'), findsOneWidget);
+    expect(find.text('1000.000 KWD'), findsOneWidget);
+    expect(find.text('875.000 KWD'), findsWidgets);
+    expect(find.text('طلباتي'), findsWidgets);
+    expect(find.text('الفواتير'), findsOneWidget);
+    expect(find.text('كشف الحساب'), findsWidgets);
+    expect(find.text('تقرير المشتريات'), findsOneWidget);
+    expect(find.text('الإشعارات'), findsOneWidget);
+    expect(find.text('العناوين'), findsWidgets);
+    expect(find.text('العربية'), findsOneWidget);
+    expect(find.text('English'), findsOneWidget);
+    expect(find.text('المساعدة والدعم'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-profile-security-action')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-profile-logout')),
+      findsOneWidget,
+    );
     expect(find.text('company_name'), findsNothing);
   });
 

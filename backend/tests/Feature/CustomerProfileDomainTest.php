@@ -151,6 +151,55 @@ class CustomerProfileDomainTest extends TestCase
         ]);
     }
 
+    public function test_b2b_profile_exposes_only_the_owned_business_account_identity(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Wholesale Buyer',
+            'email' => 'wholesale-profile@example.test',
+            'password' => 'secret-password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $legacyCustomerId = (int) DB::table('customers')->insertGetId([
+            'user_id' => $user->id,
+            'type' => 'b2b',
+            'name' => 'Wholesale Buyer',
+            'phone' => '52222222',
+            'email' => $user->email,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $b2bCustomerId = (int) DB::table('b2b_customers')->insertGetId([
+            'legacy_customer_id' => $legacyCustomerId,
+            'user_id' => $user->id,
+            'name' => 'Wholesale Buyer',
+            'phone' => '52222222',
+            'email' => $user->email,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('b2b_accounts')->insert([
+            'customer_id' => $legacyCustomerId,
+            'b2b_customer_id' => $b2bCustomerId,
+            'company_name' => 'Acme Wholesale',
+            'status' => 'active',
+            'tax_number' => 'TAX-872',
+            'credit_limit' => 1000,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/profile')
+            ->assertOk()
+            ->assertJsonPath('customer.id', $b2bCustomerId)
+            ->assertJsonPath('customer.type', 'b2b')
+            ->assertJsonPath('business_account.company_name', 'Acme Wholesale')
+            ->assertJsonPath('business_account.status', 'active')
+            ->assertJsonPath('business_account.tax_number', 'TAX-872');
+    }
+
     public function test_addresses_are_customer_owned_and_keep_one_default_when_possible(): void
     {
         $first = $this->postJson('/api/v1/profile/addresses', [

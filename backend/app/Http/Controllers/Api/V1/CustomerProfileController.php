@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Address;
+use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\CustomerFavorite;
@@ -533,6 +534,10 @@ class CustomerProfileController extends Controller
 
     private function profilePayload(User $user, B2bCustomer|B2cCustomer $customer, string $channel): array
     {
+        /** @var B2bAccount|null $businessAccount */
+        $businessAccount = $customer instanceof B2bCustomer
+            ? $customer->account()->first()
+            : null;
         $roles = $user->roles()
             ->orderBy('roles.code')
             ->pluck('roles.code')
@@ -568,6 +573,12 @@ class CustomerProfileController extends Controller
                 'name' => (string) $customer->name,
                 'phone' => $customer->phone,
                 'email' => $customer->email,
+            ],
+            'business_account' => $businessAccount === null ? null : [
+                'id' => (int) $businessAccount->getKey(),
+                'company_name' => (string) $businessAccount->company_name,
+                'status' => (string) $businessAccount->status,
+                'tax_number' => $businessAccount->tax_number,
             ],
             'addresses' => $addresses,
             'favorites' => $customer instanceof B2cCustomer

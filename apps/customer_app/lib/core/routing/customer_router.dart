@@ -36,6 +36,7 @@ class CustomerAppRouter {
     required this.onPlatformRegistered,
     this.onUnifiedAuthenticated,
     this.onAuthenticatedRouteResume,
+    this.onLogout,
     this.sessionStore,
     this.authPreferences = const CustomerAuthPreferences(),
     this.biometricAuthenticator,
@@ -88,6 +89,7 @@ class CustomerAppRouter {
   final ValueChanged<String> onPlatformRegistered;
   final CustomerUnifiedAuthenticated? onUnifiedAuthenticated;
   final CustomerAuthenticatedRouteResume? onAuthenticatedRouteResume;
+  final Future<void> Function()? onLogout;
   final CustomerSessionStore? sessionStore;
   final CustomerAuthPreferences authPreferences;
   final CustomerBiometricAuthenticator? biometricAuthenticator;
@@ -410,6 +412,8 @@ class CustomerAppRouter {
             accountApi: b2bAccountApi,
             ordersApi: customerOrdersApi,
             actionApi: actionApi,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           );
         }
 

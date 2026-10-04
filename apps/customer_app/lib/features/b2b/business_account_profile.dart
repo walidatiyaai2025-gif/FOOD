@@ -64,6 +64,9 @@ class _B2bBusinessAccountProfileState
           final customer = data['customer'] is Map
               ? Map<String, dynamic>.from(data['customer'] as Map)
               : <String, dynamic>{};
+          final businessAccount = data['business_account'] is Map
+              ? Map<String, dynamic>.from(data['business_account'] as Map)
+              : <String, dynamic>{};
 
           final linkedAccounts = _mapRows(data['retail_wholesale_accounts']);
           final ownedStoreIds = _ids(data['owned_retail_store_ids']);
@@ -75,11 +78,13 @@ class _B2bBusinessAccountProfileState
           final roles = _strings(data['roles']);
 
           final companyName = _first(
+            businessAccount['company_name'],
             data['company_name'],
-            customer['company_name'],
             customer['name'],
             data['name'],
           );
+          final accountStatus = _first(businessAccount['status']);
+          final taxNumber = _first(businessAccount['tax_number']);
           final accountName = _first(data['name'], customer['name']);
           final email = _first(customer['email'], data['email']);
           final phone = _first(customer['phone'], data['phone']);
@@ -128,6 +133,14 @@ class _B2bBusinessAccountProfileState
                     label: isArabic ? 'نوع الحساب' : 'Account type',
                     value: typeLabel,
                   ),
+                  if (accountStatus.isNotEmpty)
+                    _ProfileRow(
+                      icon: Icons.verified_user_outlined,
+                      label: isArabic ? 'حالة الحساب' : 'Account status',
+                      value: accountStatus.toLowerCase() == 'active'
+                          ? (isArabic ? 'نشط' : 'Active')
+                          : accountStatus,
+                    ),
                   _ProfileRow(
                     icon: Icons.language_rounded,
                     label: isArabic ? 'اللغة' : 'Language',
@@ -170,6 +183,12 @@ class _B2bBusinessAccountProfileState
                       icon: Icons.email_outlined,
                       label: isArabic ? 'البريد الإلكتروني' : 'Email',
                       value: email,
+                    ),
+                  if (taxNumber.isNotEmpty)
+                    _ProfileRow(
+                      icon: Icons.receipt_long_outlined,
+                      label: isArabic ? 'الرقم الضريبي' : 'Tax number',
+                      value: taxNumber,
                     ),
                   _ProfileRow(
                     icon: Icons.phone_outlined,
