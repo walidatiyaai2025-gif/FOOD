@@ -189,6 +189,8 @@ class _DriverHomePageState extends State<_DriverHomePage>
   bool _loading = true;
   bool _loadFailed = false;
   bool _refreshInFlight = false;
+  bool _refreshPending = false;
+  int _lifecycleEpoch = 0;
   Timer? _summaryRefreshTimer;
   List<DriverAssignment> _assignments = const [];
 
@@ -204,7 +206,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadSummary();
+    unawaited(_loadSummary());
     _startLiveRefresh();
   }
 
@@ -218,7 +220,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _loadSummary(showLoading: false);
+      unawaited(_loadSummary(showLoading: false));
       _startLiveRefresh();
       return;
     }
@@ -230,18 +232,23 @@ class _DriverHomePageState extends State<_DriverHomePage>
     _summaryRefreshTimer?.cancel();
     _summaryRefreshTimer = Timer.periodic(
       _summaryRefreshInterval,
-      (_) => _loadSummary(showLoading: false),
+      (_) => unawaited(_loadSummary(showLoading: false)),
     );
   }
 
   void _stopLiveRefresh() {
     _summaryRefreshTimer?.cancel();
     _summaryRefreshTimer = null;
+    _lifecycleEpoch++;
   }
 
   Future<void> _loadSummary({bool showLoading = true}) async {
-    if (_refreshInFlight) return;
+    if (_refreshInFlight) {
+      _refreshPending = true;
+      return;
+    }
     _refreshInFlight = true;
+    final requestEpoch = _lifecycleEpoch;
 
     if (mounted && showLoading) {
       setState(() {
@@ -252,7 +259,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
 
     try {
       final rows = await widget.repository.list(widget.channel);
-      if (!mounted) return;
+      if (!mounted || requestEpoch != _lifecycleEpoch) return;
       final preview = widget.previewContext;
       setState(() {
         _assignments = rows
@@ -280,6 +287,10 @@ class _DriverHomePageState extends State<_DriverHomePage>
       }
     } finally {
       _refreshInFlight = false;
+      if (_refreshPending && mounted) {
+        _refreshPending = false;
+        unawaited(_loadSummary(showLoading: false));
+      }
     }
   }
 
