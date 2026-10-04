@@ -858,3 +858,65 @@ The combined mission is not complete unless automated tests prove:
 - stale/revoked Driver push payloads cannot grant assignment/order access;
 - notification audience, store/channel scope, deep links and deduplication follow existing authorization conventions;
 - Customer notifications never expose internal proof storage paths or driver-only sensitive notes.
+
+
+---
+
+## 24. C13 mission keyword — complete 13-screen Customer Journey
+
+The single repository-owner command:
+
+```text
+C13
+```
+
+is a persistent Umbrella Mission / Drain command for:
+
+- **#858** — Complete 13-screen Customer Journey;
+- shared foundation **#859**;
+- Customer Screens **#860-#872**;
+- final integrated gate **#873**.
+
+The authoritative plan is:
+
+`docs/execution/C13_CUSTOMER_13_SCREEN_JOURNEY_PLAN.md`
+
+When `C13` is received in any chat/session, the worker must:
+
+1. reconstruct #858 and #859-#873 from live GitHub state;
+2. apply Section 20 Mission/Drain semantics;
+3. reuse every existing Issue/branch/PR and never create a replacement branch merely because another worker stopped;
+4. start/take over only dependency-unblocked, non-conflicting lanes;
+5. preserve the existing Customer visual language and routes; do not create a new canonical Customer screen or redesign to avoid finishing an existing screen;
+6. require every promised function to be visibly reachable through normal navigation or an obvious action — API-only, hidden, orphaned or undocumented-deep-link functionality does not count;
+7. require authoritative live data, explicit loading/empty/error/stale states and no fake-live fallback;
+8. preserve the shared financial semantics from #859: **customer owes company / company owes customer**, credit limit and available credit are distinct;
+9. continue draining after each merge;
+10. declare C13 COMPLETE only after #873 passes on integrated `main` and #858's own completion rule is satisfied.
+
+### C13 canonical screens
+
+1. Entry / Login
+2. Customer Dashboard
+3. Purchases Report
+4. Top Purchased Products
+5. Invoices List
+6. Account Statement
+7. My Orders
+8. Order Details & Tracking
+9. Invoice Details
+10. Products Browse
+11. Product Details
+12. Cart & Checkout
+13. My Account / Profile
+
+Existing address/settings/notifications/checkout subroutes remain owned sub-surfaces and do not become additional canonical screens.
+
+### C13 completion invariant
+
+A worker must never report **"C13 finished"** while:
+- any of #859-#873 is incomplete;
+- any required screen/action is hidden, orphaned or reachable only by undocumented deep link;
+- any Customer financial screen disagrees with the authoritative ledger;
+- any required screen still presents mock/stale data as live;
+- any required AR/EN, RTL/LTR, authorization, isolation or integrated E2E gate is red.
