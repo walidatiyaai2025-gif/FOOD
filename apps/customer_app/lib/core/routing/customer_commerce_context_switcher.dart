@@ -87,11 +87,10 @@ class CustomerCommerceContextSwitcher {
       );
     }
 
+    final retailContextIds = entitlements['retail_context_ids'];
     final expectsWholesale = entitlements['direct_b2b'] == true ||
         entitlements['support_access'] == true ||
-        _rows(entitlements['retail_context_ids']).isNotEmpty ||
-        (entitlements['retail_context_ids'] is List &&
-            (entitlements['retail_context_ids'] as List).isNotEmpty);
+        (retailContextIds is List && retailContextIds.isNotEmpty);
     if ((expectsWholesale || principalId != null || wholesaleRows.isNotEmpty) &&
         principal == null) {
       throw const CustomerCommerceContextSwitchException(
