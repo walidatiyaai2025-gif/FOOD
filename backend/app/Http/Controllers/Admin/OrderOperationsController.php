@@ -71,7 +71,7 @@ final class OrderOperationsController extends Controller
         abort_if($storeIds === [], 403);
 
         $selectedStoreId = isset($data['store_id']) ? (int) $data['store_id'] : null;
-        if ($selectedStoreId !== null && ! collect($storeIds)->containsStrict($selectedStoreId)) {
+        if ($selectedStoreId !== null && collect($storeIds)->containsStrict($selectedStoreId) === false) {
             abort(404);
         }
 
