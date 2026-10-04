@@ -47,7 +47,7 @@ final class SystemInspectorRecorder
                         'file' => isset($frame['file']) ? $this->sanitizeFilePath((string) $frame['file']) : null,
                         'line' => $frame['line'] ?? null,
                         'class' => isset($frame['class']) ? $this->sanitizeText((string) $frame['class'], 255) : null,
-                        'function' => $this->sanitizeText((string) ($frame['function'] ?? ''), 255),
+                        'function' => $this->sanitizeText((string) $frame['function'], 255),
                     ])
                     ->values()
                     ->all(),
