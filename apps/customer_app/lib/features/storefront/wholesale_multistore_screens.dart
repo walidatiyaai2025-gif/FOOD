@@ -586,7 +586,6 @@ class _WholesaleHero extends StatelessWidget {
 
 class _WhitePill extends StatelessWidget {
   const _WhitePill({
-    super.key,
     required this.label,
     required this.palette,
     this.onTap,
