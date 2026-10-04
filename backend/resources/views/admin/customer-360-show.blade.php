@@ -178,14 +178,75 @@
             </section>
 
             @if($wholesale)
+            @php($finance = $wholesale['financial'] ?? null)
             <section class="foodex-card c360-card">
-                <h2>{{ $ar?'حساب الجملة':'Wholesale account' }}</h2>
+                <h2>{{ $ar?'حساب الجملة والمالية':'Wholesale account & finance' }}</h2>
                 <div class="c360-info" style="margin-top:16px">
                     <div><small>{{ $ar?'الشركة':'Company' }}</small><strong>{{ $wholesale['company_name'] ?: $customer->name }}</strong></div>
                     <div><small>{{ $ar?'الحالة':'Status' }}</small><strong>{{ $wholesale['status'] ?: '-' }}</strong></div>
                     <div><small>{{ $ar?'شريحة السعر':'Price tier' }}</small><strong>{{ $wholesale['tier_name'] ?: '-' }} @if($wholesale['tier_code'])· {{ $wholesale['tier_code'] }}@endif</strong></div>
-                    <div><small>{{ $ar?'حد الائتمان':'Credit limit' }}</small><strong>{{ $wholesale['credit_limit']===null?'-':number_format($wholesale['credit_limit'],3).' EGP' }}</strong></div>
+                    @if($finance)
+                    <div>
+                        <small>{{ $ar?'الرصيد الحالي':'Current balance' }}</small>
+                        <strong>
+                            @if($finance['balance_direction']==='customer_owes_company')
+                                {{ $ar?'عليك':'You owe' }}
+                            @elseif($finance['balance_direction']==='company_owes_customer')
+                                {{ $ar?'لك':'Company owes you' }}
+                            @else
+                                {{ $ar?'مسدد':'Settled' }}
+                            @endif
+                            · {{ number_format(abs((float)$finance['balance']),3) }} {{ $finance['currency'] ?: '' }}
+                        </strong>
+                    </div>
+                    <div><small>{{ $ar?'حد الائتمان':'Credit limit' }}</small><strong>{{ number_format((float)$finance['credit_limit'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
+                    <div><small>{{ $ar?'الائتمان المتاح':'Available credit' }}</small><strong>{{ number_format((float)$finance['available_credit_line'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
+                    <div><small>{{ $ar?'قوة الشراء':'Purchasing power' }}</small><strong>{{ number_format((float)$finance['purchasing_power'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
+                    <div><small>{{ $ar?'المبلغ المفتوح':'Open amount' }}</small><strong>{{ number_format((float)$finance['open_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
+                    <div><small>{{ $ar?'المتأخر':'Overdue amount' }}</small><strong>{{ number_format((float)$finance['overdue_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
+                    <div><small>{{ $ar?'آخر دفعة':'Last payment' }}</small><strong>{{ $finance['last_payment']['occurred_at'] ?? '-' }}</strong></div>
+                    <div><small>{{ $ar?'آخر حركة':'Last transaction' }}</small><strong>{{ $finance['last_transaction']['occurred_at'] ?? '-' }}</strong></div>
+                    @else
+                    <div><small>{{ $ar?'حد الائتمان':'Credit limit' }}</small><strong>{{ $wholesale['credit_limit']===null?'-':number_format($wholesale['credit_limit'],3) }}</strong></div>
+                    @endif
                 </div>
+
+                @if($canManageFinance && $finance)
+                <details style="margin-top:16px">
+                    <summary style="cursor:pointer;font-weight:800">{{ $ar?'تسجيل حركة مالية':'Record financial entry' }}</summary>
+                    <p>{{ $ar?'كل حركة تضاف كسجل تدقيق جديد ولا تعدّل الرصيد المخزن مباشرة.':'Each action appends an auditable ledger entry; no stored balance is overwritten.' }}</p>
+                    <form method="post" action="{{ route('admin.customer-360.finance-entries.store',['platformCustomer'=>$customer->id]) }}" class="c360-address-form" style="margin-top:12px">
+                        @csrf
+                        <label>
+                            <small>{{ $ar?'نوع الحركة':'Entry type' }}</small>
+                            <select name="entry_type" required>
+                                <option value="payment">{{ $ar?'دفعة':'Record Payment' }}</option>
+                                <option value="credit_note">{{ $ar?'إشعار دائن':'Credit Note' }}</option>
+                                <option value="debit_note">{{ $ar?'إشعار مدين':'Debit Note' }}</option>
+                                <option value="opening_balance">{{ $ar?'رصيد افتتاحي':'Opening Balance' }}</option>
+                                <option value="adjustment_positive">{{ $ar?'تسوية موجبة':'Positive Adjustment' }}</option>
+                                <option value="adjustment_negative">{{ $ar?'تسوية سالبة':'Negative Adjustment' }}</option>
+                                <option value="return">{{ $ar?'مرتجع':'Return' }}</option>
+                                <option value="refund">{{ $ar?'رد مبلغ':'Refund' }}</option>
+                            </select>
+                        </label>
+                        <label>
+                            <small>{{ $ar?'الاتجاه':'Direction' }}</small>
+                            <select name="direction" required>
+                                <option value="credit">{{ $ar?'دائن — يقلل عليك / يزيد لك':'Credit — reduces amount owed / increases customer credit' }}</option>
+                                <option value="debit">{{ $ar?'مدين — يزيد عليك / يقلل لك':'Debit — increases amount owed / reduces customer credit' }}</option>
+                            </select>
+                        </label>
+                        <label><small>{{ $ar?'المبلغ':'Amount' }}</small><input name="amount" type="number" min="0.001" step="0.001" required></label>
+                        <label><small>{{ $ar?'العملة':'Currency' }}</small><input name="currency" value="{{ $finance['currency'] }}" maxlength="3" minlength="3" required></label>
+                        <label><small>{{ $ar?'مرجع':'Reference' }}</small><input name="reference" maxlength="120"></label>
+                        <label><small>{{ $ar?'رقم الفاتورة الداخلي':'Invoice ID' }}</small><input name="invoice_id" type="number" min="1"></label>
+                        <label class="wide"><small>{{ $ar?'الوصف':'Description' }}</small><input name="description" maxlength="500"></label>
+                        <label><small>{{ $ar?'التاريخ':'Date' }}</small><input name="occurred_at" type="datetime-local"></label>
+                        <div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ الحركة':'Record entry' }}</button></div>
+                    </form>
+                </details>
+                @endif
             </section>
             @endif
 

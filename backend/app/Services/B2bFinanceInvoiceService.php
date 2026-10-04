@@ -22,7 +22,11 @@ final class B2bFinanceInvoiceService
             'columns' => ['invoice', 'company', 'client', 'status', 'amount', 'paid', 'balance', 'issued_at', 'due', 'actions'],
             'rows' => $rows->map(function (stdClass $row) use ($isAr, $locale): array {
                 $total = (float) $row->total;
-                $paid = (float) $row->paid_total;
+                $paid = (float) $row->paid_total + (float) $row->ledger_payment_credits;
+                $balance = max(
+                    0,
+                    $total + (float) $row->ledger_debits - (float) $row->paid_total - (float) $row->ledger_credits,
+                );
 
                 return [
                     '_id' => (int) $row->id,
@@ -32,7 +36,7 @@ final class B2bFinanceInvoiceService
                     'status' => (string) $row->status,
                     'amount' => (string) $row->currency.' '.number_format($total, 3),
                     'paid' => (string) $row->currency.' '.number_format($paid, 3),
-                    'balance' => (string) $row->currency.' '.number_format(max(0, $total - $paid), 3),
+                    'balance' => (string) $row->currency.' '.number_format($balance, 3),
                     'issued_at' => $row->issued_at === null ? '-' : (string) $row->issued_at,
                     'due' => $row->due_at === null ? '-' : (string) $row->due_at,
                     'actions' => [
@@ -89,13 +93,17 @@ final class B2bFinanceInvoiceService
                 'currency',
                 'invoice_total',
                 'paid',
+                'debit_adjustments',
+                'credit_adjustments',
                 'balance',
+                'customer_credit',
                 'issued_at',
                 'due',
             ],
             'rows' => $rows->map(function (stdClass $row): array {
                 $total = (float) $row->total;
-                $paid = (float) $row->paid_total;
+                $paid = (float) $row->paid_total + (float) $row->ledger_payment_credits;
+                $net = $total + (float) $row->ledger_debits - (float) $row->paid_total - (float) $row->ledger_credits;
 
                 return [
                     'invoice' => (string) $row->invoice_number,
@@ -105,7 +113,10 @@ final class B2bFinanceInvoiceService
                     'currency' => (string) $row->currency,
                     'invoice_total' => $total,
                     'paid' => $paid,
-                    'balance' => max(0, $total - $paid),
+                    'debit_adjustments' => (float) $row->ledger_debits,
+                    'credit_adjustments' => max(0, (float) $row->ledger_credits - (float) $row->ledger_payment_credits),
+                    'balance' => max(0, $net),
+                    'customer_credit' => max(0, -$net),
                     'issued_at' => $row->issued_at === null ? '' : (string) $row->issued_at,
                     'due' => $row->due_at === null ? '' : (string) $row->due_at,
                 ];
@@ -128,12 +139,22 @@ final class B2bFinanceInvoiceService
             ->select('invoice_id')
             ->selectRaw("SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) as paid_total")
             ->groupBy('invoice_id');
+        $ledger = DB::table('customer_account_ledger_entries')
+            ->select('invoice_id')
+            ->selectRaw('SUM(debit) as ledger_debits')
+            ->selectRaw('SUM(credit) as ledger_credits')
+            ->selectRaw("SUM(CASE WHEN entry_type = 'payment' THEN credit ELSE 0 END) as ledger_payment_credits")
+            ->whereNotNull('invoice_id')
+            ->groupBy('invoice_id');
 
         return DB::table('invoices')
             ->join('b2b_customers', 'b2b_customers.id', '=', 'invoices.b2b_customer_id')
             ->leftJoin('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
             ->leftJoinSub($paid, 'invoice_payments', function ($join): void {
                 $join->on('invoice_payments.invoice_id', '=', 'invoices.id');
+            })
+            ->leftJoinSub($ledger, 'invoice_ledger', function ($join): void {
+                $join->on('invoice_ledger.invoice_id', '=', 'invoices.id');
             })
             ->whereNotNull('invoices.b2b_customer_id')
             ->whereIn('invoices.store_id', $storeIds)
@@ -161,6 +182,9 @@ final class B2bFinanceInvoiceService
                 'b2b_customers.name as client_name',
                 'b2b_accounts.company_name',
                 DB::raw('COALESCE(invoice_payments.paid_total, 0) as paid_total'),
+                DB::raw('COALESCE(invoice_ledger.ledger_debits, 0) as ledger_debits'),
+                DB::raw('COALESCE(invoice_ledger.ledger_credits, 0) as ledger_credits'),
+                DB::raw('COALESCE(invoice_ledger.ledger_payment_credits, 0) as ledger_payment_credits'),
             ]);
     }
 
@@ -218,13 +242,24 @@ final class B2bFinanceInvoiceService
             ->groupBy(fn (stdClass $row): string => (string) $row->currency)
             ->map(function (Collection $currencyRows, string $currency): array {
                 $total = (float) $currencyRows->sum(fn (stdClass $row): float => (float) $row->total);
-                $paid = (float) $currencyRows->sum(fn (stdClass $row): float => (float) $row->paid_total);
+                $paid = (float) $currencyRows->sum(
+                    fn (stdClass $row): float => (float) $row->paid_total + (float) $row->ledger_payment_credits,
+                );
+                $balance = (float) $currencyRows->sum(
+                    fn (stdClass $row): float => max(
+                        0,
+                        (float) $row->total
+                            + (float) $row->ledger_debits
+                            - (float) $row->paid_total
+                            - (float) $row->ledger_credits,
+                    ),
+                );
 
                 return [
                     'currency' => $currency,
                     'total' => $total,
                     'paid' => $paid,
-                    'balance' => max(0, $total - $paid),
+                    'balance' => $balance,
                 ];
             })
             ->values()
