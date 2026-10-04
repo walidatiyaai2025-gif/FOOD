@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\V1\LiveAdController;
 use App\Http\Controllers\Api\V1\LookupOptionsController;
 use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\MobileRuntimeController;
+use App\Http\Controllers\Api\V1\NotificationCampaignPopupController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PlatformMarketplaceController;
 use App\Http\Controllers\Api\V1\PushDeviceController;
@@ -83,6 +84,11 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show']);
     Route::get('/products/{product}', [GuestCatalogController::class, 'product']);
     Route::get('/live-ads', [LiveAdController::class, 'index']);
+    Route::get('/notification-campaign-popups', [NotificationCampaignPopupController::class, 'index'])
+        ->middleware('throttle:60,1');
+    Route::post('/notification-campaign-popups/{campaign}/events', [NotificationCampaignPopupController::class, 'event'])
+        ->whereNumber('campaign')
+        ->middleware('throttle:120,1');
     Route::post('/push/devices/guest', [PushDeviceController::class, 'storeGuest']);
 
     Route::get('/cart', [GuestCartController::class, 'show']);

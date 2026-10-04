@@ -16,6 +16,7 @@ import 'core/auth/customer_session_http_client.dart';
 import 'core/auth/customer_session_store.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/diagnostics/customer_diagnostics.dart';
+import 'core/engagement/notification_campaign_popup_service.dart';
 import 'core/localization/app_translations.dart';
 import 'core/location/customer_location_service.dart';
 import 'core/location/customer_map_pin_selector.dart';
@@ -162,6 +163,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   CustomerAppRouter? _activeRouter;
   StreamSubscription<String>? _pushRouteSubscription;
   StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
+  final CustomerNotificationCampaignPopupService _launchCampaignPopups =
+      CustomerNotificationCampaignPopupService();
+  bool _launchCampaignPopupScheduled = false;
   Timer? _versionFooterTimer;
   bool _showVersionFooter = false;
   final CustomerDiagnostics _diagnostics = CustomerDiagnostics.instance;
@@ -197,6 +201,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     }
     _loadRemoteTranslations();
     _configurePush();
+    _scheduleLaunchCampaignPopup();
   }
 
   @override
@@ -253,6 +258,27 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       _translations = Map<String, String>.from(widget.translationOverrides);
     });
     _loadRemoteTranslations();
+  }
+
+  void _scheduleLaunchCampaignPopup() {
+    if (_launchCampaignPopupScheduled || widget.previewContext != null) return;
+    _launchCampaignPopupScheduled = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final popupContext = _navigatorKey.currentContext;
+      if (popupContext == null) return;
+
+      unawaited(
+        _launchCampaignPopups
+            .showForContext(
+              popupContext,
+              channel: 'all',
+              accessToken: _session.accessToken,
+            )
+            .catchError((_) {}),
+      );
+    });
   }
 
   void _configurePush() {

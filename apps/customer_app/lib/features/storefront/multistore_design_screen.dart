@@ -123,6 +123,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
         return withFooter(
           RetailStorefrontDesignScreen(
             location: location,
+            session: session,
             catalogApi: catalogApi,
             storefrontApi: storefrontApi,
             actionApi: actionApi,
