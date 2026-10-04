@@ -53,6 +53,7 @@ void main() {
     const _CaptureCase('01_Mobile/B2B_Customer/06_كشف_الحساب_والمعاملات__populated__ar.png', '/b2b/account-statement', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/07_طلباتي__populated__ar.png', '/b2b/orders', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/08_تفاصيل_الطلب_وتتبع_الحالة__populated__ar.png', '/b2b/orders/77', session: _b2b),
+    // C13 #868 exact-head evidence: Screen 9 is captured in both AR/RTL and EN/LTR by the locale loop.
     const _CaptureCase('01_Mobile/B2B_Customer/09_تفاصيل_الفاتورة__populated__ar.png', '/b2b/invoices/31', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/10_تصفح_المنتجات__populated__ar.png', '/b2b/products?store=7', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/11_تفاصيل_المنتج_وإضافة_للسلة__populated__ar.png', '/b2b/products/42?store_id=7', session: _b2b),
