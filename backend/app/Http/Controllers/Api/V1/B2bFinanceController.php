@@ -10,12 +10,15 @@ use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class B2bFinanceController extends Controller
 {
+    public function __construct(private readonly B2bAccountLedgerService $ledger) {}
+
     public function invoices(Request $request): JsonResponse
     {
         $customer = $this->approvedCustomer($request);
@@ -28,7 +31,10 @@ class B2bFinanceController extends Controller
 
         return response()->json([
             'data' => collect($paginator->items())->map(fn (Invoice $invoice) => $this->invoicePayload($invoice))->values(),
-            'meta' => ['total' => $paginator->total()],
+            'meta' => [
+                'total' => $paginator->total(),
+                'account' => $this->ledger->summary($customer, $this->storeId($request)),
+            ],
         ]);
     }
 
@@ -39,60 +45,40 @@ class B2bFinanceController extends Controller
 
         app(AuditLogger::class)->record('b2b.finance.invoice_viewed', $request->user(), $invoice, null, null, $request);
 
-        return response()->json(['data' => $this->invoicePayload($invoice, true)]);
+        return response()->json([
+            'data' => $this->invoicePayload($invoice, true),
+            'account' => $this->ledger->summary($customer, $this->storeId($request)),
+        ]);
+    }
+
+    public function summary(Request $request): JsonResponse
+    {
+        $customer = $this->approvedCustomer($request);
+        app(AuditLogger::class)->record('b2b.finance.account_summary_viewed', $request->user(), $customer, null, null, $request);
+
+        return response()->json([
+            'data' => $this->ledger->summary($customer, $this->storeId($request)),
+        ]);
     }
 
     public function statement(Request $request): JsonResponse
     {
         $customer = $this->approvedCustomer($request);
-        $invoices = Invoice::query()
-            ->where('b2b_customer_id', $customer->getKey())
-            ->orderBy('issued_at')
-            ->orderBy('id')
-            ->get();
-        $invoiceIds = $invoices->pluck('id');
+        $filters = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'store_id' => ['nullable', 'integer', 'min:1'],
+        ]);
 
         app(AuditLogger::class)->record('b2b.finance.statement_viewed', $request->user(), $customer, null, null, $request);
 
-        $payments = Payment::query()
-            ->whereIn('invoice_id', $invoiceIds)
-            ->where('status', 'paid')
-            ->orderBy('created_at')
-            ->orderBy('id')
-            ->get();
-
-        $debits = round((float) $invoices->sum('total'), 3);
-        $credits = round((float) $payments->sum('amount'), 3);
-        $transactions = collect();
-
-        foreach ($invoices as $invoice) {
-            $transactions->push([
-                'type' => 'invoice',
-                'reference' => $invoice->invoice_number,
-                'debit' => (float) $invoice->total,
-                'credit' => 0.0,
-                'occurred_at' => $invoice->issued_at ?? $invoice->created_at,
-            ]);
-        }
-
-        foreach ($payments as $payment) {
-            $transactions->push([
-                'type' => 'payment',
-                'reference' => $payment->provider_reference ?? ('PAY-'.$payment->id),
-                'debit' => 0.0,
-                'credit' => (float) $payment->amount,
-                'occurred_at' => $payment->created_at,
-            ]);
-        }
-
         return response()->json([
-            'data' => [
-                'currency' => 'KWD',
-                'total_debits' => $debits,
-                'total_credits' => $credits,
-                'balance' => round($debits - $credits, 3),
-                'transactions' => $transactions->sortBy('occurred_at')->values(),
-            ],
+            'data' => $this->ledger->statement(
+                $customer,
+                $filters['from'] ?? null,
+                $filters['to'] ?? null,
+                isset($filters['store_id']) ? (int) $filters['store_id'] : null,
+            ),
         ]);
     }
 
@@ -116,12 +102,20 @@ class B2bFinanceController extends Controller
 
     private function invoicePayload(Invoice $invoice, bool $withItems = false): array
     {
+        $paidAmount = round((float) Payment::query()
+            ->where('invoice_id', $invoice->getKey())
+            ->where('status', 'paid')
+            ->sum('amount'), 3);
+        $total = round((float) $invoice->total, 3);
+
         $payload = [
             'id' => (int) $invoice->getKey(),
             'invoice_number' => (string) $invoice->invoice_number,
             'status' => (string) $invoice->status,
             'currency' => (string) $invoice->currency,
-            'total' => (float) $invoice->total,
+            'total' => $total,
+            'paid_amount' => $paidAmount,
+            'outstanding_amount' => round(max($total - $paidAmount, 0), 3),
             'issued_at' => $invoice->issued_at,
             'due_at' => $invoice->due_at,
         ];
@@ -131,8 +125,21 @@ class B2bFinanceController extends Controller
                 ->where('invoice_id', $invoice->getKey())
                 ->orderBy('id')
                 ->get();
+            $payload['payments'] = Payment::query()
+                ->where('invoice_id', $invoice->getKey())
+                ->where('status', 'paid')
+                ->orderBy('created_at')
+                ->orderBy('id')
+                ->get(['id', 'provider', 'provider_reference', 'amount', 'currency', 'created_at']);
         }
 
         return $payload;
+    }
+
+    private function storeId(Request $request): ?int
+    {
+        $storeId = $request->integer('store_id');
+
+        return $storeId > 0 ? $storeId : null;
     }
 }
