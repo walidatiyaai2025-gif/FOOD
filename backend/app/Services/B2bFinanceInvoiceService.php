@@ -19,7 +19,7 @@ final class B2bFinanceInvoiceService
 
         return [
             'columns' => ['invoice', 'company', 'client', 'status', 'amount', 'paid', 'balance', 'issued_at', 'due', 'actions'],
-            'rows' => $rows->map(function (object $row) use ($isAr): array {
+            'rows' => $rows->map(function (object $row) use ($isAr, $locale): array {
                 $total = (float) $row->total;
                 $paid = (float) $row->paid_total;
 
