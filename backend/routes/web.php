@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AppPreviewController;
 use App\Http\Controllers\Admin\AppPreviewInvalidationController;
 use App\Http\Controllers\Admin\AppVersionController;
 use App\Http\Controllers\Admin\AssistantController;
+use App\Http\Controllers\Admin\AssistantSettingsController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
 use App\Http\Controllers\Admin\BusinessManagementController;
