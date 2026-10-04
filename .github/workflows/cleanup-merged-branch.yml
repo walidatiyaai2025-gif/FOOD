@@ -72,6 +72,12 @@ jobs:
                 core.info(`Branch ${branchName} is already deleted`);
                 return;
               }
+              if (error.status === 403 && /rate limit/i.test(error.message || '')) {
+                core.warning(
+                  'Skipping immediate branch cleanup because the GitHub API rate limit is exhausted; the scheduled sweep will retry later.',
+                );
+                return;
+              }
               throw error;
             }
 
@@ -80,19 +86,32 @@ jobs:
               return;
             }
 
-            await github.rest.git.deleteRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: `heads/${branchName}`,
-            });
-            core.notice(`Deleted merged branch ${branchName}`);
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${branchName}`,
+              });
+              core.notice(`Deleted merged branch ${branchName}`);
+            } catch (error) {
+              if (error.status === 404) {
+                core.info(`Branch ${branchName} is already deleted`);
+                return;
+              }
+              if (error.status === 403 && /rate limit/i.test(error.message || '')) {
+                core.warning(
+                  'Skipping immediate branch cleanup because the GitHub API rate limit is exhausted; the scheduled sweep will retry later.',
+                );
+                return;
+              }
+              throw error;
+            }
 
   scheduled-garbage-collection:
     name: Scheduled safe branch garbage collection
     if: >-
       github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Sweep obsolete branches
@@ -102,6 +121,27 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const defaultBranch = context.payload.repository.default_branch;
+
+            // This is maintenance, not a merge gate. Avoid spending the shared
+            // installation quota when parallel workers already exhausted it.
+            try {
+              const { data: rateLimit } = await github.rest.rateLimit.get();
+              const remaining = rateLimit.resources?.core?.remaining ?? 0;
+              if (remaining < 1000) {
+                core.warning(
+                  `Skipping scheduled branch sweep: only ${remaining} core API calls remain.`,
+                );
+                return;
+              }
+            } catch (error) {
+              if (error.status === 403 && /rate limit/i.test(error.message || '')) {
+                core.warning(
+                  'Skipping scheduled branch sweep because the GitHub API rate limit is exhausted.',
+                );
+                return;
+              }
+              throw error;
+            }
             const dryRun =
               context.eventName === 'workflow_dispatch'
                 ? String(context.payload.inputs?.dry_run ?? 'true') !== 'false'
