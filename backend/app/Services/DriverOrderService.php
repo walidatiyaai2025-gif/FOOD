@@ -350,10 +350,10 @@ final class DriverOrderService
             }
         }
 
+        $paymentProvider = $payment === null ? '' : (string) $payment->provider;
         $rawRemainderMethod = strtolower(trim((string) (
             $metadata['remainder_method']
-            ?? $payment?->provider
-            ?? $order->payment_method
+            ?? ($paymentProvider !== '' ? $paymentProvider : $order->payment_method)
             ?? ''
         )));
         $remainderMethod = match ($rawRemainderMethod) {
@@ -372,7 +372,7 @@ final class DriverOrderService
             : 0.0;
 
         return [
-            'currency' => (string) ($invoice?->currency ?? $order->currency),
+            'currency' => (string) ($invoice instanceof Invoice ? $invoice->currency : $order->currency),
             'order_total' => round((float) $order->grand_total, 3),
             'balance_applied' => $balanceApplied,
             'paid_amount' => $paidAmount,
