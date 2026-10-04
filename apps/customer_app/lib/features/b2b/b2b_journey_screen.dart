@@ -1052,6 +1052,8 @@ class _B2bCatalogImage extends StatelessWidget {
       );
 }
 
+enum _TopProductsPeriod { all, current, previous, custom }
+
 class _TopProductsRemoteState extends StatefulWidget {
   const _TopProductsRemoteState({required this.api, required this.endpoint});
 
@@ -1067,6 +1069,7 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
   late TextEditingController _searchController;
   DateTime? _from;
   DateTime? _to;
+  _TopProductsPeriod _period = _TopProductsPeriod.all;
   String _sort = 'quantity';
   int _page = 1;
   int _perPage = 20;
@@ -1098,6 +1101,9 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
     final uri = Uri.parse(widget.endpoint);
     _from = DateTime.tryParse(uri.queryParameters['from'] ?? '');
     _to = DateTime.tryParse(uri.queryParameters['to'] ?? '');
+    _period = _from == null && _to == null
+        ? _TopProductsPeriod.all
+        : _TopProductsPeriod.custom;
     final requestedSort = uri.queryParameters['sort'];
     _sort = requestedSort == 'value' ? 'value' : 'quantity';
     _page = int.tryParse(uri.queryParameters['page'] ?? '') ?? 1;
@@ -1150,6 +1156,7 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
     );
     if (picked == null) return;
 
+    _period = _TopProductsPeriod.custom;
     if (from) {
       _from = picked;
       if (_to != null && picked.isAfter(_to!)) _to = picked;
@@ -1160,9 +1167,32 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
     _reload(page: 1);
   }
 
-  void _clearPeriod() {
-    _from = null;
-    _to = null;
+  void _applyPeriod(_TopProductsPeriod period) {
+    final now = DateTime.now();
+    DateTime? from;
+    DateTime? to;
+
+    switch (period) {
+      case _TopProductsPeriod.all:
+        break;
+      case _TopProductsPeriod.current:
+        from = DateTime(now.year, now.month, 1);
+        to = DateTime(now.year, now.month, now.day);
+        break;
+      case _TopProductsPeriod.previous:
+        final firstCurrent = DateTime(now.year, now.month, 1);
+        to = firstCurrent.subtract(const Duration(days: 1));
+        from = DateTime(to.year, to.month, 1);
+        break;
+      case _TopProductsPeriod.custom:
+        from = _from;
+        to = _to;
+        break;
+    }
+
+    _period = period;
+    _from = from;
+    _to = to;
     _reload(page: 1);
   }
 
@@ -1227,6 +1257,49 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                       _reload(page: 1);
                     },
                   ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      context.tr('b2b.top_products.period'),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ChoiceChip(
+                        key: const ValueKey('b2b-top-products-current-period'),
+                        label: Text(
+                          context.tr('b2b.top_products.current_period'),
+                        ),
+                        selected: _period == _TopProductsPeriod.current,
+                        onSelected: (_) =>
+                            _applyPeriod(_TopProductsPeriod.current),
+                      ),
+                      ChoiceChip(
+                        key: const ValueKey('b2b-top-products-previous-period'),
+                        label: Text(
+                          context.tr('b2b.top_products.previous_period'),
+                        ),
+                        selected: _period == _TopProductsPeriod.previous,
+                        onSelected: (_) =>
+                            _applyPeriod(_TopProductsPeriod.previous),
+                      ),
+                      ChoiceChip(
+                        key: const ValueKey('b2b-top-products-all-time'),
+                        label: Text(
+                          context.tr('b2b.top_products.all_time'),
+                        ),
+                        selected: _period == _TopProductsPeriod.all,
+                        onSelected: (_) => _applyPeriod(_TopProductsPeriod.all),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -1246,13 +1319,6 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                         icon: const Icon(Icons.event_outlined),
                         label: Text(
                           '${context.tr('b2b.top_products.to')}: ${_to == null ? '—' : _isoDate(_to!)}',
-                        ),
-                      ),
-                      TextButton(
-                        key: const ValueKey('b2b-top-products-all-time'),
-                        onPressed: _clearPeriod,
-                        child: Text(
-                          context.tr('b2b.top_products.all_time'),
                         ),
                       ),
                       FilledButton.icon(
@@ -1337,6 +1403,9 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                         storeId > 0;
                     final canRepurchase = row['can_repurchase'] == true;
                     final availability = _availabilityText(context, row);
+                    final statusColor = canRepurchase
+                        ? const Color(0xFF087347)
+                        : Theme.of(context).colorScheme.error;
 
                     void openProduct() {
                       if (!canOpen) return;
@@ -1384,13 +1453,49 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    Text(
-                                      '#$rank · $name',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        CircleAvatar(
+                                          key: ValueKey(
+                                            'b2b-top-product-rank-$rank',
+                                          ),
+                                          radius: 17,
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .primaryContainer,
+                                          child: Text(
+                                            '#$rank',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            name,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    if (sku.isNotEmpty) Text(sku),
+                                    if (sku.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          sku,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
+                                        ),
+                                      ),
                                     const SizedBox(height: 6),
                                     Text(
                                       '${context.tr('b2b.top_products.quantity')}: $quantity',
@@ -1410,18 +1515,43 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                                         '${context.tr('b2b.top_products.current_price')}: $currentPrice $currentCurrency',
                                       ),
                                     const SizedBox(height: 6),
-                                    Text(
-                                      availability,
-                                      key: ValueKey(
-                                        'b2b-top-product-availability-$rank',
+                                    DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        color: statusColor.withValues(
+                                          alpha: 0.10,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
                                       ),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: canRepurchase
-                                            ? const Color(0xFF087347)
-                                            : Theme.of(context)
-                                                .colorScheme
-                                                .error,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 7,
+                                        ),
+                                        child: Row(
+                                          key: ValueKey(
+                                            'b2b-top-product-availability-$rank',
+                                          ),
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              canRepurchase
+                                                  ? Icons.check_circle_outline
+                                                  : Icons.info_outline,
+                                              size: 18,
+                                              color: statusColor,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Flexible(
+                                              child: Text(
+                                                availability,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  color: statusColor,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                     if (canOpen) ...[
@@ -1429,7 +1559,7 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                                       Align(
                                         alignment:
                                             AlignmentDirectional.centerStart,
-                                        child: TextButton.icon(
+                                        child: FilledButton.tonalIcon(
                                           key: ValueKey(
                                             'b2b-top-product-open-$rank',
                                           ),
