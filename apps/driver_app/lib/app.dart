@@ -300,13 +300,11 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
   void _flushDiagnostics(DriverSession session) {
     if (widget.previewContext != null || _baseUrl.isEmpty) return;
 
-    unawaited(
-      DriverRuntimeInspector.instance.flushToInspector(
-        baseUrl: _baseUrl,
-        token: session.token,
-        channel: session.channel == DriverChannel.b2c ? 'b2c' : 'b2b',
-        storeId: session.storeId,
-      ),
+    DriverRuntimeInspector.instance.configureInspectorUpload(
+      baseUrl: _baseUrl,
+      token: session.token,
+      channel: session.channel == DriverChannel.b2c ? 'b2c' : 'b2b',
+      storeId: session.storeId,
     );
   }
 
@@ -380,6 +378,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
     DriverRuntimeInspector.instance.recordNavigation('driver.login');
+    DriverRuntimeInspector.instance.clearInspectorUpload();
     if (widget.previewContext == null) {
       unawaited(_clearRememberedSession());
     }
@@ -406,6 +405,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     final service = widget.pushService;
     if (service != null) await service.revokeSession();
     DriverRuntimeInspector.instance.recordNavigation('driver.login');
+    DriverRuntimeInspector.instance.clearInspectorUpload();
     unawaited(_clearRememberedSession());
     if (mounted) setState(() => _session = null);
     if (session == null) return;
