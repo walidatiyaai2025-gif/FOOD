@@ -651,20 +651,7 @@ void main() {
     expect(find.text('Order details'), findsOneWidget);
     expect(find.text('B2B-78'), findsOneWidget);
     expect(find.text('Wholesale Store'), findsOneWidget);
-    expect(find.text('Price summary'), findsOneWidget);
-    expect(find.text('Account credit'), findsOneWidget);
-    expect(find.text('Paid'), findsOneWidget);
-    expect(find.text('Driver One'), findsWidgets);
-    expect(find.text('Bulk Water'), findsOneWidget);
-    expect(find.text('SKU-42'), findsOneWidget);
-    expect(find.text('Leave at gate'), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-order-terminal')), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-order-open-map')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('b2b-order-open-invoice')),
-      findsOneWidget,
-    );
-    expect(find.text('Customer did not answer'), findsOneWidget);
     expect(
       Directionality.of(
         tester.element(find.byKey(const ValueKey('b2b-order-detail'))),
@@ -672,6 +659,63 @@ void main() {
       TextDirection.ltr,
     );
     expect(find.text('تفاصيل الطلب'), findsNothing);
+
+    final scrollable = find.byType(Scrollable).first;
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('b2b-order-open-map')),
+      300,
+      scrollable: scrollable,
+    );
+    expect(find.byKey(const ValueKey('b2b-order-open-map')), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Customer did not answer'),
+      300,
+      scrollable: scrollable,
+    );
+    expect(find.text('Customer did not answer'), findsOneWidget);
+    expect(find.text('Driver One'), findsWidgets);
+
+    await tester.scrollUntilVisible(
+      find.text('Bulk Water'),
+      300,
+      scrollable: scrollable,
+    );
+    expect(find.text('Bulk Water'), findsOneWidget);
+    expect(find.text('SKU-42'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Price summary'),
+      300,
+      scrollable: scrollable,
+    );
+    expect(find.text('Price summary'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Account credit'),
+      300,
+      scrollable: scrollable,
+    );
+    expect(find.text('Account credit'), findsOneWidget);
+    expect(find.text('Paid'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('b2b-order-open-invoice')),
+      300,
+      scrollable: scrollable,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-order-open-invoice')),
+      findsOneWidget,
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('Leave at gate'),
+      300,
+      scrollable: scrollable,
+    );
+    expect(find.text('Leave at gate'), findsOneWidget);
   });
 
   testWidgets('legacy channel-scoped session cannot enter B2B protected journey', (tester) async {
