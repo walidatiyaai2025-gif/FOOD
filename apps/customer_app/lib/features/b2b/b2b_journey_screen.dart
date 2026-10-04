@@ -219,11 +219,17 @@ class B2bJourneyScreen extends StatelessWidget {
                               api: api!,
                               endpoint: _endpoint()!,
                             )
-                          : _RemoteState(
-                              api: api!,
-                              endpoint: _endpoint()!,
-                              routePattern: definition.pattern,
-                            ),
+                          : definition.pattern ==
+                                  CustomerRoutePaths.b2bAccountStatement
+                              ? _B2bAccountStatementRemoteState(
+                                  api: api!,
+                                  endpoint: _endpoint()!,
+                                )
+                              : _RemoteState(
+                                  api: api!,
+                                  endpoint: _endpoint()!,
+                                  routePattern: definition.pattern,
+                                ),
             ],
           ),
         ),
@@ -477,7 +483,7 @@ class B2bJourneyScreen extends StatelessWidget {
       case CustomerRoutePaths.b2bInvoiceDetails:
         return '/api/v1/b2b/invoices/${segments.last}';
       case CustomerRoutePaths.b2bAccountStatement:
-        return '/api/v1/b2b/account-statement';
+        return '/api/v1/b2b/account-statement${uri.hasQuery ? '?${uri.query}' : ''}';
       case CustomerRoutePaths.b2bOrders:
         return '/api/v1/b2b/orders';
       case CustomerRoutePaths.b2bOrderDetails:
@@ -2342,6 +2348,580 @@ class _B2bAccountHubState extends State<_B2bAccountHub> {
     final suffix = currency.isEmpty ? '' : ' $currency';
     return '${value.toStringAsFixed(3)}$suffix';
   }
+}
+
+class _B2bAccountStatementRemoteState extends StatefulWidget {
+  const _B2bAccountStatementRemoteState({
+    required this.api,
+    required this.endpoint,
+  });
+
+  final B2bApi api;
+  final String endpoint;
+
+  @override
+  State<_B2bAccountStatementRemoteState> createState() =>
+      _B2bAccountStatementRemoteStateState();
+}
+
+class _B2bAccountStatementRemoteStateState
+    extends State<_B2bAccountStatementRemoteState> {
+  static const _perPage = 30;
+
+  Map<Object?, Object?>? _data;
+  Object? _error;
+  bool _loading = true;
+  bool _stale = false;
+  bool _exporting = false;
+  int _page = 1;
+  String? _from;
+  String? _to;
+  String? _storeId;
+
+  @override
+  void initState() {
+    super.initState();
+    _hydrateScope();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _B2bAccountStatementRemoteState oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.api != widget.api || oldWidget.endpoint != widget.endpoint) {
+      _hydrateScope();
+      _page = 1;
+      _load();
+    }
+  }
+
+  void _hydrateScope() {
+    final uri = Uri.parse(widget.endpoint);
+    _storeId = uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+    _from = uri.queryParameters['from'];
+    _to = uri.queryParameters['to'];
+    _page = int.tryParse(uri.queryParameters['page'] ?? '') ?? 1;
+  }
+
+  String get _requestPath {
+    final query = <String, String>{
+      if (_storeId != null && _storeId!.isNotEmpty) 'store_id': _storeId!,
+      if (_from != null && _from!.isNotEmpty) 'from': _from!,
+      if (_to != null && _to!.isNotEmpty) 'to': _to!,
+      'page': _page.toString(),
+      'per_page': _perPage.toString(),
+    };
+    return Uri(
+      path: '/api/v1/b2b/account-statement',
+      queryParameters: query,
+    ).toString();
+  }
+
+  Future<void> _load() async {
+    if (mounted) {
+      setState(() {
+        _loading = _data == null;
+        _error = null;
+      });
+    }
+    try {
+      final value = await _loadB2bRemote(widget.api, _requestPath);
+      final envelope = value is Map ? Map<Object?, Object?>.from(value) : null;
+      final raw = envelope?['data'];
+      final statement =
+          raw is Map ? Map<Object?, Object?>.from(raw) : envelope;
+      if (!mounted) return;
+      setState(() {
+        _data = statement;
+        _error = null;
+        _loading = false;
+        _stale = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error;
+        _loading = false;
+        _stale = _data != null;
+      });
+    }
+  }
+
+  Future<void> _pickDate({required bool from}) async {
+    final current = DateTime.tryParse((from ? _from : _to) ?? '');
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: current ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 366)),
+    );
+    if (selected == null) return;
+    setState(() {
+      if (from) {
+        _from = _isoDate(selected);
+        if (_to != null && selected.isAfter(DateTime.parse(_to!))) {
+          _to = _from;
+        }
+      } else {
+        _to = _isoDate(selected);
+        if (_from != null && selected.isBefore(DateTime.parse(_from!))) {
+          _from = _to;
+        }
+      }
+      _page = 1;
+    });
+    await _load();
+  }
+
+  Future<void> _preset(String preset) async {
+    final now = DateTime.now();
+    DateTime? from;
+    DateTime? to;
+    switch (preset) {
+      case 'month':
+        from = DateTime(now.year, now.month, 1);
+        to = now;
+        break;
+      case 'previous':
+        final firstCurrent = DateTime(now.year, now.month, 1);
+        to = firstCurrent.subtract(const Duration(days: 1));
+        from = DateTime(to.year, to.month, 1);
+        break;
+      case '30':
+        from = now.subtract(const Duration(days: 29));
+        to = now;
+        break;
+      case 'all':
+        from = null;
+        to = null;
+        break;
+    }
+    setState(() {
+      _from = from == null ? null : _isoDate(from);
+      _to = to == null ? null : _isoDate(to);
+      _page = 1;
+    });
+    await _load();
+  }
+
+  Future<void> _export(String format) async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    final locale =
+        Localizations.localeOf(context).languageCode == 'ar' ? 'ar' : 'en';
+    final query = <String, String>{
+      if (_storeId != null && _storeId!.isNotEmpty) 'store_id': _storeId!,
+      if (_from != null && _from!.isNotEmpty) 'from': _from!,
+      if (_to != null && _to!.isNotEmpty) 'to': _to!,
+      'format': format,
+      'locale': locale,
+    };
+    final subject = context.tr('b2b.statement.title');
+    try {
+      if (widget.api is! B2bDownloadApi) {
+        throw UnsupportedError('B2B statement export is unavailable.');
+      }
+      final download = await (widget.api as B2bDownloadApi).download(
+        Uri(
+          path: '/api/v1/b2b/account-statement/export',
+          queryParameters: query,
+        ).toString(),
+      );
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              download.bytes,
+              mimeType: download.mimeType,
+              name: download.filename,
+            ),
+          ],
+          subject: subject,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('b2b.statement.export_failed'))),
+      );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading && _data == null) {
+      return const Center(
+        key: ValueKey('b2b-loading'),
+        child: CircularProgressIndicator(),
+      );
+    }
+    if (_error != null && _data == null) {
+      return _B2bRemoteErrorCard(error: _error, onRetry: _load);
+    }
+
+    final data = _data ?? <Object?, Object?>{};
+    final currency = data['currency']?.toString() ?? '';
+    final transactions = (data['transactions'] as List? ?? const <Object?>[])
+        .whereType<Map>()
+        .map((row) => Map<Object?, Object?>.from(row))
+        .toList(growable: false);
+    final pagination = data['pagination'] is Map
+        ? Map<Object?, Object?>.from(data['pagination'] as Map)
+        : <Object?, Object?>{};
+    final currentPage = _int(pagination['current_page'], fallback: _page);
+    final lastPage = _int(pagination['last_page'], fallback: currentPage);
+    final closing = _amount(data['closing_balance']);
+    final current = _amount(data['balance']);
+    final direction = closing > 0
+        ? context.tr('b2b.statement.you_owe')
+        : closing < 0
+            ? context.tr('b2b.statement.owed_to_you')
+            : context.tr('b2b.statement.settled');
+
+    return Column(
+      key: const ValueKey('b2b-statement-data'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          key: const ValueKey('b2b-statement-filters'),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  context.tr('b2b.statement.period'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      key: const ValueKey('b2b-statement-from'),
+                      onPressed: () => _pickDate(from: true),
+                      icon: const Icon(Icons.calendar_today_outlined),
+                      label: Text(
+                        '${context.tr('b2b.statement.from')}: ${_from ?? context.tr('b2b.statement.any_date')}',
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey('b2b-statement-to'),
+                      onPressed: () => _pickDate(from: false),
+                      icon: const Icon(Icons.event_available_outlined),
+                      label: Text(
+                        '${context.tr('b2b.statement.to')}: ${_to ?? context.tr('b2b.statement.any_date')}',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _presetChip('month', 'b2b.statement.this_month'),
+                    _presetChip('previous', 'b2b.statement.previous_month'),
+                    _presetChip('30', 'b2b.statement.last_30_days'),
+                    _presetChip('all', 'b2b.statement.all_time'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_stale) ...[
+          const SizedBox(height: 10),
+          Card(
+            key: const ValueKey('b2b-statement-stale'),
+            child: ListTile(
+              leading: const Icon(Icons.cloud_off_outlined),
+              title: Text(context.tr('b2b.statement.stale')),
+              trailing: IconButton(
+                tooltip: context.tr('customer.action.retry'),
+                onPressed: _load,
+                icon: const Icon(Icons.refresh),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _summaryCard(
+              'opening',
+              context.tr('b2b.statement.opening_balance'),
+              _money(data['opening_balance'], currency),
+            ),
+            _summaryCard(
+              'debits',
+              context.tr('b2b.statement.period_debits'),
+              _money(data['period_debits'], currency),
+            ),
+            _summaryCard(
+              'credits',
+              context.tr('b2b.statement.period_credits'),
+              _money(data['period_credits'], currency),
+            ),
+            _summaryCard(
+              'closing',
+              context.tr('b2b.statement.closing_balance'),
+              '$direction · ${_money(closing.abs(), currency)}',
+            ),
+            _summaryCard(
+              'current',
+              context.tr('b2b.statement.current_balance'),
+              _money(current.abs(), currency),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  context.tr('b2b.statement.export_exact'),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                FilledButton.tonalIcon(
+                  key: const ValueKey('b2b-statement-export-pdf'),
+                  onPressed: _exporting ? null : () => _export('pdf'),
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('PDF'),
+                ),
+                FilledButton.tonalIcon(
+                  key: const ValueKey('b2b-statement-export-xlsx'),
+                  onPressed: _exporting ? null : () => _export('xlsx'),
+                  icon: const Icon(Icons.table_view_outlined),
+                  label: const Text('Excel'),
+                ),
+                IconButton(
+                  key: const ValueKey('b2b-statement-refresh'),
+                  tooltip: context.tr('customer.action.retry'),
+                  onPressed: _load,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          context.tr('b2b.statement.transactions'),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 6),
+        if (transactions.isEmpty)
+          Card(
+            key: const ValueKey('b2b-empty'),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Text(context.tr('b2b.empty.statement')),
+            ),
+          )
+        else
+          ...transactions.map(
+            (row) => _transactionCard(context, row, currency),
+          ),
+        if (lastPage > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              OutlinedButton(
+                key: const ValueKey('b2b-statement-prev-page'),
+                onPressed: currentPage <= 1
+                    ? null
+                    : () {
+                        setState(() => _page = currentPage - 1);
+                        _load();
+                      },
+                child: Text(context.tr('b2b.statement.previous_page')),
+              ),
+              Text(
+                '${context.tr('b2b.statement.page')} $currentPage / $lastPage',
+                key: const ValueKey('b2b-statement-page'),
+              ),
+              OutlinedButton(
+                key: const ValueKey('b2b-statement-next-page'),
+                onPressed: currentPage >= lastPage
+                    ? null
+                    : () {
+                        setState(() => _page = currentPage + 1);
+                        _load();
+                      },
+                child: Text(context.tr('b2b.statement.next_page')),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _presetChip(String preset, String labelKey) => ActionChip(
+        key: ValueKey('b2b-statement-preset-$preset'),
+        label: Text(context.tr(labelKey)),
+        onPressed: () => _preset(preset),
+      );
+
+  Widget _summaryCard(String keyName, String label, String value) => SizedBox(
+        width: 190,
+        child: Card(
+          key: ValueKey('b2b-statement-summary-$keyName'),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _transactionCard(
+    BuildContext context,
+    Map<Object?, Object?> row,
+    String currency,
+  ) {
+    final type = row['type']?.toString() ?? '';
+    final reference = row['reference']?.toString() ?? '—';
+    final description = row['description']?.toString() ?? '—';
+    final route = _referenceRoute(row);
+
+    return Card(
+      key: ValueKey('b2b-statement-row-${row['id']}'),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _typeLabel(type),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+                Text(_shortDate(row['occurred_at']?.toString())),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(description),
+            const SizedBox(height: 6),
+            if (route == null)
+              Text(
+                '${context.tr('b2b.statement.reference')}: $reference',
+                key: ValueKey('b2b-statement-reference-${row['id']}'),
+              )
+            else
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  key: ValueKey('b2b-statement-reference-${row['id']}'),
+                  onPressed: () => Navigator.of(context).pushNamed(route),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: Text(
+                    '${context.tr('b2b.statement.reference')}: $reference',
+                  ),
+                ),
+              ),
+            const Divider(),
+            Wrap(
+              spacing: 16,
+              runSpacing: 6,
+              children: [
+                Text(
+                  '${context.tr('b2b.statement.debit')}: ${_money(row['debit'], currency)}',
+                ),
+                Text(
+                  '${context.tr('b2b.statement.credit')}: ${_money(row['credit'], currency)}',
+                ),
+                Text(
+                  '${context.tr('b2b.statement.running_balance')}: ${_money(row['running_balance'], currency)}',
+                  key: ValueKey('b2b-statement-running-${row['id']}'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String? _referenceRoute(Map<Object?, Object?> row) {
+    final invoiceId = int.tryParse(row['invoice_id']?.toString() ?? '');
+    if (invoiceId != null && invoiceId > 0) {
+      return '/b2b/invoices/$invoiceId';
+    }
+    final orderId = int.tryParse(row['order_id']?.toString() ?? '');
+    if (orderId != null && orderId > 0) {
+      return '/b2b/orders/$orderId';
+    }
+    return null;
+  }
+
+  String _typeLabel(String type) {
+    const known = <String>{
+      'opening_balance',
+      'invoice',
+      'payment',
+      'credit_note',
+      'debit_note',
+      'return',
+      'refund',
+      'adjustment_positive',
+      'adjustment_negative',
+    };
+    return known.contains(type)
+        ? context.tr('b2b.statement.type.$type')
+        : type.replaceAll('_', ' ');
+  }
+
+  static double _amount(Object? value) =>
+      double.tryParse(value?.toString() ?? '') ?? 0;
+
+  static int _int(Object? value, {required int fallback}) =>
+      int.tryParse(value?.toString() ?? '') ?? fallback;
+
+  static String _money(Object? value, String currency) {
+    final amount = _amount(value);
+    final suffix = currency.isEmpty ? '' : ' $currency';
+    return '${amount.toStringAsFixed(3)}$suffix';
+  }
+
+  static String _shortDate(String? value) {
+    if (value == null || value.isEmpty) return '—';
+    final parsed = DateTime.tryParse(value);
+    return parsed == null ? value : _isoDate(parsed);
+  }
+
+  static String _isoDate(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 }
 
 class _FinanceValue extends StatelessWidget {

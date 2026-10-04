@@ -12,8 +12,10 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
+use App\Services\ReportExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 
 class B2bFinanceController extends Controller
@@ -133,17 +135,99 @@ class B2bFinanceController extends Controller
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
             'store_id' => ['nullable', 'integer', 'min:1'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $statement = $this->ledger->statement(
+            $customer,
+            $filters['from'] ?? null,
+            $filters['to'] ?? null,
+            isset($filters['store_id']) ? (int) $filters['store_id'] : null,
+        );
+        $transactions = collect($statement['transactions']);
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $perPage = min(max((int) ($filters['per_page'] ?? 30), 1), 100);
+        $total = $transactions->count();
+        $lastPage = max(1, (int) ceil($total / $perPage));
+
+        $statement['transactions'] = $transactions
+            ->forPage($page, $perPage)
+            ->values()
+            ->all();
+        $statement['pagination'] = [
+            'current_page' => $page,
+            'per_page' => $perPage,
+            'total' => $total,
+            'last_page' => $lastPage,
+            'has_more' => $page < $lastPage,
+        ];
 
         app(AuditLogger::class)->record('b2b.finance.statement_viewed', $request->user(), $customer, null, null, $request);
 
-        return response()->json([
-            'data' => $this->ledger->statement(
-                $customer,
-                $filters['from'] ?? null,
-                $filters['to'] ?? null,
-                isset($filters['store_id']) ? (int) $filters['store_id'] : null,
-            ),
+        return response()->json(['data' => $statement]);
+    }
+
+    public function statementExport(Request $request): Response
+    {
+        $customer = $this->approvedCustomer($request);
+        $filters = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'store_id' => ['nullable', 'integer', 'min:1'],
+            'format' => ['required', 'in:xlsx,pdf'],
+            'locale' => ['nullable', 'in:ar,en'],
+        ]);
+        $statement = $this->ledger->statement(
+            $customer,
+            $filters['from'] ?? null,
+            $filters['to'] ?? null,
+            isset($filters['store_id']) ? (int) $filters['store_id'] : null,
+        );
+        $currency = (string) ($statement['currency'] ?? '');
+        $report = [
+            'report' => 'account_statement',
+            'generated_at' => now()->toIso8601String(),
+            'filters' => [
+                'from' => $filters['from'] ?? '',
+                'to' => $filters['to'] ?? '',
+            ],
+            'columns' => ['date', 'type', 'reference', 'description', 'debit', 'credit', 'running_balance', 'currency'],
+            'rows' => collect($statement['transactions'])->map(static fn (array $row): array => [
+                'date' => (string) ($row['occurred_at'] ?? ''),
+                'type' => (string) ($row['type'] ?? ''),
+                'reference' => (string) ($row['reference'] ?? ''),
+                'description' => (string) ($row['description'] ?? ''),
+                'debit' => (float) ($row['debit'] ?? 0),
+                'credit' => (float) ($row['credit'] ?? 0),
+                'running_balance' => (float) ($row['running_balance'] ?? 0),
+                'currency' => (string) ($row['currency'] ?? $currency),
+            ])->all(),
+            'kpis' => [
+                'opening_balance' => ((float) $statement['opening_balance']).' '.$currency,
+                'period_debits' => ((float) $statement['period_debits']).' '.$currency,
+                'period_credits' => ((float) $statement['period_credits']).' '.$currency,
+                'closing_balance' => ((float) $statement['closing_balance']).' '.$currency,
+                'current_balance' => ((float) $statement['balance']).' '.$currency,
+            ],
+        ];
+
+        $exports = app(ReportExportService::class);
+        $format = (string) $filters['format'];
+        $locale = (string) ($filters['locale'] ?? $request->user()->locale ?? 'en');
+        $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
+        $export = $exports->build($report, $format, $locale);
+
+        app(AuditLogger::class)->record('b2b.finance.statement_exported', $request->user(), $customer, null, [
+            'format' => $format,
+            'from' => $filters['from'] ?? null,
+            'to' => $filters['to'] ?? null,
+        ], $request);
+
+        return response($export['content'], 200, [
+            'Content-Type' => $export['mime'],
+            'Content-Disposition' => 'attachment; filename="'.$exports->filename($report, $export['extension']).'"',
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 
