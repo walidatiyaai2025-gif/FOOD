@@ -9,6 +9,8 @@ use App\Services\SystemInspectorRecorder;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Sanctum;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 
@@ -72,6 +74,126 @@ class SystemInspectorTest extends TestCase
         $this->assertSame(404, $event->status_code);
         $this->assertSame('/admin/does-not-exist', $event->url);
         $this->assertStringNotContainsString('token=', (string) $event->url);
+    }
+
+    public function test_mobile_runtime_failures_are_sanitized_deduplicated_and_filterable(): void
+    {
+        $customer = User::query()->create([
+            'name' => 'Platform Customer',
+            'email' => 'mobile-inspector@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+            'is_platform_customer' => true,
+        ]);
+
+        Sanctum::actingAs($customer);
+
+        $payload = [
+            'app' => 'customer',
+            'source' => 'api_failure',
+            'category' => 'server_failure',
+            'severity' => 'error',
+            'message' => 'Bearer secret-token failed for customer@example.test',
+            'app_version' => '1.0.52',
+            'app_build' => '52',
+            'platform' => 'android',
+            'os_version' => 'Android 15',
+            'route' => '/b2b/orders',
+            'channel' => 'b2b',
+            'path' => '/api/v1/b2b/orders?token=secret-token&scope=all',
+            'method' => 'GET',
+            'status' => 503,
+            'correlation_id' => 'req-safe-503',
+            'retry' => 1,
+            'stack' => 'token=stack-secret customer@example.test',
+        ];
+
+        $this->postJson('/api/v1/runtime/diagnostics', $payload)->assertAccepted();
+        $this->postJson('/api/v1/runtime/diagnostics', $payload)->assertAccepted();
+
+        $events = SystemInspectorEvent::query()->where('source', 'customer_app')->get();
+        $this->assertCount(1, $events);
+
+        $event = $events->firstOrFail();
+        $this->assertSame($customer->id, $event->user_id);
+        $this->assertSame(503, $event->status_code);
+        $this->assertSame('req-safe-503', $event->correlation_id);
+        $this->assertSame('1.0.52', $event->context['app_version']);
+        $this->assertSame('52', $event->context['app_build']);
+        $this->assertSame('b2b', $event->context['channel']);
+        $this->assertStringNotContainsString('secret-token', $event->message);
+        $this->assertStringNotContainsString('secret-token', (string) $event->url);
+        $this->assertStringNotContainsString('stack-secret', json_encode($event->context, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('customer@example.test', json_encode($event->context, JSON_THROW_ON_ERROR));
+
+        $admin = $this->userWithRole('SUPER_ADMIN', 'mobile-filter-admin@example.test');
+        $this->actingAs($admin)
+            ->get(route('admin.inspector.index', [
+                'source' => 'customer_app',
+                'version' => '1.0.52',
+                'build' => '52',
+                'channel' => 'b2b',
+            ]))
+            ->assertOk()
+            ->assertSee('customer_app')
+            ->assertSee('req-safe-503');
+    }
+
+    public function test_mobile_ingestion_is_write_only_and_driver_source_requires_driver_role(): void
+    {
+        $customer = User::query()->create([
+            'name' => 'Platform Customer',
+            'email' => 'customer-write-only@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+            'is_platform_customer' => true,
+        ]);
+
+        Sanctum::actingAs($customer);
+        $this->postJson('/api/v1/runtime/diagnostics', [
+            'app' => 'driver',
+            'source' => 'flutter_error',
+            'severity' => 'error',
+            'message' => 'wrong source',
+        ])->assertForbidden();
+
+        $this->getJson('/api/v1/runtime/diagnostics')->assertMethodNotAllowed();
+
+        $driver = $this->userWithRole('B2C_DRIVER', 'driver-inspector@example.test');
+        Sanctum::actingAs($driver);
+        $this->postJson('/api/v1/runtime/diagnostics', [
+            'app' => 'driver',
+            'source' => 'flutter_error',
+            'severity' => 'error',
+            'message' => 'Driver runtime failure',
+            'channel' => 'b2c',
+        ])->assertAccepted();
+
+        $this->assertDatabaseHas('system_inspector_events', [
+            'source' => 'driver_app',
+            'user_id' => $driver->id,
+            'message' => 'Driver runtime failure',
+        ]);
+
+        $this->actingAs($driver)->get(route('admin.inspector.index'))->assertForbidden();
+    }
+
+    public function test_unhandled_api_server_exception_is_captured_by_global_inspector_hook(): void
+    {
+        Route::get('/api/v1/_inspector-test-boom', static function (): void {
+            throw new \RuntimeException('Synthetic API boom');
+        })->middleware('api');
+
+        $this->getJson('/api/v1/_inspector-test-boom')->assertStatus(500);
+
+        $this->assertDatabaseHas('system_inspector_events', [
+            'source' => 'server',
+            'severity' => 'error',
+            'status_code' => 500,
+            'message' => 'Synthetic API boom',
+        ]);
     }
 
     public function test_non_platform_admin_cannot_open_or_export_inspector(): void
