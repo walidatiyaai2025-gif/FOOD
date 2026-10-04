@@ -22,6 +22,7 @@ use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderInventoryReservationService;
 use App\Services\PlatformCustomerService;
 use App\Services\RetailWholesaleReplenishmentService;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -545,7 +546,9 @@ class OrderController extends Controller
                 'id' => (int) $invoice->getKey(),
                 'invoice_number' => (string) $invoice->invoice_number,
                 'status' => (string) $invoice->status,
-                'issued_at' => $invoice->issued_at?->toAtomString(),
+                'issued_at' => $invoice->issued_at === null
+                    ? null
+                    : CarbonImmutable::parse((string) $invoice->issued_at)->toAtomString(),
             ] : null,
             'tracking' => $tracking === null ? null : [
                 'assignment_id' => (int) $tracking->id,
