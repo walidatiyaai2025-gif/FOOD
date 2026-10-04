@@ -177,6 +177,67 @@ void main() {
     client.close();
   });
 
+  test('central flush retries offline events and checkpoints accepted events',
+      () async {
+    final diagnostics = CustomerDiagnostics(maxEvents: 10)
+      ..updateContext(
+        appVersion: '1.0.52',
+        apiBaseUrl: 'https://foodex.example.test',
+        locale: 'en',
+        authenticated: true,
+        channel: 'b2b',
+        platformWide: true,
+        retailStoreContextId: 7,
+      )
+      ..recordRuntimeFailure(
+        operation: 'b2b_orders_load',
+        path: '/api/v1/b2b/orders?token=body-secret&scope=all',
+        category: 'server_failure',
+        statusCode: 503,
+        supportReference: 'req-503',
+      );
+
+    var offlineAttempts = 0;
+    await diagnostics.flushToInspector(
+      baseUrl: 'https://foodex.example.test',
+      token: 'auth-secret',
+      client: MockClient((request) async {
+        offlineAttempts += 1;
+        throw http.ClientException('offline');
+      }),
+    );
+    expect(offlineAttempts, 1);
+
+    final bodies = <Map<String, dynamic>>[];
+    final online = MockClient((request) async {
+      bodies.add(
+        Map<String, dynamic>.from(
+          jsonDecode(request.body) as Map,
+        ),
+      );
+      return http.Response('', 202);
+    });
+
+    await diagnostics.flushToInspector(
+      baseUrl: 'https://foodex.example.test',
+      token: 'auth-secret',
+      client: online,
+    );
+    await diagnostics.flushToInspector(
+      baseUrl: 'https://foodex.example.test',
+      token: 'auth-secret',
+      client: online,
+    );
+
+    expect(bodies, hasLength(1));
+    expect(bodies.single['app'], 'customer');
+    expect(bodies.single['source'], 'runtime_failure');
+    expect(bodies.single['status'], 503);
+    expect(jsonEncode(bodies.single), contains('[REDACTED]'));
+    expect(jsonEncode(bodies.single), isNot(contains('body-secret')));
+    expect(jsonEncode(bodies.single), isNot(contains('auth-secret')));
+  });
+
   testWidgets('diagnostics route is available in Arabic without authentication',
       (tester) async {
     await CustomerDiagnostics.instance.clear();
