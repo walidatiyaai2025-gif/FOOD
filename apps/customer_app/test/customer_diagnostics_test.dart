@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
@@ -69,6 +71,56 @@ void main() {
     expect(json, contains('req-safe-503'));
     expect(json, contains('token=[REDACTED]'));
     expect(json, isNot(contains('secret-token')));
+  });
+
+  test('remote flush sends only sanitized queued Customer diagnostics', () async {
+    final diagnostics = CustomerDiagnostics(maxEvents: 10)
+      ..updateContext(
+        appVersion: '1.0.53',
+        apiBaseUrl: 'https://foodex.example.test',
+        locale: 'en',
+        authenticated: true,
+        channel: 'b2c',
+        platformWide: true,
+        retailStoreContextId: 7,
+      )
+      ..recordDartError(
+        Exception(
+          'Bearer diagnostic-secret customer@example.test coordinates=29.375859,47.977405',
+        ),
+        StackTrace.fromString('token=stack-secret'),
+      );
+
+    http.Request? captured;
+    final client = MockClient((request) async {
+      captured = request;
+      return http.Response('{}', 202);
+    });
+
+    final submitted = await diagnostics.flushRemote(
+      client: client,
+      requestUri: Uri.parse('https://foodex.example.test/api/v1/orders?token=request-secret'),
+      authorization: 'Bearer transport-only-credential',
+    );
+
+    expect(submitted, 1);
+    expect(captured, isNotNull);
+    expect(captured!.url.path, '/api/v1/runtime-inspector/events');
+    expect(captured!.headers['Authorization'], 'Bearer transport-only-credential');
+
+    final body = captured!.body;
+    final payload = jsonDecode(body) as Map<String, dynamic>;
+    expect(payload['app'], 'customer');
+    expect(payload['category'], 'dart_error');
+    expect(payload['store_id'], 7);
+    expect(payload['channel'], 'b2c');
+    expect(body, isNot(contains('diagnostic-secret')));
+    expect(body, isNot(contains('customer@example.test')));
+    expect(body, isNot(contains('29.375859')));
+    expect(body, isNot(contains('47.977405')));
+    expect(body, isNot(contains('stack-secret')));
+    expect(body, isNot(contains('transport-only-credential')));
+    expect(diagnostics.events.single['remote_submitted_at'], isNotNull);
   });
 
   test('diagnostics retains only the configured rolling event window', () {
