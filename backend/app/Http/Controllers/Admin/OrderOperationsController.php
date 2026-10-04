@@ -34,7 +34,8 @@ final class OrderOperationsController extends Controller
         private readonly OperationalTenantScope $scope,
         private readonly DriverDeliveryEvidenceService $deliveryEvidence,
         private readonly OperationalLookupService $lookups,
-    ) {}
+    ) {
+    }
 
     public function index(Request $request): View
     {
