@@ -407,6 +407,55 @@ class RetailStoreProvisioningTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/data-store-accordion="'.$older.'"\\s+open="open"/', $html);
     }
 
+    public function test_store_create_is_a_gated_popup_wizard_with_final_review(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'wizard-owner@example.test');
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.retail-stores.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-open-store-wizard', false)
+            ->assertSee('data-store-create-modal', false)
+            ->assertSee('data-foodex-store-wizard', false)
+            ->assertSee('data-wizard-panel="identity"', false)
+            ->assertSee('data-wizard-panel="branding"', false)
+            ->assertSee('data-wizard-panel="pricing"', false)
+            ->assertSee('data-wizard-panel="campaigns"', false)
+            ->assertSee('data-wizard-panel="manager"', false)
+            ->assertSee('data-wizard-panel="review"', false)
+            ->assertSee('data-wizard-final-submit', false)
+            ->assertSee('validateStep(from)', false)
+            ->assertSee("currentStep !== 'review'", false);
+    }
+
+    public function test_invalid_manager_cannot_persist_a_partial_store(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'wizard-validation-owner@example.test');
+        $tierId = $this->priceTierId();
+
+        $response = $this->actingAs($admin)->from(route('admin.retail-stores.index'))->post(route('admin.retail-stores.store'), [
+            'code' => 'NO-PARTIAL',
+            'name' => 'No Partial Store',
+            'logo' => UploadedFile::fake()->image('no-partial.png', 256, 256),
+            'price_tier_id' => $tierId,
+            'is_active' => '1',
+            'advertising_enabled' => '1',
+            'live_ads_enabled' => '1',
+            'coupons_enabled' => '1',
+            'manager_mode' => 'existing',
+            'manager_user_id' => '',
+        ]);
+
+        $response
+            ->assertRedirect(route('admin.retail-stores.index'))
+            ->assertSessionHasErrors('manager_user_id');
+
+        $this->assertDatabaseMissing('stores', ['code' => 'NO-PARTIAL']);
+        $this->assertSame([], Storage::disk('public')->allFiles());
+    }
+
     public function test_non_super_admin_cannot_provision_retail_store(): void
     {
         $b2b = $this->userWithRole('B2B_ADMIN', 'b2b@example.test');
