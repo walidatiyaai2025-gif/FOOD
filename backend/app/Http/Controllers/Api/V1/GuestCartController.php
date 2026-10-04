@@ -428,7 +428,7 @@ class GuestCartController extends Controller
             ->get(['inventories.quantity', 'inventories.reserved_quantity']);
 
         $availableQuantity = $inventoryRows->isEmpty()
-            ? 0.0
+            ? null
             : (float) $inventoryRows->sum(
                 static fn (object $row): float => max(
                     0.0,
@@ -436,15 +436,15 @@ class GuestCartController extends Controller
                 ),
             );
 
-        if ($mustBeAvailable && $availableQuantity <= 0) {
+        if ($mustBeAvailable && $availableQuantity !== null && $availableQuantity <= 0) {
             abort(409, 'Product is out of stock.');
         }
 
         return [
             'price' => (float) $storeProduct->price,
             'available_quantity' => $availableQuantity,
-            'is_available' => $availableQuantity > 0,
-            'availability_state' => $availableQuantity > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK',
+            'is_available' => $availableQuantity === null || $availableQuantity > 0,
+            'availability_state' => $availableQuantity !== null && $availableQuantity <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
         ];
     }
 
