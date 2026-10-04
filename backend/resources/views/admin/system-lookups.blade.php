@@ -82,7 +82,10 @@ input,select{border:1px solid var(--foodex-border);border-radius:9px;padding:9px
 <div class="table-wrap"><table class="table">
 <thead><tr><th>ID</th><th>{{ $ar?'الكود':'Code' }}</th><th>{{ $ar?'العربية':'Arabic' }}</th><th>{{ $ar?'الإنجليزية':'English' }}</th><th>{{ $ar?'الترتيب':'Sort' }}</th><th>{{ $ar?'الحالة':'Status' }}</th>@if($canManage)<th>{{ $ar?'تعديل':'Edit' }}</th>@endif</tr></thead>
 <tbody>
-@forelse($records as $record)
+@if($records->isEmpty())
+<tr><td colspan="{{ $canManage?7:6 }}">{{ $ar?'لا توجد قيم.':'No lookup values.' }}</td></tr>
+@else
+@foreach($records as $record)
 @php
 $isTier=$definition['type']===\App\Services\OperationalLookupService::PRICE_TIER;
 $labelAr=$isTier?($record->name_ar??$record->name):$record->label_ar;
@@ -94,9 +97,11 @@ $sort=$isTier?$record->priority:$record->sort_order;
 <td><span class="code">{{ $record->code }}</span><span class="immutable">{{ $ar?'ثابت':'immutable' }}</span></td>
 <td>{{ $labelAr }}</td><td>{{ $labelEn }}</td><td>{{ $sort }}</td>
 <td><span class="badge {{ $record->is_active?'on':'off' }}">{{ $record->is_active?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></td>
-@if($canManage)<td>
+@if($canManage)
+<td>
 <form method="post" action="{{ route('admin.operations.lookups.update',['type'=>$typeKey,'lookup'=>$record->id]) }}">
-@csrf @method('PATCH')
+@csrf
+@method('PATCH')
 <div class="actions">
 <input name="label_ar" value="{{ $labelAr }}" required aria-label="{{ $ar?'الاسم بالعربية':'Arabic label' }}">
 <input name="label_en" value="{{ $labelEn }}" required aria-label="{{ $ar?'الاسم بالإنجليزية':'English label' }}">
@@ -105,11 +110,11 @@ $sort=$isTier?$record->priority:$record->sort_order;
 <button class="btn">{{ $ar?'حفظ':'Save' }}</button>
 </div>
 </form>
-</td>@endif
+</td>
+@endif
 </tr>
-@empty
-<tr><td colspan="{{ $canManage?7:6 }}">{{ $ar?'لا توجد قيم.':'No lookup values.' }}</td></tr>
-@endforelse
+@endforeach
+@endif
 </tbody></table></div>
 <div>{{ $records->links() }}</div>
 </section>
