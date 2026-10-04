@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/features/b2b/business_account_profile.dart';
 
@@ -13,6 +14,7 @@ void main() {
       MaterialApp(
         locale: const Locale('ar'),
         supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         routes: {
           '/b2b/addresses': (_) => const Scaffold(body: Text('addresses')),
         },
@@ -74,6 +76,7 @@ void main() {
       const MaterialApp(
         locale: Locale('en'),
         supportedLocales: [Locale('ar'), Locale('en')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         home: Scaffold(
           body: SingleChildScrollView(
             child: B2bBusinessAccountProfile(
