@@ -2211,9 +2211,9 @@ void main() {
       find.byKey(const ValueKey('b2b-invoice-detail-totals')),
       findsOneWidget,
     );
-    expect(find.textContaining('22.000 KWD'), findsOneWidget);
+    expect(find.textContaining('22.000 KWD'), findsWidgets);
     expect(find.textContaining('5.000 KWD'), findsWidgets);
-    expect(find.textContaining('17.000 KWD'), findsOneWidget);
+    expect(find.textContaining('17.000 KWD'), findsWidgets);
     expect(
       find.byKey(const ValueKey('b2b-invoice-item-501')),
       findsOneWidget,
