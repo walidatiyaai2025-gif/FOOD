@@ -847,7 +847,7 @@ void main() {
       findsNothing,
     );
     expect(
-      find.textContaining('Available · 6'),
+      find.textContaining('Available quantity 6'),
       findsOneWidget,
     );
 
