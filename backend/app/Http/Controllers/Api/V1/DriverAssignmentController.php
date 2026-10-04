@@ -120,11 +120,6 @@ class DriverAssignmentController extends Controller
             'Driver and order must belong to the same authoritative store.',
         );
         abort_if(
-            (string) $order->status === 'pending',
-            409,
-            'Order must be approved by Customer Service before driver assignment.',
-        );
-        abort_if(
             in_array((string) $order->status, ['delivered', 'cancelled'], true),
             409,
             'Completed or cancelled orders cannot be assigned.',
