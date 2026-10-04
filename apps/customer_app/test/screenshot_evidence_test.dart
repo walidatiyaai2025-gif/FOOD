@@ -45,7 +45,7 @@ void main() {
     const _CaptureCase('02_MultiStore/07_wholesale_cart__ar.png', '/b2b/cart?store=70', session: _b2cWholesale),
     const _CaptureCase('02_MultiStore/08_wholesale_checkout__ar.png', '/b2b/checkout?store_id=70', session: _b2cWholesale),
     const _CaptureCase('02_MultiStore/09_wholesale_orders__ar.png', '/b2b/orders', session: _b2cWholesale),
-    const _CaptureCase('01_Mobile/B2B_Customer/01_شاشة_الدخول__default__ar.png', '/auth/checkout?next=%2Fb2b%2Fdashboard'),
+    const _CaptureCase('01_Mobile/B2B_Customer/01_شاشة_الدخول__default__ar.png', '/entry'),
     const _CaptureCase('01_Mobile/B2B_Customer/02_الصفحة_الرئيسية_Dashboard__populated__ar.png', '/b2b/dashboard', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/03_تقارير_المشتريات_والرسوم_البيانية__populated__ar.png', '/b2b/reports/purchases', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/04_أكثر_المنتجات_طلبا__populated__ar.png', '/b2b/products/top?from=2026-09-01&to=2026-09-30', session: _b2b),
@@ -243,9 +243,51 @@ class _EvidenceB2bApi implements B2bApi {
     if (path.contains('/products/top')) {
       return {
         'data': [
-          {'rank': 1, 'product_id': 42, 'sku': 'TOP-1', 'name': 'FOODEX Bulk Rice', 'quantity': 24, 'total': 174, 'currency': 'KWD'},
-          {'rank': 2, 'product_id': 43, 'sku': 'TOP-2', 'name': 'FOODEX Olive Oil', 'quantity': 18, 'total': 333, 'currency': 'KWD'},
+          {
+            'rank': 1,
+            'product_id': 42,
+            'store_id': 7,
+            'sku': 'TOP-1',
+            'name': 'FOODEX Bulk Rice',
+            'quantity': 24,
+            'total': 174,
+            'currency': 'KWD',
+            'last_purchased_at': '2026-09-28',
+            'pack_label': 'Case 12',
+            'account_price': 7.25,
+            'current_price_currency': 'KWD',
+            'available_quantity': 240,
+            'availability_state': 'AVAILABLE',
+            'can_repurchase': true,
+            'unavailable_reason': null,
+          },
+          {
+            'rank': 2,
+            'product_id': 43,
+            'store_id': 7,
+            'sku': 'TOP-2',
+            'name': 'FOODEX Olive Oil',
+            'quantity': 18,
+            'total': 333,
+            'currency': 'KWD',
+            'last_purchased_at': '2026-09-23',
+            'pack_label': 'Carton 6',
+            'account_price': 18.5,
+            'current_price_currency': 'KWD',
+            'available_quantity': 0,
+            'availability_state': 'OUT_OF_STOCK',
+            'can_repurchase': false,
+            'unavailable_reason': 'OUT_OF_STOCK',
+          },
         ],
+        'period': {'from': null, 'to': null},
+        'sort': 'quantity',
+        'meta': {
+          'page': 1,
+          'per_page': 20,
+          'total': 2,
+          'has_more': false,
+        },
       };
     }
     if (path.contains('/products/42')) {
@@ -275,11 +317,75 @@ class _EvidenceB2bApi implements B2bApi {
     }
     if (path.contains('/reports/purchases')) {
       return {
+        'currency': 'KWD',
         'period': {'from': '2026-09-01', 'to': '2026-09-30'},
+        'summary': {
+          'total_purchases': 159.0,
+          'order_count': 2,
+          'invoice_count': 2,
+          'average_order_value': 79.5,
+        },
+        'comparison': {
+          'from': '2026-08-01',
+          'to': '2026-08-31',
+          'total_purchases': 120.0,
+          'order_count': 2,
+          'change_amount': 39.0,
+          'change_percent': 32.5,
+        },
         'data': [
-          {'product_name': 'FOODEX Bulk Rice', 'quantity': 12, 'total': 48.0},
-          {'product_name': 'FOODEX Olive Oil', 'quantity': 6, 'total': 111.0},
+          {
+            'period': '2026-09-12',
+            'orders_count': 1,
+            'purchase_total': 48.0,
+          },
+          {
+            'period': '2026-09-24',
+            'orders_count': 1,
+            'purchase_total': 111.0,
+          },
         ],
+        'categories': [
+          {
+            'category_id': 1,
+            'category_name': 'Staples',
+            'purchase_total': 48.0,
+            'percentage': 30.19,
+          },
+          {
+            'category_id': 2,
+            'category_name': 'Pantry',
+            'purchase_total': 111.0,
+            'percentage': 69.81,
+          },
+        ],
+        'orders': [
+          {
+            'id': 77,
+            'order_number': 'B2B-77',
+            'store_id': 7,
+            'status': 'confirmed',
+            'currency': 'KWD',
+            'grand_total': 48.0,
+            'created_at': '2026-09-12T10:00:00Z',
+          },
+          {
+            'id': 78,
+            'order_number': 'B2B-78',
+            'store_id': 7,
+            'status': 'delivered',
+            'currency': 'KWD',
+            'grand_total': 111.0,
+            'created_at': '2026-09-24T11:30:00Z',
+          },
+        ],
+        'meta': {
+          'page': 1,
+          'per_page': 5,
+          'total': 2,
+          'has_more': false,
+        },
+        'generated_at': '2026-09-30T12:00:00Z',
       };
     }
     if (path.endsWith('/invoices')) {

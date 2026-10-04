@@ -10,6 +10,9 @@ class DriverOrderItem {
     this.variant = '',
     this.unit = '',
     this.note = '',
+    this.quantityConversionFactor = 1,
+    this.packSize = 0,
+    this.caseSize = 0,
     this.unitPrice = 0,
   });
 
@@ -20,8 +23,35 @@ class DriverOrderItem {
   final String unit;
   final String note;
   final double quantity;
+  final double quantityConversionFactor;
+  final double packSize;
+  final double caseSize;
   final double unitPrice;
   final double lineTotal;
+}
+
+class DriverSettlement {
+  const DriverSettlement({
+    required this.currency,
+    required this.orderTotal,
+    required this.balanceApplied,
+    required this.paidAmount,
+    required this.remainingAmount,
+    required this.remainderMethod,
+    required this.paymentState,
+    required this.amountToCollectNow,
+    required this.invoiceOutstandingAmount,
+  });
+
+  final String currency;
+  final double orderTotal;
+  final double balanceApplied;
+  final double paidAmount;
+  final double remainingAmount;
+  final String remainderMethod;
+  final String paymentState;
+  final double amountToCollectNow;
+  final double invoiceOutstandingAmount;
 }
 
 class DriverInvoice {
@@ -38,6 +68,8 @@ class DriverInvoice {
     this.taxTotal = 0,
     this.paymentMethod = '',
     this.paymentStatus = '',
+    this.outstandingAmount = 0,
+    this.downloadPath = '',
     this.issuedAt = '',
     this.items = const [],
   });
@@ -54,6 +86,8 @@ class DriverInvoice {
   final double grandTotal;
   final String paymentMethod;
   final String paymentStatus;
+  final double outstandingAmount;
+  final String downloadPath;
   final String issuedAt;
   final List<DriverOrderItem> items;
 }
@@ -78,6 +112,7 @@ class DriverAssignment {
     this.paymentMethod = '',
     this.paymentStatus = '',
     this.customerNote = '',
+    this.settlement,
     this.items = const [],
     this.availableStatuses = const [],
     this.assignedAt = '',
@@ -104,6 +139,7 @@ class DriverAssignment {
   final String paymentMethod;
   final String paymentStatus;
   final String customerNote;
+  final DriverSettlement? settlement;
   final List<DriverOrderItem> items;
   final List<String> availableStatuses;
   final String assignedAt;
@@ -125,6 +161,13 @@ abstract interface class DriverAssignmentRepository {
     String status, {
     String? note,
     String? failureReason,
+  });
+}
+
+abstract interface class DriverInvoiceDocumentRepository {
+  Future<List<int>> downloadInvoicePdf(
+    int assignmentId, {
+    required String locale,
   });
 }
 

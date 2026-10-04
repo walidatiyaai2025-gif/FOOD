@@ -267,6 +267,20 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($admin)->post('/admin/b2b/drivers/assign', [
             'driver_id' => $driver->id,
             'order_id' => $order->id,
+        ])->assertConflict();
+        $this->assertDatabaseMissing('driver_assignments', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ]);
+
+        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
+            'status' => 'confirmed',
+            'note' => 'Customer Service approved',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->actingAs($admin)->post('/admin/b2b/drivers/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
         ])->assertRedirect();
 
         $this->assertDatabaseHas('driver_assignments', [

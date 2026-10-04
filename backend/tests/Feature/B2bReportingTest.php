@@ -37,7 +37,7 @@ class B2bReportingTest extends TestCase
             ->assertOk()
             ->assertJsonPath('customer.name', 'Buyer')
             ->assertJsonPath('account.company_name', 'Buyer Co')
-            ->assertJsonPath('finance.balance', 10)
+            ->assertJsonPath('finance.balance', -10)
             ->assertJsonPath('finance.balance_direction', 'customer_owes_company')
             ->assertJsonPath('finance.open_amount', 10)
             ->assertJsonPath('finance.overdue_amount', 0)

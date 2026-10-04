@@ -276,6 +276,30 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertSame(5.0, (float) DB::table('inventories')->where('id', $inventory)->value('reserved_quantity'));
         $this->assertDatabaseMissing('invoices', ['order_id' => $order->id]);
 
+        $this->actingAs($admin)
+            ->get('/admin/b2b/orders')
+            ->assertOk()
+            ->assertSee('Approve order')
+            ->assertSee('Reject order')
+            ->assertSee('Rejection reason (required)')
+            ->assertSee('Financial settlement review')
+            ->assertSee('Customer credit balance')
+            ->assertSee('Aggregate outstanding')
+            ->assertSee('Credit limit');
+
+        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
+            'status' => 'cancelled',
+        ])->assertSessionHasErrors('note');
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending']);
+
+        DB::table('orders')->where('id', $order->id)->update(['payment_method' => 'account_credit']);
+        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
+            'status' => 'confirmed',
+            'note' => 'Credit approval must be revalidated',
+        ])->assertSessionHasErrors('status');
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending']);
+
+        DB::table('orders')->where('id', $order->id)->update(['payment_method' => 'cash_on_delivery']);
         $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
             'status' => 'confirmed',
             'note' => 'Commercially approved',
@@ -446,6 +470,113 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertSame('MULTI-GOLD', $invoice->price_tier_code_snapshot);
         $this->assertSame((float) $order->grand_total, (float) $invoice->total);
         $this->assertSame(2, DB::table('invoice_items')->where('invoice_id', $invoice->id)->count());
+    }
+
+    public function test_b2b_rejection_reverses_checkout_settlement_once_without_touching_manual_ledger(): void
+    {
+        $store = app(WholesalePrincipal::class)->storeId();
+        $customer = app(B2bCustomerService::class)->create([
+            'name' => 'Rejected Settlement Buyer',
+            'email' => 'rejected-settlement@example.test',
+        ]);
+        $admin = $this->globalAdmin('B2B_ADMIN', 'reject-settlement-admin@example.test');
+
+        $orderId = (int) DB::table('orders')->insertGetId([
+            'store_id' => $store,
+            'customer_id' => (int) $customer->legacy_customer_id,
+            'b2b_customer_id' => (int) $customer->id,
+            'order_number' => 'REJECT-SETTLEMENT-1',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 100,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 100,
+            'payment_method' => 'cash_on_delivery',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $checkoutEntryId = (int) DB::table('customer_account_ledger_entries')->insertGetId([
+            'b2b_customer_id' => (int) $customer->id,
+            'store_id' => $store,
+            'order_id' => $orderId,
+            'entry_type' => 'adjustment_positive',
+            'reference' => 'checkout-balance-'.$orderId,
+            'description' => 'Checkout balance allocation',
+            'debit' => 30,
+            'credit' => 0,
+            'currency' => 'KWD',
+            'actor_user_id' => null,
+            'source' => 'checkout_balance_allocation',
+            'metadata' => json_encode(['balance_applied' => 30], JSON_THROW_ON_ERROR),
+            'occurred_at' => now(),
+            'created_at' => now(),
+        ]);
+
+        DB::table('customer_account_ledger_entries')->insert([
+            'b2b_customer_id' => (int) $customer->id,
+            'store_id' => $store,
+            'order_id' => $orderId,
+            'entry_type' => 'debit_note',
+            'reference' => 'manual-'.$orderId,
+            'description' => 'Manual Customer 360 adjustment',
+            'debit' => 5,
+            'credit' => 0,
+            'currency' => 'KWD',
+            'actor_user_id' => $admin->id,
+            'source' => 'dashboard_customer_360',
+            'metadata' => null,
+            'occurred_at' => now(),
+            'created_at' => now(),
+        ]);
+
+        $payload = [
+            'status' => 'cancelled',
+            'note' => 'Customer Service rejected',
+        ];
+
+        $this->actingAs($admin)
+            ->post('/admin/b2b/orders/'.$orderId.'/status', $payload)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $reference = 'order-cancel:'.$orderId.':entry:'.$checkoutEntryId;
+        $this->assertDatabaseHas('customer_account_ledger_entries', [
+            'b2b_customer_id' => $customer->id,
+            'order_id' => $orderId,
+            'entry_type' => 'adjustment_negative',
+            'reference' => $reference,
+            'debit' => 0,
+            'credit' => 30,
+            'source' => 'order_cancellation',
+        ]);
+        $this->assertSame(
+            1,
+            DB::table('customer_account_ledger_entries')
+                ->where('order_id', $orderId)
+                ->where('source', 'order_cancellation')
+                ->count(),
+        );
+        $this->assertSame(
+            1,
+            DB::table('customer_account_ledger_entries')
+                ->where('order_id', $orderId)
+                ->where('source', 'dashboard_customer_360')
+                ->count(),
+        );
+
+        $this->actingAs($admin)
+            ->post('/admin/b2b/orders/'.$orderId.'/status', $payload)
+            ->assertRedirect();
+
+        $this->assertSame(
+            1,
+            DB::table('customer_account_ledger_entries')
+                ->where('reference', $reference)
+                ->count(),
+        );
     }
 
     public function test_central_new_order_wizard_is_scoped_and_final_create_reprices_authoritatively(): void

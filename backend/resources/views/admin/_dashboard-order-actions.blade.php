@@ -18,7 +18,26 @@
 @endphp
 
 <div id="order-{{ $row['_id'] }}" style="display:grid;gap:8px;min-width:260px">
-    @if(count($statusTransitions))
+    @if($isB2bOrder && $row['status']==='pending')
+    <div class="workspace-inline-form" style="margin:0;display:grid;gap:10px;border-color:#f4c27a;background:#fffaf2">
+        <strong>{{ app()->getLocale()==='ar'?'قرار خدمة العملاء':'Customer Service approval' }}</strong>
+        <div class="muted">{{ app()->getLocale()==='ar'?'راجع تفاصيل الطلب والتسوية المالية قبل الاعتماد أو الرفض.':'Review order and settlement details before approving or rejecting.' }}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" style="margin:0">
+                @csrf
+                <input type="hidden" name="status" value="confirmed">
+                <input type="hidden" name="note" value="customer_service_approved">
+                <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'اعتماد الطلب':'Approve order' }}</button>
+            </form>
+            <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" style="margin:0;display:flex;gap:8px;flex-wrap:wrap">
+                @csrf
+                <input type="hidden" name="status" value="cancelled">
+                <input name="note" maxlength="1000" required placeholder="{{ app()->getLocale()==='ar'?'سبب الرفض (إلزامي)':'Rejection reason (required)' }}">
+                <button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'رفض الطلب':'Reject order' }}</button>
+            </form>
+        </div>
+    </div>
+    @elseif(count($statusTransitions))
     <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
         @csrf
         @if(!$isB2bOrder)
@@ -35,7 +54,7 @@
     </form>
     @endif
 
-    @if(!in_array($row['status'],['delivered','cancelled'],true) && !empty($moduleData['drivers']))
+    @if((!$isB2bOrder || $row['status']!=='pending') && !in_array($row['status'],['delivered','cancelled'],true) && !empty($moduleData['drivers']))
         @if(empty($row['_assignment_id']))
         <form method="post" action="{{ route($driverRoute) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
             @csrf
@@ -104,6 +123,44 @@
                 {{ app()->getLocale()==='ar'?'الضريبة':'Tax' }}: {{ number_format($row['_tax_total'] ?? 0,3) }} EGP ·
                 <strong>{{ app()->getLocale()==='ar'?'الإجمالي النهائي':'Grand total' }}: {{ number_format($row['_grand_total'],3) }} EGP</strong>
             </div>
+            @if($isB2bOrder && !empty($row['_settlement']))
+                @php($settlement = $row['_settlement'])
+                <div style="display:grid;gap:6px;padding:10px;border:1px solid var(--foodex-border);border-radius:10px;background:#fbfcfd">
+                    <strong>{{ app()->getLocale()==='ar'?'مراجعة التسوية المالية':'Financial settlement review' }}</strong>
+                    <div>
+                        {{ app()->getLocale()==='ar'?'إجمالي الطلب':'Order total' }}:
+                        <strong>{{ number_format($row['_grand_total'],3) }} {{ $settlement['currency'] }}</strong>
+                        · {{ app()->getLocale()==='ar'?'طريقة المتبقي':'Remainder method' }}:
+                        <strong>{{ $settlement['remainder_method'] ?: '—' }}</strong>
+                    </div>
+                    <div>
+                        {{ app()->getLocale()==='ar'?'رصيد العميل المتاح':'Customer credit balance' }}:
+                        <strong>{{ $settlement['customer_credit_balance']===null?'—':number_format($settlement['customer_credit_balance'],3) }}</strong>
+                        · {{ app()->getLocale()==='ar'?'إجمالي المديونية الحالية':'Aggregate outstanding' }}:
+                        <strong>{{ $settlement['aggregate_outstanding']===null?'—':number_format($settlement['aggregate_outstanding'],3) }}</strong>
+                    </div>
+                    <div>
+                        {{ app()->getLocale()==='ar'?'حد الائتمان':'Credit limit' }}:
+                        <strong>{{ $settlement['credit_limit']===null?'—':number_format($settlement['credit_limit'],3) }}</strong>
+                        · {{ app()->getLocale()==='ar'?'الحد المتاح':'Available credit line' }}:
+                        <strong>{{ $settlement['available_credit_line']===null?'—':number_format($settlement['available_credit_line'],3) }}</strong>
+                    </div>
+                    @if($settlement['balance_applied']!==null)
+                    <div>
+                        {{ app()->getLocale()==='ar'?'المخصوم من الرصيد':'Balance applied' }}:
+                        <strong>{{ number_format($settlement['balance_applied'],3) }}</strong>
+                        @if($settlement['remaining_after_balance']!==null)
+                            · {{ app()->getLocale()==='ar'?'المتبقي بعد الرصيد':'Remaining after balance' }}:
+                            <strong>{{ number_format($settlement['remaining_after_balance'],3) }}</strong>
+                        @endif
+                    </div>
+                    @endif
+                    <div>
+                        {{ app()->getLocale()==='ar'?'المتبقي على الفاتورة':'Invoice outstanding' }}:
+                        <strong>{{ $settlement['invoice_outstanding']===null?(app()->getLocale()==='ar'?'لم تصدر بعد':'Not issued yet'):number_format($settlement['invoice_outstanding'],3) }}</strong>
+                    </div>
+                </div>
+            @endif
             @if($row['_payment'])
                 <div>{{ app()->getLocale()==='ar'?'الدفع':'Payment' }}: {{ $row['_payment']['provider'] }} · {{ $row['_payment']['status'] }} · {{ number_format($row['_payment']['amount'],3) }} {{ $row['_payment']['currency'] }}</div>
             @endif

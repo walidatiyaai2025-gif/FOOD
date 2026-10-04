@@ -39,7 +39,7 @@ final class B2bAccountLedgerContractTest extends TestCase
         $this->assertSame('EGP', $summary['currency']);
         $this->assertSame(80.0, $summary['total_debits']);
         $this->assertSame(30.0, $summary['total_credits']);
-        $this->assertSame(50.0, $summary['balance']);
+        $this->assertSame(-50.0, $summary['balance']);
         $this->assertSame('customer_owes_company', $summary['balance_direction']);
         $this->assertSame(50.0, $summary['outstanding_receivable']);
         $this->assertSame(0.0, $summary['customer_credit_balance']);
@@ -59,7 +59,7 @@ final class B2bAccountLedgerContractTest extends TestCase
         ], $user);
 
         $credit = $ledger->summary($customer, $storeId);
-        $this->assertSame(-20.0, $credit['balance']);
+        $this->assertSame(20.0, $credit['balance']);
         $this->assertSame('company_owes_customer', $credit['balance_direction']);
         $this->assertSame(0.0, $credit['outstanding_receivable']);
         $this->assertSame(20.0, $credit['customer_credit_balance']);
@@ -76,15 +76,15 @@ final class B2bAccountLedgerContractTest extends TestCase
         ], $user);
 
         $afterRefund = $ledger->summary($customer, $storeId);
-        $this->assertSame(-10.0, $afterRefund['balance']);
+        $this->assertSame(10.0, $afterRefund['balance']);
         $this->assertSame(10.0, $afterRefund['customer_credit_balance']);
         $this->assertSame(110.0, $afterRefund['purchasing_power']);
 
         $statement = $ledger->statement($customer, null, null, $storeId);
         $this->assertSame(90.0, $statement['period_debits']);
         $this->assertSame(100.0, $statement['period_credits']);
-        $this->assertSame(-10.0, $statement['closing_balance']);
-        $this->assertSame(-10.0, $statement['transactions'][count($statement['transactions']) - 1]['running_balance']);
+        $this->assertSame(10.0, $statement['closing_balance']);
+        $this->assertSame(10.0, $statement['transactions'][count($statement['transactions']) - 1]['running_balance']);
 
         $this->assertDatabaseHas('customer_account_ledger_entries', [
             'b2b_customer_id' => $customer->id,
@@ -106,7 +106,7 @@ final class B2bAccountLedgerContractTest extends TestCase
         $this->getJson('/api/v1/b2b/account-summary?store_id='.$storeId)
             ->assertOk()
             ->assertJsonPath('data.currency', 'EGP')
-            ->assertJsonPath('data.balance', 50)
+            ->assertJsonPath('data.balance', -50)
             ->assertJsonPath('data.outstanding_receivable', 50)
             ->assertJsonPath('data.customer_credit_balance', 0)
             ->assertJsonPath('data.credit_limit', 75)
@@ -118,12 +118,12 @@ final class B2bAccountLedgerContractTest extends TestCase
             ->assertJsonPath('data.currency', 'EGP')
             ->assertJsonPath('data.total_debits', 60)
             ->assertJsonPath('data.total_credits', 10)
-            ->assertJsonPath('data.balance', 50)
-            ->assertJsonPath('data.closing_balance', 50)
+            ->assertJsonPath('data.balance', -50)
+            ->assertJsonPath('data.closing_balance', -50)
             ->assertJsonPath('data.transactions.0.type', 'invoice')
-            ->assertJsonPath('data.transactions.0.running_balance', 60)
+            ->assertJsonPath('data.transactions.0.running_balance', -60)
             ->assertJsonPath('data.transactions.1.type', 'payment')
-            ->assertJsonPath('data.transactions.1.running_balance', 50);
+            ->assertJsonPath('data.transactions.1.running_balance', -50);
 
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.account_summary_viewed']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.statement_viewed']);
@@ -142,12 +142,12 @@ final class B2bAccountLedgerContractTest extends TestCase
 
         $this->getJson('/api/v1/b2b/account-statement'.$query.'&page=1&per_page=1')
             ->assertOk()
-            ->assertJsonPath('data.opening_balance', 60)
+            ->assertJsonPath('data.opening_balance', -60)
             ->assertJsonPath('data.period_debits', 0)
             ->assertJsonPath('data.period_credits', 10)
-            ->assertJsonPath('data.closing_balance', 50)
+            ->assertJsonPath('data.closing_balance', -50)
             ->assertJsonPath('data.transactions.0.type', 'payment')
-            ->assertJsonPath('data.transactions.0.running_balance', 50)
+            ->assertJsonPath('data.transactions.0.running_balance', -50)
             ->assertJsonPath('data.pagination.current_page', 1)
             ->assertJsonPath('data.pagination.per_page', 1)
             ->assertJsonPath('data.pagination.total', 1)
@@ -206,7 +206,7 @@ final class B2bAccountLedgerContractTest extends TestCase
             ->assertJsonPath('data.ledger_entries.1.type', 'credit_note');
 
         $summary = $ledger->summary($customer, $storeId);
-        $this->assertSame(30.0, $summary['balance']);
+        $this->assertSame(-30.0, $summary['balance']);
         $this->assertSame(30.0, $summary['open_amount']);
     }
 
@@ -235,9 +235,40 @@ final class B2bAccountLedgerContractTest extends TestCase
         $summary = $ledger->summary($customer);
         $this->assertSame(23.0, $summary['total_debits']);
         $this->assertSame(9.0, $summary['total_credits']);
-        $this->assertSame(14.0, $summary['balance']);
+        $this->assertSame(-14.0, $summary['balance']);
         $this->assertSame(6, DB::table('customer_account_ledger_entries')->where('b2b_customer_id', $customer->id)->count());
         $this->assertFalse(Schema::hasColumn('customer_account_ledger_entries', 'updated_at'));
+    }
+
+    public function test_customer_credit_entry_uses_positive_business_balance_and_append_only_ledger(): void
+    {
+        [$user, , $customer, $storeId] = $this->account(100);
+        $ledger = app(B2bAccountLedgerService::class);
+
+        $ledger->appendManual($customer, [
+            'entry_type' => 'customer_credit',
+            'credit' => 50,
+            'debit' => 0,
+            'currency' => 'EGP',
+            'store_id' => $storeId,
+            'reference' => 'CUSTOMER-CREDIT-50',
+            'description' => 'Operator-added customer credit',
+        ], $user);
+
+        $summary = $ledger->summary($customer, $storeId);
+
+        $this->assertSame(50.0, $summary['balance']);
+        $this->assertSame('company_owes_customer', $summary['balance_direction']);
+        $this->assertSame(0.0, $summary['outstanding_receivable']);
+        $this->assertSame(50.0, $summary['customer_credit_balance']);
+        $this->assertSame(150.0, $summary['purchasing_power']);
+        $this->assertDatabaseHas('customer_account_ledger_entries', [
+            'b2b_customer_id' => $customer->id,
+            'entry_type' => 'customer_credit',
+            'credit' => 50,
+            'debit' => 0,
+            'reference' => 'CUSTOMER-CREDIT-50',
+        ]);
     }
 
     /** @return array{0:User,1:Customer,2:B2bCustomer,3:int} */

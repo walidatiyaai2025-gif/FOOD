@@ -214,12 +214,31 @@ final class StorefrontController extends Controller
 
         $support = $user->hasRole('SUPER_ADMIN') && $request->boolean('support');
         $wholesaleStores = [];
+        $principalWholesaleStoreId = null;
         if ($hasDirectB2b || $retailContexts !== [] || $support) {
-            $wholesaleStores = DB::table('stores')
+            $wholesaleQuery = DB::table('stores')
                 ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
                 ->where('stores.is_active', true)
-                ->where('store_types.code', 'B2B')
-                ->orderBy('stores.name')
+                ->where('store_types.code', 'B2B');
+
+            $configuredCode = trim((string) config('foodex.platform_wholesale_store_code', ''));
+            $principalWholesaleStoreId = $configuredCode !== ''
+                ? (clone $wholesaleQuery)
+                    ->where('stores.code', $configuredCode)
+                    ->value('stores.id')
+                : (clone $wholesaleQuery)
+                    ->orderBy('stores.id')
+                    ->value('stores.id');
+
+            abort_if(
+                $principalWholesaleStoreId === null,
+                503,
+                'Principal Wholesale store is not available.',
+            );
+            $principalWholesaleStoreId = (int) $principalWholesaleStoreId;
+
+            $wholesaleStores = $wholesaleQuery
+                ->where('stores.id', $principalWholesaleStoreId)
                 ->get([
                     'stores.id',
                     'stores.code',
@@ -233,6 +252,7 @@ final class StorefrontController extends Controller
                     'logo_url' => $this->assetUrl($store->logo_path),
                     'channel' => 'b2b',
                     'theme_code' => 'wholesale_b2b',
+                    'is_platform_principal' => true,
                     'retail_context_ids' => $retailContexts,
                     'support_access' => $support,
                 ])
@@ -247,6 +267,7 @@ final class StorefrontController extends Controller
                 'direct_b2b' => $hasDirectB2b,
                 'retail_context_ids' => $retailContexts,
                 'support_access' => $support,
+                'principal_wholesale_store_id' => $principalWholesaleStoreId,
             ],
         ]);
     }

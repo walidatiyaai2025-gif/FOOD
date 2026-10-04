@@ -1001,6 +1001,46 @@ class DriverAssignmentLifecycleTest extends TestCase
         ]);
     }
 
+    public function test_pending_b2b_order_cannot_be_assigned_before_customer_service_approval(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2b');
+        $admin = $this->roleUser('B2B_ADMIN', 'pending-approval-admin@example.test');
+        $driverUser = $this->roleUser('B2B_DRIVER', 'pending-approval-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+        $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertConflict()
+            ->assertSee('Customer Service approval');
+
+        $this->assertDatabaseMissing('driver_assignments', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ]);
+
+        $order->update(['status' => 'confirmed']);
+
+        $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('driver_assignments', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'status' => 'assigned',
+        ]);
+    }
+
     public function test_b2b_driver_runtime_rejects_non_principal_wholesale_store(): void
     {
         $this->seed(CoreReferenceSeeder::class);

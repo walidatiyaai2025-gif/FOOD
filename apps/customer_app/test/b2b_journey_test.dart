@@ -34,8 +34,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('تسجيل دخول العميل'), findsWidgets);
-    expect(find.text('دخول عميل الأعمال'), findsNothing);
+    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.text('تسجيل دخول العميل'), findsNothing);
     expect(
       find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
@@ -1588,6 +1588,88 @@ void main() {
     expect(api.lastPath, '/api/v1/b2b/products/42?store_id=7');
   });
 
+  testWidgets('C13 Screen 4 period presets match purchases report semantics', (tester) async {
+    final api = _FakeB2bApi({
+      'data': [
+        {
+          'rank': 1,
+          'product_id': 42,
+          'store_id': 7,
+          'sku': 'TOP-1',
+          'name': 'Top Product',
+          'quantity': 12,
+          'total': 144.5,
+          'currency': 'KWD',
+          'last_purchased_at': '2026-09-30T11:30:00Z',
+          'account_price': 7.25,
+          'current_price_currency': 'KWD',
+          'pack_label': 'Case 12',
+          'can_repurchase': true,
+          'unavailable_reason': null,
+        },
+      ],
+      'meta': {
+        'page': 1,
+        'per_page': 20,
+        'total': 1,
+        'has_more': false,
+      },
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/products/top?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('b2b-top-products-current-period')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-top-products-previous-period')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('b2b-top-product-rank-1')), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-top-products-current-period')),
+    );
+    await tester.pumpAndSettle();
+
+    var uri = Uri.parse(api.lastPath!);
+    expect(uri.queryParameters['store_id'], '7');
+    expect(uri.queryParameters['from'], isNotNull);
+    expect(uri.queryParameters['to'], isNotNull);
+    expect(uri.queryParameters['page'], '1');
+
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-top-products-previous-period')),
+    );
+    await tester.pumpAndSettle();
+
+    uri = Uri.parse(api.lastPath!);
+    expect(uri.queryParameters['from'], isNotNull);
+    expect(uri.queryParameters['to'], isNotNull);
+    expect(
+      DateTime.parse(uri.queryParameters['from']!).day,
+      1,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-top-products-all-time')),
+    );
+    await tester.pumpAndSettle();
+
+    uri = Uri.parse(api.lastPath!);
+    expect(uri.queryParameters.containsKey('from'), isFalse);
+    expect(uri.queryParameters.containsKey('to'), isFalse);
+    expect(uri.queryParameters['store_id'], '7');
+  });
+
   testWidgets('B2B top products visibly disable repurchase when authoritative stock is empty', (tester) async {
     final api = _FakeB2bApi({
       'data': [
@@ -1630,6 +1712,105 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-top-product-open-1')), findsOneWidget);
   });
 
+  testWidgets('C13 Screen 3 renders period summary trend categories and drill-through', (tester) async {
+    final api = _FakeB2bApi({
+      'currency': 'KWD',
+      'period': {'from': null, 'to': null},
+      'summary': {
+        'total_purchases': 150.0,
+        'order_count': 2,
+        'invoice_count': 2,
+        'average_order_value': 75.0,
+      },
+      'comparison': {
+        'from': '2026-08-01',
+        'to': '2026-08-31',
+        'total_purchases': 100.0,
+        'order_count': 1,
+        'change_amount': 50.0,
+        'change_percent': 50.0,
+      },
+      'data': [
+        {
+          'period': '2026-09-01',
+          'orders_count': 1,
+          'purchase_total': 50.0,
+        },
+        {
+          'period': '2026-09-02',
+          'orders_count': 1,
+          'purchase_total': 100.0,
+        },
+      ],
+      'categories': [
+        {
+          'category_id': 1,
+          'category_name': 'Rice',
+          'purchase_total': 90.0,
+          'percentage': 60.0,
+        },
+        {
+          'category_id': 2,
+          'category_name': 'Oil',
+          'purchase_total': 60.0,
+          'percentage': 40.0,
+        },
+      ],
+      'orders': [
+        {
+          'id': 77,
+          'order_number': 'B2B-77',
+          'store_id': 7,
+          'status': 'confirmed',
+          'currency': 'KWD',
+          'grand_total': 100.0,
+          'created_at': '2026-09-02T10:00:00Z',
+        },
+      ],
+      'meta': {
+        'page': 1,
+        'per_page': 5,
+        'total': 1,
+        'has_more': false,
+      },
+      'generated_at': '2026-09-02T10:00:00Z',
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/reports/purchases?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2b-purchases-filters')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-purchases-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-purchases-trend')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-purchases-categories')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-purchases-category-donut')),
+      findsOneWidget,
+    );
+    expect(find.text('Rice'), findsOneWidget);
+    expect(find.text('Oil'), findsOneWidget);
+    expect(find.text('B2B-77'), findsOneWidget);
+    expect(api.lastPath, contains('store_id=7'));
+
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-purchases-current-period')),
+    );
+    await tester.pumpAndSettle();
+
+    final currentUri = Uri.parse(api.lastPath!);
+    expect(currentUri.queryParameters['store_id'], '7');
+    expect(currentUri.queryParameters['from'], isNotNull);
+    expect(currentUri.queryParameters['to'], isNotNull);
+    expect(currentUri.queryParameters['page'], '1');
+    expect(currentUri.queryParameters['per_page'], '5');
+  });
+
   testWidgets('B2B remote routes visibly render authoritative payload fields', (tester) async {
     final cases = <({String route, Object? payload, String expected})>[
       (
@@ -1663,10 +1844,36 @@ void main() {
       (
         route: '/b2b/reports/purchases',
         payload: {
+          'currency': 'KWD',
           'period': {'from': '2026-09-01', 'to': '2026-09-30'},
+          'summary': {
+            'total_purchases': 48.0,
+            'order_count': 1,
+            'invoice_count': 1,
+            'average_order_value': 48.0,
+          },
+          'comparison': null,
           'data': [
-            {'product_name': 'Bulk Rice', 'quantity': 12, 'total': 48.0},
+            {
+              'period': '2026-09-01',
+              'orders_count': 1,
+              'purchase_total': 48.0,
+            },
           ],
+          'categories': [
+            {
+              'category_name': 'Bulk Rice',
+              'purchase_total': 48.0,
+              'percentage': 100.0,
+            },
+          ],
+          'orders': <Object?>[],
+          'meta': {
+            'page': 1,
+            'per_page': 5,
+            'total': 0,
+            'has_more': false,
+          },
         },
         expected: 'Bulk Rice',
       ),
