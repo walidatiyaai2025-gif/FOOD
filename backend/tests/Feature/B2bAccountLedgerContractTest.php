@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\B2bAccount;
+use App\Models\B2bCustomer;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\User;
@@ -203,7 +204,7 @@ final class B2bAccountLedgerContractTest extends TestCase
         $this->assertFalse(Schema::hasColumn('customer_account_ledger_entries', 'updated_at'));
     }
 
-    /** @return array{0:User,1:Customer,2:\App\Models\B2bCustomer,3:int} */
+    /** @return array{0:User,1:Customer,2:B2bCustomer,3:int} */
     private function account(float $creditLimit): array
     {
         $user = User::query()->create([
