@@ -288,6 +288,14 @@ class DashboardOrderManagementTest extends TestCase
         ])->assertSessionHasErrors('note');
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending']);
 
+        DB::table('orders')->where('id', $order->id)->update(['payment_method' => 'account_credit']);
+        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
+            'status' => 'confirmed',
+            'note' => 'Credit approval must be revalidated',
+        ])->assertSessionHasErrors('status');
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending']);
+
+        DB::table('orders')->where('id', $order->id)->update(['payment_method' => 'cash_on_delivery']);
         $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
             'status' => 'confirmed',
             'note' => 'Commercially approved',
