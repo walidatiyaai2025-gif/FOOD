@@ -19,6 +19,18 @@ ledger="backend/tests/Feature/B2bAccountLedgerContractTest.php"
 finance="backend/tests/Feature/B2bFinanceTest.php"
 pricing="backend/tests/Feature/AuthoritativePricingQuoteTest.php"
 plan="docs/execution/C13_CUSTOMER_13_SCREEN_JOURNEY_PLAN.md"
+navigation="apps/customer_app/test/customer_navigation_test.dart"
+footer="apps/customer_app/test/customer_b2b_footer_test.dart"
+marketplace="apps/customer_app/test/platform_marketplace_home_test.dart"
+profile_screen="apps/customer_app/lib/features/b2b/business_account_profile.dart"
+dashboard_orders="backend/tests/Feature/DashboardOrderManagementTest.php"
+driver_lifecycle="backend/tests/Feature/DriverAssignmentLifecycleTest.php"
+driver_invoice="backend/tests/Feature/DriverInvoiceNotificationTest.php"
+driver_journey="apps/driver_app/test/driver_active_journey_test.dart"
+mobile_inspector="backend/tests/Feature/MobileSystemInspectorEventTest.php"
+customer_diagnostics="apps/customer_app/test/customer_diagnostics_test.dart"
+driver_diagnostics="apps/driver_app/test/driver_runtime_inspector_test.dart"
+screenshots="apps/customer_app/test/screenshot_evidence_test.dart"
 
 test -f "$routes" || fail "Customer route registry is missing"
 test -f "$journey" || fail "B2B Customer journey tests are missing"
@@ -83,7 +95,41 @@ require_text "$pricing" "test_wholesale_account_credit_checkout_rejects_total_ab
 require_text "$pricing" "test_checkout_reprices_live_price_and_historical_snapshot_does_not_drift"
 require_text "$pricing" "test_wholesale_order_keeps_tier_and_price_snapshot_after_tier_changes"
 
+# Canonical launch order and discoverable Wholesale navigation.
+require_text "$navigation" "entry route renders the C13 business login without Marketplace bypass"
+require_text "$navigation" "successful C13 login lands on Screen 2 dashboard"
+require_text "$journey" "B2B dashboard Store icon resolves principal Wholesale and opens canonical home"
+require_text "$footer" "Wholesale footer has four destinations and active Shopping returns home"
+require_text "$marketplace" "signed-in marketplace keeps store switcher open and management routes follow origin store"
+require_text "$marketplace" "stale owned Retail context is rejected by marketplace header and footer"
+require_text "$profile_screen" "Wholesale / Retail"
+
+# Customer-Service approval is mandatory before Driver fulfillment, and rejection must reverse settlement once.
+require_text "$dashboard_orders" "test_b2b_dashboard_order_uses_approved_customer_tier_price_and_minimum_quantity"
+require_text "$dashboard_orders" "test_b2b_rejection_reverses_checkout_settlement_once_without_touching_manual_ledger"
+require_text "$driver_lifecycle" "test_pending_b2b_order_cannot_be_assigned_before_customer_service_approval"
+
+# Driver must receive the authoritative invoice/payment/collection contract after approval.
+require_text "$driver_invoice" "test_assigned_driver_receives_safe_invoice_and_note_timeline_only_for_own_assignment"
+require_text "$driver_invoice" "test_checkout_settlement_snapshot_controls_driver_collection_instruction"
+require_text "$driver_journey" "new detail preserves assigned invoice access"
+require_text "$driver_journey" "account debt remainder explicitly tells driver not to collect"
+
+# Customer/Driver/API failures must converge into the central sanitized System Inspector.
+require_text "$mobile_inspector" "test_customer_runtime_event_is_sanitized_deduplicated_and_visible_to_super_admin"
+require_text "$mobile_inspector" "test_driver_runtime_event_requires_driver_identity_and_owned_store"
+require_text "$mobile_inspector" "test_unhandled_api_exception_is_recorded_with_correlation_id"
+require_text "$customer_diagnostics" "central inspector keeps offline Customer failure pending until accepted"
+require_text "$driver_diagnostics" "central inspector keeps offline Driver failure pending until accepted"
+
+# Exact integrated visual matrix: 13 B2B screens, both AR/RTL and EN/LTR, fixed phone viewport.
+test -f "$screenshots" || fail "C13 screenshot evidence matrix is missing"
+c13_screenshot_count="$(grep -c '01_Mobile/B2B_Customer/' "$screenshots")"
+[[ "$c13_screenshot_count" -eq 13 ]] || fail "C13 screenshot matrix must contain exactly 13 B2B capture cases (found $c13_screenshot_count)"
+require_text "$screenshots" "for (final locale in const [Locale('ar'), Locale('en')])"
+require_text "$screenshots" "tester.view.physicalSize = const Size(430, 932)"
+
 # Reuse the repository-wide tenant/channel isolation acceptance instead of inventing a C13-only bypass.
 bash ./scripts/commerce-isolation-acceptance.sh
 
-echo "C13 integrated acceptance inventory PASS: 13 canonical screens + checkout sub-surface + finance/commerce/isolation contracts."
+echo "C13 integrated acceptance inventory PASS: 13-screen AR/EN matrix + launch/navigation + finance + approval/driver + Inspector + isolation contracts."

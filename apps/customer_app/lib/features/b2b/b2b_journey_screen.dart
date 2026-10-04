@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/api/b2b_api.dart';
 import '../../core/api/b2c_account_api.dart';
 import '../../core/api/customer_action_api.dart';
+import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
@@ -16,6 +17,7 @@ import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
 import '../customer_account/customer_notification_center_screen.dart';
 import '../customer_orders/customer_order_screens.dart';
+import '../storefront/storefront_design_system.dart';
 import 'business_account_profile.dart';
 import '../customer_orders/customer_orders_api.dart';
 import '../../shared/customer_action_widgets.dart';
@@ -30,6 +32,7 @@ class B2bJourneyScreen extends StatelessWidget {
     this.api,
     this.accountApi,
     this.ordersApi,
+    this.storefrontApi,
     this.onLocaleChanged,
     this.onLogout,
     super.key,
@@ -40,6 +43,7 @@ class B2bJourneyScreen extends StatelessWidget {
   final B2bApi? api;
   final B2cAccountApi? accountApi;
   final CustomerOrdersApi? ordersApi;
+  final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
   final ValueChanged<Locale>? onLocaleChanged;
   final Future<void> Function()? onLogout;
@@ -212,6 +216,7 @@ class B2bJourneyScreen extends StatelessWidget {
                   ? _B2bDashboardRemoteState(
                       api: api!,
                       endpoint: _endpoint()!,
+                      storefrontApi: storefrontApi,
                     )
                   : definition.pattern == CustomerRoutePaths.b2bPurchaseReports
                       ? _PurchaseReportRemoteState(
@@ -553,10 +558,12 @@ class _B2bDashboardRemoteState extends StatefulWidget {
   const _B2bDashboardRemoteState({
     required this.api,
     required this.endpoint,
+    this.storefrontApi,
   });
 
   final B2bApi api;
   final String endpoint;
+  final StorefrontApi? storefrontApi;
 
   @override
   State<_B2bDashboardRemoteState> createState() =>
@@ -566,6 +573,7 @@ class _B2bDashboardRemoteState extends StatefulWidget {
 class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     with WidgetsBindingObserver {
   late Future<Object?> _future;
+  bool _openingWholesale = false;
 
   @override
   void initState() {
@@ -620,6 +628,67 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
       path: path,
       queryParameters: params.isEmpty ? null : params,
     ).toString();
+  }
+
+  int? _positiveInt(Object? raw) {
+    final value = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
+    return value != null && value > 0 ? value : null;
+  }
+
+  Future<void> _openPrincipalWholesale() async {
+    final storefrontApi = widget.storefrontApi;
+    if (storefrontApi == null || _openingWholesale) return;
+
+    setState(() => _openingWholesale = true);
+    try {
+      final payload = await storefrontApi.selection();
+      final entitlements = payload['entitlements'] is Map
+          ? Map<String, dynamic>.from(payload['entitlements'] as Map)
+          : const <String, dynamic>{};
+      final expectedPrincipal =
+          _positiveInt(entitlements['principal_wholesale_store_id']);
+      final rows = payload['wholesale_stores'];
+
+      int? principalId;
+      if (rows is List) {
+        for (final raw in rows) {
+          if (raw is! Map || raw['is_platform_principal'] != true) continue;
+          final row = Map<String, dynamic>.from(raw);
+          final storeId = _positiveInt(row['id'] ?? row['store_id']);
+          if (storeId == null) continue;
+          if (expectedPrincipal != null && storeId != expectedPrincipal) {
+            throw const StorefrontApiException(
+              'Principal Wholesale store contract mismatch.',
+            );
+          }
+          if (principalId != null && principalId != storeId) {
+            throw const StorefrontApiException(
+              'Multiple principal Wholesale stores are not allowed.',
+            );
+          }
+          principalId = storeId;
+        }
+      }
+
+      if (principalId == null) {
+        throw const StorefrontApiException(
+          'Principal Wholesale store is not available.',
+        );
+      }
+
+      if (!mounted) return;
+      final commerceContext = CustomerCommerceContext(
+        channel: CustomerCommerceChannel.wholesale,
+        storeId: principalId,
+      );
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.wholesaleHome(commerceContext),
+      );
+    } catch (error) {
+      if (mounted) await showOperationalError(context, error);
+    } finally {
+      if (mounted) setState(() => _openingWholesale = false);
+    }
   }
 
   String _money(Object? value, String currency) {
@@ -951,6 +1020,16 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                           ],
                         ),
                       ),
+                      if (widget.storefrontApi != null) ...[
+                        IconButton.filledTonal(
+                          key: const ValueKey('b2b-dashboard-shopping'),
+                          tooltip: context.tr('customer.nav.shopping'),
+                          onPressed:
+                              _openingWholesale ? null : _openPrincipalWholesale,
+                          icon: const Icon(Icons.storefront_rounded),
+                        ),
+                        const SizedBox(width: CustomerUiSpacing.xs),
+                      ],
                       IconButton.filledTonal(
                         key: const ValueKey('b2b-dashboard-refresh'),
                         tooltip: context.tr('b2b.dashboard.refresh'),

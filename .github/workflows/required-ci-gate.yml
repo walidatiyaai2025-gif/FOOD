@@ -83,7 +83,9 @@ jobs:
             preview_runtime_distribution=true
           fi
 
-          if [[ "${GITHUB_HEAD_REF:-}" == "test/873-c13-integrated-e2e" ]]; then
+          if [[ "${GITHUB_HEAD_REF:-}" == "test/873-c13-integrated-e2e" || "${GITHUB_HEAD_REF:-}" == "test/873-c13-visual-operational-e2e-v2" ]]; then
+            mobile_prod_ux_acceptance=true
+            operational_completion_e2e=true
             c13_integrated_e2e=true
             backend=true
             customer=true
