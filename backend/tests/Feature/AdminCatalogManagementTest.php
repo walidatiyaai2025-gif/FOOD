@@ -89,6 +89,39 @@ class AdminCatalogManagementTest extends TestCase
         $this->assertDatabaseHas('products', ['id' => $productId, 'catalog_id' => $catalogId]);
         $this->assertDatabaseHas('categories', ['id' => $categoryId, 'catalog_id' => $catalogId]);
 
+        $warehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $storeId,
+            'code' => 'CATALOG-OOS-WH',
+            'name' => 'Catalog OOS Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('inventories')->insert([
+            'warehouse_id' => $warehouseId,
+            'product_id' => $productId,
+            'quantity' => 2,
+            'reserved_quantity' => 2,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/admin/catalog?tab=products&store_id='.$storeId.'&support_access=1')
+            ->assertOk()
+            ->assertSee('data-availability-state="OUT_OF_STOCK"', false)
+            ->assertSee('نفد من المخزون');
+
+        DB::table('inventories')
+            ->where('warehouse_id', $warehouseId)
+            ->where('product_id', $productId)
+            ->update(['reserved_quantity' => 1, 'updated_at' => now()]);
+
+        $this->actingAs($user)
+            ->get('/admin/catalog?tab=products&store_id='.$storeId.'&support_access=1')
+            ->assertOk()
+            ->assertSee('data-availability-state="AVAILABLE"', false);
+
         $this->actingAs($user)->patch('/admin/catalog/products/'.$productId, [
             'sku' => 'SKU-001',
             'name' => 'مياه معدنية',
