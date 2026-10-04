@@ -364,7 +364,9 @@ class OrderController extends Controller
                 'store_id' => $entry->store_id === null ? (int) $order->store_id : (int) $entry->store_id,
                 'invoice_id' => $entry->invoice_id,
                 'order_id' => (int) $order->getKey(),
-                'entry_type' => 'adjustment_negative',
+                'entry_type' => (float) $entry->debit > 0
+                    ? 'adjustment_negative'
+                    : 'adjustment_positive',
                 'reference' => $reference,
                 'description' => 'Reversal of checkout settlement after order cancellation',
                 'debit' => round((float) $entry->credit, 3),
