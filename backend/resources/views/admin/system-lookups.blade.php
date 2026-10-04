@@ -49,11 +49,7 @@ input,select{border:1px solid var(--foodex-border);border-radius:9px;padding:9px
 @endif
 
 @if ($errors->any())
-<div class="notice err">
-@foreach ($errors->all() as $error)
-<div>{{ $error }}</div>
-@endforeach
-</div>
+<div class="notice err">{{ $errors->first() }}</div>
 @endif
 
 <section class="card">
@@ -128,46 +124,7 @@ input,select{border:1px solid var(--foodex-border);border-radius:9px;padding:9px
 <td colspan="{{ $canManage ? 7 : 6 }}">{{ $ar ? 'لا توجد قيم.' : 'No lookup values.' }}</td>
 </tr>
 @else
-@foreach ($records as $record)
-@php
-    $isTier = $definition['type'] === \App\Services\OperationalLookupService::PRICE_TIER;
-    $labelAr = $isTier ? ($record->name_ar ?? $record->name) : $record->label_ar;
-    $labelEn = $isTier ? ($record->name_en ?? $record->name) : $record->label_en;
-    $sort = $isTier ? $record->priority : $record->sort_order;
-@endphp
-<tr>
-<td>{{ $record->id }}</td>
-<td><span class="code">{{ $record->code }}</span><span class="immutable">{{ $ar ? 'ثابت' : 'immutable' }}</span></td>
-<td>{{ $labelAr }}</td>
-<td>{{ $labelEn }}</td>
-<td>{{ $sort }}</td>
-<td>
-@if ($record->is_active)
-<span class="badge on">{{ $ar ? 'نشط' : 'Active' }}</span>
-@else
-<span class="badge off">{{ $ar ? 'غير نشط' : 'Inactive' }}</span>
-@endif
-</td>
-@if ($canManage)
-<td>
-<form method="post" action="{{ route('admin.operations.lookups.update', ['type' => $typeKey, 'lookup' => $record->id]) }}">
-@csrf
-@method('PATCH')
-<div class="actions">
-<input name="label_ar" value="{{ $labelAr }}" required aria-label="{{ $ar ? 'الاسم بالعربية' : 'Arabic label' }}">
-<input name="label_en" value="{{ $labelEn }}" required aria-label="{{ $ar ? 'الاسم بالإنجليزية' : 'English label' }}">
-<input type="number" name="sort_order" min="0" value="{{ $sort }}" required aria-label="{{ $ar ? 'الترتيب' : 'Sort order' }}">
-<label>
-<input type="checkbox" name="is_active" value="1" @checked($record->is_active)>
-{{ $ar ? 'نشط' : 'Active' }}
-</label>
-<button class="btn">{{ $ar ? 'حفظ' : 'Save' }}</button>
-</div>
-</form>
-</td>
-@endif
-</tr>
-@endforeach
+@each('admin._system-lookup-row', $records, 'record')
 @endif
 </tbody>
 </table>
