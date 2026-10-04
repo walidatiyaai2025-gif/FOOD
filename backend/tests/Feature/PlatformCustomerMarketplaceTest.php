@@ -188,7 +188,11 @@ class PlatformCustomerMarketplaceTest extends TestCase
         $this->getJson('/api/v1/store-selector')
             ->assertOk()
             ->assertJsonMissing(['id' => $ownedStore])
-            ->assertJsonPath('retail_stores.0.id', $foreignStore);
+            ->assertJsonPath('retail_stores.0.id', $foreignStore)
+            ->assertJsonCount(1, 'wholesale_stores')
+            ->assertJsonPath('wholesale_stores.0.id', $wholesaleStore)
+            ->assertJsonPath('wholesale_stores.0.is_platform_principal', true)
+            ->assertJsonPath('entitlements.principal_wholesale_store_id', $wholesaleStore);
 
         $this->getJson('/api/v1/stores')
             ->assertOk()
