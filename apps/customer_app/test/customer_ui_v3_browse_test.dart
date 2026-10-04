@@ -221,7 +221,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('نفد من المخزون'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('customer-product-out-of-stock')),
+        findsOneWidget,
+      );
       expect(find.byIcon(Icons.add_rounded), findsNothing);
       expect(addCalls, 0);
 
