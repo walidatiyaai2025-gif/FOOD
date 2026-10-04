@@ -765,7 +765,12 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                 context,
                 keyName: 'purchases-month',
                 label: context.tr('b2b.dashboard.purchases_month'),
-                value: _money(operations['purchases_this_month'], currency),
+                value: _money(
+                  operations['purchases_this_month'] ??
+                      data['purchases_total'] ??
+                      data['purchase_total'],
+                  currency,
+                ),
                 icon: Icons.shopping_bag_outlined,
                 route: CustomerRoutePaths.b2bPurchaseReports,
               ),
