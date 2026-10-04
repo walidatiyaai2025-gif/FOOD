@@ -379,6 +379,7 @@ final class CommerceQuoteService
                 'line_total' => null,
                 'is_available' => false,
                 'available_quantity' => 0.0,
+                'availability_state' => 'OUT_OF_STOCK',
                 'minimum_order_quantity' => null,
                 'ordering_increment' => null,
                 'pack_size' => null,
@@ -399,7 +400,7 @@ final class CommerceQuoteService
             ->get(['inventories.quantity', 'inventories.reserved_quantity']);
 
         $availableQuantity = $inventoryRows->isEmpty()
-            ? null
+            ? 0.0
             : (float) $inventoryRows->sum(
                 static fn (object $row): float => max(
                     0.0,
@@ -407,7 +408,7 @@ final class CommerceQuoteService
                 ),
             );
 
-        $isAvailable = $availableQuantity === null || $quantity <= $availableQuantity + 0.0001;
+        $isAvailable = $availableQuantity > 0 && $quantity <= $availableQuantity + 0.0001;
         $unitPrice = (float) $product->price;
         $minimum = null;
         $increment = null;
@@ -474,6 +475,7 @@ final class CommerceQuoteService
             'line_total' => $lineSubtotal,
             'is_available' => $isAvailable,
             'available_quantity' => $availableQuantity,
+            'availability_state' => $availableQuantity > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK',
             'minimum_order_quantity' => $minimum,
             'ordering_increment' => $increment,
             'pack_size' => $packSize,
