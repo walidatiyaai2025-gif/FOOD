@@ -52,6 +52,25 @@ class DriverPreviewReadBridgeTest extends TestCase
             ->assertJsonPath('data.id', $targetAssignment);
     }
 
+    public function test_preview_failed_delivery_reasons_reuse_authoritative_lookup_contract(): void
+    {
+        $storeId = $this->retailStore('DRV-PREVIEW-LOOKUPS');
+        $admin = $this->storeAdmin($storeId, 'driver-preview-lookups-admin@example.test');
+        [$driverUser] = $this->driver($storeId, 'driver-preview-lookups@example.test');
+
+        $expected = $this->getJson('/api/v1/lookups/failed-delivery-reasons')
+            ->assertOk()
+            ->json('data');
+
+        $token = $this->previewToken($admin, $driverUser, $storeId);
+        $this->app['auth']->forgetGuards();
+
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->getJson('/api/v1/app-preview/driver/lookups/failed-delivery-reasons')
+            ->assertOk()
+            ->assertJsonPath('data', $expected);
+    }
+
     public function test_preview_credential_is_header_only_and_cannot_be_normal_bearer_or_mutate(): void
     {
         $storeId = $this->retailStore('DRV-PREVIEW-SAFE');
