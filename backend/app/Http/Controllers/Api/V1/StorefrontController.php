@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
 use App\Models\User;
+use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\RetailMerchantIdentityService;
@@ -481,8 +482,9 @@ final class StorefrontController extends Controller
             ->values()
             ->all();
 
+        $finance = app(B2bAccountLedgerService::class)->summary($customer, $storeId);
         $paymentMethods = array_values((array) config('checkout.payment_methods', ['cash_on_delivery']));
-        if ((float) $account->credit_limit > 0 && ! in_array('account_credit', $paymentMethods, true)) {
+        if ((float) $finance['purchasing_power'] > 0 && ! in_array('account_credit', $paymentMethods, true)) {
             $paymentMethods[] = 'account_credit';
         }
 
@@ -502,8 +504,14 @@ final class StorefrontController extends Controller
             'addresses' => $addresses,
             'delivery_dates' => $deliveryDates,
             'payment_methods' => $paymentMethods,
-            'credit_limit' => (float) $account->credit_limit,
-            'currency' => 'EGP',
+            'balance' => (float) $finance['balance'],
+            'balance_direction' => (string) $finance['balance_direction'],
+            'outstanding_receivable' => (float) $finance['outstanding_receivable'],
+            'customer_credit_balance' => (float) $finance['customer_credit_balance'],
+            'credit_limit' => (float) $finance['credit_limit'],
+            'available_credit_line' => (float) $finance['available_credit_line'],
+            'purchasing_power' => (float) $finance['purchasing_power'],
+            'currency' => $finance['currency'],
         ]);
     }
 
