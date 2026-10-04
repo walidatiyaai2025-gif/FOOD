@@ -21,6 +21,7 @@ jobs:
       app_preview_visual: ${{ steps.filter.outputs.app_preview_visual }}
       preview_runtime_distribution: ${{ steps.filter.outputs.preview_runtime_distribution }}
       mobile_prod_ux_acceptance: ${{ steps.filter.outputs.mobile_prod_ux_acceptance }}
+      operational_completion_e2e: ${{ steps.filter.outputs.operational_completion_e2e }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,6 +45,7 @@ jobs:
           app_preview_visual=false
           preview_runtime_distribution=false
           mobile_prod_ux_acceptance=false
+          operational_completion_e2e=false
 
           if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$)' changed-files.txt; then
             backend=true
@@ -70,6 +72,15 @@ jobs:
             driver=true
           fi
 
+          if [[ "${GITHUB_HEAD_REF:-}" =~ ^test/[0-9]+-operational-completion-e2e$ ]]; then
+            operational_completion_e2e=true
+            backend=true
+            customer=true
+            driver=true
+            app_preview_visual=true
+            preview_runtime_distribution=true
+          fi
+
           if grep -Eq '^(apps/(customer_app|driver_app)/(lib/core/preview/|lib/preview_main\.dart|test/(customer|driver)_preview)|backend/(config/app_preview\.php|resources/views/admin/app-preview\.blade\.php)|scripts/app_preview_visual_parity\.mjs|docs/quality/APP_PREVIEW_VISUAL_PARITY\.md|\.github/workflows/app-preview-(acceptance-ci|visual-parity)\.yml|\.github/workflows/required-ci-gate\.yml)' changed-files.txt; then
             app_preview_visual=true
           fi
@@ -85,6 +96,7 @@ jobs:
             echo "app_preview_visual=$app_preview_visual"
             echo "preview_runtime_distribution=$preview_runtime_distribution"
             echo "mobile_prod_ux_acceptance=$mobile_prod_ux_acceptance"
+            echo "operational_completion_e2e=$operational_completion_e2e"
           } >> "$GITHUB_OUTPUT"
 
   repository-policy:
@@ -146,6 +158,18 @@ jobs:
       contents: write
     uses: ./.github/workflows/screenshot-evidence.yml
 
+  operational-completion-e2e:
+    name: Operational completion integrated gate
+    needs: changes
+    if: ${{ needs.changes.outputs.operational_completion_e2e == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate B2B/B2C/store isolation contracts
+        run: bash ./scripts/commerce-isolation-acceptance.sh
+      - name: Validate synchronized release readiness
+        run: bash ./scripts/release-readiness.sh
+
   required-ci-gate:
     name: required-ci-gate
     if: ${{ always() }}
@@ -158,6 +182,7 @@ jobs:
       - app-preview-visual-parity
       - preview-runtime-distribution
       - screenshot-evidence
+      - operational-completion-e2e
     runs-on: ubuntu-latest
     steps:
       - name: Enforce applicable validation results
@@ -177,6 +202,8 @@ jobs:
           PREVIEW_RUNTIME_DISTRIBUTION_RESULT: ${{ needs.preview-runtime-distribution.result }}
           SCREENSHOT_RESULT: ${{ needs.screenshot-evidence.result }}
           MOBILE_PROD_UX_ACCEPTANCE: ${{ needs.changes.outputs.mobile_prod_ux_acceptance }}
+          OPERATIONAL_COMPLETION_E2E: ${{ needs.changes.outputs.operational_completion_e2e }}
+          OPERATIONAL_COMPLETION_E2E_RESULT: ${{ needs.operational-completion-e2e.result }}
         run: |
           set -euo pipefail
 
@@ -210,6 +237,7 @@ jobs:
           require_applicable_success "$DRIVER_CHANGED" "Driver validation" "$DRIVER_RESULT"
           require_applicable_success "$APP_PREVIEW_VISUAL_CHANGED" "APP-PREVIEW visual runtime parity" "$APP_PREVIEW_VISUAL_RESULT"
           require_applicable_success "$PREVIEW_RUNTIME_DISTRIBUTION_CHANGED" "Preview runtime distribution" "$PREVIEW_RUNTIME_DISTRIBUTION_RESULT"
+          require_applicable_success "$OPERATIONAL_COMPLETION_E2E" "Operational completion integrated gate" "$OPERATIONAL_COMPLETION_E2E_RESULT"
 
           if [[ "$MOBILE_PROD_UX_ACCEPTANCE" == "true" || "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" || "${{ github.head_ref }}" == "ci/184-screenshot-evidence-guards" ]]; then
             require_success "Runtime screenshot evidence" "$SCREENSHOT_RESULT"
