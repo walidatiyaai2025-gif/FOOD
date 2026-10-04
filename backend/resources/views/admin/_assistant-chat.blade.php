@@ -1,6 +1,7 @@
 @php
     $assistantUser = $user ?? auth()->user();
-    $assistantEnabled = (bool) config('assistant.enabled', false);
+    $assistantRuntime = app(\\App\\Services\\AssistantRuntimeSettings::class);
+    $assistantEnabled = $assistantRuntime->enabled() && $assistantRuntime->readOnly();
     $assistantAuthorized = false;
 
     if ($assistantEnabled && $assistantUser instanceof \App\Models\User) {
