@@ -46,6 +46,8 @@ class CustomerNotificationCampaignPopupService {
   CustomerNotificationCampaignPopupService({
     http.Client? client,
     String? baseUrl,
+    this.recordEvents = true,
+    this.strictReadErrors = false,
   })  : _client = client ?? http.Client(),
         _baseUrl = baseUrl ?? FoodexEnvironment.apiBaseUrl;
 
@@ -54,6 +56,8 @@ class CustomerNotificationCampaignPopupService {
 
   final http.Client _client;
   final String _baseUrl;
+  final bool recordEvents;
+  final bool strictReadErrors;
 
   Future<void> showForContext(
     BuildContext context, {
@@ -186,7 +190,14 @@ class CustomerNotificationCampaignPopupService {
     String? accessToken,
   }) async {
     final baseUrl = _baseUrl;
-    if (baseUrl.isEmpty) return const [];
+    if (baseUrl.isEmpty) {
+      if (strictReadErrors) {
+        throw const CustomerNotificationCampaignPopupException(
+          'notification_campaign_popup_base_url_missing',
+        );
+      }
+      return const [];
+    }
 
     try {
       final query = <String, String>{
@@ -201,14 +212,32 @@ class CustomerNotificationCampaignPopupService {
         headers: _headers(accessToken),
       );
 
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300 ||
-          response.body.isEmpty) {
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        if (strictReadErrors) {
+          throw CustomerNotificationCampaignPopupException(
+            'notification_campaign_popup_http_${response.statusCode}',
+          );
+        }
+        return const [];
+      }
+      if (response.body.isEmpty) {
+        if (strictReadErrors) {
+          throw const CustomerNotificationCampaignPopupException(
+            'notification_campaign_popup_response_empty',
+          );
+        }
         return const [];
       }
 
       final decoded = jsonDecode(response.body);
-      if (decoded is! Map || decoded['data'] is! List) return const [];
+      if (decoded is! Map || decoded['data'] is! List) {
+        if (strictReadErrors) {
+          throw const CustomerNotificationCampaignPopupException(
+            'notification_campaign_popup_response_invalid',
+          );
+        }
+        return const [];
+      }
 
       return (decoded['data'] as List)
           .whereType<Map>()
@@ -219,7 +248,14 @@ class CustomerNotificationCampaignPopupService {
           )
           .where((campaign) => campaign.id > 0)
           .toList(growable: false);
+    } on CustomerNotificationCampaignPopupException {
+      rethrow;
     } catch (_) {
+      if (strictReadErrors) {
+        throw const CustomerNotificationCampaignPopupException(
+          'notification_campaign_popup_network_error',
+        );
+      }
       return const [];
     }
   }
@@ -233,6 +269,7 @@ class CustomerNotificationCampaignPopupService {
     int? storeId,
     String? accessToken,
   }) async {
+    if (!recordEvents) return;
     final baseUrl = _baseUrl;
     if (baseUrl.isEmpty) return;
 
@@ -279,4 +316,13 @@ class CustomerNotificationCampaignPopupService {
 
     return generated;
   }
+}
+
+class CustomerNotificationCampaignPopupException implements Exception {
+  const CustomerNotificationCampaignPopupException(this.code);
+
+  final String code;
+
+  @override
+  String toString() => code;
 }
