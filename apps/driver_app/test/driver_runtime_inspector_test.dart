@@ -33,47 +33,6 @@ void main() {
     expect(encoded, contains('[REDACTED]'));
   });
 
-  test('remote flush sends only sanitized queued Driver diagnostics', () async {
-    final inspector = DriverRuntimeInspector(maxEvents: 10);
-    inspector.recordException(
-      Exception(
-        'Bearer driver-secret driver@example.test 29.375900',
-      ),
-      StackTrace.fromString('token=driver-stack-secret'),
-      source: 'flutter',
-    );
-
-    http.Request? captured;
-    final client = MockClient((request) async {
-      captured = request;
-      return http.Response('{}', 202);
-    });
-
-    final submitted = await inspector.flushRemote(
-      client: client,
-      requestUri: Uri.parse(
-        'https://foodex.example.test/api/v1/driver/assignments?token=request-secret',
-      ),
-      authorization: 'Bearer driver-transport-credential',
-    );
-
-    expect(submitted, 1);
-    expect(captured, isNotNull);
-    expect(captured!.url.path, '/api/v1/runtime-inspector/events');
-    expect(captured!.headers['Authorization'], 'Bearer driver-transport-credential');
-
-    final body = captured!.body;
-    final payload = jsonDecode(body) as Map<String, dynamic>;
-    expect(payload['app'], 'driver');
-    expect(payload['category'], 'error');
-    expect(body, isNot(contains('driver-secret')));
-    expect(body, isNot(contains('driver@example.test')));
-    expect(body, isNot(contains('29.375900')));
-    expect(body, isNot(contains('driver-stack-secret')));
-    expect(body, isNot(contains('driver-transport-credential')));
-    expect(inspector.snapshot().single['remote_submitted_at'], isNotNull);
-  });
-
   test('keeps only the configured bounded event window', () {
     final inspector = DriverRuntimeInspector(maxEvents: 3);
 
@@ -119,7 +78,8 @@ void main() {
     expect(encoded, isNot(contains('server-secret')));
     expect(encoded, isNot(contains('55551234')));
   });
-  test('central flush retries offline Driver events and checkpoints success',
+
+  test('central inspector keeps offline Driver failure pending until accepted',
       () async {
     final inspector = DriverRuntimeInspector(maxEvents: 10);
     inspector.recordHttpFailure(
@@ -131,51 +91,54 @@ void main() {
       statusCode: 503,
     );
 
-    var offlineAttempts = 0;
-    await inspector.flushToInspector(
+    final offline = await inspector.flushToInspector(
       baseUrl: 'https://foodex.example',
-      token: 'driver-auth-secret',
+      token: 'driver-transport-secret',
       channel: 'b2c',
       storeId: 9,
       client: MockClient((request) async {
-        offlineAttempts += 1;
         throw http.ClientException('offline');
       }),
     );
-    expect(offlineAttempts, 1);
+    expect(offline, 0);
+    expect(inspector.snapshot().single['remote_submitted_at'], isNull);
 
-    final bodies = <Map<String, dynamic>>[];
-    final online = MockClient((request) async {
-      bodies.add(
-        Map<String, dynamic>.from(
-          jsonDecode(request.body) as Map,
-        ),
-      );
+    final requests = <http.Request>[];
+    final onlineClient = MockClient((request) async {
+      requests.add(request);
       return http.Response('', 202);
     });
 
-    await inspector.flushToInspector(
+    final submitted = await inspector.flushToInspector(
       baseUrl: 'https://foodex.example',
-      token: 'driver-auth-secret',
+      token: 'driver-transport-secret',
       channel: 'b2c',
       storeId: 9,
-      client: online,
+      client: onlineClient,
     );
-    await inspector.flushToInspector(
+    final repeated = await inspector.flushToInspector(
       baseUrl: 'https://foodex.example',
-      token: 'driver-auth-secret',
+      token: 'driver-transport-secret',
       channel: 'b2c',
       storeId: 9,
-      client: online,
+      client: onlineClient,
     );
 
-    expect(bodies, hasLength(1));
-    expect(bodies.single['app'], 'driver');
-    expect(bodies.single['source'], 'http_failure');
-    expect(bodies.single['status'], 503);
-    expect(bodies.single['store_id'], 9);
-    expect(jsonEncode(bodies.single), isNot(contains('hidden')));
-    expect(jsonEncode(bodies.single), isNot(contains('driver-auth-secret')));
+    expect(submitted, 1);
+    expect(repeated, 0);
+    expect(requests, hasLength(1));
+    expect(requests.single.url.path, '/api/v1/runtime-inspector/events');
+
+    final payload =
+        Map<String, dynamic>.from(jsonDecode(requests.single.body) as Map);
+    expect(payload['app'], 'driver');
+    expect(payload['category'], 'http_failure');
+    expect(payload['status'], 503);
+    expect(payload['store_id'], 9);
+    expect(payload['channel'], 'b2c');
+    expect(requests.single.body, isNot(contains('hidden')));
+    expect(requests.single.body, isNot(contains('driver-transport-secret')));
+    expect(inspector.snapshot().single['remote_submitted_at'], isNotNull);
   });
 
 }
