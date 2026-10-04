@@ -510,6 +510,7 @@ class OrderController extends Controller
             'address_id' => $order->address_id === null ? null : (int) $order->address_id,
             'delivery_address' => $deliveryAddress,
             'requested_delivery_date' => $order->requested_delivery_date,
+            'customer_note' => $order->customer_note,
             'channel' => (string) $order->channel,
             'status' => (string) $order->status,
             'currency' => (string) $order->currency,
