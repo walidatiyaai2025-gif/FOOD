@@ -49,7 +49,7 @@ final class B2bAccountLedgerService
         $balance = round($totalDebits - $totalCredits, 3);
         $creditLimit = round((float) $account->credit_limit, 3);
         $outstandingReceivable = round(max($balance, 0), 3);
-        $customerCreditBalance = round(max(-$balance, 0), 3);
+        $customerCreditBalance = round(max(0 - $balance, 0), 3);
         $availableCreditLine = round(max($creditLimit - $outstandingReceivable, 0), 3);
         $currency = $transactionCurrencies->first() ?? $this->currencyFor($customer, $storeId);
         [$openAmount, $overdueAmount] = $this->invoiceExposure($customer, $storeId);
@@ -139,7 +139,7 @@ final class B2bAccountLedgerService
     public function appendManual(B2bCustomer $customer, array $data, User $actor): int
     {
         $type = (string) ($data['entry_type'] ?? '');
-        if (! in_array($type, self::MANUAL_TYPES, true)) {
+        if (in_array($type, self::MANUAL_TYPES, true) === false) {
             throw ValidationException::withMessages(['entry_type' => ['Unsupported ledger entry type.']]);
         }
 
@@ -229,7 +229,7 @@ final class B2bAccountLedgerService
             'debit_adjustments' => $manualDebits,
             'credit_adjustments' => round(max($manualCredits - $manualPayments, 0), 3),
             'outstanding_amount' => round(max($net, 0), 3),
-            'credit_amount' => round(max(-$net, 0), 3),
+            'credit_amount' => round(max(0 - $net, 0), 3),
         ];
     }
 
@@ -395,7 +395,7 @@ final class B2bAccountLedgerService
         $overdue = 0.0;
         foreach ($invoices as $invoice) {
             $model = Invoice::query()->find((int) $invoice->id);
-            if (! $model instanceof Invoice) {
+            if (($model instanceof Invoice) === false) {
                 continue;
             }
             $amounts = $this->invoiceAmounts($model);
@@ -411,7 +411,7 @@ final class B2bAccountLedgerService
 
     private function normalizeCurrency(mixed $value): ?string
     {
-        if (! is_string($value)) {
+        if (is_string($value) === false) {
             return null;
         }
         $currency = strtoupper(trim($value));
