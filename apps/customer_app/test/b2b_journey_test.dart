@@ -374,6 +374,186 @@ void main() {
     expect(api.lastPath, '/api/v1/cart?store=7');
   });
 
+  testWidgets(
+      'B2B product detail revalidates changed commercial terms before add',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final api = _SequenceB2bApi([
+      {
+        'id': 42,
+        'sku': 'LIVE-42',
+        'name': 'Live Wholesale Product',
+        'store_id': 7,
+        'brand_name': 'FOODEX',
+        'category_name': 'Beverages',
+        'description': 'Fresh authoritative description',
+        'account_price': 7.25,
+        'base_wholesale_price': 8.0,
+        'retail_reference_price': 9.5,
+        'minimum_order_quantity': 5,
+        'ordering_increment': 5,
+        'pack_size': 12,
+        'case_size': 24,
+        'pack_label': 'Case 12',
+        'available_quantity': 30,
+        'is_available': true,
+        'availability_state': 'AVAILABLE',
+        'currency': 'EGP',
+      },
+      {
+        'id': 42,
+        'sku': 'LIVE-42',
+        'name': 'Live Wholesale Product',
+        'store_id': 7,
+        'brand_name': 'FOODEX',
+        'category_name': 'Beverages',
+        'description': 'Fresh authoritative description',
+        'account_price': 8.0,
+        'base_wholesale_price': 8.5,
+        'retail_reference_price': 9.5,
+        'minimum_order_quantity': 10,
+        'ordering_increment': 5,
+        'pack_size': 12,
+        'case_size': 24,
+        'pack_label': 'Case 12',
+        'available_quantity': 20,
+        'is_available': true,
+        'availability_state': 'AVAILABLE',
+        'currency': 'EGP',
+      },
+    ]);
+    final actionApi = _CountingCustomerActionApi();
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/products/42?store_id=7',
+        b2bApi: api,
+        actionApi: actionApi,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Brand: FOODEX'), findsOneWidget);
+    expect(find.text('Category: Beverages'), findsOneWidget);
+    expect(find.textContaining('7.25 EGP'), findsOneWidget);
+
+    final descriptionDisclosure = find.text('Description');
+    expect(descriptionDisclosure, findsOneWidget);
+    await tester.ensureVisible(descriptionDisclosure);
+    await tester.tap(descriptionDisclosure);
+    await tester.pumpAndSettle();
+    expect(find.text('Fresh authoritative description'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('customer-add-cart')),
+    );
+    await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
+    await tester.pumpAndSettle();
+
+    expect(api.calls, 2);
+    expect(actionApi.addCalls, 0);
+    expect(
+      find.byKey(const ValueKey('b2b-product-terms-updated')),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Price or stock changed'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('8.00 EGP'), findsOneWidget);
+    expect(find.textContaining('Minimum order 10'), findsOneWidget);
+  });
+
+  testWidgets(
+      'B2B product detail enforces max stock and auto-recovers from out of stock',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final api = _SequenceB2bApi([
+      {
+        'id': 42,
+        'sku': 'STOCK-42',
+        'name': 'Stock Product',
+        'store_id': 7,
+        'account_price': 10,
+        'minimum_order_quantity': 5,
+        'ordering_increment': 5,
+        'pack_size': 1,
+        'available_quantity': 0,
+        'is_available': false,
+        'availability_state': 'OUT_OF_STOCK',
+        'currency': 'EGP',
+      },
+      {
+        'id': 42,
+        'sku': 'STOCK-42',
+        'name': 'Stock Product',
+        'store_id': 7,
+        'account_price': 10,
+        'minimum_order_quantity': 5,
+        'ordering_increment': 5,
+        'pack_size': 1,
+        'available_quantity': 6,
+        'is_available': true,
+        'availability_state': 'AVAILABLE',
+        'currency': 'EGP',
+      },
+    ]);
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/products/42?store_id=7',
+        b2bApi: api,
+        actionApi: _CountingCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Out of stock'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('b2b-product-stock-auto-refresh')),
+      findsOneWidget,
+    );
+    expect(api.calls, 1);
+
+    await tester.pump(const Duration(seconds: 15));
+    await tester.pumpAndSettle();
+
+    expect(api.calls, 2);
+    expect(
+      find.byKey(const ValueKey('b2b-product-stock-auto-refresh')),
+      findsNothing,
+    );
+    expect(find.textContaining('Available quantity 6'), findsOneWidget);
+
+    final quantityCta = find.byKey(const ValueKey('customer-add-cart'));
+    final plus = find.descendant(
+      of: quantityCta,
+      matching: find.byIcon(Icons.add_rounded),
+    );
+    expect(plus, findsOneWidget);
+    await tester.tap(plus);
+    await tester.pump();
+
+    expect(find.textContaining('Maximum available 6'), findsOneWidget);
+    expect(find.text('5'), findsWidgets);
+  });
+
   testWidgets('B2B cart exposes authoritative checkout action', (tester) async {
     await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart', b2bApi: _StaticB2bApi()));
     await tester.pumpAndSettle();
