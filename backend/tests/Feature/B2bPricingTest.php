@@ -38,6 +38,14 @@ class B2bPricingTest extends TestCase
             ->assertJsonPath('data.0.available_quantity', 8)
             ->assertJsonPath('data.0.is_available', true)
             ->assertJsonPath('data.0.availability_state', 'AVAILABLE');
+
+        $this->getJson("/api/v1/b2b/products?store_id={$storeId}&q=B2B-BAR-1")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $productId);
+        $this->getJson("/api/v1/b2b/products?store_id={$storeId}&q=DOES-NOT-EXIST")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
         $this->getJson("/api/v1/b2b/products/{$productId}?store_id={$storeId}")
             ->assertOk()
             ->assertJsonPath('id', $productId)
@@ -119,7 +127,7 @@ class B2bPricingTest extends TestCase
         $store = (int) DB::table('stores')->insertGetId(['store_type_id' => $type, 'code' => 'B2B-PRICE', 'name' => 'Wholesale', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $catalog = (int) DB::table('catalogs')->insertGetId(['store_id' => $store, 'channel' => 'b2b', 'code' => 'default', 'name' => 'Wholesale Catalog', 'is_active' => true, 'is_migration_quarantine' => false, 'created_at' => now(), 'updated_at' => now()]);
         $unit = (int) DB::table('units')->insertGetId(['code' => 'EA-PRICE', 'name' => 'Each', 'decimal_places' => 0, 'created_at' => now(), 'updated_at' => now()]);
-        $product = (int) DB::table('products')->insertGetId(['catalog_id' => $catalog, 'unit_id' => $unit, 'sku' => 'B2B-P-1', 'name' => 'Wholesale Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $product = (int) DB::table('products')->insertGetId(['catalog_id' => $catalog, 'unit_id' => $unit, 'sku' => 'B2B-P-1', 'barcode' => 'B2B-BAR-1', 'name' => 'Wholesale Product', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('store_products')->insert(['store_id' => $store, 'product_id' => $product, 'price' => 10, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $warehouse = (int) DB::table('warehouses')->insertGetId(['store_id' => $store, 'code' => 'B2B-WH', 'name' => 'B2B Warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('inventories')->insert(['warehouse_id' => $warehouse, 'product_id' => $product, 'quantity' => 10, 'reserved_quantity' => 2, 'created_at' => now(), 'updated_at' => now()]);
