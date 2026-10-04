@@ -2454,8 +2454,9 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
     if (_status.isNotEmpty) params['status'] = _status;
     final search = _searchController.text.trim();
     if (search.isNotEmpty) params['q'] = search;
-    params['page'] = (page ?? _page).toString();
-    params['per_page'] = _perPage.toString();
+    final targetPage = page ?? _page;
+    if (targetPage > 1) params['page'] = targetPage.toString();
+    if (_perPage != 20) params['per_page'] = _perPage.toString();
     return uri.replace(queryParameters: params).toString();
   }
 
