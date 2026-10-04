@@ -156,6 +156,65 @@ void main() {
     expect(captured?.headers.containsKey('Cookie'), isFalse);
   });
 
+  test('preview transport exposes authoritative failure reasons and read health',
+      () async {
+    http.Request? captured;
+    final states = <Map<String, Object?>>[];
+    final client = DriverPreviewReadHttpClient(
+      MockClient((request) async {
+        captured = request;
+        return http.Response(
+          '{"type":"failed-delivery-reasons","data":[]}',
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      }),
+      credential: 'opaque-preview',
+      onReadState: (state, endpoint, statusCode, updatedAt) {
+        states.add({
+          'state': state,
+          'endpoint': endpoint,
+          'status': statusCode,
+          'updated_at': updatedAt,
+        });
+      },
+    );
+
+    final response = await client.get(
+      Uri.parse(
+        'https://api.example/api/v1/lookups/failed-delivery-reasons',
+      ),
+    );
+
+    expect(response.statusCode, 200);
+    expect(
+      captured?.url.path,
+      '/api/v1/app-preview/driver/lookups/failed-delivery-reasons',
+    );
+    expect(states, hasLength(1));
+    expect(states.single['state'], 'ready');
+    expect(states.single['status'], 200);
+    expect(states.single['updated_at'], isA<String>());
+  });
+
+  test('preview transport reports disconnected instead of stale-looking live data',
+      () async {
+    final states = <String>[];
+    final client = DriverPreviewReadHttpClient(
+      MockClient((_) async => throw http.ClientException('offline')),
+      credential: 'opaque-preview',
+      onReadState: (state, _, __, ___) => states.add(state),
+    );
+
+    await expectLater(
+      client.get(
+        Uri.parse('https://api.example/api/v1/driver/assignments?scope=all'),
+      ),
+      throwsA(isA<http.ClientException>()),
+    );
+    expect(states, ['disconnected']);
+  });
+
   test('preview transport rejects mutation and unrelated paths', () async {
     final client = DriverPreviewReadHttpClient(
       MockClient((_) async => http.Response('{}', 200)),
