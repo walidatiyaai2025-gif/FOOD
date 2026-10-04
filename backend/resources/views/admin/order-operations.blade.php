@@ -7,6 +7,7 @@
 <style>
 body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-height:100vh}.main{padding:28px}.sidebar{padding:18px;border-inline-start:1px solid var(--foodex-border)}
 .filters{display:grid;grid-template-columns:repeat(7,minmax(130px,1fr));gap:10px;padding:16px;margin-bottom:16px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
+.status-tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;margin-bottom:2px}.status-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:inherit;background:var(--foodex-surface,#fff);font-weight:800}.status-tab[aria-current="page"]{outline:2px solid currentColor}.status-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.06);font-size:.78rem}
 .table-wrap{overflow:auto}.ops-table{min-width:1200px}.actions{display:flex;gap:6px;flex-wrap:wrap}.actions form{margin:0}.actions select{min-width:120px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}
 @media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.detail-grid{grid-template-columns:1fr}}@media(max-width:600px){.filters{grid-template-columns:1fr}}
 </style>
@@ -18,11 +19,23 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
+@php($tabQuery=request()->except(['status','page','order']))
+<nav class="status-tabs" aria-label="{{ $isAr?'حالات الطلبات':'Order statuses' }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}">
+<a class="status-tab" data-order-status-tab="all" href="{{ route('admin.operations.orders.index',$tabQuery) }}" @if($selectedStatus===null) aria-current="page" @endif>
+<span>{{ $isAr?'الكل':'All' }}</span><span class="status-tab-count">{{ $statusTotal }}</span>
+</a>
+@foreach($statusTabs as $tab)
+<a class="status-tab" data-order-status-tab="{{ $tab['code'] }}" href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['status'=>$tab['code']])) }}" @if($selectedStatus===$tab['code']) aria-current="page" @endif>
+<span>{{ $tab['label'] }}</span><span class="status-tab-count">{{ $tab['count'] }}</span>
+</a>
+@endforeach
+</nav>
+
 <form method="get" class="filters foodex-card">
 <label>{{ $isAr?'من':'From' }}<input type="date" name="from" value="{{ request('from') }}"></label>
 <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ request('to') }}"></label>
 <label>{{ $isAr?'رقم الطلب':'Order no.' }}<input name="order_number" value="{{ request('order_number') }}"></label>
-<label>{{ $isAr?'الحالة':'Status' }}<select name="status"><option value="">{{ $isAr?'الكل':'All' }}</option>@foreach($statuses as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ $status }}</option>@endforeach</select></label>
+<label>{{ $isAr?'الحالة':'Status' }}<select name="status"><option value="">{{ $isAr?'الكل':'All' }}</option>@foreach($statusOptions as $status)<option value="{{ $status['code'] }}" @selected(request('status')===$status['code'])>{{ $status['label'] }}</option>@endforeach</select></label>
 <label>{{ $isAr?'القناة':'Channel' }}<select name="channel"><option value="">{{ $isAr?'افتراضي':'Default' }}</option><option value="all" @selected(request('channel')==='all')>{{ $isAr?'الكل المصرح':'All authorized' }}</option><option value="b2b" @selected(request('channel')==='b2b')>{{ $isAr?'الجملة':'Wholesale' }}</option><option value="b2c" @selected(request('channel')==='b2c')>{{ $isAr?'التجزئة':'Retail' }}</option></select></label>
 <label>{{ $isAr?'المتجر':'Store' }}<select name="store_id"><option value="">{{ $isAr?'الكل':'All' }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)request('store_id')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select></label>
 <label>{{ $isAr?'السائق':'Driver' }}<select name="driver_id"><option value="">{{ $isAr?'الكل':'All' }}</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((string)request('driver_id')===(string)$driver->id)>{{ $driver->name ?? '#'.$driver->id }}</option>@endforeach</select></label>
@@ -37,15 +50,19 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 <tr>
 <td><a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}"><strong>{{ $row['number'] }}</strong></a></td>
 <td>{{ $row['store'] }}</td><td>{{ strtoupper($row['channel']) }}</td><td>{{ $row['source'] }}</td><td>{{ $row['customer'] }}</td>
-<td><span class="badge {{ $row['status'] }}">{{ $row['status'] }}</span></td>
+<td><span class="badge {{ $row['status'] }}" data-status-code="{{ $row['status'] }}">{{ $row['status_label'] }}</span></td>
 <td>{{ $row['driver'] ?? ($isAr?'غير معين':'Unassigned') }} @if($row['assignment_status'])<small>· {{ $row['assignment_status'] }}</small>@endif</td>
 <td>{{ $row['payment_status'] ?? '-' }} @if($row['payment_provider'])<small>· {{ $row['payment_provider'] }}</small>@endif</td>
 <td>{{ number_format($row['total'],2) }} {{ $row['currency'] }}</td>
 <td>{{ optional($row['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</td>
 <td><div class="actions">
+@if(count($row['available_statuses']))
 <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<select name="status" required>@foreach($statuses as $status)<option value="{{ $status }}" @selected($status===$row['status'])>{{ $status }}</option>@endforeach</select>
+<select name="status" required><option value="">{{ $isAr?'اختر الحالة التالية':'Choose next status' }}</option>@foreach($row['available_statuses'] as $status)<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>@endforeach</select>
 <button class="btn secondary">{{ $isAr?'تحديث':'Update' }}</button></form>
+@else
+<span class="badge {{ $row['status'] }}">{{ $isAr?'حالة نهائية':'Terminal' }}</span>
+@endif
 <form method="post" action="{{ route('admin.operations.orders.reassign',$row['id']) }}">@csrf @method('PATCH')
 <select name="driver_id" required><option value="">{{ $isAr?'اختر سائق':'Choose driver' }}</option>@foreach($drivers as $driver)@if((int)$driver->store_id===$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'])<option value="{{ $driver->id }}">{{ $driver->name ?? '#'.$driver->id }}</option>@endif @endforeach</select>
 <button class="btn secondary">{{ $isAr?'تعيين':'Assign' }}</button></form>
