@@ -277,7 +277,7 @@ final class OrderOperationsController extends Controller
         $paymentMethods = [];
 
         foreach ($configuredPaymentMethods as $code) {
-            if ($lookupPaymentMethods->isNotEmpty() && ! $lookupPaymentMethods->has($code)) {
+            if ($lookupPaymentMethods->isNotEmpty() && !$lookupPaymentMethods->has($code)) {
                 continue;
             }
 
