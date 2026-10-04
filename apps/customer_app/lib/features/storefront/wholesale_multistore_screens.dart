@@ -550,7 +550,6 @@ class _WholesaleHero extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _WhitePill(
-                      key: const ValueKey('wholesale-home-open-catalog'),
                       label: cta,
                       palette: palette,
                       onTap: onCta,
@@ -604,6 +603,7 @@ class _WhitePill extends StatelessWidget {
           color: palette.accent,
           borderRadius: BorderRadius.circular(999),
           child: InkWell(
+            key: const ValueKey('wholesale-home-open-catalog'),
             onTap: onTap,
             borderRadius: BorderRadius.circular(999),
             child: Padding(
