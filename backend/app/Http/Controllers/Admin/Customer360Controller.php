@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Address;
+use App\Models\B2bCustomer;
 use App\Models\PlatformCustomer;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\B2bAccountLedgerService;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -187,6 +189,7 @@ final class Customer360Controller extends Controller
             ->orderByDesc('is_default')
             ->orderBy('id')
             ->get();
+        $wholesale = $this->wholesaleInfo($customer, $access);
 
         return view('admin.customer-360-show', [
             'user' => $actor,
@@ -198,10 +201,72 @@ final class Customer360Controller extends Controller
             'orders' => $orders,
             'invoices' => $invoices,
             'retailStores' => $this->retailDomains($customer, $access),
-            'wholesale' => $this->wholesaleInfo($customer, $access),
+            'wholesale' => $wholesale,
+            'canManageFinance' => $wholesale !== null && ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage')),
             'addresses' => $addresses,
             'canManageAddresses' => $this->canManageAddresses($actor, $customer, $access),
         ]);
+    }
+
+    public function storeFinanceEntry(
+        Request $request,
+        int $platformCustomer,
+        B2bAccountLedgerService $ledger,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        abort_unless($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage'), 403);
+        abort_if($access['mode'] === 'b2c', 403);
+
+        $domain = B2bCustomer::query()
+            ->where('user_id', $customer->user_id)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'entry_type' => ['required', Rule::in(B2bAccountLedgerService::MANUAL_TYPES)],
+            'direction' => ['required', Rule::in(['debit', 'credit'])],
+            'amount' => ['required', 'numeric', 'gt:0'],
+            'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
+            'reference' => ['nullable', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'invoice_id' => ['nullable', 'integer', 'min:1'],
+            'occurred_at' => ['nullable', 'date'],
+        ]);
+
+        $amount = round((float) $validated['amount'], 3);
+        $entryId = $ledger->appendManual($domain, [
+            'entry_type' => $validated['entry_type'],
+            'debit' => $validated['direction'] === 'debit' ? $amount : 0,
+            'credit' => $validated['direction'] === 'credit' ? $amount : 0,
+            'currency' => strtoupper((string) $validated['currency']),
+            'reference' => $validated['reference'] ?? null,
+            'description' => $validated['description'] ?? null,
+            'invoice_id' => $validated['invoice_id'] ?? null,
+            'occurred_at' => $validated['occurred_at'] ?? now(),
+            'source' => 'dashboard_customer_360',
+        ], $actor);
+
+        $audit->record(
+            'customer360.finance_entry_created',
+            $actor,
+            $customer,
+            null,
+            [
+                'ledger_entry_id' => $entryId,
+                'b2b_customer_id' => (int) $domain->getKey(),
+                'entry_type' => (string) $validated['entry_type'],
+                'direction' => (string) $validated['direction'],
+                'amount' => $amount,
+                'currency' => strtoupper((string) $validated['currency']),
+            ],
+            $request,
+        );
+
+        return redirect()
+            ->route('admin.customer-360.show', ['platformCustomer' => $customer->getKey()])
+            ->with('status', $this->msg('تم تسجيل الحركة المالية.', 'Financial entry recorded.'));
     }
 
     public function storeAddress(
@@ -726,6 +791,11 @@ final class Customer360Controller extends Controller
             return null;
         }
 
+        $domain = B2bCustomer::query()->find((int) $row->customer_id);
+        $financial = $domain instanceof B2bCustomer
+            ? app(B2bAccountLedgerService::class)->summary($domain)
+            : null;
+
         return [
             'customer_id' => (int) $row->customer_id,
             'account_id' => $row->account_id === null ? null : (int) $row->account_id,
@@ -735,6 +805,7 @@ final class Customer360Controller extends Controller
             'tier_id' => $row->tier_id === null ? null : (int) $row->tier_id,
             'tier_code' => $row->tier_code,
             'tier_name' => $row->tier_name,
+            'financial' => $financial,
         ];
     }
 
