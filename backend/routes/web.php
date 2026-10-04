@@ -184,6 +184,9 @@ Route::prefix('admin')
         Route::get('/b2c/{module}', [B2cWorkspaceController::class, 'show'])->name('b2c.module');
         Route::get('/catalog', [CatalogManagementController::class, 'index'])->name('catalog.index');
         Route::get('/catalog/categories', [CatalogManagementController::class, 'categories'])->name('catalog.categories.index');
+        Route::get('/catalog/import/sample', [CatalogManagementController::class, 'downloadImportSample'])->name('catalog.import.sample');
+        Route::post('/catalog/import/preview', [CatalogManagementController::class, 'previewImport'])->name('catalog.import.preview');
+        Route::post('/catalog/import/commit', [CatalogManagementController::class, 'commitImport'])->name('catalog.import.commit');
         Route::get('/lookups', [LookupManagementController::class, 'index'])->name('lookups.index');
         Route::post('/lookups/{type}', [LookupManagementController::class, 'store'])->whereIn('type', ['brands', 'units'])->name('lookups.store');
         Route::patch('/lookups/{type}/{lookup}', [LookupManagementController::class, 'update'])->whereIn('type', ['brands', 'units'])->name('lookups.update');

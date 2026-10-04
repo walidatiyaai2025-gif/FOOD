@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CatalogImageService;
 use App\Services\CatalogOwnership;
+use App\Services\CatalogZipImportService;
 use App\Services\LookupScopeService;
 use App\Services\RetailWholesaleAccountService;
 use App\Support\AdminNavigation;
@@ -17,6 +18,7 @@ use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -32,6 +34,7 @@ final class CatalogManagementController extends Controller
         private readonly TenantContextResolver $tenantContext,
         private readonly LookupScopeService $lookups,
         private readonly CatalogImageService $images,
+        private readonly CatalogZipImportService $catalogImports,
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
     ) {}
 
@@ -46,7 +49,7 @@ final class CatalogManagementController extends Controller
             abort(403);
         }
 
-        $tab = in_array((string) $request->query('tab'), ['products', 'categories'], true)
+        $tab = in_array((string) $request->query('tab'), ['products', 'categories', 'import'], true)
             ? (string) $request->query('tab')
             : 'products';
 
@@ -196,6 +199,98 @@ final class CatalogManagementController extends Controller
         }
 
         return redirect()->route('admin.catalog.index', $params);
+    }
+
+    public function downloadImportSample(Request $request): Response
+    {
+        $actor = $this->actor($request);
+        $storeIds = $this->catalogReadableStoreIds($actor, $this->visibleStoreIds($actor, $request));
+        if ($storeIds === [] && $this->canAccessWholesale($actor) === false) {
+            abort(403);
+        }
+
+        $storeId = $request->integer('store_id') > 0 ? $request->integer('store_id') : (int) ($storeIds[0] ?? 0);
+        $channel = $storeId > 0 ? $this->storeChannel($storeId) : null;
+        $targetScopeKey = $channel === 'b2b' ? LookupScopeService::B2B : LookupScopeService::STORE.':'.$storeId;
+        $unitCode = DB::table('units')
+            ->where('is_active', true)
+            ->whereIn('scope_key', [$targetScopeKey, LookupScopeService::GLOBAL])
+            ->orderByRaw('CASE WHEN scope_key = ? THEN 0 ELSE 1 END', [$targetScopeKey])
+            ->value('code');
+        $unitCode = is_string($unitCode) && trim($unitCode) !== '' ? $unitCode : 'PCS';
+
+        return response($this->catalogImports->sampleZip($unitCode), 200, [
+            'Content-Type' => 'application/zip',
+            'Content-Disposition' => 'attachment; filename="foodex-catalog-import-sample.zip"',
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
+    public function previewImport(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+            'catalog_zip' => ['required', 'file', 'max:51200'],
+        ]);
+        $archive = $request->file('catalog_zip');
+        if ($archive instanceof UploadedFile === false) {
+            throw ValidationException::withMessages(['catalog_zip' => [$this->msg(
+                'تعذر قراءة ملف ZIP المرفوع.',
+                'The uploaded ZIP could not be read.',
+            )]]);
+        }
+
+        $storeId = (int) $data['store_id'];
+        $catalog = $this->catalogs->defaultCatalogForStore($storeId);
+        $channel = strtolower((string) $catalog->channel);
+        $this->authorizeCatalogAction($request, 'catalog.manage', $storeId, $channel);
+        $actor = $this->actor($request);
+        $this->authorizeImportLookups($request, $actor, $storeId, $channel);
+
+        $preview = $this->catalogImports->preview($archive, $storeId, (int) $catalog->id, $channel);
+
+        return redirect()
+            ->route('admin.catalog.index', $this->importRouteParams($request, $storeId))
+            ->with('catalog_import_preview', $preview);
+    }
+
+    public function commitImport(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'preview_token' => ['required', 'string', 'max:64'],
+        ]);
+        $token = (string) $data['preview_token'];
+        $manifest = $this->catalogImports->manifest($token);
+        $storeId = (int) ($manifest['store_id'] ?? 0);
+        $catalogId = (int) ($manifest['catalog_id'] ?? 0);
+        $channel = strtolower((string) ($manifest['channel'] ?? ''));
+
+        $catalog = $this->catalogs->defaultCatalogForStore($storeId, $channel);
+        if ((int) $catalog->id !== $catalogId) {
+            throw ValidationException::withMessages(['preview_token' => [$this->msg(
+                'تغير نطاق الكتالوج بعد المعاينة. ارفع الملف مرة أخرى.',
+                'The catalog scope changed after preview. Upload the ZIP again.',
+            )]]);
+        }
+
+        $this->authorizeCatalogAction($request, 'catalog.manage', $storeId, $channel);
+        $actor = $this->actor($request);
+        $this->authorizeImportLookups($request, $actor, $storeId, $channel);
+
+        $result = $this->catalogImports->commit($token);
+        app(AuditLogger::class)->record('catalog.bulk_import.completed', $actor, null, null, [
+            'store_id' => $storeId,
+            'catalog_id' => $catalogId,
+            'counts' => $result['counts'],
+            'media_error_count' => count($result['media_errors']),
+        ], $request);
+
+        return redirect()
+            ->route('admin.catalog.index', $this->importRouteParams($request, $storeId))
+            ->with('catalog_import_result', $result)
+            ->with('status', $result['media_errors'] === []
+                ? $this->msg('تم استيراد الكتالوج بنجاح.', 'Catalog import completed successfully.')
+                : $this->msg('تم استيراد البيانات مع وجود أخطاء في حفظ بعض الصور.', 'Catalog data imported with some media persistence errors.'));
     }
 
     public function storeProduct(Request $request): RedirectResponse
@@ -808,6 +903,35 @@ final class CatalogManagementController extends Controller
             $storeIds,
             static fn (int $storeId): bool => $actor->hasPermission('catalog.view', $storeId),
         ));
+    }
+
+    private function authorizeImportLookups(
+        Request $request,
+        User $actor,
+        int $storeId,
+        string $channel,
+    ): void {
+        $scope = strtolower($channel) === 'b2b' ? LookupScopeService::B2B : LookupScopeService::STORE;
+        $scopeStoreId = $scope === LookupScopeService::STORE ? $storeId : null;
+
+        $this->lookups->authorizeMutation(
+            $actor,
+            $scope,
+            $scopeStoreId,
+            $request->boolean('support_access'),
+            $request,
+        );
+    }
+
+    /** @return array<string, int|string> */
+    private function importRouteParams(Request $request, int $storeId): array
+    {
+        $params = ['tab' => 'import', 'store_id' => $storeId];
+        if ($request->boolean('support_access')) {
+            $params['support_access'] = 1;
+        }
+
+        return $params;
     }
 
     private function authorizeCatalogAction(
