@@ -9,6 +9,7 @@ return [
         'customers' => 'Customers & B2B',
         'operations' => 'Stores & Operations',
         'finance_invoices' => 'Finance & Invoices',
+        'account_statement' => 'Account Statement',
     ],
     'filters' => [
         'from' => 'From',
@@ -60,6 +61,11 @@ return [
         'balance' => 'Balance',
         'issued_at' => 'Issued',
         'due' => 'Due',
+        'reference' => 'Reference',
+        'description' => 'Description',
+        'debit' => 'Debit',
+        'credit' => 'Credit',
+        'running_balance' => 'Running balance',
     ],
     'kpis' => [
         'orders' => 'Orders',
@@ -82,6 +88,11 @@ return [
         'invoice_count' => 'Invoices',
         'customer_filter' => 'Customer filter',
         'currency_totals' => 'Totals by currency (total / paid / balance)',
+        'opening_balance' => 'Opening balance',
+        'period_debits' => 'Period debits',
+        'period_credits' => 'Period credits',
+        'closing_balance' => 'Closing balance',
+        'current_balance' => 'Current balance',
     ],
     'breakdowns' => [
         'status_breakdown' => 'Order status breakdown',

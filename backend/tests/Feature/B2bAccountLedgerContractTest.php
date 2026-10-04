@@ -129,6 +129,42 @@ final class B2bAccountLedgerContractTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.statement_viewed']);
     }
 
+    public function test_statement_filters_paginate_and_export_the_same_authoritative_period(): void
+    {
+        [$user, $legacyCustomer, $customer, $storeId] = $this->account(100);
+        $invoice = $this->invoice($legacyCustomer->id, $customer->id, $storeId, 60, now()->addWeek());
+        $this->payment($invoice->id, 10);
+
+        Sanctum::actingAs($user);
+        $from = now()->subDays(3)->toDateString();
+        $to = now()->toDateString();
+        $query = '?store_id='.$storeId.'&from='.$from.'&to='.$to;
+
+        $this->getJson('/api/v1/b2b/account-statement'.$query.'&page=1&per_page=1')
+            ->assertOk()
+            ->assertJsonPath('data.opening_balance', 60)
+            ->assertJsonPath('data.period_debits', 0)
+            ->assertJsonPath('data.period_credits', 10)
+            ->assertJsonPath('data.closing_balance', 50)
+            ->assertJsonPath('data.transactions.0.type', 'payment')
+            ->assertJsonPath('data.transactions.0.running_balance', 50)
+            ->assertJsonPath('data.pagination.current_page', 1)
+            ->assertJsonPath('data.pagination.per_page', 1)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.pagination.last_page', 1);
+
+        $xlsx = $this->get('/api/v1/b2b/account-statement/export'.$query.'&format=xlsx&locale=en');
+        $xlsx->assertOk()
+            ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $this->assertStringStartsWith('PK', $xlsx->getContent());
+
+        $pdf = $this->get('/api/v1/b2b/account-statement/export'.$query.'&format=pdf&locale=ar');
+        $pdf->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $pdf->getContent());
+
+        $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.statement_exported']);
+    }
+
     public function test_invoice_outstanding_reconciles_allocated_ledger_payments_and_credit_notes(): void
     {
         [$user, $legacyCustomer, $customer, $storeId] = $this->account(100);

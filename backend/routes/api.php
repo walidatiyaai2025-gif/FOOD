@@ -134,6 +134,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/invoices', [B2bFinanceController::class, 'invoices']);
             Route::get('/invoices/{invoice}', [B2bFinanceController::class, 'invoice'])->whereNumber('invoice');
             Route::get('/account-statement', [B2bFinanceController::class, 'statement']);
+            Route::get('/account-statement/export', [B2bFinanceController::class, 'statementExport']);
             Route::get('/notification-campaign-popups', [NotificationCampaignPopupController::class, 'index']);
             Route::get('/store-selector', [StorefrontController::class, 'selector']);
             Route::get('/stores/{store}/storefront', [StorefrontController::class, 'showWholesale'])->whereNumber('store');
@@ -193,6 +194,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/b2b/invoices', [B2bFinanceController::class, 'invoices']);
         Route::get('/b2b/invoices/{invoice}', [B2bFinanceController::class, 'invoice']);
         Route::get('/b2b/account-statement', [B2bFinanceController::class, 'statement']);
+        Route::get('/b2b/account-statement/export', [B2bFinanceController::class, 'statementExport']);
 
         Route::get('/profile', [CustomerProfileController::class, 'show']);
         Route::patch('/profile', [CustomerProfileController::class, 'update']);
