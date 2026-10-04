@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.52",
+  "current_version": "1.0.53",
   "releases": [
     {
       "version": "1.0.40",
@@ -146,6 +146,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "214d3551ed09551c07530880232e622955771139566187ca1eb134ecd21391cf",
       "note": "Operational completion release for umbrella #828 after final integrated gate #841, including Store/New Order wizards, catalog ZIP import, stable-code lookups, authoritative out-of-stock, order lifecycle convergence, notification popups, finance exports, Driver live operations and authoritative App Preview parity."
+    },
+    {
+      "version": "1.0.53",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.53.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "9a17ec49caa0e4517169c0fc7a3b673afcca4edc5dc7979dae8c47e8a3956554",
+      "note": "C13 release after umbrella #858 and integrated gate #873, completing the authoritative 13-screen Customer journey, B2B customer ledger/Customer 360 finance, live-data state handling, checkout enforcement and AR/EN RTL/LTR isolation acceptance."
     }
   ]
 }
