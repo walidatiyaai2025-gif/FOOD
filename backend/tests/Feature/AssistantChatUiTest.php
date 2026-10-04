@@ -112,7 +112,7 @@ class AssistantChatUiTest extends TestCase
         $this->assertIsString($js);
 
         $this->assertStringContainsString("@include('admin._assistant-chat')", $sidebar);
-        $this->assertStringContainsString("config('assistant.enabled', false)", $view);
+        $this->assertStringContainsString('AssistantRuntimeSettings::class', $view);
         $this->assertStringContainsString("hasPermission('assistant.use')", $view);
         $this->assertStringContainsString('aria-live="polite"', $view);
         $this->assertStringContainsString('data-assistant-new', $view);
