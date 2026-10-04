@@ -108,13 +108,21 @@ class B2bFinanceController extends Controller
     public function invoice(Request $request, Invoice $invoice): JsonResponse
     {
         $customer = $this->approvedCustomer($request);
-        abort_unless((int) $invoice->b2b_customer_id === (int) $customer->getKey(), 404);
+        $requestedStoreId = $this->storeId($request);
+        abort_unless(
+            (int) $invoice->b2b_customer_id === (int) $customer->getKey()
+                && ($requestedStoreId === null || (int) $invoice->store_id === $requestedStoreId),
+            404,
+        );
 
         app(AuditLogger::class)->record('b2b.finance.invoice_viewed', $request->user(), $invoice, null, null, $request);
 
+        $invoiceStoreId = $invoice->store_id === null ? $requestedStoreId : (int) $invoice->store_id;
+
         return response()->json([
             'data' => $this->invoicePayload($invoice, true),
-            'account' => $this->ledger->summary($customer, $this->storeId($request)),
+            'account' => $this->ledger->summary($customer, $invoiceStoreId),
+            'generated_at' => now()->toAtomString(),
         ]);
     }
 
@@ -261,30 +269,76 @@ class B2bFinanceController extends Controller
             'status' => (string) $invoice->status,
             'display_status' => $displayStatus,
             'currency' => (string) $invoice->currency,
+            'subtotal' => (float) ($invoice->subtotal ?? $invoice->total),
+            'discount_total' => (float) ($invoice->discount_total ?? 0),
+            'delivery_total' => (float) ($invoice->delivery_total ?? 0),
+            'tax_total' => (float) ($invoice->tax_total ?? 0),
             'total' => $amounts['invoice_total'],
             'paid_amount' => $amounts['paid_amount'],
             'debit_adjustments' => $amounts['debit_adjustments'],
             'credit_adjustments' => $amounts['credit_adjustments'],
             'outstanding_amount' => $amounts['outstanding_amount'],
             'credit_amount' => $amounts['credit_amount'],
-            'store_id' => (int) $invoice->store_id,
+            'store_id' => $invoice->store_id === null ? null : (int) $invoice->store_id,
             'order_id' => $invoice->order_id === null ? null : (int) $invoice->order_id,
+            'order_number' => $invoice->order_number_snapshot,
             'issued_at' => $invoice->issued_at,
             'due_at' => $invoice->due_at,
-            'pdf_path' => '/api/v1/invoices/'.(int) $invoice->getKey().'/download?channel=b2b&store_id='.(int) $invoice->store_id,
+            'payment_method' => $invoice->payment_method_snapshot,
+            'payment_status' => $invoice->payment_status_snapshot,
+            'seller' => [
+                'store_id' => $invoice->store_id === null ? null : (int) $invoice->store_id,
+                'name' => $invoice->store_name_snapshot,
+            ],
+            'customer' => [
+                'name' => $invoice->customer_name_snapshot,
+                'email' => $invoice->customer_email_snapshot,
+                'phone' => $invoice->customer_phone_snapshot,
+            ],
+            'pdf_path' => '/api/v1/invoices/'.(int) $invoice->getKey().'/download?channel=b2b'
+                .($invoice->store_id === null ? '' : '&store_id='.(int) $invoice->store_id),
         ];
 
         if ($withItems) {
             $payload['items'] = InvoiceItem::query()
                 ->where('invoice_id', $invoice->getKey())
                 ->orderBy('id')
-                ->get();
+                ->get()
+                ->map(function (InvoiceItem $item) use ($invoice): array {
+                    $snapshot = $item->getAttribute('line_snapshot');
+                    $snapshotSku = is_array($snapshot) && isset($snapshot['sku'])
+                        ? (string) $snapshot['sku']
+                        : null;
+
+                    return [
+                        'id' => (int) $item->getKey(),
+                        'product_id' => $item->product_id === null ? null : (int) $item->product_id,
+                        'sku' => $item->sku_snapshot ?? $snapshotSku,
+                        'description' => (string) $item->description,
+                        'quantity' => (float) $item->quantity,
+                        'unit_price' => (float) $item->unit_price,
+                        'discount_total' => (float) ($item->line_discount_total ?? 0),
+                        'tax_total' => (float) ($item->line_tax_total ?? 0),
+                        'line_total' => (float) $item->line_total,
+                        'currency' => (string) ($item->currency ?: $invoice->currency),
+                    ];
+                })
+                ->values();
             $payload['payments'] = Payment::query()
                 ->where('invoice_id', $invoice->getKey())
                 ->where('status', 'paid')
                 ->orderBy('created_at')
                 ->orderBy('id')
-                ->get(['id', 'provider', 'provider_reference', 'amount', 'currency', 'created_at']);
+                ->get(['id', 'provider', 'provider_reference', 'amount', 'currency', 'created_at'])
+                ->map(fn (Payment $payment): array => [
+                    'id' => (int) $payment->getKey(),
+                    'method' => (string) $payment->provider,
+                    'reference' => $payment->provider_reference,
+                    'amount' => (float) $payment->amount,
+                    'currency' => (string) ($payment->currency ?: $invoice->currency),
+                    'paid_at' => $payment->created_at,
+                ])
+                ->values();
             $payload['ledger_entries'] = $this->ledger->invoiceLedgerEntries($invoice)->values();
         }
 

@@ -1889,7 +1889,137 @@ void main() {
       find.byKey(const ValueKey('customer-route-location')),
       findsNothing,
     );
-    expect(api.lastPath, '/api/v1/b2b/invoices/31');
+    expect(api.lastPath, '/api/v1/b2b/invoices/31?store_id=7');
+  });
+
+
+  testWidgets('C13 Screen 9 renders reconciled invoice detail and visible actions',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final api = _FakeB2bApi({
+      'data': {
+        'id': 31,
+        'invoice_number': 'INV-31',
+        'display_status': 'partially_paid',
+        'currency': 'KWD',
+        'subtotal': 20.0,
+        'discount_total': 1.0,
+        'delivery_total': 2.0,
+        'tax_total': 1.0,
+        'total': 22.0,
+        'paid_amount': 5.0,
+        'outstanding_amount': 17.0,
+        'credit_amount': 0.0,
+        'store_id': 7,
+        'order_id': 77,
+        'issued_at': '2026-10-01T10:00:00Z',
+        'due_at': '2026-10-20T10:00:00Z',
+        'seller': {'store_id': 7, 'name': 'FOODEX Wholesale'},
+        'customer': {
+          'name': 'Buyer Co',
+          'email': 'buyer@example.test',
+          'phone': '55510000',
+        },
+        'pdf_path': '/api/v1/invoices/31/download?channel=b2b&store_id=7',
+        'items': [
+          {
+            'id': 501,
+            'sku': 'WHO-501',
+            'description': 'Wholesale item',
+            'quantity': 2.0,
+            'unit_price': 10.0,
+            'discount_total': 1.0,
+            'tax_total': 1.0,
+            'line_total': 20.0,
+            'currency': 'KWD',
+          },
+        ],
+        'payments': [
+          {
+            'id': 9,
+            'method': 'account',
+            'reference': 'PAY-31',
+            'amount': 5.0,
+            'currency': 'KWD',
+            'paid_at': '2026-10-02T10:00:00Z',
+          },
+        ],
+        'ledger_entries': [
+          {
+            'id': 81,
+            'type': 'credit_note',
+            'reference': 'CN-31',
+            'description': 'Credit adjustment',
+            'debit': 0.0,
+            'credit': 1.0,
+            'currency': 'KWD',
+            'occurred_at': '2026-10-03T10:00:00Z',
+          },
+        ],
+      },
+      'account': {
+        'currency': 'KWD',
+        'balance': 17.0,
+        'balance_direction': 'customer_owes_company',
+      },
+      'generated_at': '2026-10-04T10:00:00Z',
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/invoices/31?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/invoices/31?store_id=7');
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-detail-data')),
+      findsOneWidget,
+    );
+    expect(find.text('INV-31'), findsOneWidget);
+    expect(find.textContaining('FOODEX Wholesale'), findsOneWidget);
+    expect(find.textContaining('Buyer Co'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-detail-totals')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('22.000 KWD'), findsOneWidget);
+    expect(find.textContaining('5.000 KWD'), findsWidgets);
+    expect(find.textContaining('17.000 KWD'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-item-501')),
+      findsOneWidget,
+    );
+    expect(find.text('Wholesale item'), findsOneWidget);
+    expect(find.textContaining('WHO-501'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-payments')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('PAY-31'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-ledger')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('CN-31'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-detail-pdf')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-related-order')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('/api/v1/invoices/31/download'), findsNothing);
   });
 
   testWidgets('B2B remote journey renders loading and empty states', (tester) async {
