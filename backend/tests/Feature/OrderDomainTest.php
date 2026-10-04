@@ -162,6 +162,45 @@ class OrderDomainTest extends TestCase
         $this->getJson('/api/v1/orders')->assertForbidden();
     }
 
+    public function test_customer_order_list_exposes_authoritative_status_counts_and_filtered_totals(): void
+    {
+        $pending = $this->makeOrder(
+            $this->b2bCustomer,
+            $this->b2bStoreId,
+            'b2b',
+            'pending',
+        );
+        $delivered = $this->makeOrder(
+            $this->b2bCustomer,
+            $this->b2bStoreId,
+            'b2b',
+            'delivered',
+        );
+
+        Sanctum::actingAs($this->b2bUser);
+
+        $this->getJson('/api/v1/b2b/orders')
+            ->assertOk()
+            ->assertJsonPath('meta.all_total', 2)
+            ->assertJsonPath('meta.status_counts.pending', 1)
+            ->assertJsonPath('meta.status_counts.delivered', 1)
+            ->assertJsonPath('data.0.item_count', 1);
+
+        $this->getJson('/api/v1/b2b/orders?status=delivered')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $delivered->id)
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.all_total', 2)
+            ->assertJsonPath('meta.status_counts.pending', 1)
+            ->assertJsonPath('meta.status_counts.delivered', 1);
+
+        $this->getJson('/api/v1/b2b/orders?status=pending')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $pending->id)
+            ->assertJsonPath('data.0.next_statuses.0', 'confirmed');
+    }
+
     public function test_b2b_order_detail_exposes_authoritative_customer_safe_delivery_timeline(): void
     {
         $this->assertSame($this->b2bStoreId, app(WholesalePrincipal::class)->storeId());
