@@ -228,6 +228,97 @@ void main() {
     expect(actionApi.addCalls, 1);
   });
 
+  testWidgets(
+      'B2B catalog renders authoritative commerce constraints and actionable stock states in English',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final api = _FakeB2bApi({
+      'currency': 'EGP',
+      'data': [
+        {
+          'id': 42,
+          'sku': 'B2B-P-42',
+          'name': 'Wholesale Water',
+          'store_id': 7,
+          'category_id': 3,
+          'category_name': 'Beverages',
+          'brand_name': 'FOODEX',
+          'account_price': 72.5,
+          'minimum_order_quantity': 5,
+          'ordering_increment': 5,
+          'pack_size': 12,
+          'pack_label': 'Case 12',
+          'available_quantity': 30,
+          'is_available': true,
+          'availability_state': 'AVAILABLE',
+        },
+        {
+          'id': 43,
+          'sku': 'B2B-P-43',
+          'name': 'Unavailable Rice',
+          'store_id': 7,
+          'category_id': 4,
+          'category_name': 'Grocery',
+          'account_price': 150,
+          'minimum_order_quantity': 2,
+          'ordering_increment': 1,
+          'pack_size': 10,
+          'available_quantity': 0,
+          'is_available': false,
+          'availability_state': 'OUT_OF_STOCK',
+        },
+      ],
+    });
+    final actionApi = _CountingCustomerActionApi();
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/products?store_id=7',
+        b2bApi: api,
+        storefrontApi: _FakeWholesaleStorefrontApi(),
+        actionApi: actionApi,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/products?store_id=7');
+    expect(find.text('Filter'), findsOneWidget);
+    expect(find.text('Default order'), findsOneWidget);
+    expect(find.text('Wholesale Water'), findsOneWidget);
+    expect(find.text('Beverages'), findsOneWidget);
+    expect(find.textContaining('72.50 EGP'), findsOneWidget);
+    expect(find.textContaining('Case 12'), findsOneWidget);
+    expect(find.textContaining('Step 5'), findsOneWidget);
+    expect(find.textContaining('Available quantity: 30'), findsOneWidget);
+
+    final availableAdd = find.byKey(
+      const ValueKey('wholesale-product-add-42'),
+    );
+    final unavailableAdd = find.byKey(
+      const ValueKey('wholesale-product-add-43'),
+    );
+    expect(availableAdd, findsOneWidget);
+    expect(unavailableAdd, findsOneWidget);
+    expect(tester.widget<FilledButton>(unavailableAdd).onPressed, isNull);
+
+    await tester.tap(availableAdd);
+    await tester.pumpAndSettle();
+
+    expect(actionApi.addCalls, 1);
+    expect(actionApi.lastStoreId, 7);
+    expect(actionApi.lastProductId, 42);
+    expect(actionApi.lastQuantity, 5);
+    expect(find.text('Product added to cart'), findsOneWidget);
+  });
+
   testWidgets('B2B product details render authoritative account pricing and inventory', (tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1;
