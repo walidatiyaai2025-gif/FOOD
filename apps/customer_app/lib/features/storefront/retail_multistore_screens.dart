@@ -678,7 +678,7 @@ class _RetailStorefrontDesignScreenState
                     accessToken: widget.session.accessToken,
                   )
                   .catchError((_) {});
-              if (!mounted) return;
+              if (!context.mounted) return;
               await liveAds
                   .showForContext(
                     context,
