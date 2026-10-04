@@ -43,7 +43,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.authPreferenceStore,
     this.biometricAuthenticator,
     this.pendingActionStore,
-    this.initialRoute = CustomerRoutePaths.marketplace,
+    this.initialRoute = CustomerRoutePaths.entry,
     this.b2bApi,
     this.b2cCatalogApi,
     this.b2cAccountApi,
@@ -206,7 +206,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     }
     _loadRemoteTranslations();
     _configurePush();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _flushDiagnostics());
+    _configureDiagnostics();
     _scheduleLaunchCampaignPopup();
   }
 
@@ -222,6 +222,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     if (oldWidget.session != widget.session) {
       _session = widget.session;
       _bindPushSession();
+      _configureDiagnostics();
     }
     if (oldWidget.pushService != widget.pushService) {
       unawaited(_pushRouteSubscription?.cancel());
@@ -312,21 +313,25 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _bindPushSession();
   }
 
-  void _bindPushSession() {
-    final service = widget.pushService;
-    final token = _session.accessToken;
-    if (token == null || token.isEmpty) return;
 
-    if (service != null) {
-      unawaited(service.bindSession(token));
+  void _configureDiagnostics() {
+    if (widget.previewContext != null) {
+      _diagnostics.clearInspectorUpload();
+      return;
     }
-    _flushDiagnostics();
-  }
 
-  void _flushDiagnostics() {
-    if (widget.previewContext != null) return;
-    final token = _session.accessToken;
     final baseUrl = FoodexEnvironment.apiBaseUrl;
+    final token = _session.accessToken;
+    _diagnostics.updateContext(
+      appVersion: _appVersion,
+      apiBaseUrl: baseUrl,
+      locale: _locale.languageCode,
+      authenticated: _session.isAuthenticated,
+      channel: _session.channel?.name,
+      platformWide: _session.platformWide,
+      retailStoreContextId: _session.b2bRetailStoreId,
+    );
+
     if (token == null || token.isEmpty || baseUrl.isEmpty) {
       _diagnostics.clearInspectorUpload();
       return;
@@ -335,9 +340,15 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _diagnostics.configureInspectorUpload(
       baseUrl: baseUrl,
       token: token,
-      channel: _session.channel?.name,
-      storeId: _session.b2bRetailStoreId,
     );
+  }
+
+  void _bindPushSession() {
+    final service = widget.pushService;
+    final token = _session.accessToken;
+    if (service != null && token != null && token.isNotEmpty) {
+      unawaited(service.bindSession(token));
+    }
   }
 
   void _navigateFromPush(String route) {
@@ -401,6 +412,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     });
     unawaited(_persistSession(session));
     _bindPushSession();
+    _configureDiagnostics();
 
     // Complete only after MaterialApp/Navigator has received the router built
     // from the authenticated platform session. The auth screen awaits this
@@ -449,7 +461,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       _session = session;
     });
     unawaited(_persistSession(session));
-    _flushDiagnostics();
+    _configureDiagnostics();
   }
 
   void _onSessionExpired() {
@@ -460,22 +472,22 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     }
     final service = widget.pushService;
     if (service != null) unawaited(service.revokeSession());
-    unawaited(_clearPersistedSession());
     _diagnostics.clearInspectorUpload();
+    unawaited(_clearPersistedSession());
     _guestSession.clear();
     setState(() {
       _session = const CustomerSession.guest();
     });
     _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      CustomerRoutePaths.marketplace,
+      CustomerRoutePaths.entry,
       (route) => false,
     );
   }
 
   Future<void> _logout(CustomerActionApi actionApi) async {
     if (widget.previewContext != null) return;
-    await _clearPersistedSession();
     _diagnostics.clearInspectorUpload();
+    await _clearPersistedSession();
     final service = widget.pushService;
     if (service != null) {
       await service.revokeSession();
@@ -493,7 +505,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       _session = const CustomerSession.guest();
     });
     _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      CustomerRoutePaths.marketplace,
+      CustomerRoutePaths.entry,
       (route) => false,
     );
   }
