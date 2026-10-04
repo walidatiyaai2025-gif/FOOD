@@ -694,6 +694,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       onPlatformRegistered: _onPlatformRegistered,
       onUnifiedAuthenticated: _completeUnifiedAuthentication,
       onAuthenticatedRouteResume: _resumeAuthenticatedRoute,
+      onLogout: widget.previewContext == null ? () => _logout(actionApi) : null,
       sessionStore: widget.previewContext == null ? widget.sessionStore : null,
       authPreferences: _authPreferences,
       biometricAuthenticator:
