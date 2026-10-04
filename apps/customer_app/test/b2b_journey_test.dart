@@ -1889,7 +1889,7 @@ void main() {
       find.byKey(const ValueKey('customer-route-location')),
       findsNothing,
     );
-    expect(api.lastPath, '/api/v1/b2b/invoices/31');
+    expect(api.lastPath, '/api/v1/b2b/invoices/31?store_id=7');
   });
 
 
