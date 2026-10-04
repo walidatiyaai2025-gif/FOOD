@@ -31,9 +31,19 @@ class DriverPreviewReadBridgeTest extends TestCase
         [, $otherDriver] = $this->driver($storeId, 'driver-preview-other@example.test');
 
         $targetOrder = $this->order($storeId, 'DRV-PREVIEW-ORDER-A');
+        $failedOrder = $this->order($storeId, 'DRV-PREVIEW-ORDER-FAILED');
         $otherOrder = $this->order($storeId, 'DRV-PREVIEW-ORDER-B');
 
         $targetAssignment = $this->assignment($targetDriver->id, $targetOrder->id, $storeId);
+        $failedAssignment = $this->assignment($targetDriver->id, $failedOrder->id, $storeId);
+        DB::table('driver_assignments')
+            ->where('id', $failedAssignment)
+            ->update([
+                'status' => 'failed',
+                'failure_reason' => 'customer_no_answer',
+                'completed_at' => now(),
+                'updated_at' => now(),
+            ]);
         $this->assignment($otherDriver->id, $otherOrder->id, $storeId);
 
         $token = $this->previewToken($admin, $targetUser, $storeId);
@@ -50,6 +60,14 @@ class DriverPreviewReadBridgeTest extends TestCase
             ->getJson('/api/v1/app-preview/driver/assignments/'.$targetAssignment)
             ->assertOk()
             ->assertJsonPath('data.id', $targetAssignment);
+
+        $this->withHeader('X-Foodex-Preview-Token', $token)
+            ->getJson('/api/v1/app-preview/driver/assignments?scope=failed')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $failedAssignment)
+            ->assertJsonPath('data.0.status', 'failed')
+            ->assertJsonPath('meta.scope', 'failed');
     }
 
     public function test_preview_failed_delivery_reasons_reuse_authoritative_lookup_contract(): void
