@@ -110,6 +110,19 @@ void main() {
                     'latitude': 30.04442,
                     'longitude': 31.235712,
                   },
+                  'items': [
+                    {
+                      'sku': 'ITEM-1',
+                      'name': 'Rice box',
+                      'image_url': 'https://foodex.example/storage/rice.webp',
+                      'variant': 'Large',
+                      'quantity': 2,
+                      'unit': 'Box',
+                      'note': 'Keep upright',
+                      'unit_price': 10,
+                      'line_total': 20,
+                    }
+                  ],
                   'invoice': {
                     'id': 77,
                     'number': 'INV-B2B-55',
@@ -167,12 +180,58 @@ void main() {
     expect(rows.single.hasNavigation, isTrue);
     expect(rows.single.navigationLatitude, 30.04442);
     expect(rows.single.navigationLongitude, 31.235712);
+    expect(rows.single.items.single.sku, 'ITEM-1');
+    expect(rows.single.items.single.imageUrl,
+        'https://foodex.example/storage/rice.webp');
+    expect(rows.single.items.single.variant, 'Large');
+    expect(rows.single.items.single.unit, 'Box');
+    expect(rows.single.items.single.note, 'Keep upright');
+    expect(rows.single.items.single.unitPrice, 10);
     expect(rows.single.invoice?.items.single.sku, 'CASE-1');
     await repo.transition(9, DriverChannel.b2b, 'accepted');
     expect(requests, [
       'GET /api/v1/driver/assignments?scope=all',
       'POST /api/v1/driver/assignments/9/status',
     ]);
+  });
+
+  test('HTTP assignment repository loads central failed-delivery reasons',
+      () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'GET');
+      expect(request.url.path, '/api/v1/lookups/failed-delivery-reasons');
+      return http.Response(
+        jsonEncode({
+          'type': 'failed-delivery-reasons',
+          'data': [
+            {
+              'code': 'customer_no_answer',
+              'label_ar': 'العميل لا يرد',
+              'label_en': 'Customer did not answer',
+            },
+            {
+              'code': 'other',
+              'label_ar': 'سبب آخر',
+              'label_en': 'Other reason',
+            },
+          ],
+        }),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+
+    final repo = HttpDriverAssignmentRepository(
+      'https://foodex.example/',
+      'token',
+      client: client,
+    );
+    final reasons = await repo.failedDeliveryReasons();
+
+    expect(reasons.map((reason) => reason.code),
+        ['customer_no_answer', 'other']);
+    expect(reasons.first.labelFor('ar'), 'العميل لا يرد');
+    expect(reasons.first.labelFor('en'), 'Customer did not answer');
   });
 
   testWidgets('launch login reaches backend-derived delivery journey',

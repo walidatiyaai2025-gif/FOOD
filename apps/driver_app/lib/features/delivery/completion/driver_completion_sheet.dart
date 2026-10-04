@@ -10,6 +10,7 @@ Future<DriverCompletionResult?> showDriverCompletionDecisionSheet({
   required List<String> availableStatuses,
   required DriverCompletionGateway gateway,
   DriverProofPicker? proofPicker,
+  List<DriverFailureReasonOption>? failureReasons,
   DriverCompletionTarget initialTarget = DriverCompletionTarget.delivered,
   String initialNote = '',
   VoidCallback? onSessionExpired,
@@ -23,6 +24,7 @@ Future<DriverCompletionResult?> showDriverCompletionDecisionSheet({
         availableStatuses: availableStatuses,
         gateway: gateway,
         proofPicker: proofPicker ?? ImagePickerDriverProofPicker(),
+        failureReasons: failureReasons,
         initialTarget: initialTarget,
         initialNote: initialNote,
         onSessionExpired: onSessionExpired,
@@ -35,6 +37,7 @@ class DriverCompletionDecisionSheet extends StatefulWidget {
     required this.availableStatuses,
     required this.gateway,
     required this.proofPicker,
+    this.failureReasons,
     this.initialTarget = DriverCompletionTarget.delivered,
     this.initialNote = '',
     this.onSessionExpired,
@@ -46,6 +49,7 @@ class DriverCompletionDecisionSheet extends StatefulWidget {
   final List<String> availableStatuses;
   final DriverCompletionGateway gateway;
   final DriverProofPicker proofPicker;
+  final List<DriverFailureReasonOption>? failureReasons;
   final DriverCompletionTarget initialTarget;
   final String initialNote;
   final VoidCallback? onSessionExpired;
@@ -217,12 +221,29 @@ class _DriverCompletionDecisionSheetState
                   labelText: context.tr('driver.failure.reason'),
                   border: const OutlineInputBorder(),
                 ),
-                items: DriverFailureReason.values
+                items: (widget.failureReasons ??
+                        DriverFailureReason.values
+                            .map(
+                              (code) => DriverFailureReasonOption(
+                                code: code,
+                                labelAr:
+                                    context.tr('driver.failure.reason.$code'),
+                                labelEn:
+                                    context.tr('driver.failure.reason.$code'),
+                              ),
+                            )
+                            .toList(growable: false))
                     .map(
                       (reason) => DropdownMenuItem<String>(
-                        value: reason,
+                        value: reason.code,
                         child: Text(
-                          context.tr('driver.failure.reason.$reason'),
+                          widget.failureReasons == null
+                              ? context.tr(
+                                  'driver.failure.reason.${reason.code}',
+                                )
+                              : reason.labelFor(
+                                  Localizations.localeOf(context).languageCode,
+                                ),
                         ),
                       ),
                     )

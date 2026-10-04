@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../features/delivery/completion/driver_completion_contract.dart';
 import '../../features/delivery/driver_assignment_contract.dart';
 import '../auth/driver_session.dart';
 import '../diagnostics/driver_runtime_inspector.dart';
@@ -117,7 +118,8 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
 
 }
 
-class HttpDriverAssignmentRepository implements DriverProofAssignmentRepository {
+class HttpDriverAssignmentRepository
+    implements DriverProofAssignmentRepository, DriverFailureReasonCatalog {
   HttpDriverAssignmentRepository(
     String baseUrl,
     this.token, {
@@ -215,7 +217,12 @@ class HttpDriverAssignmentRepository implements DriverProofAssignmentRepository 
           return DriverOrderItem(
             name: (item['name'] ?? '').toString(),
             sku: (item['sku'] ?? '').toString(),
+            imageUrl: (item['image_url'] ?? '').toString(),
+            variant: (item['variant'] ?? '').toString(),
+            unit: (item['unit'] ?? '').toString(),
+            note: (item['note'] ?? '').toString(),
             quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
+            unitPrice: (item['unit_price'] as num?)?.toDouble() ?? 0,
             lineTotal: (item['line_total'] as num?)?.toDouble() ?? 0,
           );
         })
@@ -231,7 +238,12 @@ class HttpDriverAssignmentRepository implements DriverProofAssignmentRepository 
           return DriverOrderItem(
             name: (item['name'] ?? '').toString(),
             sku: (item['sku'] ?? '').toString(),
+            imageUrl: (item['image_url'] ?? '').toString(),
+            variant: (item['variant'] ?? '').toString(),
+            unit: (item['unit'] ?? '').toString(),
+            note: (item['note'] ?? '').toString(),
             quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
+            unitPrice: (item['unit_price'] as num?)?.toDouble() ?? 0,
             lineTotal: (item['line_total'] as num?)?.toDouble() ?? 0,
           );
         })
@@ -289,6 +301,36 @@ class HttpDriverAssignmentRepository implements DriverProofAssignmentRepository 
       completedAt: (map['completed_at'] ?? '').toString(),
       createdAt: (order['created_at'] ?? '').toString(),
     );
+  }
+
+  @override
+  Future<List<DriverFailureReasonOption>> failedDeliveryReasons() async {
+    final response = await _request(
+      () => _client.get(
+        _endpoint('lookups/failed-delivery-reasons'),
+        headers: _headers,
+      ),
+    );
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic> || decoded['data'] is! List) {
+      throw const DriverApiException('Invalid failed-delivery lookup response.');
+    }
+
+    return (decoded['data'] as List)
+        .whereType<Map>()
+        .map((raw) {
+          final item = Map<String, dynamic>.from(raw);
+          return DriverFailureReasonOption(
+            code: (item['code'] ?? '').toString(),
+            labelAr: (item['label_ar'] ?? '').toString(),
+            labelEn: (item['label_en'] ?? '').toString(),
+          );
+        })
+        .where((option) =>
+            option.code.trim().isNotEmpty &&
+            option.labelAr.trim().isNotEmpty &&
+            option.labelEn.trim().isNotEmpty)
+        .toList(growable: false);
   }
 
   @override

@@ -1103,19 +1103,100 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
         if (assignment.items.isEmpty)
           Text(context.tr('driver.detail.no_items'))
         else
-          ...assignment.items.map(
-            (item) => ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text(item.name),
-              subtitle: item.sku.isEmpty ? null : Text(item.sku),
-              trailing: Text(
-                item.quantity.toStringAsFixed(
-                  item.quantity == item.quantity.roundToDouble() ? 0 : 2,
+          ...assignment.items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            final quantity = item.quantity.toStringAsFixed(
+              item.quantity == item.quantity.roundToDouble() ? 0 : 2,
+            );
+            final image = item.imageUrl.trim();
+
+            return Card(
+              key: Key('driver-detail-item-${assignment.id}-$index'),
+              margin: const EdgeInsets.only(bottom: 10),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        key: Key(
+                          'driver-detail-item-image-${assignment.id}-$index',
+                        ),
+                        width: 64,
+                        height: 64,
+                        child: image.isEmpty
+                            ? const ColoredBox(
+                                color: Color(0xFFF2F5F3),
+                                child: Icon(Icons.inventory_2_outlined),
+                              )
+                            : Image.network(
+                                image,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const ColoredBox(
+                                  color: Color(0xFFF2F5F3),
+                                  child: Icon(Icons.broken_image_outlined),
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.name,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          if (item.sku.trim().isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              item.sku,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                          const SizedBox(height: 6),
+                          Text(
+                            '${context.tr('driver.detail.item_variant')}: '
+                            '${_value(context, item.variant)}',
+                          ),
+                          Text(
+                            '${context.tr('driver.detail.item_quantity')}: '
+                            '$quantity',
+                          ),
+                          Text(
+                            '${context.tr('driver.detail.item_unit')}: '
+                            '${_value(context, item.unit)}',
+                          ),
+                          Text(
+                            '${context.tr('driver.detail.item_note')}: '
+                            '${_value(context, item.note)}',
+                          ),
+                          if (item.lineTotal > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '${context.tr('driver.detail.item_total')}: '
+                              '${item.lineTotal.toStringAsFixed(3)} '
+                              '${assignment.currency}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ),
+            );
+          }),
       ],
     );
   }
