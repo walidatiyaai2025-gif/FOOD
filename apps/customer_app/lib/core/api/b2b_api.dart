@@ -5,7 +5,11 @@ abstract class B2bApi {
   Future<Object?> get(String path);
 }
 
-class HttpB2bApi implements B2bApi {
+abstract class B2bDocumentApi {
+  Future<List<int>> getBytes(String path);
+}
+
+class HttpB2bApi implements B2bApi, B2bDocumentApi {
   HttpB2bApi({
     required this.baseUrl,
     required this.token,
