@@ -603,6 +603,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       }
       return;
     }
+    final documentRepository = repository as DriverInvoiceDocumentRepository;
     if (_busyAssignments.contains(assignment.id)) return;
 
     setState(() {
@@ -613,7 +614,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
     try {
       final locale =
           Localizations.localeOf(context).languageCode == 'ar' ? 'ar' : 'en';
-      final bytes = await repository.downloadInvoicePdf(
+      final bytes = await documentRepository.downloadInvoicePdf(
         assignment.id,
         locale: locale,
       );
