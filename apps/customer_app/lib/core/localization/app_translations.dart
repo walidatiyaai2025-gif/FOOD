@@ -272,7 +272,7 @@ class AppTranslations extends InheritedWidget {
     'b2b.statement.subtitle': 'الرصيد والحركات المالية للحساب',
     'b2b.orders.title': 'طلبات الأعمال',
     'b2b.orders.subtitle': 'طلبات الجملة وحالاتها',
-    'b2b.order.title': 'تفاصيل الطلب',
+    'b2b.order.title': 'تفاصيل طلب الجملة',
     'b2b.order.subtitle': 'تفاصيل الطلب والتتبع',
     'b2b.order.status': 'حالة الطلب',
     'b2b.order.tracking': 'التتبع',
