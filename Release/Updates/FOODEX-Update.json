@@ -4,7 +4,7 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.53",
   "minimum_current_version": "1.0.6",
-  "sha256": "9a17ec49caa0e4517169c0fc7a3b673afcca4edc5dc7979dae8c47e8a3956554",
+  "sha256": "800b647571a5c77f1ffcedd1da8f35f6aaac643ee9558805b6618a8aefb89ef2",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
@@ -12,7 +12,7 @@
   "dashboard_fields": {
     "target_version": "1.0.53",
     "minimum_current_version": "1.0.6",
-    "sha256": "9a17ec49caa0e4517169c0fc7a3b673afcca4edc5dc7979dae8c47e8a3956554",
+    "sha256": "800b647571a5c77f1ffcedd1da8f35f6aaac643ee9558805b6618a8aefb89ef2",
     "contains_migrations": true,
     "release_notes": "FOODEX 1.0.53: Publish C13 umbrella #858 after final integrated gate #873 / PR #890: the complete 13-screen Customer journey is now merged and accepted on authoritative main. Ship the shared authoritative B2B customer ledger and Customer 360 finance contract, with explicit عليك/لك balance direction, credit limit, available credit, purchasing power, partial-payment, overpayment, refund/credit-note and adjustment reconciliation. Complete the Customer Dashboard, Purchases Report, Top Purchased Products, Invoices, Account Statement, Orders/Tracking, Invoice Details, Products, Product Details, Cart/Checkout and Profile surfaces with visible navigation and authoritative live data. Preserve exact store/account isolation, server-side stock/price/credit enforcement, idempotent checkout, AR/EN + RTL/LTR behavior, and explicit loading/empty/error/stale/disconnected states without fake live fallback. Synchronize Dashboard, Customer and Driver release identities at 1.0.53 / mobile build 1.0.53+53 without changing production force-update or minimum-version policy."
   }
