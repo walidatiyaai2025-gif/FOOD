@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CommerceQuoteService;
 use App\Services\CouponRedemptionService;
+use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
@@ -79,7 +80,8 @@ class CheckoutController extends Controller
                 ->where('status', 'active')
                 ->firstOrFail();
 
-            if ((float) $account->credit_limit > 0 && ! in_array('account_credit', $allowedMethods, true)) {
+            $finance = app(B2bAccountLedgerService::class)->summary($customer, $storeId);
+            if ((float) $finance['purchasing_power'] > 0 && ! in_array('account_credit', $allowedMethods, true)) {
                 $allowedMethods[] = 'account_credit';
             }
         }
