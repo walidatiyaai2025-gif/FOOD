@@ -556,7 +556,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
   String _money(Object? value, String currency) {
     final amount = double.tryParse(value?.toString() ?? '');
     if (amount == null) return '—';
-    return amount.toStringAsFixed(3) + ' ' + currency;
+    return '${amount.toStringAsFixed(3)} $currency';
   }
 
   Widget _metric(
@@ -568,7 +568,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     required String route,
   }) {
     return Card(
-      key: ValueKey('b2b-dashboard-' + keyName),
+      key: ValueKey('b2b-dashboard-$keyName'),
       child: InkWell(
         onTap: () => Navigator.of(context).pushNamed(_scopedRoute(route)),
         child: ListTile(
@@ -683,9 +683,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                         children: [
                           Expanded(
                             child: Text(
-                              context.tr('b2b.dashboard.last_updated') +
-                                  ': ' +
-                                  (generatedAt ?? '—'),
+                              "${context.tr('b2b.dashboard.last_updated')}: ${generatedAt ?? '—'}",
                               key: const ValueKey(
                                 'b2b-dashboard-last-updated',
                               ),
@@ -720,9 +718,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                 context,
                 keyName: 'balance',
                 label: context.tr('b2b.dashboard.balance'),
-                value: directionLabel +
-                    ' ' +
-                    _money(rawBalance.abs(), currency),
+                value: '$directionLabel ${_money(rawBalance.abs(), currency)}',
                 icon: Icons.account_balance_wallet_outlined,
                 route: CustomerRoutePaths.b2bAccountStatement,
               ),
