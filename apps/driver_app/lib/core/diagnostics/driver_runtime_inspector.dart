@@ -281,14 +281,17 @@ class DriverRuntimeInspector {
   }) {
     final normalizedBaseUrl = baseUrl.trim();
     final normalizedToken = token.trim();
-    if (normalizedBaseUrl.isEmpty || normalizedToken.isEmpty) {
+    final normalizedChannel = channel.trim();
+    if (normalizedBaseUrl.isEmpty ||
+        normalizedToken.isEmpty ||
+        normalizedChannel.isEmpty) {
       clearInspectorUpload();
       return;
     }
 
     _uploadBaseUrl = normalizedBaseUrl;
     _uploadToken = normalizedToken;
-    _uploadChannel = channel;
+    _uploadChannel = normalizedChannel;
     _uploadStoreId = storeId;
     _scheduleAutomaticFlush();
   }
@@ -336,9 +339,11 @@ class DriverRuntimeInspector {
   }) async {
     final normalizedBaseUrl = baseUrl.trim();
     final normalizedToken = token.trim();
+    final normalizedChannel = channel.trim();
     if (_flushInProgress ||
         normalizedBaseUrl.isEmpty ||
         normalizedToken.isEmpty ||
+        normalizedChannel.isEmpty ||
         limit <= 0) {
       return 0;
     }
@@ -357,13 +362,119 @@ class DriverRuntimeInspector {
     var submitted = 0;
 
     try {
-      final root = normalizedBaseUrl.replaceFirst(RegExp(r'/+$'), '');
+      final root = normalizedBaseUrl.replaceFirst(RegExp(r'/+    try {
+      await _persistChain;
+    } catch (_) {
+      // Keep clearing even if a previous preference write failed.
+    }
+    _events.clear();
+    _lastRoute = null;
+    final preferences = _preferences;
+    if (preferences != null) {
+      try {
+        await preferences.remove(_storageKey);
+      } catch (_) {
+        // Clearing diagnostics must not break the UI.
+      }
+    }
+  }
+
+  void _append(Map<String, dynamic> event) {
+    final timestamp = DateTime.now().toUtc().toIso8601String();
+    _events.add(<String, dynamic>{
+      'timestamp': timestamp,
+      ...event,
+    });
+    if (_events.length > maxEvents) {
+      _events.removeRange(0, _events.length - maxEvents);
+    }
+    _schedulePersist();
+    if (_isRemoteEligible(event['type']?.toString())) {
+      _scheduleAutomaticFlush();
+    }
+  }
+
+  void _schedulePersist() {
+    final preferences = _preferences;
+    if (preferences == null) return;
+
+    final payload = jsonEncode(_events);
+    _persistChain = _persistChain
+        .then((_) => preferences.setString(_storageKey, payload))
+        .then<void>((_) {})
+        .catchError((_) {});
+  }
+
+  String _safeEndpoint(Uri uri) {
+    final segments = uri.pathSegments.map((segment) {
+      if (RegExp(r'^\d+$').hasMatch(segment)) return ':id';
+      if (RegExp(
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+        caseSensitive: false,
+      ).hasMatch(segment)) {
+        return ':id';
+      }
+      return sanitizeForDiagnostics(segment, maxLength: 160);
+    }).join('/');
+
+    final port = uri.hasPort &&
+            !((uri.scheme == 'https' && uri.port == 443) ||
+                (uri.scheme == 'http' && uri.port == 80))
+        ? ':${uri.port}'
+        : '';
+    final path = segments.isEmpty ? '/' : '/$segments';
+    return '${uri.scheme}://${uri.host}$port$path';
+  }
+}
+
+class DriverDiagnosticHttpClient extends http.BaseClient {
+  DriverDiagnosticHttpClient(
+    this._inner, {
+    DriverRuntimeInspector? inspector,
+  }) : _inspector = inspector ?? DriverRuntimeInspector.instance;
+
+  final http.Client _inner;
+  final DriverRuntimeInspector _inspector;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      final response = await _inner.send(request);
+      stopwatch.stop();
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        _inspector.recordHttpFailure(
+          method: request.method,
+          uri: request.url,
+          statusCode: response.statusCode,
+          elapsed: stopwatch.elapsed,
+        );
+      } else {
+        _inspector.notifyConnectivityRecovered();
+      }
+      return response;
+    } catch (error) {
+      stopwatch.stop();
+      _inspector.recordHttpFailure(
+        method: request.method,
+        uri: request.url,
+        elapsed: stopwatch.elapsed,
+        error: error,
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  void close() => _inner.close();
+}
+), '');
       final endpoint = Uri.parse('$root/api/v1/runtime-inspector/events');
 
       for (final event in pending) {
         final payload = _inspectorPayload(
           event,
-          channel: channel,
+          channel: normalizedChannel,
           storeId: storeId,
         );
         if (payload == null) continue;
