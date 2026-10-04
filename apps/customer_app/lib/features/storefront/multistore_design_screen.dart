@@ -153,7 +153,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
             pendingActionStore: pendingActionStore,
             showBottomNavigation: false,
           ),
-          CustomerFooterDestination.home,
+          CustomerFooterDestination.products,
         );
       case CustomerRoutePaths.b2bProducts:
         return withFooter(
@@ -187,7 +187,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
             api: b2bApi,
             commerceApi: wholesaleApi,
           ),
-          CustomerFooterDestination.cart,
+          CustomerFooterDestination.account,
         );
       case CustomerRoutePaths.b2bCheckout:
         return withFooter(
@@ -196,7 +196,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
             storefrontApi: storefrontApi,
             commerceApi: wholesaleApi,
           ),
-          CustomerFooterDestination.cart,
+          CustomerFooterDestination.account,
         );
       case CustomerRoutePaths.b2bOrders:
         return withFooter(
