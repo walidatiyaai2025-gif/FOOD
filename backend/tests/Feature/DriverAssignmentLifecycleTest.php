@@ -206,6 +206,17 @@ class DriverAssignmentLifecycleTest extends TestCase
         ])->assertUnprocessable()
             ->assertJsonValidationErrors(['failure_reason']);
 
+        DB::table('operational_lookups')
+            ->where('type', 'failed_delivery_reason')
+            ->where('code', 'wrong_address')
+            ->update(['is_active' => false]);
+
+        $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
+            'status' => 'failed',
+            'failure_reason' => 'wrong_address',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['failure_reason']);
+
         $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
             'status' => 'failed',
             'failure_reason' => 'other',
