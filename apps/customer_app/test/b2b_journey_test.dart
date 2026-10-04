@@ -245,7 +245,7 @@ void main() {
       find.byKey(const ValueKey('b2b-profile-friendly-data')),
       findsOneWidget,
     );
-    expect(find.text('Acme Foods'), findsOneWidget);
+    expect(find.text('Acme Foods'), findsWidgets);
     expect(find.text('TAX-872'), findsOneWidget);
     expect(find.text('نشط'), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-account-hub')), findsOneWidget);
@@ -311,6 +311,101 @@ void main() {
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(scaffold.backgroundColor, const Color(0xFFF8FBF9));
+  });
+
+  testWidgets(
+      'Wholesale storefront CTA opens canonical Screen 10 with store context',
+      (tester) async {
+    final storefront = _FakeWholesaleStorefrontApi();
+    final api = _FakeB2bApi({
+      'data': [
+        {
+          'id': 42,
+          'name': 'Bulk Water',
+          'sku': 'WATER-42',
+          'account_price': 75,
+          'minimum_order_quantity': 5,
+          'ordering_increment': 1,
+          'available_quantity': 20,
+          'is_available': true,
+          'category_id': 3,
+          'category_name': 'Beverages',
+        },
+      ],
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+        b2bApi: api,
+        storefrontApi: storefront,
+        actionApi: _FakeCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final openCatalog = find.byKey(
+      const ValueKey('wholesale-home-open-catalog'),
+    );
+    expect(openCatalog, findsOneWidget);
+    await tester.ensureVisible(openCatalog);
+    await tester.tap(openCatalog);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('wholesale-catalog-screen')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-catalog-search')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-category-all')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-category-filter-3')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-catalog-count')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-catalog-grid-view')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-catalog-list-view')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('wholesale-catalog-list-view')),
+    );
+    await tester.pump();
+    var grid = tester.widget<GridView>(
+      find.byKey(const ValueKey('wholesale-product-grid')),
+    );
+    var delegate =
+        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(delegate.crossAxisCount, 1);
+
+    await tester.tap(
+      find.byKey(const ValueKey('wholesale-catalog-grid-view')),
+    );
+    await tester.pump();
+    grid = tester.widget<GridView>(
+      find.byKey(const ValueKey('wholesale-product-grid')),
+    );
+    delegate =
+        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(delegate.crossAxisCount, 2);
+
+    expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
+    expect(storefront.lastStoreId, 70);
   });
 
   testWidgets('guest can browse Wholesale storefront and product without login',

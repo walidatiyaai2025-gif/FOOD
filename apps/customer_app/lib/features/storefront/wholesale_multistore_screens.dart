@@ -237,6 +237,17 @@ class _WholesaleHomeDesignScreenState
                       cta: heroCta,
                       imageUrl: hero['image_url']?.toString(),
                       palette: palette,
+                      onCta: storeId > 0
+                          ? () => Navigator.of(context).pushNamed(
+                                Uri(
+                                  path: CustomerRoutePaths.b2bProducts,
+                                  queryParameters: <String, String>{
+                                    'channel': 'wholesale',
+                                    'store_id': storeId.toString(),
+                                  },
+                                ).toString(),
+                              )
+                          : null,
                     ),
                   );
                   break;
@@ -270,6 +281,7 @@ class _WholesaleHomeDesignScreenState
                   content.add(
                     _WholesaleProductGrid(
                       rows: rows,
+                      gridMode: true,
                       storeId: storeId,
                       sourceLocation: widget.location,
                       session: widget.session,
@@ -320,6 +332,7 @@ class _WholesaleHomeDesignScreenState
               content.add(
                 _WholesaleProductGrid(
                   rows: rows,
+                  gridMode: true,
                   storeId: storeId,
                   sourceLocation: widget.location,
                   session: widget.session,
@@ -500,12 +513,14 @@ class _WholesaleHero extends StatelessWidget {
     required this.cta,
     required this.palette,
     this.imageUrl,
+    this.onCta,
   });
 
   final String title;
   final String cta;
   final String? imageUrl;
   final FoodexPalette palette;
+  final VoidCallback? onCta;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -539,6 +554,7 @@ class _WholesaleHero extends StatelessWidget {
                     _WhitePill(
                       label: cta,
                       palette: palette,
+                      onTap: onCta,
                     ),
                   ],
                 ),
@@ -574,27 +590,34 @@ class _WhitePill extends StatelessWidget {
   const _WhitePill({
     required this.label,
     required this.palette,
+    this.onTap,
   });
 
   final String label;
   final FoodexPalette palette;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => Align(
         alignment: AlignmentDirectional.centerStart,
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: palette.accent,
+        child: Material(
+          color: palette.accent,
+          borderRadius: BorderRadius.circular(999),
+          child: InkWell(
+            key: const ValueKey('wholesale-home-open-catalog'),
+            onTap: onTap,
             borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: palette.primaryDark,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: palette.primaryDark,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
           ),
         ),
@@ -783,6 +806,7 @@ class _WholesaleBrandRail extends StatelessWidget {
 class _WholesaleProductGrid extends StatelessWidget {
   const _WholesaleProductGrid({
     required this.rows,
+    required this.gridMode,
     required this.storeId,
     required this.sourceLocation,
     required this.session,
@@ -796,6 +820,7 @@ class _WholesaleProductGrid extends StatelessWidget {
   });
 
   final List<Map<String, dynamic>> rows;
+  final bool gridMode;
   final int storeId;
   final String sourceLocation;
   final CustomerSession session;
@@ -833,12 +858,16 @@ class _WholesaleProductGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: displayRows.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
+        crossAxisCount: gridMode ? 2 : 1,
+        crossAxisSpacing: gridMode ? 10 : 0,
         mainAxisSpacing: 12,
         mainAxisExtent: showCommerceActions
-            ? (width < 360 ? 424 : 438)
-            : (width < 360 ? 286 : 306),
+            ? (gridMode
+                ? (width < 360 ? 424 : 438)
+                : (width < 360 ? 350 : 370))
+            : (gridMode
+                ? (width < 360 ? 286 : 306)
+                : (width < 360 ? 260 : 280)),
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
         row: displayRows[index],
@@ -1302,6 +1331,7 @@ class _WholesaleCatalogDesignScreenState
   late Future<Map<String, dynamic>> future = _load();
   int? selectedCategoryId;
   String sortMode = 'default';
+  bool gridMode = true;
   int visibleLimit = 24;
   bool stale = false;
   Map<String, dynamic>? _lastPayload;
@@ -1502,15 +1532,20 @@ class _WholesaleCatalogDesignScreenState
             ...mapRows(storefront['products']),
             ...allRows,
           ];
+          final localeCode = Localizations.localeOf(context).languageCode;
           for (final row in categorySources) {
             final id = intValue(row['category_id']);
             if (id <= 0 || categoryMap.containsKey(id)) continue;
+            final localizedName =
+                row['category_name_$localeCode']?.toString().trim();
+            final fallbackName = row['category_name']?.toString().trim();
             categoryMap[id] = {
               'id': id,
-              'name': row['category_name']?.toString().trim().isNotEmpty ==
-                      true
-                  ? row['category_name'].toString()
-                  : context.tr('b2b.catalog.category') + ' $id',
+              'name': localizedName?.isNotEmpty == true
+                  ? localizedName
+                  : (fallbackName?.isNotEmpty == true
+                      ? fallbackName
+                      : context.tr('b2b.catalog.category') + ' $id'),
             };
           }
           final categories = categoryMap.values.toList(growable: false);
@@ -1634,80 +1669,116 @@ class _WholesaleCatalogDesignScreenState
                     ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-                    child: Row(
+                    child: Column(
                       children: [
-                        OutlinedButton.icon(
-                          key: const ValueKey('wholesale-catalog-filter'),
-                          onPressed: () =>
-                              _openCategoryFilter(context, categories),
-                          icon: const Icon(Icons.tune_rounded, size: 18),
-                          label: Text(context.tr('b2b.catalog.filter')),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            key: const ValueKey('wholesale-catalog-sort'),
-                            value: sortMode,
-                            isDense: true,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 9,
+                        Row(
+                          children: [
+                            OutlinedButton.icon(
+                              key: const ValueKey('wholesale-catalog-filter'),
+                              onPressed: () =>
+                                  _openCategoryFilter(context, categories),
+                              icon: const Icon(Icons.tune_rounded, size: 18),
+                              label: Text(context.tr('b2b.catalog.filter')),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                key: const ValueKey('wholesale-catalog-sort'),
+                                value: sortMode,
+                                isDense: true,
+                                isExpanded: true,
+                                decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 9,
+                                  ),
+                                ),
+                                items: [
+                                  DropdownMenuItem(
+                                    value: 'default',
+                                    child: Text(
+                                      context.tr('b2b.catalog.sort_default'),
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'price_low',
+                                    child: Text(
+                                      context.tr('b2b.catalog.sort_price_low'),
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'price_high',
+                                    child: Text(
+                                      context.tr('b2b.catalog.sort_price_high'),
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'name',
+                                    child: Text(
+                                      context.tr('b2b.catalog.sort_name'),
+                                    ),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      sortMode = value;
+                                      visibleLimit = 24;
+                                    });
+                                  }
+                                },
                               ),
                             ),
-                            items: [
-                              DropdownMenuItem(
-                                value: 'default',
-                                child: Text(
-                                  context.tr('b2b.catalog.sort_default'),
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: 'price_low',
-                                child: Text(
-                                  context.tr('b2b.catalog.sort_price_low'),
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: 'price_high',
-                                child: Text(
-                                  context.tr('b2b.catalog.sort_price_high'),
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: 'name',
-                                child: Text(
-                                  context.tr('b2b.catalog.sort_name'),
-                                ),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() {
-                                  sortMode = value;
-                                  visibleLimit = 24;
-                                });
-                              }
-                            },
-                          ),
+                            IconButton(
+                              key: const ValueKey('wholesale-catalog-refresh'),
+                              tooltip: context.tr('b2b.catalog.refresh'),
+                              onPressed: () => _reload(resetLimit: false),
+                              icon: const Icon(Icons.refresh_rounded),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '${displayedRows.length}/${visibleRows.length} ' +
-                              context.tr('b2b.catalog.products_count'),
-                          key: const ValueKey('wholesale-catalog-count'),
-                          style: TextStyle(
-                            color: palette.muted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        IconButton(
-                          key: const ValueKey('wholesale-catalog-refresh'),
-                          tooltip: context.tr('b2b.catalog.refresh'),
-                          onPressed: () => _reload(resetLimit: false),
-                          icon: const Icon(Icons.refresh_rounded),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${visibleRows.length} ' +
+                                    context.tr('b2b.catalog.products_count'),
+                                key: const ValueKey('wholesale-catalog-count'),
+                                style: TextStyle(
+                                  color: palette.muted,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              key: const ValueKey(
+                                'wholesale-catalog-grid-view',
+                              ),
+                              tooltip: context.tr('b2b.catalog.grid_view'),
+                              isSelected: gridMode,
+                              selectedIcon: Icon(
+                                Icons.grid_view_rounded,
+                                color: palette.primary,
+                              ),
+                              onPressed: () => setState(() => gridMode = true),
+                              icon: const Icon(Icons.grid_view_outlined),
+                            ),
+                            IconButton(
+                              key: const ValueKey(
+                                'wholesale-catalog-list-view',
+                              ),
+                              tooltip: context.tr('b2b.catalog.list_view'),
+                              isSelected: !gridMode,
+                              selectedIcon: Icon(
+                                Icons.view_list_rounded,
+                                color: palette.primary,
+                              ),
+                              onPressed: () => setState(() => gridMode = false),
+                              icon: const Icon(Icons.view_list_outlined),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -1743,6 +1814,7 @@ class _WholesaleCatalogDesignScreenState
                     ),
                   _WholesaleProductGrid(
                     rows: displayedRows,
+                    gridMode: gridMode,
                     storeId: storeId,
                     sourceLocation: widget.location,
                     session: widget.session,

@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - "apps/customer_app/lib/app.dart"
+      - "apps/customer_app/lib/features/b2b/business_account_profile.dart"
       - "apps/customer_app/lib/core/theme/foodex_theme.dart"
       - "apps/customer_app/test/screenshot_evidence_test.dart"
       - "apps/driver_app/lib/app.dart"

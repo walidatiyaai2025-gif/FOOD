@@ -54,7 +54,7 @@ void main() {
     const _CaptureCase('01_Mobile/B2B_Customer/07_طلباتي__populated__ar.png', '/b2b/orders', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/08_تفاصيل_الطلب_وتتبع_الحالة__populated__ar.png', '/b2b/orders/77', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/09_تفاصيل_الفاتورة__populated__ar.png', '/b2b/invoices/31', session: _b2b),
-    const _CaptureCase('01_Mobile/B2B_Customer/10_تصفح_المنتجات__populated__ar.png', '/b2b/products?store=7', session: _b2b),
+    const _CaptureCase('01_Mobile/B2B_Customer/10_تصفح_المنتجات__populated__ar.png', '/b2b/products?channel=wholesale&store_id=7', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/11_تفاصيل_المنتج_وإضافة_للسلة__populated__ar.png', '/b2b/products/42?store_id=7', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/12_سلة_المشتريات_وإتمام_الطلب__populated__ar.png', '/b2b/cart?store=7', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/13_حسابي_والإعدادات__populated__ar.png', '/b2b/profile', session: _b2b),
@@ -318,8 +318,36 @@ class _EvidenceB2bApi implements B2bApi {
     if (path.endsWith('/products') || path.contains('/products?')) {
       return {
         'data': [
-          {'id': 42, 'sku': 'B2B-P-42', 'name': 'FOODEX Wholesale Tomato Box', 'price': 7.25, 'currency': 'KWD'},
-          {'id': 43, 'sku': 'B2B-P-43', 'name': 'FOODEX Premium Olive Oil', 'price': 18.5, 'currency': 'KWD'},
+          {
+            'id': 42,
+            'sku': 'B2B-P-42',
+            'name': 'FOODEX Wholesale Tomato Box',
+            'account_price': 7.25,
+            'currency': 'KWD',
+            'minimum_order_quantity': 5,
+            'ordering_increment': 1,
+            'pack_size': 12,
+            'available_quantity': 240,
+            'is_available': true,
+            'category_id': 3,
+            'category_name_ar': 'خضار وفواكه',
+            'category_name_en': 'Fruit & vegetables',
+          },
+          {
+            'id': 43,
+            'sku': 'B2B-P-43',
+            'name': 'FOODEX Premium Olive Oil',
+            'account_price': 18.5,
+            'currency': 'KWD',
+            'minimum_order_quantity': 5,
+            'ordering_increment': 1,
+            'pack_size': 6,
+            'available_quantity': 80,
+            'is_available': true,
+            'category_id': 4,
+            'category_name_ar': 'معلبات',
+            'category_name_en': 'Pantry',
+          },
         ],
       };
     }
