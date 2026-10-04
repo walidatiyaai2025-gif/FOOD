@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\DriverAssignment;
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
@@ -21,6 +22,7 @@ use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderInventoryReservationService;
 use App\Services\PlatformCustomerService;
 use App\Services\RetailWholesaleReplenishmentService;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -409,16 +411,31 @@ class OrderController extends Controller
             ->where('order_id', $order->getKey())
             ->orderBy('id')
             ->get()
-            ->map(static fn (OrderItem $item): array => [
-                'id' => (int) $item->getKey(),
-                'product_id' => (int) $item->product_id,
-                'sku' => (string) $item->sku_snapshot,
-                'name' => (string) $item->name_snapshot,
-                'quantity' => (float) $item->quantity,
-                'quantity_conversion_factor' => (float) ($item->quantity_conversion_factor ?? 1),
-                'unit_price' => (float) $item->unit_price,
-                'line_total' => (float) $item->line_total,
-            ])
+            ->map(function (OrderItem $item): array {
+                $imagePath = DB::table('product_images')
+                    ->where('product_id', $item->product_id)
+                    ->orderByDesc('is_primary')
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->value('path');
+
+                return [
+                    'id' => (int) $item->getKey(),
+                    'product_id' => (int) $item->product_id,
+                    'sku' => (string) $item->sku_snapshot,
+                    'name' => (string) $item->name_snapshot,
+                    'image_url' => is_string($imagePath) && trim($imagePath) !== ''
+                        ? (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')
+                            ? $imagePath
+                            : url('/'.ltrim($imagePath, '/')))
+                        : null,
+                    'quantity' => (float) $item->quantity,
+                    'quantity_conversion_factor' => (float) ($item->quantity_conversion_factor ?? 1),
+                    'pack_size' => (float) ($item->quantity_conversion_factor ?? 1),
+                    'unit_price' => (float) $item->unit_price,
+                    'line_total' => (float) $item->line_total,
+                ];
+            })
             ->values()
             ->all();
 
@@ -441,6 +458,39 @@ class OrderController extends Controller
             ->latest('id')
             ->first();
 
+        $invoice = Invoice::query()
+            ->where('order_id', $order->getKey())
+            ->whereIn('status', ['issued', 'reissued'])
+            ->orderByDesc('revision')
+            ->orderByDesc('id')
+            ->first();
+
+        $tracking = null;
+        if ($includeTimeline) {
+            $tracking = DB::table('driver_assignments')
+                ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+                ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
+                ->where('driver_assignments.order_id', $order->getKey())
+                ->where('driver_assignments.store_id', $order->store_id)
+                ->where('driver_assignments.assignment_type', $order->channel)
+                ->whereNotIn('driver_assignments.status', [
+                    'cancelled',
+                    'unassigned',
+                    'reassigned',
+                ])
+                ->orderByDesc('driver_assignments.id')
+                ->first([
+                    'driver_assignments.id',
+                    'driver_assignments.driver_id',
+                    'driver_assignments.status',
+                    'driver_assignments.assigned_at',
+                    'driver_assignments.completed_at',
+                    'users.name as driver_name',
+                ]);
+        }
+
+        $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
+
         $store = DB::table('stores')
             ->where('id', $order->store_id)
             ->first(['id', 'code', 'name', 'logo_path']);
@@ -458,14 +508,16 @@ class OrderController extends Controller
                     : url('/'.ltrim((string) $store->logo_path, '/')),
             ],
             'address_id' => $order->address_id === null ? null : (int) $order->address_id,
-            'delivery_address' => app(OrderDeliveryAddressSnapshotService::class)->payload($order),
+            'delivery_address' => $deliveryAddress,
             'requested_delivery_date' => $order->requested_delivery_date,
+            'customer_note' => $order->customer_note,
             'channel' => (string) $order->channel,
             'status' => (string) $order->status,
             'currency' => (string) $order->currency,
             'subtotal' => (float) $order->subtotal,
             'discount_total' => (float) $order->discount_total,
             'delivery_total' => (float) $order->delivery_total,
+            'tax_total' => (float) ($order->tax_total ?? 0),
             'grand_total' => (float) $order->grand_total,
             'payment_method' => $order->payment_method,
             'item_count' => count($items),
@@ -482,6 +534,38 @@ class OrderController extends Controller
                 'amount' => (float) $payment->amount,
                 'currency' => (string) $payment->currency,
             ] : null,
+            'account_credit_impact' => $payment instanceof Payment
+                && in_array((string) $payment->provider, ['account_credit', 'credit_balance'], true)
+                ? [
+                    'amount' => (float) $payment->amount,
+                    'currency' => (string) $payment->currency,
+                    'status' => (string) $payment->status,
+                ]
+                : null,
+            'invoice' => $invoice instanceof Invoice ? [
+                'id' => (int) $invoice->getKey(),
+                'invoice_number' => (string) $invoice->invoice_number,
+                'status' => (string) $invoice->status,
+                'issued_at' => $invoice->issued_at === null
+                    ? null
+                    : CarbonImmutable::parse((string) $invoice->issued_at)->toAtomString(),
+            ] : null,
+            'tracking' => $tracking === null ? null : [
+                'assignment_id' => (int) $tracking->id,
+                'driver_id' => (int) $tracking->driver_id,
+                'driver_name' => $tracking->driver_name === null ? null : (string) $tracking->driver_name,
+                'status' => (string) $tracking->status,
+                'assigned_at' => $tracking->assigned_at,
+                'completed_at' => $tracking->completed_at,
+            ],
+            'allowed_actions' => [
+                'view_invoice' => $invoice instanceof Invoice,
+                'view_map' => (bool) ($deliveryAddress['has_coordinates'] ?? false),
+                'cancel' => false,
+                'reorder' => false,
+                'contact_support' => false,
+            ],
+            'is_terminal' => in_array((string) $order->status, ['delivered', 'failed', 'cancelled'], true),
             'created_at' => $order->created_at?->toAtomString(),
         ];
     }
