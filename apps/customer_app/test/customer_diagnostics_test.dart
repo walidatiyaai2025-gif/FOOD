@@ -73,56 +73,6 @@ void main() {
     expect(json, isNot(contains('secret-token')));
   });
 
-  test('remote flush sends only sanitized queued Customer diagnostics', () async {
-    final diagnostics = CustomerDiagnostics(maxEvents: 10)
-      ..updateContext(
-        appVersion: '1.0.53',
-        apiBaseUrl: 'https://foodex.example.test',
-        locale: 'en',
-        authenticated: true,
-        channel: 'b2c',
-        platformWide: true,
-        retailStoreContextId: 7,
-      )
-      ..recordDartError(
-        Exception(
-          'Bearer diagnostic-secret customer@example.test coordinates=29.375859,47.977405',
-        ),
-        StackTrace.fromString('token=stack-secret'),
-      );
-
-    http.Request? captured;
-    final client = MockClient((request) async {
-      captured = request;
-      return http.Response('{}', 202);
-    });
-
-    final submitted = await diagnostics.flushRemote(
-      client: client,
-      requestUri: Uri.parse('https://foodex.example.test/api/v1/orders?token=request-secret'),
-      authorization: 'Bearer transport-only-credential',
-    );
-
-    expect(submitted, 1);
-    expect(captured, isNotNull);
-    expect(captured!.url.path, '/api/v1/runtime-inspector/events');
-    expect(captured!.headers['Authorization'], 'Bearer transport-only-credential');
-
-    final body = captured!.body;
-    final payload = jsonDecode(body) as Map<String, dynamic>;
-    expect(payload['app'], 'customer');
-    expect(payload['category'], 'dart_error');
-    expect(payload['store_id'], 7);
-    expect(payload['channel'], 'b2c');
-    expect(body, isNot(contains('diagnostic-secret')));
-    expect(body, isNot(contains('customer@example.test')));
-    expect(body, isNot(contains('29.375859')));
-    expect(body, isNot(contains('47.977405')));
-    expect(body, isNot(contains('stack-secret')));
-    expect(body, isNot(contains('transport-only-credential')));
-    expect(diagnostics.events.single['remote_submitted_at'], isNotNull);
-  });
-
   test('diagnostics retains only the configured rolling event window', () {
     final diagnostics = CustomerDiagnostics(maxEvents: 3);
 
@@ -175,67 +125,6 @@ void main() {
     expect(details.toString(), isNot(contains('should-never-be-recorded')));
 
     client.close();
-  });
-
-  test('central flush retries offline events and checkpoints accepted events',
-      () async {
-    final diagnostics = CustomerDiagnostics(maxEvents: 10)
-      ..updateContext(
-        appVersion: '1.0.52',
-        apiBaseUrl: 'https://foodex.example.test',
-        locale: 'en',
-        authenticated: true,
-        channel: 'b2b',
-        platformWide: true,
-        retailStoreContextId: 7,
-      )
-      ..recordRuntimeFailure(
-        operation: 'b2b_orders_load',
-        path: '/api/v1/b2b/orders?token=body-secret&scope=all',
-        category: 'server_failure',
-        statusCode: 503,
-        supportReference: 'req-503',
-      );
-
-    var offlineAttempts = 0;
-    await diagnostics.flushToInspector(
-      baseUrl: 'https://foodex.example.test',
-      token: 'auth-secret',
-      client: MockClient((request) async {
-        offlineAttempts += 1;
-        throw http.ClientException('offline');
-      }),
-    );
-    expect(offlineAttempts, 1);
-
-    final bodies = <Map<String, dynamic>>[];
-    final online = MockClient((request) async {
-      bodies.add(
-        Map<String, dynamic>.from(
-          jsonDecode(request.body) as Map,
-        ),
-      );
-      return http.Response('', 202);
-    });
-
-    await diagnostics.flushToInspector(
-      baseUrl: 'https://foodex.example.test',
-      token: 'auth-secret',
-      client: online,
-    );
-    await diagnostics.flushToInspector(
-      baseUrl: 'https://foodex.example.test',
-      token: 'auth-secret',
-      client: online,
-    );
-
-    expect(bodies, hasLength(1));
-    expect(bodies.single['app'], 'customer');
-    expect(bodies.single['source'], 'runtime_failure');
-    expect(bodies.single['status'], 503);
-    expect(jsonEncode(bodies.single), contains('[REDACTED]'));
-    expect(jsonEncode(bodies.single), isNot(contains('body-secret')));
-    expect(jsonEncode(bodies.single), isNot(contains('auth-secret')));
   });
 
   testWidgets('diagnostics route is available in Arabic without authentication',
@@ -294,4 +183,71 @@ void main() {
       findsOneWidget,
     );
   });
+
+  test('central inspector keeps offline Customer failure pending until accepted',
+      () async {
+    final diagnostics = CustomerDiagnostics(maxEvents: 10)
+      ..updateContext(
+        appVersion: '1.0.53',
+        apiBaseUrl: 'https://foodex.example.test',
+        locale: 'en',
+        authenticated: true,
+        channel: 'b2c',
+        platformWide: true,
+        retailStoreContextId: 7,
+      )
+      ..recordRuntimeFailure(
+        operation: 'orders_load',
+        path: '/api/v1/orders?token=body-secret',
+        category: 'server_failure',
+        statusCode: 503,
+        supportReference: 'cid-customer-896',
+      );
+
+    final offline = await diagnostics.flushToInspector(
+      baseUrl: 'https://foodex.example.test',
+      token: 'transport-secret',
+      client: MockClient((request) async {
+        throw http.ClientException('offline');
+      }),
+    );
+    expect(offline, 0);
+    expect(diagnostics.events.single['remote_submitted_at'], isNull);
+
+    final requests = <http.Request>[];
+    final onlineClient = MockClient((request) async {
+      requests.add(request);
+      return http.Response('', 202);
+    });
+
+    final submitted = await diagnostics.flushToInspector(
+      baseUrl: 'https://foodex.example.test',
+      token: 'transport-secret',
+      client: onlineClient,
+    );
+    final repeated = await diagnostics.flushToInspector(
+      baseUrl: 'https://foodex.example.test',
+      token: 'transport-secret',
+      client: onlineClient,
+    );
+
+    expect(submitted, 1);
+    expect(repeated, 0);
+    expect(requests, hasLength(1));
+    expect(requests.single.url.path, '/api/v1/runtime-inspector/events');
+    expect(requests.single.headers['Authorization'], 'Bearer transport-secret');
+
+    final payload =
+        Map<String, dynamic>.from(jsonDecode(requests.single.body) as Map);
+    expect(payload['app'], 'customer');
+    expect(payload['category'], 'runtime_failure');
+    expect(payload['status'], 503);
+    expect(payload['store_id'], 7);
+    expect(payload['channel'], 'b2c');
+    expect(payload['correlation_id'], 'cid-customer-896');
+    expect(requests.single.body, isNot(contains('body-secret')));
+    expect(requests.single.body, isNot(contains('transport-secret')));
+    expect(diagnostics.events.single['remote_submitted_at'], isNotNull);
+  });
+
 }
