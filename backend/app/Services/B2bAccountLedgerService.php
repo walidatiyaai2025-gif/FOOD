@@ -102,6 +102,7 @@ final class B2bAccountLedgerService
             $delta = (float) $row['debit'] - (float) $row['credit'];
             if ($fromDate !== null && $at->lt($fromDate)) {
                 $openingBalance += $delta;
+
                 continue;
             }
             if ($toDate !== null && $at->gt($toDate)) {
