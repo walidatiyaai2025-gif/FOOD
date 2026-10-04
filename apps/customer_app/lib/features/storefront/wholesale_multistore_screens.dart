@@ -2625,7 +2625,7 @@ class _PricingPanel extends StatelessWidget {
         child: Column(
           children: [
             _PriceRow(
-              label: 'سعر الجملة الأساسي',
+              label: context.tr('b2b.product.base_price'),
               value: money(
                 row['base_wholesale_price'],
                 currency: currency,
@@ -2633,7 +2633,7 @@ class _PricingPanel extends StatelessWidget {
             ),
             const Divider(height: 18),
             _PriceRow(
-              label: 'سعر حسابك',
+              label: context.tr('b2b.product.account_price'),
               value: money(
                 row['account_price'],
                 currency: currency,
@@ -2643,7 +2643,7 @@ class _PricingPanel extends StatelessWidget {
             if (row['retail_reference_price'] != null) ...[
               const Divider(height: 18),
               _PriceRow(
-                label: 'سعر التجزئة المرجعي',
+                label: context.tr('b2b.product.retail_reference_price'),
                 value: money(
                   row['retail_reference_price'],
                   currency: currency,
