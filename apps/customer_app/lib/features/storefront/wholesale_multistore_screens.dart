@@ -281,6 +281,7 @@ class _WholesaleHomeDesignScreenState
                   content.add(
                     _WholesaleProductGrid(
                       rows: rows,
+                      gridMode: true,
                       storeId: storeId,
                       sourceLocation: widget.location,
                       session: widget.session,
@@ -331,6 +332,7 @@ class _WholesaleHomeDesignScreenState
               content.add(
                 _WholesaleProductGrid(
                   rows: rows,
+                  gridMode: true,
                   storeId: storeId,
                   sourceLocation: widget.location,
                   session: widget.session,
