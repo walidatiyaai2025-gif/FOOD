@@ -28,7 +28,7 @@ Status: final operational-completion distribution after umbrella #828 and integr
 - Minimum current version: `1.0.6`
 - Contains migrations: generated manifest is authoritative.
 - Requires full redeploy: `false`
-- SHA-256: populated from the generated release bundle before promotion to main.
+- SHA-256: `214d3551ed09551c07530880232e622955771139566187ca1eb134ecd21391cf`.
 
 ## Explicit non-activation statement
 
