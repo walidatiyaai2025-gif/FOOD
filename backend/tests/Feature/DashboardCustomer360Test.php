@@ -5,12 +5,17 @@ namespace Tests\Feature;
 use App\Models\Address;
 use App\Models\PlatformCustomer;
 use App\Models\Role;
+use App\Models\Store;
 use App\Models\User;
+use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\PlatformCustomerService;
+use App\Services\RetailWholesaleAccountService;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class DashboardCustomer360Test extends TestCase
@@ -68,6 +73,7 @@ class DashboardCustomer360Test extends TestCase
             ->assertOk()
             ->assertSee('Retail A')
             ->assertSee('INV-A')
+            ->assertDontSee('Wholesale account & finance')
             ->assertDontSee('Retail B')
             ->assertDontSee('INV-B');
 
@@ -99,6 +105,87 @@ class DashboardCustomer360Test extends TestCase
             ->assertSee('Retail A · RETAIL-A')
             ->assertSee('Retail B · RETAIL-B')
             ->assertSee('Wholesale account');
+    }
+
+    public function test_dual_role_retail_owner_resolves_canonical_wholesale_finance_without_duplicate_identity(): void
+    {
+        $retailStoreId = $this->store('B2C', 'RETAIL-OWNER', 'Retail Owner Store');
+        $retailStore = Store::query()->findOrFail($retailStoreId);
+        $owner = User::query()->create([
+            'name' => 'Dual Role Owner',
+            'email' => 'dual-role-owner@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        $retailRole = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        DB::table('user_store_roles')->insert([
+            'user_id' => $owner->id,
+            'store_id' => $retailStoreId,
+            'role_id' => $retailRole->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $tierId = (int) DB::table('b2b_price_tiers')
+            ->where('code', 'STANDARD')
+            ->value('id');
+        $domain = app(RetailWholesaleAccountService::class)
+            ->ensureForStore($retailStore, $tierId, $owner);
+        $platform = PlatformCustomer::query()
+            ->where('user_id', $owner->id)
+            ->firstOrFail();
+
+        $this->assertNull($domain->user_id);
+        $this->assertSame(
+            $domain->id,
+            app(CustomerDomainResolver::class)->existingB2b($owner)?->id,
+        );
+
+        DB::table('b2b_accounts')
+            ->where('b2b_customer_id', $domain->id)
+            ->update(['credit_limit' => 100, 'updated_at' => now()]);
+
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        app(B2bAccountLedgerService::class)->appendManual($domain, [
+            'entry_type' => 'customer_credit',
+            'credit' => 50,
+            'debit' => 0,
+            'currency' => 'EGP',
+            'store_id' => $principalStoreId,
+            'reference' => 'DUAL-ROLE-CREDIT',
+        ], $owner);
+
+        $beforeCustomers = DB::table('b2b_customers')->count();
+        $beforeAccounts = DB::table('b2b_accounts')->count();
+
+        Sanctum::actingAs($owner);
+        $this->getJson('/api/v1/b2b/account-summary?store_id='.$principalStoreId)
+            ->assertOk()
+            ->assertJsonPath('data.customer_id', $domain->id)
+            ->assertJsonPath('data.balance', 50)
+            ->assertJsonPath('data.balance_direction', 'company_owes_customer')
+            ->assertJsonPath('data.customer_credit_balance', 50);
+
+        $this->assertSame($beforeCustomers, DB::table('b2b_customers')->count());
+        $this->assertSame($beforeAccounts, DB::table('b2b_accounts')->count());
+
+        $super = $this->globalAdmin('SUPER_ADMIN');
+        $this->actingAs($super)
+            ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
+            ->assertOk()
+            ->assertSee('Wholesale account & finance')
+            ->assertSee('Retail Owner Store')
+            ->assertSee('Company owes you')
+            ->assertSee('50.000');
+
+        $b2bAdmin = $this->globalAdmin('B2B_ADMIN');
+        $this->actingAs($b2bAdmin)
+            ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
+            ->assertOk()
+            ->assertSee('Wholesale account & finance')
+            ->assertDontSee('Retail Owner Store');
     }
 
     public function test_retail_admin_can_fully_manage_visible_customer_addresses_only(): void
