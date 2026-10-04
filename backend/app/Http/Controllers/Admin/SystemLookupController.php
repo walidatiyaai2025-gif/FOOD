@@ -113,6 +113,11 @@ final class SystemLookupController extends Controller
         $this->authorizeManage($actor);
         $key = $this->typeKey($type);
         $definition = self::TYPES[$key];
+        $request->merge([
+            'code' => $definition['type'] === OperationalLookupService::PRICE_TIER
+                ? Str::upper(trim((string) $request->input('code')))
+                : Str::lower(trim((string) $request->input('code'))),
+        ]);
 
         $data = $request->validate([
             'code' => [
