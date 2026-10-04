@@ -92,6 +92,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 }
             }
 
+            if ($request->is('api/*')) {
+                app(SystemInspectorRecorder::class)->recordException($exception, $request);
+            }
+
             if (! $request->is('api/*') || $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface || $exception instanceof \Illuminate\Validation\ValidationException || $exception instanceof \Illuminate\Auth\AuthenticationException) {
                 return null;
             }
