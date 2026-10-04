@@ -134,17 +134,13 @@ class B2bJourneyScreen extends StatelessWidget {
       CustomerRoutePaths.b2bProducts ||
       CustomerRoutePaths.b2bProductDetails =>
         CustomerFooterDestination.products,
-      CustomerRoutePaths.b2bCart ||
-      CustomerRoutePaths.b2bCheckout =>
-        CustomerFooterDestination.cart,
       CustomerRoutePaths.b2bOrders ||
       CustomerRoutePaths.b2bOrderDetails =>
         CustomerFooterDestination.orders,
-      CustomerRoutePaths.b2bProfile ||
-      CustomerRoutePaths.b2bAddresses ||
-      CustomerRoutePaths.b2bNotifications =>
-        CustomerFooterDestination.account,
-      _ => CustomerFooterDestination.home,
+      CustomerRoutePaths.b2bInvoices ||
+      CustomerRoutePaths.b2bInvoiceDetails =>
+        CustomerFooterDestination.invoices,
+      _ => CustomerFooterDestination.account,
     };
 
     return withFooter(
