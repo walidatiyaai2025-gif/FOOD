@@ -236,7 +236,7 @@ class DriverRuntimeInspector {
       'event_count': _events.length,
       'events': snapshot(),
       'privacy': {
-        'automatic_upload': false,
+        'automatic_upload': true,
         'request_bodies_included': false,
         'response_bodies_included': false,
         'credentials_included': false,
@@ -264,6 +264,126 @@ class DriverRuntimeInspector {
         ),
       ),
     );
+  }
+
+  Future<int> flushRemote({
+    required http.Client client,
+    required Uri requestUri,
+    required String authorization,
+    int limit = 5,
+  }) async {
+    final credential = authorization.trim();
+    if (credential.isEmpty || !credential.toLowerCase().startsWith('bearer ')) {
+      return 0;
+    }
+
+    final pending = _events
+        .where((event) =>
+            event['remote_submitted_at'] == null &&
+            _isRemoteEligible(event['type']?.toString()))
+        .take(limit)
+        .toList(growable: false);
+    if (pending.isEmpty) return 0;
+
+    final endpoint = _remoteEndpoint(requestUri);
+    var submitted = 0;
+    for (final event in pending) {
+      final payload = _remotePayload(event);
+      if (payload == null) continue;
+
+      try {
+        final response = await client.post(
+          endpoint,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': credential,
+          },
+          body: jsonEncode(payload),
+        );
+        if (response.statusCode != 202) {
+          break;
+        }
+
+        event['remote_submitted_at'] =
+            DateTime.now().toUtc().toIso8601String();
+        submitted++;
+      } catch (_) {
+        break;
+      }
+    }
+
+    if (submitted > 0) {
+      _schedulePersist();
+    }
+    return submitted;
+  }
+
+  bool _isRemoteEligible(String? type) => const {
+        'error',
+        'http_failure',
+        'driver_version_policy_failure',
+        'driver_tracking_failure',
+      }.contains(type);
+
+  Uri _remoteEndpoint(Uri requestUri) {
+    final marker = requestUri.path.indexOf('/api/v1/');
+    final prefix =
+        marker >= 0 ? requestUri.path.substring(0, marker) : '';
+    return requestUri.replace(
+      path: '$prefix/api/v1/runtime-inspector/events',
+      query: null,
+      fragment: null,
+    );
+  }
+
+  Map<String, dynamic>? _remotePayload(Map<String, dynamic> event) {
+    final type = event['type']?.toString();
+    if (!_isRemoteEligible(type)) return null;
+    final status = (event['status_code'] as num?)?.toInt();
+
+    final message = switch (type) {
+      'error' => event['message'] ?? event['error_type'] ?? 'Driver runtime error',
+      'http_failure' =>
+        event['error'] ?? 'Driver API request failed',
+      'driver_version_policy_failure' =>
+        event['failure_class'] ?? 'Driver version policy failure',
+      'driver_tracking_failure' =>
+        event['code'] ?? 'Driver tracking failure',
+      _ => 'Driver runtime failure',
+    };
+
+    return <String, dynamic>{
+      'app': 'driver',
+      'category': type,
+      'severity': status != null && status < 500 ? 'warning' : 'error',
+      'message': sanitizeForDiagnostics(message, maxLength: 2000),
+      'app_version': _appVersion,
+      'app_build': _appBuild,
+      'platform': driverOperatingSystem,
+      'os_version': sanitizeForDiagnostics(
+        driverOperatingSystemVersion,
+        maxLength: 240,
+      ),
+      if (_lastRoute != null) 'current_route': _lastRoute,
+      if (event['method'] != null) 'method': event['method'],
+      if (event['endpoint'] != null) 'path': event['endpoint'],
+      if (status != null) 'status': status,
+      if (event['correlation_id'] != null)
+        'correlation_id': event['correlation_id'],
+      if (event['attempt'] != null) 'attempt': event['attempt'],
+      if (event['stack'] != null) 'stack': event['stack'],
+      'metadata': {
+        if (event['source'] != null) 'source': event['source'],
+        if (event['error_type'] != null)
+          'error_type': event['error_type'],
+        if (event['duration_ms'] != null)
+          'duration_ms': event['duration_ms'],
+        if (event['operation'] != null) 'operation': event['operation'],
+        if (event['platform'] != null)
+          'policy_platform': event['platform'],
+      },
+    };
   }
 
   Future<void> clear() async {
@@ -352,6 +472,17 @@ class DriverDiagnosticHttpClient extends http.BaseClient {
           elapsed: stopwatch.elapsed,
         );
       }
+      final authorization = request.headers['Authorization'] ??
+          request.headers['authorization'];
+      if (authorization != null && authorization.trim().isNotEmpty) {
+        unawaited(
+          _inspector.flushRemote(
+            client: _inner,
+            requestUri: request.url,
+            authorization: authorization,
+          ),
+        );
+      }
       return response;
     } catch (error) {
       stopwatch.stop();
@@ -361,6 +492,17 @@ class DriverDiagnosticHttpClient extends http.BaseClient {
         elapsed: stopwatch.elapsed,
         error: error,
       );
+      final authorization = request.headers['Authorization'] ??
+          request.headers['authorization'];
+      if (authorization != null && authorization.trim().isNotEmpty) {
+        unawaited(
+          _inspector.flushRemote(
+            client: _inner,
+            requestUri: request.url,
+            authorization: authorization,
+          ),
+        );
+      }
       rethrow;
     }
   }
