@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/auth/driver_session.dart';
 import '../../../core/localization/driver_translations.dart';
@@ -589,6 +592,64 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
     );
   }
 
+  Future<void> _shareInvoicePdf(DriverAssignment assignment) async {
+    final repository = widget.repository;
+    final invoice = assignment.invoice;
+    if (invoice == null || repository is! DriverInvoiceDocumentRepository) {
+      if (mounted) {
+        setState(() {
+          _actionError = context.tr('driver.invoice.download_unavailable');
+        });
+      }
+      return;
+    }
+    if (_busyAssignments.contains(assignment.id)) return;
+
+    setState(() {
+      _busyAssignments.add(assignment.id);
+      _actionError = null;
+    });
+
+    try {
+      final locale =
+          Localizations.localeOf(context).languageCode == 'ar' ? 'ar' : 'en';
+      final bytes = await repository.downloadInvoicePdf(
+        assignment.id,
+        locale: locale,
+      );
+      final name = '${invoice.number}.pdf';
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              Uint8List.fromList(bytes),
+              mimeType: 'application/pdf',
+              name: name,
+            ),
+          ],
+          fileNameOverrides: [name],
+          subject: invoice.number,
+        ),
+      );
+    } on DriverSessionExpiredException {
+      widget.onSessionExpired?.call();
+    } on DriverOfflineException {
+      if (mounted) {
+        setState(() => _actionError = context.tr('driver.offline'));
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _actionError = context.tr('driver.invoice.download_failed');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busyAssignments.remove(assignment.id));
+      }
+    }
+  }
+
   Future<void> _showDetail(DriverAssignment assignment) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -605,6 +666,11 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                     Navigator.of(sheetContext).pop();
                     await widget.onNavigationRequested(assignment);
                   }
+                : null,
+            onInvoicePdfRequested: assignment.invoice != null &&
+                    assignment.invoice!.downloadPath.trim().isNotEmpty &&
+                    widget.previewContext == null
+                ? () => _shareInvoicePdf(assignment)
                 : null,
           ),
         ),
@@ -937,11 +1003,13 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
     required this.assignment,
     this.actions,
     this.onNavigationRequested,
+    this.onInvoicePdfRequested,
   });
 
   final DriverAssignment assignment;
   final Widget? actions;
   final Future<void> Function()? onNavigationRequested;
+  final Future<void> Function()? onInvoicePdfRequested;
 
   String _value(BuildContext context, String value) {
     if (value.trim().isNotEmpty) return value;
@@ -965,6 +1033,15 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
         : translatedOrderStatus == orderStatusKey
             ? assignment.orderStatus
             : translatedOrderStatus;
+    final settlement = assignment.settlement;
+    String settlementLabel(String namespace, String value) {
+      if (value.trim().isEmpty) return context.tr('driver.detail.unknown');
+      final key = '$namespace.${value.toLowerCase()}';
+      final translated = context.tr(key);
+      return translated == key ? value : translated;
+    }
+    String money(double amount, String currency) =>
+        '${amount.toStringAsFixed(3)} $currency';
 
     return ListView(
       key: Key('driver-active-detail-${assignment.id}'),
@@ -1069,12 +1146,88 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
         ],
         if (assignment.invoice != null) ...[
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            key: Key('driver-active-open-invoice-${assignment.id}'),
-            onPressed: () => _showInvoice(context, assignment.invoice!),
-            icon: const Icon(Icons.receipt_long_rounded),
-            label: Text(
-              '${context.tr('driver.invoice.open')} · ${assignment.invoice!.number}',
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                key: Key('driver-active-open-invoice-${assignment.id}'),
+                onPressed: () => _showInvoice(context, assignment.invoice!),
+                icon: const Icon(Icons.receipt_long_rounded),
+                label: Text(
+                  '${context.tr('driver.invoice.open')} · ${assignment.invoice!.number}',
+                ),
+              ),
+              if (onInvoicePdfRequested != null)
+                FilledButton.tonalIcon(
+                  key: Key('driver-active-download-invoice-${assignment.id}'),
+                  onPressed: onInvoicePdfRequested,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: Text(context.tr('driver.invoice.download')),
+                ),
+            ],
+          ),
+        ],
+        if (settlement != null) ...[
+          const SizedBox(height: 14),
+          Card(
+            key: Key('driver-settlement-${assignment.id}'),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    context.tr('driver.settlement.title'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  _DetailRow(
+                    label: context.tr('driver.settlement.order_total'),
+                    value: money(settlement.orderTotal, settlement.currency),
+                  ),
+                  _DetailRow(
+                    label: context.tr('driver.settlement.balance_applied'),
+                    value: money(settlement.balanceApplied, settlement.currency),
+                  ),
+                  _DetailRow(
+                    label: context.tr('driver.settlement.remaining'),
+                    value: money(settlement.remainingAmount, settlement.currency),
+                  ),
+                  _DetailRow(
+                    label: context.tr('driver.settlement.remainder_method'),
+                    value: settlementLabel(
+                      'driver.settlement.remainder',
+                      settlement.remainderMethod,
+                    ),
+                  ),
+                  _DetailRow(
+                    label: context.tr('driver.settlement.payment_state'),
+                    value: settlementLabel(
+                      'driver.settlement.state',
+                      settlement.paymentState,
+                    ),
+                  ),
+                  _DetailRow(
+                    label: context.tr('driver.settlement.collect_now'),
+                    value: settlement.amountToCollectNow <= 0.0001
+                        ? context.tr('driver.settlement.no_collection')
+                        : money(
+                            settlement.amountToCollectNow,
+                            settlement.currency,
+                          ),
+                  ),
+                  _DetailRow(
+                    label: context.tr('driver.settlement.invoice_outstanding'),
+                    value: money(
+                      settlement.invoiceOutstandingAmount,
+                      settlement.currency,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1174,6 +1327,21 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                             '${context.tr('driver.detail.item_unit')}: '
                             '${_value(context, item.unit)}',
                           ),
+                          if (item.packSize > 0)
+                            Text(
+                              '${context.tr('driver.detail.item_pack')}: '
+                              '${item.packSize.toStringAsFixed(3)}',
+                            ),
+                          if (item.caseSize > 0)
+                            Text(
+                              '${context.tr('driver.detail.item_case')}: '
+                              '${item.caseSize.toStringAsFixed(3)}',
+                            ),
+                          if ((item.quantityConversionFactor - 1).abs() > 0.0001)
+                            Text(
+                              '${context.tr('driver.detail.item_conversion')}: '
+                              '${item.quantityConversionFactor.toStringAsFixed(3)}',
+                            ),
                           Text(
                             '${context.tr('driver.detail.item_note')}: '
                             '${_value(context, item.note)}',
