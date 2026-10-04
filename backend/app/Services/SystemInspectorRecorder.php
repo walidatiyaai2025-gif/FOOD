@@ -24,22 +24,30 @@ final class SystemInspectorRecorder
             ? $exception->getStatusCode()
             : 500;
 
+        if ($status < 500 && ! $request->is('admin/*')) {
+            return;
+        }
+
+        $source = $status === 404
+            ? 'route'
+            : ($request->is('api/*') ? 'api' : ($request->is('admin/*') ? 'dashboard' : 'server'));
+
         $this->write([
-            'source' => $status === 404 ? 'route' : 'server',
+            'source' => $source,
             'severity' => $status >= 500 ? 'error' : 'warning',
             'status_code' => $status,
-            'message' => $this->limit($exception->getMessage() !== '' ? $exception->getMessage() : $exception::class, 2000),
-            'exception_class' => $exception::class,
+            'message' => $this->sanitizeText($exception->getMessage() !== '' ? $exception->getMessage() : $exception::class, 2000),
+            'exception_class' => $this->sanitizeText($exception::class, 255),
             'context' => [
-                'file' => basename($exception->getFile()),
+                'file' => $this->sanitizeText($exception->getFile(), 2048),
                 'line' => $exception->getLine(),
                 'trace' => collect($exception->getTrace())
                     ->take(8)
-                    ->map(static fn (array $frame): array => [
-                        'file' => isset($frame['file']) ? basename((string) $frame['file']) : null,
+                    ->map(fn (array $frame): array => [
+                        'file' => isset($frame['file']) ? $this->sanitizeText((string) $frame['file'], 2048) : null,
                         'line' => $frame['line'] ?? null,
-                        'class' => $frame['class'] ?? null,
-                        'function' => $frame['function'] ?? null,
+                        'class' => isset($frame['class']) ? $this->sanitizeText((string) $frame['class'], 255) : null,
+                        'function' => $this->sanitizeText((string) ($frame['function'] ?? ''), 255),
                     ])
                     ->values()
                     ->all(),
@@ -58,9 +66,7 @@ final class SystemInspectorRecorder
         $context = [];
         foreach (['stack', 'filename', 'line', 'column', 'response_url'] as $key) {
             if (array_key_exists($key, $payload)) {
-                $context[$key] = is_string($payload[$key])
-                    ? $this->limit($payload[$key], $key === 'stack' ? 10000 : 2048)
-                    : $payload[$key];
+                $context[$key] = $this->sanitizeContextValue($payload[$key], $key);
             }
         }
 
@@ -68,39 +74,29 @@ final class SystemInspectorRecorder
             'source' => $source,
             'severity' => $severity,
             'status_code' => isset($payload['status']) && is_numeric($payload['status']) ? (int) $payload['status'] : null,
-            'method' => isset($payload['method']) ? $this->limit((string) $payload['method'], 12) : null,
-            'url' => isset($payload['url']) ? $this->limit((string) $payload['url'], 4096) : null,
-            'message' => $this->limit((string) ($payload['message'] ?? 'Client runtime error'), 2000),
+            'method' => isset($payload['method']) ? $this->sanitizeText((string) $payload['method'], 12) : null,
+            'url' => isset($payload['url']) ? $this->sanitizeUrl((string) $payload['url']) : null,
+            'message' => $this->sanitizeText((string) ($payload['message'] ?? 'Client runtime error'), 2000),
             'context' => $context === [] ? null : $context,
         ], $request);
     }
 
     /** @param array<string,mixed> $payload */
-    public function recordMobile(array $payload, Request $request): void
+    public function recordRuntimeClient(array $payload, Request $request): void
     {
-        $source = ($payload['app'] ?? null) === 'driver' ? 'driver_app' : 'customer_app';
+        $source = in_array(($payload['source'] ?? null), ['customer_app', 'driver_app'], true)
+            ? (string) $payload['source']
+            : 'customer_app';
         $severity = ($payload['severity'] ?? null) === 'warning' ? 'warning' : 'error';
 
         $context = [];
         foreach ([
-            'source',
-            'category',
-            'app_version',
-            'app_build',
-            'platform',
-            'os_version',
-            'route',
-            'channel',
-            'order_id',
-            'invoice_id',
-            'assignment_id',
-            'retry',
-            'elapsed_ms',
-            'stack',
-            'error_type',
+            'event_type', 'route', 'stack', 'app_version', 'app_build', 'platform', 'os_version', 'locale',
+            'channel', 'operation', 'category', 'duration_ms', 'network_state', 'error_code', 'attempt',
+            'retry_count', 'order_id', 'invoice_id', 'assignment_id',
         ] as $key) {
-            if (array_key_exists($key, $payload) && $payload[$key] !== null && $payload[$key] !== '') {
-                $context[$key] = $payload[$key];
+            if (array_key_exists($key, $payload)) {
+                $context[$key] = $this->sanitizeContextValue($payload[$key], $key);
             }
         }
 
@@ -108,14 +104,12 @@ final class SystemInspectorRecorder
             'source' => $source,
             'severity' => $severity,
             'status_code' => isset($payload['status']) && is_numeric($payload['status']) ? (int) $payload['status'] : null,
-            'method' => isset($payload['method']) ? $this->limit((string) $payload['method'], 12) : null,
-            'url' => isset($payload['path']) ? $this->limit((string) $payload['path'], 4096) : null,
-            'message' => $this->limit((string) ($payload['message'] ?? 'Mobile runtime failure'), 2000),
-            'correlation_id' => isset($payload['correlation_id'])
-                ? $this->limit((string) $payload['correlation_id'], 160)
-                : null,
+            'method' => isset($payload['method']) ? $this->sanitizeText((string) $payload['method'], 12) : null,
+            'url' => isset($payload['url']) ? $this->sanitizeUrl((string) $payload['url']) : null,
+            'message' => $this->sanitizeText((string) ($payload['message'] ?? 'Mobile runtime error'), 2000),
+            'exception_class' => isset($payload['exception_class']) ? $this->sanitizeText((string) $payload['exception_class'], 255) : null,
+            'correlation_id' => isset($payload['correlation_id']) ? $this->sanitizeText((string) $payload['correlation_id'], 100) : null,
             'context' => $context === [] ? null : $context,
-            'dedupe_seconds' => 60,
         ], $request);
     }
 
@@ -131,58 +125,47 @@ final class SystemInspectorRecorder
             $routeName = $route instanceof Route ? $route->getName() : null;
             $storeId = $this->storeId($request);
             $userId = $request->user()?->getAuthIdentifier();
-            $source = $this->limit((string) ($data['source'] ?? 'server'), 32);
+            $source = $this->sanitizeText((string) ($data['source'] ?? 'server'), 32);
             $severity = ($data['severity'] ?? null) === 'warning' ? 'warning' : 'error';
-            $statusCode = isset($data['status_code']) && is_numeric($data['status_code'])
-                ? (int) $data['status_code']
-                : null;
-            $url = $this->sanitizeUrl((string) ($data['url'] ?? '/'.ltrim($request->path(), '/')));
-            $message = $this->limit($this->sanitizeString((string) ($data['message'] ?? 'Runtime failure')), 2000);
-            $context = isset($data['context']) && is_array($data['context'])
-                ? $this->sanitizeValue($data['context'])
-                : null;
-            $correlationId = $data['correlation_id'] ?? $request->attributes->get('correlation_id');
-            $correlationId = is_scalar($correlationId)
-                ? $this->limit($this->sanitizeString((string) $correlationId), 160)
-                : null;
+            $method = isset($data['method']) ? $this->sanitizeText((string) $data['method'], 12) : $request->method();
+            $url = isset($data['url']) ? $this->sanitizeUrl((string) $data['url']) : $this->sanitizeUrl('/'.ltrim($request->path(), '/'));
+            $message = $this->sanitizeText((string) ($data['message'] ?? 'Runtime error'), 2000);
+            $correlationId = isset($data['correlation_id'])
+                ? $this->sanitizeText((string) $data['correlation_id'], 100)
+                : $this->sanitizeText((string) ($request->attributes->get('correlation_id') ?? ''), 100);
+            $correlationId = $correlationId !== '' ? $correlationId : null;
+            $occurredAt = now();
 
-            $dedupeSeconds = max(0, min(300, (int) ($data['dedupe_seconds'] ?? 0)));
-            if ($dedupeSeconds > 0) {
-                $duplicate = SystemInspectorEvent::query()
-                    ->where('occurred_at', '>=', now()->subSeconds($dedupeSeconds))
-                    ->where('source', $source)
-                    ->where('severity', $severity)
-                    ->where('user_id', $userId)
-                    ->where('message', $message)
-                    ->where('url', $url)
-                    ->when(
-                        $statusCode === null,
-                        fn ($query) => $query->whereNull('status_code'),
-                        fn ($query) => $query->where('status_code', $statusCode),
-                    )
-                    ->exists();
+            $duplicate = SystemInspectorEvent::query()
+                ->where('source', $source)
+                ->where('severity', $severity)
+                ->where('message', $message)
+                ->where('method', $method)
+                ->where('url', $url)
+                ->where('status_code', $data['status_code'] ?? null)
+                ->where('user_id', $userId)
+                ->where('store_id', $storeId)
+                ->where('occurred_at', '>=', $occurredAt->copy()->subMinute())
+                ->exists();
 
-                if ($duplicate) {
-                    return;
-                }
+            if ($duplicate) {
+                return;
             }
 
             SystemInspectorEvent::query()->create([
                 'source' => $source,
                 'severity' => $severity,
-                'status_code' => $statusCode,
+                'status_code' => $data['status_code'] ?? null,
                 'user_id' => $userId,
                 'store_id' => $storeId,
-                'method' => isset($data['method']) ? $this->limit($this->sanitizeString((string) $data['method']), 12) : $request->method(),
+                'method' => $method,
                 'route_name' => $routeName,
                 'url' => $url,
                 'message' => $message,
-                'exception_class' => isset($data['exception_class'])
-                    ? $this->limit($this->sanitizeString((string) $data['exception_class']), 255)
-                    : null,
+                'exception_class' => isset($data['exception_class']) ? $this->sanitizeText((string) $data['exception_class'], 255) : null,
                 'correlation_id' => $correlationId,
-                'context' => $context,
-                'occurred_at' => now(),
+                'context' => isset($data['context']) ? $this->sanitizeContextValue($data['context']) : null,
+                'occurred_at' => $occurredAt,
             ]);
         } catch (Throwable $recordingFailure) {
             Log::warning('System Inspector could not persist an event.', [
@@ -212,105 +195,67 @@ final class SystemInspectorRecorder
         return null;
     }
 
-    private function sanitizeUrl(string $value): ?string
+    private function sanitizeUrl(string $value): string
     {
-        $value = trim($value);
-        if ($value === '') {
-            return null;
+        $value = $this->sanitizeText($value, 4096);
+        $queryPosition = strpos($value, '?');
+        if ($queryPosition !== false) {
+            $value = substr($value, 0, $queryPosition);
+        }
+        $fragmentPosition = strpos($value, '#');
+        if ($fragmentPosition !== false) {
+            $value = substr($value, 0, $fragmentPosition);
         }
 
-        $value = explode('#', $value, 2)[0];
-        [$base, $query] = array_pad(explode('?', $value, 2), 2, null);
-        $base = $this->sanitizeString($base);
-
-        if ($query === null || $query === '') {
-            return $this->limit($base, 4096);
-        }
-
-        parse_str($query, $parameters);
-        $safe = [];
-        foreach ($parameters as $key => $parameter) {
-            $safe[(string) $key] = $this->sanitizeValue($parameter, (string) $key);
-        }
-
-        $encoded = http_build_query($safe, '', '&', PHP_QUERY_RFC3986);
-
-        return $this->limit($base.($encoded === '' ? '' : '?'.$encoded), 4096);
+        return $this->limit($value, 4096);
     }
 
-    private function sanitizeValue(mixed $value, ?string $key = null): mixed
+    private function sanitizeContextValue(mixed $value, ?string $key = null): mixed
     {
-        if ($key !== null && $this->isSensitiveKey($key)) {
+        if ($key !== null && preg_match('/password|passcode|token|authorization|cookie|secret|email|phone|civil|address|latitude|longitude|coordinates|\blat\b|\blng\b|request_body|response_body|payload/i', $key) === 1) {
             return '[REDACTED]';
         }
 
         if (is_array($value)) {
-            $safe = [];
-            foreach ($value as $childKey => $childValue) {
-                $safe[$childKey] = $this->sanitizeValue($childValue, is_string($childKey) ? $childKey : null);
+            $result = [];
+            foreach (array_slice($value, 0, 50, true) as $childKey => $childValue) {
+                $result[(string) $childKey] = $this->sanitizeContextValue($childValue, (string) $childKey);
             }
 
-            return $safe;
+            return $result;
         }
 
         if (is_string($value)) {
-            return $this->sanitizeString($value);
+            if (in_array($key, ['route', 'response_url'], true)) {
+                return $this->sanitizeUrl($value);
+            }
+
+            return $this->sanitizeText($value, $key === 'stack' ? 10000 : 2048);
         }
 
         if (is_int($value) || is_float($value) || is_bool($value) || $value === null) {
             return $value;
         }
 
-        return $this->sanitizeString((string) $value);
+        return $this->sanitizeText((string) $value, 2048);
     }
 
-    private function isSensitiveKey(string $key): bool
+    private function sanitizeText(string $value, int $length): string
     {
-        $normalized = strtolower((string) preg_replace('/[^a-z0-9]/i', '', $key));
-
-        foreach ([
-            'password',
-            'passcode',
-            'authorization',
-            'cookie',
-            'token',
-            'secret',
-            'credential',
-            'email',
-            'phone',
-            'civil',
-            'address',
-            'latitude',
-            'longitude',
-            'coordinates',
-            'cardnumber',
-            'cvv',
-        ] as $needle) {
-            if (str_contains($normalized, $needle)) {
-                return true;
-            }
-        }
-
-        return in_array($normalized, ['lat', 'lng'], true);
-    }
-
-    private function sanitizeString(string $value): string
-    {
-        $safe = $value;
         $patterns = [
-            '/(?<!\d)-?\d{1,3}\.\d{4,}\s*[,\/]\s*-?\d{1,3}\.\d{4,}(?!\d)/' => '[REDACTED_COORDINATES]',
-            '/Bearer\s+[^\s,;]+/i' => 'Bearer [REDACTED]',
-            '/\b(password|passcode|token|access[_-]?token|refresh[_-]?token|authorization|cookie|secret|client[_-]?secret|email|phone(?:[_-]?number)?|civil(?:[_-]?(?:id|number))?|address|latitude|longitude|coordinates|card[_-]?number|cvv)\s*[:=]\s*[^\s,;&]+/i' => '$1=[REDACTED]',
-            '/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i' => '[REDACTED_EMAIL]',
+            '/Bearer\s+[A-Za-z0-9._~+\/=:-]+/i' => 'Bearer [REDACTED]',
+            '/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i' => '[REDACTED_EMAIL]',
             '/(?<!\d)(?:\+?965[\s-]?)?[24569]\d{7}(?!\d)/' => '[REDACTED_PHONE]',
             '/(?<!\d)\d{12}(?!\d)/' => '[REDACTED_CIVIL_ID]',
+            '/(?<!\d)-?\d{1,3}\.\d{4,}\s*[,\/]\s*-?\d{1,3}\.\d{4,}(?!\d)/' => '[REDACTED_COORDINATES]',
+            '/\b(password|passcode|token|access[_-]?token|refresh[_-]?token|authorization|cookie|secret|client[_-]?secret|email|phone(?:[_-]?number)?|civil(?:[_-]?(?:id|number))?|address|latitude|longitude|coordinates|card[_-]?number|cvv)\s*[:=]\s*[^\n;,&]+/i' => '$1=[REDACTED]',
         ];
 
         foreach ($patterns as $pattern => $replacement) {
-            $safe = preg_replace($pattern, $replacement, $safe) ?? $safe;
+            $value = preg_replace($pattern, $replacement, $value) ?? $value;
         }
 
-        return $safe;
+        return $this->limit($value, $length);
     }
 
     private function limit(string $value, int $length): string
