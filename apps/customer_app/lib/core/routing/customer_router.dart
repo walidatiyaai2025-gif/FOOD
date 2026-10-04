@@ -411,6 +411,7 @@ class CustomerAppRouter {
             api: b2bApi,
             accountApi: b2bAccountApi,
             ordersApi: customerOrdersApi,
+            storefrontApi: storefrontApi,
             actionApi: actionApi,
             onLocaleChanged: onLocaleChanged,
             onLogout: onLogout,
