@@ -333,8 +333,8 @@
     @if($moduleData)
     @php
       $labels=app()->getLocale()==='ar'
-      ? ['number'=>'رقم الطلب','client'=>'العميل','store'=>'الفرع','status'=>'الحالة','amount'=>'الإجمالي','created'=>'الإنشاء','code'=>'الكود','name'=>'الاسم','products'=>'المنتجات','orders'=>'الطلبات','company'=>'الشركة','email'=>'البريد','phone'=>'الهاتف','tax_number'=>'الرقم الضريبي','sku'=>'رمز المنتج','price'=>'السعر','available'=>'المتاح','actions'=>'إجراءات','availability'=>'التوفر','active'=>'نشط','assignments'=>'التعيينات','driver'=>'السائق','assignment_status'=>'حالة التعيين','tier'=>'شريحة السعر','product'=>'المنتج','unit_price'=>'سعر الوحدة','minimum_quantity'=>'الحد الأدنى','revenue'=>'الإيراد','average'=>'متوسط الطلب','setting'=>'الإعداد','value'=>'القيمة','warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','invoice'=>'الفاتورة','paid'=>'المدفوع','balance'=>'الرصيد','due'=>'الاستحقاق']
-      : ['number'=>'Order','client'=>'Client','store'=>'Store','status'=>'Status','amount'=>'Amount','created'=>'Created','code'=>'Code','name'=>'Name','products'=>'Products','orders'=>'Orders','company'=>'Company','email'=>'Email','phone'=>'Phone','tax_number'=>'Tax number','sku'=>'SKU','price'=>'Price','available'=>'Available','actions'=>'Actions','availability'=>'Availability','active'=>'Active','assignments'=>'Assignments','driver'=>'Driver','assignment_status'=>'Assignment status','tier'=>'Price tier','product'=>'Product','unit_price'=>'Unit price','minimum_quantity'=>'Minimum quantity','revenue'=>'Revenue','average'=>'Average order','setting'=>'Setting','value'=>'Value','warehouse'=>'Warehouse','quantity'=>'Quantity','reserved'=>'Reserved','invoice'=>'Invoice','paid'=>'Paid','balance'=>'Balance','due'=>'Due'];
+      ? ['number'=>'رقم الطلب','client'=>'العميل','store'=>'الفرع','status'=>'الحالة','amount'=>'الإجمالي','created'=>'الإنشاء','code'=>'الكود','name'=>'الاسم','products'=>'المنتجات','orders'=>'الطلبات','company'=>'الشركة','email'=>'البريد','phone'=>'الهاتف','tax_number'=>'الرقم الضريبي','sku'=>'رمز المنتج','price'=>'السعر','available'=>'المتاح','actions'=>'إجراءات','availability'=>'التوفر','active'=>'نشط','assignments'=>'التعيينات','driver'=>'السائق','assignment_status'=>'حالة التعيين','tier'=>'شريحة السعر','product'=>'المنتج','unit_price'=>'سعر الوحدة','minimum_quantity'=>'الحد الأدنى','revenue'=>'الإيراد','average'=>'متوسط الطلب','setting'=>'الإعداد','value'=>'القيمة','warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','invoice'=>'الفاتورة','paid'=>'المدفوع','balance'=>'الرصيد','issued_at'=>'تاريخ الإصدار','due'=>'الاستحقاق']
+      : ['number'=>'Order','client'=>'Client','store'=>'Store','status'=>'Status','amount'=>'Amount','created'=>'Created','code'=>'Code','name'=>'Name','products'=>'Products','orders'=>'Orders','company'=>'Company','email'=>'Email','phone'=>'Phone','tax_number'=>'Tax number','sku'=>'SKU','price'=>'Price','available'=>'Available','actions'=>'Actions','availability'=>'Availability','active'=>'Active','assignments'=>'Assignments','driver'=>'Driver','assignment_status'=>'Assignment status','tier'=>'Price tier','product'=>'Product','unit_price'=>'Unit price','minimum_quantity'=>'Minimum quantity','revenue'=>'Revenue','average'=>'Average order','setting'=>'Setting','value'=>'Value','warehouse'=>'Warehouse','quantity'=>'Quantity','reserved'=>'Reserved','invoice'=>'Invoice','paid'=>'Paid','balance'=>'Balance','issued_at'=>'Issued','due'=>'Due'];
     @endphp
     @if(session('status'))<div class="panel" style="border-color:#b7dfc4;background:var(--foodex-green-soft);color:var(--foodex-green-dark)">{{ session('status') }}</div>@endif
     @if($errors->any())<div class="panel" style="border-color:#ffd0a6;background:var(--foodex-orange-soft)"><strong>{{ app()->getLocale()==='ar'?'تعذر تنفيذ العملية':'Action could not be completed' }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
@@ -345,6 +345,65 @@
       @if(!empty($moduleData['actions']))
       <div class="links workspace-inline-form">
         @foreach($moduleData['actions'] as $action)<a class="foodex-primary" href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach
+      </div>
+      @endif
+
+      @if($module==='finance')
+      @php
+        $financeFilters = $moduleData['filters'] ?? ['from'=>null,'to'=>null,'customer_id'=>null];
+        $financeQuery = array_filter([
+            'from'=>$financeFilters['from'] ?? null,
+            'to'=>$financeFilters['to'] ?? null,
+            'customer_id'=>$financeFilters['customer_id'] ?? null,
+        ], fn($value) => $value !== null && $value !== '');
+      @endphp
+      <form method="get" action="{{ route('admin.b2b.module',['module'=>'finance']) }}" class="links workspace-inline-form" aria-label="{{ app()->getLocale()==='ar'?'فلاتر الفواتير':'Invoice filters' }}">
+        <label style="display:grid;gap:5px;font-size:12px;font-weight:700">
+          <span>{{ app()->getLocale()==='ar'?'من':'From' }}</span>
+          <input name="from" type="date" value="{{ $financeFilters['from'] ?? '' }}">
+        </label>
+        <label style="display:grid;gap:5px;font-size:12px;font-weight:700">
+          <span>{{ app()->getLocale()==='ar'?'إلى':'To' }}</span>
+          <input name="to" type="date" value="{{ $financeFilters['to'] ?? '' }}">
+        </label>
+        <label style="display:grid;gap:5px;font-size:12px;font-weight:700">
+          <span>{{ app()->getLocale()==='ar'?'العميل':'Customer' }}</span>
+          <select name="customer_id">
+            <option value="">{{ app()->getLocale()==='ar'?'كل العملاء':'All customers' }}</option>
+            @foreach($moduleData['customers'] as $customer)
+              <option value="{{ $customer['id'] }}" @selected((int)($financeFilters['customer_id'] ?? 0)===$customer['id'])>{{ $customer['label'] }}</option>
+            @endforeach
+          </select>
+        </label>
+        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تطبيق الفلاتر':'Apply filters' }}</button>
+        <a href="{{ route('admin.b2b.module',['module'=>'finance']) }}">{{ app()->getLocale()==='ar'?'إعادة ضبط':'Reset' }}</a>
+      </form>
+
+      <div class="workspace-inline-form" style="display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
+        <div>
+          <strong>{{ app()->getLocale()==='ar'?'نتيجة الفلترة':'Filtered result' }}: {{ number_format((int)($moduleData['summary']['invoice_count'] ?? 0)) }}</strong>
+          <div class="muted" style="margin-top:5px">
+            @forelse(($moduleData['summary']['totals'] ?? []) as $total)
+              <span style="display:inline-block;margin-inline-end:12px">
+                {{ $total['currency'] }}:
+                {{ app()->getLocale()==='ar'?'الإجمالي':'total' }} {{ number_format((float)$total['total'],3) }} ·
+                {{ app()->getLocale()==='ar'?'المدفوع':'paid' }} {{ number_format((float)$total['paid'],3) }} ·
+                {{ app()->getLocale()==='ar'?'الرصيد':'balance' }} {{ number_format((float)$total['balance'],3) }}
+              </span>
+            @empty
+              {{ app()->getLocale()==='ar'?'لا توجد فواتير تطابق الفلاتر الحالية.':'No invoices match the current filters.' }}
+            @endforelse
+          </div>
+        </div>
+        <div class="links">
+          <a class="foodex-primary" href="{{ route('admin.b2b.finance.export',array_merge($financeQuery,['format'=>'xlsx'])) }}">Excel</a>
+          <a class="foodex-primary" href="{{ route('admin.b2b.finance.export',array_merge($financeQuery,['format'=>'pdf'])) }}">PDF</a>
+        </div>
+        <div class="muted" style="flex-basis:100%;font-size:12px">
+          {{ app()->getLocale()==='ar'
+              ? 'التصدير يستخدم نفس الفلاتر والنتيجة الظاهرة. عند عدم وجود نتائج يتم إنشاء ملف صالح يحتوي سياق الفلاتر والعناوين بدون صفوف بيانات.'
+              : 'Exports use the same filters and visible result set. With no matches, a valid file is generated with filter context and headers but no data rows.' }}
+        </div>
       </div>
       @endif
 
