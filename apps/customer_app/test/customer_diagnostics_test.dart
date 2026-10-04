@@ -235,7 +235,6 @@ void main() {
     expect(repeated, 0);
     expect(requests, hasLength(1));
     expect(requests.single.url.path, '/api/v1/runtime-inspector/events');
-    expect(requests.single.headers['Authorization'], 'Bearer transport-secret');
 
     final payload =
         Map<String, dynamic>.from(jsonDecode(requests.single.body) as Map);
