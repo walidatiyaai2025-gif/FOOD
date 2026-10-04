@@ -2503,7 +2503,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
     final number = data['invoice_number']?.toString() ?? 'invoice';
     setState(() => _sharingPdf = true);
     try {
-      final bytes = await documentApi.getBytes(path);
+      final bytes = await (documentApi as B2bDocumentApi).getBytes(path);
       final name = number + '.pdf';
       await SharePlus.instance.share(
         ShareParams(
