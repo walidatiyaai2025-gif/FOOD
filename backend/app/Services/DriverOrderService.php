@@ -6,7 +6,6 @@ use App\Models\DeliveryProof;
 use App\Models\Driver;
 use App\Models\DriverAssignment;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
 use Illuminate\Http\Request;
