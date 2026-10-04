@@ -237,6 +237,17 @@ class _WholesaleHomeDesignScreenState
                       cta: heroCta,
                       imageUrl: hero['image_url']?.toString(),
                       palette: palette,
+                      onCta: storeId > 0
+                          ? () => Navigator.of(context).pushNamed(
+                                Uri(
+                                  path: CustomerRoutePaths.b2bProducts,
+                                  queryParameters: <String, String>{
+                                    'channel': 'wholesale',
+                                    'store_id': storeId.toString(),
+                                  },
+                                ).toString(),
+                              )
+                          : null,
                     ),
                   );
                   break;
@@ -500,12 +511,14 @@ class _WholesaleHero extends StatelessWidget {
     required this.cta,
     required this.palette,
     this.imageUrl,
+    this.onCta,
   });
 
   final String title;
   final String cta;
   final String? imageUrl;
   final FoodexPalette palette;
+  final VoidCallback? onCta;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -537,8 +550,10 @@ class _WholesaleHero extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _WhitePill(
+                      key: const ValueKey('wholesale-home-open-catalog'),
                       label: cta,
                       palette: palette,
+                      onTap: onCta,
                     ),
                   ],
                 ),
@@ -572,29 +587,36 @@ class _WholesaleHero extends StatelessWidget {
 
 class _WhitePill extends StatelessWidget {
   const _WhitePill({
+    super.key,
     required this.label,
     required this.palette,
+    this.onTap,
   });
 
   final String label;
   final FoodexPalette palette;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => Align(
         alignment: AlignmentDirectional.centerStart,
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: palette.accent,
+        child: Material(
+          color: palette.accent,
+          borderRadius: BorderRadius.circular(999),
+          child: InkWell(
+            onTap: onTap,
             borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: palette.primaryDark,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: palette.primaryDark,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
           ),
         ),
