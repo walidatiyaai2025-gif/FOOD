@@ -99,9 +99,6 @@ class B2bReportingTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        B2bAccount::query()
-            ->where('b2b_customer_id', $customer->id)
-            ->update(['price_tier_id' => $tier]);
         DB::table('b2b_price_rules')->insert([
             'price_tier_id' => $tier,
             'store_id' => $store,
@@ -144,6 +141,11 @@ class B2bReportingTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        $domain = app(\App\Services\CustomerDomainResolver::class)->b2b($user);
+        B2bAccount::query()
+            ->where('b2b_customer_id', $domain->id)
+            ->update(['price_tier_id' => $tier]);
 
         Sanctum::actingAs($user);
         $from = now()->subDay()->toDateString();
