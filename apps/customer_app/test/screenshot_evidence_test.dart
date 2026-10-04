@@ -53,6 +53,7 @@ void main() {
     const _CaptureCase('01_Mobile/B2B_Customer/06_كشف_الحساب_والمعاملات__populated__ar.png', '/b2b/account-statement', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/07_طلباتي__populated__ar.png', '/b2b/orders', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/08_تفاصيل_الطلب_وتتبع_الحالة__populated__ar.png', '/b2b/orders/77', session: _b2b),
+    // C13 #868 exact-head evidence: Screen 9 is captured in both AR/RTL and EN/LTR by the locale loop.
     const _CaptureCase('01_Mobile/B2B_Customer/09_تفاصيل_الفاتورة__populated__ar.png', '/b2b/invoices/31', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/10_تصفح_المنتجات__populated__ar.png', '/b2b/products?channel=wholesale&store_id=7', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/11_تفاصيل_المنتج_وإضافة_للسلة__populated__ar.png', '/b2b/products/42?store_id=7', session: _b2b),
@@ -468,7 +469,79 @@ class _EvidenceB2bApi implements B2bApi {
       };
     }
     if (path.contains('/invoices/31')) {
-      return {'invoice_number': 'INV-31', 'payment_status': 'paid', 'total': 55.25, 'currency': 'KWD', 'items_count': 4};
+      return {
+        'data': {
+          'id': 31,
+          'invoice_number': 'INV-31',
+          'display_status': 'partially_paid',
+          'status': 'partially_paid',
+          'currency': 'KWD',
+          'subtotal': 20.0,
+          'discount_total': 1.0,
+          'delivery_total': 2.0,
+          'tax_total': 1.0,
+          'total': 22.0,
+          'paid_amount': 5.0,
+          'outstanding_amount': 17.0,
+          'credit_amount': 0.0,
+          'store_id': 7,
+          'order_id': 77,
+          'issued_at': '2026-10-01T10:00:00Z',
+          'due_at': '2026-10-20T10:00:00Z',
+          'seller': {
+            'store_id': 7,
+            'name': 'FOODEX Wholesale',
+          },
+          'customer': {
+            'name': 'FOODEX Business Demo',
+            'email': 'buyer@foodex.test',
+            'phone': '+96555500000',
+          },
+          'pdf_path':
+              '/api/v1/invoices/31/download?channel=b2b&store_id=7',
+          'items': [
+            {
+              'id': 501,
+              'sku': 'WHO-501',
+              'description': 'FOODEX Wholesale Tomato Box',
+              'quantity': 2.0,
+              'unit_price': 10.0,
+              'discount_total': 1.0,
+              'tax_total': 1.0,
+              'line_total': 20.0,
+              'currency': 'KWD',
+            },
+          ],
+          'payments': [
+            {
+              'id': 9,
+              'method': 'account',
+              'reference': 'PAY-31',
+              'amount': 5.0,
+              'currency': 'KWD',
+              'paid_at': '2026-10-02T10:00:00Z',
+            },
+          ],
+          'ledger_entries': [
+            {
+              'id': 81,
+              'type': 'credit_note',
+              'reference': 'CN-31',
+              'description': 'Credit adjustment',
+              'debit': 0.0,
+              'credit': 1.0,
+              'currency': 'KWD',
+              'occurred_at': '2026-10-03T10:00:00Z',
+            },
+          ],
+        },
+        'account': {
+          'currency': 'KWD',
+          'balance': 17.0,
+          'balance_direction': 'customer_owes_company',
+        },
+        'generated_at': '2026-10-04T10:00:00Z',
+      };
     }
     if (path.endsWith('/account-statement')) {
       return {

@@ -2305,6 +2305,18 @@ void main() {
       find.byKey(const ValueKey('b2b-invoice-detail-data')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-hero')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-status-chip')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-settlement-strip')),
+      findsOneWidget,
+    );
     expect(find.text('INV-31'), findsOneWidget);
     expect(find.textContaining('FOODEX Wholesale'), findsOneWidget);
     expect(find.textContaining('Buyer Co'), findsOneWidget);
@@ -2312,9 +2324,9 @@ void main() {
       find.byKey(const ValueKey('b2b-invoice-detail-totals')),
       findsOneWidget,
     );
-    expect(find.textContaining('22.000 KWD'), findsOneWidget);
+    expect(find.textContaining('22.000 KWD'), findsWidgets);
     expect(find.textContaining('5.000 KWD'), findsWidgets);
-    expect(find.textContaining('17.000 KWD'), findsOneWidget);
+    expect(find.textContaining('17.000 KWD'), findsWidgets);
     expect(
       find.byKey(const ValueKey('b2b-invoice-item-501')),
       findsOneWidget,
@@ -2333,6 +2345,13 @@ void main() {
     expect(find.textContaining('CN-31'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('b2b-invoice-detail-pdf')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('b2b-invoice-detail-pdf')),
+        matching: find.textContaining('PDF'),
+      ),
       findsOneWidget,
     );
     expect(
