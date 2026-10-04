@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 final class ProductAvailabilityService
 {
     public const AVAILABLE = 'AVAILABLE';
+
     public const OUT_OF_STOCK = 'OUT_OF_STOCK';
 
     /** @return array{available_quantity:float|null,is_available:bool,availability_state:string} */
