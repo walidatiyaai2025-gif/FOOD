@@ -378,10 +378,20 @@ document.addEventListener('DOMContentLoaded', () => {
     backButton.addEventListener('click', () => setStep(step - 1));
 
     form.addEventListener('submit', (event) => {
-        if (step !== 5 || !quoteReady) {
+        if (step !== 5) {
             event.preventDefault();
-            if (step !== 5) setStep(5);
-            else loadReviewAndQuote();
+            const error = validateStep();
+            if (error) {
+                showError(error);
+                return;
+            }
+            setStep(step + 1);
+            return;
+        }
+
+        if (!quoteReady) {
+            event.preventDefault();
+            loadReviewAndQuote();
         }
     });
 
