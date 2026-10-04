@@ -119,4 +119,63 @@ void main() {
     expect(encoded, isNot(contains('server-secret')));
     expect(encoded, isNot(contains('55551234')));
   });
+  test('central flush retries offline Driver events and checkpoints success',
+      () async {
+    final inspector = DriverRuntimeInspector(maxEvents: 10);
+    inspector.recordHttpFailure(
+      method: 'GET',
+      uri: Uri.parse(
+        'https://foodex.example/api/v1/driver/assignments/123?token=hidden',
+      ),
+      elapsed: const Duration(milliseconds: 250),
+      statusCode: 503,
+    );
+
+    var offlineAttempts = 0;
+    await inspector.flushToInspector(
+      baseUrl: 'https://foodex.example',
+      token: 'driver-auth-secret',
+      channel: 'b2c',
+      storeId: 9,
+      client: MockClient((request) async {
+        offlineAttempts += 1;
+        throw http.ClientException('offline');
+      }),
+    );
+    expect(offlineAttempts, 1);
+
+    final bodies = <Map<String, dynamic>>[];
+    final online = MockClient((request) async {
+      bodies.add(
+        Map<String, dynamic>.from(
+          jsonDecode(request.body) as Map,
+        ),
+      );
+      return http.Response('', 202);
+    });
+
+    await inspector.flushToInspector(
+      baseUrl: 'https://foodex.example',
+      token: 'driver-auth-secret',
+      channel: 'b2c',
+      storeId: 9,
+      client: online,
+    );
+    await inspector.flushToInspector(
+      baseUrl: 'https://foodex.example',
+      token: 'driver-auth-secret',
+      channel: 'b2c',
+      storeId: 9,
+      client: online,
+    );
+
+    expect(bodies, hasLength(1));
+    expect(bodies.single['app'], 'driver');
+    expect(bodies.single['source'], 'http_failure');
+    expect(bodies.single['status'], 503);
+    expect(bodies.single['store_id'], 9);
+    expect(jsonEncode(bodies.single), isNot(contains('hidden')));
+    expect(jsonEncode(bodies.single), isNot(contains('driver-auth-secret')));
+  });
+
 }
