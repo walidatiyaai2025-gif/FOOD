@@ -196,6 +196,11 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/build-dashboard-update.sh Release/Updates "$PREVIOUS_VERSION" "$CURRENT_VERSION" "$UPDATE_BASE_REF"
+          if [[ -f Release/Updates/FOODEX-Update.zip ]]; then
+            update_sha="$(sha256sum Release/Updates/FOODEX-Update.zip | awk '{print $1}')"
+            printf '%s  %s\n' "$update_sha" "FOODEX-Update.zip" > Release/Updates/FOODEX-Update.sha256.txt
+            unzip -Z1 Release/Updates/FOODEX-Update.zip > Release/Updates/FOODEX-Update.files.txt
+          fi
 
       - name: Write bundle manifest
         shell: bash
