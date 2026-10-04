@@ -87,6 +87,7 @@ final class DriverOrderService
 
         $items = DB::table('order_items')
             ->leftJoin('products', 'products.id', '=', 'order_items.product_id')
+            ->leftJoin('units', 'units.id', '=', 'products.unit_id')
             ->where('order_items.order_id', $order->getKey())
             ->orderBy('order_items.id')
             ->get([
@@ -99,6 +100,8 @@ final class DriverOrderService
                 'order_items.case_size_snapshot',
                 'order_items.unit_price',
                 'order_items.line_total',
+                'units.code as unit_code',
+                'units.name as unit_name',
                 DB::raw('(select path from product_images where product_images.product_id = order_items.product_id order by is_primary desc, sort_order asc, id asc limit 1) as image_path'),
             ])
             ->map(static function (object $item): array {
@@ -111,6 +114,9 @@ final class DriverOrderService
                 $conversionFactor = (float) ($item->quantity_conversion_factor ?? 1);
                 $packSize = $item->pack_size_snapshot === null ? null : (float) $item->pack_size_snapshot;
                 $caseSize = $item->case_size_snapshot === null ? null : (float) $item->case_size_snapshot;
+                $unitName = trim((string) ($item->unit_name ?? ''));
+                $unitCode = trim((string) ($item->unit_code ?? ''));
+                $unit = $unitName !== '' ? $unitName : $unitCode;
 
                 return [
                     'product_id' => (int) $item->product_id,
@@ -122,7 +128,7 @@ final class DriverOrderService
                     'quantity_conversion_factor' => $conversionFactor,
                     'pack_size' => $packSize,
                     'case_size' => $caseSize,
-                    'unit' => '',
+                    'unit' => $unit,
                     'note' => null,
                     'unit_price' => (float) $item->unit_price,
                     'line_total' => (float) $item->line_total,
