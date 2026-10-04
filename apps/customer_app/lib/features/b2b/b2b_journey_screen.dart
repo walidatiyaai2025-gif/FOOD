@@ -2167,16 +2167,20 @@ class _B2bAccountStatementRemoteStateState
       case 'month':
         from = DateTime(now.year, now.month, 1);
         to = now;
+        break;
       case 'previous':
         final firstCurrent = DateTime(now.year, now.month, 1);
         to = firstCurrent.subtract(const Duration(days: 1));
         from = DateTime(to.year, to.month, 1);
+        break;
       case '30':
         from = now.subtract(const Duration(days: 29));
         to = now;
+        break;
       case 'all':
         from = null;
         to = null;
+        break;
     }
     setState(() {
       _from = from == null ? null : _isoDate(from);
