@@ -396,8 +396,8 @@
           </div>
         </div>
         <div class="links">
-          <a class="foodex-primary" href="{{ route('admin.b2b.finance.export',array_merge($financeQuery,['format'=>'xlsx'])) }}">Excel</a>
-          <a class="foodex-primary" href="{{ route('admin.b2b.finance.export',array_merge($financeQuery,['format'=>'pdf'])) }}">PDF</a>
+          <a class="foodex-primary" href="{{ route('admin.b2b.module',array_merge(['module'=>'finance'],$financeQuery,['export'=>'xlsx'])) }}">Excel</a>
+          <a class="foodex-primary" href="{{ route('admin.b2b.module',array_merge(['module'=>'finance'],$financeQuery,['export'=>'pdf'])) }}">PDF</a>
         </div>
         <div class="muted" style="flex-basis:100%;font-size:12px">
           {{ app()->getLocale()==='ar'
