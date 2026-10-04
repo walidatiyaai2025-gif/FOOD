@@ -1448,7 +1448,7 @@ class _WholesaleCatalogDesignScreenState
               body: SafeArea(
                 child: FoodexErrorState(
                   key: const ValueKey('b2b-catalog-error'),
-                  message: 'تعذر تحميل كتالوج الجملة.',
+                  message: context.tr('b2b.catalog.load_error'),
                   onRetry: () =>
                       setState(() => future = _load(search.text)),
                 ),
@@ -1507,7 +1507,7 @@ class _WholesaleCatalogDesignScreenState
               'name': row['category_name']?.toString().trim().isNotEmpty ==
                       true
                   ? row['category_name'].toString()
-                  : 'تصنيف $id',
+                  : context.tr('b2b.catalog.category') + ' $id',
             };
           }
           final categories = categoryMap.values.toList(growable: false);
