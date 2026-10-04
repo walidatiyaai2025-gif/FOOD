@@ -20,8 +20,41 @@ class B2bFinanceTest extends TestCase
     {
         $this->seed(CoreReferenceSeeder::class);
         [$user, $customer] = $this->buyer('finance-buyer@example.test', 'active');
-        $invoice = Invoice::query()->create(['customer_id' => $customer->id, 'invoice_number' => 'INV-58-1', 'status' => 'issued', 'currency' => 'KWD', 'total' => 12.500, 'issued_at' => now(), 'due_at' => now()->addDay()]);
-        DB::table('invoice_items')->insert(['invoice_id' => $invoice->id, 'description' => 'Wholesale item', 'quantity' => 1, 'unit_price' => 12.500, 'line_total' => 12.500, 'created_at' => now(), 'updated_at' => now()]);
+        $invoice = Invoice::query()->create([
+            'customer_id' => $customer->id,
+            'invoice_number' => 'INV-58-1',
+            'status' => 'issued',
+            'currency' => 'KWD',
+            'subtotal' => 11.500,
+            'discount_total' => 1.000,
+            'delivery_total' => 1.000,
+            'tax_total' => 1.000,
+            'total' => 12.500,
+            'store_name_snapshot' => 'FOODEX Wholesale',
+            'customer_name_snapshot' => 'B2B Buyer',
+            'customer_email_snapshot' => 'finance-buyer@example.test',
+            'customer_phone_snapshot' => '55510000',
+            'payment_method_snapshot' => 'account',
+            'payment_status_snapshot' => 'partial',
+            'commercial_snapshot' => ['internal_quote_id' => 999],
+            'issued_at' => now(),
+            'due_at' => now()->addDay(),
+        ]);
+        DB::table('invoice_items')->insert([
+            'invoice_id' => $invoice->id,
+            'description' => 'Wholesale item',
+            'sku_snapshot' => 'WHO-58',
+            'quantity' => 1,
+            'unit_price' => 12.500,
+            'line_discount_total' => 1.000,
+            'line_tax_total' => 1.000,
+            'line_total' => 12.500,
+            'currency' => 'KWD',
+            'price_tier_code_snapshot' => 'INTERNAL-TIER',
+            'line_snapshot' => json_encode(['secret_internal' => 'hidden']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         DB::table('payments')->insert(['invoice_id' => $invoice->id, 'provider' => 'account', 'provider_reference' => 'PAY-58', 'status' => 'paid', 'amount' => 5, 'currency' => 'KWD', 'created_at' => now(), 'updated_at' => now()]);
         Sanctum::actingAs($user);
 
@@ -37,7 +70,31 @@ class B2bFinanceTest extends TestCase
             ->assertJsonPath('summary.totals.0.paid', 5)
             ->assertJsonPath('summary.totals.0.outstanding', 7.5)
             ->assertJsonPath('meta.has_more', false);
-        $this->getJson('/api/v1/b2b/invoices/'.$invoice->id)->assertOk()->assertJsonPath('data.items.0.description', 'Wholesale item');
+        $detail = $this->getJson('/api/v1/b2b/invoices/'.$invoice->id)
+            ->assertOk()
+            ->assertJsonPath('data.invoice_number', 'INV-58-1')
+            ->assertJsonPath('data.subtotal', 11.5)
+            ->assertJsonPath('data.discount_total', 1)
+            ->assertJsonPath('data.delivery_total', 1)
+            ->assertJsonPath('data.tax_total', 1)
+            ->assertJsonPath('data.total', 12.5)
+            ->assertJsonPath('data.paid_amount', 5)
+            ->assertJsonPath('data.outstanding_amount', 7.5)
+            ->assertJsonPath('data.seller.name', 'FOODEX Wholesale')
+            ->assertJsonPath('data.customer.name', 'B2B Buyer')
+            ->assertJsonPath('data.customer.email', 'finance-buyer@example.test')
+            ->assertJsonPath('data.items.0.sku', 'WHO-58')
+            ->assertJsonPath('data.items.0.description', 'Wholesale item')
+            ->assertJsonPath('data.items.0.discount_total', 1)
+            ->assertJsonPath('data.items.0.tax_total', 1)
+            ->assertJsonPath('data.payments.0.method', 'account')
+            ->assertJsonPath('data.payments.0.reference', 'PAY-58')
+            ->assertJsonPath('data.payments.0.amount', 5);
+
+        $detail->assertJsonMissingPath('data.commercial_snapshot')
+            ->assertJsonMissingPath('data.items.0.line_snapshot')
+            ->assertJsonMissingPath('data.items.0.price_tier_code_snapshot')
+            ->assertJsonMissingPath('data.payments.0.provider_reference');
         $this->getJson('/api/v1/b2b/account-statement')->assertOk()->assertJsonPath('data.total_debits', 12.5)->assertJsonPath('data.total_credits', 5)->assertJsonPath('data.balance', 7.5);
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.invoice_viewed']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.statement_viewed']);
