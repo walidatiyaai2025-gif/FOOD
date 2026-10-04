@@ -36,7 +36,7 @@ class CatalogZipImportTest extends TestCase
         $sample->assertOk()->assertHeader('content-type', 'application/zip');
         $package = $sample->getContent();
         $this->assertIsString($package);
-        $this->assertStringStartsWith("PK", $package);
+        $this->assertStringStartsWith('PK', $package);
 
         $previewResponse = $this->actingAs($admin)->post(route('admin.catalog.import.preview'), [
             'support_access' => 1,
