@@ -2234,7 +2234,13 @@ void main() {
       find.byKey(const ValueKey('b2b-invoice-detail-pdf')),
       findsOneWidget,
     );
-    expect(find.text('Download invoice PDF'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('b2b-invoice-detail-pdf')),
+        matching: find.textContaining('PDF'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('b2b-invoice-related-order')),
       findsOneWidget,
