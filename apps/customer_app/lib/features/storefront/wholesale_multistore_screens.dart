@@ -1072,48 +1072,75 @@ class _WholesaleCatalogDesignScreenState
   late final int storeId = wholesaleStoreId(widget.location);
   late Future<Map<String, dynamic>> future = _load();
   int? selectedCategoryId;
-  String sortMode = 'popular';
+  String sortMode = 'default';
+  int visibleLimit = 24;
+  bool stale = false;
+  Map<String, dynamic>? _lastPayload;
 
   Future<Map<String, dynamic>> _load([String query = '']) async {
-    if (storeId <= 0) {
-      return const {
-        'products': {'data': <Object>[]},
-        'storefront': <String, Object?>{},
+    try {
+      if (storeId <= 0) {
+        return const {
+          'store_required': true,
+          'products': {'data': <Object>[]},
+          'storefront': <String, Object?>{},
+        };
+      }
+
+      Map<String, dynamic> storefront = <String, dynamic>{};
+      if (widget.storefrontApi != null) {
+        storefront = await widget.storefrontApi!.wholesaleHome(storeId);
+      }
+
+      Object? products;
+      if (widget.api != null) {
+        var endpoint =
+            '/api/v1/b2b/products?store_id=' + storeId.toString();
+        if (query.trim().isNotEmpty) {
+          endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
+        }
+        products = await widget.api!.get(endpoint);
+      } else {
+        var rows = mapRows(storefront['products']);
+        final needle = query.trim().toLowerCase();
+        if (needle.isNotEmpty) {
+          rows = rows
+              .where((row) {
+                final name = row['name']?.toString().toLowerCase() ?? '';
+                final sku = row['sku']?.toString().toLowerCase() ?? '';
+                final barcode =
+                    row['barcode']?.toString().toLowerCase() ?? '';
+                return name.contains(needle) ||
+                    sku.contains(needle) ||
+                    barcode.contains(needle);
+              })
+              .toList(growable: false);
+        }
+        products = <String, Object?>{'data': rows};
+      }
+
+      final payload = <String, dynamic>{
+        'products': products,
+        'storefront': storefront,
       };
-    }
-
-    Map<String, dynamic> storefront = <String, dynamic>{};
-    if (widget.storefrontApi != null) {
-      storefront = await widget.storefrontApi!.wholesaleHome(storeId);
-    }
-
-    Object? products;
-    if (widget.api != null) {
-      var endpoint =
-          '/api/v1/b2b/products?store_id=' + storeId.toString();
-      if (query.trim().isNotEmpty) {
-        endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
+      stale = false;
+      _lastPayload = payload;
+      return payload;
+    } catch (_) {
+      final cached = _lastPayload;
+      if (cached != null) {
+        stale = true;
+        return cached;
       }
-      products = await widget.api!.get(endpoint);
-    } else {
-      var rows = mapRows(storefront['products']);
-      final needle = query.trim().toLowerCase();
-      if (needle.isNotEmpty) {
-        rows = rows
-            .where((row) {
-              final name = row['name']?.toString().toLowerCase() ?? '';
-              final sku = row['sku']?.toString().toLowerCase() ?? '';
-              return name.contains(needle) || sku.contains(needle);
-            })
-            .toList(growable: false);
-      }
-      products = <String, Object?>{'data': rows};
+      rethrow;
     }
+  }
 
-    return {
-      'products': products,
-      'storefront': storefront,
-    };
+  void _reload({bool resetLimit = true}) {
+    setState(() {
+      if (resetLimit) visibleLimit = 24;
+      future = _load(search.text);
+    });
   }
 
   @override
@@ -1136,10 +1163,10 @@ class _WholesaleCatalogDesignScreenState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'فلترة المنتجات',
+              Text(
+                context.tr('b2b.catalog.filter_title'),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
                 ),
@@ -1150,7 +1177,7 @@ class _WholesaleCatalogDesignScreenState
                 runSpacing: 8,
                 children: [
                   ChoiceChip(
-                    label: const Text('الكل'),
+                    label: Text(context.tr('b2b.catalog.all')),
                     selected: selectedCategoryId == null,
                     onSelected: (_) => Navigator.of(sheetContext).pop(-1),
                   ),
@@ -1171,7 +1198,10 @@ class _WholesaleCatalogDesignScreenState
     );
 
     if (!mounted || selected == null) return;
-    setState(() => selectedCategoryId = selected < 0 ? null : selected);
+    setState(() {
+      selectedCategoryId = selected < 0 ? null : selected;
+      visibleLimit = 24;
+    });
   }
 
   @override
@@ -1225,8 +1255,25 @@ class _WholesaleCatalogDesignScreenState
                       ? store['name'].toString()
                       : 'فودكس');
 
+          if (payload['store_required'] == true) {
+            return Scaffold(
+              backgroundColor: FoodexPalette.wholesale.background,
+              body: SafeArea(
+                child: FoodexEmptyState(
+                  key: const ValueKey('b2b-catalog-store-required'),
+                  title: context.tr('b2b.catalog.store_required_title'),
+                  subtitle: context.tr('b2b.catalog.store_required_body'),
+                ),
+              ),
+            );
+          }
+
           final categoryMap = <int, Map<String, dynamic>>{};
-          for (final row in allRows) {
+          final categorySources = <Map<String, dynamic>>[
+            ...mapRows(storefront['products']),
+            ...allRows,
+          ];
+          for (final row in categorySources) {
             final id = intValue(row['category_id']);
             if (id <= 0 || categoryMap.containsKey(id)) continue;
             categoryMap[id] = {
@@ -1262,6 +1309,17 @@ class _WholesaleCatalogDesignScreenState
             );
           }
 
+          final displayedRows =
+              visibleRows.take(visibleLimit).toList(growable: false);
+          final hasMore = displayedRows.length < visibleRows.length;
+          final responseCurrency = payload['products'] is Map
+              ? (payload['products'] as Map)['currency']?.toString()
+              : null;
+          final defaultCurrency =
+              responseCurrency == null || responseCurrency.trim().isEmpty
+                  ? 'EGP'
+                  : responseCurrency.trim().toUpperCase();
+
           return Scaffold(
             key: const ValueKey('wholesale-catalog-screen'),
             backgroundColor: palette.background,
@@ -1284,12 +1342,22 @@ class _WholesaleCatalogDesignScreenState
                       key: const ValueKey('wholesale-catalog-search'),
                       controller: search,
                       textInputAction: TextInputAction.search,
-                      onSubmitted: (value) =>
-                          setState(() => future = _load(value)),
-                      decoration: const InputDecoration(
-                        hintText: 'البحث بالاسم أو SKU أو الباركود',
-                        prefixIcon: Icon(Icons.search_rounded),
-                        suffixIcon: Icon(Icons.qr_code_scanner_rounded),
+                      onSubmitted: (_) => _reload(),
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: context.tr('b2b.catalog.search_hint'),
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: IconButton(
+                          key: const ValueKey('wholesale-catalog-clear-search'),
+                          tooltip: context.tr('b2b.catalog.clear_search'),
+                          onPressed: search.text.trim().isEmpty
+                              ? null
+                              : () {
+                                  search.clear();
+                                  _reload();
+                                },
+                          icon: const Icon(Icons.close_rounded),
+                        ),
                       ),
                     ),
                   ),
@@ -1305,10 +1373,12 @@ class _WholesaleCatalogDesignScreenState
                             padding: const EdgeInsetsDirectional.only(end: 8),
                             child: ChoiceChip(
                               key: const ValueKey('wholesale-category-all'),
-                              label: const Text('الكل'),
+                              label: Text(context.tr('b2b.catalog.all')),
                               selected: selectedCategoryId == null,
-                              onSelected: (_) =>
-                                  setState(() => selectedCategoryId = null),
+                              onSelected: (_) => setState(() {
+                                selectedCategoryId = null;
+                                visibleLimit = 24;
+                              }),
                             ),
                           ),
                           for (final category in categories)
@@ -1323,10 +1393,11 @@ class _WholesaleCatalogDesignScreenState
                                     Text(category['name']?.toString() ?? ''),
                                 selected: selectedCategoryId ==
                                     intValue(category['id']),
-                                onSelected: (_) => setState(
-                                  () => selectedCategoryId =
-                                      intValue(category['id']),
-                                ),
+                                onSelected: (_) => setState(() {
+                                  selectedCategoryId =
+                                      intValue(category['id']);
+                                  visibleLimit = 24;
+                                }),
                               ),
                             ),
                         ],
@@ -1341,7 +1412,7 @@ class _WholesaleCatalogDesignScreenState
                           onPressed: () =>
                               _openCategoryFilter(context, categories),
                           icon: const Icon(Icons.tune_rounded, size: 18),
-                          label: const Text('فلتر'),
+                          label: Text(context.tr('b2b.catalog.filter')),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -1355,34 +1426,46 @@ class _WholesaleCatalogDesignScreenState
                                 vertical: 9,
                               ),
                             ),
-                            items: const [
+                            items: [
                               DropdownMenuItem(
-                                value: 'popular',
-                                child: Text('الأكثر مبيعًا'),
+                                value: 'default',
+                                child: Text(
+                                  context.tr('b2b.catalog.sort_default'),
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'price_low',
-                                child: Text('السعر: الأقل أولًا'),
+                                child: Text(
+                                  context.tr('b2b.catalog.sort_price_low'),
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'price_high',
-                                child: Text('السعر: الأعلى أولًا'),
+                                child: Text(
+                                  context.tr('b2b.catalog.sort_price_high'),
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'name',
-                                child: Text('الاسم'),
+                                child: Text(
+                                  context.tr('b2b.catalog.sort_name'),
+                                ),
                               ),
                             ],
                             onChanged: (value) {
                               if (value != null) {
-                                setState(() => sortMode = value);
+                                setState(() {
+                                  sortMode = value;
+                                  visibleLimit = 24;
+                                });
                               }
                             },
                           ),
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          '${visibleRows.length} منتج',
+                          '${displayedRows.length}/${visibleRows.length} ' +
+                              context.tr('b2b.catalog.products_count'),
                           key: const ValueKey('wholesale-catalog-count'),
                           style: TextStyle(
                             color: palette.muted,
@@ -1390,18 +1473,69 @@ class _WholesaleCatalogDesignScreenState
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+                        IconButton(
+                          key: const ValueKey('wholesale-catalog-refresh'),
+                          tooltip: context.tr('b2b.catalog.refresh'),
+                          onPressed: () => _reload(resetLimit: false),
+                          icon: const Icon(Icons.refresh_rounded),
+                        ),
                       ],
                     ),
                   ),
+                  if (stale)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                      child: Material(
+                        key: const ValueKey('b2b-catalog-stale'),
+                        color: palette.soft,
+                        borderRadius: BorderRadius.circular(14),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.cloud_off_outlined,
+                                color: palette.primaryDark,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  context.tr('b2b.catalog.stale'),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   _WholesaleProductGrid(
-                    rows: visibleRows,
+                    rows: displayedRows,
                     storeId: storeId,
                     sourceLocation: widget.location,
                     session: widget.session,
                     actionApi: widget.actionApi,
                     pendingActionStore: widget.pendingActionStore,
                     palette: palette,
+                    defaultCurrency: defaultCurrency,
+                    noResults: allRows.isNotEmpty &&
+                        visibleRows.isEmpty &&
+                        (search.text.trim().isNotEmpty ||
+                            selectedCategoryId != null),
                   ),
+                  if (hasMore)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('wholesale-catalog-load-more'),
+                        onPressed: () =>
+                            setState(() => visibleLimit += 24),
+                        icon: const Icon(Icons.expand_more_rounded),
+                        label: Text(context.tr('b2b.catalog.load_more')),
+                      ),
+                    ),
                   const SizedBox(height: 24),
                 ],
               ),
