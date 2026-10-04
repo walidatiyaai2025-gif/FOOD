@@ -635,7 +635,11 @@ void main() {
     expect(sortedUri.queryParameters['page'], '1');
     expect(sortedUri.queryParameters['per_page'], '20');
 
-    await tester.tap(find.byKey(const ValueKey('b2b-top-product-open-1')));
+    final openProduct =
+        find.byKey(const ValueKey('b2b-top-product-open-1'));
+    await tester.ensureVisible(openProduct);
+    await tester.pumpAndSettle();
+    await tester.tap(openProduct);
     await tester.pumpAndSettle();
 
     expect(api.lastPath, '/api/v1/b2b/products/42?store_id=7');
