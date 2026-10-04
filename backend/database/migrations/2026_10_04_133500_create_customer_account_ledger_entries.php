@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('customer_account_ledger_entries', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('b2b_customer_id')->constrained('b2b_customers')->cascadeOnDelete();
+            $table->foreignId('b2b_customer_id')->constrained('b2b_customers')->restrictOnDelete();
             $table->foreignId('store_id')->nullable()->constrained('stores')->nullOnDelete();
             $table->foreignId('invoice_id')->nullable()->constrained('invoices')->nullOnDelete();
             $table->foreignId('order_id')->nullable()->constrained('orders')->nullOnDelete();
