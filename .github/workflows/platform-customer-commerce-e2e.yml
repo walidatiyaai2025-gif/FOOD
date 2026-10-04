@@ -194,7 +194,7 @@ jobs:
           grep -Fq 'test_unregistered_fcm_token_is_revoked_and_not_retried' backend/tests/Feature/PushLifecyclePayloadTest.php
           grep -Fq 'test_push_token_refresh_revokes_only_the_previous_token_for_same_installation' backend/tests/Feature/EngagementOpsIsolationTest.php
 
-          grep -Fq 'B2B profile exposes the unified customer address book' apps/customer_app/test/b2b_journey_test.dart
+          grep -Fq 'B2B profile is the complete visible account and finance hub' apps/customer_app/test/b2b_journey_test.dart
           grep -Fq 'address book saves authoritative GPS location with address' apps/customer_app/test/customer_account_surfaces_test.dart
           grep -Fq "customer-address-map" apps/customer_app/lib/features/customer_account/customer_address_book_screen.dart
           grep -Fq "location_source': source" apps/customer_app/lib/features/customer_account/customer_address_book_screen.dart
