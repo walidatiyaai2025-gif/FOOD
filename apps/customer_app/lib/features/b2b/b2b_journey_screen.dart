@@ -78,6 +78,19 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         CustomerOrdersScreen(
           api: ordersApi!,
+          actionApi: actionApi,
+          onOpenCart: (order) {
+            final orderContext = CustomerCommerceContext(
+              channel: CustomerCommerceChannel.wholesale,
+              storeId: order.storeId,
+            );
+            Navigator.of(context).pushNamed(
+              Uri(
+                path: CustomerRoutePaths.b2bCart,
+                queryParameters: orderContext.toQueryParameters(),
+              ).toString(),
+            );
+          },
           onOpenOrder: (order) {
             final orderContext = CustomerCommerceContext(
               channel: order.channel == 'b2b'
