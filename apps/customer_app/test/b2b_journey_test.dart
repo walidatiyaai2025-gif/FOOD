@@ -444,8 +444,17 @@ void main() {
     expect(find.text('Brand: FOODEX'), findsOneWidget);
     expect(find.text('Category: Beverages'), findsOneWidget);
     expect(find.textContaining('7.25 EGP'), findsOneWidget);
+
+    final descriptionDisclosure = find.text('Description');
+    expect(descriptionDisclosure, findsOneWidget);
+    await tester.ensureVisible(descriptionDisclosure);
+    await tester.tap(descriptionDisclosure);
+    await tester.pumpAndSettle();
     expect(find.text('Fresh authoritative description'), findsOneWidget);
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('customer-add-cart')),
+    );
     await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
     await tester.pumpAndSettle();
 
