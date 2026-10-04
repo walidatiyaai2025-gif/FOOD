@@ -644,10 +644,17 @@ class _TopProductsRemoteState extends StatefulWidget {
 
 class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
   late Future<Object?> _future;
+  late TextEditingController _searchController;
+  DateTime? _from;
+  DateTime? _to;
+  String _sort = 'quantity';
+  int _page = 1;
+  int _perPage = 20;
 
   @override
   void initState() {
     super.initState();
+    _syncControlsFromEndpoint();
     _future = _loadB2bRemote(widget.api, widget.endpoint);
   }
 
@@ -655,67 +662,419 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
   void didUpdateWidget(covariant _TopProductsRemoteState oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.api != widget.api || oldWidget.endpoint != widget.endpoint) {
+      _searchController.dispose();
+      _syncControlsFromEndpoint();
       _future = _loadB2bRemote(widget.api, widget.endpoint);
     }
   }
 
-  void _retry() {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _syncControlsFromEndpoint() {
+    final uri = Uri.parse(widget.endpoint);
+    _from = DateTime.tryParse(uri.queryParameters['from'] ?? '');
+    _to = DateTime.tryParse(uri.queryParameters['to'] ?? '');
+    final requestedSort = uri.queryParameters['sort'];
+    _sort = requestedSort == 'value' ? 'value' : 'quantity';
+    _page = int.tryParse(uri.queryParameters['page'] ?? '') ?? 1;
+    _perPage = int.tryParse(
+          uri.queryParameters['per_page'] ?? uri.queryParameters['limit'] ?? '',
+        ) ??
+        20;
+    _searchController = TextEditingController(
+      text: uri.queryParameters['q'] ?? '',
+    );
+  }
+
+  String _effectiveEndpoint({int? page}) {
+    final uri = Uri.parse(widget.endpoint);
+    final params = Map<String, String>.from(uri.queryParameters)
+      ..remove('from')
+      ..remove('to')
+      ..remove('q')
+      ..remove('sort')
+      ..remove('page')
+      ..remove('per_page')
+      ..remove('limit');
+
+    if (_from != null) params['from'] = _isoDate(_from!);
+    if (_to != null) params['to'] = _isoDate(_to!);
+    final search = _searchController.text.trim();
+    if (search.isNotEmpty) params['q'] = search;
+    params['sort'] = _sort;
+    params['page'] = (page ?? _page).toString();
+    params['per_page'] = _perPage.toString();
+
+    return uri.replace(queryParameters: params).toString();
+  }
+
+  void _reload({int? page}) {
+    final nextPage = page ?? _page;
     setState(() {
-      _future = _loadB2bRemote(widget.api, widget.endpoint);
+      _page = nextPage;
+      _future = _loadB2bRemote(widget.api, _effectiveEndpoint(page: nextPage));
     });
   }
 
+  Future<void> _pickDate({required bool from}) async {
+    final initial = from ? (_from ?? DateTime.now()) : (_to ?? DateTime.now());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 366)),
+    );
+    if (picked == null) return;
+
+    if (from) {
+      _from = picked;
+      if (_to != null && picked.isAfter(_to!)) _to = picked;
+    } else {
+      _to = picked;
+      if (_from != null && picked.isBefore(_from!)) _from = picked;
+    }
+    _reload(page: 1);
+  }
+
+  void _clearPeriod() {
+    _from = null;
+    _to = null;
+    _reload(page: 1);
+  }
+
+  String _availabilityText(BuildContext context, Map row) {
+    final reason = row['unavailable_reason']?.toString();
+    if (reason == 'OUT_OF_STOCK') {
+      return context.tr('b2b.top_products.out_of_stock');
+    }
+    if (reason == 'BELOW_MINIMUM_ORDER') {
+      return context.tr('b2b.top_products.below_moq');
+    }
+    if (reason == 'UNAVAILABLE_FOR_ACCOUNT') {
+      return context.tr('b2b.top_products.unavailable_account');
+    }
+    return context.tr('b2b.top_products.available');
+  }
+
   @override
-  Widget build(BuildContext context) => FutureBuilder<Object?>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(
-              key: ValueKey('b2b-loading'),
-              child: CircularProgressIndicator(),
-            );
-          }
-          if (snapshot.hasError) {
-            return _B2bRemoteErrorCard(
-              error: snapshot.error,
-              onRetry: _retry,
-            );
-          }
-
-          final value = snapshot.data;
-          final rows = value is Map && value['data'] is List
-              ? (value['data'] as List).whereType<Map>().toList(growable: false)
-              : const <Map>[];
-          if (rows.isEmpty) {
-            return Card(
-              key: const ValueKey('b2b-empty'),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(context.tr('b2b.empty.purchases')),
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            key: const ValueKey('b2b-top-products-filters'),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  TextField(
+                    key: const ValueKey('b2b-top-products-search'),
+                    controller: _searchController,
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: context.tr('b2b.top_products.search'),
+                      prefixIcon: const Icon(Icons.search),
+                    ),
+                    onSubmitted: (_) => _reload(page: 1),
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    key: const ValueKey('b2b-top-products-sort'),
+                    initialValue: _sort,
+                    decoration: InputDecoration(
+                      labelText: context.tr('b2b.top_products.sort'),
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: 'quantity',
+                        child: Text(
+                          context.tr('b2b.top_products.sort.quantity'),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'value',
+                        child: Text(
+                          context.tr('b2b.top_products.sort.value'),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null || value == _sort) return;
+                      _sort = value;
+                      _reload(page: 1);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        key: const ValueKey('b2b-top-products-from'),
+                        onPressed: () => _pickDate(from: true),
+                        icon: const Icon(Icons.calendar_today_outlined),
+                        label: Text(
+                          '${context.tr('b2b.top_products.from')}: ${_from == null ? '—' : _isoDate(_from!)}',
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        key: const ValueKey('b2b-top-products-to'),
+                        onPressed: () => _pickDate(from: false),
+                        icon: const Icon(Icons.event_outlined),
+                        label: Text(
+                          '${context.tr('b2b.top_products.to')}: ${_to == null ? '—' : _isoDate(_to!)}',
+                        ),
+                      ),
+                      TextButton(
+                        key: const ValueKey('b2b-top-products-all-time'),
+                        onPressed: _clearPeriod,
+                        child: Text(
+                          context.tr('b2b.top_products.all_time'),
+                        ),
+                      ),
+                      FilledButton.icon(
+                        key: const ValueKey('b2b-top-products-apply'),
+                        onPressed: () => _reload(page: 1),
+                        icon: const Icon(Icons.tune),
+                        label: Text(
+                          context.tr('b2b.top_products.apply'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            );
-          }
+            ),
+          ),
+          const SizedBox(height: 12),
+          FutureBuilder<Object?>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(
+                  key: ValueKey('b2b-loading'),
+                  child: CircularProgressIndicator(),
+                );
+              }
+              if (snapshot.hasError) {
+                return _B2bRemoteErrorCard(
+                  error: snapshot.error,
+                  onRetry: () => _reload(),
+                );
+              }
 
-          return Column(
-            key: const ValueKey('b2b-top-products-data'),
-            children: rows.map((row) {
-              final rank = row['rank']?.toString() ?? '-';
-              final name = row['name']?.toString() ?? '';
-              final sku = row['sku']?.toString() ?? '';
-              final quantity = row['quantity']?.toString() ?? '0';
-              final total = row['total']?.toString() ?? '0';
-              final currency = row['currency']?.toString() ?? 'KWD';
-              return Card(
-                child: ListTile(
-                  key: ValueKey('b2b-top-product-$rank'),
-                  title: Text('#$rank · $name'),
-                  subtitle: Text('$sku · $quantity · $total $currency'),
-                ),
+              final value = snapshot.data;
+              final rows = value is Map && value['data'] is List
+                  ? (value['data'] as List)
+                      .whereType<Map>()
+                      .toList(growable: false)
+                  : const <Map>[];
+              final meta = value is Map && value['meta'] is Map
+                  ? Map<Object?, Object?>.from(value['meta'] as Map)
+                  : <Object?, Object?>{};
+              final currentPage =
+                  int.tryParse(meta['page']?.toString() ?? '') ?? _page;
+              final hasMore = meta['has_more'] == true;
+
+              if (rows.isEmpty) {
+                return Card(
+                  key: const ValueKey('b2b-empty'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(context.tr('b2b.empty.purchases')),
+                  ),
+                );
+              }
+
+              return Column(
+                key: const ValueKey('b2b-top-products-data'),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ...rows.map((row) {
+                    final rank = row['rank']?.toString() ?? '-';
+                    final productId =
+                        int.tryParse(row['product_id']?.toString() ?? '');
+                    final storeId =
+                        int.tryParse(row['store_id']?.toString() ?? '');
+                    final name = row['name']?.toString() ?? '';
+                    final sku = row['sku']?.toString() ?? '';
+                    final quantity = row['quantity']?.toString() ?? '0';
+                    final total = row['total']?.toString() ?? '0';
+                    final currency = row['currency']?.toString() ?? '';
+                    final lastPurchase =
+                        row['last_purchased_at']?.toString() ?? '—';
+                    final pack = row['pack_label']?.toString();
+                    final currentPrice = row['account_price']?.toString();
+                    final currentCurrency =
+                        row['current_price_currency']?.toString() ?? '';
+                    final imageUrl = row['image_url']?.toString();
+                    final canOpen = productId != null &&
+                        productId > 0 &&
+                        storeId != null &&
+                        storeId > 0;
+                    final canRepurchase = row['can_repurchase'] == true;
+                    final availability = _availabilityText(context, row);
+
+                    void openProduct() {
+                      if (!canOpen) return;
+                      Navigator.of(context).pushNamed(
+                        Uri(
+                          path: '/b2b/products/$productId',
+                          queryParameters: <String, String>{
+                            'channel': 'wholesale',
+                            'store_id': storeId.toString(),
+                          },
+                        ).toString(),
+                      );
+                    }
+
+                    return Card(
+                      key: ValueKey('b2b-top-product-$rank'),
+                      child: InkWell(
+                        onTap: canOpen ? openProduct : null,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: 72,
+                                height: 72,
+                                child: imageUrl == null || imageUrl.isEmpty
+                                    ? const DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFFF2F4F7),
+                                          borderRadius: BorderRadius.all(
+                                            Radius.circular(14),
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.shopping_basket_outlined,
+                                          color: Color(0xFF087347),
+                                        ),
+                                      )
+                                    : _B2bCatalogImage(url: imageUrl),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      '#$rank · $name',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
+                                    ),
+                                    if (sku.isNotEmpty) Text(sku),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      '${context.tr('b2b.top_products.quantity')}: $quantity',
+                                    ),
+                                    Text(
+                                      '${context.tr('b2b.top_products.spend')}: $total $currency',
+                                    ),
+                                    Text(
+                                      '${context.tr('b2b.top_products.last_purchase')}: $lastPurchase',
+                                    ),
+                                    if (pack != null && pack.isNotEmpty)
+                                      Text(
+                                        '${context.tr('b2b.top_products.pack')}: $pack',
+                                      ),
+                                    if (currentPrice != null)
+                                      Text(
+                                        '${context.tr('b2b.top_products.current_price')}: $currentPrice $currentCurrency',
+                                      ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      availability,
+                                      key: ValueKey(
+                                        'b2b-top-product-availability-$rank',
+                                      ),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: canRepurchase
+                                            ? const Color(0xFF087347)
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .error,
+                                      ),
+                                    ),
+                                    if (canOpen) ...[
+                                      const SizedBox(height: 8),
+                                      Align(
+                                        alignment:
+                                            AlignmentDirectional.centerStart,
+                                        child: TextButton.icon(
+                                          key: ValueKey(
+                                            'b2b-top-product-open-$rank',
+                                          ),
+                                          onPressed: openProduct,
+                                          icon: const Icon(
+                                            Icons.open_in_new_outlined,
+                                          ),
+                                          label: Text(
+                                            context.tr(
+                                              'b2b.top_products.open_product',
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      OutlinedButton.icon(
+                        key: const ValueKey('b2b-top-products-previous'),
+                        onPressed: currentPage > 1
+                            ? () => _reload(page: currentPage - 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_left),
+                        label: Text(
+                          context.tr('b2b.top_products.previous'),
+                        ),
+                      ),
+                      Text(
+                        '${context.tr('b2b.top_products.page')} $currentPage',
+                        key: const ValueKey('b2b-top-products-page'),
+                      ),
+                      OutlinedButton.icon(
+                        key: const ValueKey('b2b-top-products-next'),
+                        onPressed: hasMore
+                            ? () => _reload(page: currentPage + 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_right),
+                        label: Text(
+                          context.tr('b2b.top_products.next'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               );
-            }).toList(growable: false),
-          );
-        },
+            },
+          ),
+        ],
       );
+
+  static String _isoDate(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
 }
 
 class _RemoteState extends StatefulWidget {

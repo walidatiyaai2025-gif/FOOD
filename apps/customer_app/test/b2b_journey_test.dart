@@ -654,34 +654,128 @@ void main() {
     expect(find.text('الفواتير'), findsNothing);
   });
 
-  testWidgets('B2B top products use ranked endpoint and render authoritative data', (tester) async {
+  testWidgets('B2B top products expose current catalog state, sort and product navigation', (tester) async {
     final api = _FakeB2bApi({
       'data': [
         {
           'rank': 1,
           'product_id': 42,
+          'store_id': 7,
           'sku': 'TOP-1',
           'name': 'Top Product',
           'quantity': 12,
           'total': 144.5,
           'currency': 'KWD',
+          'last_purchased_at': '2026-09-30T11:30:00Z',
+          'account_price': 7.25,
+          'current_price_currency': 'EGP',
+          'minimum_order_quantity': 5,
+          'ordering_increment': 5,
+          'pack_size': 12,
+          'pack_label': 'Case 12',
+          'available_quantity': 20,
+          'availability_state': 'AVAILABLE',
+          'can_repurchase': true,
+          'unavailable_reason': null,
         },
       ],
       'period': {'from': '2026-09-01', 'to': '2026-09-30'},
+      'sort': 'quantity',
+      'meta': {
+        'page': 1,
+        'per_page': 20,
+        'total': 1,
+        'has_more': false,
+      },
     });
     await tester.pumpWidget(
       FoodexCustomerApp(
         session: b2b,
-        initialRoute: '/b2b/products/top?from=2026-09-01&to=2026-09-30',
+        initialRoute: '/b2b/products/top?store_id=7&from=2026-09-01&to=2026-09-30',
         b2bApi: api,
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(api.lastPath, '/api/v1/b2b/products/top?from=2026-09-01&to=2026-09-30');
+    expect(
+      api.lastPath,
+      '/api/v1/b2b/products/top?store_id=7&from=2026-09-01&to=2026-09-30',
+    );
+    expect(find.byKey(const ValueKey('b2b-top-products-filters')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-top-products-data')), findsOneWidget);
     expect(find.textContaining('Top Product'), findsOneWidget);
     expect(find.textContaining('144.5 KWD'), findsOneWidget);
+    expect(find.textContaining('7.25 EGP'), findsOneWidget);
+    expect(find.textContaining('Case 12'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-top-product-availability-1')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('b2b-top-products-sort')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('قيمة المشتريات').last);
+    await tester.pumpAndSettle();
+
+    final sortedUri = Uri.parse(api.lastPath!);
+    expect(sortedUri.path, '/api/v1/b2b/products/top');
+    expect(sortedUri.queryParameters['store_id'], '7');
+    expect(sortedUri.queryParameters['from'], '2026-09-01');
+    expect(sortedUri.queryParameters['to'], '2026-09-30');
+    expect(sortedUri.queryParameters['sort'], 'value');
+    expect(sortedUri.queryParameters['page'], '1');
+    expect(sortedUri.queryParameters['per_page'], '20');
+
+    final openProduct =
+        find.byKey(const ValueKey('b2b-top-product-open-1'));
+    await tester.ensureVisible(openProduct);
+    await tester.pumpAndSettle();
+    await tester.tap(openProduct);
+    await tester.pumpAndSettle();
+
+    expect(api.lastPath, '/api/v1/b2b/products/42?store_id=7');
+  });
+
+  testWidgets('B2B top products visibly disable repurchase when authoritative stock is empty', (tester) async {
+    final api = _FakeB2bApi({
+      'data': [
+        {
+          'rank': 1,
+          'product_id': 42,
+          'store_id': 7,
+          'sku': 'TOP-1',
+          'name': 'Top Product',
+          'quantity': 12,
+          'total': 144.5,
+          'currency': 'KWD',
+          'account_price': 7.25,
+          'current_price_currency': 'EGP',
+          'available_quantity': 0,
+          'availability_state': 'OUT_OF_STOCK',
+          'can_repurchase': false,
+          'unavailable_reason': 'OUT_OF_STOCK',
+        },
+      ],
+      'meta': {
+        'page': 1,
+        'per_page': 20,
+        'total': 1,
+        'has_more': false,
+      },
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/products/top?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('غير متاح حالياً — نفد المخزون'), findsOneWidget);
+    expect(find.textContaining('7.25 EGP'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-top-product-open-1')), findsOneWidget);
   });
 
   testWidgets('B2B remote routes visibly render authoritative payload fields', (tester) async {
