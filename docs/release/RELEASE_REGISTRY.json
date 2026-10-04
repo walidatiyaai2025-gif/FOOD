@@ -156,7 +156,7 @@
       "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
-      "dashboard_update_sha256": "9a17ec49caa0e4517169c0fc7a3b673afcca4edc5dc7979dae8c47e8a3956554",
+      "dashboard_update_sha256": "800b647571a5c77f1ffcedd1da8f35f6aaac643ee9558805b6618a8aefb89ef2",
       "note": "C13 release after umbrella #858 and integrated gate #873, completing the authoritative 13-screen Customer journey, B2B customer ledger/Customer 360 finance, live-data state handling, checkout enforcement and AR/EN RTL/LTR isolation acceptance."
     }
   ]
