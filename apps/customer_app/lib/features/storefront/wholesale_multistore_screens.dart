@@ -2898,40 +2898,6 @@ class _PricingPanel extends StatelessWidget {
       );
 }
 
-class _PriceRow extends StatelessWidget {
-  const _PriceRow({
-    required this.label,
-    required this.value,
-    this.emphasize = false,
-  });
-
-  final String label;
-  final String value;
-  final bool emphasize;
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: emphasize
-                  ? Color(0xFF078A43)
-                  : Color(0xFF102033),
-              fontSize: emphasize ? 17 : 13,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      );
-}
-
 class _InfoPill extends StatelessWidget {
   const _InfoPill({
     required this.icon,
