@@ -18,9 +18,54 @@ final class CustomerDomainResolver
         private readonly B2cCustomerRepository $b2c,
     ) {}
 
+    public function existingB2b(User $user): ?B2bCustomer
+    {
+        $direct = $this->b2b->forUser($user);
+        if ($direct instanceof B2bCustomer) {
+            return $direct;
+        }
+
+        $platform = app(PlatformCustomerService::class)->forUser($user);
+        if ($platform !== null) {
+            $legacyLinked = B2bCustomer::query()
+                ->where('legacy_customer_id', $platform->legacy_customer_id)
+                ->first();
+
+            if ($legacyLinked instanceof B2bCustomer) {
+                return $legacyLinked;
+            }
+        }
+
+        $linkedIds = DB::table('retail_wholesale_accounts')
+            ->join(
+                'b2b_accounts',
+                'b2b_accounts.b2b_customer_id',
+                '=',
+                'retail_wholesale_accounts.b2b_customer_id',
+            )
+            ->where('retail_wholesale_accounts.owner_user_id', $user->getKey())
+            ->where('b2b_accounts.status', 'active')
+            ->pluck('retail_wholesale_accounts.b2b_customer_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        abort_if(
+            $linkedIds->count() > 1,
+            409,
+            'Select an explicit Wholesale account context.',
+        );
+
+        if ($linkedIds->count() === 1) {
+            return B2bCustomer::query()->find($linkedIds->first());
+        }
+
+        return null;
+    }
+
     public function b2b(User $user): B2bCustomer
     {
-        $customer = $this->b2b->forUser($user);
+        $customer = $this->existingB2b($user);
 
         if (! $customer instanceof B2bCustomer) {
             $customer = app(PlatformCustomerService::class)->materializeB2b($user);
@@ -173,7 +218,7 @@ final class CustomerDomainResolver
             return [$this->b2c($user, $requestedStoreId), 'b2c'];
         }
 
-        $b2b = $this->b2b->forUser($user);
+        $b2b = $this->existingB2b($user);
         $b2cStoreIds = $this->b2c->storeIdsForUser($user);
         $requestedDomain = strtolower(trim((string) (
             $request->input('customer_domain')

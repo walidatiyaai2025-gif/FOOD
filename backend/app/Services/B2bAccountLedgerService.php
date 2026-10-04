@@ -16,6 +16,7 @@ final class B2bAccountLedgerService
     public const MANUAL_TYPES = [
         'opening_balance',
         'payment',
+        'customer_credit',
         'credit_note',
         'debit_note',
         'return',
@@ -46,10 +47,12 @@ final class B2bAccountLedgerService
 
         $totalDebits = round((float) $transactions->sum('debit'), 3);
         $totalCredits = round((float) $transactions->sum('credit'), 3);
-        $balance = round($totalDebits - $totalCredits, 3);
+        // Business-facing convention (#893): positive means customer credit;
+        // negative means the customer owes the company.
+        $balance = round($totalCredits - $totalDebits, 3);
         $creditLimit = round((float) $account->credit_limit, 3);
-        $outstandingReceivable = round(max($balance, 0), 3);
-        $customerCreditBalance = round(max(0 - $balance, 0), 3);
+        $outstandingReceivable = round(max(0 - $balance, 0), 3);
+        $customerCreditBalance = round(max($balance, 0), 3);
         $availableCreditLine = round(max($creditLimit - $outstandingReceivable, 0), 3);
         $currency = $transactionCurrencies->first() ?? $this->currencyFor($customer, $storeId);
         [$openAmount, $overdueAmount] = $this->invoiceExposure($customer, $storeId);
@@ -67,7 +70,7 @@ final class B2bAccountLedgerService
             'total_debits' => $totalDebits,
             'total_credits' => $totalCredits,
             'balance' => $balance,
-            'balance_direction' => $balance > 0 ? 'customer_owes_company' : ($balance < 0 ? 'company_owes_customer' : 'settled'),
+            'balance_direction' => $balance > 0 ? 'company_owes_customer' : ($balance < 0 ? 'customer_owes_company' : 'settled'),
             'outstanding_receivable' => $outstandingReceivable,
             'customer_credit_balance' => $customerCreditBalance,
             'credit_limit' => $creditLimit,
@@ -99,7 +102,7 @@ final class B2bAccountLedgerService
 
         foreach ($all as $row) {
             $at = CarbonImmutable::parse($row['occurred_at']);
-            $delta = (float) $row['debit'] - (float) $row['credit'];
+            $delta = (float) $row['credit'] - (float) $row['debit'];
             if ($fromDate !== null && $at->lt($fromDate)) {
                 $openingBalance += $delta;
 
@@ -113,7 +116,7 @@ final class B2bAccountLedgerService
 
         $running = round($openingBalance, 3);
         $rows = $period->map(function (array $row) use (&$running): array {
-            $running = round($running + (float) $row['debit'] - (float) $row['credit'], 3);
+            $running = round($running + (float) $row['credit'] - (float) $row['debit'], 3);
             $row['running_balance'] = $running;
             unset($row['sort_key']);
 
@@ -131,7 +134,7 @@ final class B2bAccountLedgerService
             'opening_balance' => round($openingBalance, 3),
             'period_debits' => $periodDebits,
             'period_credits' => $periodCredits,
-            'closing_balance' => round($openingBalance + $periodDebits - $periodCredits, 3),
+            'closing_balance' => round($openingBalance + $periodCredits - $periodDebits, 3),
             'transactions' => $rows->all(),
         ];
     }
@@ -151,7 +154,7 @@ final class B2bAccountLedgerService
         }
 
         $requiredDirection = match ($type) {
-            'payment', 'credit_note', 'return', 'adjustment_negative' => 'credit',
+            'payment', 'customer_credit', 'credit_note', 'return', 'adjustment_negative' => 'credit',
             'debit_note', 'refund', 'adjustment_positive' => 'debit',
             default => null,
         };

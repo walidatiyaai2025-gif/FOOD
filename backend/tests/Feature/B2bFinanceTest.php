@@ -95,7 +95,7 @@ class B2bFinanceTest extends TestCase
             ->assertJsonMissingPath('data.items.0.line_snapshot')
             ->assertJsonMissingPath('data.items.0.price_tier_code_snapshot')
             ->assertJsonMissingPath('data.payments.0.provider_reference');
-        $this->getJson('/api/v1/b2b/account-statement')->assertOk()->assertJsonPath('data.total_debits', 12.5)->assertJsonPath('data.total_credits', 5)->assertJsonPath('data.balance', 7.5);
+        $this->getJson('/api/v1/b2b/account-statement')->assertOk()->assertJsonPath('data.total_debits', 12.5)->assertJsonPath('data.total_credits', 5)->assertJsonPath('data.balance', -7.5);
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.invoice_viewed']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.statement_viewed']);
     }
