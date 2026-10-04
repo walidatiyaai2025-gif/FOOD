@@ -113,7 +113,7 @@ class CustomerAppRouter {
     }
 
     if (requested.pattern == CustomerRoutePaths.splash) {
-      requestedLocation = CustomerRoutePaths.marketplace;
+      requestedLocation = CustomerRoutePaths.entry;
       requested = definitionFor(requestedLocation)!;
     }
 
@@ -288,7 +288,7 @@ class CustomerAppRouter {
         if (definition.pattern == CustomerRoutePaths.entry) {
           final uri = Uri.parse(requestedLocation);
           return UnifiedCustomerAuthScreen(
-            nextRoute: CustomerRoutePaths.marketplace,
+            nextRoute: CustomerRoutePaths.b2bDashboard,
             actionApi: actionApi,
             onAuthenticated: onUnifiedAuthenticated ??
                 (token, preferences) async => onPlatformRegistered(token),
