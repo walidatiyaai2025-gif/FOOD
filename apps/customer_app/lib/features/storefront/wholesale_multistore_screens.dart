@@ -3,6 +3,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../core/api/b2b_api.dart';
 import '../../core/api/b2c_account_api.dart';
@@ -3121,8 +3123,10 @@ class WholesaleOrderDetailsDesignScreen extends StatefulWidget {
 }
 
 class _WholesaleOrderDetailsDesignScreenState
-    extends State<WholesaleOrderDetailsDesignScreen> {
+    extends State<WholesaleOrderDetailsDesignScreen>
+    with WidgetsBindingObserver {
   late final int orderId = _orderId(widget.location);
+  Map<String, dynamic>? _lastOrder;
   late Future<Object?> future = _load();
 
   static int _orderId(String location) {
@@ -3132,14 +3136,52 @@ class _WholesaleOrderDetailsDesignScreenState
     return int.tryParse(segments[index + 1]) ?? 0;
   }
 
-  Future<Object?> _load() {
-    if (orderId <= 0 || widget.api == null) {
-      return Future<Object?>.value(null);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _refresh();
     }
-    return widget.api!.get('/api/v1/b2b/orders/' + orderId.toString());
+  }
+
+  Future<Object?> _load() async {
+    if (orderId <= 0 || widget.api == null) {
+      return null;
+    }
+
+    try {
+      final raw =
+          await widget.api!.get('/api/v1/b2b/orders/' + orderId.toString());
+      if (raw is Map) {
+        final order = Map<String, dynamic>.from(raw);
+        _lastOrder = order;
+        return order;
+      }
+      return raw;
+    } catch (_) {
+      if (_lastOrder != null) {
+        return <String, dynamic>{
+          ..._lastOrder!,
+          '__stale': true,
+        };
+      }
+      rethrow;
+    }
   }
 
   void _refresh() {
+    if (!mounted) return;
     setState(() {
       future = _load();
     });
@@ -3163,12 +3205,14 @@ class _WholesaleOrderDetailsDesignScreenState
                             .pushReplacementNamed('/b2b/orders'),
                         icon: const Icon(Icons.arrow_back_rounded),
                       ),
-                      const Expanded(
-                        child: FoodexTopBar(title: 'تفاصيل طلب الجملة'),
+                      Expanded(
+                        child: FoodexTopBar(
+                          title: context.tr('b2b.order.title'),
+                        ),
                       ),
                       IconButton(
                         key: const ValueKey('b2b-order-refresh'),
-                        tooltip: 'تحديث',
+                        tooltip: context.tr('b2b.order.refresh'),
                         onPressed: _refresh,
                         icon: const Icon(Icons.refresh_rounded),
                       ),
@@ -3187,7 +3231,7 @@ class _WholesaleOrderDetailsDesignScreenState
                       if (snapshot.hasError) {
                         return FoodexErrorState(
                           key: const ValueKey('b2b-order-detail-error'),
-                          message: 'تعذر تحميل تفاصيل طلب الجملة.',
+                          message: context.tr('b2b.order.load_error'),
                           onRetry: _refresh,
                         );
                       }
@@ -3197,67 +3241,150 @@ class _WholesaleOrderDetailsDesignScreenState
                           ? Map<String, dynamic>.from(raw)
                           : <String, dynamic>{};
                       if (order.isEmpty) {
-                        return const FoodexEmptyState(
-                          key: ValueKey('b2b-order-detail-empty'),
-                          title: 'الطلب غير متاح',
-                          subtitle: 'تعذر العثور على بيانات طلب الجملة.',
+                        return FoodexEmptyState(
+                          key: const ValueKey('b2b-order-detail-empty'),
+                          title: context.tr('b2b.order.unavailable'),
+                          subtitle: context.tr('b2b.order.unavailable_body'),
                         );
                       }
 
+                      final stale = order['__stale'] == true;
                       final items = mapRows(order['items']);
-                      // Customer order history is authoritative only when supplied
-                      // by the backend timeline contract. Do not synthesize or
-                      // fall back to raw operational status history here.
                       final timeline = mapRows(order['timeline']);
                       final currency =
                           order['currency']?.toString() ?? 'KWD';
                       final total = order['grand_total'] ?? order['total'];
+                      final status = order['status']?.toString() ?? '';
+                      final isTerminal = order['is_terminal'] == true ||
+                          const {'delivered', 'failed', 'cancelled'}
+                              .contains(status);
                       final storeName =
                           order['store_name']?.toString() ??
-                          (order['store'] is Map
-                              ? (order['store'] as Map)['name']?.toString()
-                              : null) ??
-                          '-';
-                      final payment = paymentLabel(
-                        order['payment_method']?.toString() ?? '-',
-                      );
+                              (order['store'] is Map
+                                  ? (order['store'] as Map)['name']?.toString()
+                                  : null) ??
+                              '-';
+                      final paymentMethod =
+                          order['payment_method']?.toString() ?? '-';
+                      final payment = order['payment'] is Map
+                          ? Map<String, dynamic>.from(order['payment'] as Map)
+                          : null;
+                      final accountCredit =
+                          order['account_credit_impact'] is Map
+                              ? Map<String, dynamic>.from(
+                                  order['account_credit_impact'] as Map,
+                                )
+                              : null;
+                      final invoice = order['invoice'] is Map
+                          ? Map<String, dynamic>.from(order['invoice'] as Map)
+                          : null;
+                      final tracking = order['tracking'] is Map
+                          ? Map<String, dynamic>.from(order['tracking'] as Map)
+                          : null;
+                      final allowed = order['allowed_actions'] is Map
+                          ? Map<String, dynamic>.from(
+                              order['allowed_actions'] as Map,
+                            )
+                          : <String, dynamic>{};
                       final address = order['delivery_address'] is Map
                           ? Map<String, dynamic>.from(
                               order['delivery_address'] as Map,
                             )
                           : null;
+                      final latitude = _numberValue(address?['latitude']);
+                      final longitude = _numberValue(address?['longitude']);
+                      final canOpenMap = allowed['view_map'] == true &&
+                          latitude != null &&
+                          longitude != null;
 
                       return ListView(
                         key: const ValueKey('b2b-order-detail'),
                         padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
                         children: [
+                          if (stale) ...[
+                            _OrderNotice(
+                              key: const ValueKey('b2b-order-detail-stale'),
+                              icon: Icons.cloud_off_outlined,
+                              text: context.tr('b2b.order.stale'),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                          if (isTerminal) ...[
+                            _OrderNotice(
+                              key: const ValueKey('b2b-order-terminal'),
+                              icon: status == 'delivered'
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.info_outline_rounded,
+                              text: _orderStatusText(context, status) +
+                                  ' · ' +
+                                  context.tr('b2b.order.terminal'),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
                           _OrderDetailCard(
                             title: order['order_number']?.toString() ??
                                 '#' + orderId.toString(),
                             rows: [
                               (
-                                'الحالة',
-                                orderStatusLabel(
-                                  order['status']?.toString() ?? '',
+                                context.tr('b2b.order.status'),
+                                _orderStatusText(context, status),
+                              ),
+                              (
+                                context.tr('b2b.order.created_at'),
+                                _friendlyOrderDate(
+                                  order['created_at']?.toString(),
                                 ),
                               ),
-                              ('المتجر', storeName),
-                              ('الإجمالي', money(total, currency: currency)),
-                              ('الدفع', payment),
+                              (context.tr('b2b.order.store'), storeName),
+                              (
+                                context.tr('b2b.order.channel'),
+                                order['channel']?.toString() == 'b2b'
+                                    ? context.tr('b2b.order.channel_b2b')
+                                    : (order['channel']?.toString() ?? '-'),
+                              ),
+                              (
+                                context.tr('b2b.order.total'),
+                                money(total, currency: currency),
+                              ),
+                              if ((order['requested_delivery_date']
+                                          ?.toString() ??
+                                      '')
+                                  .isNotEmpty)
+                                (
+                                  context.tr('b2b.order.requested_delivery'),
+                                  order['requested_delivery_date'].toString(),
+                                ),
                             ],
                           ),
                           if (address != null) ...[
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 2),
                             _OrderDetailCard(
-                              title: 'عنوان التوصيل',
-                              rows: _deliveryAddressRows(address),
+                              title: context.tr('b2b.order.delivery_address'),
+                              rows: _deliveryAddressRows(context, address),
                             ),
+                            if (canOpenMap)
+                              Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: OutlinedButton.icon(
+                                  key: const ValueKey('b2b-order-open-map'),
+                                  onPressed: () => _showOrderMap(
+                                    context,
+                                    latitude: latitude,
+                                    longitude: longitude,
+                                    label: address['formatted']?.toString() ??
+                                        storeName,
+                                  ),
+                                  icon: const Icon(Icons.map_outlined),
+                                  label:
+                                      Text(context.tr('b2b.order.open_map')),
+                                ),
+                              ),
                           ],
                           if (timeline.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            const Text(
-                              'مسار الطلب',
-                              style: TextStyle(
+                            const SizedBox(height: 14),
+                            Text(
+                              context.tr('b2b.order.timeline'),
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -3286,18 +3413,22 @@ class _WholesaleOrderDetailsDesignScreenState
                                   contentPadding: EdgeInsets.zero,
                                   leading:
                                       const Icon(Icons.timeline_rounded),
-                                  title: Text(orderStatusLabel(stage)),
+                                  title:
+                                      Text(_orderStatusText(context, stage)),
                                   subtitle: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       if (occurredAt.isNotEmpty)
-                                        Text(occurredAt),
+                                        Text(_friendlyOrderDate(occurredAt)),
                                       if (driverName.isNotEmpty)
                                         Text(driverName),
                                       if (reasonCode.isNotEmpty)
                                         Text(
-                                          failureReasonLabel(reasonCode),
+                                          _failureReasonText(
+                                            context,
+                                            reasonCode,
+                                          ),
                                         ),
                                     ],
                                   ),
@@ -3305,42 +3436,169 @@ class _WholesaleOrderDetailsDesignScreenState
                               }).toList(growable: false),
                             ),
                           ],
-                          if (items.isNotEmpty) ...[
+                          if (tracking != null) ...[
                             const SizedBox(height: 12),
-                            const Text(
-                              'الأصناف',
-                              style: TextStyle(
+                            _OrderDetailCard(
+                              title: context.tr('b2b.order.driver_tracking'),
+                              rows: [
+                                (
+                                  context.tr('b2b.order.driver'),
+                                  tracking['driver_name']?.toString() ?? '-',
+                                ),
+                                (
+                                  context.tr('b2b.order.tracking_status'),
+                                  _orderStatusText(
+                                    context,
+                                    tracking['status']?.toString() ?? '',
+                                  ),
+                                ),
+                                if ((tracking['assigned_at']?.toString() ?? '')
+                                    .isNotEmpty)
+                                  (
+                                    context.tr('b2b.order.assigned_at'),
+                                    _friendlyOrderDate(
+                                      tracking['assigned_at']?.toString(),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                          if (items.isNotEmpty) ...[
+                            const SizedBox(height: 14),
+                            Text(
+                              context.tr('b2b.order.items'),
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
                             const SizedBox(height: 8),
                             ...items.map(
-                              (item) => _OrderDetailCard(
-                                title: item['name']?.toString() ??
-                                    item['name_snapshot']?.toString() ??
-                                    'منتج',
-                                rows: [
-                                  (
-                                    'الكمية',
-                                    item['quantity']?.toString() ?? '-',
-                                  ),
-                                  (
-                                    'سعر الوحدة',
-                                    money(
-                                      item['unit_price'],
-                                      currency: currency,
-                                    ),
-                                  ),
-                                  (
-                                    'الإجمالي',
-                                    money(
-                                      item['line_total'],
-                                      currency: currency,
-                                    ),
-                                  ),
-                                ],
+                              (item) => _OrderLineCard(
+                                item: item,
+                                currency: currency,
                               ),
+                            ),
+                          ],
+                          const SizedBox(height: 2),
+                          _OrderDetailCard(
+                            title: context.tr('b2b.order.price_summary'),
+                            rows: [
+                              (
+                                context.tr('b2b.order.subtotal'),
+                                money(
+                                  order['subtotal'],
+                                  currency: currency,
+                                ),
+                              ),
+                              (
+                                context.tr('b2b.order.discount'),
+                                money(
+                                  order['discount_total'],
+                                  currency: currency,
+                                ),
+                              ),
+                              (
+                                context.tr('b2b.order.tax'),
+                                money(
+                                  order['tax_total'],
+                                  currency: currency,
+                                ),
+                              ),
+                              (
+                                context.tr('b2b.order.delivery_fee'),
+                                money(
+                                  order['delivery_total'],
+                                  currency: currency,
+                                ),
+                              ),
+                              (
+                                context.tr('b2b.order.grand_total'),
+                                money(total, currency: currency),
+                              ),
+                            ],
+                          ),
+                          _OrderDetailCard(
+                            title: context.tr('b2b.order.payment'),
+                            rows: [
+                              (
+                                context.tr('b2b.order.payment_method'),
+                                _paymentMethodText(
+                                  context,
+                                  paymentMethod,
+                                ),
+                              ),
+                              if (payment != null)
+                                (
+                                  context.tr('b2b.order.payment_status'),
+                                  _paymentStatusText(
+                                    context,
+                                    payment['status']?.toString() ?? '',
+                                  ),
+                                ),
+                              if (accountCredit != null)
+                                (
+                                  context
+                                      .tr('b2b.order.account_credit_impact'),
+                                  money(
+                                    accountCredit['amount'],
+                                    currency:
+                                        accountCredit['currency']?.toString() ??
+                                            currency,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          if (invoice != null &&
+                              allowed['view_invoice'] == true) ...[
+                            _OrderDetailCard(
+                              title: context.tr('b2b.order.invoice'),
+                              rows: [
+                                (
+                                  context.tr('b2b.invoice.title'),
+                                  invoice['invoice_number']?.toString() ?? '-',
+                                ),
+                                (
+                                  context.tr('b2b.invoice.payment_status'),
+                                  invoice['status']?.toString() ?? '-',
+                                ),
+                              ],
+                            ),
+                            Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: FilledButton.icon(
+                                key: const ValueKey(
+                                  'b2b-order-open-invoice',
+                                ),
+                                onPressed: () {
+                                  final invoiceId =
+                                      int.tryParse(invoice['id'].toString());
+                                  if (invoiceId == null || invoiceId <= 0) {
+                                    return;
+                                  }
+                                  Navigator.of(context).pushNamed(
+                                    '/b2b/invoices/' +
+                                        invoiceId.toString(),
+                                  );
+                                },
+                                icon: const Icon(Icons.receipt_long_outlined),
+                                label: Text(
+                                  context.tr('b2b.order.open_invoice'),
+                                ),
+                              ),
+                            ),
+                          ],
+                          if ((order['customer_note']?.toString().trim() ?? '')
+                              .isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _OrderDetailCard(
+                              title: context.tr('b2b.order.note'),
+                              rows: [
+                                (
+                                  context.tr('b2b.order.note'),
+                                  order['customer_note'].toString().trim(),
+                                ),
+                              ],
                             ),
                           ],
                         ],
@@ -3355,21 +3613,350 @@ class _WholesaleOrderDetailsDesignScreenState
       );
 }
 
-List<(String, String)> _deliveryAddressRows(Map<String, dynamic> address) {
+List<(String, String)> _deliveryAddressRows(
+  BuildContext context,
+  Map<String, dynamic> address,
+) {
   final rows = <(String, String)>[];
-  void add(String label, String key) {
-    final value = address[key]?.toString().trim() ?? '';
+
+  void add(String label, Object? raw) {
+    final value = raw?.toString().trim() ?? '';
     if (value.isNotEmpty) rows.add((label, value));
   }
 
-  add('الاسم', 'recipient_name');
-  add('العنوان', 'line1');
-  add('تفاصيل العنوان', 'line2');
-  add('المنطقة', 'area');
-  add('المدينة', 'city');
-  add('الدولة', 'country_code');
+  add(context.tr('b2b.order.address.recipient'), address['recipient_name']);
+  add(context.tr('b2b.order.address.phone'), address['delivery_phone']);
+  add(context.tr('b2b.order.address.line1'), address['line1']);
+  add(context.tr('b2b.order.address.line2'), address['line2']);
+  add(context.tr('b2b.order.address.area'), address['area']);
+  add(context.tr('b2b.order.address.city'), address['city']);
+  add(
+    context.tr('b2b.order.address.country'),
+    address['country'] ?? address['country_code'],
+  );
+  add(context.tr('b2b.order.address.notes'), address['delivery_notes']);
 
-  return rows.isEmpty ? const [('العنوان', '-')] : rows;
+  return rows.isEmpty
+      ? [(context.tr('b2b.order.delivery_address'), '-')]
+      : rows;
+}
+
+double? _numberValue(Object? value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '');
+}
+
+String _friendlyOrderDate(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return '-';
+  final parsed = DateTime.tryParse(raw);
+  if (parsed == null) return raw;
+  final local = parsed.toLocal();
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${local.year}-${two(local.month)}-${two(local.day)} '
+      '${two(local.hour)}:${two(local.minute)}';
+}
+
+String _orderStatusText(BuildContext context, String status) {
+  switch (status) {
+    case 'placed':
+      return context.tr('b2b.order.stage.placed');
+    case 'driver_assigned':
+    case 'assigned':
+      return context.tr('b2b.order.stage.driver_assigned');
+    case 'accepted':
+      return context.tr('b2b.order.stage.accepted');
+    case 'picked_up':
+      return context.tr('b2b.order.stage.picked_up');
+    case 'pending':
+    case 'confirmed':
+    case 'preparing':
+    case 'ready':
+    case 'out_for_delivery':
+    case 'failed':
+    case 'delivered':
+    case 'cancelled':
+      return context.tr('customer.order.status.' + status);
+    default:
+      return status.isEmpty ? '-' : status.replaceAll('_', ' ');
+  }
+}
+
+String _paymentMethodText(BuildContext context, String method) {
+  switch (method) {
+    case 'cash_on_delivery':
+      return context.tr('b2b.order.payment.cash_on_delivery');
+    case 'account_credit':
+    case 'credit_balance':
+      return context.tr('b2b.order.payment.account_credit');
+    default:
+      return method.isEmpty || method == '-' ? '-' : method.replaceAll('_', ' ');
+  }
+}
+
+String _paymentStatusText(BuildContext context, String status) {
+  switch (status) {
+    case 'pending':
+    case 'paid':
+    case 'completed':
+    case 'failed':
+    case 'refunded':
+      return context.tr('b2b.order.payment_status.' + status);
+    default:
+      return status.isEmpty ? '-' : status.replaceAll('_', ' ');
+  }
+}
+
+String _failureReasonText(BuildContext context, String reason) {
+  switch (reason) {
+    case 'customer_no_answer':
+    case 'wrong_address':
+    case 'customer_refused':
+    case 'customer_absent':
+    case 'payment_issue':
+    case 'order_issue':
+    case 'other':
+      return context.tr('b2b.order.failure.' + reason);
+    default:
+      return reason.replaceAll('_', ' ');
+  }
+}
+
+Future<void> _showOrderMap(
+  BuildContext context, {
+  required double latitude,
+  required double longitude,
+  required String label,
+}) {
+  final point = LatLng(latitude, longitude);
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (sheetContext) => FractionallySizedBox(
+      heightFactor: .72,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: point,
+                    initialZoom: 15,
+                    minZoom: 3,
+                    maxZoom: 19,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName:
+                          'com.fiftysolution.foodex.customer',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: point,
+                          width: 56,
+                          height: 56,
+                          child: const Icon(
+                            Icons.location_pin,
+                            size: 48,
+                            color: Color(0xFF087347),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _OrderNotice extends StatelessWidget {
+  const _OrderNotice({
+    required this.icon,
+    required this.text,
+    super.key,
+  });
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFD7E7DE)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: const Color(0xFF087347)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _OrderLineCard extends StatelessWidget {
+  const _OrderLineCard({
+    required this.item,
+    required this.currency,
+  });
+
+  final Map<String, dynamic> item;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = item['image_url']?.toString() ?? '';
+    final sku = item['sku']?.toString() ?? '';
+    final pack = _numberValue(
+          item['pack_size'] ?? item['quantity_conversion_factor'],
+        ) ??
+        1;
+
+    return Container(
+      key: ValueKey('b2b-order-line-${item['id'] ?? item['product_id']}'),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE9E3F0)),
+        borderRadius: BorderRadius.circular(17),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: imageUrl.isEmpty
+                      ? const ColoredBox(
+                          color: Color(0xFFF1F5F2),
+                          child: Icon(Icons.inventory_2_outlined),
+                        )
+                      : Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const ColoredBox(
+                            color: Color(0xFFF1F5F2),
+                            child: Icon(Icons.inventory_2_outlined),
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['name']?.toString() ??
+                          item['name_snapshot']?.toString() ??
+                          '-',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    if (sku.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        sku,
+                        style: const TextStyle(
+                          color: Color(0xFF667085),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _OrderInlineRow(
+            label: context.tr('b2b.order.quantity'),
+            value: item['quantity']?.toString() ?? '-',
+          ),
+          _OrderInlineRow(
+            label: context.tr('b2b.order.pack'),
+            value: compactNumber(pack),
+          ),
+          _OrderInlineRow(
+            label: context.tr('b2b.order.unit_price'),
+            value: money(item['unit_price'], currency: currency),
+          ),
+          _OrderInlineRow(
+            label: context.tr('b2b.order.line_total'),
+            value: money(item['line_total'], currency: currency),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderInlineRow extends StatelessWidget {
+  const _OrderInlineRow({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Row(
+          children: [
+            Expanded(child: Text(label)),
+            const SizedBox(width: 8),
+            Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      );
 }
 
 class _OrderDetailCard extends StatelessWidget {
