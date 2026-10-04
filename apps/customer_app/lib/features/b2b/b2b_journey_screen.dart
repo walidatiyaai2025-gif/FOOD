@@ -25,6 +25,8 @@ class B2bJourneyScreen extends StatelessWidget {
     this.api,
     this.accountApi,
     this.ordersApi,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
@@ -34,6 +36,8 @@ class B2bJourneyScreen extends StatelessWidget {
   final B2cAccountApi? accountApi;
   final CustomerOrdersApi? ordersApi;
   final CustomerActionApi actionApi;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -157,13 +161,33 @@ class B2bJourneyScreen extends StatelessWidget {
             Text(content.$2),
             const SizedBox(height: 20),
             if (!hasRemoteState || keepLocalActions) ...content.$3,
-            if (hasRemoteState && isProfile)
+            if (hasRemoteState && isProfile) ...[
               B2bBusinessAccountProfile(
                 api: api!,
                 endpoint: _endpoint()!,
                 addressesRoute:
                     _scopedB2bRoute(CustomerRoutePaths.b2bAddresses),
               ),
+              const SizedBox(height: 14),
+              _B2bAccountHub(
+                api: api!,
+                financeEndpoint: _accountSummaryEndpoint(),
+                purchasesRoute:
+                    _scopedB2bRoute(CustomerRoutePaths.b2bPurchaseReports),
+                invoicesRoute:
+                    _scopedB2bRoute(CustomerRoutePaths.b2bInvoices),
+                statementRoute:
+                    _scopedB2bRoute(CustomerRoutePaths.b2bAccountStatement),
+                ordersRoute:
+                    _scopedB2bRoute(CustomerRoutePaths.b2bOrders),
+                notificationsRoute:
+                    _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
+                addressesRoute:
+                    _scopedB2bRoute(CustomerRoutePaths.b2bAddresses),
+                onLocaleChanged: onLocaleChanged,
+                onLogout: onLogout,
+              ),
+            ],
             if (hasRemoteState && keepLocalActions)
               definition.pattern == CustomerRoutePaths.b2bProductDetails
                   ? _B2bProductDetailRemoteState(
@@ -388,6 +412,16 @@ class B2bJourneyScreen extends StatelessWidget {
       path: path,
       queryParameters: commerceContext.toQueryParameters(),
     ).toString();
+  }
+
+  String _accountSummaryEndpoint() {
+    final uri = Uri.parse(location);
+    final storeId =
+        uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+    if (storeId == null || storeId.isEmpty) {
+      return '/api/v1/b2b/account-summary';
+    }
+    return '/api/v1/b2b/account-summary?store_id=$storeId';
   }
 
   String _b2bCartRoute() {
@@ -1638,5 +1672,341 @@ class _AuthoritativeDataView extends StatelessWidget {
         return null;
     }
   }
+}
+
+class _B2bAccountHub extends StatefulWidget {
+  const _B2bAccountHub({
+    required this.api,
+    required this.financeEndpoint,
+    required this.purchasesRoute,
+    required this.invoicesRoute,
+    required this.statementRoute,
+    required this.ordersRoute,
+    required this.notificationsRoute,
+    required this.addressesRoute,
+    this.onLocaleChanged,
+    this.onLogout,
+  });
+
+  final B2bApi api;
+  final String financeEndpoint;
+  final String purchasesRoute;
+  final String invoicesRoute;
+  final String statementRoute;
+  final String ordersRoute;
+  final String notificationsRoute;
+  final String addressesRoute;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
+
+  @override
+  State<_B2bAccountHub> createState() => _B2bAccountHubState();
+}
+
+class _B2bAccountHubState extends State<_B2bAccountHub> {
+  late Future<Object?> _finance = widget.api.get(widget.financeEndpoint);
+
+  @override
+  void didUpdateWidget(covariant _B2bAccountHub oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.api != widget.api ||
+        oldWidget.financeEndpoint != widget.financeEndpoint) {
+      _finance = widget.api.get(widget.financeEndpoint);
+    }
+  }
+
+  void _retryFinance() {
+    setState(() => _finance = widget.api.get(widget.financeEndpoint));
+  }
+
+  void _open(String route) {
+    Navigator.of(context).pushNamed(route);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final shortcuts = <({IconData icon, String label, String route})>[
+      (
+        icon: Icons.shopping_bag_outlined,
+        label: isArabic ? 'طلباتي' : 'My orders',
+        route: widget.ordersRoute,
+      ),
+      (
+        icon: Icons.receipt_long_outlined,
+        label: isArabic ? 'الفواتير' : 'Invoices',
+        route: widget.invoicesRoute,
+      ),
+      (
+        icon: Icons.account_balance_wallet_outlined,
+        label: isArabic ? 'كشف الحساب' : 'Account statement',
+        route: widget.statementRoute,
+      ),
+      (
+        icon: Icons.insights_outlined,
+        label: isArabic ? 'تقرير المشتريات' : 'Purchases report',
+        route: widget.purchasesRoute,
+      ),
+      (
+        icon: Icons.notifications_none_rounded,
+        label: isArabic ? 'الإشعارات' : 'Notifications',
+        route: widget.notificationsRoute,
+      ),
+      (
+        icon: Icons.location_on_outlined,
+        label: isArabic ? 'العناوين' : 'Addresses',
+        route: widget.addressesRoute,
+      ),
+    ];
+
+    return Column(
+      key: const ValueKey('b2b-account-hub'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          key: const ValueKey('b2b-finance-summary'),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: FutureBuilder<Object?>(
+              future: _finance,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        isArabic
+                            ? 'تعذر تحميل الملخص المالي.'
+                            : 'Financial summary could not be loaded.',
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _retryFinance,
+                        icon: const Icon(Icons.refresh),
+                        label: Text(isArabic ? 'إعادة المحاولة' : 'Retry'),
+                      ),
+                    ],
+                  );
+                }
+
+                final envelope = snapshot.data is Map
+                    ? Map<Object?, Object?>.from(snapshot.data as Map)
+                    : <Object?, Object?>{};
+                final data = envelope['data'] is Map
+                    ? Map<Object?, Object?>.from(envelope['data'] as Map)
+                    : envelope;
+                final balance = _number(data['balance']);
+                final currency = data['currency']?.toString() ?? '';
+                final direction = data['balance_direction']?.toString() ?? '';
+                final directionLabel = switch (direction) {
+                  'customer_owes_company' => isArabic ? 'عليك' : 'You owe',
+                  'company_owes_customer' => isArabic ? 'لك' : 'Credit due to you',
+                  _ => isArabic ? 'متوازن' : 'Settled',
+                };
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      isArabic ? 'ملخص الحساب المالي' : 'Financial account summary',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    _FinanceValue(
+                      label: directionLabel,
+                      value: _money(balance.abs(), currency),
+                      emphasis: true,
+                    ),
+                    _FinanceValue(
+                      label: isArabic ? 'حد الائتمان' : 'Credit limit',
+                      value: _money(_number(data['credit_limit']), currency),
+                    ),
+                    _FinanceValue(
+                      label: isArabic ? 'الائتمان المتاح' : 'Available credit',
+                      value: _money(
+                        _number(data['available_credit_line']),
+                        currency,
+                      ),
+                    ),
+                    _FinanceValue(
+                      label: isArabic ? 'القوة الشرائية' : 'Purchasing power',
+                      value: _money(
+                        _number(data['purchasing_power']),
+                        currency,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      key: const ValueKey('b2b-profile-open-statement'),
+                      onPressed: () => _open(widget.statementRoute),
+                      icon: const Icon(Icons.open_in_new_rounded),
+                      label: Text(
+                        isArabic
+                            ? 'فتح كشف الحساب والتفاصيل'
+                            : 'Open statement and details',
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                title: Text(
+                  isArabic ? 'اختصارات الحساب' : 'Account shortcuts',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  isArabic
+                      ? 'كل وظائف رحلة العميل من مكان واحد'
+                      : 'All customer-journey account functions in one place',
+                ),
+              ),
+              ...shortcuts.map(
+                (item) => ListTile(
+                  leading: Icon(item.icon),
+                  title: Text(item.label),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => _open(item.route),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Card(
+          key: const ValueKey('b2b-profile-settings-security'),
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: Text(isArabic ? 'الإعدادات' : 'Settings'),
+                subtitle: Text(
+                  isArabic
+                      ? 'اللغة والإشعارات والمساعدة والأمان'
+                      : 'Language, notifications, help and security',
+                ),
+              ),
+              if (widget.onLocaleChanged != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'ar', label: Text('العربية')),
+                      ButtonSegment(value: 'en', label: Text('English')),
+                    ],
+                    selected: {isArabic ? 'ar' : 'en'},
+                    onSelectionChanged: (value) {
+                      widget.onLocaleChanged!(Locale(value.first));
+                    },
+                  ),
+                ),
+              ListTile(
+                leading: const Icon(Icons.notifications_active_outlined),
+                title: Text(
+                  isArabic
+                      ? 'الإشعارات وتفضيلات التنبيه'
+                      : 'Notifications & alert preferences',
+                ),
+                subtitle: Text(
+                  isArabic
+                      ? 'عرض مركز الإشعارات الحالي'
+                      : 'Open the current notification center',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => _open(widget.notificationsRoute),
+              ),
+              ListTile(
+                leading: const Icon(Icons.support_agent_outlined),
+                title: Text(isArabic ? 'المساعدة والدعم' : 'Help & support'),
+                subtitle: Text(
+                  isArabic
+                      ? 'تشخيص التطبيق ومعلومات يمكن مشاركتها مع الدعم'
+                      : 'App diagnostics and support-safe information',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => _open(CustomerRoutePaths.diagnostics),
+              ),
+              if (widget.onLogout != null)
+                ListTile(
+                  key: const ValueKey('b2b-profile-security-action'),
+                  leading: const Icon(Icons.security_outlined),
+                  title: Text(
+                    isArabic ? 'الأمان وتسجيل الدخول' : 'Security & sign-in',
+                  ),
+                  subtitle: Text(
+                    isArabic
+                        ? 'تسجيل خروج آمن ومسح الجلسة المحمية ثم تسجيل الدخول من جديد'
+                        : 'Securely sign out, clear the protected session, then sign in again',
+                  ),
+                  trailing: const Icon(Icons.logout_rounded),
+                  onTap: widget.onLogout,
+                ),
+            ],
+          ),
+        ),
+        if (widget.onLogout != null) ...[
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            key: const ValueKey('b2b-profile-logout'),
+            onPressed: widget.onLogout,
+            icon: const Icon(Icons.logout_rounded),
+            label: Text(isArabic ? 'تسجيل الخروج' : 'Sign out'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  double _number(Object? value) =>
+      value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+
+  String _money(double value, String currency) {
+    final suffix = currency.isEmpty ? '' : ' $currency';
+    return '${value.toStringAsFixed(3)}$suffix';
+  }
+}
+
+class _FinanceValue extends StatelessWidget {
+  const _FinanceValue({
+    required this.label,
+    required this.value,
+    this.emphasis = false,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasis;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Expanded(child: Text(label)),
+            Text(
+              value,
+              style: TextStyle(
+                fontWeight: emphasis ? FontWeight.w900 : FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
