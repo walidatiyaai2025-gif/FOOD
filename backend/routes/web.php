@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\RetailStoreProvisioningController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\StorefrontDraftEditorController;
 use App\Http\Controllers\Admin\SystemInspectorController;
+use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
@@ -228,6 +229,9 @@ Route::prefix('admin')
         Route::patch('/live-ads/{liveAd}', [LiveAdController::class, 'update'])->name('live-ads.update');
         Route::patch('/live-ads/{liveAd}/toggle', [LiveAdController::class, 'toggle'])->name('live-ads.toggle');
         Route::delete('/live-ads/{liveAd}', [LiveAdController::class, 'destroy'])->name('live-ads.destroy');
+        Route::get('/operations/lookups', [SystemLookupController::class, 'index'])->name('operations.lookups.index');
+        Route::post('/operations/lookups/{type}', [SystemLookupController::class, 'store'])->name('operations.lookups.store');
+        Route::patch('/operations/lookups/{type}/{lookup}', [SystemLookupController::class, 'update'])->whereNumber('lookup')->name('operations.lookups.update');
         Route::get('/operations/orders', [OrderOperationsController::class, 'index'])->name('operations.orders.index');
         Route::post('/operations/orders/{order}/remind-driver', [OrderOperationsController::class, 'remindDriver'])->whereNumber('order')->name('operations.orders.remind');
         Route::post('/operations/orders/{order}/status', [OrderOperationsController::class, 'transition'])->whereNumber('order')->name('operations.orders.transition');
