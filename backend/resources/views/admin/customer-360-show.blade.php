@@ -220,6 +220,7 @@
                         <label>
                             <small>{{ $ar?'نوع الحركة':'Entry type' }}</small>
                             <select name="entry_type" required>
+                                <option value="customer_credit">{{ $ar?'إضافة رصيد للعميل':'Add customer credit' }}</option>
                                 <option value="payment">{{ $ar?'دفعة':'Record Payment' }}</option>
                                 <option value="credit_note">{{ $ar?'إشعار دائن':'Credit Note' }}</option>
                                 <option value="debit_note">{{ $ar?'إشعار مدين':'Debit Note' }}</option>
