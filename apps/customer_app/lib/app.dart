@@ -313,7 +313,6 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     _bindPushSession();
   }
 
-
   void _configureDiagnostics() {
     if (widget.previewContext != null) {
       _diagnostics.clearInspectorUpload();
@@ -337,10 +336,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       return;
     }
 
-    _diagnostics.configureInspectorUpload(
-      baseUrl: baseUrl,
-      token: token,
-    );
+    _diagnostics.configureInspectorUpload(baseUrl: baseUrl, token: token);
   }
 
   void _bindPushSession() {
