@@ -68,6 +68,7 @@ backend/app/Http/Controllers/Admin/SecurityController.php
 backend/app/Http/Controllers/Admin/StorefrontDesignController.php
 backend/app/Http/Controllers/Admin/StorefrontDraftEditorController.php
 backend/app/Http/Controllers/Admin/SystemInspectorController.php
+backend/app/Http/Controllers/Admin/SystemLookupController.php
 backend/app/Http/Controllers/Admin/SystemUpdateController.php
 backend/app/Http/Controllers/Admin/WholesaleStorefrontDesignController.php
 backend/app/Http/Controllers/Api/V1/AppPreviewInvalidationController.php
@@ -87,6 +88,8 @@ backend/app/Http/Controllers/Api/V1/GuestCartController.php
 backend/app/Http/Controllers/Api/V1/GuestCatalogController.php
 backend/app/Http/Controllers/Api/V1/GuestStoreController.php
 backend/app/Http/Controllers/Api/V1/LiveAdController.php
+backend/app/Http/Controllers/Api/V1/LookupOptionsController.php
+backend/app/Http/Controllers/Api/V1/NotificationCampaignPopupController.php
 backend/app/Http/Controllers/Api/V1/OrderController.php
 backend/app/Http/Controllers/Api/V1/PlatformMarketplaceController.php
 backend/app/Http/Controllers/Api/V1/PushDeviceController.php
@@ -97,6 +100,7 @@ backend/app/Http/Controllers/Api/V1/SecurityController.php
 backend/app/Http/Controllers/Api/V1/StorefrontController.php
 backend/app/Http/Controllers/Api/V1/StorefrontRevisionController.php
 backend/app/Http/Middleware/EnsureFreshDriverLocation.php
+backend/app/Http/Middleware/EnsureManagementDashboardAccess.php
 backend/app/Http/Middleware/ResolveCustomerPreviewSession.php
 backend/app/Http/Middleware/ResolveDriverPreviewSession.php
 backend/app/Http/Middleware/RunSchedulerHeartbeat.php
@@ -112,6 +116,7 @@ backend/app/Models/InvoiceItem.php
 backend/app/Models/LiveAd.php
 backend/app/Models/MarketingCoupon.php
 backend/app/Models/MarketingCouponRedemption.php
+backend/app/Models/OperationalLookup.php
 backend/app/Models/Order.php
 backend/app/Models/Payment.php
 backend/app/Models/PlatformCustomer.php
@@ -127,10 +132,12 @@ backend/app/Services/AppPreviewInvalidationStream.php
 backend/app/Services/AppPreviewSessionService.php
 backend/app/Services/AppPreviewTargetService.php
 backend/app/Services/B2bDashboardService.php
+backend/app/Services/B2bFinanceInvoiceService.php
 backend/app/Services/B2cCustomerService.php
 backend/app/Services/B2cDashboardService.php
 backend/app/Services/BannerImageService.php
 backend/app/Services/CatalogImageService.php
+backend/app/Services/CatalogZipImportService.php
 backend/app/Services/CommerceQuoteService.php
 backend/app/Services/CouponRedemptionService.php
 backend/app/Services/CustomerAddressService.php
@@ -150,11 +157,13 @@ backend/app/Services/ManagementReportService.php
 backend/app/Services/MarketingImageService.php
 backend/app/Services/NotificationAudience.php
 backend/app/Services/NotificationCampaignDispatcher.php
+backend/app/Services/OperationalLookupService.php
 backend/app/Services/OperationalTenantScope.php
 backend/app/Services/OrderDeliveryAddressSnapshotService.php
 backend/app/Services/OrderInventoryReservationService.php
 backend/app/Services/OrderLifecycleNotificationService.php
 backend/app/Services/PlatformCustomerService.php
+backend/app/Services/ProductAvailabilityService.php
 backend/app/Services/PushDeliveryService.php
 backend/app/Services/RbacManager.php
 backend/app/Services/ReportExportService.php
@@ -441,6 +450,8 @@ backend/database/migrations/2026_10_01_203000_add_retail_wholesale_owner_identit
 backend/database/migrations/2026_10_01_203800_scope_customer_addresses_by_commerce_channel.php
 backend/database/migrations/2026_10_02_123500_add_schedule_to_storefront_banners.php
 backend/database/migrations/2026_10_03_083000_reconcile_retail_merchant_canonical_identity.php
+backend/database/migrations/2026_10_04_052700_add_operational_system_lookups.php
+backend/database/migrations/2026_10_04_053000_add_notification_campaign_launch_popups.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/ProductDemoSeeder.php
@@ -567,10 +578,12 @@ backend/resources/views/admin/_driver-assignment-management.blade.php
 backend/resources/views/admin/_driver-live-map-scripts.blade.php
 backend/resources/views/admin/_driver-live-map.blade.php
 backend/resources/views/admin/_live-notifications.blade.php
+backend/resources/views/admin/_order-new-wizard.blade.php
 backend/resources/views/admin/_premium-icon.blade.php
 backend/resources/views/admin/_premium-sidebar.blade.php
 backend/resources/views/admin/_sidebar.blade.php
 backend/resources/views/admin/_storefront-builder.blade.php
+backend/resources/views/admin/_system-lookup-row.blade.php
 backend/resources/views/admin/_wholesale-storefront-builder.blade.php
 backend/resources/views/admin/app-preview.blade.php
 backend/resources/views/admin/app-versions.blade.php
@@ -596,6 +609,7 @@ backend/resources/views/admin/reports.blade.php
 backend/resources/views/admin/retail-stores.blade.php
 backend/resources/views/admin/security.blade.php
 backend/resources/views/admin/system-inspector.blade.php
+backend/resources/views/admin/system-lookups.blade.php
 backend/resources/views/admin/system-update.blade.php
 backend/resources/views/admin/translations.blade.php
 backend/routes/api.php
