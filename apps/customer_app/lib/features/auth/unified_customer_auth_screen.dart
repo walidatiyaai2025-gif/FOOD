@@ -36,6 +36,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
     this.preferences = const CustomerAuthPreferences(),
     this.biometricAuthenticator,
     this.resumeAuthenticatedRoute,
+    this.onLocaleChanged,
     this.registerInitially = false,
     super.key,
   });
@@ -52,6 +53,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
   final CustomerAuthPreferences preferences;
   final CustomerBiometricAuthenticator? biometricAuthenticator;
   final CustomerAuthenticatedRouteResume? resumeAuthenticatedRoute;
+  final ValueChanged<Locale>? onLocaleChanged;
   final bool registerInitially;
 
   @override
@@ -73,6 +75,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   bool _checkingBiometric = false;
   bool _busy = false;
   String? _errorKey;
+  Map<String, String> _fieldErrorKeys = const <String, String>{};
 
   @override
   void initState() {
@@ -108,7 +111,61 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     setState(() {
       _register = register;
       _errorKey = null;
+      _fieldErrorKeys = const <String, String>{};
     });
+  }
+
+  void _toggleLocale() {
+    if (_busy || widget.onLocaleChanged == null) return;
+    final current = Localizations.localeOf(context).languageCode;
+    widget.onLocaleChanged!(Locale(current == 'ar' ? 'en' : 'ar'));
+  }
+
+  String? _fieldErrorText(BuildContext context, String field) {
+    final key = _fieldErrorKeys[field];
+    return key == null ? null : context.tr(key);
+  }
+
+  String _safeActionErrorKey(
+    CustomerActionException error, {
+    required bool register,
+  }) {
+    final code = error.code.trim().toLowerCase();
+    if (code.contains('locked') || code.contains('blocked')) {
+      return 'customer.auth.account_locked';
+    }
+    if (code.contains('inactive') ||
+        code.contains('disabled') ||
+        code.contains('suspended')) {
+      return 'customer.auth.account_inactive';
+    }
+    if (code == 'http_401' ||
+        code.contains('credential') ||
+        code.contains('unauth')) {
+      return 'customer.auth.invalid_credentials';
+    }
+    if (code.contains('offline') ||
+        code.contains('network') ||
+        code.contains('timeout')) {
+      return 'customer.error.offline';
+    }
+    return register
+        ? 'customer.marketplace.registration_failed'
+        : 'customer.error.action_failed';
+  }
+
+  Map<String, String> _safeFieldErrors(CustomerActionException error) {
+    const supported = <String>{
+      'name',
+      'email',
+      'phone',
+      'password',
+      'password_confirmation',
+    };
+    return <String, String>{
+      for (final field in error.fieldErrors.keys)
+        if (supported.contains(field)) field: 'customer.validation.field_invalid',
+    };
   }
 
   CustomerAuthPreferences get _selectedPreferences =>
@@ -267,25 +324,44 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
 
   Future<void> _submit() async {
     final email = _email.text.trim();
-    if (email.isEmpty || _password.text.isEmpty) {
-      setState(() => _errorKey = 'customer.validation.credentials');
-      return;
+    final password = _password.text;
+    final validation = <String, String>{};
+
+    if (email.isEmpty) {
+      validation['email'] = 'customer.validation.email';
+    }
+    if (password.isEmpty) {
+      validation['password'] = 'customer.validation.password';
+    }
+    if (_register) {
+      if (_name.text.trim().isEmpty) {
+        validation['name'] = 'customer.validation.name';
+      }
+      if (_phone.text.trim().isEmpty) {
+        validation['phone'] = 'customer.validation.phone';
+      }
+      if (password.length < 8) {
+        validation['password'] = 'customer.validation.password_minimum';
+      }
+      if (_confirmation.text.isEmpty ||
+          password != _confirmation.text) {
+        validation['password_confirmation'] =
+            'customer.validation.password_confirmation';
+      }
     }
 
-    if (_register &&
-        (_name.text.trim().isEmpty ||
-            _phone.text.trim().isEmpty ||
-            _password.text.length < 8 ||
-            _password.text != _confirmation.text)) {
-      setState(
-        () => _errorKey = 'customer.marketplace.registration_validation',
-      );
+    if (validation.isNotEmpty) {
+      setState(() {
+        _fieldErrorKeys = validation;
+        _errorKey = null;
+      });
       return;
     }
 
     setState(() {
       _busy = true;
       _errorKey = null;
+      _fieldErrorKeys = const <String, String>{};
     });
 
     try {
@@ -299,7 +375,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
           name: _name.text,
           email: email,
           phone: _phone.text,
-          password: _password.text,
+          password: password,
           passwordConfirmation: _confirmation.text,
           locale: Localizations.localeOf(context).languageCode,
           storeId: widget.registrationStoreId,
@@ -308,7 +384,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         result = api is HttpCustomerActionApi
             ? await api.credentialLogin(
                 email: email,
-                password: _password.text,
+                password: password,
               )
             : await api.login(username: email);
       }
@@ -317,13 +393,21 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         result.token,
         mergeRetailGuestCart: true,
       );
+    } on CustomerActionException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _fieldErrorKeys = _safeFieldErrors(error);
+        _errorKey = _safeActionErrorKey(
+          error,
+          register: _register,
+        );
+      });
     } catch (_) {
       if (!mounted) return;
-      setState(
-        () => _errorKey = _register
-            ? 'customer.marketplace.registration_failed'
-            : 'customer.error.action_failed',
-      );
+      setState(() {
+        _fieldErrorKeys = const <String, String>{};
+        _errorKey = 'customer.error.offline';
+      });
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -350,6 +434,37 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         title: Text(title),
         backgroundColor: CustomerUiColors.deepGreen,
         foregroundColor: CustomerUiColors.white,
+        actions: [
+          IconButton(
+            key: const ValueKey('customer-login-diagnostics'),
+            onPressed: _busy
+                ? null
+                : () => Navigator.of(context).pushNamed(
+                      CustomerRoutePaths.diagnostics,
+                    ),
+            tooltip: context.tr('customer.diagnostics.open'),
+            icon: const Icon(Icons.bug_report_outlined),
+          ),
+          IconButton(
+            key: const ValueKey('customer-auth-guest'),
+            onPressed: _busy
+                ? null
+                : () => Navigator.of(context).pushReplacementNamed(
+                      CustomerRoutePaths.marketplace,
+                    ),
+            tooltip: context.tr('customer.action.guest'),
+            icon: const Icon(Icons.storefront_outlined),
+          ),
+          if (widget.onLocaleChanged != null)
+            TextButton(
+              key: const ValueKey('customer-auth-language-toggle'),
+              onPressed: _busy ? null : _toggleLocale,
+              child: Text(
+                locale.languageCode == 'ar' ? 'English' : 'العربية',
+                style: const TextStyle(color: CustomerUiColors.white),
+              ),
+            ),
+        ],
       ),
       body: SafeArea(
         top: false,
@@ -413,6 +528,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                           labelText: context.tr('customer.settings.name'),
                           prefixIcon:
                               const Icon(Icons.person_outline_rounded),
+                          errorText: _fieldErrorText(context, 'name'),
                         ),
                       ),
                       const SizedBox(height: CustomerUiSpacing.sm),
@@ -427,6 +543,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                       decoration: InputDecoration(
                         labelText: context.tr('customer.login.email'),
                         prefixIcon: const Icon(Icons.mail_outline_rounded),
+                        errorText: _fieldErrorText(context, 'email'),
                       ),
                     ),
                     if (_register) ...[
@@ -440,6 +557,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                           labelText:
                               context.tr('customer.marketplace.phone'),
                           prefixIcon: const Icon(Icons.phone_outlined),
+                          errorText: _fieldErrorText(context, 'phone'),
                         ),
                       ),
                     ],
@@ -454,6 +572,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                       decoration: InputDecoration(
                         labelText: context.tr('customer.login.password'),
                         prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        errorText: _fieldErrorText(context, 'password'),
                       ),
                       onSubmitted: (_) {
                         if (!_register) _submit();
@@ -474,6 +593,10 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                           ),
                           prefixIcon:
                               const Icon(Icons.verified_user_outlined),
+                          errorText: _fieldErrorText(
+                            context,
+                            'password_confirmation',
+                          ),
                         ),
                         onSubmitted: (_) => _submit(),
                       ),
@@ -578,15 +701,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: CustomerUiSpacing.md),
-            OutlinedButton.icon(
-              key: const ValueKey('customer-login-diagnostics'),
-              onPressed: () => Navigator.of(context).pushNamed(
-                CustomerRoutePaths.diagnostics,
-              ),
-              icon: const Icon(Icons.bug_report_outlined),
-              label: Text(context.tr('customer.diagnostics.open')),
             ),
           ],
         ),
