@@ -176,6 +176,128 @@ class CustomerDiagnostics {
     });
   }
 
+  Future<int> flushRemote({
+    required http.Client client,
+    required Uri requestUri,
+    required String authorization,
+    int limit = 5,
+  }) async {
+    final credential = authorization.trim();
+    if (credential.isEmpty || !credential.toLowerCase().startsWith('bearer ')) {
+      return 0;
+    }
+
+    final pending = _events
+        .where((event) =>
+            event['remote_submitted_at'] == null &&
+            _isRemoteEligible(event['type']?.toString()))
+        .take(limit)
+        .toList(growable: false);
+    if (pending.isEmpty) return 0;
+
+    final endpoint = _remoteEndpoint(requestUri);
+    var submitted = 0;
+    for (final event in pending) {
+      final payload = _remotePayload(event);
+      if (payload == null) continue;
+
+      try {
+        final response = await client.post(
+          endpoint,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': credential,
+          },
+          body: jsonEncode(payload),
+        );
+        if (response.statusCode != 202) {
+          break;
+        }
+
+        event['remote_submitted_at'] =
+            DateTime.now().toUtc().toIso8601String();
+        submitted++;
+      } catch (_) {
+        break;
+      }
+    }
+
+    if (submitted > 0) {
+      _persist();
+    }
+    return submitted;
+  }
+
+  bool _isRemoteEligible(String? type) => const {
+        'flutter_error',
+        'dart_error',
+        'api_failure',
+        'api_error',
+        'runtime_failure',
+      }.contains(type);
+
+  Uri _remoteEndpoint(Uri requestUri) {
+    final marker = requestUri.path.indexOf('/api/v1/');
+    final prefix =
+        marker >= 0 ? requestUri.path.substring(0, marker) : '';
+    return requestUri.replace(
+      path: '$prefix/api/v1/runtime-inspector/events',
+      query: null,
+      fragment: null,
+    );
+  }
+
+  Map<String, dynamic>? _remotePayload(Map<String, dynamic> event) {
+    final type = event['type']?.toString();
+    if (!_isRemoteEligible(type)) return null;
+    final details = event['details'] is Map
+        ? Map<String, dynamic>.from(event['details'] as Map)
+        : <String, dynamic>{};
+
+    final status = (details['status_code'] as num?)?.toInt();
+    final message = switch (type) {
+      'flutter_error' => (details['exception'] ?? 'Flutter runtime error').toString(),
+      'dart_error' => (details['error'] ?? 'Dart runtime error').toString(),
+      'api_failure' => 'Customer API request failed',
+      'api_error' => (details['error'] ?? 'Customer API network failure').toString(),
+      'runtime_failure' =>
+        (details['operation'] ?? details['category'] ?? 'Customer runtime failure')
+            .toString(),
+      _ => 'Customer runtime failure',
+    };
+
+    return <String, dynamic>{
+      'app': 'customer',
+      'category': type,
+      'severity': status != null && status < 500 ? 'warning' : 'error',
+      'message': redact(message),
+      'app_version': _appVersion ?? 'unknown',
+      'platform': Platform.operatingSystem,
+      'os_version': redact(Platform.operatingSystemVersion),
+      if (_currentRoute != null) 'current_route': _currentRoute,
+      if (_channel != null) 'channel': _channel,
+      if (_retailStoreContextId != null)
+        'store_id': _retailStoreContextId,
+      if (details['method'] != null) 'method': details['method'],
+      if (details['path'] != null) 'path': details['path'],
+      if (status != null) 'status': status,
+      if (details['correlation_id'] != null)
+        'correlation_id': details['correlation_id'],
+      if (details['stack'] != null) 'stack': details['stack'],
+      'metadata': redact({
+        if (details['library'] != null) 'library': details['library'],
+        if (details['context'] != null) 'context': details['context'],
+        if (details['elapsed_ms'] != null)
+          'elapsed_ms': details['elapsed_ms'],
+        if (details['category'] != null)
+          'failure_category': details['category'],
+        if (details['support_reference'] != null)
+          'support_reference': details['support_reference'],
+      }),
+    };
+  }
+
   Future<void> clear() async {
     _events.clear();
     await _preferences?.remove(_storageKey);
@@ -450,6 +572,17 @@ class CustomerDiagnosticsHttpClient extends http.BaseClient {
         headers: response.headers,
         elapsed: stopwatch.elapsed,
       );
+      final authorization = request.headers['Authorization'] ??
+          request.headers['authorization'];
+      if (authorization != null && authorization.trim().isNotEmpty) {
+        unawaited(
+          diagnostics.flushRemote(
+            client: _inner,
+            requestUri: request.url,
+            authorization: authorization,
+          ),
+        );
+      }
       return response;
     } catch (error) {
       stopwatch.stop();
@@ -459,6 +592,17 @@ class CustomerDiagnosticsHttpClient extends http.BaseClient {
         error: error,
         elapsed: stopwatch.elapsed,
       );
+      final authorization = request.headers['Authorization'] ??
+          request.headers['authorization'];
+      if (authorization != null && authorization.trim().isNotEmpty) {
+        unawaited(
+          diagnostics.flushRemote(
+            client: _inner,
+            requestUri: request.url,
+            authorization: authorization,
+          ),
+        );
+      }
       rethrow;
     }
   }
