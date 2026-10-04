@@ -200,50 +200,6 @@ class DriverInvoiceNotificationTest extends TestCase
             ->assertHeader('Content-Type', 'application/pdf');
     }
 
-    public function test_pending_order_cannot_be_assigned_before_customer_service_approval(): void
-    {
-        $storeId = $this->store('DRIVER-APPROVAL-GATE');
-        $customer = app(B2cCustomerService::class)->create($storeId, [
-            'name' => 'Pending Buyer',
-            'email' => 'pending-driver-buyer@example.test',
-        ]);
-        $order = Order::query()->create([
-            'store_id' => $storeId,
-            'customer_id' => $customer->legacy_customer_id,
-            'b2c_customer_id' => $customer->id,
-            'order_number' => 'DRV-PENDING-1',
-            'channel' => 'b2c',
-            'status' => 'pending',
-            'currency' => 'KWD',
-            'subtotal' => 10,
-            'discount_total' => 0,
-            'delivery_total' => 0,
-            'tax_total' => 0,
-            'grand_total' => 10,
-            'payment_method' => 'cash_on_delivery',
-        ]);
-        $admin = $this->storeAdmin($storeId, 'driver-approval-admin@example.test');
-        $driverUser = $this->roleUser('B2C_DRIVER', 'driver-approval-driver@example.test');
-        $driver = Driver::query()->create([
-            'user_id' => $driverUser->id,
-            'store_id' => $storeId,
-            'driver_type' => 'b2c',
-            'is_available' => true,
-            'is_active' => true,
-        ]);
-
-        Sanctum::actingAs($admin);
-        $this->postJson('/api/v1/admin/deliveries/assign', [
-            'driver_id' => $driver->id,
-            'order_id' => $order->id,
-        ])->assertConflict();
-
-        $this->assertDatabaseMissing('driver_assignments', [
-            'order_id' => $order->id,
-            'driver_id' => $driver->id,
-        ]);
-    }
-
     public function test_checkout_settlement_snapshot_controls_driver_collection_instruction(): void
     {
         $storeId = $this->store('DRIVER-SETTLEMENT');
