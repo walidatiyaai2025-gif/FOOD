@@ -754,6 +754,106 @@ class OrderOperationsIsolationTest extends TestCase
         ]);
     }
 
+    public function test_status_tabs_use_authoritative_lookup_labels_counts_and_scoped_rows(): void
+    {
+        $store = $this->store('OPS-TABS-MINE');
+        $foreignStore = $this->store('OPS-TABS-FOREIGN');
+        $admin = $this->storeAdmin($store, 'ops-tabs@example.test');
+
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Tabs Buyer']);
+        $foreignCustomer = app(B2cCustomerService::class)->create($foreignStore, ['name' => 'Foreign Tabs Buyer']);
+
+        $pendingOrder = $this->order(
+            $store,
+            (int) $customer->legacy_customer_id,
+            (int) $customer->id,
+            'OPS-TABS-PENDING',
+        );
+        $deliveredOrder = $this->order(
+            $store,
+            (int) $customer->legacy_customer_id,
+            (int) $customer->id,
+            'OPS-TABS-DELIVERED',
+        );
+        $foreignDeliveredOrder = $this->order(
+            $foreignStore,
+            (int) $foreignCustomer->legacy_customer_id,
+            (int) $foreignCustomer->id,
+            'OPS-TABS-FOREIGN-DELIVERED',
+        );
+
+        DB::table('orders')->whereIn('id', [$deliveredOrder, $foreignDeliveredOrder])->update([
+            'status' => 'delivered',
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertViewHas('statusTotal', 2)
+            ->assertViewHas('statusTabs', function (array $tabs): bool {
+                $byCode = collect($tabs)->keyBy('code');
+
+                return (int) data_get($byCode->get('pending'), 'count') === 1
+                    && data_get($byCode->get('pending'), 'label') === 'Pending'
+                    && (int) data_get($byCode->get('delivered'), 'count') === 1
+                    && data_get($byCode->get('delivered'), 'label') === 'Delivered';
+            })
+            ->assertViewHas('rows', function (array $rows) use ($pendingOrder): bool {
+                $row = collect($rows)->firstWhere('id', $pendingOrder);
+                $codes = collect($row['available_statuses'] ?? [])->pluck('code')->all();
+
+                return $codes === ['confirmed', 'cancelled'];
+            })
+            ->assertSee('data-order-status-tabs', false)
+            ->assertSee('data-order-status-tab="pending"', false)
+            ->assertSee('data-order-status-tab="delivered"', false)
+            ->assertDontSee('OPS-TABS-FOREIGN-DELIVERED');
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&status=delivered')
+            ->assertOk()
+            ->assertSee('data-order-status-selected="delivered"', false)
+            ->assertSee('OPS-TABS-DELIVERED')
+            ->assertDontSee('OPS-TABS-PENDING')
+            ->assertDontSee('OPS-TABS-FOREIGN-DELIVERED');
+    }
+
+    public function test_dashboard_rejects_inactive_lookup_status_and_illegal_lifecycle_jump(): void
+    {
+        $store = $this->store('OPS-LIFECYCLE');
+        $admin = $this->storeAdmin($store, 'ops-lifecycle@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Lifecycle Buyer']);
+        $order = $this->order(
+            $store,
+            (int) $customer->legacy_customer_id,
+            (int) $customer->id,
+            'OPS-LIFECYCLE-1001',
+        );
+
+        DB::table('operational_lookups')
+            ->where('type', 'order_status')
+            ->where('code', 'confirmed')
+            ->update(['is_active' => false, 'updated_at' => now()]);
+
+        $this->actingAs($admin)
+            ->post("/admin/operations/orders/{$order}/status", ['status' => 'confirmed'])
+            ->assertSessionHasErrors(['status']);
+
+        $this->assertDatabaseHas('orders', ['id' => $order, 'status' => 'pending']);
+
+        DB::table('operational_lookups')
+            ->where('type', 'order_status')
+            ->where('code', 'confirmed')
+            ->update(['is_active' => true, 'updated_at' => now()]);
+
+        $this->actingAs($admin)
+            ->post("/admin/operations/orders/{$order}/status", ['status' => 'ready'])
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('orders', ['id' => $order, 'status' => 'pending']);
+    }
+
     private function store(string $code): int
     {
         return (int) DB::table('stores')->insertGetId([
