@@ -14,6 +14,7 @@ use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class B2bFinanceController extends Controller
 {
@@ -219,7 +220,7 @@ class B2bFinanceController extends Controller
         if ($amounts['outstanding_amount'] <= 0.0005) {
             return 'paid';
         }
-        if ($invoice->due_at !== null && $invoice->due_at->isPast()) {
+        if ($invoice->due_at !== null && Carbon::parse((string) $invoice->due_at)->isPast()) {
             return 'overdue';
         }
         if ($amounts['paid_amount'] > 0.0005 || $amounts['credit_adjustments'] > 0.0005) {
