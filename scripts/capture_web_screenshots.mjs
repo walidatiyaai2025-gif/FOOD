@@ -109,15 +109,23 @@ async function captureLocale(browser, locale) {
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'products', '/admin/b2c/products');
 
-  await page.goto(
+  const customer360Response = await page.goto(
     `${baseUrl}/admin/customer-360?q=evidence.address%40foodex.test`,
     { waitUntil: 'networkidle' },
   );
+  if (!customer360Response || !customer360Response.ok()) {
+    throw new Error(
+      `Customer 360 evidence page failed: HTTP ${customer360Response?.status() ?? 'no-response'}`,
+    );
+  }
   const customer360Link = page.locator(
-    'a.foodex-action-primary[href*="/admin/customer-360/"]',
-  ).first();
+    'a.foodex-action-primary[href^="/admin/customer-360/"], a.foodex-action-primary[href*="/admin/customer-360/"]',
+  ).filter({ hasText: /Open 360|فتح 360/ }).first();
   if (await customer360Link.count() !== 1) {
-    throw new Error('Deterministic Customer 360 evidence fixture was not found.');
+    const bodyText = (await page.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 1200);
+    throw new Error(
+      `Deterministic Customer 360 evidence fixture was not found. Page: ${bodyText}`,
+    );
   }
   await Promise.all([
     page.waitForLoadState('networkidle'),
