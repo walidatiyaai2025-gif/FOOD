@@ -130,6 +130,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/profile/addresses', [CustomerProfileController::class, 'addresses']);
             Route::get('/orders', [OrderController::class, 'index']);
             Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
+            Route::get('/account-summary', [B2bFinanceController::class, 'summary']);
             Route::get('/invoices', [B2bFinanceController::class, 'invoices']);
             Route::get('/invoices/{invoice}', [B2bFinanceController::class, 'invoice'])->whereNumber('invoice');
             Route::get('/account-statement', [B2bFinanceController::class, 'statement']);
