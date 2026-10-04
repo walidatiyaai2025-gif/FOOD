@@ -221,12 +221,15 @@ class B2bFinanceController extends Controller
                 ->orderBy('id')
                 ->get()
                 ->map(function (InvoiceItem $item) use ($invoice): array {
-                    $snapshot = is_array($item->line_snapshot) ? $item->line_snapshot : [];
+                    $snapshot = json_decode((string) ($item->line_snapshot ?? ''), true);
+                    $snapshotSku = is_array($snapshot) && isset($snapshot['sku'])
+                        ? (string) $snapshot['sku']
+                        : null;
 
                     return [
                         'id' => (int) $item->getKey(),
                         'product_id' => $item->product_id === null ? null : (int) $item->product_id,
-                        'sku' => $item->sku_snapshot ?? ($snapshot['sku'] ?? null),
+                        'sku' => $item->sku_snapshot ?? $snapshotSku,
                         'description' => (string) $item->description,
                         'quantity' => (float) $item->quantity,
                         'unit_price' => (float) $item->unit_price,
