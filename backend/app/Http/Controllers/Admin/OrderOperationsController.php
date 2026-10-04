@@ -417,12 +417,8 @@ final class OrderOperationsController extends Controller
      * @param list<string> $activeStatusCodes
      * @return array<string,mixed>
      */
-    private function detail(
-        User $actor,
-        Order $order,
-        array $statusLabels,
-        array $activeStatusCodes,
-    ): array {
+    private function detail(User $actor, Order $order, array $statusLabels, array $activeStatusCodes): array
+    {
         $row = $this->row($order, $statusLabels, $activeStatusCodes);
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
