@@ -1,6 +1,6 @@
 @php
     $assistantUser = $user ?? auth()->user();
-    $assistantRuntime = app(\\App\\Services\\AssistantRuntimeSettings::class);
+    $assistantRuntime = app(\App\Services\AssistantRuntimeSettings::class);
     $assistantEnabled = $assistantRuntime->enabled() && $assistantRuntime->readOnly();
     $assistantAuthorized = false;
 

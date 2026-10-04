@@ -3,30 +3,42 @@
 namespace App\Services;
 
 use App\Models\Setting;
+use Throwable;
 
 final class AssistantRuntimeSettings
 {
     public const ENABLED_KEY = 'assistant_enabled';
 
-    /** @return array{enabled:bool,read_only:bool,source:string} */
+    /**
+     * @return array{
+     *     enabled:bool,
+     *     configured_enabled:bool,
+     *     read_only:bool,
+     *     source:string,
+     *     storage_available:bool
+     * }
+     */
     public function snapshot(): array
     {
+        $resolved = $this->resolveEnabled();
+        $readOnly = $this->readOnly();
+
         return [
-            'enabled' => $this->enabled(),
-            'read_only' => $this->readOnly(),
-            'source' => $this->storedSetting() instanceof Setting ? 'dashboard' : 'environment',
+            'enabled' => $resolved['enabled'] && $readOnly,
+            'configured_enabled' => $resolved['enabled'],
+            'read_only' => $readOnly,
+            'source' => $resolved['source'],
+            'storage_available' => $resolved['storage_available'],
         ];
     }
 
+    /**
+     * Global configured switch. The API separately enforces readOnly() so an
+     * unsafe server configuration returns 503 instead of silently enabling V1.
+     */
     public function enabled(): bool
     {
-        $setting = $this->storedSetting();
-
-        if (! $setting instanceof Setting) {
-            return (bool) config('assistant.enabled', false);
-        }
-
-        return $this->decodeBoolean($setting->getAttribute('value'));
+        return $this->resolveEnabled()['enabled'];
     }
 
     public function readOnly(): bool
@@ -55,6 +67,36 @@ final class AssistantRuntimeSettings
         ])->save();
 
         return $setting;
+    }
+
+    /** @return array{enabled:bool,source:string,storage_available:bool} */
+    private function resolveEnabled(): array
+    {
+        try {
+            $setting = $this->storedSetting();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return [
+                'enabled' => false,
+                'source' => 'fail_closed',
+                'storage_available' => false,
+            ];
+        }
+
+        if (! $setting instanceof Setting) {
+            return [
+                'enabled' => (bool) config('assistant.enabled', false),
+                'source' => 'environment',
+                'storage_available' => true,
+            ];
+        }
+
+        return [
+            'enabled' => $this->decodeBoolean($setting->getAttribute('value')),
+            'source' => 'dashboard',
+            'storage_available' => true,
+        ];
     }
 
     private function storedSetting(): ?Setting

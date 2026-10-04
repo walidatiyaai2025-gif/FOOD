@@ -47,7 +47,15 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div>{{ $ar?'الحالة الحالية':'Current status' }}</div>
 <strong>{{ $assistantSettings['enabled'] ? ($ar?'مفعّل':'Enabled') : ($ar?'معطّل':'Disabled') }}</strong>
 </div>
-<span class="foodex-badge">{{ $assistantSettings['source']==='dashboard' ? ($ar?'إعداد محفوظ':'Saved setting') : ($ar?'القيمة الآمنة الافتراضية':'Safe environment default') }}</span>
+<span class="foodex-badge">
+@if($assistantSettings['source']==='dashboard')
+{{ $ar?'إعداد محفوظ':'Saved setting' }}
+@elseif($assistantSettings['source']==='fail_closed')
+{{ $ar?'تعطيل آمن':'Fail-closed' }}
+@else
+{{ $ar?'القيمة الآمنة الافتراضية':'Safe environment default' }}
+@endif
+</span>
 </div>
 
 <div class="assistant-note">
@@ -62,7 +70,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @method('PUT')
 <input type="hidden" name="enabled" value="0">
 <label class="assistant-switch">
-<input type="checkbox" name="enabled" value="1" @checked($assistantSettings['enabled'])>
+<input type="checkbox" name="enabled" value="1" @checked($assistantSettings['configured_enabled']) @disabled(!$assistantSettings['read_only'])>
 <span>{{ $ar?'تفعيل مساعد FOODEX على مستوى المنصة':'Enable FOODEX Assistant globally' }}</span>
 </label>
 <div class="assistant-actions">

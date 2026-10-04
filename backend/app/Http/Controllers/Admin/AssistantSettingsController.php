@@ -10,6 +10,7 @@ use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 final class AssistantSettingsController extends Controller
 {
@@ -45,8 +46,20 @@ final class AssistantSettingsController extends Controller
             'enabled' => ['required', 'boolean'],
         ]);
 
+        $requestedEnabled = (bool) $validated['enabled'];
+
+        if ($requestedEnabled && ! $this->settings->readOnly()) {
+            throw ValidationException::withMessages([
+                'enabled' => [
+                    app()->getLocale() === 'ar'
+                        ? 'لا يمكن تفعيل المساعد لأن سياج القراءة فقط غير مفعل على الخادم.'
+                        : 'Assistant cannot be enabled while the server read-only safety fence is disabled.',
+                ],
+            ]);
+        }
+
         $before = $this->settings->snapshot();
-        $setting = $this->settings->persist((bool) $validated['enabled']);
+        $setting = $this->settings->persist($requestedEnabled);
         $after = $this->settings->snapshot();
 
         $this->audit->record(

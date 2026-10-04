@@ -84,6 +84,23 @@ class AssistantSettingsTest extends TestCase
         $this->assertFalse(app(AssistantRuntimeSettings::class)->enabled());
     }
 
+    public function test_dashboard_cannot_enable_assistant_when_read_only_fence_is_off(): void
+    {
+        config(['assistant.enabled' => false, 'assistant.read_only' => false]);
+        $user = $this->settingsManager();
+
+        $this->actingAs($user)
+            ->from('/admin/settings/assistant')
+            ->put('/admin/settings/assistant', ['enabled' => 1])
+            ->assertRedirect('/admin/settings/assistant')
+            ->assertSessionHasErrors('enabled');
+
+        $this->assertDatabaseMissing('settings', [
+            'store_id' => null,
+            'key' => AssistantRuntimeSettings::ENABLED_KEY,
+        ]);
+    }
+
     public function test_unauthorized_user_cannot_view_or_change_assistant_setting(): void
     {
         $user = User::query()->create([
