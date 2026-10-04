@@ -666,10 +666,9 @@ void main() {
       findsOneWidget,
     );
     for (final destination in [
-      'home',
       'products',
-      'cart',
       'orders',
+      'invoices',
       'account',
     ]) {
       expect(
@@ -677,6 +676,8 @@ void main() {
         findsOneWidget,
       );
     }
+    expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
+    expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
     expect(
       find.byKey(const ValueKey('marketplace-notifications')),
       findsOneWidget,
