@@ -61,8 +61,10 @@ class CustomerNotificationCampaignPopupService {
     int? storeId,
     String? accessToken,
   }) async {
-    final installId = await _installId();
     final locale = Localizations.localeOf(context).languageCode;
+    final installId = await _installId();
+    if (!context.mounted) return;
+
     final campaigns = await _fetch(
       channel: channel,
       storeId: storeId,
