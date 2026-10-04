@@ -87,7 +87,13 @@ class CustomerCommerceContextSwitcher {
       );
     }
 
-    if ((principalId != null || wholesaleRows.isNotEmpty) && principal == null) {
+    final expectsWholesale = entitlements['direct_b2b'] == true ||
+        entitlements['support_access'] == true ||
+        _rows(entitlements['retail_context_ids']).isNotEmpty ||
+        (entitlements['retail_context_ids'] is List &&
+            (entitlements['retail_context_ids'] as List).isNotEmpty);
+    if ((expectsWholesale || principalId != null || wholesaleRows.isNotEmpty) &&
+        principal == null) {
       throw const CustomerCommerceContextSwitchException(
         'principal_wholesale_missing',
       );
@@ -185,7 +191,8 @@ class CustomerCommerceContextSwitcher {
     Map<String, dynamic> row, {
     required String fallback,
   }) {
-    final value = row['name']?.toString().trim();
+    final raw = row['name'];
+    final value = raw == null ? null : raw.toString().trim();
     return value == null || value.isEmpty ? fallback : value;
   }
 }
