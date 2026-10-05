@@ -50,7 +50,9 @@ class AdminWebLoginTest extends TestCase
             ->assertOk()
             ->assertSee('dir="ltr"', false)
             ->assertSee('Retail Management')
-            ->assertSee('There is no public registration');
+            ->assertSee('There is no public registration')
+            ->assertSee("form.addEventListener('submit'", false)
+            ->assertSee('HTMLFormElement.prototype.submit.call(form)', false);
     }
 
     public function test_b2b_admin_login_uses_web_session_and_enters_only_wholesale_channel(): void
