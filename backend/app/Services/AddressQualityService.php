@@ -13,20 +13,26 @@ final class AddressQualityService
     /** @param array<string,mixed> $attributes */
     public function queue(string $subjectType, int $subjectId, array $attributes = []): AddressQualityReview
     {
-        return AddressQualityReview::query()->firstOrCreate(
-            [
-                'subject_type' => $subjectType,
-                'subject_id' => $subjectId,
-                'status' => 'unmapped',
-            ],
-            [
-                'public_id' => (string) Str::uuid(),
-                'quality_class' => $attributes['quality_class'] ?? 'unknown',
-                'confidence' => $attributes['confidence'] ?? null,
-                'resolution_source' => $attributes['resolution_source'] ?? 'unresolved',
-                'reason' => $attributes['reason'] ?? null,
-            ],
-        );
+        $existing = AddressQualityReview::query()
+            ->where('subject_type', $subjectType)
+            ->where('subject_id', $subjectId)
+            ->latest('id')
+            ->first();
+
+        if ($existing instanceof AddressQualityReview) {
+            return $existing;
+        }
+
+        return AddressQualityReview::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'subject_type' => $subjectType,
+            'subject_id' => $subjectId,
+            'status' => 'unmapped',
+            'quality_class' => $attributes['quality_class'] ?? 'unknown',
+            'confidence' => $attributes['confidence'] ?? null,
+            'resolution_source' => $attributes['resolution_source'] ?? 'unresolved',
+            'reason' => $attributes['reason'] ?? null,
+        ]);
     }
 
     public function confirm(User $actor, AddressQualityReview $review, string $territoryKey, string $reason): AddressQualityReview
