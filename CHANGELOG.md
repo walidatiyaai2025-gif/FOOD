@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.54 - 2026-10-05
+
+- Publish the final accepted C13 Customer journey after umbrella #858 and integrated gate #873 / PR #917, including the canonical 13-screen Arabic/English visual and operational convergence.
+- Complete discoverable principal Wholesale recovery from Customer Dashboard/Shopping so an authenticated Wholesale customer can return from Retail context without logout, while preserving authoritative store/account isolation.
+- Preserve authoritative Customer finance, purchasing power, checkout approval, invoice/order/driver collection contracts and centralized sanitized System Inspector reporting across Dashboard, Customer and Driver.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.54 / mobile build 1.0.54+54 without changing production minimum-version, force-update, Driver location-enforcement or Assistant activation settings.
+- 1.0.53 was not promoted to authoritative main; 1.0.54 is the immutable final C13 distribution.
+
 ## 1.0.52 - 2026-10-04
 
 - Publish the completed FOODEX operational-completion wave #828 after the final integrated #841 gate: gated Add Store and New Order popup wizards, central stable-code operational lookups, and the admin login default to the B2B dashboard.

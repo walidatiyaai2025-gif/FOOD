@@ -175,7 +175,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
   late final CustomerSessionHttpClient _sessionHttpClient;
 
-  static const _appVersion = '1.0.52';
+  static const _appVersion = '1.0.54';
 
   @override
   void initState() {

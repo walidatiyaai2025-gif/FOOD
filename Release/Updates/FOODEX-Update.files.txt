@@ -47,6 +47,7 @@ backend/app/Http/Controllers/Admin/AppPreviewController.php
 backend/app/Http/Controllers/Admin/AppPreviewInvalidationController.php
 backend/app/Http/Controllers/Admin/AppVersionController.php
 backend/app/Http/Controllers/Admin/AssistantController.php
+backend/app/Http/Controllers/Admin/AssistantSettingsController.php
 backend/app/Http/Controllers/Admin/B2bWorkspaceController.php
 backend/app/Http/Controllers/Admin/B2cWorkspaceController.php
 backend/app/Http/Controllers/Admin/BusinessManagementController.php
@@ -89,6 +90,7 @@ backend/app/Http/Controllers/Api/V1/GuestCatalogController.php
 backend/app/Http/Controllers/Api/V1/GuestStoreController.php
 backend/app/Http/Controllers/Api/V1/LiveAdController.php
 backend/app/Http/Controllers/Api/V1/LookupOptionsController.php
+backend/app/Http/Controllers/Api/V1/MobileSystemInspectorEventController.php
 backend/app/Http/Controllers/Api/V1/NotificationCampaignPopupController.php
 backend/app/Http/Controllers/Api/V1/OrderController.php
 backend/app/Http/Controllers/Api/V1/PlatformMarketplaceController.php
@@ -131,6 +133,8 @@ backend/app/Services/AppPreviewInvalidationService.php
 backend/app/Services/AppPreviewInvalidationStream.php
 backend/app/Services/AppPreviewSessionService.php
 backend/app/Services/AppPreviewTargetService.php
+backend/app/Services/AssistantRuntimeSettings.php
+backend/app/Services/B2bAccountLedgerService.php
 backend/app/Services/B2bDashboardService.php
 backend/app/Services/B2bFinanceInvoiceService.php
 backend/app/Services/B2cCustomerService.php
@@ -452,6 +456,7 @@ backend/database/migrations/2026_10_02_123500_add_schedule_to_storefront_banners
 backend/database/migrations/2026_10_03_083000_reconcile_retail_merchant_canonical_identity.php
 backend/database/migrations/2026_10_04_052700_add_operational_system_lookups.php
 backend/database/migrations/2026_10_04_053000_add_notification_campaign_launch_popups.php
+backend/database/migrations/2026_10_04_133500_create_customer_account_ledger_entries.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/ProductDemoSeeder.php
@@ -587,6 +592,7 @@ backend/resources/views/admin/_system-lookup-row.blade.php
 backend/resources/views/admin/_wholesale-storefront-builder.blade.php
 backend/resources/views/admin/app-preview.blade.php
 backend/resources/views/admin/app-versions.blade.php
+backend/resources/views/admin/assistant-settings.blade.php
 backend/resources/views/admin/b2b-workspace.blade.php
 backend/resources/views/admin/b2c-workspace.blade.php
 backend/resources/views/admin/business-management.blade.php
