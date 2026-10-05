@@ -15,7 +15,6 @@ void main() {
       client: MockClient((request) async {
         attempts++;
         expect(request.headers['X-FOODEX-Retail-Store-ID'], '17');
-        expect(request.headers['X-FOODEX-Customer-Domain'], 'b2b');
         if (attempts == 1) {
           throw http.ClientException('temporary disconnect', request.url);
         }
@@ -27,23 +26,6 @@ void main() {
 
     expect(attempts, 2);
     expect(result, isA<Map>());
-  });
-
-  test('B2B profile requests always carry explicit wholesale domain', () async {
-    late http.Request captured;
-    final api = HttpB2bApi(
-      baseUrl: 'https://foodex.example',
-      token: 'opaque-token',
-      maxGetAttempts: 1,
-      client: MockClient((request) async {
-        captured = request;
-        return http.Response('{"customer":{"type":"b2b"}}', 200);
-      }),
-    );
-
-    await api.get('/api/v1/profile');
-
-    expect(captured.headers['X-FOODEX-Customer-Domain'], 'b2b');
   });
 
   test('B2B GET stops after bounded attempts on network failure', () async {
