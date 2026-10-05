@@ -585,6 +585,7 @@ html[dir=rtl] .foodex-action-popover a,html[dir=rtl] .foodex-action-popover butt
 
         original.forEach((node) => {
             if (node.tagName === 'FORM' && hasEditableControls(node)) {
+                node.remove();
                 const edit = document.createElement('button');
                 edit.type = 'button';
                 edit.className = 'foodex-action-edit-trigger';
