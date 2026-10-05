@@ -385,8 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
             headers:{
                 'Content-Type':'application/json',
                 'Accept':'application/json',
-                'X-CSRF-TOKEN':csrfToken,
-                ...(xsrfToken ? {'X-XSRF-TOKEN':xsrfToken} : {}),
+                ...(xsrfToken ? {'X-XSRF-TOKEN':xsrfToken} : {'X-CSRF-TOKEN':csrfToken}),
                 'X-FOODEX-INSPECTOR':'1',
             },
             body:JSON.stringify(payload),
@@ -444,8 +443,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     } catch (_) {}
                     if (sameOriginRequest && !backgroundRequest) {
+                        const category = response.status === 503 ? 'maintenance'
+                            : response.status === 422 ? 'validation_rejection'
+                            : (response.status === 401 || response.status === 403 || response.status === 419) ? 'authorization_rejection'
+                            : response.status >= 500 ? 'server_failure'
+                            : 'http_rejection';
                         reportInspector({
                             source:'fetch', severity:response.status >= 500 ? 'error' : 'warning',
+                            category,
                             message:responseMessage || ('HTTP '+response.status+' '+response.statusText),
                             status:response.status, method,
                             url:requestUrl || location.href, response_url:response.url,
@@ -459,9 +464,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return response;
             } catch (error) {
-                if (sameOriginRequest && !backgroundRequest) {
+                const intentionalAbort = error?.name === 'AbortError' || options?.signal?.aborted === true || request?.signal?.aborted === true;
+                if (sameOriginRequest && !backgroundRequest && !intentionalAbort) {
                     reportInspector({
                         source:'fetch', severity:'error',
+                        category:error?.name === 'TimeoutError' ? 'timeout' : 'network_failure',
                         message:error?.message || 'Fetch request failed',
                         method:options.method || request?.method || 'GET',
                         url:requestUrl || location.href, stack:error?.stack || null,
