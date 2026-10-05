@@ -51,8 +51,8 @@ final class FieldOperationConfigurationService
      * Register or update definition metadata. Runtime values are never changed
      * here; they remain immutable, scoped revisions.
      *
-     * @param array<string,mixed>                   $validationSchema
-     * @param array<int,array<string,mixed>|string> $dependencies
+     * @param  array<string,mixed>  $validationSchema
+     * @param  array<int,array<string,mixed>|string>  $dependencies
      */
     public function upsertDefinition(
         string $key,
@@ -256,7 +256,7 @@ final class FieldOperationConfigurationService
     }
 
     /**
-     * @param array<string,string|int> $scope
+     * @param  array<string,string|int>  $scope
      * @return array<string,mixed>
      */
     public function resolve(string $key, array $scope = [], Carbon|string|null $at = null): array
@@ -332,7 +332,7 @@ final class FieldOperationConfigurationService
         );
     }
 
-    /** @param array<string,mixed> $schema */
+    /** @param  array<string,mixed>  $schema */
     private function validateValue(string $type, mixed $value, array $schema): void
     {
         $validType = match ($type) {
