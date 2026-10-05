@@ -798,6 +798,76 @@ class _OrderCard extends StatelessWidget {
   final VoidCallback? onReorder;
   final bool reordering;
 
+  void _showQuickActions(BuildContext context) {
+    final approval = _approvalText(context, order);
+    final financial = _financialText(context, order);
+    final appliedCredit = order.appliedCustomerCreditAmount;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber,
+                style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${context.tr('customer.orders.approval.label')}: $approval',
+                key: ValueKey('customer-order-approval-${order.id}'),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${context.tr('customer.orders.financial.label')}: $financial',
+                key: ValueKey('customer-order-financial-${order.id}'),
+              ),
+              if (appliedCredit != null && appliedCredit > 0) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '${context.tr('customer.orders.financial.balance_applied')}: '
+                  '${appliedCredit.toStringAsFixed(3)} ${order.currency}',
+                  key: ValueKey('customer-order-balance-applied-${order.id}'),
+                ),
+              ],
+              if (onReorder != null) ...[
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  key: ValueKey('customer-order-reorder-${order.id}'),
+                  onPressed: reordering
+                      ? null
+                      : () {
+                          Navigator.of(sheetContext).pop();
+                          onReorder?.call();
+                        },
+                  icon: reordering
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.replay_rounded),
+                  label: Text(context.tr('customer.orders.reorder')),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final channel = order.channel == 'b2b'
@@ -813,6 +883,12 @@ class _OrderCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onReorder == null &&
+                order.approvalStatus == null &&
+                order.invoiceOutstandingAmount == null &&
+                order.appliedCustomerCreditAmount == null
+            ? null
+            : () => _showQuickActions(context),
         child: Container(
           constraints: const BoxConstraints(minHeight: 118),
           padding: const EdgeInsetsDirectional.fromSTEB(14, 14, 14, 14),
@@ -1523,6 +1599,75 @@ bool _canReorder(CustomerOrderSummary order) =>
     order.reorderItems.isNotEmpty &&
     const <String>{'delivered', 'failed', 'cancelled'}
         .contains(order.status.toLowerCase());
+
+String _approvalText(
+  BuildContext context,
+  CustomerOrderSummary order,
+) {
+  final explicit = order.approvalStatus?.trim().toLowerCase();
+  switch (explicit) {
+    case 'pending':
+    case 'pending_approval':
+    case 'awaiting_approval':
+      return context.tr('customer.orders.approval.pending');
+    case 'approved':
+    case 'confirmed':
+      return context.tr('customer.orders.approval.approved');
+    case 'rejected':
+    case 'declined':
+      return context.tr('customer.orders.approval.rejected');
+    case 'cancelled':
+    case 'canceled':
+      return context.tr('customer.orders.approval.cancelled');
+  }
+
+  switch (order.status.toLowerCase()) {
+    case 'pending':
+      return context.tr('customer.orders.approval.pending');
+    case 'confirmed':
+    case 'accepted':
+    case 'preparing':
+    case 'ready':
+    case 'assigned':
+    case 'picked_up':
+    case 'out_for_delivery':
+    case 'delivered':
+    case 'failed':
+      return context.tr('customer.orders.approval.approved');
+    case 'cancelled':
+      return context.tr('customer.orders.approval.cancelled');
+    default:
+      return _statusText(context, order.status);
+  }
+}
+
+String _financialText(
+  BuildContext context,
+  CustomerOrderSummary order,
+) {
+  final outstanding = order.invoiceOutstandingAmount;
+  if (order.fullySettled == true ||
+      (outstanding != null && outstanding <= 0.0000001)) {
+    return context.tr('customer.orders.financial.settled');
+  }
+  if (outstanding == null) {
+    return context.tr('customer.orders.financial.unavailable');
+  }
+
+  final amount = '${outstanding.toStringAsFixed(3)} ${order.currency}';
+  switch (order.remainderMethod?.trim().toLowerCase()) {
+    case 'account_debt':
+    case 'account':
+    case 'debt':
+    case 'credit_account':
+      return '${context.tr('customer.orders.financial.debt')} $amount';
+    case 'cash_on_delivery':
+    case 'cod':
+      return '${context.tr('customer.orders.financial.cod')} $amount';
+    default:
+      return '${context.tr('customer.orders.financial.amount_due')} $amount';
+  }
+}
 
 String _statusText(BuildContext context, String status) {
   final normalized = status.toLowerCase();
