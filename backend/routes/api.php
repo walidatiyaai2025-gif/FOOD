@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\DriverLocationController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
+use App\Http\Controllers\Api\V1\GeographyController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\LiveAdController;
@@ -187,6 +188,12 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/admin/security/users/{user}/roles', [SecurityController::class, 'updateUserRoles']);
         Route::patch('/admin/security/users/{user}/status', [SecurityController::class, 'updateUserStatus']);
         Route::get('/admin/reports/dashboard', [AdminReportController::class, 'dashboard']);
+        Route::get('/admin/field-operations/geography/nodes', [GeographyController::class, 'nodes']);
+        Route::get('/admin/field-operations/territories', [GeographyController::class, 'territories']);
+        Route::post('/admin/field-operations/territories', [GeographyController::class, 'storeTerritory']);
+        Route::post('/admin/field-operations/territories/overrides', [GeographyController::class, 'storeOverride']);
+        Route::post('/admin/field-operations/territories/admin-mappings', [GeographyController::class, 'storeAdminMapping']);
+        Route::post('/admin/field-operations/addresses/{address}/resolve-territory', [GeographyController::class, 'resolveAddress'])->whereNumber('address');
         Route::get('/admin/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed']);
         Route::get('/admin/reports/{report}', [ManagementReportController::class, 'show'])
             ->whereIn('report', ['orders', 'products', 'customers', 'operations']);
