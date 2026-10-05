@@ -53,12 +53,14 @@ class VanRegistryController extends Controller
         Gate::authorize('drivers.b2b.manage');
 
         $data = $request->validate([
-            'transfer_target_van_id' => ['nullable', 'integer', 'exists:vans,id', 'different:van'],
+            'transfer_target_van_id' => ['nullable', 'integer', 'exists:vans,id'],
             'reason' => ['nullable', 'string'],
         ]);
         $target = isset($data['transfer_target_van_id'])
             ? Van::query()->findOrFail($data['transfer_target_van_id'])
             : null;
+
+        abort_if($target?->is($van), 422, 'Transfer target must be a different Van.');
 
         return response()->json(['data' => $service->suspend($van, $target, $data['reason'] ?? null)]);
     }
