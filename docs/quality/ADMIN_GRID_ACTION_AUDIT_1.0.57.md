@@ -23,8 +23,12 @@ The repository audit found standard action columns in:
 - `admin/catalog-management.blade.php`
 - `admin/lookup-management.blade.php`
 - `admin/order-operations.blade.php`
+- `admin/_driver-assignment-management.blade.php` (`Management / الإدارة` action column)
+- `admin/system-lookups.blade.php` (`Edit / تعديل` action column)
+- `admin/customer-360-index.blade.php` (unlabelled trailing action column)
+- `admin/customer-360-show.blade.php` (unlabelled trailing order/invoice action columns)
 
-The shared runtime also covers dynamically inserted rows through a `MutationObserver`.
+The shared runtime also covers dynamically inserted rows through a `MutationObserver`. It recognizes standard Actions labels, Management/Edit variants, and an unlabelled trailing column when that column actually contains forms, links, or buttons.
 
 ## 1.0.57 related runtime fixes included on the same branch
 
