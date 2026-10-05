@@ -18,7 +18,7 @@ class FieldOperationConfiguration extends Model
     {
         return [
             'validation_schema' => 'array',
-            'default_value' => 'json',
+            'default_value' => 'array',
             'dependencies' => 'array',
             'is_sensitive' => 'boolean',
         ];
