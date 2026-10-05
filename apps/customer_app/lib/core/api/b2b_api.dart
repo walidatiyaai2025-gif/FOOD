@@ -95,11 +95,6 @@ class HttpB2bApi implements B2bApi, B2bDocumentApi, B2bDownloadApi {
               headers: {
                 'Accept': accept,
                 'Authorization': 'Bearer $token',
-                // B2B surfaces can legitimately share one authenticated identity
-                // with Retail. Make the commerce domain explicit so generic
-                // endpoints such as /api/v1/profile never fall into the
-                // ambiguous-domain 409 path.
-                'X-FOODEX-Customer-Domain': 'b2b',
                 if (retailStoreContextId != null)
                   'X-FOODEX-Retail-Store-ID': retailStoreContextId.toString(),
               },
