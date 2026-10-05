@@ -37,7 +37,7 @@ final class FleetLocationService
             }
 
             $values = [
-                'van_id' => $attributes['van_id'] ?? null,
+                'vehicle_id' => $attributes['vehicle_id'] ?? ($attributes['van_id'] ?? null),
                 'assignment_id' => $attributes['assignment_id'] ?? null,
                 'route_key' => $attributes['route_key'] ?? null,
                 'store_id' => $attributes['store_id'] ?? null,
