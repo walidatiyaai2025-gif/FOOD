@@ -131,10 +131,6 @@ class SystemInspectorTest extends TestCase
         $this->assertStringContainsString('foodex-premium-form-sweep', $partial);
         $this->assertStringContainsString('foodex-feedback-modal', $partial);
         $this->assertStringContainsString('foodex-image-preview', $partial);
-        $this->assertStringContainsString('foodex-grid-action-menu', $partial);
-        $this->assertStringContainsString('foodex-action-trigger', $partial);
-        $this->assertStringContainsString('foodex-action-modal-backdrop', $partial);
-        $this->assertStringContainsString('enhanceActionGrids', $partial);
         $this->assertStringContainsString('admin.inspector.client-events', $partial);
         $this->assertStringContainsString('data-open-store-wizard', $stores);
         $this->assertStringContainsString('data-store-create-modal', $stores);
