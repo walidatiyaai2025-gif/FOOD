@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.55 - 2026-10-05
+
+- Promote the owner-approved Customer visual and functional convergence from #920 / PR #921: FOODEX reference login, single-screen Business Dashboard, compact Top Products, discoverable Wholesale Business Dashboard shortcut, redesigned More surface, and refreshed Orders/footer composition.
+- Keep all business values, permissions, account/store entitlement, finance metrics, orders and navigation authoritative to the existing backend/API/session state with no hardcoded production business data.
+- Preserve Arabic/English RTL/LTR behavior, Remember Me and biometric sign-in, exact Wholesale store context, Retail/Wholesale isolation, and the validated five-destination Customer navigation contract.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.55 / mobile build 1.0.55+55 without changing production minimum-version, force-update, Driver location-enforcement or Assistant activation settings.
+
+
 ## 1.0.54 - 2026-10-05
 
 - Publish the final accepted C13 Customer journey after umbrella #858 and integrated gate #873 / PR #917, including the canonical 13-screen Arabic/English visual and operational convergence.
