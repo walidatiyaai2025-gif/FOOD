@@ -98,7 +98,7 @@ class DashboardPanel extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
     ),
     child: Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -122,7 +122,7 @@ class DashboardPanel extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Expanded(child: child),
         ],
       ),
@@ -214,7 +214,7 @@ class DashboardMetricCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: EdgeInsets.all(dense ? 4 : 8),
+            padding: EdgeInsets.all(dense ? 2 : 8),
             child: inline
                 ? Row(
                     children: [

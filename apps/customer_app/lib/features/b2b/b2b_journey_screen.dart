@@ -836,7 +836,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     child: InkWell(
       onTap: () => Navigator.of(context).pushNamed(_scopedRoute(CustomerRoutePaths.b2bAccountStatement)),
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -849,11 +849,11 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
             ]),
             Text(directionLabel, maxLines: 2, style: const TextStyle(color: CustomerUiColors.mintStrong, fontSize: 11, height: 1.1)),
             Text(_money(balance?.abs(), currency), textDirection: TextDirection.ltr, maxLines: 2,
-              style: const TextStyle(color: CustomerUiColors.white, fontSize: 17, height: 1.2, fontWeight: FontWeight.w800)),
+              style: const TextStyle(color: CustomerUiColors.white, fontSize: 15, height: 1.2, fontWeight: FontWeight.w800)),
             Text(context.tr('b2b.dashboard.available_credit'), maxLines: 2,
               style: const TextStyle(color: CustomerUiColors.mintStrong, fontSize: 12, height: 1.15)),
             Text(_money(credit, currency), textDirection: TextDirection.ltr, maxLines: 2,
-              style: const TextStyle(color: CustomerUiColors.lime, fontSize: 16, height: 1.2, fontWeight: FontWeight.w800)),
+              style: const TextStyle(color: CustomerUiColors.lime, fontSize: 15, height: 1.2, fontWeight: FontWeight.w800)),
           ],
         ),
       ),

@@ -7,6 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
+import 'package:foodex_customer_app/core/api/customer_action_api.dart';
+import 'package:foodex_customer_app/core/localization/app_translations.dart';
+import 'package:foodex_customer_app/core/routing/customer_routes.dart';
+import 'package:foodex_customer_app/features/b2b/b2b_journey_screen.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 
@@ -54,6 +58,32 @@ class DashboardApi implements B2bApi {
   }
 }
 
+class DashboardActions implements CustomerActionApi {
+  int logoutCalls = 0;
+  @override
+  Future<void> logout() async {
+    logoutCalls++;
+  }
+
+  @override
+  Future<CustomerLoginResult> login({required String username}) async =>
+      const CustomerLoginResult(token: 'test-token');
+  @override
+  Future<Object?> addCartItem({
+    required int storeId,
+    required int productId,
+    required double quantity,
+  }) async => null;
+  @override
+  Future<Object?> checkout({
+    required int addressId,
+    int? storeId,
+    String? paymentMethod,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async => null;
+}
+
 Future<void> loadFonts() async {
   final arabic = [
     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
@@ -76,12 +106,14 @@ Future<void> loadFonts() async {
 Widget testApp(
   DashboardApi api, {
   Locale locale = const Locale('ar'),
+  DashboardActions? actions,
   String scope = '?store_id=7',
 }) => FoodexCustomerApp(
   session: const CustomerSession.authenticated(CustomerChannel.b2b),
   locale: locale,
   initialRoute: '/b2b/dashboard$scope',
   b2bApi: api,
+  actionApi: actions,
   theme: FoodexTheme.light(fontFamily: 'DashboardEvidence'),
 );
 
@@ -171,6 +203,92 @@ void main() {
   }
   if (!before) {
     testWidgets(
+      'dashboard logout invokes existing session flow and returns to entry',
+      (tester) async {
+        tester.view.physicalSize = const Size(393, 873);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        final actions = DashboardActions();
+        await tester.pumpWidget(testApp(DashboardApi(), actions: actions));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('customer-logout')));
+        await tester.pumpAndSettle();
+        expect(actions.logoutCalls, 1);
+        expect(
+          find.byKey(const ValueKey('unified-auth-submit')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('b2b-dashboard-data')), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    final destinations = {
+      'credit-limit': CustomerRoutePaths.b2bAccountStatement,
+      'available-credit': CustomerRoutePaths.b2bAccountStatement,
+      'open-invoices': CustomerRoutePaths.b2bInvoices,
+      'overdue': CustomerRoutePaths.b2bInvoices,
+      'purchases-month': CustomerRoutePaths.b2bPurchaseReports,
+      'payments-month': CustomerRoutePaths.b2bAccountStatement,
+      'invoice-count': CustomerRoutePaths.b2bInvoices,
+      'order-count': CustomerRoutePaths.b2bOrders,
+      'active-orders': CustomerRoutePaths.b2bOrders,
+      'offers': CustomerRoutePaths.b2bTopProducts,
+      'balance-hero': CustomerRoutePaths.b2bAccountStatement,
+      'notifications': CustomerRoutePaths.b2bNotifications,
+    };
+    for (final entry in destinations.entries) {
+      testWidgets('dashboard ${entry.key} keeps store-scoped action', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(393, 873);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        String? opened;
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: FoodexTheme.light(fontFamily: 'DashboardEvidence'),
+            home: AppTranslations(
+              locale: const Locale('ar'),
+              overrides: const {},
+              child: Directionality(
+                textDirection: TextDirection.rtl,
+                child: B2bJourneyScreen(
+                  definition: customerRouteDefinitions.firstWhere(
+                    (route) => route.pattern == CustomerRoutePaths.b2bDashboard,
+                  ),
+                  location: '/b2b/dashboard?store_id=7&channel=wholesale',
+                  api: DashboardApi(),
+                  actionApi: DashboardActions(),
+                ),
+              ),
+            ),
+            onGenerateRoute: (settings) {
+              opened = settings.name;
+              return MaterialPageRoute<void>(
+                builder: (_) => const Scaffold(body: Text('Destination')),
+              );
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey('b2b-dashboard-${entry.key}')));
+        await tester.pumpAndSettle();
+        final route = Uri.parse(opened!);
+        expect(route.path, entry.value);
+        expect(route.queryParameters['store_id'], '7');
+        expect(route.queryParameters['channel'], 'wholesale');
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets(
       'refresh renders a second authoritative response and missing data stays unavailable',
       (tester) async {
         tester.view.physicalSize = const Size(393, 873);
@@ -198,6 +316,14 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('0'), findsNothing);
         expect(find.textContaining('0.000'), findsNothing);
+        api.response = const B2bApiException('http_503', statusCode: 503);
+        await tester.tap(find.byKey(const ValueKey('b2b-dashboard-refresh')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('b2b-error')), findsOneWidget);
+        api.response = dashboardResponse(second: true);
+        await tester.tap(find.byKey(const ValueKey('b2b-error-retry')));
+        await tester.pumpAndSettle();
+        expect(find.text('شركة ثانية'), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );
