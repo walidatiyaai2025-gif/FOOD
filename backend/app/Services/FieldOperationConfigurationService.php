@@ -289,7 +289,7 @@ final class FieldOperationConfigurationService
             })
             ->first();
 
-        if (!$winner instanceof FieldOperationConfigurationRevision) {
+        if (! $winner instanceof FieldOperationConfigurationRevision) {
             return [
                 'key' => (string) $definition->key,
                 'value' => data_get($definition->default_value, 'value'),
@@ -342,7 +342,7 @@ final class FieldOperationConfigurationService
             default => false,
         };
 
-        if (!$validType) {
+        if (! $validType) {
             throw ValidationException::withMessages([
                 'value' => ["Configuration value must match type {$type}."],
             ]);
