@@ -58,7 +58,8 @@ final class FieldOperationConfigurationService
         array $dependencies = [],
         bool $sensitive = false,
         ?string $description = null,
-    ): FieldOperationConfiguration {
+    ): FieldOperationConfiguration
+    {
         $this->assertKey($key);
         $this->assertValueType($valueType);
         $this->assertFailurePolicy($failurePolicy);
@@ -88,7 +89,8 @@ final class FieldOperationConfigurationService
         Carbon|string|null $effectiveFrom = null,
         Carbon|string|null $effectiveUntil = null,
         ?Request $request = null,
-    ): FieldOperationConfigurationRevision {
+    ): FieldOperationConfigurationRevision
+    {
         $definition = FieldOperationConfiguration::query()->where('key', $key)->firstOrFail();
         $scopeKey = $this->normalizeScope($scopeType, $scopeKey);
         $schema = (array) ($definition->validation_schema ?? []);
@@ -106,7 +108,8 @@ final class FieldOperationConfigurationService
             $from,
             $until,
             $request,
-        ): FieldOperationConfigurationRevision {
+        ): FieldOperationConfigurationRevision
+    {
             $latest = FieldOperationConfigurationRevision::query()
                 ->where('configuration_id', $definition->getKey())
                 ->where('scope_type', $scopeType)
@@ -146,8 +149,10 @@ final class FieldOperationConfigurationService
         User $actor,
         FieldOperationConfigurationRevision $revision,
         ?Request $request = null,
-    ): FieldOperationConfigurationRevision {
-        return DB::transaction(function () use ($actor, $revision, $request): FieldOperationConfigurationRevision {
+    ): FieldOperationConfigurationRevision
+    {
+        return DB::transaction(function () use ($actor, $revision, $request): FieldOperationConfigurationRevision
+    {
             $draft = FieldOperationConfigurationRevision::query()
                 ->with('configuration')
                 ->whereKey($revision->getKey())
@@ -194,7 +199,8 @@ final class FieldOperationConfigurationService
         FieldOperationConfigurationRevision $source,
         ?string $reason = null,
         ?Request $request = null,
-    ): FieldOperationConfigurationRevision {
+    ): FieldOperationConfigurationRevision
+    {
         abort_unless(
             in_array($source->status, [self::STATUS_PUBLISHED, self::STATUS_ARCHIVED], true),
             409,
@@ -204,7 +210,8 @@ final class FieldOperationConfigurationService
         $source->loadMissing('configuration');
         $this->validateRevision($source);
 
-        return DB::transaction(function () use ($actor, $source, $reason, $request): FieldOperationConfigurationRevision {
+        return DB::transaction(function () use ($actor, $source, $reason, $request): FieldOperationConfigurationRevision
+    {
             $latest = FieldOperationConfigurationRevision::query()
                 ->where('configuration_id', $source->configuration_id)
                 ->where('scope_type', $source->scope_type)
