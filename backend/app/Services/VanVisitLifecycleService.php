@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Order;
 use App\Models\VanNoOrderReason;
 use App\Models\VanVisit;
 use App\Models\User;
@@ -41,10 +42,30 @@ final class VanVisitLifecycleService
                 ]);
             }
 
-            if ($targetStatus === 'completed_with_order' && $orderId === null) {
-                throw ValidationException::withMessages([
-                    'order_id' => ['An authoritative order is required to complete a visit with order.'],
-                ]);
+            if ($targetStatus === 'completed_with_order') {
+                if ($orderId === null) {
+                    throw ValidationException::withMessages([
+                        'order_id' => ['An authoritative order is required to complete a visit with order.'],
+                    ]);
+                }
+
+                $order = Order::query()->whereKey($orderId)->first();
+                $customerColumn = (string) $locked->customer_type === 'b2b'
+                    ? 'b2b_customer_id'
+                    : 'b2c_customer_id';
+
+                if (
+                    $order === null
+                    || (int) $order->{$customerColumn} !== (int) $locked->customer_id
+                    || (
+                        $locked->store_id !== null
+                        && (int) $order->store_id !== (int) $locked->store_id
+                    )
+                ) {
+                    throw ValidationException::withMessages([
+                        'order_id' => ['The order must belong to the same authoritative customer/store scope as the visit.'],
+                    ]);
+                }
             }
 
             if ($targetStatus === 'completed_no_order') {
