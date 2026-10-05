@@ -109,6 +109,22 @@ class RoutingPolicyServiceTest extends TestCase
         $this->assertSame('territory', $decision['mode_resolution']['scope_type']);
     }
 
+    public function test_simulation_without_matching_rules_returns_empty_actions_and_remains_read_only(): void
+    {
+        $user = User::factory()->create();
+        $service = app(RoutingPolicyService::class);
+        $policy = $service->createDraft($user, 'default', 'HYBRID', [
+            ['name' => 'west-only', 'conditions' => ['territory' => 'west'], 'actions' => ['warehouse' => 'WH-W']],
+        ]);
+
+        $decision = $service->simulate($policy, ['territory' => 'east']);
+
+        $this->assertSame([], $decision['result']);
+        $this->assertSame([], $decision['matched_rules']);
+        $this->assertSame('HYBRID', $decision['routing_mode']);
+        $this->assertDatabaseCount('routing_decision_traces', 0);
+    }
+
     public function test_batch_simulation_is_read_only_and_preserves_deterministic_input_order(): void
     {
         $user = User::factory()->create();
