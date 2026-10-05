@@ -15,7 +15,11 @@ fi
 
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
-git diff --name-only "$base" "$head" > "$tmp"
+if [[ "$head" == "WORKTREE" ]]; then
+  git diff --name-only "$base" > "$tmp"
+else
+  git diff --name-only "$base" "$head" > "$tmp"
+fi
 
 backend=false
 customer=false
