@@ -81,6 +81,17 @@ final class SystemInspectorController extends Controller
         $data = $request->validate([
             'source' => ['required', Rule::in(['javascript', 'fetch'])],
             'severity' => ['nullable', Rule::in(['warning', 'error'])],
+            'category' => ['nullable', Rule::in([
+                'server_failure',
+                'network_failure',
+                'timeout',
+                'intentional_abort',
+                'validation_rejection',
+                'authorization_rejection',
+                'maintenance',
+                'external_service_failure',
+                'http_rejection',
+            ])],
             'message' => ['required', 'string', 'max:2000'],
             'url' => ['nullable', 'string', 'max:4096'],
             'response_url' => ['nullable', 'string', 'max:4096'],
