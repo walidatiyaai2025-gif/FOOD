@@ -339,6 +339,7 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
   String? _assignmentStatus;
   bool _appInForeground = true;
   int _consecutiveFailures = 0;
+  DateTime? _backgroundRetryNotBefore;
   StreamSubscription<DriverLocationSample>? _backgroundSubscription;
 
   bool get isStarted => _started;
@@ -408,6 +409,7 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
     _terminalAssignment = false;
     _assignmentStatus = null;
     _consecutiveFailures = 0;
+    _backgroundRetryNotBefore = null;
     scheduler.cancel();
     _stopBackgroundStream();
     if (clearQueue) {
@@ -557,6 +559,16 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
   Future<void> _handleBackgroundSample(DriverLocationSample sample) async {
     if (!_canRun || _appInForeground || !_activeDelivery) return;
     _enqueue(sample);
+
+    final retryNotBefore = _backgroundRetryNotBefore;
+    if (retryNotBefore != null && DateTime.now().isBefore(retryNotBefore)) {
+      // During a connectivity outage only the freshest heartbeat is useful.
+      final latest = _queue.last;
+      _queue
+        ..clear()
+        ..add(latest);
+      return;
+    }
     if (_backgroundFlushRunning) return;
 
     _backgroundFlushRunning = true;
@@ -564,6 +576,7 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
       final receipt = await _flush();
       if (!_canRun) return;
       _consecutiveFailures = 0;
+      _backgroundRetryNotBefore = null;
       _applyReceipt(receipt);
     } on DriverSessionExpiredException catch (error, stack) {
       _handleSessionFailure('session_expired', error, stack);
@@ -576,6 +589,8 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
         stack: stack,
       );
       _consecutiveFailures++;
+      _backgroundRetryNotBefore =
+          DateTime.now().add(cadence.retryDelay(_consecutiveFailures));
     } finally {
       _backgroundFlushRunning = false;
     }
