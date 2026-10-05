@@ -17,6 +17,7 @@ jobs:
       - name: Syntax-check First-Run Green scripts
         shell: bash
         run: |
+          bash -n scripts/worker-start.sh
           bash -n scripts/worker-preflight.sh
           bash -n scripts/detect-changed-areas.sh
           test -s docs/worker-rules/FIRST_RUN_GREEN.md
