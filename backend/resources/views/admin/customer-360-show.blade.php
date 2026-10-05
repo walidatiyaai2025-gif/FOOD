@@ -26,6 +26,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .c360-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .c360-kpi{border:1px solid var(--foodex-border);border-radius:14px;padding:16px;background:#fff;display:grid;gap:6px;min-height:100px}
 .c360-kpi small{color:var(--foodex-muted);font-weight:700}.c360-kpi strong{font-size:1.22rem;word-break:break-word}.c360-kpi.primary{background:linear-gradient(135deg,#f5fff8,#fff)}
+.c360-credit-editor{display:flex;align-items:end;gap:8px;margin-top:4px}.c360-credit-editor label{display:grid;gap:5px;min-width:0;flex:1}.c360-credit-editor input{width:100%;box-sizing:border-box;border:1px solid var(--foodex-border);border-radius:9px;padding:9px 10px;background:#fff;font:inherit}.c360-credit-editor button{white-space:nowrap}
 .c360-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.c360-info>div{padding:14px;border:1px solid var(--foodex-border);border-radius:12px;background:#fbfcfd}.c360-info small{display:block;color:var(--foodex-muted);margin-bottom:5px}.c360-info strong{word-break:break-word}
 .c360-badge{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--foodex-border);border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;background:#fff}.c360-badge.active{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:transparent}.c360-badge.b2b{background:#fff7ed;color:#9a3412}.c360-badge.b2c{background:#eefbf4;color:#166534}
 .c360-list{display:flex;gap:8px;flex-wrap:wrap}.c360-store{padding:10px 13px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;font-weight:800}
@@ -93,7 +94,20 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="c360-kpis">
 @if($finance)
 <article class="c360-kpi primary"><small>{{ $ar?'الرصيد الحالي':'Current balance' }}</small><strong>{{ number_format(abs((float)$finance['balance']),3) }} {{ $finance['currency'] ?: '' }}</strong><span class="muted">@if($finance['balance_direction']==='customer_owes_company'){{ $ar?'مستحق على العميل':'Customer owes company' }}@elseif($finance['balance_direction']==='company_owes_customer'){{ $ar?'رصيد لصالح العميل':'Company owes customer' }}@else{{ $ar?'الحساب مسدد':'Settled' }}@endif</span></article>
-<article class="c360-kpi"><small>{{ $ar?'الحد الائتماني':'Credit limit' }}</small><strong>{{ number_format((float)$finance['credit_limit'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
+<article class="c360-kpi">
+<small>{{ $ar?'الحد الائتماني':'Credit limit' }}</small>
+<strong>{{ number_format((float)$finance['credit_limit'],3) }} {{ $finance['currency'] ?: '' }}</strong>
+@if($canManageFinance)
+<form method="post" action="{{ route('admin.customer-360.credit-limit.update',['platformCustomer'=>$customer->id]) }}" class="c360-credit-editor">
+@csrf @method('PATCH')
+<label>
+<span class="sr-only">{{ $ar?'تعديل الحد الائتماني':'Edit credit limit' }}</span>
+<input name="credit_limit" type="number" min="0" max="99999999999.999" step="0.001" value="{{ number_format((float)$finance['credit_limit'],3,'.','') }}" required inputmode="decimal" aria-label="{{ $ar?'الحد الائتماني':'Credit limit' }}">
+</label>
+<button class="foodex-action-secondary button secondary" type="submit">{{ $ar?'حفظ':'Save' }}</button>
+</form>
+@endif
+</article>
 <article class="c360-kpi"><small>{{ $ar?'الرصيد المتاح':'Available credit' }}</small><strong>{{ number_format((float)$finance['available_credit_line'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
 <article class="c360-kpi"><small>{{ $ar?'القوة الشرائية':'Purchasing power' }}</small><strong>{{ number_format((float)$finance['purchasing_power'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
 @endif
