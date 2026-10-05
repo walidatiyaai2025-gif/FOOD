@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\StorefrontRevisionController;
 use App\Http\Controllers\Api\V1\TranslationController;
+use App\Http\Controllers\Api\V1\VanVisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -152,6 +153,18 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/runtime-inspector/events', MobileSystemInspectorEventController::class)
             ->middleware('throttle:60,1')
             ->name('api.runtime-inspector.events');
+
+        Route::prefix('van')->group(function (): void {
+            Route::get('/customers', [VanVisitController::class, 'customers']);
+            Route::get('/customers/{type}/{customer}', [VanVisitController::class, 'customer'])
+                ->whereIn('type', ['b2b', 'b2c'])
+                ->whereNumber('customer');
+            Route::get('/visits', [VanVisitController::class, 'visits']);
+            Route::post('/visits', [VanVisitController::class, 'store']);
+            Route::post('/visits/{visit}/transition', [VanVisitController::class, 'transition'])
+                ->whereNumber('visit');
+            Route::get('/no-order-reasons', [VanVisitController::class, 'noOrderReasons']);
+        });
         Route::post('/admin/app-preview/sessions', [AppPreviewSessionController::class, 'store']);
         Route::delete('/admin/app-preview/sessions/{session}', [AppPreviewSessionController::class, 'destroy'])
             ->whereNumber('session');
