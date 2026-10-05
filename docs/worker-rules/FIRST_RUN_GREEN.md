@@ -23,8 +23,8 @@ Every coding task follows this sequence:
 Canonical local commands:
 
 ```bash
-./scripts/worker-preflight.sh --fast
-./scripts/worker-preflight.sh --full
+bash ./scripts/worker-preflight.sh --fast
+bash ./scripts/worker-preflight.sh --full
 ```
 
 The fast command is the minimum pre-push contract. The full command is the readiness contract when the required tools and environment are available.
