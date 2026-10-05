@@ -1142,6 +1142,7 @@ class B2cWorkspaceController extends Controller
                     '_delivery_total' => (float) $row->delivery_total,
                     '_tax_total' => (float) ($row->tax_total ?? 0),
                     '_grand_total' => (float) $row->grand_total,
+                    '_currency' => (string) $row->currency,
                     '_payment_method' => $row->payment_method,
                     '_coupon_code' => is_array($pricingSnapshot) ? data_get($pricingSnapshot, 'coupon.code') : null,
                     '_customer_note' => $row->customer_note,
