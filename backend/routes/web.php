@@ -116,6 +116,7 @@ Route::prefix('admin')
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
         Route::post('/customer-360/{platformCustomer}/finance-entries', [Customer360Controller::class, 'storeFinanceEntry'])->whereNumber('platformCustomer')->name('customer-360.finance-entries.store');
+        Route::patch('/customer-360/{platformCustomer}/credit-limit', [Customer360Controller::class, 'updateCreditLimit'])->whereNumber('platformCustomer')->name('customer-360.credit-limit.update');
         Route::get('/customer-360/{invalidCustomerReference}', [Customer360Controller::class, 'invalidReference'])
             ->where('invalidCustomerReference', '[^0-9]+')
             ->name('customer-360.invalid-reference');
