@@ -104,7 +104,7 @@ class DashboardCustomer360Test extends TestCase
             ->assertOk()
             ->assertSee('Retail A · RETAIL-A')
             ->assertSee('Retail B · RETAIL-B')
-            ->assertSee('Wholesale account');
+            ->assertSee('Accounts & finance');
     }
 
     public function test_dual_role_retail_owner_resolves_canonical_wholesale_finance_without_duplicate_identity(): void
@@ -175,16 +175,16 @@ class DashboardCustomer360Test extends TestCase
         $this->actingAs($super)
             ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
             ->assertOk()
-            ->assertSee('Wholesale account & finance')
+            ->assertSee('Accounts & finance')
             ->assertSee('Retail Owner Store')
-            ->assertSee('Company owes you')
+            ->assertSee('Company owes customer')
             ->assertSee('50.000');
 
         $b2bAdmin = $this->globalAdmin('B2B_ADMIN');
         $this->actingAs($b2bAdmin)
             ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
             ->assertOk()
-            ->assertSee('Wholesale account & finance')
+            ->assertSee('Accounts & finance')
             ->assertDontSee('Retail Owner Store · RETAIL-OWNER');
     }
 
@@ -257,7 +257,7 @@ class DashboardCustomer360Test extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
             ->assertOk()
-            ->assertSee('Manage addresses')
+            ->assertSee('Customer addresses')
             ->assertSee('Add new address');
 
         $this->actingAs($admin)
