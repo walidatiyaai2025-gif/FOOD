@@ -241,6 +241,12 @@ The canonical operating contract is documented in:
 - `docs/worker-rules/FIRST_RUN_GREEN.md`
 - `docs/worker-rules/CI_FAILURE_PATTERNS.md`
 
+At task start, workers SHOULD bootstrap repository state with:
+
+```bash
+bash ./scripts/worker-start.sh
+```
+
 Before the first push of executable changes, every worker MUST run:
 
 ```bash
