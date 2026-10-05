@@ -27,7 +27,7 @@ Status: owner-approved Dashboard update after green #924 / PR #925 integration.
 - Minimum current version: `1.0.6`
 - Contains migrations: `true`
 - Requires full redeploy: `false`
-- SHA-256: `4e55e484b470a7a783f3baf4f93862efd4746a566294e2810d527cbf2b858d19`
+- SHA-256: `4533e9bcd17476bbc7f4300bc34bdde627d9fc8a325bc5904f7b726805374dd4`
 
 ## Explicit non-activation statement
 
