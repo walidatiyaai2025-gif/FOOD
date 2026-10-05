@@ -17,6 +17,8 @@ tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if [[ "$head" == "WORKTREE" ]]; then
   git diff --name-only "$base" > "$tmp"
+  git ls-files --others --exclude-standard >> "$tmp"
+  sort -u -o "$tmp" "$tmp"
 else
   git diff --name-only "$base" "$head" > "$tmp"
 fi
