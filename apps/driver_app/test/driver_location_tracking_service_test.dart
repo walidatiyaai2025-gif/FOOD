@@ -238,7 +238,6 @@ void main() {
     final scheduler = _FakeScheduler();
     final source = _FakeBackgroundLocationSource([_sample(1)]);
     final heartbeat = _FakeHeartbeatClient(
-      failuresRemaining: 1,
       activeAssignments: <int?>[44, 44],
     );
     final service = DriverLocationTrackingService(
@@ -255,6 +254,7 @@ void main() {
     service.setGateReady(true);
     await scheduler.fire();
     service.setAppInForeground(false);
+    heartbeat.failuresRemaining = 1;
 
     source.emit(_sample(2));
     await Future<void>.delayed(Duration.zero);
