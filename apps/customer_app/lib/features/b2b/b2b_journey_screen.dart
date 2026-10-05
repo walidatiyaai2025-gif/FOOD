@@ -1049,6 +1049,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               icon: Icons.insights_rounded,
               child: DashboardMetricGrid(
                 key: const ValueKey('b2b-dashboard-operations-grid'),
+                columns: 1,
                 metrics: operationMetrics.skip(2).toList(),
               ),
             ),

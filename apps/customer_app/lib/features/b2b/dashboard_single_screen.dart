@@ -28,7 +28,7 @@ class DashboardSingleScreen extends StatelessWidget {
       // for landscape/short windows or large accessibility text, where
       // preserving readable content takes precedence over the trial layout.
       final accessible = MediaQuery.textScalerOf(context).scale(14) > 19;
-      final needsAccessibleLayout = constraints.maxHeight < 460 || accessible;
+      final needsAccessibleLayout = constraints.maxHeight < 520 || accessible;
       final height = needsAccessibleLayout
           ? (accessible ? 1050.0 : 700.0)
           : constraints.maxHeight;
@@ -40,7 +40,7 @@ class DashboardSingleScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              flex: 25,
+              flex: 29,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -51,10 +51,10 @@ class DashboardSingleScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: gap),
-            Expanded(flex: 32, child: finance),
+            Expanded(flex: 28, child: finance),
             SizedBox(height: gap),
             Expanded(
-              flex: 32,
+              flex: 33,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -65,7 +65,7 @@ class DashboardSingleScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: gap),
-            Expanded(flex: 11, child: offers),
+            Expanded(flex: 10, child: offers),
           ],
         ),
       );
@@ -127,7 +127,11 @@ class DashboardPanel extends StatelessWidget {
 }
 
 class DashboardMetricGrid extends StatelessWidget {
-  const DashboardMetricGrid({required this.metrics, this.columns = 2, super.key});
+  const DashboardMetricGrid({
+    required this.metrics,
+    this.columns = 2,
+    super.key,
+  });
   final List<Widget> metrics;
   final int columns;
 
@@ -144,10 +148,9 @@ class DashboardMetricGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      Expanded(child: _row(metrics.take(columns).toList())),
-      if (metrics.length > columns) ...[
-        const SizedBox(height: 8),
-        Expanded(child: _row(metrics.skip(columns).toList())),
+      for (var i = 0; i < metrics.length; i += columns) ...[
+        if (i > 0) const SizedBox(height: 8),
+        Expanded(child: _row(metrics.skip(i).take(columns).toList())),
       ],
     ],
   );
@@ -171,22 +174,19 @@ class DashboardMetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final tight = constraints.maxHeight < 56;
-      final symbolSize = tight ? 18.0 : (compact ? 24.0 : 28.0);
-      final iconSize = tight ? 14.0 : (compact ? 18.0 : 21.0);
-      final amountSize = tight ? 11.0 : (compact ? 14.0 : 17.0);
-      final labelSize = tight ? 9.0 : 12.0;
-
+      final dense = compact || constraints.maxHeight < 90;
+      final inline =
+          dense && constraints.maxHeight < 48 && !value.contains('.');
       final symbol = Container(
-        width: symbolSize,
-        height: symbolSize,
+        width: dense ? 20 : 28,
+        height: dense ? 20 : 28,
         decoration: BoxDecoration(
           color: CustomerUiColors.mint,
-          borderRadius: BorderRadius.circular(tight ? 7 : 10),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           icon,
-          size: iconSize,
+          size: dense ? 16 : 21,
           color: CustomerUiColors.deepGreen,
         ),
       );
@@ -194,24 +194,12 @@ class DashboardMetricCard extends StatelessWidget {
         value,
         textDirection: TextDirection.ltr,
         maxLines: 1,
-        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontSize: amountSize,
-          height: 1,
+          fontSize: dense ? 14 : 17,
+          height: 1.2,
           fontWeight: FontWeight.w800,
         ),
       );
-      final metricLabel = Text(
-        label,
-        maxLines: tight ? 1 : 2,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontSize: labelSize,
-          height: 1,
-          color: CustomerUiColors.muted,
-        ),
-      );
-
       return Material(
         color: CustomerUiColors.white,
         shape: RoundedRectangleBorder(
@@ -222,33 +210,33 @@ class DashboardMetricCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: tight
-                ? const EdgeInsets.symmetric(horizontal: 5, vertical: 2)
-                : EdgeInsets.all(compact ? 6 : 8),
-            child: tight
+            padding: EdgeInsets.all(dense ? 4 : 8),
+            child: inline
                 ? Row(
                     children: [
                       symbol,
                       const SizedBox(width: 4),
                       Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            amount,
-                            const SizedBox(height: 1),
-                            metricLabel,
-                          ],
+                        child: Text(
+                          label,
+                          maxLines: 2,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                fontSize: 12,
+                                height: 1.1,
+                                color: CustomerUiColors.muted,
+                              ),
                         ),
                       ),
+                      const SizedBox(width: 4),
+                      amount,
                     ],
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (compact)
+                      if (dense)
                         Row(
                           children: [
                             symbol,
@@ -267,7 +255,15 @@ class DashboardMetricCard extends StatelessWidget {
                         amount,
                       ],
                       const SizedBox(height: 3),
-                      metricLabel,
+                      Text(
+                        label,
+                        maxLines: 2,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 12,
+                          height: 1.15,
+                          color: CustomerUiColors.muted,
+                        ),
+                      ),
                     ],
                   ),
           ),

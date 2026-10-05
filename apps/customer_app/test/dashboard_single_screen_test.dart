@@ -115,6 +115,21 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
+          await tester.runAsync(() async {
+            final boundary =
+                key.currentContext!.findRenderObject()!
+                    as RenderRepaintBoundary;
+            final image = await boundary.toImage(pixelRatio: 2);
+            final bytes = await image.toByteData(
+              format: ui.ImageByteFormat.png,
+            );
+            final file = File(
+              'build/dashboard-evidence/${before ? 'before' : 'after'}-${size.width.toInt()}x${size.height.toInt()}-${locale.languageCode}.png',
+            );
+            file.parent.createSync(recursive: true);
+            file.writeAsBytesSync(bytes!.buffer.asUint8List());
+            image.dispose();
+          });
           expect(tester.takeException(), isNull);
           if (!before) {
             expect(find.byType(Scrollable), findsNothing);
@@ -148,21 +163,6 @@ void main() {
               expect(rect.bottom, lessThan(size.height - 58));
             }
           }
-          await tester.runAsync(() async {
-            final boundary =
-                key.currentContext!.findRenderObject()!
-                    as RenderRepaintBoundary;
-            final image = await boundary.toImage(pixelRatio: 2);
-            final bytes = await image.toByteData(
-              format: ui.ImageByteFormat.png,
-            );
-            final file = File(
-              'build/dashboard-evidence/${before ? 'before' : 'after'}-${size.width.toInt()}x${size.height.toInt()}-${locale.languageCode}.png',
-            );
-            file.parent.createSync(recursive: true);
-            file.writeAsBytesSync(bytes!.buffer.asUint8List());
-            image.dispose();
-          });
         },
       );
     }

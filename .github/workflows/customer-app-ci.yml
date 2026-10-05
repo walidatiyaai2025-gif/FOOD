@@ -53,6 +53,7 @@ jobs:
           backup="$(mktemp)"
           cp "$source_file" "$backup"
           trap 'cp "$backup" "$source_file"; rm -f "$backup"' EXIT
+          git fetch --depth=1 origin d3119fef145725c89b04e012b1484a893daec5a0
           git show d3119fef145725c89b04e012b1484a893daec5a0:apps/customer_app/lib/features/b2b/b2b_journey_screen.dart > "$source_file"
           DASHBOARD_CAPTURE_PHASE=before flutter test test/dashboard_single_screen_test.dart
 
