@@ -113,8 +113,7 @@ final class FieldOperationConfigurationService
             $from,
             $until,
             $request,
-        ): FieldOperationConfigurationRevision
-    {
+        ): FieldOperationConfigurationRevision {
             $latest = FieldOperationConfigurationRevision::query()
                 ->where('configuration_id', $definition->getKey())
                 ->where('scope_type', $scopeType)
@@ -156,8 +155,7 @@ final class FieldOperationConfigurationService
         ?Request $request = null,
     ): FieldOperationConfigurationRevision
     {
-        return DB::transaction(function () use ($actor, $revision, $request): FieldOperationConfigurationRevision
-    {
+        return DB::transaction(function () use ($actor, $revision, $request): FieldOperationConfigurationRevision {
             $draft = FieldOperationConfigurationRevision::query()
                 ->with('configuration')
                 ->whereKey($revision->getKey())
@@ -215,8 +213,7 @@ final class FieldOperationConfigurationService
         $source->loadMissing('configuration');
         $this->validateRevision($source);
 
-        return DB::transaction(function () use ($actor, $source, $reason, $request): FieldOperationConfigurationRevision
-    {
+        return DB::transaction(function () use ($actor, $source, $reason, $request): FieldOperationConfigurationRevision {
             $latest = FieldOperationConfigurationRevision::query()
                 ->where('configuration_id', $source->configuration_id)
                 ->where('scope_type', $source->scope_type)
