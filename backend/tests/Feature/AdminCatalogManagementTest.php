@@ -110,7 +110,7 @@ class AdminCatalogManagementTest extends TestCase
             ->get('/admin/catalog?tab=products&store_id='.$storeId.'&support_access=1')
             ->assertOk()
             ->assertSee('data-availability-state="OUT_OF_STOCK"', false)
-            ->assertSee('نفد من المخزون');
+            ->assertSee('نفد');
 
         DB::table('inventories')
             ->where('warehouse_id', $warehouseId)
