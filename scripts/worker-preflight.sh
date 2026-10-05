@@ -37,6 +37,13 @@ done < <(bash ./scripts/detect-changed-areas.sh "$base" WORKTREE)
 
 bash ./scripts/validate-premerge-release-version.sh "$base" WORKTREE
 
+changed_files="$(
+  {
+    git diff --name-only "$base"
+    git ls-files --others --exclude-standard
+  } | sort -u
+)"
+
 release_related=false
 if [[ "$branch" == release/* ]] || grep -Eq '^(VERSION|CHANGELOG\.md|docs/release/|apps/(customer_app|driver_app)/(pubspec\.yaml|lib/app\.dart))' <<<"$changed_files"; then
   release_related=true
@@ -45,13 +52,6 @@ fi
 if [[ "$release_related" == "true" ]]; then
   bash ./scripts/release-readiness.sh
 fi
-
-changed_files="$(
-  {
-    git diff --name-only "$base"
-    git ls-files --others --exclude-standard
-  } | sort -u
-)"
 
 if grep -qx 'backend/composer.lock' <<<"$changed_files" && ! grep -qx 'backend/composer.json' <<<"$changed_files"; then
   echo "backend/composer.lock changed without backend/composer.json; verify dependency drift before push." >&2
