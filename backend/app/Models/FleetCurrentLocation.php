@@ -18,6 +18,7 @@ class FleetCurrentLocation extends Model
             'heading' => 'float',
             'captured_at' => 'datetime',
             'received_at' => 'datetime',
+            'is_mocked' => 'boolean',
         ];
     }
 }
