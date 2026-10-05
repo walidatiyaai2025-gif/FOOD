@@ -180,6 +180,12 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/admin/security/users/{user}/status', [SecurityController::class, 'updateUserStatus']);
         Route::get('/admin/reports/dashboard', [AdminReportController::class, 'dashboard']);
         Route::get('/admin/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed']);
+        Route::prefix('admin/field-operations/routing-policies')->group(function (): void {
+            Route::post('/', [RoutingPolicyController::class, 'store']);
+            Route::post('/{routingPolicy}/publish', [RoutingPolicyController::class, 'publish'])->whereNumber('routingPolicy');
+            Route::post('/{routingPolicy}/simulate', [RoutingPolicyController::class, 'simulate'])->whereNumber('routingPolicy');
+            Route::post('/{routingPolicy}/rollback', [RoutingPolicyController::class, 'rollback'])->whereNumber('routingPolicy');
+        });
         Route::get('/admin/reports/{report}', [ManagementReportController::class, 'show'])
             ->whereIn('report', ['orders', 'products', 'customers', 'operations']);
         Route::get('/admin/b2b/accounts', [B2bAccountController::class, 'index']);
