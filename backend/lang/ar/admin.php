@@ -28,6 +28,7 @@ return [
     'mobile_apps' => [
         'customer_download' => 'تحميل تطبيق العميل APK',
         'driver_download' => 'تحميل تطبيق السائق APK',
+        'van_download' => 'تحميل تطبيق سيارة البيع APK',
     ],
     'app_versions' => 'إصدارات التطبيقات',
     'app_preview' => 'معاينة التطبيقات',
@@ -38,6 +39,7 @@ return [
         'application' => 'التطبيق',
         'customer' => 'تطبيق العميل',
         'driver' => 'تطبيق السائق',
+        'van' => 'تطبيق سيارة البيع',
         'channel' => 'القناة',
         'wholesale' => 'الجملة / B2B',
         'retail' => 'التجزئة / B2C',
