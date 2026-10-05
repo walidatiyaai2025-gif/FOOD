@@ -188,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inspectorUrl = @json(route('admin.inspector.client-events'));
     const csrfToken = @json(csrf_token());
     let inspectorSuppressed = false;
+    let inspectorSuppressedUntil = 0;
     const currentXsrfToken = () => {
         const row = document.cookie.split('; ').find((value) => value.startsWith('XSRF-TOKEN='));
         return row ? decodeURIComponent(row.substring('XSRF-TOKEN='.length)) : null;
@@ -377,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const reportInspector = (payload) => {
-        if (inspectorSuppressed || !inspectorEnabled || !nativeFetch || location.pathname.startsWith('/admin/inspector')) return;
+        if (inspectorSuppressed || Date.now() < inspectorSuppressedUntil || !inspectorEnabled || !nativeFetch || location.pathname.startsWith('/admin/inspector')) return;
         const xsrfToken = currentXsrfToken();
         nativeFetch(inspectorUrl, {
             method:'POST',
@@ -391,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
             body:JSON.stringify(payload),
         }).then((response) => {
             if (response.status === 419 || response.status === 401) inspectorSuppressed = true;
+            if (response.status === 503) inspectorSuppressedUntil = Date.now() + 60000;
         }).catch(() => {});
     };
 
@@ -445,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (sameOriginRequest && !backgroundRequest) {
                         const category = response.status === 503 ? 'maintenance'
                             : response.status === 422 ? 'validation_rejection'
+                            : response.status === 409 ? 'domain_rejection'
                             : (response.status === 401 || response.status === 403 || response.status === 419) ? 'authorization_rejection'
                             : response.status >= 500 ? 'server_failure'
                             : 'http_rejection';
