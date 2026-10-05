@@ -4317,8 +4317,8 @@ class _FinanceCard extends StatelessWidget {
       value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
 
   String _money(double value, String currency) =>
-      value.toStringAsFixed(3) +
-      (currency.trim().isEmpty ? '' : ' ' + currency.trim());
+      '${value.toStringAsFixed(3)}'
+      '${currency.trim().isEmpty ? '' : ' ${currency.trim()}'}';
 
   @override
   Widget build(BuildContext context) => Container(
