@@ -372,6 +372,59 @@ Avoid:
 - repeating summary cards before every tab;
 - several independent modules stacked vertically when tabs would be clearer.
 
+### 4.9 Multi-column responsive layout standard
+
+Operational screens must not dump all information into one long vertical column when the viewport can support a clearer composition.
+
+Required behavior:
+
+- desktop and wide-tablet forms/details should use 2-column or responsive multi-column grids where fields naturally group together;
+- summary/KPI areas should use balanced responsive grids rather than one-card-per-row;
+- related controls should be grouped side-by-side when that improves scanability;
+- detail pages should divide identity, operational, financial and status information into clear columns/sections;
+- wide tables remain tables and should not be converted into stacked card lists without a mobile-specific reason;
+- mobile may collapse to one column when width requires it;
+- column count must respond to viewport size, content length and RTL/LTR direction;
+- no fixed-width layout that causes clipping or horizontal page scroll.
+
+Examples:
+
+```text
+Desktop:
+[ Customer / Van Identity ] [ Operational Status ]
+[ Route / Territory      ] [ Finance / Collection ]
+
+Tablet:
+[ Identity ] [ Status ]
+[ Route    ] [ Finance ]
+
+Mobile:
+[ Identity ]
+[ Status ]
+[ Route ]
+[ Finance ]
+```
+
+The goal is faster scanning with balanced density, not filling every available pixel.
+
+### 4.10 Field/form grouping
+
+Forms with multiple fields should be grouped semantically and laid out using responsive columns.
+
+Examples:
+
+- name + code;
+- start date + end date;
+- primary Van + backup Van;
+- weight capacity + volume capacity;
+- Arabic label + English label;
+- latitude/longitude when shown to authorized operators;
+- schedule start + schedule end.
+
+Long text areas, maps, complex selectors and tables may span the full width.
+
+Avoid one-field-per-row forms on desktop unless the workflow genuinely benefits from it.
+
 ### 4.9 Global usability and visual-density standard
 
 In addition to FOODEX identity, every new screen must satisfy international UI/UX and usability principles:
@@ -395,7 +448,7 @@ In addition to FOODEX identity, every new screen must satisfy international UI/U
 
 The screen should communicate the most important task immediately without making the operator scan unnecessary content.
 
-### 4.10 Navigation and screen governance
+### 4.11 Navigation and screen governance
 
 A feature is not considered implemented merely because backend/API code exists.
 
@@ -420,7 +473,7 @@ Before creating any new screen, every worker must perform a **screen/route inven
 
 Duplicate screens for the same business purpose are forbidden.
 
-### 4.11 Server route organization
+### 4.12 Server route organization
 
 Server routes must be organized by business module/domain.
 
@@ -437,7 +490,7 @@ Requirements:
 
 The final route tree should make the platform understandable without reading implementation internals.
 
-### 4.12 Canonical screen ownership
+### 4.13 Canonical screen ownership
 
 Every substantial feature must identify one canonical screen/module that owns the complete experience.
 
