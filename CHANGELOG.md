@@ -7,7 +7,7 @@
 - Ship tabbed Customer 360 with Finance first, editable audited Wholesale credit limit, and map-based address location selection that stores coordinates automatically without exposing manual latitude/longitude inputs.
 - Ship the B2B Orders create-order modal, improved Arabic workflow/payment labels, and cleaner order operations while preserving authoritative quote, stock, pricing, finance, permissions and routing.
 - Include the associated reliability hardening for System Inspector, CSRF refresh, Customer/Driver retries and backoff, invoice PDF authorization/rendering, preview unavailable states, live polling cooldowns, and B2B finance query performance from the green #924 integration branch.
-- Dashboard update only: promote the Dashboard update identity from 1.0.55 to 1.0.56 without changing production minimum-supported mobile versions, force-update policy, Driver location enforcement, or Assistant activation.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.56 / mobile build 1.0.56+56 without changing production minimum-version, force-update, Driver location-enforcement or Assistant activation settings.
 
 ## 1.0.55 - 2026-10-05
 
