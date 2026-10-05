@@ -13,7 +13,7 @@ const i18n = {
     serverFailed:'Server unavailable', networkFailed:'Network unavailable', invalidFeed:'Invalid response', timeout:'Timed out',
 };
 class Node {
-    constructor() { this.textContent=''; this.hidden=false; this.children=[]; this.listeners={}; this.style={}; this.value=''; }
+    constructor() { this.textContent=''; this.hidden=false; this.children=[]; this.listeners={}; this.style={}; this.value=''; this.isConnected=true; }
     append(...nodes) { this.children.push(...nodes); }
     replaceChildren(...nodes) { this.children=nodes; }
     addEventListener(type, callback) { this.listeners[type]=callback; }
@@ -35,14 +35,14 @@ function setup({mode='full', noLeaflet=false, brokenMap=false, roots:givenRoots,
     const calls=[], timers=new Map(), intervals=[], events={};
     let nextTimer=0;
     const layer={clearCount:0,addTo(){return this;},clearLayers(){this.clearCount++;}};
-    const map={setView(){return this;},fitBounds(){},remove(){}};
+    const map={removeCount:0,setView(){return this;},fitBounds(){},remove(){this.removeCount++;}};
     const leaflet={map(){if(brokenMap) throw Error('init failed');return map;},tileLayer(){return {addTo(){}};},layerGroup(){return layer;},circleMarker(){return {bindPopup(){return this;},addTo(){return this;},openPopup(){}};}};
     const window={L:noLeaflet?undefined:leaflet,location:{origin:'https://dashboard.example'},
         setTimeout(fn,ms){const id=++nextTimer;timers.set(id,{fn,ms});return id;},clearTimeout(id){timers.delete(id);},
         setInterval(fn){intervals.push(fn);},addEventListener(type,fn){events[type]=fn;}};
     const context=vm.createContext({window,L:window.L,URL,AbortController,document:{querySelectorAll(){return roots;},createElement(){return new Node();},createTextNode(value){return {textContent:value};}},
         fetch:async(url,options)=>{calls.push({url,options});return response ? response(url,options) : {ok:true,json:async()=>({data:[],meta:{generated_at:'2026-10-01T05:00:00Z'}})};}});
-    return {roots,calls,timers,intervals,events,layer,context,run(){vm.runInContext(source,context);},watchdog(){vm.runInContext(loader,context);}};
+    return {roots,calls,timers,intervals,events,layer,map,context,run(){vm.runInContext(source,context);},watchdog(){vm.runInContext(loader,context);}};
 }
 const settle = () => new Promise(resolve=>setImmediate(resolve));
 for (const mode of ['full','compact']) {
@@ -108,13 +108,45 @@ test('timeout releases the in-flight guard so retry and polling can recover',asy
     assert.equal(env.roots[0].dataset.liveMapError,'feed-timeout');hanging=false;
     await env.roots[0].foodexDriverLiveMap.refresh();assert.equal(env.roots[0].dataset.liveMapError,undefined);
 });
-test('feed failure removes stale locations and counts but retains last successful timestamp',async()=>{
+test('background feed failure preserves the last successful map, counters and timestamp',async()=>{
     let failing=false;
     const env=setup({response:async()=>failing ? {ok:false,status:503} : {ok:true,json:async()=>({data:[{driver_id:1,latitude:29,longitude:48,status:'online'}]})}});
     env.run();await settle();const view=env.roots[0];const updated=view.parts.updated.textContent;
-    assert.equal(view.parts['count-online'].textContent,'1');failing=true;await view.foodexDriverLiveMap.refresh();
-    assert.equal(view.foodexDriverLiveMap.rows().length,0);assert.equal(view.parts['count-online'].textContent,'—');
-    assert.equal(view.parts.updated.textContent,updated);assert.ok(env.layer.clearCount>=2);
+    const clearCount=env.layer.clearCount;
+    assert.equal(view.parts['count-online'].textContent,'1');
+    failing=true;await view.foodexDriverLiveMap.refresh();
+    assert.equal(view.foodexDriverLiveMap.rows().length,1);
+    assert.equal(view.parts['count-online'].textContent,'1');
+    assert.equal(view.parts.updated.textContent,updated);
+    assert.equal(env.layer.clearCount,clearCount);
+    assert.equal(view.parts.error.hidden,true);
+    assert.equal(view.parts.state.textContent,i18n.serverFailed);
+});
+test('background refresh is silent and overlapping refresh work is suppressed',async()=>{
+    let call=0, release;
+    const env=setup({response:async()=>{
+        call++;
+        if(call===1) return {ok:true,json:async()=>({data:[{driver_id:1,latitude:29,longitude:48,status:'online'}]})};
+        return new Promise(resolve=>{release=()=>resolve({ok:true,json:async()=>({data:[{driver_id:1,latitude:29.1,longitude:48.1,status:'online'}]})});});
+    }});
+    env.run();await settle();const view=env.roots[0];
+    assert.equal(view.parts.state.textContent,i18n.ready);
+    const pending=view.foodexDriverLiveMap.refresh();
+    assert.equal(view.parts.state.textContent,i18n.ready);
+    await view.foodexDriverLiveMap.refresh();
+    assert.equal(env.calls.length,2);
+    release();await pending;
+    assert.equal(view.parts.state.textContent,i18n.ready);
+});
+test('map polling and Leaflet runtime are disposed when the page leaves',async()=>{
+    const env=setup();env.run();await settle();const view=env.roots[0];
+    assert.equal([...env.timers.values()].filter(timer=>timer.ms===5000).length,1);
+    env.events.pagehide();
+    assert.equal([...env.timers.values()].filter(timer=>timer.ms===5000).length,0);
+    assert.equal(env.map.removeCount,1);
+    const calls=env.calls.length;
+    await view.foodexDriverLiveMap.refresh();
+    assert.equal(env.calls.length,calls);
 });
 test('missing or stalled renderer is reported by independent watchdog; healthy runtime is untouched',async()=>{
     for(const event of ['load','timeout']) {
