@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Address;
+use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\PlatformCustomer;
 use App\Models\Store;
@@ -208,6 +209,56 @@ final class Customer360Controller extends Controller
             'addresses' => $addresses,
             'canManageAddresses' => $this->canManageAddresses($actor, $customer, $access),
         ]);
+    }
+
+    public function updateCreditLimit(
+        Request $request,
+        int $platformCustomer,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+
+        abort_unless($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage'), 403);
+        abort_if($access['mode'] === 'b2c', 403);
+
+        $domain = $this->wholesaleDomain($customer, $access);
+        abort_unless($domain instanceof B2bCustomer, 404);
+
+        $validated = $request->validate([
+            'credit_limit' => ['required', 'numeric', 'min:0', 'max:99999999999.999'],
+        ]);
+        $creditLimit = round((float) $validated['credit_limit'], 3);
+
+        $account = DB::transaction(function () use ($domain, $creditLimit): B2bAccount {
+            $account = B2bAccount::query()
+                ->where('b2b_customer_id', $domain->getKey())
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $account->credit_limit = $creditLimit;
+            $account->save();
+
+            return $account;
+        }, 3);
+
+        $before = ['credit_limit' => round((float) $account->getOriginal('credit_limit'), 3)];
+        $after = ['credit_limit' => round((float) $account->credit_limit, 3)];
+
+        $audit->record(
+            'customer360.credit_limit_updated',
+            $actor,
+            $account,
+            $before,
+            $after,
+            $request,
+        );
+
+        return redirect()
+            ->to(route('admin.customer-360.show', ['platformCustomer' => $customer->getKey()]).'#finance')
+            ->with('status', $this->msg('تم تحديث الحد الائتماني.', 'Credit limit updated.'));
     }
 
     public function storeFinanceEntry(
