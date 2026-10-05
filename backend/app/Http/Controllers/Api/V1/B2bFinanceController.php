@@ -266,7 +266,11 @@ class B2bFinanceController extends Controller
         $format = (string) $filters['format'];
         $locale = (string) ($filters['locale'] ?? $request->user()->locale ?? 'en');
         $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
-        $export = $exports->build($report, $format, $locale);
+        try {
+            $export = $exports->build($report, $format, $locale);
+        } catch (\RuntimeException) {
+            abort(503, 'Document export is temporarily unavailable.');
+        }
 
         app(AuditLogger::class)->record('b2b.finance.statement_exported', $request->user(), $customer, null, [
             'format' => $format,
