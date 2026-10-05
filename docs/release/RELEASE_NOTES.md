@@ -25,7 +25,7 @@ Status: owner-approved post-#921 synchronized Dashboard/Customer/Driver distribu
 - Minimum current version: `1.0.6`
 - Contains migrations: `true`
 - Requires full redeploy: `false`
-- SHA-256: `d77dc785d8b3bd8b10919dc602642b24fd4233ecf03ab9157ccf15ce9c434748`
+- SHA-256: `c8eced85c3e6a68fc7227cdd0081600b2735b5ef3d5762bb70d209ec6cf32207`
 
 ## Explicit non-activation statement
 
