@@ -246,6 +246,7 @@ At minimum:
 
 - **Branch / repository policy:** verify the branch name and task relationship comply with repository policy before the first implementation push. Issue-scoped branches such as `fix/<issue>-...`, `feat/<issue>-...`, or the repository-approved equivalent must be used. Do not weaken policy checks to make an invalid branch pass.
 - **Laravel / PHP formatting:** run the same Pint/lint contract used by CI. In particular, avoid recurring failures involving `braces_position`, quote style, import ordering, blank-line rules, PHPDoc formatting, unary/operator spacing, and compact/empty constructor bodies when the repository formatter expands them.
+- **Do not guess formatter output:** when Pint reports a style rule, reproduce the exact formatter result locally with `vendor/bin/pint <affected-path>` (or an equivalent isolated copy) and then verify with `vendor/bin/pint --test <affected-path>`. For promoted-property constructors with an empty body, preserve the formatter's exact multiline parameter layout and single-line empty body instead of manually toggling brace placement across pushes.
 - **Backend tests:** run the focused affected tests and the required backend suite when practical. Passing tests does not waive lint or static-analysis requirements.
 - **Static analysis / typing:** run the repository's PHP static-analysis/type checks for backend changes. Do not silence a real type defect merely to satisfy the analyzer.
 - **PHP syntax / patch integrity:** validate modified PHP files after scripted or generated edits. Never leave literal escape text such as `\n` where an actual newline is required, and do not assume a mechanically generated patch is syntactically valid.
@@ -262,7 +263,7 @@ At minimum:
 The following classes have already repeated in repository history and MUST be treated as known traps:
 
 1. repository-policy failure caused by a non-compliant branch name;
-2. Laravel Pint failures after otherwise-successful backend tests, especially braces position, single-quote style, import ordering, and constructor/body formatting;
+2. Laravel Pint failures after otherwise-successful backend tests, especially braces position, single-quote style, import ordering, and constructor/body formatting; repeated manual brace-only fixes are themselves a known failure pattern and must be replaced by running Pint to generate the exact canonical form;
 3. PHP static-analysis/type failures after formatter fixes;
 4. syntax defects introduced by scripted/mechanical patches;
 5. Flutter analyzer failures caused by typing, documentation syntax, or stale assumptions;
