@@ -63,8 +63,7 @@ final class FieldOperationConfigurationService
         array $dependencies = [],
         bool $sensitive = false,
         ?string $description = null,
-    ): FieldOperationConfiguration
-    {
+    ): FieldOperationConfiguration {
         $this->assertKey($key);
         $this->assertValueType($valueType);
         $this->assertFailurePolicy($failurePolicy);
@@ -94,8 +93,7 @@ final class FieldOperationConfigurationService
         Carbon|string|null $effectiveFrom = null,
         Carbon|string|null $effectiveUntil = null,
         ?Request $request = null,
-    ): FieldOperationConfigurationRevision
-    {
+    ): FieldOperationConfigurationRevision {
         $definition = FieldOperationConfiguration::query()->where('key', $key)->firstOrFail();
         $scopeKey = $this->normalizeScope($scopeType, $scopeKey);
         $schema = (array) ($definition->validation_schema ?? []);
@@ -153,8 +151,7 @@ final class FieldOperationConfigurationService
         User $actor,
         FieldOperationConfigurationRevision $revision,
         ?Request $request = null,
-    ): FieldOperationConfigurationRevision
-    {
+    ): FieldOperationConfigurationRevision {
         return DB::transaction(function () use ($actor, $revision, $request): FieldOperationConfigurationRevision {
             $draft = FieldOperationConfigurationRevision::query()
                 ->with('configuration')
@@ -202,8 +199,7 @@ final class FieldOperationConfigurationService
         FieldOperationConfigurationRevision $source,
         ?string $reason = null,
         ?Request $request = null,
-    ): FieldOperationConfigurationRevision
-    {
+    ): FieldOperationConfigurationRevision {
         abort_unless(
             in_array($source->status, [self::STATUS_PUBLISHED, self::STATUS_ARCHIVED], true),
             409,
