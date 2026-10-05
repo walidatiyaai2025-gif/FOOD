@@ -196,6 +196,31 @@ final class CatalogManagementController extends Controller
                 ->whereIn('store_id', $storeIds)
                 ->get()
                 ->keyBy(fn ($row) => $row->store_id.':'.$row->product_id),
+            'currencies' => DB::table('settings')
+                ->whereIn('store_id', $storeIds)
+                ->whereIn('key', ['store.currency', 'currency', 'default_currency', 'checkout.currency'])
+                ->get(['store_id', 'key', 'value'])
+                ->groupBy('store_id')
+                ->map(function ($rows): ?string {
+                    foreach (['store.currency', 'currency', 'default_currency', 'checkout.currency'] as $key) {
+                        $setting = $rows->firstWhere('key', $key);
+                        if ($setting === null) {
+                            continue;
+                        }
+
+                        $decoded = json_decode((string) $setting->value, true);
+                        if (is_string($decoded) && trim($decoded) !== '') {
+                            return trim($decoded);
+                        }
+
+                        $raw = trim((string) $setting->value, " \\t\\n\\r\\0\\x0B\\\"");
+                        if ($raw !== '') {
+                            return $raw;
+                        }
+                    }
+
+                    return null;
+                }),
             'canManageStores' => $canManageStores,
             'scopeParams' => $scopeParams,
         ]);
