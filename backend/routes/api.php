@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\StorefrontRevisionController;
 use App\Http\Controllers\Api\V1\TranslationController;
+use App\Http\Controllers\Api\V1\TerritoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -152,6 +153,13 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/runtime-inspector/events', MobileSystemInspectorEventController::class)
             ->middleware('throttle:60,1')
             ->name('api.runtime-inspector.events');
+        Route::prefix('/admin/field-operations')->group(function (): void {
+            Route::post('/geography', [TerritoryController::class, 'storeGeography']);
+            Route::post('/territories', [TerritoryController::class, 'storeTerritory']);
+            Route::post('/territories/{territory}/geometry', [TerritoryController::class, 'storeGeometry'])
+                ->whereNumber('territory');
+            Route::post('/territory-resolution', [TerritoryController::class, 'resolve']);
+        });
         Route::post('/admin/app-preview/sessions', [AppPreviewSessionController::class, 'store']);
         Route::delete('/admin/app-preview/sessions/{session}', [AppPreviewSessionController::class, 'destroy'])
             ->whereNumber('session');
