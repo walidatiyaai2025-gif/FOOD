@@ -14,6 +14,7 @@ class CustomerOrdersScreen extends StatefulWidget {
     this.onOpenOrder,
     this.actionApi,
     this.onOpenCart,
+    this.initialChannel = 'b2b',
     super.key,
   });
 
@@ -21,6 +22,7 @@ class CustomerOrdersScreen extends StatefulWidget {
   final ValueChanged<CustomerOrderSummary>? onOpenOrder;
   final CustomerActionApi? actionApi;
   final ValueChanged<CustomerOrderSummary>? onOpenCart;
+  final String initialChannel;
 
   @override
   State<CustomerOrdersScreen> createState() => _CustomerOrdersScreenState();
@@ -44,8 +46,12 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _tabController = TabController(length: _channels.length, vsync: this)
-      ..addListener(_onTabChanged);
+    final initialIndex = _channels.indexOf(widget.initialChannel.toLowerCase());
+    _tabController = TabController(
+      length: _channels.length,
+      vsync: this,
+      initialIndex: initialIndex < 0 ? 0 : initialIndex,
+    )..addListener(_onTabChanged);
     for (final channel in _channels) {
       unawaited(_loadChannel(channel));
     }
