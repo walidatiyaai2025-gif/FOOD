@@ -175,7 +175,10 @@ void main() {
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
-    expect(find.text('لوحة الأعمال'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-dashboard-data')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
   });
 
@@ -450,7 +453,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('لوحة الأعمال'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-dashboard-data')),
+      findsOneWidget,
+    );
     expect(find.text('/b2b/dashboard'), findsNothing);
     expect(
       find.byKey(const ValueKey('customer-route-location')),
