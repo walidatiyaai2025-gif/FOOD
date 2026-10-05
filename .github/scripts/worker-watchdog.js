@@ -3,7 +3,8 @@
 const STATE_MARKER = '<!-- foodex-worker-state:v1 -->';
 const MANAGED_MARKER = '<!-- foodex-worker:managed -->';
 const WATCHDOG_MARKER = '<!-- foodex-watchdog:';
-const STALE_MINUTES = 10;
+const STALE_MINUTES = 30;
+const OWNER_PULSE_STALE_MINUTES = 10;
 
 const RED_CI_CONCLUSIONS = new Set([
   'failure',
@@ -549,7 +550,7 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       }
     }
 
-    const outcome = classify({
+    const outcome = classifyOwnerMission({
       nowMs,
       managed,
       workerState,
