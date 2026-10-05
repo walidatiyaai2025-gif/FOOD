@@ -20,8 +20,14 @@ jobs:
           bash -n scripts/worker-start.sh
           bash -n scripts/worker-preflight.sh
           bash -n scripts/detect-changed-areas.sh
+          bash -n scripts/validate-premerge-release-version.sh
           test -s docs/worker-rules/FIRST_RUN_GREEN.md
           test -s docs/worker-rules/CI_FAILURE_PATTERNS.md
+      - name: Prevent post-merge main release failures
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: bash scripts/validate-premerge-release-version.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+
       - name: Validate Worker Watchdog policy logic
         run: node --test .github/scripts/worker-watchdog.test.js
 
