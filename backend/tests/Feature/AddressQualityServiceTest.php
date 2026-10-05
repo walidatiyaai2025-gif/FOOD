@@ -45,6 +45,26 @@ class AddressQualityServiceTest extends TestCase
         ]);
     }
 
+    public function test_requeue_does_not_silently_create_a_second_review_after_resolution(): void
+    {
+        $actor = User::factory()->create();
+        $service = app(AddressQualityService::class);
+        $review = $service->queue('customer_address', 10);
+
+        $service->confirm($actor, $review, 'territory-a', 'verified');
+
+        $again = $service->queue('customer_address', 10, [
+            'quality_class' => 'low_confidence',
+            'confidence' => 0.20,
+            'reason' => 'new ingestion signal',
+        ]);
+
+        $this->assertSame($review->id, $again->id);
+        $this->assertSame('confirmed', $again->status);
+        $this->assertSame('territory-a', $again->territory_key);
+        $this->assertDatabaseCount('address_quality_reviews', 1);
+    }
+
     public function test_reopen_preserves_correction_history_without_silent_rewrite(): void
     {
         $actor = User::factory()->create();
