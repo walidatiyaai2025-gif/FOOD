@@ -132,7 +132,8 @@ void main() {
     );
     expect(find.text('Buyer Co'), findsOneWidget);
     expect(find.text('Buyer'), findsOneWidget);
-    expect(find.text('عليك 10.000 KWD'), findsOneWidget);
+    expect(find.text('عليك'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('b2b-dashboard-balance-hero')), matching: find.text('10.000 KWD')), findsOneWidget);
     expect(find.text('حد الائتمان'), findsOneWidget);
     expect(find.text('الائتمان المتاح'), findsNWidgets(2));
     expect(find.text('الفواتير المفتوحة'), findsOneWidget);
@@ -238,7 +239,8 @@ void main() {
       Directionality.of(tester.element(find.text('FOODEX Business'))),
       TextDirection.ltr,
     );
-    expect(find.text('Credit to you 20.000 KWD'), findsOneWidget);
+    expect(find.text('Credit to you'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('b2b-dashboard-balance-hero')), matching: find.text('20.000 KWD')), findsOneWidget);
     expect(find.text('Available credit'), findsNWidgets(2));
     expect(find.text('Active orders'), findsOneWidget);
   });

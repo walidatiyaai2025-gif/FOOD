@@ -28,7 +28,11 @@ class DashboardSingleScreen extends StatelessWidget {
       // for landscape/short windows or large accessibility text, where
       // preserving readable content takes precedence over the trial layout.
       final accessible = MediaQuery.textScalerOf(context).scale(14) > 19;
-      final needsAccessibleLayout = constraints.maxHeight < 520 || accessible;
+      final needsAccessibleLayout =
+          constraints.maxHeight < 480 ||
+          MediaQuery.sizeOf(context).width >
+              MediaQuery.sizeOf(context).height ||
+          accessible;
       final height = needsAccessibleLayout
           ? (accessible ? 1050.0 : 700.0)
           : constraints.maxHeight;
@@ -99,7 +103,7 @@ class DashboardPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: 34,
+            height: 24,
             child: Row(
               children: [
                 Icon(icon, size: 22, color: CustomerUiColors.deepGreen),
@@ -178,8 +182,8 @@ class DashboardMetricCard extends StatelessWidget {
       final inline =
           dense && constraints.maxHeight < 48 && !value.contains('.');
       final symbol = Container(
-        width: dense ? 20 : 28,
-        height: dense ? 20 : 28,
+        width: dense ? 18 : 28,
+        height: dense ? 18 : 28,
         decoration: BoxDecoration(
           color: CustomerUiColors.mint,
           borderRadius: BorderRadius.circular(10),
@@ -236,34 +240,43 @@ class DashboardMetricCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (dense)
+                      if (dense) ...[
+                        amount,
+                        const SizedBox(height: 2),
                         Row(
                           children: [
                             symbol,
                             const SizedBox(width: 4),
                             Expanded(
-                              child: Align(
-                                alignment: AlignmentDirectional.centerStart,
-                                child: amount,
+                              child: Text(
+                                label,
+                                maxLines: 2,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      fontSize: 12,
+                                      height: 1.15,
+                                      color: CustomerUiColors.muted,
+                                    ),
                               ),
                             ),
                           ],
-                        )
-                      else ...[
+                        ),
+                      ] else ...[
                         symbol,
                         const SizedBox(height: 4),
                         amount,
-                      ],
-                      const SizedBox(height: 3),
-                      Text(
-                        label,
-                        maxLines: 2,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          height: 1.15,
-                          color: CustomerUiColors.muted,
+                        const SizedBox(height: 3),
+                        Text(
+                          label,
+                          maxLines: 2,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                fontSize: 12,
+                                height: 1.15,
+                                color: CustomerUiColors.muted,
+                              ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
           ),

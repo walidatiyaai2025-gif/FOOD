@@ -160,8 +160,7 @@ class B2bJourneyScreen extends StatelessWidget {
             toolbarHeight: 48,
             backgroundColor: CustomerUiColors.deepGreen,
             foregroundColor: CustomerUiColors.white,
-            actions: [
-              IconButton(
+            leading: IconButton(
                 key: const ValueKey('b2b-dashboard-notifications'),
                 tooltip: context.tr('customer.nav.notifications'),
                 onPressed: () => Navigator.of(context).pushNamed(
@@ -169,7 +168,6 @@ class B2bJourneyScreen extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.notifications_none_rounded),
               ),
-            ],
           ),
           body: SafeArea(
             top: false,
@@ -754,6 +752,13 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     onTap: () => Navigator.of(context).pushNamed(_scopedRoute(route)),
   );
 
+  String _shortTimestamp(String? raw) {
+    final date = raw == null ? null : DateTime.tryParse(raw);
+    if (date == null) return raw ?? '—';
+    final rendered = date.toIso8601String();
+    return '${rendered.substring(0, 10)} ${rendered.substring(11, 16)}';
+  }
+
   Widget _identity(BuildContext context, Map<Object?, Object?> customer,
       Map<Object?, Object?> account, String? generatedAt, bool stale) => Material(
     key: const ValueKey('b2b-dashboard-identity'),
@@ -763,7 +768,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
       side: const BorderSide(color: CustomerUiColors.border),
     ),
     child: Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -780,12 +785,15 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
             Text(customer['email'].toString(), textDirection: TextDirection.ltr, textAlign: TextAlign.right, maxLines: 1,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.2, color: CustomerUiColors.muted)),
           const Spacer(),
-          Text('${context.tr('b2b.dashboard.last_updated')}:',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.15, color: CustomerUiColors.muted)),
-          Text(generatedAt ?? '—',
-            key: const ValueKey('b2b-dashboard-last-updated'),
-            textDirection: TextDirection.ltr, maxLines: 2,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.15, color: CustomerUiColors.muted)),
+          Tooltip(
+            message: '${context.tr('b2b.dashboard.last_updated')}: ${generatedAt ?? '—'}',
+            child: Text(
+              '${context.tr('b2b.dashboard.last_updated')}: ${_shortTimestamp(generatedAt)}',
+              key: const ValueKey('b2b-dashboard-last-updated'),
+              maxLines: 2,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.1, color: CustomerUiColors.muted),
+            ),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -839,7 +847,8 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               Expanded(child: Text(context.tr('b2b.dashboard.balance'), maxLines: 2,
                 style: const TextStyle(color: CustomerUiColors.white, fontSize: 13, height: 1.2))),
             ]),
-            Text('$directionLabel ${_money(balance?.abs(), currency)}', textDirection: TextDirection.ltr, maxLines: 2,
+            Text(directionLabel, maxLines: 2, style: const TextStyle(color: CustomerUiColors.mintStrong, fontSize: 11, height: 1.1)),
+            Text(_money(balance?.abs(), currency), textDirection: TextDirection.ltr, maxLines: 2,
               style: const TextStyle(color: CustomerUiColors.white, fontSize: 17, height: 1.2, fontWeight: FontWeight.w800)),
             Text(context.tr('b2b.dashboard.available_credit'), maxLines: 2,
               style: const TextStyle(color: CustomerUiColors.mintStrong, fontSize: 12, height: 1.15)),
@@ -870,7 +879,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
             Text(context.tr('b2b.dashboard.offers_cta'), maxLines: 1,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, height: 1.2)),
           ])),
-          Icon(Directionality.of(context) == TextDirection.rtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded, color: CustomerUiColors.deepGreen),
+          const Icon(Icons.chevron_right_rounded, color: CustomerUiColors.deepGreen),
         ]),
       ),
     ),

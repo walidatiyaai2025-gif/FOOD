@@ -102,10 +102,12 @@ void main() {
           tester.view.physicalSize = size;
           tester.view.devicePixelRatio = 1;
           tester.view.padding = const FakeViewPadding(top: 24, bottom: 24);
+          tester.view.viewPadding = const FakeViewPadding(top: 24, bottom: 24);
           addTearDown(() {
             tester.view.resetPhysicalSize();
             tester.view.resetDevicePixelRatio();
             tester.view.resetPadding();
+            tester.view.resetViewPadding();
           });
           final key = GlobalKey();
           await tester.pumpWidget(
@@ -177,6 +179,7 @@ void main() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
           tester.view.resetPadding();
+          tester.view.resetViewPadding();
         });
         final api = DashboardApi();
         await tester.pumpWidget(testApp(api));
