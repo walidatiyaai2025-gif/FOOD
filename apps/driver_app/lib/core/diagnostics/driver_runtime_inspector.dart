@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'driver_runtime_platform.dart';
 
-const driverAppVersion = '1.0.55';
+const driverAppVersion = '1.0.56';
 const driverAppBuild = '55';
 
 String sanitizeForDiagnostics(Object? value, {int maxLength = 12000}) {
