@@ -91,6 +91,7 @@ class AdminNavigation
                 $this->routeItemScoped($user, 'app_preview', 'admin.app_preview', 'admin.app-preview.index', 'app_preview.view'),
                 $this->routeItem($user, 'mobile_customer_download', 'admin.mobile_apps.customer_download', 'admin.mobile-apps.customer.download', 'platform.manage'),
                 $this->routeItem($user, 'mobile_driver_download', 'admin.mobile_apps.driver_download', 'admin.mobile-apps.driver.download', 'platform.manage'),
+                $this->routeItem($user, 'mobile_van_download', 'admin.mobile_apps.van_download', 'admin.mobile-apps.van.download', 'platform.manage'),
             ]),
             $this->group('administration', 'admin.nav_groups.administration', '⚙', [
                 $this->routeItemOpen('profile', 'admin.profile', 'admin.profile.index'),
