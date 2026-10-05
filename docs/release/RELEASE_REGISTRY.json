@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.52",
+  "current_version": "1.0.54",
   "releases": [
     {
       "version": "1.0.40",
@@ -146,6 +146,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "214d3551ed09551c07530880232e622955771139566187ca1eb134ecd21391cf",
       "note": "Operational completion release for umbrella #828 after final integrated gate #841, including Store/New Order wizards, catalog ZIP import, stable-code lookups, authoritative out-of-stock, order lifecycle convergence, notification popups, finance exports, Driver live operations and authoritative App Preview parity."
+    },
+    {
+      "version": "1.0.54",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.54.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "fe01ff66fb993d2c56abb89aafcfae9ba7f8afd5fcdf2e81cfaec5ec7ed4edee",
+      "note": "Final C13 synchronized distribution after umbrella #858 and integrated gate #873 / PR #917, including the canonical 13-screen Customer journey, principal Wholesale recovery, authoritative finance/checkout/invoice/Driver flow, and centralized runtime diagnostics."
     }
   ]
 }
