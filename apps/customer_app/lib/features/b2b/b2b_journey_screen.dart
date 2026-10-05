@@ -255,6 +255,29 @@ class B2bJourneyScreen extends StatelessWidget {
       );
     }
 
+    if (hasRemoteState && isProfile) {
+      return withFooter(
+        _B2bMorePage(
+          api: api!,
+          accountApi: accountApi,
+          profileEndpoint: _endpoint()!,
+          financeEndpoint: _accountSummaryEndpoint(),
+          dashboardRoute: _scopedB2bRoute(CustomerRoutePaths.b2bDashboard),
+          purchasesRoute: _scopedB2bRoute(CustomerRoutePaths.b2bPurchaseReports),
+          invoicesRoute: _scopedB2bRoute(CustomerRoutePaths.b2bInvoices),
+          statementRoute: _scopedB2bRoute(CustomerRoutePaths.b2bAccountStatement),
+          ordersRoute: _scopedB2bRoute(CustomerRoutePaths.b2bOrders),
+          notificationsRoute: _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
+          addressesRoute: _scopedB2bRoute(CustomerRoutePaths.b2bAddresses),
+          cartRoute: _b2bCartRoute(),
+          storeId: commerceContext?.storeId,
+          onLocaleChanged: onLocaleChanged,
+          onLogout: onLogout,
+        ),
+        destination,
+      );
+    }
+
     return withFooter(
       Scaffold(
       appBar: AppBar(title: Text(context.tr('b2b.app.title'))),
@@ -3702,6 +3725,772 @@ class _AuthoritativeDataView extends StatelessWidget {
     }
   }
 }
+
+
+class _B2bMorePage extends StatefulWidget {
+  const _B2bMorePage({
+    required this.api,
+    required this.profileEndpoint,
+    required this.financeEndpoint,
+    required this.dashboardRoute,
+    required this.purchasesRoute,
+    required this.invoicesRoute,
+    required this.statementRoute,
+    required this.ordersRoute,
+    required this.notificationsRoute,
+    required this.addressesRoute,
+    required this.cartRoute,
+    this.accountApi,
+    this.storeId,
+    this.onLocaleChanged,
+    this.onLogout,
+  });
+
+  final B2bApi api;
+  final B2cAccountApi? accountApi;
+  final String profileEndpoint;
+  final String financeEndpoint;
+  final String dashboardRoute;
+  final String purchasesRoute;
+  final String invoicesRoute;
+  final String statementRoute;
+  final String ordersRoute;
+  final String notificationsRoute;
+  final String addressesRoute;
+  final String cartRoute;
+  final int? storeId;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
+
+  @override
+  State<_B2bMorePage> createState() => _B2bMorePageState();
+}
+
+class _B2bMorePageState extends State<_B2bMorePage> {
+  static const deep = Color(0xFF00613F);
+  static const dark = Color(0xFF004E35);
+  static const bg = Color(0xFFF1FAF5);
+  static const soft = Color(0xFFE3F6E9);
+  static const border = Color(0xFFE1EBE5);
+  static const ink = Color(0xFF111827);
+  static const muted = Color(0xFF667085);
+
+  late Future<Object?> finance = widget.api.get(widget.financeEndpoint);
+  Future<Object?>? cart;
+  Future<Object?>? notifications;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBadges();
+  }
+
+  @override
+  void didUpdateWidget(covariant _B2bMorePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.api != widget.api ||
+        oldWidget.financeEndpoint != widget.financeEndpoint) {
+      finance = widget.api.get(widget.financeEndpoint);
+    }
+    if (oldWidget.accountApi != widget.accountApi ||
+        oldWidget.storeId != widget.storeId) {
+      _loadBadges();
+    }
+  }
+
+  void _loadBadges() {
+    final a = widget.accountApi;
+    if (a == null) {
+      cart = null;
+      notifications = null;
+      return;
+    }
+    cart = a.cart(storeId: widget.storeId);
+    notifications = a.notifications(
+      locale: WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'en'
+          ? 'en'
+          : 'ar',
+    );
+  }
+
+  int? _cartCount(Object? raw) {
+    if (raw is! Map) return null;
+    final m = Map<Object?, Object?>.from(raw);
+    final direct = int.tryParse(
+      (m['items_count'] ?? m['item_count'] ?? m['count'])?.toString() ?? '',
+    );
+    if (direct != null) return direct;
+    if (m['data'] is Map) return _cartCount(m['data']);
+    return m['items'] is List ? (m['items'] as List).length : null;
+  }
+
+  int? _unreadCount(Object? raw) {
+    if (raw is! Map) return null;
+    final m = Map<Object?, Object?>.from(raw);
+    final direct = int.tryParse(
+      (m['unread_count'] ?? m['unreadCount'] ?? m['unread_total'])?.toString() ?? '',
+    );
+    if (direct != null) return direct;
+    if (m['data'] is Map) return _unreadCount(m['data']);
+    final rows = m['data'] is List
+        ? m['data'] as List
+        : m['notifications'] is List
+            ? m['notifications'] as List
+            : null;
+    if (rows == null) return null;
+    var count = 0;
+    for (final rawRow in rows) {
+      if (rawRow is! Map) continue;
+      final row = Map<Object?, Object?>.from(rawRow);
+      if (row['is_read'] == false || row['read'] == false || row['read_at'] == null) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  void _open(String route) => Navigator.of(context).pushNamed(route);
+
+  Future<void> _showProfile() => showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: bg,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        builder: (_) => SafeArea(
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: .82,
+            maxChildSize: .94,
+            builder: (_, controller) => SingleChildScrollView(
+              controller: controller,
+              padding: const EdgeInsets.all(16),
+              child: B2bBusinessAccountProfile(
+                api: widget.api,
+                endpoint: widget.profileEndpoint,
+                addressesRoute: widget.addressesRoute,
+              ),
+            ),
+          ),
+        ),
+      );
+
+  Future<void> _showSettings() async {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.onLocaleChanged != null)
+                ListTile(
+                  leading: const Icon(Icons.language_rounded),
+                  title: Text(ar ? 'اللغة' : 'Language'),
+                  trailing: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'ar', label: Text('ع')),
+                      ButtonSegment(value: 'en', label: Text('EN')),
+                    ],
+                    selected: {ar ? 'ar' : 'en'},
+                    onSelectionChanged: (value) {
+                      widget.onLocaleChanged!(Locale(value.first));
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+                ),
+              ListTile(
+                leading: const Icon(Icons.support_agent_outlined),
+                title: Text(ar ? 'المساعدة والدعم' : 'Help & support'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _open(CustomerRoutePaths.diagnostics);
+                },
+              ),
+              if (widget.onLogout != null)
+                ListTile(
+                  key: const ValueKey('b2b-more-security-action'),
+                  leading: const Icon(Icons.security_outlined),
+                  title: Text(ar ? 'الأمان وتسجيل الدخول' : 'Security & sign-in'),
+                  trailing: const Icon(Icons.logout_rounded),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    await widget.onLogout!();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final items = <_MoreItem>[
+      _MoreItem(Icons.apartment_rounded, ar ? 'بيانات الشركة' : 'Company details', _showProfile),
+      _MoreItem(Icons.account_balance_wallet_rounded, ar ? 'الحساب المالي' : 'Financial account', () => _open(widget.dashboardRoute)),
+      _MoreItem(Icons.shopping_bag_outlined, ar ? 'طلباتي' : 'My orders', () => _open(widget.ordersRoute)),
+      _MoreItem(Icons.receipt_long_rounded, ar ? 'الفواتير' : 'Invoices', () => _open(widget.invoicesRoute), warm: true),
+      _MoreItem(Icons.credit_card_rounded, ar ? 'كشف الحساب' : 'Account statement', () => _open(widget.statementRoute)),
+      _MoreItem(Icons.bar_chart_rounded, ar ? 'تقرير المشتريات' : 'Purchases report', () => _open(widget.purchasesRoute)),
+      _MoreItem(Icons.notifications_rounded, ar ? 'الإشعارات' : 'Notifications', () => _open(widget.notificationsRoute), warm: true),
+      _MoreItem(Icons.location_on_rounded, ar ? 'العناوين' : 'Addresses', () => _open(widget.addressesRoute)),
+      _MoreItem(Icons.settings_rounded, ar ? 'الإعدادات' : 'Settings', _showSettings),
+      _MoreItem(Icons.language_rounded, ar ? 'اللغة' : 'Language', _showSettings),
+      _MoreItem(Icons.support_agent_rounded, ar ? 'المساعدة والدعم' : 'Help & support', () => _open(CustomerRoutePaths.diagnostics)),
+      if (widget.onLogout != null)
+        _MoreItem(Icons.shield_rounded, ar ? 'الأمان وتسجيل الدخول' : 'Security & sign-in', _showSettings),
+    ];
+
+    return Directionality(
+      textDirection: ar ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        key: const ValueKey('b2b-more-redesign'),
+        backgroundColor: bg,
+        body: Column(
+          children: [
+            _MoreHeader(
+              title: ar ? 'فودكس للأعمال' : 'FOODEX Business',
+              cart: cart,
+              notifications: notifications,
+              cartCount: _cartCount,
+              unreadCount: _unreadCount,
+              onCart: () => _open(widget.cartRoute),
+              onNotifications: () => _open(widget.notificationsRoute),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: ar ? Alignment.centerRight : Alignment.centerLeft,
+                      child: _BusinessTile(
+                        label: ar ? 'لوحة الأعمال' : 'Business dashboard',
+                        onTap: () => _open(widget.dashboardRoute),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      ar ? 'حساب الأعمال' : 'Business account',
+                      style: const TextStyle(
+                        color: ink,
+                        fontSize: 27,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      ar ? 'كل أدوات حسابك في مكان واحد' : 'All your account tools in one place',
+                      style: const TextStyle(
+                        color: muted,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _FinanceCard(
+                      future: finance,
+                      ar: ar,
+                      statementRoute: widget.statementRoute,
+                      open: _open,
+                      retry: () => setState(
+                        () => finance = widget.api.get(widget.financeEndpoint),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    LayoutBuilder(
+                      builder: (_, constraints) {
+                        const gap = 10.0;
+                        final columns = constraints.maxWidth >= 350 ? 3 : 2;
+                        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+                        return Wrap(
+                          spacing: gap,
+                          runSpacing: gap,
+                          children: [
+                            for (final item in items)
+                              SizedBox(
+                                width: width,
+                                height: 128,
+                                child: _MoreCard(item: item),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MoreHeader extends StatelessWidget {
+  const _MoreHeader({
+    required this.title,
+    required this.cart,
+    required this.notifications,
+    required this.cartCount,
+    required this.unreadCount,
+    required this.onCart,
+    required this.onNotifications,
+  });
+
+  final String title;
+  final Future<Object?>? cart;
+  final Future<Object?>? notifications;
+  final int? Function(Object?) cartCount;
+  final int? Function(Object?) unreadCount;
+  final VoidCallback onCart;
+  final VoidCallback onNotifications;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: _B2bMorePageState.deep,
+        child: SafeArea(
+          bottom: false,
+          child: SizedBox(
+            height: 74,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PositionedDirectional(
+                  start: 10,
+                  top: 13,
+                  child: Row(
+                    children: [
+                      FutureBuilder<Object?>(
+                        future: cart,
+                        builder: (_, snap) => _HeaderCircle(
+                          icon: Icons.shopping_cart_outlined,
+                          onTap: onCart,
+                          badge: snap.hasData ? cartCount(snap.data) : null,
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      FutureBuilder<Object?>(
+                        future: notifications,
+                        builder: (_, snap) {
+                          final count = snap.hasData ? unreadCount(snap.data) : null;
+                          return _HeaderCircle(
+                            icon: Icons.notifications_none_rounded,
+                            onTap: onNotifications,
+                            dot: count != null && count > 0,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 104),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDDF4B9),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: const Text(
+                          'B2B',
+                          textDirection: TextDirection.ltr,
+                          style: TextStyle(
+                            color: _B2bMorePageState.dark,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PositionedDirectional(
+                  end: 2,
+                  top: 8,
+                  child: IconButton(
+                    key: const ValueKey('b2b-more-back'),
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    color: Colors.white,
+                    iconSize: 30,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+}
+
+class _HeaderCircle extends StatelessWidget {
+  const _HeaderCircle({required this.icon, required this.onTap, this.badge, this.dot = false});
+  final IconData icon;
+  final VoidCallback onTap;
+  final int? badge;
+  final bool dot;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Material(
+            color: const Color(0x26FFFFFF),
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onTap,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(icon, color: Colors.white, size: 23),
+              ),
+            ),
+          ),
+          if (badge != null && badge! > 0)
+            PositionedDirectional(
+              start: -3,
+              top: -4,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE53935),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  badge! > 99 ? '99+' : badge.toString(),
+                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+          if (dot)
+            PositionedDirectional(
+              start: 1,
+              top: 1,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE53935),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+              ),
+            ),
+        ],
+      );
+}
+
+class _BusinessTile extends StatelessWidget {
+  const _BusinessTile({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          key: const ValueKey('b2b-more-business-dashboard'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
+            width: 166,
+            height: 66,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [Color(0xFFE7F9D8), Color(0xFFCDEFA8)],
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: const [
+                BoxShadow(color: Color(0x18004E35), blurRadius: 16, offset: Offset(0, 6)),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.grid_view_rounded, size: 27, color: _B2bMorePageState.dark),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: _B2bMorePageState.dark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _FinanceCard extends StatelessWidget {
+  const _FinanceCard({
+    required this.future,
+    required this.ar,
+    required this.statementRoute,
+    required this.open,
+    required this.retry,
+  });
+
+  final Future<Object?> future;
+  final bool ar;
+  final String statementRoute;
+  final void Function(String) open;
+  final VoidCallback retry;
+
+  double _n(Object? value) =>
+      value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
+
+  String _money(double value, String currency) =>
+      (currency.trim().isEmpty ? '' : currency.trim() + ' ') + value.toStringAsFixed(3);
+
+  @override
+  Widget build(BuildContext context) => Container(
+        key: const ValueKey('b2b-more-finance-summary'),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: _B2bMorePageState.border),
+          boxShadow: const [
+            BoxShadow(color: Color(0x10004E35), blurRadius: 18, offset: Offset(0, 7)),
+          ],
+        ),
+        child: FutureBuilder<Object?>(
+          future: future,
+          builder: (_, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const SizedBox(height: 136, child: Center(child: CircularProgressIndicator()));
+            }
+            if (snap.hasError) {
+              return SizedBox(
+                height: 136,
+                child: Center(
+                  child: TextButton.icon(
+                    onPressed: retry,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(ar ? 'إعادة المحاولة' : 'Retry'),
+                  ),
+                ),
+              );
+            }
+            final envelope = snap.data is Map
+                ? Map<Object?, Object?>.from(snap.data as Map)
+                : <Object?, Object?>{};
+            final data = envelope['data'] is Map
+                ? Map<Object?, Object?>.from(envelope['data'] as Map)
+                : envelope;
+            final balance = _n(data['balance']);
+            final currency = data['currency']?.toString() ?? '';
+            final direction = data['balance_direction']?.toString() ?? '';
+            final firstLabel = direction == 'customer_owes_company'
+                ? (ar ? 'عليك' : 'You owe')
+                : direction == 'company_owes_customer'
+                    ? (ar ? 'لك' : 'Credit due')
+                    : (ar ? 'الرصيد' : 'Balance');
+            final values = <(String, String)>[
+              (firstLabel, _money(balance.abs(), currency)),
+              (ar ? 'حد الائتمان' : 'Credit limit', _money(_n(data['credit_limit']), currency)),
+              (ar ? 'الائتمان المتاح' : 'Available credit', _money(_n(data['available_credit_line']), currency)),
+              (ar ? 'القوة الشرائية' : 'Purchasing power', _money(_n(data['purchasing_power']), currency)),
+            ];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: _B2bMorePageState.soft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.account_balance_wallet_outlined, color: _B2bMorePageState.deep),
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        ar ? 'ملخص الحساب المالي' : 'Financial account summary',
+                        style: const TextStyle(color: _B2bMorePageState.ink, fontSize: 17, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    for (var i = 0; i < values.length; i++) ...[
+                      if (i > 0) Container(width: 1, height: 48, color: _B2bMorePageState.border),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: Column(
+                            children: [
+                              Text(
+                                values[i].$1,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: _B2bMorePageState.muted, fontSize: 9.5, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 5),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  values[i].$2,
+                                  style: const TextStyle(color: _B2bMorePageState.ink, fontSize: 12, fontWeight: FontWeight.w900),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Material(
+                  color: _B2bMorePageState.soft,
+                  borderRadius: BorderRadius.circular(15),
+                  child: InkWell(
+                    onTap: () => open(statementRoute),
+                    borderRadius: BorderRadius.circular(15),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.open_in_new_rounded, size: 19, color: _B2bMorePageState.deep),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: Text(
+                              ar ? 'فتح كشف الحساب والتفاصيل' : 'Open statement and details',
+                              style: const TextStyle(color: _B2bMorePageState.dark, fontSize: 12.5, fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                          const Icon(Icons.chevron_left_rounded, color: _B2bMorePageState.dark),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+}
+
+class _MoreItem {
+  const _MoreItem(this.icon, this.label, this.onTap, {this.warm = false});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool warm;
+}
+
+class _MoreCard extends StatelessWidget {
+  const _MoreCard({required this.item});
+  final _MoreItem item;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: item.onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
+            padding: const EdgeInsets.fromLTRB(9, 11, 9, 9),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: _B2bMorePageState.border),
+              boxShadow: const [
+                BoxShadow(color: Color(0x0C004E35), blurRadius: 10, offset: Offset(0, 4)),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: item.warm ? const Color(0xFFFFF2D8) : _B2bMorePageState.soft,
+                    borderRadius: BorderRadius.circular(17),
+                  ),
+                  child: Icon(item.icon, color: _B2bMorePageState.deep, size: 31),
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _B2bMorePageState.ink,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          height: 1.08,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF2F6F4),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.chevron_left_rounded, size: 18, color: _B2bMorePageState.dark),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
 
 class _B2bAccountHub extends StatefulWidget {
   const _B2bAccountHub({
