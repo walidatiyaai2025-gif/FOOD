@@ -51,7 +51,7 @@ final class FieldOperationConfigurationService
      * Register or update definition metadata. Runtime values are never changed
      * here; they remain immutable, scoped revisions.
      *
-     * @param array<string,mixed> $validationSchema
+     * @param array<string,mixed>                   $validationSchema
      * @param array<int,array<string,mixed>|string> $dependencies
      */
     public function upsertDefinition(
