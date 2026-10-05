@@ -2,323 +2,282 @@
 <html lang="{{ str_replace('_','-',app()->getLocale()) }}" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ $customer->name }} · {{ app()->getLocale()==='ar'?'العميل 360':'Customer 360' }} · FOODEX</title>
+<title>{{ $customer->name }} · {{ app()->getLocale()==='ar'?'تفاصيل العميل':'Customer details' }} · FOODEX</title>
 @include('admin._brand-components')
 <style>
-.c360-shell{display:grid;gap:var(--foodex-space-5)}.c360-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.c360-card{padding:var(--foodex-space-5)}
-.c360-card h2,.c360-card h3{margin:0}.c360-card p{color:var(--foodex-muted)}.c360-stat{display:grid;gap:4px}.c360-stat strong{font-size:24px}.c360-stat small{color:var(--foodex-muted)}
+body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
+.c360-shell{display:grid;gap:16px}
+.c360-topline{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.c360-breadcrumbs{display:flex;align-items:center;gap:8px;color:var(--foodex-muted);font-size:.86rem;margin-top:5px}
+.c360-breadcrumbs a{color:inherit;text-decoration:none}.c360-breadcrumbs a:hover{color:var(--foodex-green)}
+.c360-summary{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 22px}
+.c360-person{display:flex;align-items:center;gap:14px;min-width:0}.c360-avatar{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:#eef7ff;font-size:34px;flex:0 0 auto}
+.c360-person-copy{min-width:0}.c360-person-copy h2{margin:0;font-size:1.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.c360-person-copy p{margin:5px 0 0;color:var(--foodex-muted)}
+.c360-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.c360-tabs-wrap{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm);overflow-x:auto;scrollbar-width:thin}
+.c360-tabs{display:flex;min-width:max-content}
+.c360-tab{appearance:none;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--foodex-ink);padding:14px 22px;font:inherit;font-weight:800;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:8px;min-height:54px}
+.c360-tab:hover{background:#f8fbf9}.c360-tab[aria-selected="true"]{color:var(--foodex-green-dark);border-bottom-color:var(--foodex-green);background:var(--foodex-green-soft)}
+.c360-tab:focus-visible{outline:3px solid rgba(22,163,74,.18);outline-offset:-3px}
+.c360-tab-icon{width:26px;height:26px;border:1px solid var(--foodex-border);border-radius:8px;display:grid;place-items:center;background:#fff;font-size:14px}
+.c360-panel{display:none}.c360-panel.active{display:block}
+.c360-card{padding:20px}.c360-card h2,.c360-card h3{margin:0}.c360-card p{color:var(--foodex-muted)}
+.c360-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.c360-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.c360-kpi{border:1px solid var(--foodex-border);border-radius:14px;padding:16px;background:#fff;display:grid;gap:6px;min-height:100px}
+.c360-kpi small{color:var(--foodex-muted);font-weight:700}.c360-kpi strong{font-size:1.22rem;word-break:break-word}.c360-kpi.primary{background:linear-gradient(135deg,#f5fff8,#fff)}
+.c360-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.c360-info>div{padding:14px;border:1px solid var(--foodex-border);border-radius:12px;background:#fbfcfd}.c360-info small{display:block;color:var(--foodex-muted);margin-bottom:5px}.c360-info strong{word-break:break-word}
 .c360-badge{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--foodex-border);border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;background:#fff}.c360-badge.active{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:transparent}.c360-badge.b2b{background:#fff7ed;color:#9a3412}.c360-badge.b2c{background:#eefbf4;color:#166534}
-.c360-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.c360-info>div{padding:14px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:#fbfcfd}.c360-info small{display:block;color:var(--foodex-muted);margin-bottom:4px}.c360-info strong{word-break:break-word}
-.c360-table{width:100%;border-collapse:collapse}.c360-table th,.c360-table td{padding:12px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.c360-table th{font-size:12px;color:var(--foodex-muted);background:#f8fafc}.c360-table tr:hover td{background:#fbfefc}
-.c360-list{display:flex;gap:8px;flex-wrap:wrap}.c360-address-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.c360-address-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.c360-address-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.c360-address-form .wide{grid-column:1/-1}.c360-address-form input,.c360-address-form textarea{width:100%}.c360-store{padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;background:#fff;font-weight:800}.c360-actions{display:flex;gap:8px;flex-wrap:wrap}
-@media(max-width:1050px){.c360-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){.c360-grid{grid-template-columns:1fr}.c360-table thead{display:none}.c360-table,.c360-table tbody,.c360-table tr,.c360-table td{display:block;width:100%}.c360-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.c360-table td{border:0;padding:7px 0}.c360-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
+.c360-list{display:flex;gap:8px;flex-wrap:wrap}.c360-store{padding:10px 13px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;font-weight:800}
+.c360-address-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.c360-address-card{padding:15px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}.c360-address-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.c360-address-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.c360-address-form .wide{grid-column:1/-1}.c360-address-form input,.c360-address-form textarea,.c360-address-form select{width:100%;box-sizing:border-box}
+.c360-table-wrap{overflow:auto}.c360-table{width:100%;border-collapse:collapse;min-width:760px}.c360-table th,.c360-table td{padding:12px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:middle}.c360-table th{font-size:12px;color:var(--foodex-muted);background:#f8fafc}.c360-table tr:hover td{background:#fbfefc}
+.c360-empty{padding:42px 20px;text-align:center;color:var(--foodex-muted);border:1px dashed var(--foodex-border);border-radius:12px;background:#fbfcfd}
+.c360-finance-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--foodex-border);border-radius:14px;overflow:hidden}.c360-finance-details>div{padding:15px;border-inline-end:1px solid var(--foodex-border);border-bottom:1px solid var(--foodex-border)}.c360-finance-details>div:nth-child(3n){border-inline-end:0}.c360-finance-details small{display:block;color:var(--foodex-muted);margin-bottom:5px}
+.c360-form-details{margin-top:16px;border-top:1px solid var(--foodex-border);padding-top:14px}.c360-form-details summary{cursor:pointer;font-weight:800}
+@media(max-width:1100px){.c360-kpis{grid-template-columns:repeat(2,1fr)}.c360-finance-details{grid-template-columns:repeat(2,1fr)}.c360-finance-details>div:nth-child(3n){border-inline-end:1px solid var(--foodex-border)}.c360-finance-details>div:nth-child(2n){border-inline-end:0}}
+@media(max-width:720px){.c360-summary{align-items:flex-start}.c360-avatar{width:54px;height:54px;font-size:27px}.c360-kpis{grid-template-columns:1fr}.c360-finance-details{grid-template-columns:1fr}.c360-finance-details>div{border-inline-end:0!important}.c360-address-form{grid-template-columns:1fr}.c360-address-form .wide{grid-column:auto}.c360-tab{padding:12px 15px}.c360-card{padding:15px}}
 </style>
 </head>
 <body>
 @php($ar=app()->getLocale()==='ar')
+@php($finance=$wholesale['financial'] ?? null)
 <div class="foodex-admin-layout">
-    <aside class="sidebar">@include('admin._sidebar')</aside>
-    <main class="foodex-admin-main foodex-admin-page">
-        <header class="foodex-page-header">
-            <div>
-                <span class="foodex-subtitle">FOODEX · CUSTOMER 360 · #{{ $customer->id }}</span>
-                <h1>{{ $customer->name }}</h1>
-                <p>{{ $ar?'عرض موحد للهوية والتعاملات داخل النطاق المصرح لك فقط.':'Unified identity and commerce view restricted to your authorized scope.' }}</p>
-            </div>
-            <div class="c360-actions">
-                <a class="foodex-action-primary" href="#addresses">{{ $ar?'إدارة العناوين':'Manage addresses' }}</a>
-                <a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.index') }}">← {{ $ar?'العودة للعملاء':'Back to customers' }}</a>
-                @include('admin._live-notifications',['user'=>auth()->user()])
-            </div>
-        </header>
+<aside class="sidebar">@include('admin._sidebar')</aside>
+<main class="foodex-admin-main foodex-admin-page">
+<div class="c360-shell">
 
-        <div class="c360-shell">
-            <section class="c360-grid">
-                <article class="foodex-card c360-card c360-stat">
-                    <small>{{ $ar?'الحالة':'Status' }}</small>
-                    <strong>{{ $summary['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</strong>
-                    <span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $summary['registration_source'] }}</span>
-                </article>
-                <article class="foodex-card c360-card c360-stat">
-                    <small>{{ $ar?'الطلبات':'Orders' }}</small>
-                    <strong>{{ number_format($summary['orders_count']) }}</strong>
-                    <span>{{ number_format($summary['orders_total'],3) }} EGP</span>
-                </article>
-                <article class="foodex-card c360-card c360-stat">
-                    <small>{{ $ar?'الفواتير':'Invoices' }}</small>
-                    <strong>{{ number_format($summary['invoices_count']) }}</strong>
-                    <span>{{ number_format($summary['invoices_total'],3) }} EGP</span>
-                </article>
-                <article class="foodex-card c360-card c360-stat">
-                    <small>{{ $ar?'مصدر التسجيل':'Registration origin' }}</small>
-                    <strong style="font-size:16px">{{ $summary['origin']['label'] }}</strong>
-                    <span class="c360-badge {{ $summary['origin']['channel'] }}">{{ strtoupper($summary['origin']['channel']) }}</span>
-                </article>
-            </section>
-
-            <section class="foodex-card c360-card">
-                <h2>{{ $ar?'هوية العميل':'Customer identity' }}</h2>
-                <div class="c360-info" style="margin-top:16px">
-                    <div><small>{{ $ar?'الاسم':'Name' }}</small><strong>{{ $customer->name }}</strong></div>
-                    <div><small>{{ $ar?'البريد الإلكتروني':'Email' }}</small><strong>{{ $customer->email }}</strong></div>
-                    <div><small>{{ $ar?'الهاتف':'Phone' }}</small><strong>{{ $customer->phone ?: '-' }}</strong></div>
-                    <div><small>{{ $ar?'تاريخ التسجيل':'Registered at' }}</small><strong>{{ optional($customer->registered_at)->format('Y-m-d H:i') ?: '-' }}</strong></div>
-                    <div><small>{{ $ar?'قناة التسجيل الأصلية':'Immutable origin channel' }}</small><strong>{{ strtoupper($customer->origin_channel ?: 'unknown') }}</strong></div>
-                    <div><small>{{ $ar?'مصدر التسجيل':'Registration source' }}</small><strong>{{ $customer->registration_source }}</strong></div>
-                </div>
-            </section>
-
-            <section class="foodex-card c360-card" id="addresses">
-                <div class="c360-actions" style="justify-content:space-between;align-items:center">
-                    <div>
-                        <h2>{{ $ar?'عناوين العميل':'Customer addresses' }}</h2>
-                        <p>{{ $ar?'إدارة العناوين المحفوظة للعميل. تعديل العنوان لا يغير عناوين الطلبات السابقة.':'Manage the customer saved addresses. Changes never rewrite historical order delivery snapshots.' }}</p>
-                    </div>
-                    <span class="c360-badge">{{ count($addresses) }} {{ $ar?'عنوان':'addresses' }}</span>
-                </div>
-
-                @if(session('status'))
-                    <div class="foodex-success" style="margin-top:12px">{{ session('status') }}</div>
-                @endif
-
-                @if($errors->any())
-                    <div class="foodex-error" style="margin-top:12px">
-                        {{ $errors->first() }}
-                    </div>
-                @endif
-
-                @if($canManageAddresses)
-                <details style="margin-top:16px">
-                    <summary class="foodex-action-primary" style="display:inline-flex;cursor:pointer">{{ $ar?'إضافة عنوان جديد':'Add new address' }}</summary>
-                    <form method="post" action="{{ route('admin.customer-360.addresses.store',['platformCustomer'=>$customer->id]) }}" class="c360-address-form" style="margin-top:14px">
-                        @csrf
-                        <label><small>{{ $ar?'اسم العنوان':'Label' }}</small><input name="label" maxlength="100" placeholder="{{ $ar?'المنزل / العمل':'Home / Work' }}"></label>
-                        <label><small>{{ $ar?'اسم المستلم':'Recipient' }}</small><input name="recipient_name" maxlength="255"></label>
-                        <label><small>{{ $ar?'هاتف التوصيل':'Delivery phone' }}</small><input name="delivery_phone" maxlength="50"></label>
-                        <label><small>{{ $ar?'المدينة':'City' }}</small><input name="city" maxlength="120" required></label>
-                        <label class="wide"><small>{{ $ar?'العنوان':'Address' }}</small><input name="line1" maxlength="255" required></label>
-                        <label><small>{{ $ar?'المنطقة':'Area' }}</small><input name="area" maxlength="120"></label>
-                        <label><small>{{ $ar?'المحافظة':'Governorate' }}</small><input name="governorate" maxlength="120"></label>
-                        <label><small>{{ $ar?'البلوك':'Block' }}</small><input name="block" maxlength="120"></label>
-                        <label><small>{{ $ar?'المبنى':'Building' }}</small><input name="building" maxlength="120"></label>
-                        <label><small>{{ $ar?'الدور':'Floor' }}</small><input name="floor" maxlength="120"></label>
-                        <label><small>{{ $ar?'الشقة':'Apartment' }}</small><input name="apartment" maxlength="120"></label>
-                        <label><small>{{ $ar?'رمز الدولة':'Country code' }}</small><input name="country_code" maxlength="2" value="EG" required></label>
-                        <label><small>Latitude</small><input name="latitude" type="number" step="0.0000001" min="-90" max="90"></label>
-                        <label><small>Longitude</small><input name="longitude" type="number" step="0.0000001" min="-180" max="180"></label>
-                        <input type="hidden" name="location_source" value="manual">
-                        <label class="wide"><small>{{ $ar?'علامة مميزة':'Landmark' }}</small><input name="landmark" maxlength="255"></label>
-                        <label class="wide"><small>{{ $ar?'ملاحظات التوصيل':'Delivery notes' }}</small><textarea name="delivery_notes" maxlength="1000" rows="2"></textarea></label>
-                        <label class="wide"><input type="checkbox" name="is_default" value="1"> {{ $ar?'تعيين كعنوان افتراضي':'Set as default' }}</label>
-                        <div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ العنوان':'Save address' }}</button></div>
-                    </form>
-                </details>
-                @endif
-
-                <div class="c360-address-grid" style="margin-top:16px">
-                    @forelse($addresses as $address)
-                    <article class="c360-info" style="display:block;padding:14px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control)">
-                        <div style="padding:0;border:0;background:transparent">
-                            <div class="c360-actions" style="justify-content:space-between">
-                                <strong>{{ $address->label ?: ($ar?'عنوان التوصيل':'Delivery address') }}</strong>
-                                @if($address->is_default)<span class="c360-badge active">{{ $ar?'افتراضي':'Default' }}</span>@endif
-                            </div>
-                            <p style="margin:8px 0">{{ collect([$address->building,$address->street ?: $address->line1,$address->block,$address->area,$address->city,$address->governorate])->filter()->join(' · ') }}</p>
-                            @if($address->landmark)<small>{{ $ar?'علامة مميزة':'Landmark' }}: {{ $address->landmark }}</small>@endif
-                            @if($address->latitude!==null && $address->longitude!==null)
-                                <div style="margin-top:8px"><small>{{ number_format((float)$address->latitude,7,'.','') }}, {{ number_format((float)$address->longitude,7,'.','') }}</small></div>
-                                <a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ urlencode((string)$address->latitude.','.(string)$address->longitude) }}">{{ $ar?'فتح على الخريطة':'Open in map' }}</a>
-                            @endif
-
-                            @if($canManageAddresses)
-                            <div class="c360-address-actions" style="margin-top:12px">
-                                @if(!$address->is_default)
-                                <form method="post" action="{{ route('admin.customer-360.addresses.default',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}">
-                                    @csrf
-                                    <button class="foodex-action-secondary button secondary" type="submit">{{ $ar?'تعيين افتراضي':'Set default' }}</button>
-                                </form>
-                                @endif
-                                <form method="post" action="{{ route('admin.customer-360.addresses.destroy',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" onsubmit="return confirm('{{ $ar?'حذف هذا العنوان؟':'Delete this address?' }}')">
-                                    @csrf @method('DELETE')
-                                    <button class="foodex-action-secondary button secondary" type="submit">{{ $ar?'حذف':'Delete' }}</button>
-                                </form>
-                            </div>
-
-                            <details style="margin-top:10px">
-                                <summary style="cursor:pointer;font-weight:800">{{ $ar?'تعديل العنوان':'Edit address' }}</summary>
-                                <form method="post" action="{{ route('admin.customer-360.addresses.update',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" class="c360-address-form" style="margin-top:12px">
-                                    @csrf @method('PATCH')
-                                    <label><small>{{ $ar?'اسم العنوان':'Label' }}</small><input name="label" value="{{ $address->label }}" maxlength="100"></label>
-                                    <label><small>{{ $ar?'اسم المستلم':'Recipient' }}</small><input name="recipient_name" value="{{ $address->recipient_name }}" maxlength="255"></label>
-                                    <label><small>{{ $ar?'هاتف التوصيل':'Delivery phone' }}</small><input name="delivery_phone" value="{{ $address->delivery_phone }}" maxlength="50"></label>
-                                    <label><small>{{ $ar?'المدينة':'City' }}</small><input name="city" value="{{ $address->city }}" maxlength="120"></label>
-                                    <label class="wide"><small>{{ $ar?'العنوان':'Address' }}</small><input name="line1" value="{{ $address->line1 }}" maxlength="255"></label>
-                                    <label><small>{{ $ar?'المنطقة':'Area' }}</small><input name="area" value="{{ $address->area }}" maxlength="120"></label>
-                                    <label><small>{{ $ar?'المحافظة':'Governorate' }}</small><input name="governorate" value="{{ $address->governorate }}" maxlength="120"></label>
-                                    <label><small>{{ $ar?'البلوك':'Block' }}</small><input name="block" value="{{ $address->block }}" maxlength="120"></label>
-                                    <label><small>{{ $ar?'المبنى':'Building' }}</small><input name="building" value="{{ $address->building }}" maxlength="120"></label>
-                                    <label><small>{{ $ar?'الدور':'Floor' }}</small><input name="floor" value="{{ $address->floor }}" maxlength="120"></label>
-                                    <label><small>{{ $ar?'الشقة':'Apartment' }}</small><input name="apartment" value="{{ $address->apartment }}" maxlength="120"></label>
-                                    <label><small>{{ $ar?'رمز الدولة':'Country code' }}</small><input name="country_code" value="{{ $address->country_code }}" maxlength="2"></label>
-                                    <label><small>Latitude</small><input name="latitude" type="number" step="0.0000001" min="-90" max="90" value="{{ $address->latitude }}"></label>
-                                    <label><small>Longitude</small><input name="longitude" type="number" step="0.0000001" min="-180" max="180" value="{{ $address->longitude }}"></label>
-                                    <input type="hidden" name="location_source" value="{{ $address->location_source ?: 'manual' }}">
-                                    <label class="wide"><small>{{ $ar?'علامة مميزة':'Landmark' }}</small><input name="landmark" value="{{ $address->landmark }}" maxlength="255"></label>
-                                    <label class="wide"><small>{{ $ar?'ملاحظات التوصيل':'Delivery notes' }}</small><textarea name="delivery_notes" maxlength="1000" rows="2">{{ $address->delivery_notes }}</textarea></label>
-                                    <div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ التعديل':'Save changes' }}</button></div>
-                                </form>
-                            </details>
-                            @endif
-                        </div>
-                    </article>
-                    @empty
-                    <div class="foodex-empty-state">{{ $ar?'لا توجد عناوين محفوظة لهذا العميل.':'No saved addresses for this customer.' }}</div>
-                    @endforelse
-                </div>
-            </section>
-
-            @if($wholesale)
-            @php($finance = $wholesale['financial'] ?? null)
-            <section class="foodex-card c360-card">
-                <h2>{{ $ar?'حساب الجملة والمالية':'Wholesale account & finance' }}</h2>
-                <div class="c360-info" style="margin-top:16px">
-                    <div><small>{{ $ar?'الشركة':'Company' }}</small><strong>{{ $wholesale['company_name'] ?: $customer->name }}</strong></div>
-                    <div><small>{{ $ar?'الحالة':'Status' }}</small><strong>{{ $wholesale['status'] ?: '-' }}</strong></div>
-                    <div><small>{{ $ar?'شريحة السعر':'Price tier' }}</small><strong>{{ $wholesale['tier_name'] ?: '-' }} @if($wholesale['tier_code'])· {{ $wholesale['tier_code'] }}@endif</strong></div>
-                    @if($finance)
-                    <div>
-                        <small>{{ $ar?'الرصيد الحالي':'Current balance' }}</small>
-                        <strong>
-                            @if($finance['balance_direction']==='customer_owes_company')
-                                {{ $ar?'عليك':'You owe' }}
-                            @elseif($finance['balance_direction']==='company_owes_customer')
-                                {{ $ar?'لك':'Company owes you' }}
-                            @else
-                                {{ $ar?'مسدد':'Settled' }}
-                            @endif
-                            · {{ number_format(abs((float)$finance['balance']),3) }} {{ $finance['currency'] ?: '' }}
-                        </strong>
-                    </div>
-                    <div><small>{{ $ar?'حد الائتمان':'Credit limit' }}</small><strong>{{ number_format((float)$finance['credit_limit'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
-                    <div><small>{{ $ar?'الائتمان المتاح':'Available credit' }}</small><strong>{{ number_format((float)$finance['available_credit_line'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
-                    <div><small>{{ $ar?'قوة الشراء':'Purchasing power' }}</small><strong>{{ number_format((float)$finance['purchasing_power'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
-                    <div><small>{{ $ar?'المبلغ المفتوح':'Open amount' }}</small><strong>{{ number_format((float)$finance['open_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
-                    <div><small>{{ $ar?'المتأخر':'Overdue amount' }}</small><strong>{{ number_format((float)$finance['overdue_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
-                    <div><small>{{ $ar?'آخر دفعة':'Last payment' }}</small><strong>{{ $finance['last_payment']['occurred_at'] ?? '-' }}</strong></div>
-                    <div><small>{{ $ar?'آخر حركة':'Last transaction' }}</small><strong>{{ $finance['last_transaction']['occurred_at'] ?? '-' }}</strong></div>
-                    @else
-                    <div><small>{{ $ar?'حد الائتمان':'Credit limit' }}</small><strong>{{ $wholesale['credit_limit']===null?'-':number_format($wholesale['credit_limit'],3) }}</strong></div>
-                    @endif
-                </div>
-
-                @if($canManageFinance && $finance)
-                <details style="margin-top:16px">
-                    <summary style="cursor:pointer;font-weight:800">{{ $ar?'تسجيل حركة مالية':'Record financial entry' }}</summary>
-                    <p>{{ $ar?'كل حركة تضاف كسجل تدقيق جديد ولا تعدّل الرصيد المخزن مباشرة.':'Each action appends an auditable ledger entry; no stored balance is overwritten.' }}</p>
-                    <form method="post" action="{{ route('admin.customer-360.finance-entries.store',['platformCustomer'=>$customer->id]) }}" class="c360-address-form" style="margin-top:12px">
-                        @csrf
-                        <label>
-                            <small>{{ $ar?'نوع الحركة':'Entry type' }}</small>
-                            <select name="entry_type" required>
-                                <option value="customer_credit">{{ $ar?'إضافة رصيد للعميل':'Add customer credit' }}</option>
-                                <option value="payment">{{ $ar?'دفعة':'Record Payment' }}</option>
-                                <option value="credit_note">{{ $ar?'إشعار دائن':'Credit Note' }}</option>
-                                <option value="debit_note">{{ $ar?'إشعار مدين':'Debit Note' }}</option>
-                                <option value="opening_balance">{{ $ar?'رصيد افتتاحي':'Opening Balance' }}</option>
-                                <option value="adjustment_positive">{{ $ar?'تسوية موجبة':'Positive Adjustment' }}</option>
-                                <option value="adjustment_negative">{{ $ar?'تسوية سالبة':'Negative Adjustment' }}</option>
-                                <option value="return">{{ $ar?'مرتجع':'Return' }}</option>
-                                <option value="refund">{{ $ar?'رد مبلغ':'Refund' }}</option>
-                            </select>
-                        </label>
-                        <label>
-                            <small>{{ $ar?'الاتجاه':'Direction' }}</small>
-                            <select name="direction" required>
-                                <option value="credit">{{ $ar?'دائن — يقلل عليك / يزيد لك':'Credit — reduces amount owed / increases customer credit' }}</option>
-                                <option value="debit">{{ $ar?'مدين — يزيد عليك / يقلل لك':'Debit — increases amount owed / reduces customer credit' }}</option>
-                            </select>
-                        </label>
-                        <label><small>{{ $ar?'المبلغ':'Amount' }}</small><input name="amount" type="number" min="0.001" step="0.001" required></label>
-                        <label><small>{{ $ar?'العملة':'Currency' }}</small><input name="currency" value="{{ $finance['currency'] }}" maxlength="3" minlength="3" required></label>
-                        <label><small>{{ $ar?'مرجع':'Reference' }}</small><input name="reference" maxlength="120"></label>
-                        <label><small>{{ $ar?'رقم الفاتورة الداخلي':'Invoice ID' }}</small><input name="invoice_id" type="number" min="1"></label>
-                        <label class="wide"><small>{{ $ar?'الوصف':'Description' }}</small><input name="description" maxlength="500"></label>
-                        <label><small>{{ $ar?'التاريخ':'Date' }}</small><input name="occurred_at" type="datetime-local"></label>
-                        <div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ الحركة':'Record entry' }}</button></div>
-                    </form>
-                </details>
-                @endif
-            </section>
-            @endif
-
-            @if($access['mode']!=='b2b')
-            <section class="foodex-card c360-card">
-                <h2>{{ $ar?'متاجر التجزئة المرتبطة':'Materialized Retail stores' }}</h2>
-                <p>{{ $ar?'تظهر فقط المتاجر التي يحق لك رؤيتها.':'Only Retail stores inside your authorization scope are shown.' }}</p>
-                <div class="c360-list">
-                    @forelse($retailStores as $store)
-                        <span class="c360-store">{{ $store['name'] }} · {{ $store['code'] }}</span>
-                    @empty
-                        <span class="c360-store">{{ $ar?'لا توجد متاجر ضمن النطاق الحالي':'No Retail stores in the current scope' }}</span>
-                    @endforelse
-                </div>
-            </section>
-            @endif
-
-            <section class="foodex-card c360-card">
-                <h2>{{ $ar?'أحدث الطلبات':'Recent orders' }}</h2>
-                <p>{{ $ar?'كل رابط يفتح مساحة الإدارة الخاصة بنفس القناة والمتجر.':'Each link opens the matching authorized channel/store workspace.' }}</p>
-                @if(empty($orders))
-                    <div class="foodex-empty-state">{{ $ar?'لا توجد طلبات داخل النطاق الحالي.':'No orders in the current scope.' }}</div>
-                @else
-                <div style="overflow:auto;margin-top:12px">
-                    <table class="c360-table">
-                        <thead><tr><th>{{ $ar?'الطلب':'Order' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'التاريخ':'Date' }}</th><th></th></tr></thead>
-                        <tbody>
-                        @foreach($orders as $order)
-                            <tr id="order-{{ $order['id'] }}">
-                                <td data-label="{{ $ar?'الطلب':'Order' }}"><strong>{{ $order['number'] }}</strong></td>
-                                <td data-label="{{ $ar?'المتجر':'Store' }}">{{ $order['store'] }}</td>
-                                <td data-label="{{ $ar?'القناة':'Channel' }}"><span class="c360-badge {{ $order['channel'] }}">{{ strtoupper($order['channel']) }}</span></td>
-                                <td data-label="{{ $ar?'الحالة':'Status' }}">{{ $order['status'] }}</td>
-                                <td data-label="{{ $ar?'الإجمالي':'Total' }}">{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td>
-                                <td data-label="{{ $ar?'التاريخ':'Date' }}">{{ $order['created_at'] }}</td>
-                                <td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ $ar?'إدارة الطلب':'Manage order' }}</a></td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-                @endif
-            </section>
-
-            <section class="foodex-card c360-card">
-                <h2>{{ $ar?'الفواتير':'Invoices' }}</h2>
-                <p>{{ $ar?'الفواتير هنا تستخدم نفس صلاحيات Finance وعزل المتاجر المطبق في النظام.':'Invoice links use the existing Finance authorization and store isolation.' }}</p>
-                @if(empty($invoices))
-                    <div class="foodex-empty-state">{{ $ar?'لا توجد فواتير داخل النطاق الحالي.':'No invoices in the current scope.' }}</div>
-                @else
-                <div style="overflow:auto;margin-top:12px">
-                    <table class="c360-table">
-                        <thead><tr><th>{{ $ar?'الفاتورة':'Invoice' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'الإصدار':'Issued' }}</th><th></th></tr></thead>
-                        <tbody>
-                        @foreach($invoices as $invoice)
-                            <tr>
-                                <td data-label="{{ $ar?'الفاتورة':'Invoice' }}"><strong>{{ $invoice['number'] }}</strong></td>
-                                <td data-label="{{ $ar?'المتجر':'Store' }}">{{ $invoice['store'] }}</td>
-                                <td data-label="{{ $ar?'القناة':'Channel' }}"><span class="c360-badge {{ $invoice['channel'] }}">{{ strtoupper($invoice['channel']) }}</span></td>
-                                <td data-label="{{ $ar?'الحالة':'Status' }}">{{ $invoice['status'] }}</td>
-                                <td data-label="{{ $ar?'الإجمالي':'Total' }}">{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td>
-                                <td data-label="{{ $ar?'الإصدار':'Issued' }}">{{ $invoice['issued_at'] ?: '-' }}</td>
-                                <td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ $ar?'التفاصيل':'Details' }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-                @endif
-            </section>
-        </div>
-    </main>
+<div class="c360-topline">
+<div>
+<h1 style="margin:0">{{ $ar?'تفاصيل العميل':'Customer details' }}</h1>
+<div class="c360-breadcrumbs">
+<a href="{{ route('admin.customer-360.index') }}">{{ $ar?'العملاء':'Customers' }}</a><span>›</span>
+<a href="{{ route('admin.customer-360.index') }}">{{ $ar?'قائمة العملاء':'Customer list' }}</a><span>›</span>
+<span>{{ $ar?'تفاصيل العميل':'Customer details' }}</span>
 </div>
-</body></html>
+</div>
+<div class="c360-actions">
+<a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.index') }}">← {{ $ar?'عودة إلى القائمة':'Back to list' }}</a>
+@include('admin._live-notifications',['user'=>auth()->user()])
+</div>
+</div>
+
+<section class="foodex-card c360-summary">
+<div class="c360-person">
+<div class="c360-avatar" aria-hidden="true">🏪</div>
+<div class="c360-person-copy">
+<h2>{{ $customer->name }}</h2>
+<p>#{{ $customer->id }} · {{ $summary['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</p>
+</div>
+</div>
+<span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $summary['registration_source'] }}</span>
+</section>
+
+@if(session('status'))<div class="foodex-success">{{ session('status') }}</div>@endif
+@if($errors->any())<div class="foodex-error">{{ $errors->first() }}</div>@endif
+
+<div class="c360-tabs-wrap">
+<div class="c360-tabs" role="tablist" aria-label="{{ $ar?'أقسام تفاصيل العميل':'Customer detail sections' }}">
+<button class="c360-tab" type="button" role="tab" id="tab-finance" aria-controls="panel-finance" aria-selected="true" data-c360-tab="finance"><span class="c360-tab-icon">▣</span>{{ $ar?'الحسابات والمالية':'Accounts & finance' }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-identity" aria-controls="panel-identity" aria-selected="false" data-c360-tab="identity"><span class="c360-tab-icon">♙</span>{{ $ar?'هوية العميل':'Customer identity' }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-addresses" aria-controls="panel-addresses" aria-selected="false" data-c360-tab="addresses"><span class="c360-tab-icon">⌖</span>{{ $ar?'عناوين العميل':'Customer addresses' }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-stores" aria-controls="panel-stores" aria-selected="false" data-c360-tab="stores"><span class="c360-tab-icon">▦</span>{{ $ar?'متاجر التجزئة المرتبطة':'Linked retail stores' }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-orders" aria-controls="panel-orders" aria-selected="false" data-c360-tab="orders"><span class="c360-tab-icon">🛒</span>{{ $ar?'أحدث الطلبات':'Recent orders' }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-invoices" aria-controls="panel-invoices" aria-selected="false" data-c360-tab="invoices"><span class="c360-tab-icon">▤</span>{{ $ar?'الفواتير':'Invoices' }}</button>
+</div>
+</div>
+
+<section class="c360-panel active" id="panel-finance" role="tabpanel" aria-labelledby="tab-finance" data-c360-panel="finance">
+<div class="foodex-card c360-card">
+<div class="c360-section-head"><h2>{{ $ar?'الحسابات والمالية':'Accounts & finance' }}</h2>@if($wholesale)<span class="c360-badge {{ strtolower((string)($wholesale['status'] ?? ''))==='active'?'active':'' }}">{{ $wholesale['status'] ?: '-' }}</span>@endif</div>
+@if($wholesale)
+<div class="c360-kpis">
+@if($finance)
+<article class="c360-kpi primary"><small>{{ $ar?'الرصيد الحالي':'Current balance' }}</small><strong>{{ number_format(abs((float)$finance['balance']),3) }} {{ $finance['currency'] ?: '' }}</strong><span class="muted">@if($finance['balance_direction']==='customer_owes_company'){{ $ar?'مستحق على العميل':'Customer owes company' }}@elseif($finance['balance_direction']==='company_owes_customer'){{ $ar?'رصيد لصالح العميل':'Company owes customer' }}@else{{ $ar?'الحساب مسدد':'Settled' }}@endif</span></article>
+<article class="c360-kpi"><small>{{ $ar?'الحد الائتماني':'Credit limit' }}</small><strong>{{ number_format((float)$finance['credit_limit'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
+<article class="c360-kpi"><small>{{ $ar?'الرصيد المتاح':'Available credit' }}</small><strong>{{ number_format((float)$finance['available_credit_line'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
+<article class="c360-kpi"><small>{{ $ar?'القوة الشرائية':'Purchasing power' }}</small><strong>{{ number_format((float)$finance['purchasing_power'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
+@endif
+</div>
+<div class="c360-finance-details">
+<div><small>{{ $ar?'الشركة':'Company' }}</small><strong>{{ $wholesale['company_name'] ?: $customer->name }}</strong></div>
+<div><small>{{ $ar?'شريحة السعر':'Price tier' }}</small><strong>{{ $wholesale['tier_name'] ?: '-' }} @if($wholesale['tier_code'])· {{ $wholesale['tier_code'] }}@endif</strong></div>
+<div><small>{{ $ar?'حالة الحساب':'Account status' }}</small><strong>{{ $wholesale['status'] ?: '-' }}</strong></div>
+@if($finance)
+<div><small>{{ $ar?'المبلغ المفتوح':'Open amount' }}</small><strong>{{ number_format((float)$finance['open_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
+<div><small>{{ $ar?'المتأخر':'Overdue amount' }}</small><strong>{{ number_format((float)$finance['overdue_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
+<div><small>{{ $ar?'آخر دفعة':'Last payment' }}</small><strong>{{ $finance['last_payment']['occurred_at'] ?? '-' }}</strong></div>
+<div><small>{{ $ar?'آخر حركة':'Last transaction' }}</small><strong>{{ $finance['last_transaction']['occurred_at'] ?? '-' }}</strong></div>
+@else
+<div><small>{{ $ar?'حد الائتمان':'Credit limit' }}</small><strong>{{ $wholesale['credit_limit']===null?'-':number_format($wholesale['credit_limit'],3) }}</strong></div>
+@endif
+</div>
+@if($canManageFinance && $finance)
+<details class="c360-form-details">
+<summary>{{ $ar?'تسجيل حركة مالية':'Record financial entry' }}</summary>
+<form method="post" action="{{ route('admin.customer-360.finance-entries.store',['platformCustomer'=>$customer->id]) }}" class="c360-address-form" style="margin-top:14px">
+@csrf
+<label><small>{{ $ar?'نوع الحركة':'Entry type' }}</small><select name="entry_type" required><option value="customer_credit">{{ $ar?'إضافة رصيد للعميل':'Add customer credit' }}</option><option value="payment">{{ $ar?'دفعة':'Record Payment' }}</option><option value="credit_note">{{ $ar?'إشعار دائن':'Credit Note' }}</option><option value="debit_note">{{ $ar?'إشعار مدين':'Debit Note' }}</option><option value="opening_balance">{{ $ar?'رصيد افتتاحي':'Opening Balance' }}</option><option value="adjustment_positive">{{ $ar?'تسوية موجبة':'Positive Adjustment' }}</option><option value="adjustment_negative">{{ $ar?'تسوية سالبة':'Negative Adjustment' }}</option><option value="return">{{ $ar?'مرتجع':'Return' }}</option><option value="refund">{{ $ar?'رد مبلغ':'Refund' }}</option></select></label>
+<label><small>{{ $ar?'الاتجاه':'Direction' }}</small><select name="direction" required><option value="credit">{{ $ar?'دائن':'Credit' }}</option><option value="debit">{{ $ar?'مدين':'Debit' }}</option></select></label>
+<label><small>{{ $ar?'المبلغ':'Amount' }}</small><input name="amount" type="number" min="0.001" step="0.001" required></label>
+<label><small>{{ $ar?'العملة':'Currency' }}</small><input name="currency" value="{{ $finance['currency'] }}" maxlength="3" minlength="3" required></label>
+<label><small>{{ $ar?'مرجع':'Reference' }}</small><input name="reference" maxlength="120"></label>
+<label><small>{{ $ar?'رقم الفاتورة الداخلي':'Invoice ID' }}</small><input name="invoice_id" type="number" min="1"></label>
+<label class="wide"><small>{{ $ar?'الوصف':'Description' }}</small><input name="description" maxlength="500"></label>
+<label><small>{{ $ar?'التاريخ':'Date' }}</small><input name="occurred_at" type="datetime-local"></label>
+<div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ الحركة':'Record entry' }}</button></div>
+</form>
+</details>
+@endif
+@else
+<div class="c360-empty">{{ $ar?'لا يوجد حساب جملة/مالي مرتبط بهذا العميل ضمن النطاق الحالي.':'No wholesale/financial account is linked to this customer in the current scope.' }}</div>
+@endif
+</div>
+</section>
+
+<section class="c360-panel" id="panel-identity" role="tabpanel" aria-labelledby="tab-identity" data-c360-panel="identity" hidden>
+<div class="foodex-card c360-card">
+<div class="c360-section-head"><h2>{{ $ar?'هوية العميل':'Customer identity' }}</h2><span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $summary['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div>
+<div class="c360-info">
+<div><small>{{ $ar?'الاسم':'Name' }}</small><strong>{{ $customer->name }}</strong></div>
+<div><small>{{ $ar?'البريد الإلكتروني':'Email' }}</small><strong>{{ $customer->email }}</strong></div>
+<div><small>{{ $ar?'الهاتف':'Phone' }}</small><strong>{{ $customer->phone ?: '-' }}</strong></div>
+<div><small>{{ $ar?'تاريخ التسجيل':'Registered at' }}</small><strong>{{ optional($customer->registered_at)->format('Y-m-d H:i') ?: '-' }}</strong></div>
+<div><small>{{ $ar?'قناة التسجيل الأصلية':'Origin channel' }}</small><strong>{{ strtoupper($customer->origin_channel ?: 'unknown') }}</strong></div>
+<div><small>{{ $ar?'مصدر التسجيل':'Registration source' }}</small><strong>{{ $customer->registration_source }}</strong></div>
+<div><small>{{ $ar?'مصدر/متجر التسجيل':'Registration origin' }}</small><strong>{{ $summary['origin']['label'] }}</strong></div>
+</div>
+</div>
+</section>
+
+<section class="c360-panel" id="panel-addresses" role="tabpanel" aria-labelledby="tab-addresses" data-c360-panel="addresses" hidden>
+<div class="foodex-card c360-card">
+<div class="c360-section-head"><div><h2>{{ $ar?'عناوين العميل':'Customer addresses' }}</h2><p>{{ $ar?'إدارة العناوين المحفوظة للعميل.':'Manage the customer saved addresses.' }}</p></div><span class="c360-badge">{{ count($addresses) }} {{ $ar?'عنوان':'addresses' }}</span></div>
+@if($canManageAddresses)
+<details class="c360-form-details" style="margin-top:0;margin-bottom:16px;border-top:0;padding-top:0">
+<summary class="foodex-action-primary" style="display:inline-flex">{{ $ar?'إضافة عنوان جديد':'Add new address' }}</summary>
+<form method="post" action="{{ route('admin.customer-360.addresses.store',['platformCustomer'=>$customer->id]) }}" class="c360-address-form" style="margin-top:14px">@csrf
+<label><small>{{ $ar?'اسم العنوان':'Label' }}</small><input name="label" maxlength="100" placeholder="{{ $ar?'المنزل / العمل':'Home / Work' }}"></label>
+<label><small>{{ $ar?'اسم المستلم':'Recipient' }}</small><input name="recipient_name" maxlength="255"></label>
+<label><small>{{ $ar?'هاتف التوصيل':'Delivery phone' }}</small><input name="delivery_phone" maxlength="50"></label>
+<label><small>{{ $ar?'المدينة':'City' }}</small><input name="city" maxlength="120" required></label>
+<label class="wide"><small>{{ $ar?'العنوان':'Address' }}</small><input name="line1" maxlength="255" required></label>
+<label><small>{{ $ar?'المنطقة':'Area' }}</small><input name="area" maxlength="120"></label>
+<label><small>{{ $ar?'المحافظة':'Governorate' }}</small><input name="governorate" maxlength="120"></label>
+<label><small>{{ $ar?'البلوك':'Block' }}</small><input name="block" maxlength="120"></label>
+<label><small>{{ $ar?'المبنى':'Building' }}</small><input name="building" maxlength="120"></label>
+<label><small>{{ $ar?'الدور':'Floor' }}</small><input name="floor" maxlength="120"></label>
+<label><small>{{ $ar?'الشقة':'Apartment' }}</small><input name="apartment" maxlength="120"></label>
+<label><small>{{ $ar?'رمز الدولة':'Country code' }}</small><input name="country_code" maxlength="2" required></label>
+<label><small>Latitude</small><input name="latitude" type="number" step="0.0000001" min="-90" max="90"></label>
+<label><small>Longitude</small><input name="longitude" type="number" step="0.0000001" min="-180" max="180"></label>
+<input type="hidden" name="location_source" value="manual">
+<label class="wide"><small>{{ $ar?'علامة مميزة':'Landmark' }}</small><input name="landmark" maxlength="255"></label>
+<label class="wide"><small>{{ $ar?'ملاحظات التوصيل':'Delivery notes' }}</small><textarea name="delivery_notes" maxlength="1000" rows="2"></textarea></label>
+<label class="wide"><input type="checkbox" name="is_default" value="1"> {{ $ar?'تعيين كعنوان افتراضي':'Set as default' }}</label>
+<div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ العنوان':'Save address' }}</button></div>
+</form>
+</details>
+@endif
+<div class="c360-address-grid">
+@forelse($addresses as $address)
+<article class="c360-address-card">
+<div class="c360-actions" style="justify-content:space-between"><strong>{{ $address->label ?: ($ar?'عنوان التوصيل':'Delivery address') }}</strong>@if($address->is_default)<span class="c360-badge active">{{ $ar?'افتراضي':'Default' }}</span>@endif</div>
+<p style="margin:8px 0">{{ collect([$address->building,$address->street ?: $address->line1,$address->block,$address->area,$address->city,$address->governorate])->filter()->join(' · ') }}</p>
+@if($address->landmark)<small>{{ $ar?'علامة مميزة':'Landmark' }}: {{ $address->landmark }}</small>@endif
+@if($address->latitude!==null && $address->longitude!==null)<div style="margin-top:8px"><small>{{ number_format((float)$address->latitude,7,'.','') }}, {{ number_format((float)$address->longitude,7,'.','') }}</small></div><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ urlencode((string)$address->latitude.','.(string)$address->longitude) }}">{{ $ar?'فتح على الخريطة':'Open in map' }}</a>@endif
+@if($canManageAddresses)
+<div class="c360-address-actions" style="margin-top:12px">
+@if(!$address->is_default)<form method="post" action="{{ route('admin.customer-360.addresses.default',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}">@csrf<button class="foodex-action-secondary button secondary" type="submit">{{ $ar?'تعيين افتراضي':'Set default' }}</button></form>@endif
+<form method="post" action="{{ route('admin.customer-360.addresses.destroy',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" onsubmit="return confirm('{{ $ar?'حذف هذا العنوان؟':'Delete this address?' }}')">@csrf @method('DELETE')<button class="foodex-action-secondary button secondary" type="submit">{{ $ar?'حذف':'Delete' }}</button></form>
+</div>
+<details class="c360-form-details"><summary>{{ $ar?'تعديل العنوان':'Edit address' }}</summary>
+<form method="post" action="{{ route('admin.customer-360.addresses.update',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" class="c360-address-form" style="margin-top:12px">@csrf @method('PATCH')
+<label><small>{{ $ar?'اسم العنوان':'Label' }}</small><input name="label" value="{{ $address->label }}" maxlength="100"></label><label><small>{{ $ar?'اسم المستلم':'Recipient' }}</small><input name="recipient_name" value="{{ $address->recipient_name }}" maxlength="255"></label><label><small>{{ $ar?'هاتف التوصيل':'Delivery phone' }}</small><input name="delivery_phone" value="{{ $address->delivery_phone }}" maxlength="50"></label><label><small>{{ $ar?'المدينة':'City' }}</small><input name="city" value="{{ $address->city }}" maxlength="120"></label><label class="wide"><small>{{ $ar?'العنوان':'Address' }}</small><input name="line1" value="{{ $address->line1 }}" maxlength="255"></label><label><small>{{ $ar?'المنطقة':'Area' }}</small><input name="area" value="{{ $address->area }}" maxlength="120"></label><label><small>{{ $ar?'المحافظة':'Governorate' }}</small><input name="governorate" value="{{ $address->governorate }}" maxlength="120"></label><label><small>{{ $ar?'البلوك':'Block' }}</small><input name="block" value="{{ $address->block }}" maxlength="120"></label><label><small>{{ $ar?'المبنى':'Building' }}</small><input name="building" value="{{ $address->building }}" maxlength="120"></label><label><small>{{ $ar?'الدور':'Floor' }}</small><input name="floor" value="{{ $address->floor }}" maxlength="120"></label><label><small>{{ $ar?'الشقة':'Apartment' }}</small><input name="apartment" value="{{ $address->apartment }}" maxlength="120"></label><label><small>{{ $ar?'رمز الدولة':'Country code' }}</small><input name="country_code" value="{{ $address->country_code }}" maxlength="2"></label><label><small>Latitude</small><input name="latitude" type="number" step="0.0000001" min="-90" max="90" value="{{ $address->latitude }}"></label><label><small>Longitude</small><input name="longitude" type="number" step="0.0000001" min="-180" max="180" value="{{ $address->longitude }}"></label><input type="hidden" name="location_source" value="{{ $address->location_source ?: 'manual' }}"><label class="wide"><small>{{ $ar?'علامة مميزة':'Landmark' }}</small><input name="landmark" value="{{ $address->landmark }}" maxlength="255"></label><label class="wide"><small>{{ $ar?'ملاحظات التوصيل':'Delivery notes' }}</small><textarea name="delivery_notes" maxlength="1000" rows="2">{{ $address->delivery_notes }}</textarea></label><div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ التعديل':'Save changes' }}</button></div>
+</form></details>
+@endif
+</article>
+@empty<div class="c360-empty">{{ $ar?'لا توجد عناوين محفوظة لهذا العميل.':'No saved addresses for this customer.' }}</div>@endforelse
+</div>
+</div>
+</section>
+
+<section class="c360-panel" id="panel-stores" role="tabpanel" aria-labelledby="tab-stores" data-c360-panel="stores" hidden>
+<div class="foodex-card c360-card">
+<div class="c360-section-head"><h2>{{ $ar?'متاجر التجزئة المرتبطة':'Linked retail stores' }}</h2></div>
+@if($access['mode']!=='b2b')
+<div class="c360-list">@forelse($retailStores as $store)<span class="c360-store">{{ $store['name'] }} · {{ $store['code'] }}</span>@empty<div class="c360-empty" style="width:100%">{{ $ar?'لا توجد متاجر ضمن النطاق الحالي.':'No Retail stores in the current scope.' }}</div>@endforelse</div>
+@else
+<div class="c360-empty">{{ $ar?'لا تتوفر متاجر تجزئة ضمن هذا النطاق.':'Retail stores are not available in this scope.' }}</div>
+@endif
+</div>
+</section>
+
+<section class="c360-panel" id="panel-orders" role="tabpanel" aria-labelledby="tab-orders" data-c360-panel="orders" hidden>
+<div class="foodex-card c360-card">
+<div class="c360-section-head"><h2>{{ $ar?'أحدث الطلبات':'Recent orders' }}</h2><span class="c360-badge">{{ count($orders) }}</span></div>
+@if(empty($orders))<div class="c360-empty">{{ $ar?'لا توجد طلبات داخل النطاق الحالي.':'No orders in the current scope.' }}</div>@else
+<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ $ar?'الطلب':'Order' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'التاريخ':'Date' }}</th><th></th></tr></thead><tbody>
+@foreach($orders as $order)<tr id="order-{{ $order['id'] }}"><td><strong>{{ $order['number'] }}</strong></td><td>{{ $order['store'] }}</td><td><span class="c360-badge {{ $order['channel'] }}">{{ strtoupper($order['channel']) }}</span></td><td>{{ $order['status'] }}</td><td>{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ $ar?'إدارة الطلب':'Manage order' }}</a></td></tr>@endforeach
+</tbody></table></div>@endif
+</div>
+</section>
+
+<section class="c360-panel" id="panel-invoices" role="tabpanel" aria-labelledby="tab-invoices" data-c360-panel="invoices" hidden>
+<div class="foodex-card c360-card">
+<div class="c360-section-head"><h2>{{ $ar?'الفواتير':'Invoices' }}</h2><span class="c360-badge">{{ count($invoices) }}</span></div>
+@if(empty($invoices))<div class="c360-empty">{{ $ar?'لا توجد فواتير داخل النطاق الحالي.':'No invoices in the current scope.' }}</div>@else
+<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ $ar?'الفاتورة':'Invoice' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'الإصدار':'Issued' }}</th><th></th></tr></thead><tbody>
+@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ strtoupper($invoice['channel']) }}</span></td><td>{{ $invoice['status'] }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ $ar?'التفاصيل':'Details' }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td></tr>@endforeach
+</tbody></table></div>@endif
+</div>
+</section>
+
+</div>
+</main>
+</div>
+<script>
+(() => {
+    const tabs = Array.from(document.querySelectorAll('[data-c360-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-c360-panel]'));
+
+    const activate = (name, updateHash = false) => {
+        const target = tabs.find((tab) => tab.dataset.c360Tab === name);
+        if (!target) return;
+
+        tabs.forEach((tab) => {
+            const active = tab === target;
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            tab.tabIndex = active ? 0 : -1;
+        });
+
+        panels.forEach((panel) => {
+            const active = panel.dataset.c360Panel === name;
+            panel.classList.toggle('active', active);
+            panel.hidden = !active;
+        });
+
+        if (updateHash) history.replaceState(null, '', '#'+name);
+        target.scrollIntoView({block:'nearest', inline:'nearest'});
+    };
+
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => activate(tab.dataset.c360Tab, true));
+        tab.addEventListener('keydown', (event) => {
+            if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+            event.preventDefault();
+            let next = index;
+            if (event.key === 'Home') next = 0;
+            else if (event.key === 'End') next = tabs.length - 1;
+            else if (event.key === 'ArrowLeft') next = Math.max(0, index - 1);
+            else next = Math.min(tabs.length - 1, index + 1);
+            tabs[next].focus();
+            activate(tabs[next].dataset.c360Tab, true);
+        });
+    });
+
+    const requested = location.hash.replace('#','');
+    activate(['finance','identity','addresses','stores','orders','invoices'].includes(requested) ? requested : 'finance');
+})();
+</script>
+</body>
+</html>
