@@ -666,6 +666,7 @@ void main() {
       findsOneWidget,
     );
     for (final destination in [
+      'home',
       'products',
       'orders',
       'invoices',
@@ -676,7 +677,7 @@ void main() {
         findsOneWidget,
       );
     }
-    expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
+    expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
     expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
     expect(
       find.byKey(const ValueKey('marketplace-notifications')),
@@ -1227,7 +1228,7 @@ void main() {
     Navigator.of(tester.element(find.byKey(const ValueKey('route-name')))).pop();
     await tester.pumpAndSettle();
 
-    for (final destination in ['products', 'orders', 'invoices', 'account']) {
+    for (final destination in ['home', 'products', 'orders', 'invoices', 'account']) {
       expect(
         find.byKey(ValueKey('customer-footer-$destination')),
         findsOneWidget,
@@ -1241,7 +1242,7 @@ void main() {
     route = Uri.parse(
       tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
     );
-    expect(route.path, '/b2b/home');
+    expect(route.path, '/b2b/products');
     expect(route.queryParameters['store_id'], '70');
     expect(route.queryParameters['channel'], 'wholesale');
 
