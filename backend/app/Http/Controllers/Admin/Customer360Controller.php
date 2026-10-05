@@ -231,20 +231,21 @@ final class Customer360Controller extends Controller
         ]);
         $creditLimit = round((float) $validated['credit_limit'], 3);
 
-        $account = DB::transaction(function () use ($domain, $creditLimit): B2bAccount {
+        [$account, $previousCreditLimit] = DB::transaction(function () use ($domain, $creditLimit): array {
             $account = B2bAccount::query()
                 ->where('b2b_customer_id', $domain->getKey())
                 ->where('status', 'active')
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            $previousCreditLimit = round((float) $account->credit_limit, 3);
             $account->credit_limit = $creditLimit;
             $account->save();
 
-            return $account;
+            return [$account, $previousCreditLimit];
         }, 3);
 
-        $before = ['credit_limit' => round((float) $account->getOriginal('credit_limit'), 3)];
+        $before = ['credit_limit' => $previousCreditLimit];
         $after = ['credit_limit' => round((float) $account->credit_limit, 3)];
 
         $audit->record(
