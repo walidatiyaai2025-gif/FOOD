@@ -3,6 +3,7 @@ set -euo pipefail
 
 base="${1:-}"
 head="${2:-HEAD}"
+target_ref="${3:-${GITHUB_BASE_REF:-main}}"
 
 if [[ -z "$base" ]]; then
   if git rev-parse --verify origin/main >/dev/null 2>&1; then
