@@ -185,7 +185,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
         child: Column(
           children: [
             SizedBox(
-              height: 76,
+              height: 64,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -194,7 +194,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: const Color(0xFF111827),
                           fontWeight: FontWeight.w900,
-                          fontSize: 25,
+                          fontSize: 21,
                         ),
                   ),
                   Positioned(
@@ -209,10 +209,10 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                             ? null
                             : () => unawaited(_loadChannel(_activeChannel)),
                         child: const SizedBox.square(
-                          dimension: 46,
+                          dimension: 44,
                           child: Icon(
                             Icons.refresh_rounded,
-                            size: 28,
+                            size: 24,
                             color: Color(0xFF14221D),
                           ),
                         ),
@@ -274,9 +274,9 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
             borderRadius: BorderRadius.circular(18),
             onTap: tab.loading ? null : onTap,
             child: Container(
-              height: 46,
-              constraints: const BoxConstraints(minWidth: 82),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              height: 42,
+              constraints: const BoxConstraints(minWidth: 76),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
@@ -313,7 +313,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                           color: selected
                               ? Colors.white
                               : const Color(0xFF303A36),
-                          fontSize: 15,
+                          fontSize: 13,
                           fontWeight:
                               selected ? FontWeight.w800 : FontWeight.w600,
                         ),
@@ -902,8 +902,8 @@ class _OrderCard extends StatelessWidget {
             ? null
             : () => _showQuickActions(context),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 118),
-          padding: const EdgeInsetsDirectional.fromSTEB(14, 14, 14, 14),
+          constraints: const BoxConstraints(minHeight: 108),
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 12, 12),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -929,8 +929,8 @@ class _OrderCard extends StatelessWidget {
                   ),
                 const SizedBox(width: 8),
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: const Color(0xFFE7F7F1),
                     borderRadius: BorderRadius.circular(14),
@@ -941,7 +941,7 @@ class _OrderCard extends StatelessWidget {
                     color: Color(0xFF087354),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -988,7 +988,7 @@ class _OrderCard extends StatelessWidget {
                                 _formatDateTime(order.createdAt!),
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: const Color(0xFF69736F),
-                                      fontSize: 12.5,
+                                      fontSize: 11.5,
                                     ),
                               ),
                               const SizedBox(width: 8),
@@ -1062,8 +1062,8 @@ class _CompactOrderStatusChip extends StatelessWidget {
     };
 
     return Container(
-      constraints: const BoxConstraints(minWidth: 82, maxWidth: 104),
-      padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 11, 8),
+      constraints: const BoxConstraints(minWidth: 72, maxWidth: 96),
+      padding: const EdgeInsetsDirectional.fromSTEB(10, 5, 9, 5),
       decoration: BoxDecoration(
         color: colors.background,
         borderRadius: BorderRadius.circular(18),
