@@ -28,6 +28,10 @@ final class SystemInspectorRecorder
             return;
         }
 
+        if ($status === 404 && $this->isKnownScannerProbe($request)) {
+            return;
+        }
+
         $source = $status === 404
             ? 'route'
             : ($request->is('api/*') ? 'api' : ($request->is('admin/*') ? 'dashboard' : 'server'));
@@ -39,6 +43,13 @@ final class SystemInspectorRecorder
             'message' => $this->sanitizeText($exception->getMessage() !== '' ? $exception->getMessage() : $exception::class, 2000),
             'exception_class' => $this->sanitizeText($exception::class, 255),
             'context' => [
+                'category' => $status === 503
+                    ? 'maintenance'
+                    : ($status === 409
+                        ? 'domain_rejection'
+                        : ($status === 403
+                            ? 'authorization_rejection'
+                            : ($status === 422 ? 'validation_rejection' : ($status >= 500 ? 'server_failure' : 'http_rejection')))),
                 'file' => $this->sanitizeFilePath($exception->getFile()),
                 'line' => $exception->getLine(),
                 'trace' => collect($exception->getTrace())
@@ -173,6 +184,16 @@ final class SystemInspectorRecorder
                 'exception' => $recordingFailure::class,
             ]);
         }
+    }
+
+    private function isKnownScannerProbe(Request $request): bool
+    {
+        $path = '/'.ltrim(strtolower($request->path()), '/');
+
+        return preg_match(
+            '#/(?:wp-admin|wp-content|wp-includes|wordpress(?:/|$)|blog/(?:wp-|xmlrpc\.php)|xmlrpc\.php(?:$|/)|wlwmanifest\.xml$)#',
+            $path,
+        ) === 1;
     }
 
     private function storeId(Request $request): ?int
