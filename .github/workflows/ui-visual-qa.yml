@@ -11,6 +11,10 @@ on:
       - "docs/design-reference/FOODEX_PREMIUM_DASHBOARD_REFERENCE.png"
       - ".github/workflows/ui-visual-qa.yml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -54,16 +58,6 @@ jobs:
           php artisan migrate:fresh --force
           php artisan db:seed --class=Database\\Seeders\\ScreenshotEvidenceSeeder --force
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install Playwright Chromium
-        run: |
-          npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
-
       - name: Start FOODEX runtime
         working-directory: backend
         env:
@@ -82,6 +76,16 @@ jobs:
           done
           cat /tmp/foodex-ui-qa-server.log
           exit 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
 
       - name: Capture Arabic and English Admin runtime screenshots
         working-directory: backend

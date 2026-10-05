@@ -24,6 +24,10 @@ on:
       - docs/release/RELEASE_REGISTRY.json
       - .github/scripts/release-registry.js
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 

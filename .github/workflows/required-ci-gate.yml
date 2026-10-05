@@ -124,6 +124,10 @@ jobs:
       - name: Validate repository foundation
         run: ./scripts/validate-repo.sh
 
+      - name: Prevent post-merge main release failures
+        shell: bash
+        run: bash scripts/validate-premerge-release-version.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+
       - name: Validate mobile artifact packaging
         run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_artifact.py'
 

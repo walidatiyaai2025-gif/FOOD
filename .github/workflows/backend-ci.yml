@@ -7,8 +7,63 @@ permissions:
   contents: read
 
 jobs:
+  fast:
+    name: Backend fast-fail
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, intl, pdo_sqlite, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Validate Composer manifest
+        run: composer validate --strict --no-check-lock
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Syntax-check application PHP
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            php -l "$file" >/dev/null
+          done < <(find app routes tests -type f -name '*.php' -print0)
+
+      - name: Run backend lint first
+        run: composer lint
+
+      - name: Run backend static analysis
+        run: composer analyse
+
+      - name: Run Composer security audit
+        run: composer audit
+
+      - name: Validate OpenAPI contract
+        working-directory: .
+        run: npx --yes @redocly/cli@latest lint docs/api/openapi.yaml
+
   backend:
-    name: Backend validation
+    name: Backend tests
+    needs: fast
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -24,9 +79,15 @@ jobs:
           php-version: "8.3"
           extensions: mbstring, intl, pdo_sqlite, pdo_mysql
           coverage: none
+          tools: composer:v2
 
-      - name: Validate Composer manifest
-        run: composer validate --strict --no-check-lock
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -52,7 +113,7 @@ jobs:
       - name: Set up Node for live-map runtime tests
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Test live-map runtime and local static assets
         run: node --test tests/Browser/driver-live-map.test.cjs
@@ -97,21 +158,9 @@ jobs:
       - name: Run backend tests
         run: composer test
 
-      - name: Run backend lint
-        run: composer lint
-
-      - name: Run backend static analysis
-        run: composer analyse
-
-      - name: Run Composer security audit
-        run: composer audit
-
-      - name: Validate OpenAPI contract
-        working-directory: .
-        run: npx --yes @redocly/cli@latest lint docs/api/openapi.yaml
-
   production-services:
     name: MySQL Redis deployment acceptance
+    needs: fast
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
@@ -156,6 +205,15 @@ jobs:
           php-version: '8.3'
           extensions: mbstring, intl, pdo_mysql, redis, zip
           coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
       - name: Install MySQL client tools
         run: sudo apt-get update && sudo apt-get install -y default-mysql-client
       - name: Wait for MySQL

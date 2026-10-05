@@ -314,6 +314,131 @@ If yes, and the rule is not already captured, the worker must promote it under t
 
 ---
 
+## 9B. First-Run Green / Zero-Red worker contract
+
+FOODEX workers must treat remote CI as final verification, not the normal debugging loop.
+
+The canonical operating contract is documented in:
+
+- `docs/worker-rules/FIRST_RUN_GREEN.md`
+- `docs/worker-rules/CI_FAILURE_PATTERNS.md`
+
+At task start, workers SHOULD bootstrap repository state with:
+
+```bash
+bash ./scripts/worker-start.sh
+```
+
+Before the first push of executable changes, every worker MUST run:
+
+```bash
+bash ./scripts/worker-preflight.sh --fast
+```
+
+Before declaring a PR ready for final merge validation, the worker SHOULD run, whenever the required local toolchain/environment is available:
+
+```bash
+bash ./scripts/worker-preflight.sh --full
+```
+
+The worker must not push merely to discover deterministic formatter, syntax, analyzer, static-analysis, branch-policy, or focused-test failures that the preflight can reproduce locally.
+
+### Required failure ordering
+
+Workers and CI should detect cheap deterministic failures before expensive validation:
+
+1. branch/repository policy;
+2. diff integrity and syntax;
+3. formatter/lint;
+4. static analysis / Flutter analyzer;
+5. focused and subsystem tests;
+6. database/service acceptance;
+7. Android/iOS/preview compilation;
+8. runtime, visual and parity evidence;
+9. packaging/release validation;
+10. exact-head final required gate.
+
+A heavy build should not consume runner capacity when an earlier deterministic gate for the same affected area is already red.
+
+### Formatter canonical-output rule
+
+Do not guess formatter output.
+
+For PHP/Pint failures, run Pint on the affected file/path to obtain the canonical representation, then verify with `--test`. This specifically includes imports, quote style, PHPDoc, operator spacing, constructor bodies and multiline method signatures.
+
+For a multiline PHP method signature with a declared return type, preserve the Pint-canonical brace position rather than applying the single-line method style by intuition.
+
+### Changed-area validation
+
+Validation scope must come from the actual git diff. Customer-only changes should not trigger Driver work unless shared packages/contracts are affected, and Driver-only changes should not trigger Customer work unless shared dependencies require it.
+
+Shared/auth/tenant/pricing/ledger/migration/networking/preview/release changes are high-risk and may expand validation automatically.
+
+### Recurring Failure Promotion Rule
+
+FOODEX follows a **learn once, prevent forever** rule.
+
+A failure is promotion-worthy when:
+
+- substantially the same root cause has occurred at least twice; or
+- one occurrence reveals a deterministic repository constraint that future workers can safely detect before push.
+
+For every promoted failure, the worker must:
+
+1. fix the root cause on the existing task branch/PR;
+2. add/update the failure in `docs/worker-rules/CI_FAILURE_PATTERNS.md`;
+3. add the cheapest reliable local/preflight detector when practical;
+4. add a regression test when it represents application behavior;
+5. update this policy or the First-Run Green contract when worker behavior must change;
+6. never disable, weaken, skip or broadly exempt a required quality gate merely to remove red status.
+
+Repeated pushes with the same deterministic failure fingerprint are prohibited process behavior. Reproduce locally or obtain new evidence before the next push.
+
+### Flaky-test rule
+
+Never rerun a nondeterministic test until it happens to pass and call that a fix. Identify and remove the unstable dependency (clock, random seed, network, ordering, shared state, external service, etc.) or document a repository-owner-approved quarantine.
+
+### Exact-head evidence
+
+Required checks and deliverable artifacts must belong to the current PR head SHA. A build from an older SHA is not valid evidence for a newer head.
+
+If `main` advances in a way that can affect the task, revalidate the same branch before merge.
+
+
+### Post-merge main parity rule
+
+A PR must not be considered merge-ready only because its pull-request checks are green.
+
+Workers MUST identify workflows that run on `push` to `main` for the changed area and reproduce their deterministic preconditions before merge. In particular, deployable changes under `backend/`, `apps/customer_app/`, or `apps/driver_app/` must satisfy the same release-version contract that `FOODEX Trial Distribution Bundle` enforces after merge.
+
+If deployable code changed, `VERSION` must be bumped relative to the PR base and Customer/Driver mobile version identities must remain synchronized with `VERSION`. This is enforced locally and in PR CI by `scripts/validate-premerge-release-version.sh`.
+
+A post-merge-only red workflow that could have been predicted on the PR is a prevention failure and must be promoted into pre-merge validation.
+
+
+### Release identity synchronization rule
+
+Release/version work is an atomic identity update, not a sequence of independent edits.
+
+When a release branch or task changes `VERSION`, the worker MUST synchronize every repository-owned release identity in the same coherent change before pushing. At minimum, the worker must validate:
+
+- root `VERSION`;
+- Customer `pubspec.yaml` version/build identity;
+- Driver `pubspec.yaml` version/build identity;
+- Customer visible/runtime `_appVersion` identity;
+- Driver visible/runtime `_appVersion` identity;
+- release notes title/identity;
+- CHANGELOG release entry;
+- any diagnostics/version-policy identity explicitly covered by release tooling.
+
+A partial version bump is a known FOODEX failure pattern. Do not push a release branch with only `VERSION`/pubspec bumped while runtime/UI identities still point to the previous release.
+
+For release-related changes, run `bash scripts/release-readiness.sh` before push in addition to the normal worker preflight.
+
+Release validation scripts must emit the name of the failed invariant whenever practical; silent `test`/exit failures materially slow diagnosis and should be replaced with actionable errors when touched.
+
+---
+
 ## 10. External blockers vs repository blockers
 
 A worker should solve repository-local blockers independently.
