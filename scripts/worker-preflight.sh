@@ -35,7 +35,7 @@ while IFS='=' read -r key value; do
   area["$key"]="$value"
 done < <(bash ./scripts/detect-changed-areas.sh "$base" WORKTREE)
 
-bash ./scripts/validate-premerge-release-version.sh "$base" HEAD
+bash ./scripts/validate-premerge-release-version.sh "$base" WORKTREE
 
 changed_files="$(
   {
