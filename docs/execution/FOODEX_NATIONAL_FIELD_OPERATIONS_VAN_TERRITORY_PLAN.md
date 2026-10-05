@@ -156,6 +156,22 @@ Finance Approval + Reconciliation
     - Filters and legend.
     - Same backend live-location authority.
 
+13. **Van App has full FOODEX operational/runtime parity.**
+    - Applications sidebar and versioned download.
+    - Mobile Settings and App Versions.
+    - Preview/Review parity.
+    - Runtime Inspector.
+    - Push, maintenance and force-update.
+    - release/distribution identity.
+    - no Van-only shadow administration flow.
+
+14. **The Van/Field Operations program executes as an isolated feature train until final promotion.**
+    - production bugs/hotfixes continue on `main` without waiting;
+    - Van child PRs target the dedicated integration branch;
+    - relevant `main` fixes are regularly absorbed into the train;
+    - only the final convergence lane may promote the full train to `main`;
+    - repository AUTO-HANDOFF state, not chat, is the execution authority.
+
 ---
 
 ## 3. Application and actor boundaries
