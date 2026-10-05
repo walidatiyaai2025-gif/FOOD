@@ -191,3 +191,16 @@ bash scripts/validate-premerge-release-version.sh <base-sha> <head-or-WORKTREE>
 ```
 
 Customer and Driver visible/runtime version constants, mobile build identities, release notes and CHANGELOG must agree with the root release identity. Partial synchronization is rejected before expensive release packaging.
+
+## Main-push release-intent parity
+
+A normal feature/bug merge may update deployable runtime code without immediately publishing a new FOODEX release.
+
+Release/distribution workflows must use explicit release intent:
+
+- VERSION changed relative to the authoritative base; or
+- manual distribution was explicitly requested.
+
+If neither condition is true, the workflow should perform only a lightweight release-intent check and finish successfully with distribution skipped. It must not produce a red main build simply because runtime paths changed.
+
+When VERSION changes, all release identities and immutable publication checks remain mandatory.
