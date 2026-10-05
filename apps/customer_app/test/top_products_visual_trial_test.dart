@@ -104,8 +104,7 @@ Future<void> _loadFonts() async {
 
   final flutterRoot = Platform.environment['FLUTTER_ROOT'] ?? '';
   final icons = File(
-    flutterRoot +
-        '/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+    '$flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
   );
   await (FontLoader(
         'MaterialIcons',
@@ -130,11 +129,8 @@ void main() {
     Size(390, 844),
     Size(412, 915),
   ]) {
-    final testName = 'top products visual ' +
-        size.width.toInt().toString() +
-        'x' +
-        size.height.toInt().toString() +
-        ' ar';
+    final testName =
+        'top products visual ${size.width.toInt()}x${size.height.toInt()} ar';
     testWidgets(
       testName,
       (tester) async {
@@ -207,11 +203,8 @@ void main() {
           final image = await boundary.toImage(pixelRatio: 2);
           final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
           final file = File(
-            'build/top-products-evidence/top-products-' +
-                size.width.toInt().toString() +
-                'x' +
-                size.height.toInt().toString() +
-                '-ar.png',
+            'build/top-products-evidence/top-products-'
+            '${size.width.toInt()}x${size.height.toInt()}-ar.png',
           );
           file.parent.createSync(recursive: true);
           file.writeAsBytesSync(bytes!.buffer.asUint8List(), flush: true);
