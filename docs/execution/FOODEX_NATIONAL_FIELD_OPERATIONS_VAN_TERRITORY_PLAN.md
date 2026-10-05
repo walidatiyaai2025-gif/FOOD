@@ -309,7 +309,202 @@ Customer, Driver and Van Apps are separate applications but share one FOODEX mob
 
 Van App must visually read as a FOODEX product, not as a generic CRM or logistics app.
 
-### 4.6 UI/UX release gate
+### 4.6 Tabs-first, low-scroll information architecture
+
+FOODEX operational screens must prefer **tabs and progressive disclosure** over long vertically stacked pages.
+
+Core rule:
+
+> If one page contains more than one substantial function, dataset or workflow area, split those concerns into clear tabs before adding more vertical sections.
+
+Examples:
+
+- Van profile: Overview | Routes | Visits | Orders | Wallet | Remittances;
+- Customer 360: Finance | Orders | Addresses | Field Activity | Collections;
+- Territory management: Overview | Geometry | Schedule | Vans | Routing Rules | History;
+- Route detail: Overview | Stops | Orders | Collections | Exceptions;
+- Van detail: Overview | Assignments | Routes | Location | Maintenance | History;
+- Finance collection area: Wallets | Collections | Remittances | Reconciliation.
+
+Avoid screens that require excessive scrolling through many large cards.
+
+### 4.7 Card discipline
+
+Cards must be used to create hierarchy, not to fill space.
+
+Rules:
+
+- do not repeat the same card in several pages unless it serves a different actionable purpose;
+- every metric/card must have a clear reason to exist;
+- do not create oversized cards for small values;
+- compact metrics may use a summary strip rather than separate large cards;
+- analytics cards should be sized by importance and information density;
+- secondary information belongs in tabs, expandable panels, drawers or detail views rather than permanent large cards;
+- do not duplicate a full operational module as a card elsewhere.
+
+Each data concept should have one **canonical home**.
+
+Other screens may show:
+
+- a small summary;
+- a badge/count;
+- a contextual link;
+- a compact preview;
+
+but should not recreate the same full card/module.
+
+### 4.8 Scroll-budget rule
+
+Scrolling is allowed when the underlying content is naturally list-like, but long scroll must not be the default information architecture.
+
+Use:
+
+- tabs for separate functions;
+- pagination for large datasets;
+- filters/search for discovery;
+- drawers/modals for short contextual actions;
+- dedicated detail screens for complex workflows.
+
+Avoid:
+
+- dashboard pages made of many stacked cards;
+- full forms mixed with large tables on the same scroll;
+- repeating summary cards before every tab;
+- several independent modules stacked vertically when tabs would be clearer.
+
+### 4.9 Multi-column responsive layout standard
+
+Operational screens must not dump all information into one long vertical column when the viewport can support a clearer composition.
+
+Required behavior:
+
+- desktop and wide-tablet forms/details should use 2-column or responsive multi-column grids where fields naturally group together;
+- summary/KPI areas should use balanced responsive grids rather than one-card-per-row;
+- related controls should be grouped side-by-side when that improves scanability;
+- detail pages should divide identity, operational, financial and status information into clear columns/sections;
+- wide tables remain tables and should not be converted into stacked card lists without a mobile-specific reason;
+- mobile may collapse to one column when width requires it;
+- column count must respond to viewport size, content length and RTL/LTR direction;
+- no fixed-width layout that causes clipping or horizontal page scroll.
+
+Examples:
+
+```text
+Desktop:
+[ Customer / Van Identity ] [ Operational Status ]
+[ Route / Territory      ] [ Finance / Collection ]
+
+Tablet:
+[ Identity ] [ Status ]
+[ Route    ] [ Finance ]
+
+Mobile:
+[ Identity ]
+[ Status ]
+[ Route ]
+[ Finance ]
+```
+
+The goal is faster scanning with balanced density, not filling every available pixel.
+
+### 4.10 Field/form grouping
+
+Forms with multiple fields should be grouped semantically and laid out using responsive columns.
+
+Examples:
+
+- name + code;
+- start date + end date;
+- primary Van + backup Van;
+- weight capacity + volume capacity;
+- Arabic label + English label;
+- latitude/longitude when shown to authorized operators;
+- schedule start + schedule end.
+
+Long text areas, maps, complex selectors and tables may span the full width.
+
+Avoid one-field-per-row forms on desktop unless the workflow genuinely benefits from it.
+
+### 4.11 Global usability and visual-density standard
+
+In addition to FOODEX identity, every new screen must satisfy international UI/UX and usability principles:
+
+- clear visual hierarchy;
+- low cognitive load;
+- restrained visual density;
+- meaningful whitespace;
+- readable typography;
+- predictable alignment;
+- consistent spacing rhythm;
+- consistent component sizing;
+- accessible contrast;
+- keyboard/focus usability on Dashboard;
+- mobile touch targets;
+- responsive behavior;
+- clear primary/secondary actions;
+- no oversized buttons/cards without functional reason;
+- no undersized dense controls that hurt readability;
+- no decorative analytics that do not support a decision.
+
+The screen should communicate the most important task immediately without making the operator scan unnecessary content.
+
+### 4.12 Navigation and screen governance
+
+A feature is not considered implemented merely because backend/API code exists.
+
+A user-facing feature is complete only when it is reachable through an obvious normal entry point such as:
+
+- sidebar/navigation item;
+- tab;
+- contextual action;
+- canonical workflow step.
+
+Hidden deep links and orphaned routes do not satisfy completion.
+
+Before creating any new screen, every worker must perform a **screen/route inventory check**:
+
+1. search existing Dashboard routes/views;
+2. search Customer App screens/routes;
+3. search Driver App screens/routes;
+4. search Van App screens/routes;
+5. identify the canonical existing screen for the same business purpose;
+6. extend/reuse it when it exists;
+7. create a new screen only when no existing canonical screen can own the responsibility.
+
+Duplicate screens for the same business purpose are forbidden.
+
+### 4.13 Server route organization
+
+Server routes must be organized by business module/domain.
+
+Requirements:
+
+- consistent URI prefixes;
+- consistent route-name prefixes;
+- grouped middleware;
+- clear module ownership;
+- no random route insertion in unrelated sections;
+- no permanent duplicate routes for the same screen;
+- aliases only for controlled compatibility/migration;
+- route/navigation inventory maintained as the platform grows.
+
+The final route tree should make the platform understandable without reading implementation internals.
+
+### 4.14 Canonical screen ownership
+
+Every substantial feature must identify one canonical screen/module that owns the complete experience.
+
+Examples:
+
+- Live Fleet -> Live Fleet Map;
+- Territory settings -> Territories & Coverage;
+- Van wallet -> Wallet;
+- Remittances -> Remittances;
+- Customer field history -> Customer 360 / Field Activity.
+
+Other pages should link to or summarize these modules rather than duplicating them.
+
+### 4.15 UI/UX release gate
 
 A feature is not complete if:
 
@@ -320,7 +515,12 @@ A feature is not complete if:
 - loading/error/empty/offline states are missing;
 - a high-volume list lacks pagination;
 - a Dashboard page diverges materially from FOODEX identity;
-- a row is cluttered with permanent action buttons instead of the canonical `⋮` pattern where applicable.
+- a row is cluttered with permanent action buttons instead of the canonical `⋮` pattern where applicable;
+- the screen contains multiple substantial functions but uses long scroll instead of tabs;
+- the same full card/module is duplicated across multiple screens without a distinct business purpose;
+- a new screen duplicates an existing canonical screen;
+- the feature is reachable only through a hidden/unstructured route;
+- route naming/grouping is inconsistent with its module.
 
 ---
 
