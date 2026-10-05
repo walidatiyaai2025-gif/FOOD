@@ -36,6 +36,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
     this.preferences = const CustomerAuthPreferences(),
     this.biometricAuthenticator,
     this.resumeAuthenticatedRoute,
+    this.onLogout,
     this.onLocaleChanged,
     this.registerInitially = false,
     super.key,
@@ -53,6 +54,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
   final CustomerAuthPreferences preferences;
   final CustomerBiometricAuthenticator? biometricAuthenticator;
   final CustomerAuthenticatedRouteResume? resumeAuthenticatedRoute;
+  final Future<void> Function()? onLogout;
   final ValueChanged<Locale>? onLocaleChanged;
   final bool registerInitially;
 
@@ -73,6 +75,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   late bool _biometricEnabled = widget.preferences.biometricEnabled;
   bool _biometricAvailable = false;
   bool _checkingBiometric = false;
+  bool _savedBiometricDismissed = false;
   bool _busy = false;
   String? _errorKey;
   Map<String, String> _fieldErrorKeys = const <String, String>{};
@@ -322,6 +325,176 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     }
   }
 
+  Future<void> _logoutRememberedBiometricSession() async {
+    if (_busy) return;
+
+    setState(() {
+      _busy = true;
+      _errorKey = null;
+    });
+
+    try {
+      final logout = widget.onLogout;
+      if (logout != null) {
+        await logout();
+        return;
+      }
+
+      await widget.sessionStore?.clear();
+      if (!mounted) return;
+      setState(() {
+        _rememberMe = false;
+        _biometricEnabled = false;
+        _savedBiometricDismissed = true;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorKey = 'customer.error.action_failed');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _buildC13SavedBiometricCard(BuildContext context) {
+    final biometricAction = _busy || _checkingBiometric
+        ? null
+        : _authenticateWithBiometrics;
+
+    return Container(
+      key: const ValueKey('c13-saved-biometric-login-panel'),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2FBF8),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFE2F2EC)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12004D3A),
+            blurRadius: 24,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Semantics(
+              button: true,
+              label: context.tr('customer.auth.biometric_saved_title'),
+              child: SizedBox.square(
+                dimension: 152,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 150,
+                      height: 150,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFDFF5EE),
+                      ),
+                    ),
+                    Container(
+                      width: 124,
+                      height: 124,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFCBEDE3),
+                      ),
+                    ),
+                    Material(
+                      color: CustomerUiColors.deepGreen,
+                      elevation: 8,
+                      shadowColor: const Color(0x3300664B),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        key: const ValueKey('customer-auth-biometric-login'),
+                        onTap: biometricAction,
+                        customBorder: const CircleBorder(),
+                        child: SizedBox.square(
+                          dimension: 94,
+                          child: Center(
+                            child: _checkingBiometric
+                                ? const SizedBox.square(
+                                    dimension: 28,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: CustomerUiColors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.fingerprint_rounded,
+                                    size: 60,
+                                    color: CustomerUiColors.white,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            context.tr('customer.auth.biometric_saved_title'),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: CustomerUiColors.deepGreen,
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.tr('customer.auth.biometric_saved_hint'),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: CustomerUiColors.muted,
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+          if (_errorKey != null) ...[
+            const SizedBox(height: CustomerUiSpacing.sm),
+            Text(
+              context.tr(_errorKey!),
+              key: const ValueKey('unified-auth-error'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: CustomerUiColors.destructive,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 26),
+          OutlinedButton.icon(
+            key: const ValueKey('c13-saved-biometric-logout'),
+            onPressed: _busy ? null : _logoutRememberedBiometricSession,
+            icon: const Icon(Icons.logout_rounded),
+            label: Text(
+              context.tr('customer.logout'),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+              foregroundColor: CustomerUiColors.deepGreen,
+              backgroundColor: CustomerUiColors.white,
+              side: const BorderSide(
+                color: CustomerUiColors.deepGreenSoft,
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     final email = _email.text.trim();
     final password = _password.text;
@@ -468,6 +641,13 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     required TextDirection textDirection,
   }) {
     final isArabic = locale.languageCode == 'ar';
+    final showRememberedBiometricCard =
+        !_savedBiometricDismissed &&
+        widget.preferences.rememberMe &&
+        widget.preferences.biometricEnabled &&
+        widget.sessionStore != null &&
+        widget.biometricAuthenticator != null &&
+        (_checkingBiometric || _biometricAvailable);
     final fieldBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
       borderSide: const BorderSide(color: CustomerUiColors.border),
@@ -566,7 +746,10 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-                                TextField(
+                                if (showRememberedBiometricCard)
+                                  _buildC13SavedBiometricCard(context)
+                                else ...[
+                                  TextField(
                                   key: const ValueKey('unified-auth-email'),
                                   controller: _email,
                                   keyboardType: TextInputType.emailAddress,
@@ -840,6 +1023,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                     ),
                                   ),
                                 ),
+                                ],
                               ],
                             ),
                           ),

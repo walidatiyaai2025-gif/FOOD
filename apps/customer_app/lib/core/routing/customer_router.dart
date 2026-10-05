@@ -296,6 +296,7 @@ class CustomerAppRouter {
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
             resumeAuthenticatedRoute: onAuthenticatedRouteResume,
+            onLogout: onLogout,
             onLocaleChanged: onLocaleChanged,
             registerInitially: uri.queryParameters['entry'] == 'register',
           );
@@ -354,6 +355,7 @@ class CustomerAppRouter {
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
             resumeAuthenticatedRoute: onAuthenticatedRouteResume,
+            onLogout: onLogout,
             onLocaleChanged: onLocaleChanged,
             registerInitially: uri.queryParameters['entry'] == 'register',
           );

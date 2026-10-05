@@ -309,6 +309,109 @@ void main() {
     expect(completedPreferences?.biometricEnabled, isTrue);
   });
 
+  testWidgets(
+      'business entry with saved biometric replaces credentials with unlock card',
+      (tester) async {
+    final storage = _MemorySecureStore();
+    final sessions = SecureCustomerSessionStore(storage: storage);
+    await sessions.write(
+      const CustomerSession.platformCustomer(accessToken: 'saved-token'),
+    );
+    String? completedToken;
+
+    await tester.pumpWidget(
+      _testApp(
+        locale: const Locale('ar'),
+        child: UnifiedCustomerAuthScreen(
+          nextRoute: CustomerRoutePaths.b2bDashboard,
+          actionApi: const _SuccessfulActionApi(),
+          onAuthenticated: (token, preferences) async {
+            completedToken = token;
+            expect(preferences.rememberMe, isTrue);
+            expect(preferences.biometricEnabled, isTrue);
+          },
+          sessionStore: sessions,
+          preferences: const CustomerAuthPreferences(
+            rememberMe: true,
+            biometricEnabled: true,
+          ),
+          biometricAuthenticator:
+              const _FakeBiometric(available: true, result: true),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('c13-saved-biometric-login-panel')),
+      findsOneWidget,
+    );
+    expect(find.text('تسجيل الدخول بالبصمة'), findsOneWidget);
+    expect(find.text('اضغط على البصمة لتسجيل الدخول'), findsOneWidget);
+    expect(find.byKey(const ValueKey('unified-auth-email')), findsNothing);
+    expect(find.byKey(const ValueKey('unified-auth-password')), findsNothing);
+    expect(find.byKey(const ValueKey('unified-auth-submit')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('c13-business-forgot-password')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('c13-business-contact-us')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('c13-saved-biometric-logout')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('customer-auth-biometric-login')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(completedToken, 'saved-token');
+  });
+
+  testWidgets('saved biometric card exposes logout action', (tester) async {
+    final storage = _MemorySecureStore();
+    final sessions = SecureCustomerSessionStore(storage: storage);
+    await sessions.write(
+      const CustomerSession.platformCustomer(accessToken: 'saved-token'),
+    );
+    var logoutCalled = false;
+
+    await tester.pumpWidget(
+      _testApp(
+        locale: const Locale('ar'),
+        child: UnifiedCustomerAuthScreen(
+          nextRoute: CustomerRoutePaths.b2bDashboard,
+          actionApi: const _SuccessfulActionApi(),
+          onAuthenticated: (_, __) async {},
+          sessionStore: sessions,
+          preferences: const CustomerAuthPreferences(
+            rememberMe: true,
+            biometricEnabled: true,
+          ),
+          biometricAuthenticator:
+              const _FakeBiometric(available: true, result: true),
+          onLogout: () async {
+            logoutCalled = true;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final logout =
+        find.byKey(const ValueKey('c13-saved-biometric-logout'));
+    await tester.ensureVisible(logout);
+    await tester.pumpAndSettle();
+    await tester.tap(logout);
+    await tester.pumpAndSettle();
+
+    expect(logoutCalled, isTrue);
+  });
+
   testWidgets('Arabic auth surface remains RTL and customer-only',
       (tester) async {
     await tester.pumpWidget(
