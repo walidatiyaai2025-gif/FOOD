@@ -200,6 +200,35 @@ class CustomerProfileDomainTest extends TestCase
             ->assertJsonPath('business_account.tax_number', 'TAX-872');
     }
 
+    public function test_profile_uses_explicit_retail_store_context_when_customer_has_multiple_retail_profiles(): void
+    {
+        $secondStore = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'PROFILE-B2C-SECOND',
+            'name' => 'Profile Retail Second',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $second = B2cCustomer::query()->create([
+            'legacy_customer_id' => null,
+            'store_id' => $secondStore,
+            'user_id' => $this->user->id,
+            'name' => 'Profile Customer',
+            'phone' => '50000000',
+            'email' => $this->user->email,
+        ]);
+
+        $this->withHeaders([
+            'X-FOODEX-Customer-Domain' => 'b2c',
+            'X-FOODEX-Retail-Store-ID' => (string) $secondStore,
+        ])->getJson('/api/v1/profile')
+            ->assertOk()
+            ->assertJsonPath('customer.id', $second->id)
+            ->assertJsonPath('customer.store_id', $secondStore)
+            ->assertJsonPath('customer.type', 'b2c');
+    }
+
     public function test_addresses_are_customer_owned_and_keep_one_default_when_possible(): void
     {
         $first = $this->postJson('/api/v1/profile/addresses', [
