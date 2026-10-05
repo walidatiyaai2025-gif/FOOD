@@ -1234,7 +1234,7 @@ void main() {
         findsOneWidget,
       );
     }
-    expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
+    expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
     expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('customer-footer-products')));
