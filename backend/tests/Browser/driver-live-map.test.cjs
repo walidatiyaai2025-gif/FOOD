@@ -62,7 +62,9 @@ for (const mode of ['full','compact']) {
         assert.equal(view.parts['count-online'].textContent,'0');assert.equal(view.dataset.liveMapError,undefined);
         assert.equal(new URL(env.calls[0].url).searchParams.get('store_id'),'7');
         assert.equal(new URL(env.calls[0].url).searchParams.get('channel'),'b2b');
-        assert.equal(env.calls[0].options.credentials,'same-origin');assert.equal(env.timers.size,0);
+        assert.equal(env.calls[0].options.credentials,'same-origin');
+        assert.equal(env.intervals.length,0);
+        assert.equal([...env.timers.values()].filter(timer=>timer.ms===5000).length,1);
     });
 }
 test('map initialization exception is visible and does not prevent the next root starting',async()=>{
@@ -71,7 +73,7 @@ test('map initialization exception is visible and does not prevent the next root
     const multiple=setup({roots:[first,second]});multiple.run();await settle();
     assert.equal(first.dataset.liveMapError,'map-configuration');assert.equal(second.dataset.driverLiveMapReady,'1');assert.equal(multiple.calls.length,1);
 });
-for(const [status,code,message] of [[401,'feed-401','sessionExpired'],[403,'feed-403','forbidden'],[503,'feed-server','serverFailed']]) {
+for(const [status,code,message] of [[401,'feed-401','sessionExpired'],[403,'feed-403','forbidden'],[503,'feed-maintenance','serverFailed']]) {
     test(`feed ${status} has a distinct error and retry recovers`,async()=>{
         let failing=true;
         const env=setup({response:async()=> failing ? {ok:false,status} : {ok:true,json:async()=>({data:[]})}});
@@ -100,7 +102,8 @@ test('malformed JSON, session redirect and network failure are classified',async
 test('timeout releases the in-flight guard so retry and polling can recover',async()=>{
     let hanging=true;
     const env=setup({response:async(_,options)=>hanging ? new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted')))) : {ok:true,json:async()=>({data:[]})}});
-    env.run();assert.equal(env.calls.length,1);env.intervals[0]();assert.equal(env.calls.length,1);
+    env.run();assert.equal(env.calls.length,1);
+    await env.roots[0].foodexDriverLiveMap.refresh();assert.equal(env.calls.length,1);
     [...env.timers.values()].find(timer=>timer.ms===10000).fn();await settle();
     assert.equal(env.roots[0].dataset.liveMapError,'feed-timeout');hanging=false;
     await env.roots[0].foodexDriverLiveMap.refresh();assert.equal(env.roots[0].dataset.liveMapError,undefined);
@@ -121,7 +124,7 @@ test('missing or stalled renderer is reported by independent watchdog; healthy r
     }
     const env=setup();env.watchdog();env.run();await settle();env.events.load();assert.equal(env.roots[0].dataset.liveMapError,undefined);
 });
-test('renderer inclusion is idempotent',()=>{const env=setup();env.run();env.run();assert.equal(env.calls.length,1);assert.equal(env.intervals.length,1);});
+test('renderer inclusion is idempotent',async()=>{const env=setup();env.run();env.run();await settle();assert.equal(env.calls.length,1);assert.equal(env.intervals.length,0);assert.equal([...env.timers.values()].filter(timer=>timer.ms===5000).length,1);});
 test('local production map JS/CSS and Leaflet image dependencies are present, not HTML error pages',()=>{
     for(const [asset,signature] of [
         ['assets/leaflet/1.9.4/leaflet.js','1.9.4'],['assets/leaflet/1.9.4/leaflet.css','.leaflet-pane'],
