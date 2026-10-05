@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\VanNoOrderReason;
-use App\Models\VanVisit;
 use App\Models\User;
+use App\Models\VanVisit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -27,7 +27,7 @@ final class VanVisitLifecycleService
         ?int $orderId = null,
         ?int $noOrderReasonId = null,
     ): VanVisit {
-        return DB::transaction(function () use ($visit, $targetStatus, $actor, $orderId, $noOrderReasonId): VanVisit {
+        return DB::transaction(function () use ($visit, $targetStatus, $orderId, $noOrderReasonId): VanVisit {
             $locked = VanVisit::query()->whereKey($visit->getKey())->lockForUpdate()->firstOrFail();
             $current = (string) $locked->status;
 
