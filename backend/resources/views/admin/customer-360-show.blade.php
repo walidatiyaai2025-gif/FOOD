@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ $customer->name }} · {{ app()->getLocale()==='ar'?'تفاصيل العميل':'Customer details' }} · FOODEX</title>
 @include('admin._brand-components')
+<link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
 <style>
 body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .c360-shell{display:grid;gap:16px}
@@ -35,6 +36,21 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .c360-empty{padding:42px 20px;text-align:center;color:var(--foodex-muted);border:1px dashed var(--foodex-border);border-radius:12px;background:#fbfcfd}
 .c360-finance-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--foodex-border);border-radius:14px;overflow:hidden}.c360-finance-details>div{padding:15px;border-inline-end:1px solid var(--foodex-border);border-bottom:1px solid var(--foodex-border)}.c360-finance-details>div:nth-child(3n){border-inline-end:0}.c360-finance-details small{display:block;color:var(--foodex-muted);margin-bottom:5px}
 .c360-form-details{margin-top:16px;border-top:1px solid var(--foodex-border);padding-top:14px}.c360-form-details summary{cursor:pointer;font-weight:800}
+.c360-map-picker-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;border:1px dashed var(--foodex-border);border-radius:12px;background:#fbfcfd}
+.c360-map-picked{color:var(--foodex-muted);font-size:.82rem;direction:ltr}
+.c360-map-modal{position:fixed;inset:0;z-index:2500;display:none;place-items:center;padding:18px;background:rgba(15,23,42,.48);backdrop-filter:blur(2px)}
+.c360-map-modal[data-open="1"]{display:grid}
+.c360-map-dialog{width:min(920px,calc(100vw - 24px));max-height:92vh;background:#fff;border-radius:16px;box-shadow:0 28px 80px rgba(15,23,42,.28);overflow:hidden;border:1px solid var(--foodex-border)}
+.c360-map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 18px;border-bottom:1px solid var(--foodex-border)}
+.c360-map-head h3{margin:0}.c360-map-head p{margin:4px 0 0;color:var(--foodex-muted);font-size:.86rem}
+.c360-map-close{width:36px;height:36px;border:1px solid var(--foodex-border);border-radius:9px;background:#fff;font-size:22px;cursor:pointer}
+.c360-map-body{padding:16px;display:grid;gap:12px}
+.c360-map-search{display:flex;gap:8px}.c360-map-search input{flex:1;min-width:0}
+.c360-map-results{display:none;max-height:150px;overflow:auto;border:1px solid var(--foodex-border);border-radius:10px;background:#fff}
+.c360-map-results[data-visible="1"]{display:block}
+.c360-map-result{display:block;width:100%;text-align:start;border:0;border-bottom:1px solid var(--foodex-border);background:#fff;padding:10px 12px;cursor:pointer;font:inherit}.c360-map-result:last-child{border-bottom:0}.c360-map-result:hover{background:#f7faf8}
+#c360-address-map{height:min(56vh,500px);min-height:340px;border-radius:12px;border:1px solid var(--foodex-border);overflow:hidden}
+.c360-map-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.c360-map-coords{font-family:var(--foodex-font-en);color:var(--foodex-muted);font-size:.82rem;direction:ltr}
 @media(max-width:1100px){.c360-kpis{grid-template-columns:repeat(2,1fr)}.c360-finance-details{grid-template-columns:repeat(2,1fr)}.c360-finance-details>div:nth-child(3n){border-inline-end:1px solid var(--foodex-border)}.c360-finance-details>div:nth-child(2n){border-inline-end:0}}
 @media(max-width:720px){.c360-summary{align-items:flex-start}.c360-avatar{width:54px;height:54px;font-size:27px}.c360-kpis{grid-template-columns:1fr}.c360-finance-details{grid-template-columns:1fr}.c360-finance-details>div{border-inline-end:0!important}.c360-address-form{grid-template-columns:1fr}.c360-address-form .wide{grid-column:auto}.c360-tab{padding:12px 15px}.c360-card{padding:15px}}
 </style>
@@ -182,9 +198,13 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <label><small>{{ $ar?'الدور':'Floor' }}</small><input name="floor" maxlength="120"></label>
 <label><small>{{ $ar?'الشقة':'Apartment' }}</small><input name="apartment" maxlength="120"></label>
 <label><small>{{ $ar?'رمز الدولة':'Country code' }}</small><input name="country_code" maxlength="2" required></label>
-<label><small>Latitude</small><input name="latitude" type="number" step="0.0000001" min="-90" max="90"></label>
-<label><small>Longitude</small><input name="longitude" type="number" step="0.0000001" min="-180" max="180"></label>
+<input name="latitude" type="hidden">
+<input name="longitude" type="hidden">
 <input type="hidden" name="location_source" value="manual">
+<div class="wide c360-map-picker-row">
+<button type="button" class="foodex-action-secondary button secondary" data-address-map-picker>{{ $ar?'تحديد الموقع على الخريطة':'Choose location on map' }}</button>
+<span class="c360-map-picked" data-address-map-summary>{{ $ar?'لم يتم تحديد موقع بعد':'No location selected yet' }}</span>
+</div>
 <label class="wide"><small>{{ $ar?'علامة مميزة':'Landmark' }}</small><input name="landmark" maxlength="255"></label>
 <label class="wide"><small>{{ $ar?'ملاحظات التوصيل':'Delivery notes' }}</small><textarea name="delivery_notes" maxlength="1000" rows="2"></textarea></label>
 <label class="wide"><input type="checkbox" name="is_default" value="1"> {{ $ar?'تعيين كعنوان افتراضي':'Set as default' }}</label>
@@ -198,7 +218,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="c360-actions" style="justify-content:space-between"><strong>{{ $address->label ?: ($ar?'عنوان التوصيل':'Delivery address') }}</strong>@if($address->is_default)<span class="c360-badge active">{{ $ar?'افتراضي':'Default' }}</span>@endif</div>
 <p style="margin:8px 0">{{ collect([$address->building,$address->street ?: $address->line1,$address->block,$address->area,$address->city,$address->governorate])->filter()->join(' · ') }}</p>
 @if($address->landmark)<small>{{ $ar?'علامة مميزة':'Landmark' }}: {{ $address->landmark }}</small>@endif
-@if($address->latitude!==null && $address->longitude!==null)<div style="margin-top:8px"><small>{{ number_format((float)$address->latitude,7,'.','') }}, {{ number_format((float)$address->longitude,7,'.','') }}</small></div><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ urlencode((string)$address->latitude.','.(string)$address->longitude) }}">{{ $ar?'فتح على الخريطة':'Open in map' }}</a>@endif
+@if($address->latitude!==null && $address->longitude!==null)<div style="margin-top:8px"><span class="c360-badge active">{{ $ar?'تم تحديد الموقع على الخريطة':'Map location selected' }}</span></div>@endif
 @if($canManageAddresses)
 <div class="c360-address-actions" style="margin-top:12px">
 @if(!$address->is_default)<form method="post" action="{{ route('admin.customer-360.addresses.default',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}">@csrf<button class="foodex-action-secondary button secondary" type="submit">{{ $ar?'تعيين افتراضي':'Set default' }}</button></form>@endif
@@ -206,7 +226,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 <details class="c360-form-details"><summary>{{ $ar?'تعديل العنوان':'Edit address' }}</summary>
 <form method="post" action="{{ route('admin.customer-360.addresses.update',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" class="c360-address-form" style="margin-top:12px">@csrf @method('PATCH')
-<label><small>{{ $ar?'اسم العنوان':'Label' }}</small><input name="label" value="{{ $address->label }}" maxlength="100"></label><label><small>{{ $ar?'اسم المستلم':'Recipient' }}</small><input name="recipient_name" value="{{ $address->recipient_name }}" maxlength="255"></label><label><small>{{ $ar?'هاتف التوصيل':'Delivery phone' }}</small><input name="delivery_phone" value="{{ $address->delivery_phone }}" maxlength="50"></label><label><small>{{ $ar?'المدينة':'City' }}</small><input name="city" value="{{ $address->city }}" maxlength="120"></label><label class="wide"><small>{{ $ar?'العنوان':'Address' }}</small><input name="line1" value="{{ $address->line1 }}" maxlength="255"></label><label><small>{{ $ar?'المنطقة':'Area' }}</small><input name="area" value="{{ $address->area }}" maxlength="120"></label><label><small>{{ $ar?'المحافظة':'Governorate' }}</small><input name="governorate" value="{{ $address->governorate }}" maxlength="120"></label><label><small>{{ $ar?'البلوك':'Block' }}</small><input name="block" value="{{ $address->block }}" maxlength="120"></label><label><small>{{ $ar?'المبنى':'Building' }}</small><input name="building" value="{{ $address->building }}" maxlength="120"></label><label><small>{{ $ar?'الدور':'Floor' }}</small><input name="floor" value="{{ $address->floor }}" maxlength="120"></label><label><small>{{ $ar?'الشقة':'Apartment' }}</small><input name="apartment" value="{{ $address->apartment }}" maxlength="120"></label><label><small>{{ $ar?'رمز الدولة':'Country code' }}</small><input name="country_code" value="{{ $address->country_code }}" maxlength="2"></label><label><small>Latitude</small><input name="latitude" type="number" step="0.0000001" min="-90" max="90" value="{{ $address->latitude }}"></label><label><small>Longitude</small><input name="longitude" type="number" step="0.0000001" min="-180" max="180" value="{{ $address->longitude }}"></label><input type="hidden" name="location_source" value="{{ $address->location_source ?: 'manual' }}"><label class="wide"><small>{{ $ar?'علامة مميزة':'Landmark' }}</small><input name="landmark" value="{{ $address->landmark }}" maxlength="255"></label><label class="wide"><small>{{ $ar?'ملاحظات التوصيل':'Delivery notes' }}</small><textarea name="delivery_notes" maxlength="1000" rows="2">{{ $address->delivery_notes }}</textarea></label><div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ التعديل':'Save changes' }}</button></div>
+<label><small>{{ $ar?'اسم العنوان':'Label' }}</small><input name="label" value="{{ $address->label }}" maxlength="100"></label><label><small>{{ $ar?'اسم المستلم':'Recipient' }}</small><input name="recipient_name" value="{{ $address->recipient_name }}" maxlength="255"></label><label><small>{{ $ar?'هاتف التوصيل':'Delivery phone' }}</small><input name="delivery_phone" value="{{ $address->delivery_phone }}" maxlength="50"></label><label><small>{{ $ar?'المدينة':'City' }}</small><input name="city" value="{{ $address->city }}" maxlength="120"></label><label class="wide"><small>{{ $ar?'العنوان':'Address' }}</small><input name="line1" value="{{ $address->line1 }}" maxlength="255"></label><label><small>{{ $ar?'المنطقة':'Area' }}</small><input name="area" value="{{ $address->area }}" maxlength="120"></label><label><small>{{ $ar?'المحافظة':'Governorate' }}</small><input name="governorate" value="{{ $address->governorate }}" maxlength="120"></label><label><small>{{ $ar?'البلوك':'Block' }}</small><input name="block" value="{{ $address->block }}" maxlength="120"></label><label><small>{{ $ar?'المبنى':'Building' }}</small><input name="building" value="{{ $address->building }}" maxlength="120"></label><label><small>{{ $ar?'الدور':'Floor' }}</small><input name="floor" value="{{ $address->floor }}" maxlength="120"></label><label><small>{{ $ar?'الشقة':'Apartment' }}</small><input name="apartment" value="{{ $address->apartment }}" maxlength="120"></label><label><small>{{ $ar?'رمز الدولة':'Country code' }}</small><input name="country_code" value="{{ $address->country_code }}" maxlength="2"></label><input name="latitude" type="hidden" value="{{ $address->latitude }}"><input name="longitude" type="hidden" value="{{ $address->longitude }}"><input type="hidden" name="location_source" value="{{ $address->location_source ?: 'manual' }}"><div class="wide c360-map-picker-row"><button type="button" class="foodex-action-secondary button secondary" data-address-map-picker>{{ $address->latitude!==null && $address->longitude!==null ? ($ar?'تعديل الموقع على الخريطة':'Edit map location') : ($ar?'تحديد الموقع على الخريطة':'Choose location on map') }}</button><span class="c360-map-picked" data-address-map-summary>@if($address->latitude!==null && $address->longitude!==null){{ $ar?'تم تحديد الموقع':'Location selected' }}@else{{ $ar?'لم يتم تحديد موقع بعد':'No location selected yet' }}@endif</span></div><label class="wide"><small>{{ $ar?'علامة مميزة':'Landmark' }}</small><input name="landmark" value="{{ $address->landmark }}" maxlength="255"></label><label class="wide"><small>{{ $ar?'ملاحظات التوصيل':'Delivery notes' }}</small><textarea name="delivery_notes" maxlength="1000" rows="2">{{ $address->delivery_notes }}</textarea></label><div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ التعديل':'Save changes' }}</button></div>
 </form></details>
 @endif
 </article>
@@ -249,8 +269,156 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 </main>
 </div>
+
+<div class="c360-map-modal" data-address-map-modal data-open="0" aria-hidden="true">
+<section class="c360-map-dialog" role="dialog" aria-modal="true" aria-labelledby="c360-map-title">
+<div class="c360-map-head">
+<div><h3 id="c360-map-title">{{ $ar?'تحديد موقع العميل':'Choose customer location' }}</h3><p>{{ $ar?'ابحث عن مكان أو اضغط مباشرة على الخريطة لتحديد النقطة.':'Search for a place or click directly on the map to choose the point.' }}</p></div>
+<button type="button" class="c360-map-close" data-address-map-close aria-label="{{ $ar?'إغلاق':'Close' }}">×</button>
+</div>
+<div class="c360-map-body">
+<div class="c360-map-search">
+<input type="search" data-address-map-search placeholder="{{ $ar?'ابحث عن منطقة أو شارع أو مكان...':'Search area, street, or place...' }}">
+<button type="button" class="foodex-action-secondary button secondary" data-address-map-search-button>{{ $ar?'بحث':'Search' }}</button>
+</div>
+<div class="c360-map-results" data-address-map-results></div>
+<div id="c360-address-map" aria-label="{{ $ar?'خريطة تحديد موقع العميل':'Customer location map' }}"></div>
+<div class="c360-map-footer">
+<span class="c360-map-coords" data-address-map-coords>{{ $ar?'اختر نقطة على الخريطة':'Choose a point on the map' }}</span>
+<div class="c360-actions">
+<button type="button" class="foodex-action-secondary button secondary" data-address-map-close>{{ $ar?'إلغاء':'Cancel' }}</button>
+<button type="button" class="foodex-action-primary" data-address-map-apply disabled>{{ $ar?'اعتماد الموقع':'Use this location' }}</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+
+<script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
 <script>
 (() => {
+    const mapModal = document.querySelector('[data-address-map-modal]');
+    const mapContainer = document.getElementById('c360-address-map');
+    const searchInput = mapModal?.querySelector('[data-address-map-search]');
+    const searchButton = mapModal?.querySelector('[data-address-map-search-button]');
+    const resultsBox = mapModal?.querySelector('[data-address-map-results]');
+    const coordsBox = mapModal?.querySelector('[data-address-map-coords]');
+    const applyButton = mapModal?.querySelector('[data-address-map-apply]');
+    let activeForm = null;
+    let map = null;
+    let marker = null;
+    let selected = null;
+
+    const setSelected = (lat, lng, center = true) => {
+        selected = {lat:Number(lat), lng:Number(lng)};
+        if (!Number.isFinite(selected.lat) || !Number.isFinite(selected.lng)) return;
+        if (!marker) marker = L.marker([selected.lat, selected.lng], {draggable:true}).addTo(map);
+        else marker.setLatLng([selected.lat, selected.lng]);
+        marker.off('dragend').on('dragend', () => {
+            const point = marker.getLatLng();
+            setSelected(point.lat, point.lng, false);
+        });
+        if (center) map.setView([selected.lat, selected.lng], Math.max(map.getZoom(), 16));
+        coordsBox.textContent = selected.lat.toFixed(7) + ', ' + selected.lng.toFixed(7);
+        applyButton.disabled = false;
+    };
+
+    const ensureMap = () => {
+        if (map || !mapContainer || typeof L === 'undefined') return;
+        map = L.map(mapContainer).setView([29.3759,47.9774], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom:19,
+            attribution:'&copy; OpenStreetMap contributors',
+        }).addTo(map);
+        map.on('click', (event) => setSelected(event.latlng.lat, event.latlng.lng, false));
+    };
+
+    const closeMap = () => {
+        if (!mapModal) return;
+        mapModal.dataset.open = '0';
+        mapModal.setAttribute('aria-hidden','true');
+        document.body.style.overflow = '';
+        resultsBox.dataset.visible = '0';
+        resultsBox.replaceChildren();
+        activeForm = null;
+    };
+
+    document.querySelectorAll('[data-address-map-picker]').forEach((button) => {
+        button.addEventListener('click', () => {
+            activeForm = button.closest('form');
+            ensureMap();
+            mapModal.dataset.open = '1';
+            mapModal.setAttribute('aria-hidden','false');
+            document.body.style.overflow = 'hidden';
+            requestAnimationFrame(() => map?.invalidateSize());
+            const lat = Number(activeForm?.querySelector('input[name="latitude"]')?.value);
+            const lng = Number(activeForm?.querySelector('input[name="longitude"]')?.value);
+            if (Number.isFinite(lat) && Number.isFinite(lng) && activeForm?.querySelector('input[name="latitude"]')?.value !== '' && activeForm?.querySelector('input[name="longitude"]')?.value !== '') {
+                setSelected(lat,lng,true);
+            } else {
+                selected = null;
+                if (marker) { marker.remove(); marker = null; }
+                coordsBox.textContent = @json($ar?'اختر نقطة على الخريطة':'Choose a point on the map');
+                applyButton.disabled = true;
+            }
+            searchInput?.focus();
+        });
+    });
+
+    mapModal?.querySelectorAll('[data-address-map-close]').forEach((button) => button.addEventListener('click', closeMap));
+    mapModal?.addEventListener('click', (event) => { if (event.target === mapModal) closeMap(); });
+
+    const runSearch = async () => {
+        const query = searchInput?.value.trim();
+        if (!query) return;
+        searchButton.disabled = true;
+        resultsBox.replaceChildren();
+        resultsBox.dataset.visible = '0';
+        try {
+            const response = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=' + encodeURIComponent(query), {
+                headers:{'Accept':'application/json'},
+            });
+            const rows = response.ok ? await response.json() : [];
+            rows.forEach((row) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'c360-map-result';
+                button.textContent = row.display_name;
+                button.addEventListener('click', () => {
+                    setSelected(row.lat,row.lon,true);
+                    resultsBox.dataset.visible = '0';
+                });
+                resultsBox.appendChild(button);
+            });
+            resultsBox.dataset.visible = rows.length ? '1' : '0';
+        } catch (_) {
+            resultsBox.dataset.visible = '0';
+        } finally {
+            searchButton.disabled = false;
+        }
+    };
+    searchButton?.addEventListener('click', runSearch);
+    searchInput?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') { event.preventDefault(); runSearch(); }
+    });
+
+    applyButton?.addEventListener('click', () => {
+        if (!activeForm || !selected) return;
+        const latInput = activeForm.querySelector('input[name="latitude"]');
+        const lngInput = activeForm.querySelector('input[name="longitude"]');
+        const sourceInput = activeForm.querySelector('input[name="location_source"]');
+        if (latInput) latInput.value = selected.lat.toFixed(7);
+        if (lngInput) lngInput.value = selected.lng.toFixed(7);
+        if (sourceInput) sourceInput.value = 'map_pin';
+        const summary = activeForm.querySelector('[data-address-map-summary]');
+        if (summary) summary.textContent = @json($ar?'تم تحديد الموقع ويمكن تعديله من الخريطة':'Location selected; you can edit it on the map');
+        closeMap();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && mapModal?.dataset.open === '1') closeMap();
+    });
+
     const tabs = Array.from(document.querySelectorAll('[data-c360-tab]'));
     const panels = Array.from(document.querySelectorAll('[data-c360-panel]'));
 
