@@ -3969,6 +3969,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
                 child: Column(
+                  key: const ValueKey('b2b-account-hub'),
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Align(
@@ -4032,6 +4033,37 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                       endpoint: widget.profileEndpoint,
                       addressesRoute: widget.addressesRoute,
                     ),
+                    const SizedBox(height: 14),
+                    if (widget.onLocaleChanged != null)
+                      SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(value: 'ar', label: Text('العربية')),
+                          ButtonSegment(value: 'en', label: Text('English')),
+                        ],
+                        selected: {ar ? 'ar' : 'en'},
+                        onSelectionChanged: (value) {
+                          widget.onLocaleChanged!(Locale(value.first));
+                        },
+                      ),
+                    if (widget.onLogout != null) ...[
+                      const SizedBox(height: 10),
+                      ListTile(
+                        key: const ValueKey('b2b-profile-security-action'),
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.security_outlined),
+                        title: Text(
+                          ar ? 'الأمان وتسجيل الدخول' : 'Security & sign-in',
+                        ),
+                        trailing: const Icon(Icons.chevron_left_rounded),
+                        onTap: _showSettings,
+                      ),
+                      OutlinedButton.icon(
+                        key: const ValueKey('b2b-profile-logout'),
+                        onPressed: widget.onLogout,
+                        icon: const Icon(Icons.logout_rounded),
+                        label: Text(ar ? 'تسجيل الخروج' : 'Sign out'),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -4285,7 +4317,8 @@ class _FinanceCard extends StatelessWidget {
       value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
 
   String _money(double value, String currency) =>
-      (currency.trim().isEmpty ? '' : currency.trim() + ' ') + value.toStringAsFixed(3);
+      value.toStringAsFixed(3) +
+      (currency.trim().isEmpty ? '' : ' ' + currency.trim());
 
   @override
   Widget build(BuildContext context) => Container(
