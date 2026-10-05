@@ -18,16 +18,16 @@
 
         const mapNode = find('map');
         const feedUrl = root.dataset.feedUrl;
-        const fail = (code, key) => {
+        const fail = (code, key, preserveRenderedData = false) => {
             const message = i18n[key] || i18n.failed || 'Unable to load live driver locations.';
             root.dataset.liveMapError = code;
             const error = find('error');
-            if (error) error.hidden = false;
+            if (error) error.hidden = preserveRenderedData;
             const detail = find('error-message');
             if (detail) detail.textContent = message;
             const state = find('state');
             if (state) state.textContent = message;
-            // Old coordinates and zero counters must not look like a current feed.
+            if (preserveRenderedData) return;
             ['online','stale','offline'].forEach(status => {
                 const counter = find('count-' + status);
                 if (counter) counter.textContent = '—';
@@ -65,9 +65,14 @@
         let refreshing = false;
         let consecutiveFailures = 0;
         let pollTimer = null;
+        let activeController = null;
+        let hasSuccessfulRender = false;
+        let disposed = false;
         const pollMs = Math.max(1000, Number(root.dataset.pollMs || 5000));
         const scheduleRefresh = (delay = pollMs) => {
             window.clearTimeout(pollTimer);
+            pollTimer = null;
+            if (disposed || root.isConnected === false) return;
             pollTimer = window.setTimeout(refresh, delay);
         };
 
@@ -188,15 +193,21 @@
         };
 
         const refresh = async () => {
+            if (disposed) return;
+            if (root.isConnected === false) {
+                dispose();
+                return;
+            }
             if (refreshing) return;
             window.clearTimeout(pollTimer);
             pollTimer = null;
             refreshing = true;
 
             const state = find('state');
-            if (state) state.textContent = i18n.loading;
+            if (!hasSuccessfulRender && state) state.textContent = i18n.loading;
 
             const controller = new AbortController();
+            activeController = controller;
             const timeout = window.setTimeout(() => controller.abort(), 10000);
             let failure = ['feed-network', 'networkFailed'];
             try {
@@ -227,6 +238,7 @@
                 latestRows = payload.data;
                 failure = ['map-render', 'mapFailed'];
                 render();
+                hasSuccessfulRender = true;
 
                 consecutiveFailures = 0;
                 const error = find('error');
@@ -239,13 +251,14 @@
                     updated.textContent = new Date(payload.meta?.generated_at || Date.now()).toLocaleString();
                 }
             } catch (_) {
-                latestRows = [];
-                layer.clearLayers();
-                markers.clear();
                 consecutiveFailures = Math.min(consecutiveFailures + 1, 4);
-                fail(...(controller.signal.aborted ? ['feed-timeout', 'timeout'] : failure));
+                const classified = controller.signal.aborted
+                    ? ['feed-timeout', 'timeout']
+                    : failure;
+                fail(classified[0], classified[1], hasSuccessfulRender);
             } finally {
                 window.clearTimeout(timeout);
+                if (activeController === controller) activeController = null;
                 refreshing = false;
                 const maintenance = root.dataset.liveMapError === 'feed-maintenance';
                 const retryDelay = consecutiveFailures === 0
@@ -283,10 +296,24 @@
             if (points.length) map.fitBounds(points,{padding:[30,30],maxZoom:15});
         });
 
+        const dispose = () => {
+            if (disposed) return;
+            disposed = true;
+            window.clearTimeout(pollTimer);
+            pollTimer = null;
+            activeController?.abort();
+            activeController = null;
+            map.remove();
+            delete root.dataset.driverLiveMapReady;
+        };
+
+        window.addEventListener('pagehide', dispose, {once:true});
+
         root.foodexDriverLiveMap = {
             refresh,
             recenter: () => find('recenter')?.click(),
             rows: () => latestRows.slice(),
+            dispose,
         };
 
         refresh();
