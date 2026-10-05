@@ -178,3 +178,16 @@ bash scripts/validate-premerge-release-version.sh <base-sha> <head-sha>
 Deployable changes under `backend/`, `apps/customer_app/`, or `apps/driver_app/` require a `VERSION` bump relative to the PR base, and Customer/Driver mobile version identities must remain synchronized with `VERSION`.
 
 Any post-merge failure that was predictable from the PR diff must be converted into a pre-merge check so it cannot recur as a main-only surprise.
+
+## Atomic release identity preflight
+
+Release branches must synchronize all release identities before the first push. A version bump is not complete when only `VERSION` and mobile `pubspec.yaml` files changed.
+
+The minimum release preflight is:
+
+```bash
+bash scripts/release-readiness.sh
+bash scripts/validate-premerge-release-version.sh <base-sha> <head-or-WORKTREE>
+```
+
+Customer and Driver visible/runtime version constants, mobile build identities, release notes and CHANGELOG must agree with the root release identity. Partial synchronization is rejected before expensive release packaging.
