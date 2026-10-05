@@ -499,6 +499,12 @@ backend/public/preview/customer/assets/AssetManifest.bin.json
 backend/public/preview/customer/assets/FontManifest.json
 backend/public/preview/customer/assets/NOTICES
 backend/public/preview/customer/assets/assets/branding/foodex-economical-group.webp
+backend/public/preview/customer/assets/assets/branding/login_reference/email_icon.png
+backend/public/preview/customer/assets/assets/branding/login_reference/fingerprint_icon.png
+backend/public/preview/customer/assets/assets/branding/login_reference/foodex_truck_hero.png
+backend/public/preview/customer/assets/assets/branding/login_reference/header_complete.png
+backend/public/preview/customer/assets/assets/branding/login_reference/lock_icon.png
+backend/public/preview/customer/assets/assets/branding/login_reference/remember_checkbox.png
 backend/public/preview/customer/assets/assets/branding/splash_full.png
 backend/public/preview/customer/assets/assets/customer_ui_v3/asset_contract.json
 backend/public/preview/customer/assets/assets/store_selector/bottom_produce.webp
@@ -633,6 +639,12 @@ preview/customer/assets/AssetManifest.bin.json
 preview/customer/assets/FontManifest.json
 preview/customer/assets/NOTICES
 preview/customer/assets/assets/branding/foodex-economical-group.webp
+preview/customer/assets/assets/branding/login_reference/email_icon.png
+preview/customer/assets/assets/branding/login_reference/fingerprint_icon.png
+preview/customer/assets/assets/branding/login_reference/foodex_truck_hero.png
+preview/customer/assets/assets/branding/login_reference/header_complete.png
+preview/customer/assets/assets/branding/login_reference/lock_icon.png
+preview/customer/assets/assets/branding/login_reference/remember_checkbox.png
 preview/customer/assets/assets/branding/splash_full.png
 preview/customer/assets/assets/customer_ui_v3/asset_contract.json
 preview/customer/assets/assets/store_selector/bottom_produce.webp
