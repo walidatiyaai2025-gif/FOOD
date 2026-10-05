@@ -157,51 +157,73 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        key: const ValueKey('customer-orders-screen'),
-        backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(context.tr('customer.profile.orders')),
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(
-                key: const ValueKey('customer-orders-tab-b2b'),
-                text: context.tr('customer.orders.tab.wholesale'),
+  Widget build(BuildContext context) {
+    final activeTab = _tabs[_activeChannel]!;
+    return Scaffold(
+      key: const ValueKey('customer-orders-screen'),
+      backgroundColor: const Color(0xFFF4F8F7),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            SizedBox(
+              height: 76,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Text(
+                    context.tr('customer.profile.orders'),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: const Color(0xFF111827),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 25,
+                        ),
+                  ),
+                  Positioned(
+                    left: 20,
+                    child: Material(
+                      color: const Color(0xFFE5F2EE),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        key: const ValueKey('customer-orders-refresh'),
+                        customBorder: const CircleBorder(),
+                        onTap: activeTab.loading
+                            ? null
+                            : () => unawaited(_loadChannel(_activeChannel)),
+                        child: const SizedBox.square(
+                          dimension: 46,
+                          child: Icon(
+                            Icons.refresh_rounded,
+                            size: 28,
+                            color: Color(0xFF14221D),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              Tab(
-                key: const ValueKey('customer-orders-tab-b2c'),
-                text: context.tr('customer.orders.tab.retail'),
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _channelBody(context, 'b2b'),
+                  _channelBody(context, 'b2c'),
+                ],
               ),
-            ],
-          ),
-          actions: [
-            IconButton(
-              key: const ValueKey('customer-orders-refresh'),
-              tooltip: context.tr('customer.orders.refresh'),
-              onPressed: _tabs[_activeChannel]!.loading
-                  ? null
-                  : () => unawaited(_loadChannel(_activeChannel)),
-              icon: const Icon(Icons.refresh_rounded),
             ),
           ],
         ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _channelBody(context, 'b2b'),
-            _channelBody(context, 'b2c'),
-          ],
-        ),
-      );
+      ),
+    );
+  }
 
   Widget _channelBody(BuildContext context, String channel) {
     final tab = _tabs[channel]!;
-
     return Column(
       children: [
-        if (tab.statusCodes.isNotEmpty)
-          _statusFilters(context, channel, tab),
+        _statusFilters(context, channel, tab),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => _loadChannel(channel),
@@ -217,38 +239,100 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
     String channel,
     _OrdersTabState tab,
   ) {
-    return SizedBox(
-      height: 58,
-      child: ListView(
-        key: ValueKey('customer-orders-status-filters-$channel'),
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 6),
-        children: [
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8),
-            child: FilterChip(
-              key: ValueKey('customer-orders-status-$channel-all'),
-              label: Text(
-                '${context.tr('customer.orders.status.all')} (${tab.allTotal})',
+    Widget chip({
+      required Key key,
+      required String label,
+      required bool selected,
+      required VoidCallback onTap,
+      bool showFilterIcon = false,
+    }) {
+      return Padding(
+        padding: const EdgeInsetsDirectional.only(end: 8),
+        child: Material(
+          color: selected ? const Color(0xFF07885E) : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            key: key,
+            borderRadius: BorderRadius.circular(18),
+            onTap: tab.loading ? null : onTap,
+            child: Container(
+              height: 46,
+              constraints: const BoxConstraints(minWidth: 82),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: selected
+                      ? const Color(0xFF07885E)
+                      : const Color(0xFFE2E8E5),
+                ),
+                boxShadow: selected
+                    ? const [
+                        BoxShadow(
+                          color: Color(0x1A047A55),
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ]
+                    : null,
               ),
-              selected: tab.selectedStatus == null,
-              onSelected: (_) => _selectStatus(channel, null),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (showFilterIcon) ...[
+                    Icon(
+                      Icons.filter_list_rounded,
+                      size: 21,
+                      color: selected ? Colors.white : const Color(0xFF34433D),
+                    ),
+                    const SizedBox(width: 7),
+                  ],
+                  Text(
+                    label,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: selected
+                              ? Colors.white
+                              : const Color(0xFF303A36),
+                          fontSize: 15,
+                          fontWeight:
+                              selected ? FontWeight.w800 : FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
             ),
           ),
-          for (final status in tab.statusCodes)
-            Padding(
-              padding: const EdgeInsetsDirectional.only(end: 8),
-              child: FilterChip(
-                key: ValueKey('customer-orders-status-$channel-$status'),
-                label: Text(
-                  '${_statusText(context, status)} '
-                  '(${tab.statusCounts[status] ?? 0})',
-                ),
-                selected: tab.selectedStatus == status,
-                onSelected: (_) => _selectStatus(channel, status),
-              ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 62,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: ListView(
+          key: ValueKey('customer-orders-status-filters-$channel'),
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsetsDirectional.fromSTEB(18, 6, 18, 10),
+          children: [
+            chip(
+              key: ValueKey('customer-orders-status-$channel-all'),
+              label: context.tr('customer.orders.status.all'),
+              selected: tab.selectedStatus == null,
+              showFilterIcon: true,
+              onTap: () => _selectStatus(channel, null),
             ),
-        ],
+            for (final status in tab.statusCodes)
+              chip(
+                key: ValueKey('customer-orders-status-$channel-$status'),
+                label: _statusText(context, status),
+                selected: tab.selectedStatus == status,
+                onTap: () => _selectStatus(channel, status),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -361,9 +445,9 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
     return ListView.separated(
       key: ValueKey('customer-orders-list-$channel'),
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+      padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
       itemCount: tab.orders.length + (hasFooter ? 1 : 0),
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         if (index < tab.orders.length) {
           final order = tab.orders[index];
@@ -718,162 +802,204 @@ class _OrderCard extends StatelessWidget {
 
     return Material(
       key: ValueKey('customer-order-${order.id}'),
-      color: CustomerUiColors.white,
-      borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: DecoratedBox(
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 118),
+          padding: const EdgeInsetsDirectional.fromSTEB(14, 14, 14, 14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
-            border: Border.all(color: CustomerUiColors.border),
-            boxShadow: CustomerUiElevation.cardShadow,
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFF0F2F1)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A0B2B20),
+                blurRadius: 8,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(CustomerUiSpacing.md),
+          child: Directionality(
+            textDirection: TextDirection.rtl,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                DecoratedBox(
-                  decoration: const BoxDecoration(
-                    color: CustomerUiColors.mint,
-                    shape: BoxShape.circle,
+                if (onTap != null)
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 28,
+                    color: Color(0xFF35413D),
                   ),
-                  child: SizedBox.square(
-                    dimension: 54,
-                    child: ClipOval(
-                      child: order.storeLogoUrl == null
-                          ? Icon(
-                              order.channel == 'b2b'
-                                  ? Icons.warehouse_outlined
-                                  : Icons.storefront_outlined,
-                              color: CustomerUiColors.deepGreenStrong,
-                            )
-                          : Image.network(
-                              order.storeLogoUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Icon(
-                                order.channel == 'b2b'
-                                    ? Icons.warehouse_outlined
-                                    : Icons.storefront_outlined,
-                                color: CustomerUiColors.deepGreenStrong,
-                              ),
-                            ),
-                    ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE7F7F1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.receipt_long_outlined,
+                    size: 27,
+                    color: Color(0xFF087354),
                   ),
                 ),
-                const SizedBox(width: CustomerUiSpacing.sm),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          ),
-                          const SizedBox(width: CustomerUiSpacing.xs),
-                          _StatusChip(status: order.status),
-                        ],
-                      ),
-                      const SizedBox(height: CustomerUiSpacing.xs),
-                      Text(
-                        store == null || store.isEmpty ? channel : store,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: CustomerUiColors.muted,
-                            ),
-                      ),
-                      const SizedBox(height: CustomerUiSpacing.sm),
-                      Wrap(
-                        spacing: CustomerUiSpacing.xs,
-                        runSpacing: CustomerUiSpacing.xs,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          CustomerBadge(label: channel),
-                          Text(
-                            '${order.grandTotal.toStringAsFixed(3)} ${order.currency}',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: CustomerUiColors.deepGreenStrong,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: CustomerUiSpacing.xs),
-                      Wrap(
-                        spacing: CustomerUiSpacing.sm,
-                        runSpacing: CustomerUiSpacing.xxs,
-                        children: [
-                          if (order.createdAt != null)
-                            Text(
-                              _formatDateTime(order.createdAt!),
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: CustomerUiColors.muted,
-                                  ),
-                            ),
-                          Text(
-                            '${context.tr('customer.orders.items_count')}: '
-                            '${order.itemCount}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: CustomerUiColors.muted,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: CustomerUiSpacing.sm),
-                      _OrderDualStatus(order: order),
-                      if (_nextMeaningfulStatus(order) != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: CustomerUiSpacing.xxs),
-                          child: Text(
-                            '${context.tr('customer.orders.next')}: '
-                            '${_statusText(context, _nextMeaningfulStatus(order)!)}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: CustomerUiColors.deepGreenSoft,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.left,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: const Color(0xFF151B1A),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 15.5,
+                                height: 1.12,
+                              ),
                         ),
-                      if (onReorder != null) ...[
-                        const SizedBox(height: CustomerUiSpacing.sm),
-                        OutlinedButton.icon(
-                          key: ValueKey('customer-order-reorder-${order.id}'),
-                          onPressed: reordering ? null : onReorder,
-                          icon: reordering
-                              ? const SizedBox.square(
-                                  dimension: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.replay_rounded),
-                          label: Text(context.tr('customer.orders.reorder')),
+                      ),
+                      const SizedBox(height: 5),
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Text(
+                          store == null || store.isEmpty ? channel : store,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.left,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF69736F),
+                                fontSize: 13.5,
+                                height: 1.1,
+                              ),
+                        ),
+                      ),
+                      if (order.createdAt != null) ...[
+                        const SizedBox(height: 6),
+                        Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _formatDateTime(order.createdAt!),
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: const Color(0xFF69736F),
+                                      fontSize: 12.5,
+                                    ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.calendar_today_outlined,
+                                size: 16,
+                                color: Color(0xFF58635F),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
+                      const SizedBox(height: 6),
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Text(
+                          '${order.currency} ${order.grandTotal.toStringAsFixed(3)}',
+                          textAlign: TextAlign.left,
+                          maxLines: 1,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: const Color(0xFF087A56),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 15.5,
+                                height: 1.05,
+                              ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                if (onTap != null) ...[
-                  const SizedBox(width: CustomerUiSpacing.xs),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 2),
-                    child: Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 18,
-                      color: CustomerUiColors.deepGreenStrong,
-                    ),
-                  ),
-                ],
+                const SizedBox(width: 10),
+                _CompactOrderStatusChip(status: order.status),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CompactOrderStatusChip extends StatelessWidget {
+  const _CompactOrderStatusChip({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = status.trim().toLowerCase();
+    final colors = switch (normalized) {
+      'cancelled' || 'canceled' || 'failed' => const (
+          background: Color(0xFFFFEEEE),
+          foreground: Color(0xFFD02B2B),
+        ),
+      'shipped' || 'out_for_delivery' || 'in_delivery' => const (
+          background: Color(0xFFEAF6FF),
+          foreground: Color(0xFF087FCB),
+        ),
+      'processing' || 'preparing' || 'confirmed' => const (
+          background: Color(0xFFFFF4E5),
+          foreground: Color(0xFFE57A10),
+        ),
+      'delivered' => const (
+          background: Color(0xFFE7F8F1),
+          foreground: Color(0xFF07925D),
+        ),
+      _ => const (
+          background: Color(0xFFEDF8EF),
+          foreground: Color(0xFF178A2A),
+        ),
+    };
+
+    return Container(
+      constraints: const BoxConstraints(minWidth: 82, maxWidth: 104),
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 11, 8),
+      decoration: BoxDecoration(
+        color: colors.background,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              _statusText(context, status),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: colors.foreground,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12.5,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 7),
+          Container(
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(
+              color: colors.foreground,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
       ),
     );
   }
