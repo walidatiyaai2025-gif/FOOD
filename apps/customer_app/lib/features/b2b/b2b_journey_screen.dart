@@ -187,6 +187,74 @@ class B2bJourneyScreen extends StatelessWidget {
       );
     }
 
+    if (hasRemoteState &&
+        definition.pattern == CustomerRoutePaths.b2bTopProducts) {
+      return Scaffold(
+        key: const ValueKey('b2b-top-products-screen'),
+        backgroundColor: CustomerUiColors.mint,
+        appBar: AppBar(
+          toolbarHeight: 56,
+          elevation: 0,
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          backgroundColor: CustomerUiColors.deepGreen,
+          foregroundColor: CustomerUiColors.white,
+          leading: IconButton(
+            key: const ValueKey('b2b-top-products-back'),
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const BackButtonIcon(),
+          ),
+          title: Text(
+            context.tr('b2b.app.title'),
+            style: const TextStyle(
+              color: CustomerUiColors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        body: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            key: const ValueKey('b2b-top-products-scroll'),
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  content.$1,
+                  key: const ValueKey('customer-route-label'),
+                  textAlign: TextAlign.start,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: CustomerUiColors.ink,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  content.$2,
+                  textAlign: TextAlign.start,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: CustomerUiColors.muted,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                _TopProductsRemoteState(
+                  api: api!,
+                  endpoint: _endpoint()!,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return withFooter(
       Scaffold(
       appBar: AppBar(title: Text(context.tr('b2b.app.title'))),
@@ -1567,131 +1635,565 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
     return context.tr('b2b.top_products.available');
   }
 
+  String _amountWithCurrency(Object? value, Object? currency) {
+    final amount = value?.toString().trim() ?? '';
+    if (amount.isEmpty) return '—';
+    final code = currency?.toString().trim() ?? '';
+    return code.isEmpty ? amount : '$amount $code';
+  }
+
+  String _displayPurchaseDateTime(Object? value) {
+    final raw = value?.toString().trim() ?? '';
+    if (raw.isEmpty) return '—';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    final local = parsed.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    final ss = local.second.toString().padLeft(2, '0');
+    return _isoDate(local) + '  ' + hh + ':' + mm + ':' + ss;
+  }
+
+  Widget _periodTab({
+    required Key key,
+    required String label,
+    required _TopProductsPeriod value,
+  }) {
+    final selected = _period == value;
+    return Expanded(
+      child: InkWell(
+        key: key,
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => _applyPeriod(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          height: 50,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? CustomerUiColors.limeSoft : CustomerUiColors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: selected
+                  ? CustomerUiColors.mintStrong
+                  : CustomerUiColors.border,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.fade,
+            softWrap: false,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: selected
+                  ? CustomerUiColors.success
+                  : CustomerUiColors.ink,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dateButton({
+    required Key key,
+    required bool from,
+    required String label,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: OutlinedButton.icon(
+        key: key,
+        onPressed: () => _pickDate(from: from),
+        icon: Icon(icon, size: 19),
+        label: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 54),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          foregroundColor: CustomerUiColors.inkSoft,
+          backgroundColor: CustomerUiColors.white,
+          side: const BorderSide(color: CustomerUiColors.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _metricLine(IconData icon, String text) => Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 17, color: CustomerUiColors.success),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: CustomerUiColors.inkSoft,
+                  fontSize: 13,
+                  height: 1.25,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _filtersCard(BuildContext context) {
+    final fromLabel = _from == null
+        ? context.tr('b2b.top_products.from')
+        : context.tr('b2b.top_products.from') + ': ' + _isoDate(_from!);
+    final toLabel = _to == null
+        ? context.tr('b2b.top_products.to')
+        : context.tr('b2b.top_products.to') + ': ' + _isoDate(_to!);
+
+    return Container(
+      key: const ValueKey('b2b-top-products-filters'),
+      decoration: BoxDecoration(
+        color: CustomerUiColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: CustomerUiColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: CustomerUiColors.shadow,
+            blurRadius: 14,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          TextField(
+            key: const ValueKey('b2b-top-products-search'),
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => _reload(page: 1),
+            decoration: InputDecoration(
+              hintText: context.tr('b2b.top_products.search'),
+              prefixIcon: const Icon(Icons.search_rounded),
+              filled: true,
+              fillColor: CustomerUiColors.white,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(28),
+                borderSide: const BorderSide(color: CustomerUiColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(28),
+                borderSide: const BorderSide(
+                  color: CustomerUiColors.deepGreenSoft,
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            key: const ValueKey('b2b-top-products-sort'),
+            initialValue: _sort,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: context.tr('b2b.top_products.sort'),
+              filled: true,
+              fillColor: CustomerUiColors.white,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 8,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: const BorderSide(color: CustomerUiColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: const BorderSide(
+                  color: CustomerUiColors.deepGreenSoft,
+                  width: 1.5,
+                ),
+              ),
+            ),
+            items: [
+              DropdownMenuItem(
+                value: 'quantity',
+                child: Text(context.tr('b2b.top_products.sort.quantity')),
+              ),
+              DropdownMenuItem(
+                value: 'value',
+                child: Text(context.tr('b2b.top_products.sort.value')),
+              ),
+            ],
+            onChanged: (value) {
+              if (value == null || value == _sort) return;
+              _sort = value;
+              _reload(page: 1);
+            },
+          ),
+          const SizedBox(height: 14),
+          Row(
+            key: const ValueKey('b2b-top-products-period-row'),
+            children: [
+              _periodTab(
+                key: const ValueKey('b2b-top-products-current-period'),
+                label: context.tr('b2b.top_products.current_period'),
+                value: _TopProductsPeriod.current,
+              ),
+              const SizedBox(width: 8),
+              _periodTab(
+                key: const ValueKey('b2b-top-products-all-time'),
+                label: context.tr('b2b.top_products.all_time'),
+                value: _TopProductsPeriod.all,
+              ),
+              const SizedBox(width: 8),
+              _periodTab(
+                key: const ValueKey('b2b-top-products-previous-period'),
+                label: context.tr('b2b.top_products.previous_period'),
+                value: _TopProductsPeriod.previous,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _dateButton(
+                key: const ValueKey('b2b-top-products-from'),
+                from: true,
+                label: fromLabel,
+                icon: Icons.calendar_today_outlined,
+              ),
+              const SizedBox(width: 10),
+              _dateButton(
+                key: const ValueKey('b2b-top-products-to'),
+                from: false,
+                label: toLabel,
+                icon: Icons.event_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton.icon(
+              key: const ValueKey('b2b-top-products-apply'),
+              onPressed: () => _reload(page: 1),
+              icon: const Icon(Icons.tune_rounded, size: 20),
+              label: Text(context.tr('b2b.top_products.apply')),
+              style: FilledButton.styleFrom(
+                backgroundColor: CustomerUiColors.deepGreen,
+                foregroundColor: CustomerUiColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _productImage(String? imageUrl, String rank) => ClipRRect(
+        key: ValueKey('b2b-top-product-image-$rank'),
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 86,
+          height: 86,
+          child: imageUrl == null || imageUrl.isEmpty
+              ? const ColoredBox(
+                  color: CustomerUiColors.mint,
+                  child: Icon(
+                    Icons.shopping_basket_outlined,
+                    color: CustomerUiColors.deepGreenSoft,
+                    size: 30,
+                  ),
+                )
+              : _B2bCatalogImage(url: imageUrl),
+        ),
+      );
+
+  Widget _productCard(
+    BuildContext context,
+    Map row, {
+    required int index,
+    required int currentPage,
+  }) {
+    final backendRank = int.tryParse(row['rank']?.toString() ?? '');
+    final rankNumber = backendRank != null && backendRank > 0
+        ? backendRank
+        : ((currentPage - 1) * _perPage) + index + 1;
+    final rank = rankNumber.toString();
+    final productId = int.tryParse(row['product_id']?.toString() ?? '');
+    final storeId = int.tryParse(row['store_id']?.toString() ?? '');
+    final name = row['name']?.toString().trim() ?? '';
+    final sku = row['sku']?.toString().trim() ?? '';
+    final quantity = row['quantity']?.toString().trim();
+    final currency = row['currency']?.toString().trim();
+    final currentPrice = row['account_price'];
+    final currentCurrency = row['current_price_currency'];
+    final imageUrl = row['image_url']?.toString();
+    final canOpen =
+        productId != null && productId > 0 && storeId != null && storeId > 0;
+    final canRepurchase = row['can_repurchase'] == true;
+    final availability = _availabilityText(context, row);
+    final statusColor = canRepurchase
+        ? CustomerUiColors.success
+        : Theme.of(context).colorScheme.error;
+
+    void openProduct() {
+      if (!canOpen) return;
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: '/b2b/products/$productId',
+          queryParameters: <String, String>{
+            'channel': 'wholesale',
+            'store_id': storeId.toString(),
+          },
+        ).toString(),
+      );
+    }
+
+    return Container(
+      key: ValueKey('b2b-top-product-$rank'),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: CustomerUiColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: CustomerUiColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: CustomerUiColors.shadow,
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: canOpen ? openProduct : null,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 54,
+                      child: Column(
+                        children: [
+                          Container(
+                            key: ValueKey('b2b-top-product-rank-$rank'),
+                            width: 48,
+                            height: 48,
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              color: CustomerUiColors.deepGreen,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '#$rank',
+                              maxLines: 1,
+                              style: const TextStyle(
+                                color: CustomerUiColors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          if (sku.isNotEmpty) ...[
+                            const SizedBox(height: 5),
+                            Text(
+                              sku,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: CustomerUiColors.inkSoft,
+                                fontSize: 11,
+                                height: 1.1,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: CustomerUiColors.ink,
+                              fontSize: 17,
+                              height: 1.15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          _metricLine(
+                            Icons.people_alt_outlined,
+                            context.tr('b2b.top_products.quantity') +
+                                ': ' +
+                                (quantity == null || quantity.isEmpty
+                                    ? '—'
+                                    : quantity),
+                          ),
+                          _metricLine(
+                            Icons.shopping_basket_outlined,
+                            context.tr('b2b.top_products.spend') +
+                                ': ' +
+                                _amountWithCurrency(row['total'], currency),
+                          ),
+                          _metricLine(
+                            Icons.calendar_month_outlined,
+                            context.tr('b2b.top_products.last_purchase') +
+                                ': ' +
+                                _displayPurchaseDateTime(
+                                  row['last_purchased_at'],
+                                ),
+                          ),
+                          if (currentPrice != null)
+                            _metricLine(
+                              Icons.monetization_on_outlined,
+                              context.tr('b2b.top_products.current_price') +
+                                  ': ' +
+                                  _amountWithCurrency(
+                                    currentPrice,
+                                    currentCurrency,
+                                  ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _productImage(imageUrl, rank),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        key: ValueKey(
+                          'b2b-top-product-availability-$rank',
+                        ),
+                        constraints: const BoxConstraints(minHeight: 46),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              canRepurchase
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.info_outline_rounded,
+                              size: 20,
+                              color: statusColor,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                availability,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontSize: 13,
+                                  height: 1.15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 46,
+                        child: FilledButton.icon(
+                          key: ValueKey('b2b-top-product-open-$rank'),
+                          onPressed: canOpen ? openProduct : null,
+                          icon: const Icon(
+                            Icons.open_in_new_outlined,
+                            size: 18,
+                          ),
+                          label: Text(
+                            context.tr('b2b.top_products.open_product'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: CustomerUiColors.deepGreen,
+                            foregroundColor: CustomerUiColors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Card(
-            key: const ValueKey('b2b-top-products-filters'),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  TextField(
-                    key: const ValueKey('b2b-top-products-search'),
-                    controller: _searchController,
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      hintText: context.tr('b2b.top_products.search'),
-                      prefixIcon: const Icon(Icons.search),
-                    ),
-                    onSubmitted: (_) => _reload(page: 1),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    key: const ValueKey('b2b-top-products-sort'),
-                    initialValue: _sort,
-                    decoration: InputDecoration(
-                      labelText: context.tr('b2b.top_products.sort'),
-                    ),
-                    items: [
-                      DropdownMenuItem(
-                        value: 'quantity',
-                        child: Text(
-                          context.tr('b2b.top_products.sort.quantity'),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'value',
-                        child: Text(
-                          context.tr('b2b.top_products.sort.value'),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value == null || value == _sort) return;
-                      _sort = value;
-                      _reload(page: 1);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                      context.tr('b2b.top_products.period'),
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      ChoiceChip(
-                        key: const ValueKey('b2b-top-products-current-period'),
-                        label: Text(
-                          context.tr('b2b.top_products.current_period'),
-                        ),
-                        selected: _period == _TopProductsPeriod.current,
-                        onSelected: (_) =>
-                            _applyPeriod(_TopProductsPeriod.current),
-                      ),
-                      ChoiceChip(
-                        key: const ValueKey('b2b-top-products-previous-period'),
-                        label: Text(
-                          context.tr('b2b.top_products.previous_period'),
-                        ),
-                        selected: _period == _TopProductsPeriod.previous,
-                        onSelected: (_) =>
-                            _applyPeriod(_TopProductsPeriod.previous),
-                      ),
-                      ChoiceChip(
-                        key: const ValueKey('b2b-top-products-all-time'),
-                        label: Text(
-                          context.tr('b2b.top_products.all_time'),
-                        ),
-                        selected: _period == _TopProductsPeriod.all,
-                        onSelected: (_) => _applyPeriod(_TopProductsPeriod.all),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        key: const ValueKey('b2b-top-products-from'),
-                        onPressed: () => _pickDate(from: true),
-                        icon: const Icon(Icons.calendar_today_outlined),
-                        label: Text(
-                          '${context.tr('b2b.top_products.from')}: ${_from == null ? '—' : _isoDate(_from!)}',
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        key: const ValueKey('b2b-top-products-to'),
-                        onPressed: () => _pickDate(from: false),
-                        icon: const Icon(Icons.event_outlined),
-                        label: Text(
-                          '${context.tr('b2b.top_products.to')}: ${_to == null ? '—' : _isoDate(_to!)}',
-                        ),
-                      ),
-                      FilledButton.icon(
-                        key: const ValueKey('b2b-top-products-apply'),
-                        onPressed: () => _reload(page: 1),
-                        icon: const Icon(Icons.tune),
-                        label: Text(
-                          context.tr('b2b.top_products.apply'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _filtersCard(context),
           const SizedBox(height: 12),
           FutureBuilder<Object?>(
             future: _future,
@@ -1699,7 +2201,10 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
               if (snapshot.connectionState != ConnectionState.done) {
                 return const Center(
                   key: ValueKey('b2b-loading'),
-                  child: CircularProgressIndicator(),
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  ),
                 );
               }
               if (snapshot.hasError) {
@@ -1723,11 +2228,17 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
               final hasMore = meta['has_more'] == true;
 
               if (rows.isEmpty) {
-                return Card(
+                return Container(
                   key: const ValueKey('b2b-empty'),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(context.tr('b2b.empty.purchases')),
+                  decoration: BoxDecoration(
+                    color: CustomerUiColors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: CustomerUiColors.border),
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    context.tr('b2b.empty.purchases'),
+                    textAlign: TextAlign.center,
                   ),
                 );
               }
@@ -1736,212 +2247,14 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                 key: const ValueKey('b2b-top-products-data'),
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ...rows.map((row) {
-                    final rank = row['rank']?.toString() ?? '-';
-                    final productId =
-                        int.tryParse(row['product_id']?.toString() ?? '');
-                    final storeId =
-                        int.tryParse(row['store_id']?.toString() ?? '');
-                    final name = row['name']?.toString() ?? '';
-                    final sku = row['sku']?.toString() ?? '';
-                    final quantity = row['quantity']?.toString() ?? '0';
-                    final total = row['total']?.toString() ?? '0';
-                    final currency = row['currency']?.toString() ?? '';
-                    final lastPurchase =
-                        row['last_purchased_at']?.toString() ?? '—';
-                    final pack = row['pack_label']?.toString();
-                    final currentPrice = row['account_price']?.toString();
-                    final currentCurrency =
-                        row['current_price_currency']?.toString() ?? '';
-                    final imageUrl = row['image_url']?.toString();
-                    final canOpen = productId != null &&
-                        productId > 0 &&
-                        storeId != null &&
-                        storeId > 0;
-                    final canRepurchase = row['can_repurchase'] == true;
-                    final availability = _availabilityText(context, row);
-                    final statusColor = canRepurchase
-                        ? const Color(0xFF087347)
-                        : Theme.of(context).colorScheme.error;
-
-                    void openProduct() {
-                      if (!canOpen) return;
-                      Navigator.of(context).pushNamed(
-                        Uri(
-                          path: '/b2b/products/$productId',
-                          queryParameters: <String, String>{
-                            'channel': 'wholesale',
-                            'store_id': storeId.toString(),
-                          },
-                        ).toString(),
-                      );
-                    }
-
-                    return Card(
-                      key: ValueKey('b2b-top-product-$rank'),
-                      child: InkWell(
-                        onTap: canOpen ? openProduct : null,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: 72,
-                                height: 72,
-                                child: imageUrl == null || imageUrl.isEmpty
-                                    ? const DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: Color(0xFFF2F4F7),
-                                          borderRadius: BorderRadius.all(
-                                            Radius.circular(14),
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.shopping_basket_outlined,
-                                          color: Color(0xFF087347),
-                                        ),
-                                      )
-                                    : _B2bCatalogImage(url: imageUrl),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        CircleAvatar(
-                                          key: ValueKey(
-                                            'b2b-top-product-rank-$rank',
-                                          ),
-                                          radius: 17,
-                                          backgroundColor: Theme.of(context)
-                                              .colorScheme
-                                              .primaryContainer,
-                                          child: Text(
-                                            '#$rank',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            name,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    if (sku.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          sku,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall,
-                                        ),
-                                      ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      '${context.tr('b2b.top_products.quantity')}: $quantity',
-                                    ),
-                                    Text(
-                                      '${context.tr('b2b.top_products.spend')}: $total $currency',
-                                    ),
-                                    Text(
-                                      '${context.tr('b2b.top_products.last_purchase')}: $lastPurchase',
-                                    ),
-                                    if (pack != null && pack.isNotEmpty)
-                                      Text(
-                                        '${context.tr('b2b.top_products.pack')}: $pack',
-                                      ),
-                                    if (currentPrice != null)
-                                      Text(
-                                        '${context.tr('b2b.top_products.current_price')}: $currentPrice $currentCurrency',
-                                      ),
-                                    const SizedBox(height: 6),
-                                    DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        color: statusColor.withValues(
-                                          alpha: 0.10,
-                                        ),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 7,
-                                        ),
-                                        child: Row(
-                                          key: ValueKey(
-                                            'b2b-top-product-availability-$rank',
-                                          ),
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              canRepurchase
-                                                  ? Icons.check_circle_outline
-                                                  : Icons.info_outline,
-                                              size: 18,
-                                              color: statusColor,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Flexible(
-                                              child: Text(
-                                                availability,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                  color: statusColor,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    if (canOpen) ...[
-                                      const SizedBox(height: 8),
-                                      Align(
-                                        alignment:
-                                            AlignmentDirectional.centerStart,
-                                        child: FilledButton.tonalIcon(
-                                          key: ValueKey(
-                                            'b2b-top-product-open-$rank',
-                                          ),
-                                          onPressed: openProduct,
-                                          icon: const Icon(
-                                            Icons.open_in_new_outlined,
-                                          ),
-                                          label: Text(
-                                            context.tr(
-                                              'b2b.top_products.open_product',
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 8),
+                  for (var index = 0; index < rows.length; index++)
+                    _productCard(
+                      context,
+                      rows[index],
+                      index: index,
+                      currentPage: currentPage,
+                    ),
+                  const SizedBox(height: 2),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1950,24 +2263,26 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                         onPressed: currentPage > 1
                             ? () => _reload(page: currentPage - 1)
                             : null,
-                        icon: const Icon(Icons.chevron_left),
-                        label: Text(
-                          context.tr('b2b.top_products.previous'),
-                        ),
+                        icon: const Icon(Icons.chevron_left, size: 18),
+                        label: Text(context.tr('b2b.top_products.previous')),
                       ),
                       Text(
-                        '${context.tr('b2b.top_products.page')} $currentPage',
+                        context.tr('b2b.top_products.page') +
+                            ' ' +
+                            currentPage.toString(),
                         key: const ValueKey('b2b-top-products-page'),
+                        style: const TextStyle(
+                          color: CustomerUiColors.inkSoft,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       OutlinedButton.icon(
                         key: const ValueKey('b2b-top-products-next'),
                         onPressed: hasMore
                             ? () => _reload(page: currentPage + 1)
                             : null,
-                        icon: const Icon(Icons.chevron_right),
-                        label: Text(
-                          context.tr('b2b.top_products.next'),
-                        ),
+                        icon: const Icon(Icons.chevron_right, size: 18),
+                        label: Text(context.tr('b2b.top_products.next')),
                       ),
                     ],
                   ),
@@ -1978,12 +2293,13 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
         ],
       );
 
-  static String _isoDate(DateTime value) =>
-      '${value.year.toString().padLeft(4, '0')}-'
-      '${value.month.toString().padLeft(2, '0')}-'
-      '${value.day.toString().padLeft(2, '0')}';
+  static String _isoDate(DateTime value) {
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return year + '-' + month + '-' + day;
+  }
 }
-
 
 enum _PurchaseReportPeriod { all, current, previous, custom }
 
