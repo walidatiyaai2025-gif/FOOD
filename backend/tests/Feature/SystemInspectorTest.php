@@ -108,6 +108,8 @@ class SystemInspectorTest extends TestCase
         $this->assertStringContainsString("!intentionalAbort", $partial);
         $this->assertStringContainsString("'maintenance'", $partial);
         $this->assertStringContainsString("'validation_rejection'", $partial);
+        $this->assertStringContainsString("'domain_rejection'", $partial);
+        $this->assertStringContainsString('inspectorSuppressedUntil = Date.now() + 60000', $partial);
         $this->assertStringNotContainsString('google-analytics.com/mp/collect', $partial);
         $this->assertStringNotContainsString('api_secret=', $partial);
     }
