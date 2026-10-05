@@ -174,7 +174,7 @@ void main() {
     expect(api.createdAddresses.single['line1'], 'Test Street');
     expect(api.createdAddresses.single['latitude'], 29.3759);
     expect(api.createdAddresses.single['longitude'], 47.9774);
-    expect(api.createdAddresses.single['location_source'], 'gps');
+    expect(api.createdAddresses.single['location_source'], 'current_location');
   });
 
   testWidgets(
