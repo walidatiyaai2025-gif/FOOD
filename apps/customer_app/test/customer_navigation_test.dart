@@ -169,10 +169,13 @@ void main() {
       find.byKey(const ValueKey('unified-auth-password')),
       'password-123',
     );
-    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    final submit = find.byKey(const ValueKey('unified-auth-submit'));
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
     await tester.pumpAndSettle();
 
-    expect(find.text('لوحة الأعمال'), findsOneWidget);
+    expect(find.text('فودكس للأعمال'), findsOneWidget);
     expect(find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
   });
 
@@ -198,7 +201,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    final submit = find.byKey(const ValueKey('unified-auth-submit'));
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
     await tester.pump();
 
     expect(find.text('أدخل البريد الإلكتروني'), findsOneWidget);
@@ -223,7 +229,10 @@ void main() {
       find.byKey(const ValueKey('unified-auth-password')),
       'password-123',
     );
-    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    final submit = find.byKey(const ValueKey('unified-auth-submit'));
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
     await tester.pumpAndSettle();
 
     expect(
@@ -441,7 +450,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('لوحة الأعمال'), findsOneWidget);
+    expect(find.text('فودكس للأعمال'), findsOneWidget);
     expect(find.text('/b2b/dashboard'), findsNothing);
     expect(
       find.byKey(const ValueKey('customer-route-location')),

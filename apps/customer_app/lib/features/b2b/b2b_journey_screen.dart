@@ -19,6 +19,7 @@ import '../customer_account/customer_notification_center_screen.dart';
 import '../customer_orders/customer_order_screens.dart';
 import '../storefront/storefront_design_system.dart';
 import 'business_account_profile.dart';
+import 'dashboard_single_screen.dart';
 import '../customer_orders/customer_orders_api.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
@@ -147,6 +148,135 @@ class B2bJourneyScreen extends StatelessWidget {
         CustomerFooterDestination.invoices,
       _ => CustomerFooterDestination.account,
     };
+
+    if (hasRemoteState && definition.pattern == CustomerRoutePaths.b2bDashboard) {
+      final hasDock = commerceContext?.isWholesale == true;
+      return withFooter(
+        Scaffold(
+          backgroundColor: CustomerUiColors.mint,
+          appBar: AppBar(
+            title: Text(context.tr('b2b.app.title')),
+            centerTitle: true,
+            toolbarHeight: 48,
+            backgroundColor: CustomerUiColors.deepGreen,
+            foregroundColor: CustomerUiColors.white,
+            leading: IconButton(
+                key: const ValueKey('b2b-dashboard-notifications'),
+                tooltip: context.tr('customer.nav.notifications'),
+                onPressed: () => Navigator.of(context).pushNamed(
+                  _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
+                ),
+                icon: const Icon(Icons.notifications_none_rounded),
+              ),
+          ),
+          body: SafeArea(
+            top: false,
+            child: Padding(
+              // The existing app-level version/logout footer overlays routes.
+              // Wholesale's persistent dock already reserves that space.
+              padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
+              child: _B2bDashboardRemoteState(
+                api: api!,
+                endpoint: _endpoint()!,
+                storefrontApi: storefrontApi,
+              ),
+            ),
+          ),
+        ),
+        destination,
+      );
+    }
+
+    if (hasRemoteState &&
+        definition.pattern == CustomerRoutePaths.b2bTopProducts) {
+      return Scaffold(
+        key: const ValueKey('b2b-top-products-screen'),
+        backgroundColor: CustomerUiColors.mint,
+        appBar: AppBar(
+          toolbarHeight: 56,
+          elevation: 0,
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          backgroundColor: CustomerUiColors.deepGreen,
+          foregroundColor: CustomerUiColors.white,
+          leading: IconButton(
+            key: const ValueKey('b2b-top-products-back'),
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const BackButtonIcon(),
+          ),
+          title: Text(
+            context.tr('b2b.app.title'),
+            style: const TextStyle(
+              color: CustomerUiColors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        body: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            key: const ValueKey('b2b-top-products-scroll'),
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  content.$1,
+                  key: const ValueKey('customer-route-label'),
+                  textAlign: TextAlign.start,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: CustomerUiColors.ink,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  content.$2,
+                  textAlign: TextAlign.start,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: CustomerUiColors.muted,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                _TopProductsRemoteState(
+                  api: api!,
+                  endpoint: _endpoint()!,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (hasRemoteState && isProfile) {
+      return withFooter(
+        _B2bMorePage(
+          api: api!,
+          accountApi: accountApi,
+          profileEndpoint: _endpoint()!,
+          financeEndpoint: _accountSummaryEndpoint(),
+          dashboardRoute: _scopedB2bRoute(CustomerRoutePaths.b2bDashboard),
+          purchasesRoute: _scopedB2bRoute(CustomerRoutePaths.b2bPurchaseReports),
+          invoicesRoute: _scopedB2bRoute(CustomerRoutePaths.b2bInvoices),
+          statementRoute: _scopedB2bRoute(CustomerRoutePaths.b2bAccountStatement),
+          ordersRoute: _scopedB2bRoute(CustomerRoutePaths.b2bOrders),
+          notificationsRoute: _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
+          addressesRoute: _scopedB2bRoute(CustomerRoutePaths.b2bAddresses),
+          cartRoute: _b2bCartRoute(),
+          storeId: commerceContext?.storeId,
+          onLocaleChanged: onLocaleChanged,
+          onLogout: onLogout,
+        ),
+        destination,
+      );
+    }
 
     return withFooter(
       Scaffold(
@@ -704,86 +834,147 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     required String value,
     required IconData icon,
     required String route,
-  }) {
-    return Material(
-      key: ValueKey('b2b-dashboard-$keyName'),
-      color: CustomerUiColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(CustomerUiRadii.md),
-        side: const BorderSide(color: CustomerUiColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => Navigator.of(context).pushNamed(_scopedRoute(route)),
-        child: Padding(
-          padding: const EdgeInsets.all(CustomerUiSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  }) => DashboardMetricCard(
+    key: ValueKey('b2b-dashboard-$keyName'),
+    label: label,
+    value: value,
+    icon: icon,
+    compact: const ['invoice-count', 'order-count', 'active-orders', 'purchases-month', 'payments-month'].contains(keyName),
+    onTap: () => Navigator.of(context).pushNamed(_scopedRoute(route)),
+  );
+
+  String _shortTimestamp(String? raw) {
+    final date = raw == null ? null : DateTime.tryParse(raw);
+    if (date == null) return raw ?? '—';
+    final rendered = date.toIso8601String();
+    return '${rendered.substring(0, 10)} ${rendered.substring(11, 16)}';
+  }
+
+  Widget _identity(BuildContext context, Map<Object?, Object?> customer,
+      Map<Object?, Object?> account, String? generatedAt, bool stale) => Material(
+    key: const ValueKey('b2b-dashboard-identity'),
+    color: CustomerUiColors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: const BorderSide(color: CustomerUiColors.border),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const Icon(Icons.business_rounded, size: 22, color: CustomerUiColors.deepGreen),
+            const SizedBox(width: 4),
+            Expanded(child: Text(account['company_name']?.toString() ?? '—',
+              maxLines: 2, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13, height: 1.15, fontWeight: FontWeight.w800))),
+          ]),
+          const SizedBox(height: 3),
+          Text(customer['name']?.toString() ?? '—', maxLines: 1,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, height: 1.15, color: CustomerUiColors.muted)),
+          if ((customer['email']?.toString() ?? '').isNotEmpty)
+            Text(customer['email'].toString(), textDirection: TextDirection.ltr, textAlign: TextAlign.right, maxLines: 1,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.2, color: CustomerUiColors.muted)),
+          const Spacer(),
+          Tooltip(
+            message: '${context.tr('b2b.dashboard.last_updated')}: ${generatedAt ?? '—'}',
+            child: Text(
+              '${context.tr('b2b.dashboard.last_updated')}: \u2066${_shortTimestamp(generatedAt)}\u2069',
+              key: const ValueKey('b2b-dashboard-last-updated'),
+              maxLines: 2,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.1, color: CustomerUiColors.muted),
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: CustomerUiColors.mint,
-                  borderRadius: BorderRadius.circular(CustomerUiRadii.sm),
+              if (stale) Expanded(child: Text(context.tr('b2b.dashboard.stale'),
+                key: const ValueKey('b2b-dashboard-stale'), maxLines: 2,
+                style: const TextStyle(fontSize: 11, height: 1.1, color: CustomerUiColors.warning))),
+              if (widget.storefrontApi != null)
+                IconButton(
+                  key: const ValueKey('b2b-dashboard-shopping'),
+                  tooltip: context.tr('customer.nav.shopping'),
+                  constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                  padding: EdgeInsets.zero,
+                  onPressed: _openingWholesale ? null : _openPrincipalWholesale,
+                  icon: const Icon(Icons.storefront_rounded, size: 22),
+                  style: IconButton.styleFrom(backgroundColor: CustomerUiColors.lime, foregroundColor: CustomerUiColors.deepGreen),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(CustomerUiSpacing.xs),
-                  child: Icon(
-                    icon,
-                    size: 20,
-                    color: CustomerUiColors.deepGreen,
-                  ),
-                ),
-              ),
-              const SizedBox(height: CustomerUiSpacing.sm),
-              Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: CustomerUiColors.ink,
-                    ),
-              ),
-              const SizedBox(height: CustomerUiSpacing.xxs),
-              Text(
-                label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: CustomerUiColors.muted,
-                    ),
+              const SizedBox(width: 4),
+              IconButton(
+                key: const ValueKey('b2b-dashboard-refresh'),
+                tooltip: context.tr('b2b.dashboard.refresh'),
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                padding: EdgeInsets.zero,
+                onPressed: _reload,
+                icon: const Icon(Icons.refresh_rounded, size: 22),
+                style: IconButton.styleFrom(backgroundColor: CustomerUiColors.lime, foregroundColor: CustomerUiColors.deepGreen),
               ),
             ],
           ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _balance(BuildContext context, String directionLabel, double? balance,
+      Object? credit, String currency) => Material(
+    key: const ValueKey('b2b-dashboard-balance-hero'),
+    color: CustomerUiColors.deepGreen,
+    borderRadius: BorderRadius.circular(16),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => Navigator.of(context).pushNamed(_scopedRoute(CustomerRoutePaths.b2bAccountStatement)),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Row(children: [
+              const Icon(Icons.account_balance_wallet_outlined, color: CustomerUiColors.lime, size: 22),
+              const SizedBox(width: 5),
+              Expanded(child: Text(context.tr('b2b.dashboard.balance'), maxLines: 2,
+                style: const TextStyle(color: CustomerUiColors.white, fontSize: 13, height: 1.2))),
+            ]),
+            Text(directionLabel, maxLines: 2, style: const TextStyle(color: CustomerUiColors.mintStrong, fontSize: 11, height: 1.1)),
+            Text(_money(balance?.abs(), currency), textDirection: TextDirection.ltr, maxLines: 2,
+              style: const TextStyle(color: CustomerUiColors.white, fontSize: 15, height: 1.2, fontWeight: FontWeight.w800)),
+            Text(context.tr('b2b.dashboard.available_credit'), maxLines: 2,
+              style: const TextStyle(color: CustomerUiColors.mintStrong, fontSize: 12, height: 1.15)),
+            Text(_money(credit, currency), textDirection: TextDirection.ltr, maxLines: 2,
+              style: const TextStyle(color: CustomerUiColors.lime, fontSize: 15, height: 1.2, fontWeight: FontWeight.w800)),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 
-  Widget _metricGrid(
-    BuildContext context, {
-    required String keyName,
-    required List<Widget> metrics,
-  }) =>
-      LayoutBuilder(
-        key: ValueKey('b2b-dashboard-$keyName-grid'),
-        builder: (context, constraints) {
-          const gap = CustomerUiSpacing.sm;
-          final tileWidth = (constraints.maxWidth - gap) / 2;
-          return Wrap(
-            spacing: gap,
-            runSpacing: gap,
-            children: metrics
-                .map(
-                  (metric) => SizedBox(
-                    width: tileWidth,
-                    child: metric,
-                  ),
-                )
-                .toList(growable: false),
-          );
-        },
-      );
+  Widget _offers(BuildContext context) => Material(
+    key: const ValueKey('b2b-dashboard-offers'),
+    color: CustomerUiColors.limeSoft,
+    borderRadius: BorderRadius.circular(16),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => Navigator.of(context).pushNamed(_scopedRoute(CustomerRoutePaths.b2bTopProducts)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Row(children: [
+          const CircleAvatar(radius: 18, backgroundColor: CustomerUiColors.white, foregroundColor: CustomerUiColors.deepGreen, child: Icon(Icons.local_offer_outlined, size: 24)),
+          const SizedBox(width: 8),
+          Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(context.tr('b2b.dashboard.offers'), maxLines: 1,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 14, height: 1.2, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 2),
+            Text(context.tr('b2b.dashboard.offers_cta'), maxLines: 1,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, height: 1.2)),
+          ])),
+          const Icon(Icons.chevron_right_rounded, color: CustomerUiColors.deepGreen),
+        ]),
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => FutureBuilder<Object?>(
@@ -835,15 +1026,16 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               data['currency']?.toString() ??
               '';
           final rawBalance =
-              double.tryParse(finance['balance']?.toString() ?? '') ?? 0;
+              double.tryParse(finance['balance']?.toString() ?? '');
           final balanceDirection =
-              finance['balance_direction']?.toString() ?? 'settled';
+              finance['balance_direction']?.toString();
           final directionLabel = switch (balanceDirection) {
             'customer_owes_company' =>
               context.tr('b2b.dashboard.balance.you_owe'),
             'company_owes_customer' =>
               context.tr('b2b.dashboard.balance.credit'),
-            _ => context.tr('b2b.dashboard.balance.settled'),
+            'settled' => context.tr('b2b.dashboard.balance.settled'),
+            _ => '—',
           };
           final generatedAt = freshness['generated_at']?.toString();
           final generatedDate =
@@ -896,9 +1088,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               keyName: 'purchases-month',
               label: context.tr('b2b.dashboard.purchases_month'),
               value: _money(
-                operations['purchases_this_month'] ??
-                    data['purchases_total'] ??
-                    data['purchase_total'],
+                operations['purchases_this_month'],
                 currency,
               ),
               icon: Icons.shopping_bag_outlined,
@@ -916,7 +1106,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               context,
               keyName: 'invoice-count',
               label: context.tr('b2b.dashboard.invoice_count'),
-              value: operations['invoice_count']?.toString() ?? '0',
+              value: operations['invoice_count']?.toString() ?? '—',
               icon: Icons.description_outlined,
               route: CustomerRoutePaths.b2bInvoices,
             ),
@@ -924,7 +1114,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               context,
               keyName: 'order-count',
               label: context.tr('b2b.dashboard.order_count'),
-              value: operations['order_count']?.toString() ?? '0',
+              value: operations['order_count']?.toString() ?? '—',
               icon: Icons.inventory_2_outlined,
               route: CustomerRoutePaths.b2bOrders,
             ),
@@ -932,290 +1122,38 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               context,
               keyName: 'active-orders',
               label: context.tr('b2b.dashboard.active_orders'),
-              value: operations['active_orders']?.toString() ?? '0',
+              value: operations['active_orders']?.toString() ?? '—',
               icon: Icons.local_shipping_outlined,
               route: CustomerRoutePaths.b2bOrders,
             ),
           ];
 
-          return Column(
-            key: const ValueKey('b2b-dashboard-data'),
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Material(
-                key: const ValueKey('b2b-dashboard-identity'),
-                color: CustomerUiColors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-                  side: const BorderSide(color: CustomerUiColors.border),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(CustomerUiSpacing.md),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const CircleAvatar(
-                        radius: 24,
-                        backgroundColor: CustomerUiColors.mint,
-                        foregroundColor: CustomerUiColors.deepGreen,
-                        child: Icon(Icons.business_rounded),
-                      ),
-                      const SizedBox(width: CustomerUiSpacing.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              account['company_name']?.toString() ?? '—',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: CustomerUiColors.ink,
-                                  ),
-                            ),
-                            const SizedBox(height: CustomerUiSpacing.xxs),
-                            Text(
-                              customer['name']?.toString() ?? '—',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: CustomerUiColors.muted),
-                            ),
-                            if ((customer['email']?.toString() ?? '')
-                                .isNotEmpty)
-                              Text(
-                                customer['email'].toString(),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(color: CustomerUiColors.muted),
-                              ),
-                            const SizedBox(height: CustomerUiSpacing.sm),
-                            Text(
-                              "${context.tr('b2b.dashboard.last_updated')}: ${generatedAt ?? '—'}",
-                              key: const ValueKey(
-                                'b2b-dashboard-last-updated',
-                              ),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: CustomerUiColors.muted),
-                            ),
-                            if (stale) ...[
-                              const SizedBox(height: CustomerUiSpacing.xxs),
-                              Text(
-                                context.tr('b2b.dashboard.stale'),
-                                key: const ValueKey('b2b-dashboard-stale'),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: CustomerUiColors.warning,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      if (widget.storefrontApi != null) ...[
-                        IconButton.filledTonal(
-                          key: const ValueKey('b2b-dashboard-shopping'),
-                          tooltip: context.tr('customer.nav.shopping'),
-                          onPressed:
-                              _openingWholesale ? null : _openPrincipalWholesale,
-                          icon: const Icon(Icons.storefront_rounded),
-                        ),
-                        const SizedBox(width: CustomerUiSpacing.xs),
-                      ],
-                      IconButton.filledTonal(
-                        key: const ValueKey('b2b-dashboard-refresh'),
-                        tooltip: context.tr('b2b.dashboard.refresh'),
-                        onPressed: _reload,
-                        icon: const Icon(Icons.refresh_rounded),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: CustomerUiSpacing.md),
-              Material(
-                key: const ValueKey('b2b-dashboard-balance-hero'),
-                color: CustomerUiColors.deepGreen,
-                borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => Navigator.of(context).pushNamed(
-                    _scopedRoute(CustomerRoutePaths.b2bAccountStatement),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(CustomerUiSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.account_balance_wallet_outlined,
-                              color: CustomerUiColors.lime,
-                            ),
-                            const SizedBox(width: CustomerUiSpacing.xs),
-                            Text(
-                              context.tr('b2b.dashboard.balance'),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: CustomerUiColors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: CustomerUiSpacing.sm),
-                        Text(
-                          '$directionLabel ${_money(rawBalance.abs(), currency)}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                color: CustomerUiColors.white,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        const SizedBox(height: CustomerUiSpacing.md),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                context.tr(
-                                  'b2b.dashboard.available_credit',
-                                ),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: CustomerUiColors.mintStrong,
-                                    ),
-                              ),
-                            ),
-                            Text(
-                              _money(
-                                finance['available_credit_line'],
-                                currency,
-                              ),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    color: CustomerUiColors.lime,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: CustomerUiSpacing.xl),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.account_balance_outlined,
-                    size: 20,
-                    color: CustomerUiColors.deepGreen,
-                  ),
-                  const SizedBox(width: CustomerUiSpacing.xs),
-                  Text(
-                    context.tr('b2b.dashboard.finance'),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: CustomerUiSpacing.sm),
-              _metricGrid(
-                context,
-                keyName: 'finance',
+          return DashboardSingleScreen(
+            identity: _identity(context, customer, account, generatedAt, stale),
+            balance: _balance(context, directionLabel, rawBalance, finance['available_credit_line'], currency),
+            finance: DashboardPanel(
+              title: context.tr('b2b.dashboard.finance'),
+              icon: Icons.account_balance_outlined,
+              child: DashboardMetricGrid(
+                key: const ValueKey('b2b-dashboard-finance-grid'),
                 metrics: financeMetrics,
               ),
-              const SizedBox(height: CustomerUiSpacing.xl),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.insights_rounded,
-                    size: 20,
-                    color: CustomerUiColors.deepGreen,
-                  ),
-                  const SizedBox(width: CustomerUiSpacing.xs),
-                  Text(
-                    context.tr('b2b.dashboard.operations'),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                ],
+            ),
+            monthly: DashboardPanel(
+              title: context.tr('b2b.dashboard.monthly'),
+              icon: Icons.calendar_today_outlined,
+              child: DashboardMetricGrid(columns: 1, metrics: operationMetrics.take(2).toList()),
+            ),
+            activity: DashboardPanel(
+              title: context.tr('b2b.dashboard.operations'),
+              icon: Icons.insights_rounded,
+              child: DashboardMetricGrid(
+                key: const ValueKey('b2b-dashboard-operations-grid'),
+                columns: 1,
+                metrics: operationMetrics.skip(2).toList(),
               ),
-              const SizedBox(height: CustomerUiSpacing.sm),
-              _metricGrid(
-                context,
-                keyName: 'operations',
-                metrics: operationMetrics,
-              ),
-              const SizedBox(height: CustomerUiSpacing.xl),
-              Material(
-                key: const ValueKey('b2b-dashboard-offers'),
-                color: CustomerUiColors.limeSoft,
-                borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => Navigator.of(context).pushNamed(
-                    _scopedRoute(CustomerRoutePaths.b2bTopProducts),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(CustomerUiSpacing.md),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          backgroundColor: CustomerUiColors.white,
-                          foregroundColor: CustomerUiColors.deepGreen,
-                          child: Icon(Icons.local_offer_outlined),
-                        ),
-                        const SizedBox(width: CustomerUiSpacing.sm),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                context.tr('b2b.dashboard.offers'),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w800),
-                              ),
-                              const SizedBox(height: CustomerUiSpacing.xxs),
-                              Text(
-                                context.tr('b2b.dashboard.offers_cta'),
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.chevron_right_rounded,
-                          color: CustomerUiColors.deepGreen,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
+            offers: _offers(context),
           );
         },
       );
@@ -1720,131 +1658,554 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
     return context.tr('b2b.top_products.available');
   }
 
+  String _amountWithCurrency(Object? value, Object? currency) {
+    final amount = value?.toString().trim() ?? '';
+    if (amount.isEmpty) return '—';
+    final code = currency?.toString().trim() ?? '';
+    return code.isEmpty ? amount : '$amount $code';
+  }
+
+  String _displayPurchaseDateTime(Object? value) {
+    final raw = value?.toString().trim() ?? '';
+    if (raw.isEmpty) return '—';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    final local = parsed.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    final ss = local.second.toString().padLeft(2, '0');
+    return '${_isoDate(local)}  $hh:$mm:$ss';
+  }
+
+  Widget _periodTab({
+    required Key key,
+    required String label,
+    required _TopProductsPeriod value,
+  }) {
+    final selected = _period == value;
+    return Expanded(
+      child: InkWell(
+        key: key,
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => _applyPeriod(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          height: 50,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? CustomerUiColors.limeSoft : CustomerUiColors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: selected
+                  ? CustomerUiColors.mintStrong
+                  : CustomerUiColors.border,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.fade,
+            softWrap: false,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: selected
+                  ? CustomerUiColors.success
+                  : CustomerUiColors.ink,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dateButton({
+    required Key key,
+    required bool from,
+    required String label,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: OutlinedButton.icon(
+        key: key,
+        onPressed: () => _pickDate(from: from),
+        icon: Icon(icon, size: 19),
+        label: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 54),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          foregroundColor: CustomerUiColors.inkSoft,
+          backgroundColor: CustomerUiColors.white,
+          side: const BorderSide(color: CustomerUiColors.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _metricLine(IconData icon, String text) => Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 17, color: CustomerUiColors.success),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: CustomerUiColors.inkSoft,
+                  fontSize: 13,
+                  height: 1.25,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _filtersCard(BuildContext context) {
+    final fromLabel = _from == null
+        ? context.tr('b2b.top_products.from')
+        : "${context.tr('b2b.top_products.from')}: ${_isoDate(_from!)}";
+    final toLabel = _to == null
+        ? context.tr('b2b.top_products.to')
+        : "${context.tr('b2b.top_products.to')}: ${_isoDate(_to!)}";
+
+    return Container(
+      key: const ValueKey('b2b-top-products-filters'),
+      decoration: BoxDecoration(
+        color: CustomerUiColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: CustomerUiColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: CustomerUiColors.shadow,
+            blurRadius: 14,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          TextField(
+            key: const ValueKey('b2b-top-products-search'),
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => _reload(page: 1),
+            decoration: InputDecoration(
+              hintText: context.tr('b2b.top_products.search'),
+              prefixIcon: const Icon(Icons.search_rounded),
+              filled: true,
+              fillColor: CustomerUiColors.white,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(28),
+                borderSide: const BorderSide(color: CustomerUiColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(28),
+                borderSide: const BorderSide(
+                  color: CustomerUiColors.deepGreenSoft,
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            key: const ValueKey('b2b-top-products-sort'),
+            initialValue: _sort,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: context.tr('b2b.top_products.sort'),
+              filled: true,
+              fillColor: CustomerUiColors.white,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 8,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: const BorderSide(color: CustomerUiColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: const BorderSide(
+                  color: CustomerUiColors.deepGreenSoft,
+                  width: 1.5,
+                ),
+              ),
+            ),
+            items: [
+              DropdownMenuItem(
+                value: 'quantity',
+                child: Text(context.tr('b2b.top_products.sort.quantity')),
+              ),
+              DropdownMenuItem(
+                value: 'value',
+                child: Text(context.tr('b2b.top_products.sort.value')),
+              ),
+            ],
+            onChanged: (value) {
+              if (value == null || value == _sort) return;
+              _sort = value;
+              _reload(page: 1);
+            },
+          ),
+          const SizedBox(height: 14),
+          Row(
+            key: const ValueKey('b2b-top-products-period-row'),
+            children: [
+              _periodTab(
+                key: const ValueKey('b2b-top-products-current-period'),
+                label: context.tr('b2b.top_products.current_period'),
+                value: _TopProductsPeriod.current,
+              ),
+              const SizedBox(width: 8),
+              _periodTab(
+                key: const ValueKey('b2b-top-products-all-time'),
+                label: context.tr('b2b.top_products.all_time'),
+                value: _TopProductsPeriod.all,
+              ),
+              const SizedBox(width: 8),
+              _periodTab(
+                key: const ValueKey('b2b-top-products-previous-period'),
+                label: context.tr('b2b.top_products.previous_period'),
+                value: _TopProductsPeriod.previous,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _dateButton(
+                key: const ValueKey('b2b-top-products-from'),
+                from: true,
+                label: fromLabel,
+                icon: Icons.calendar_today_outlined,
+              ),
+              const SizedBox(width: 10),
+              _dateButton(
+                key: const ValueKey('b2b-top-products-to'),
+                from: false,
+                label: toLabel,
+                icon: Icons.event_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton.icon(
+              key: const ValueKey('b2b-top-products-apply'),
+              onPressed: () => _reload(page: 1),
+              icon: const Icon(Icons.tune_rounded, size: 20),
+              label: Text(context.tr('b2b.top_products.apply')),
+              style: FilledButton.styleFrom(
+                backgroundColor: CustomerUiColors.deepGreen,
+                foregroundColor: CustomerUiColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _productImage(String? imageUrl, String rank) => ClipRRect(
+        key: ValueKey('b2b-top-product-image-$rank'),
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 86,
+          height: 86,
+          child: imageUrl == null || imageUrl.isEmpty
+              ? const ColoredBox(
+                  color: CustomerUiColors.mint,
+                  child: Icon(
+                    Icons.shopping_basket_outlined,
+                    color: CustomerUiColors.deepGreenSoft,
+                    size: 30,
+                  ),
+                )
+              : _B2bCatalogImage(url: imageUrl),
+        ),
+      );
+
+  Widget _productCard(
+    BuildContext context,
+    Map row, {
+    required int index,
+    required int currentPage,
+  }) {
+    final backendRank = int.tryParse(row['rank']?.toString() ?? '');
+    final rankNumber = backendRank != null && backendRank > 0
+        ? backendRank
+        : ((currentPage - 1) * _perPage) + index + 1;
+    final rank = rankNumber.toString();
+    final productId = int.tryParse(row['product_id']?.toString() ?? '');
+    final storeId = int.tryParse(row['store_id']?.toString() ?? '');
+    final name = row['name']?.toString().trim() ?? '';
+    final sku = row['sku']?.toString().trim() ?? '';
+    final quantity = row['quantity']?.toString().trim();
+    final currency = row['currency']?.toString().trim();
+    final currentPrice = row['account_price'];
+    final currentCurrency = row['current_price_currency'];
+    final imageUrl = row['image_url']?.toString();
+    final canOpen =
+        productId != null && productId > 0 && storeId != null && storeId > 0;
+    final canRepurchase = row['can_repurchase'] == true;
+    final availability = _availabilityText(context, row);
+    final statusColor = canRepurchase
+        ? CustomerUiColors.success
+        : Theme.of(context).colorScheme.error;
+
+    void openProduct() {
+      if (!canOpen) return;
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: '/b2b/products/$productId',
+          queryParameters: <String, String>{
+            'channel': 'wholesale',
+            'store_id': storeId.toString(),
+          },
+        ).toString(),
+      );
+    }
+
+    return Container(
+      key: ValueKey('b2b-top-product-$rank'),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: CustomerUiColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: CustomerUiColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: CustomerUiColors.shadow,
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: canOpen ? openProduct : null,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 54,
+                      child: Column(
+                        children: [
+                          Container(
+                            key: ValueKey('b2b-top-product-rank-$rank'),
+                            width: 48,
+                            height: 48,
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              color: CustomerUiColors.deepGreen,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '#$rank',
+                              maxLines: 1,
+                              style: const TextStyle(
+                                color: CustomerUiColors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          if (sku.isNotEmpty) ...[
+                            const SizedBox(height: 5),
+                            Text(
+                              sku,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: CustomerUiColors.inkSoft,
+                                fontSize: 11,
+                                height: 1.1,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: CustomerUiColors.ink,
+                              fontSize: 17,
+                              height: 1.15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          _metricLine(
+                            Icons.people_alt_outlined,
+                            "${context.tr('b2b.top_products.quantity')}: "
+                            "${quantity == null || quantity.isEmpty ? '—' : quantity}",
+                          ),
+                          _metricLine(
+                            Icons.shopping_basket_outlined,
+                            "${context.tr('b2b.top_products.spend')}: "
+                            "${_amountWithCurrency(row['total'], currency)}",
+                          ),
+                          _metricLine(
+                            Icons.calendar_month_outlined,
+                            "${context.tr('b2b.top_products.last_purchase')}: "
+                            "${_displayPurchaseDateTime(row['last_purchased_at'])}",
+                          ),
+                          if (currentPrice != null)
+                            _metricLine(
+                              Icons.monetization_on_outlined,
+                              "${context.tr('b2b.top_products.current_price')}: "
+                              '${_amountWithCurrency(currentPrice, currentCurrency)}',
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _productImage(imageUrl, rank),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        key: ValueKey(
+                          'b2b-top-product-availability-$rank',
+                        ),
+                        constraints: const BoxConstraints(minHeight: 46),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              canRepurchase
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.info_outline_rounded,
+                              size: 20,
+                              color: statusColor,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                availability,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontSize: 13,
+                                  height: 1.15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 46,
+                        child: FilledButton.icon(
+                          key: ValueKey('b2b-top-product-open-$rank'),
+                          onPressed: canOpen ? openProduct : null,
+                          icon: const Icon(
+                            Icons.open_in_new_outlined,
+                            size: 18,
+                          ),
+                          label: Text(
+                            context.tr('b2b.top_products.open_product'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: CustomerUiColors.deepGreen,
+                            foregroundColor: CustomerUiColors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Card(
-            key: const ValueKey('b2b-top-products-filters'),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  TextField(
-                    key: const ValueKey('b2b-top-products-search'),
-                    controller: _searchController,
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      hintText: context.tr('b2b.top_products.search'),
-                      prefixIcon: const Icon(Icons.search),
-                    ),
-                    onSubmitted: (_) => _reload(page: 1),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    key: const ValueKey('b2b-top-products-sort'),
-                    initialValue: _sort,
-                    decoration: InputDecoration(
-                      labelText: context.tr('b2b.top_products.sort'),
-                    ),
-                    items: [
-                      DropdownMenuItem(
-                        value: 'quantity',
-                        child: Text(
-                          context.tr('b2b.top_products.sort.quantity'),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'value',
-                        child: Text(
-                          context.tr('b2b.top_products.sort.value'),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value == null || value == _sort) return;
-                      _sort = value;
-                      _reload(page: 1);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                      context.tr('b2b.top_products.period'),
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      ChoiceChip(
-                        key: const ValueKey('b2b-top-products-current-period'),
-                        label: Text(
-                          context.tr('b2b.top_products.current_period'),
-                        ),
-                        selected: _period == _TopProductsPeriod.current,
-                        onSelected: (_) =>
-                            _applyPeriod(_TopProductsPeriod.current),
-                      ),
-                      ChoiceChip(
-                        key: const ValueKey('b2b-top-products-previous-period'),
-                        label: Text(
-                          context.tr('b2b.top_products.previous_period'),
-                        ),
-                        selected: _period == _TopProductsPeriod.previous,
-                        onSelected: (_) =>
-                            _applyPeriod(_TopProductsPeriod.previous),
-                      ),
-                      ChoiceChip(
-                        key: const ValueKey('b2b-top-products-all-time'),
-                        label: Text(
-                          context.tr('b2b.top_products.all_time'),
-                        ),
-                        selected: _period == _TopProductsPeriod.all,
-                        onSelected: (_) => _applyPeriod(_TopProductsPeriod.all),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        key: const ValueKey('b2b-top-products-from'),
-                        onPressed: () => _pickDate(from: true),
-                        icon: const Icon(Icons.calendar_today_outlined),
-                        label: Text(
-                          '${context.tr('b2b.top_products.from')}: ${_from == null ? '—' : _isoDate(_from!)}',
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        key: const ValueKey('b2b-top-products-to'),
-                        onPressed: () => _pickDate(from: false),
-                        icon: const Icon(Icons.event_outlined),
-                        label: Text(
-                          '${context.tr('b2b.top_products.to')}: ${_to == null ? '—' : _isoDate(_to!)}',
-                        ),
-                      ),
-                      FilledButton.icon(
-                        key: const ValueKey('b2b-top-products-apply'),
-                        onPressed: () => _reload(page: 1),
-                        icon: const Icon(Icons.tune),
-                        label: Text(
-                          context.tr('b2b.top_products.apply'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _filtersCard(context),
           const SizedBox(height: 12),
           FutureBuilder<Object?>(
             future: _future,
@@ -1852,7 +2213,10 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
               if (snapshot.connectionState != ConnectionState.done) {
                 return const Center(
                   key: ValueKey('b2b-loading'),
-                  child: CircularProgressIndicator(),
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  ),
                 );
               }
               if (snapshot.hasError) {
@@ -1876,11 +2240,17 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
               final hasMore = meta['has_more'] == true;
 
               if (rows.isEmpty) {
-                return Card(
+                return Container(
                   key: const ValueKey('b2b-empty'),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(context.tr('b2b.empty.purchases')),
+                  decoration: BoxDecoration(
+                    color: CustomerUiColors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: CustomerUiColors.border),
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    context.tr('b2b.empty.purchases'),
+                    textAlign: TextAlign.center,
                   ),
                 );
               }
@@ -1889,212 +2259,14 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                 key: const ValueKey('b2b-top-products-data'),
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ...rows.map((row) {
-                    final rank = row['rank']?.toString() ?? '-';
-                    final productId =
-                        int.tryParse(row['product_id']?.toString() ?? '');
-                    final storeId =
-                        int.tryParse(row['store_id']?.toString() ?? '');
-                    final name = row['name']?.toString() ?? '';
-                    final sku = row['sku']?.toString() ?? '';
-                    final quantity = row['quantity']?.toString() ?? '0';
-                    final total = row['total']?.toString() ?? '0';
-                    final currency = row['currency']?.toString() ?? '';
-                    final lastPurchase =
-                        row['last_purchased_at']?.toString() ?? '—';
-                    final pack = row['pack_label']?.toString();
-                    final currentPrice = row['account_price']?.toString();
-                    final currentCurrency =
-                        row['current_price_currency']?.toString() ?? '';
-                    final imageUrl = row['image_url']?.toString();
-                    final canOpen = productId != null &&
-                        productId > 0 &&
-                        storeId != null &&
-                        storeId > 0;
-                    final canRepurchase = row['can_repurchase'] == true;
-                    final availability = _availabilityText(context, row);
-                    final statusColor = canRepurchase
-                        ? const Color(0xFF087347)
-                        : Theme.of(context).colorScheme.error;
-
-                    void openProduct() {
-                      if (!canOpen) return;
-                      Navigator.of(context).pushNamed(
-                        Uri(
-                          path: '/b2b/products/$productId',
-                          queryParameters: <String, String>{
-                            'channel': 'wholesale',
-                            'store_id': storeId.toString(),
-                          },
-                        ).toString(),
-                      );
-                    }
-
-                    return Card(
-                      key: ValueKey('b2b-top-product-$rank'),
-                      child: InkWell(
-                        onTap: canOpen ? openProduct : null,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: 72,
-                                height: 72,
-                                child: imageUrl == null || imageUrl.isEmpty
-                                    ? const DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: Color(0xFFF2F4F7),
-                                          borderRadius: BorderRadius.all(
-                                            Radius.circular(14),
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.shopping_basket_outlined,
-                                          color: Color(0xFF087347),
-                                        ),
-                                      )
-                                    : _B2bCatalogImage(url: imageUrl),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        CircleAvatar(
-                                          key: ValueKey(
-                                            'b2b-top-product-rank-$rank',
-                                          ),
-                                          radius: 17,
-                                          backgroundColor: Theme.of(context)
-                                              .colorScheme
-                                              .primaryContainer,
-                                          child: Text(
-                                            '#$rank',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            name,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    if (sku.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          sku,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall,
-                                        ),
-                                      ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      '${context.tr('b2b.top_products.quantity')}: $quantity',
-                                    ),
-                                    Text(
-                                      '${context.tr('b2b.top_products.spend')}: $total $currency',
-                                    ),
-                                    Text(
-                                      '${context.tr('b2b.top_products.last_purchase')}: $lastPurchase',
-                                    ),
-                                    if (pack != null && pack.isNotEmpty)
-                                      Text(
-                                        '${context.tr('b2b.top_products.pack')}: $pack',
-                                      ),
-                                    if (currentPrice != null)
-                                      Text(
-                                        '${context.tr('b2b.top_products.current_price')}: $currentPrice $currentCurrency',
-                                      ),
-                                    const SizedBox(height: 6),
-                                    DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        color: statusColor.withValues(
-                                          alpha: 0.10,
-                                        ),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 7,
-                                        ),
-                                        child: Row(
-                                          key: ValueKey(
-                                            'b2b-top-product-availability-$rank',
-                                          ),
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              canRepurchase
-                                                  ? Icons.check_circle_outline
-                                                  : Icons.info_outline,
-                                              size: 18,
-                                              color: statusColor,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Flexible(
-                                              child: Text(
-                                                availability,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                  color: statusColor,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    if (canOpen) ...[
-                                      const SizedBox(height: 8),
-                                      Align(
-                                        alignment:
-                                            AlignmentDirectional.centerStart,
-                                        child: FilledButton.tonalIcon(
-                                          key: ValueKey(
-                                            'b2b-top-product-open-$rank',
-                                          ),
-                                          onPressed: openProduct,
-                                          icon: const Icon(
-                                            Icons.open_in_new_outlined,
-                                          ),
-                                          label: Text(
-                                            context.tr(
-                                              'b2b.top_products.open_product',
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 8),
+                  for (var index = 0; index < rows.length; index++)
+                    _productCard(
+                      context,
+                      rows[index],
+                      index: index,
+                      currentPage: currentPage,
+                    ),
+                  const SizedBox(height: 2),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -2103,24 +2275,24 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                         onPressed: currentPage > 1
                             ? () => _reload(page: currentPage - 1)
                             : null,
-                        icon: const Icon(Icons.chevron_left),
-                        label: Text(
-                          context.tr('b2b.top_products.previous'),
-                        ),
+                        icon: const Icon(Icons.chevron_left, size: 18),
+                        label: Text(context.tr('b2b.top_products.previous')),
                       ),
                       Text(
-                        '${context.tr('b2b.top_products.page')} $currentPage',
+                        "${context.tr('b2b.top_products.page')} $currentPage",
                         key: const ValueKey('b2b-top-products-page'),
+                        style: const TextStyle(
+                          color: CustomerUiColors.inkSoft,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       OutlinedButton.icon(
                         key: const ValueKey('b2b-top-products-next'),
                         onPressed: hasMore
                             ? () => _reload(page: currentPage + 1)
                             : null,
-                        icon: const Icon(Icons.chevron_right),
-                        label: Text(
-                          context.tr('b2b.top_products.next'),
-                        ),
+                        icon: const Icon(Icons.chevron_right, size: 18),
+                        label: Text(context.tr('b2b.top_products.next')),
                       ),
                     ],
                   ),
@@ -2131,12 +2303,13 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
         ],
       );
 
-  static String _isoDate(DateTime value) =>
-      '${value.year.toString().padLeft(4, '0')}-'
-      '${value.month.toString().padLeft(2, '0')}-'
-      '${value.day.toString().padLeft(2, '0')}';
+  static String _isoDate(DateTime value) {
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
 }
-
 
 enum _PurchaseReportPeriod { all, current, previous, custom }
 
@@ -3552,6 +3725,810 @@ class _AuthoritativeDataView extends StatelessWidget {
     }
   }
 }
+
+
+class _B2bMorePage extends StatefulWidget {
+  const _B2bMorePage({
+    required this.api,
+    required this.profileEndpoint,
+    required this.financeEndpoint,
+    required this.dashboardRoute,
+    required this.purchasesRoute,
+    required this.invoicesRoute,
+    required this.statementRoute,
+    required this.ordersRoute,
+    required this.notificationsRoute,
+    required this.addressesRoute,
+    required this.cartRoute,
+    this.accountApi,
+    this.storeId,
+    this.onLocaleChanged,
+    this.onLogout,
+  });
+
+  final B2bApi api;
+  final B2cAccountApi? accountApi;
+  final String profileEndpoint;
+  final String financeEndpoint;
+  final String dashboardRoute;
+  final String purchasesRoute;
+  final String invoicesRoute;
+  final String statementRoute;
+  final String ordersRoute;
+  final String notificationsRoute;
+  final String addressesRoute;
+  final String cartRoute;
+  final int? storeId;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
+
+  @override
+  State<_B2bMorePage> createState() => _B2bMorePageState();
+}
+
+class _B2bMorePageState extends State<_B2bMorePage> {
+  static const deep = Color(0xFF00613F);
+  static const dark = Color(0xFF004E35);
+  static const bg = Color(0xFFF1FAF5);
+  static const soft = Color(0xFFE3F6E9);
+  static const border = Color(0xFFE1EBE5);
+  static const ink = Color(0xFF111827);
+  static const muted = Color(0xFF667085);
+
+  late Future<Object?> finance = widget.api.get(widget.financeEndpoint);
+  Future<Object?>? cart;
+  Future<Object?>? notifications;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBadges();
+  }
+
+  @override
+  void didUpdateWidget(covariant _B2bMorePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.api != widget.api ||
+        oldWidget.financeEndpoint != widget.financeEndpoint) {
+      finance = widget.api.get(widget.financeEndpoint);
+    }
+    if (oldWidget.accountApi != widget.accountApi ||
+        oldWidget.storeId != widget.storeId) {
+      _loadBadges();
+    }
+  }
+
+  void _loadBadges() {
+    final a = widget.accountApi;
+    if (a == null) {
+      cart = null;
+      notifications = null;
+      return;
+    }
+    cart = a.cart(storeId: widget.storeId);
+    notifications = a.notifications(
+      locale: WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'en'
+          ? 'en'
+          : 'ar',
+    );
+  }
+
+  int? _cartCount(Object? raw) {
+    if (raw is! Map) return null;
+    final m = Map<Object?, Object?>.from(raw);
+    final direct = int.tryParse(
+      (m['items_count'] ?? m['item_count'] ?? m['count'])?.toString() ?? '',
+    );
+    if (direct != null) return direct;
+    if (m['data'] is Map) return _cartCount(m['data']);
+    return m['items'] is List ? (m['items'] as List).length : null;
+  }
+
+  int? _unreadCount(Object? raw) {
+    if (raw is! Map) return null;
+    final m = Map<Object?, Object?>.from(raw);
+    final direct = int.tryParse(
+      (m['unread_count'] ?? m['unreadCount'] ?? m['unread_total'])?.toString() ?? '',
+    );
+    if (direct != null) return direct;
+    if (m['data'] is Map) return _unreadCount(m['data']);
+    final rows = m['data'] is List
+        ? m['data'] as List
+        : m['notifications'] is List
+            ? m['notifications'] as List
+            : null;
+    if (rows == null) return null;
+    var count = 0;
+    for (final rawRow in rows) {
+      if (rawRow is! Map) continue;
+      final row = Map<Object?, Object?>.from(rawRow);
+      if (row['is_read'] == false || row['read'] == false || row['read_at'] == null) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  void _open(String route) => Navigator.of(context).pushNamed(route);
+
+  Future<void> _showProfile() => showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: bg,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        builder: (_) => SafeArea(
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: .82,
+            maxChildSize: .94,
+            builder: (_, controller) => SingleChildScrollView(
+              controller: controller,
+              padding: const EdgeInsets.all(16),
+              child: B2bBusinessAccountProfile(
+                api: widget.api,
+                endpoint: widget.profileEndpoint,
+                addressesRoute: widget.addressesRoute,
+              ),
+            ),
+          ),
+        ),
+      );
+
+  Future<void> _showSettings() async {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.onLocaleChanged != null)
+                ListTile(
+                  leading: const Icon(Icons.language_rounded),
+                  title: Text(ar ? 'اللغة' : 'Language'),
+                  trailing: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'ar', label: Text('ع')),
+                      ButtonSegment(value: 'en', label: Text('EN')),
+                    ],
+                    selected: {ar ? 'ar' : 'en'},
+                    onSelectionChanged: (value) {
+                      widget.onLocaleChanged!(Locale(value.first));
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+                ),
+              ListTile(
+                leading: const Icon(Icons.support_agent_outlined),
+                title: Text(ar ? 'المساعدة والدعم' : 'Help & support'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _open(CustomerRoutePaths.diagnostics);
+                },
+              ),
+              if (widget.onLogout != null)
+                ListTile(
+                  key: const ValueKey('b2b-more-security-action'),
+                  leading: const Icon(Icons.security_outlined),
+                  title: Text(ar ? 'الأمان وتسجيل الدخول' : 'Security & sign-in'),
+                  trailing: const Icon(Icons.logout_rounded),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    await widget.onLogout!();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final items = <_MoreItem>[
+      _MoreItem(Icons.apartment_rounded, ar ? 'بيانات الشركة' : 'Company details', _showProfile),
+      _MoreItem(Icons.account_balance_wallet_rounded, ar ? 'الحساب المالي' : 'Financial account', () => _open(widget.dashboardRoute)),
+      _MoreItem(Icons.shopping_bag_outlined, ar ? 'طلباتي' : 'My orders', () => _open(widget.ordersRoute)),
+      _MoreItem(Icons.receipt_long_rounded, ar ? 'الفواتير' : 'Invoices', () => _open(widget.invoicesRoute), warm: true),
+      _MoreItem(Icons.credit_card_rounded, ar ? 'كشف الحساب' : 'Account statement', () => _open(widget.statementRoute)),
+      _MoreItem(Icons.bar_chart_rounded, ar ? 'تقرير المشتريات' : 'Purchases report', () => _open(widget.purchasesRoute)),
+      _MoreItem(Icons.notifications_rounded, ar ? 'الإشعارات' : 'Notifications', () => _open(widget.notificationsRoute), warm: true),
+      _MoreItem(Icons.location_on_rounded, ar ? 'العناوين' : 'Addresses', () => _open(widget.addressesRoute)),
+      _MoreItem(Icons.settings_rounded, ar ? 'الإعدادات' : 'Settings', _showSettings),
+      _MoreItem(Icons.language_rounded, ar ? 'اللغة' : 'Language', _showSettings),
+      _MoreItem(Icons.support_agent_rounded, ar ? 'المساعدة والدعم' : 'Help & support', () => _open(CustomerRoutePaths.diagnostics)),
+      if (widget.onLogout != null)
+        _MoreItem(Icons.shield_rounded, ar ? 'الأمان وتسجيل الدخول' : 'Security & sign-in', _showSettings),
+    ];
+
+    return Directionality(
+      textDirection: ar ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        key: const ValueKey('b2b-more-redesign'),
+        backgroundColor: bg,
+        body: Column(
+          children: [
+            _MoreHeader(
+              title: ar ? 'فودكس للأعمال' : 'FOODEX Business',
+              cart: cart,
+              notifications: notifications,
+              cartCount: _cartCount,
+              unreadCount: _unreadCount,
+              onCart: () => _open(widget.cartRoute),
+              onNotifications: () => _open(widget.notificationsRoute),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+                child: Column(
+                  key: const ValueKey('b2b-account-hub'),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: ar ? Alignment.centerRight : Alignment.centerLeft,
+                      child: _BusinessTile(
+                        label: ar ? 'لوحة الأعمال' : 'Business dashboard',
+                        onTap: () => _open(widget.dashboardRoute),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      ar ? 'حساب الأعمال' : 'Business account',
+                      style: const TextStyle(
+                        color: ink,
+                        fontSize: 27,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      ar ? 'كل أدوات حسابك في مكان واحد' : 'All your account tools in one place',
+                      style: const TextStyle(
+                        color: muted,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _FinanceCard(
+                      future: finance,
+                      ar: ar,
+                      statementRoute: widget.statementRoute,
+                      open: _open,
+                      retry: () => setState(
+                        () => finance = widget.api.get(widget.financeEndpoint),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    LayoutBuilder(
+                      builder: (_, constraints) {
+                        const gap = 10.0;
+                        final columns = constraints.maxWidth >= 350 ? 3 : 2;
+                        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+                        return Wrap(
+                          spacing: gap,
+                          runSpacing: gap,
+                          children: [
+                            for (final item in items)
+                              SizedBox(
+                                width: width,
+                                height: 128,
+                                child: _MoreCard(item: item),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    B2bBusinessAccountProfile(
+                      api: widget.api,
+                      endpoint: widget.profileEndpoint,
+                      addressesRoute: widget.addressesRoute,
+                    ),
+                    const SizedBox(height: 14),
+                    if (widget.onLocaleChanged != null)
+                      SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(value: 'ar', label: Text('العربية')),
+                          ButtonSegment(value: 'en', label: Text('English')),
+                        ],
+                        selected: {ar ? 'ar' : 'en'},
+                        onSelectionChanged: (value) {
+                          widget.onLocaleChanged!(Locale(value.first));
+                        },
+                      ),
+                    if (widget.onLogout != null) ...[
+                      const SizedBox(height: 10),
+                      ListTile(
+                        key: const ValueKey('b2b-profile-security-action'),
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.security_outlined),
+                        title: Text(
+                          ar ? 'الأمان وتسجيل الدخول' : 'Security & sign-in',
+                        ),
+                        trailing: const Icon(Icons.chevron_left_rounded),
+                        onTap: _showSettings,
+                      ),
+                      OutlinedButton.icon(
+                        key: const ValueKey('b2b-profile-logout'),
+                        onPressed: widget.onLogout,
+                        icon: const Icon(Icons.logout_rounded),
+                        label: Text(ar ? 'تسجيل الخروج' : 'Sign out'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MoreHeader extends StatelessWidget {
+  const _MoreHeader({
+    required this.title,
+    required this.cart,
+    required this.notifications,
+    required this.cartCount,
+    required this.unreadCount,
+    required this.onCart,
+    required this.onNotifications,
+  });
+
+  final String title;
+  final Future<Object?>? cart;
+  final Future<Object?>? notifications;
+  final int? Function(Object?) cartCount;
+  final int? Function(Object?) unreadCount;
+  final VoidCallback onCart;
+  final VoidCallback onNotifications;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: _B2bMorePageState.deep,
+        child: SafeArea(
+          bottom: false,
+          child: SizedBox(
+            height: 74,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PositionedDirectional(
+                  start: 10,
+                  top: 13,
+                  child: Row(
+                    children: [
+                      FutureBuilder<Object?>(
+                        future: cart,
+                        builder: (_, snap) => _HeaderCircle(
+                          icon: Icons.shopping_cart_outlined,
+                          onTap: onCart,
+                          badge: snap.hasData ? cartCount(snap.data) : null,
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      FutureBuilder<Object?>(
+                        future: notifications,
+                        builder: (_, snap) {
+                          final count = snap.hasData ? unreadCount(snap.data) : null;
+                          return _HeaderCircle(
+                            icon: Icons.notifications_none_rounded,
+                            onTap: onNotifications,
+                            dot: count != null && count > 0,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 104),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDDF4B9),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: const Text(
+                          'B2B',
+                          textDirection: TextDirection.ltr,
+                          style: TextStyle(
+                            color: _B2bMorePageState.dark,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PositionedDirectional(
+                  end: 2,
+                  top: 8,
+                  child: IconButton(
+                    key: const ValueKey('b2b-more-back'),
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    color: Colors.white,
+                    iconSize: 30,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+}
+
+class _HeaderCircle extends StatelessWidget {
+  const _HeaderCircle({required this.icon, required this.onTap, this.badge, this.dot = false});
+  final IconData icon;
+  final VoidCallback onTap;
+  final int? badge;
+  final bool dot;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Material(
+            color: const Color(0x26FFFFFF),
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onTap,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(icon, color: Colors.white, size: 23),
+              ),
+            ),
+          ),
+          if (badge != null && badge! > 0)
+            PositionedDirectional(
+              start: -3,
+              top: -4,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE53935),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  badge! > 99 ? '99+' : badge.toString(),
+                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+          if (dot)
+            PositionedDirectional(
+              start: 1,
+              top: 1,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE53935),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+              ),
+            ),
+        ],
+      );
+}
+
+class _BusinessTile extends StatelessWidget {
+  const _BusinessTile({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          key: const ValueKey('b2b-more-business-dashboard'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
+            width: 166,
+            height: 66,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [Color(0xFFE7F9D8), Color(0xFFCDEFA8)],
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: const [
+                BoxShadow(color: Color(0x18004E35), blurRadius: 16, offset: Offset(0, 6)),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.grid_view_rounded, size: 27, color: _B2bMorePageState.dark),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: _B2bMorePageState.dark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _FinanceCard extends StatelessWidget {
+  const _FinanceCard({
+    required this.future,
+    required this.ar,
+    required this.statementRoute,
+    required this.open,
+    required this.retry,
+  });
+
+  final Future<Object?> future;
+  final bool ar;
+  final String statementRoute;
+  final void Function(String) open;
+  final VoidCallback retry;
+
+  double _n(Object? value) =>
+      value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
+
+  String _money(double value, String currency) =>
+      '${value.toStringAsFixed(3)}${currency.trim().isEmpty ? '' : ' ${currency.trim()}'}';
+
+  @override
+  Widget build(BuildContext context) => Container(
+        key: const ValueKey('b2b-more-finance-summary'),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: _B2bMorePageState.border),
+          boxShadow: const [
+            BoxShadow(color: Color(0x10004E35), blurRadius: 18, offset: Offset(0, 7)),
+          ],
+        ),
+        child: FutureBuilder<Object?>(
+          future: future,
+          builder: (_, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const SizedBox(height: 136, child: Center(child: CircularProgressIndicator()));
+            }
+            if (snap.hasError) {
+              return SizedBox(
+                height: 136,
+                child: Center(
+                  child: TextButton.icon(
+                    onPressed: retry,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(ar ? 'إعادة المحاولة' : 'Retry'),
+                  ),
+                ),
+              );
+            }
+            final envelope = snap.data is Map
+                ? Map<Object?, Object?>.from(snap.data as Map)
+                : <Object?, Object?>{};
+            final data = envelope['data'] is Map
+                ? Map<Object?, Object?>.from(envelope['data'] as Map)
+                : envelope;
+            final balance = _n(data['balance']);
+            final currency = data['currency']?.toString() ?? '';
+            final direction = data['balance_direction']?.toString() ?? '';
+            final firstLabel = direction == 'customer_owes_company'
+                ? (ar ? 'عليك' : 'You owe')
+                : direction == 'company_owes_customer'
+                    ? (ar ? 'لك' : 'Credit due')
+                    : (ar ? 'الرصيد' : 'Balance');
+            final values = <(String, String)>[
+              (firstLabel, _money(balance.abs(), currency)),
+              (ar ? 'حد الائتمان' : 'Credit limit', _money(_n(data['credit_limit']), currency)),
+              (ar ? 'الائتمان المتاح' : 'Available credit', _money(_n(data['available_credit_line']), currency)),
+              (ar ? 'القوة الشرائية' : 'Purchasing power', _money(_n(data['purchasing_power']), currency)),
+            ];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: _B2bMorePageState.soft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.account_balance_wallet_outlined, color: _B2bMorePageState.deep),
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        ar ? 'ملخص الحساب المالي' : 'Financial account summary',
+                        style: const TextStyle(color: _B2bMorePageState.ink, fontSize: 17, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    for (var i = 0; i < values.length; i++) ...[
+                      if (i > 0) Container(width: 1, height: 48, color: _B2bMorePageState.border),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: Column(
+                            children: [
+                              Text(
+                                values[i].$1,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: _B2bMorePageState.muted, fontSize: 9.5, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 5),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  values[i].$2,
+                                  style: const TextStyle(color: _B2bMorePageState.ink, fontSize: 12, fontWeight: FontWeight.w900),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Material(
+                  color: _B2bMorePageState.soft,
+                  borderRadius: BorderRadius.circular(15),
+                  child: InkWell(
+                    onTap: () => open(statementRoute),
+                    borderRadius: BorderRadius.circular(15),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.open_in_new_rounded, size: 19, color: _B2bMorePageState.deep),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: Text(
+                              ar ? 'فتح كشف الحساب والتفاصيل' : 'Open statement and details',
+                              style: const TextStyle(color: _B2bMorePageState.dark, fontSize: 12.5, fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                          const Icon(Icons.chevron_left_rounded, color: _B2bMorePageState.dark),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+}
+
+class _MoreItem {
+  const _MoreItem(this.icon, this.label, this.onTap, {this.warm = false});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool warm;
+}
+
+class _MoreCard extends StatelessWidget {
+  const _MoreCard({required this.item});
+  final _MoreItem item;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: item.onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
+            padding: const EdgeInsets.fromLTRB(9, 11, 9, 9),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: _B2bMorePageState.border),
+              boxShadow: const [
+                BoxShadow(color: Color(0x0C004E35), blurRadius: 10, offset: Offset(0, 4)),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: item.warm ? const Color(0xFFFFF2D8) : _B2bMorePageState.soft,
+                    borderRadius: BorderRadius.circular(17),
+                  ),
+                  child: Icon(item.icon, color: _B2bMorePageState.deep, size: 31),
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _B2bMorePageState.ink,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          height: 1.08,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF2F6F4),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.chevron_left_rounded, size: 18, color: _B2bMorePageState.dark),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
 
 class _B2bAccountHub extends StatefulWidget {
   const _B2bAccountHub({

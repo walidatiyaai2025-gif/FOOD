@@ -132,7 +132,8 @@ void main() {
     );
     expect(find.text('Buyer Co'), findsOneWidget);
     expect(find.text('Buyer'), findsOneWidget);
-    expect(find.text('عليك 10.000 KWD'), findsOneWidget);
+    expect(find.text('عليك'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('b2b-dashboard-balance-hero')), matching: find.text('10.000 KWD')), findsOneWidget);
     expect(find.text('حد الائتمان'), findsOneWidget);
     expect(find.text('الائتمان المتاح'), findsNWidgets(2));
     expect(find.text('الفواتير المفتوحة'), findsOneWidget);
@@ -235,10 +236,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      Directionality.of(tester.element(find.text('Business dashboard'))),
+      Directionality.of(tester.element(find.text('FOODEX Business'))),
       TextDirection.ltr,
     );
-    expect(find.text('Credit to you 20.000 KWD'), findsOneWidget);
+    expect(find.text('Credit to you'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('b2b-dashboard-balance-hero')), matching: find.text('20.000 KWD')), findsOneWidget);
     expect(find.text('Available credit'), findsNWidgets(2));
     expect(find.text('Active orders'), findsOneWidget);
   });
@@ -362,6 +364,51 @@ void main() {
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(scaffold.backgroundColor, const Color(0xFFF8FBF9));
+  });
+
+  testWidgets(
+      'Wholesale header shows Business dashboard shortcut only for signed-in B2B users',
+      (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+        b2bApi: _FakeB2bApi(const <String, Object?>{}),
+        storefrontApi: _FakeWholesaleStorefrontApi(),
+        actionApi: _FakeCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final shortcut = find.byKey(
+      const ValueKey('wholesale-business-dashboard-button'),
+    );
+    expect(shortcut, findsOneWidget);
+
+    await tester.tap(shortcut);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('b2b-dashboard-notifications')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Wholesale header hides Business dashboard shortcut for guests',
+      (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+        storefrontApi: _FakeWholesaleStorefrontApi(),
+        actionApi: _FakeCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('wholesale-business-dashboard-button')),
+      findsNothing,
+    );
   });
 
   testWidgets(
@@ -1684,11 +1731,23 @@ void main() {
     expect(find.textContaining('Top Product'), findsOneWidget);
     expect(find.textContaining('144.5 KWD'), findsOneWidget);
     expect(find.textContaining('7.25 EGP'), findsOneWidget);
-    expect(find.textContaining('Case 12'), findsOneWidget);
+    expect(find.text('فترة الترتيب'), findsNothing);
+    expect(find.text('كل القنوات'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('b2b-top-product-availability-1')),
       findsOneWidget,
     );
+    final currentTab = tester.getRect(
+      find.byKey(const ValueKey('b2b-top-products-current-period')),
+    );
+    final allTab = tester.getRect(
+      find.byKey(const ValueKey('b2b-top-products-all-time')),
+    );
+    final previousTab = tester.getRect(
+      find.byKey(const ValueKey('b2b-top-products-previous-period')),
+    );
+    expect((currentTab.center.dy - allTab.center.dy).abs(), lessThan(1));
+    expect((allTab.center.dy - previousTab.center.dy).abs(), lessThan(1));
 
     await tester.tap(find.byKey(const ValueKey('b2b-top-products-sort')));
     await tester.pumpAndSettle();

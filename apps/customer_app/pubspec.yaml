@@ -36,5 +36,6 @@ flutter:
   assets:
     - assets/branding/splash_full.png
     - assets/branding/foodex-economical-group.webp
+    - assets/branding/login_reference/
     - assets/store_selector/
     - assets/customer_ui_v3/asset_contract.json

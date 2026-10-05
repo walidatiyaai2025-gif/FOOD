@@ -6,7 +6,7 @@ import 'package:foodex_customer_app/shared/customer_persistent_footer.dart';
 
 void main() {
   testWidgets(
-    'Wholesale footer has four destinations and active Shopping returns home',
+    'Wholesale footer has five destinations and Shopping opens products',
     (tester) async {
       const commerceContext = CustomerCommerceContext(
         channel: CustomerCommerceChannel.wholesale,
@@ -42,13 +42,13 @@ void main() {
         ),
       );
 
-      for (final destination in ['products', 'orders', 'invoices', 'account']) {
+      for (final destination in ['home', 'products', 'orders', 'invoices', 'account']) {
         expect(
           find.byKey(ValueKey('customer-footer-$destination')),
           findsOneWidget,
         );
       }
-      expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
+      expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
       expect(find.text('Shopping'), findsOneWidget);
       expect(find.text('My orders'), findsOneWidget);
@@ -63,7 +63,7 @@ void main() {
       final route = Uri.parse(
         tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
       );
-      expect(route.path, '/b2b/home');
+      expect(route.path, '/b2b/products');
       expect(route.queryParameters['store_id'], '70');
       expect(route.queryParameters['channel'], 'wholesale');
     },
