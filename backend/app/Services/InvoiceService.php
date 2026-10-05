@@ -12,14 +12,13 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use RuntimeException;
-use TCPDF;
 
 final class InvoiceService
 {
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly DashboardOperationalNotifier $notifier,
+        private readonly PdfDocumentFactory $pdfDocuments,
     ) {}
 
     public function issueForOrder(Order $order, ?User $actor = null): Invoice
@@ -309,36 +308,11 @@ final class InvoiceService
         $data = $this->payload($invoice, true);
         $rtl = $locale === 'ar';
 
-        $this->ensureTcpdfAvailable();
-
-        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
-        $pdf->SetMargins(12, 12, 12);
-        $pdf->SetAutoPageBreak(true, 12);
-        $pdf->setRTL($rtl);
-        $pdf->SetFont('dejavusans', '', 10);
+        $pdf = $this->pdfDocuments->create($rtl);
         $pdf->AddPage();
         $pdf->writeHTML($this->html($data, $locale), true, false, true, false, '');
 
         return (string) $pdf->Output('', 'S');
-    }
-
-    private function ensureTcpdfAvailable(): void
-    {
-        if (class_exists(TCPDF::class)) {
-            return;
-        }
-
-        $bundledRuntime = app_path('ThirdParty/tcpdf/tcpdf.php');
-
-        if (is_file($bundledRuntime)) {
-            require_once $bundledRuntime;
-        }
-
-        if (! class_exists(TCPDF::class, false)) {
-            throw new RuntimeException('Invoice PDF runtime is unavailable.');
-        }
     }
 
     /** @param array<string, mixed> $data */

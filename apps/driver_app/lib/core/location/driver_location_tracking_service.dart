@@ -140,9 +140,12 @@ class HttpDriverLocationHeartbeatClient implements DriverLocationHeartbeatClient
     required String baseUrl,
     required String token,
     http.Client? client,
+    this.requestTimeout = const Duration(seconds: 12),
   })  : _endpoint = _heartbeatEndpoint(baseUrl),
         _token = token,
         _client = DriverDiagnosticHttpClient(client ?? http.Client());
+
+  final Duration requestTimeout;
 
   final Uri _endpoint;
   final String _token;
@@ -158,24 +161,26 @@ class HttpDriverLocationHeartbeatClient implements DriverLocationHeartbeatClient
   Future<DriverHeartbeatReceipt> send(DriverLocationSample sample) async {
     final http.Response response;
     try {
-      response = await _client.post(
-        _endpoint,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-        body: jsonEncode({
-          'latitude': sample.latitude,
-          'longitude': sample.longitude,
-          if (sample.accuracy != null) 'accuracy': sample.accuracy,
-          if (sample.speed != null) 'speed': sample.speed,
-          if (sample.heading != null) 'heading': sample.heading,
-          'captured_at': sample.capturedAt.toUtc().toIso8601String(),
-          'app_version': driverAppVersion,
-          if (sample.isMocked != null) 'is_mocked': sample.isMocked,
-        }),
-      );
+      response = await _client
+          .post(
+            _endpoint,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $_token',
+            },
+            body: jsonEncode({
+              'latitude': sample.latitude,
+              'longitude': sample.longitude,
+              if (sample.accuracy != null) 'accuracy': sample.accuracy,
+              if (sample.speed != null) 'speed': sample.speed,
+              if (sample.heading != null) 'heading': sample.heading,
+              'captured_at': sample.capturedAt.toUtc().toIso8601String(),
+              'app_version': driverAppVersion,
+              if (sample.isMocked != null) 'is_mocked': sample.isMocked,
+            }),
+          )
+          .timeout(requestTimeout);
     } on SocketException {
       throw const DriverOfflineException();
     } on http.ClientException {
@@ -258,6 +263,14 @@ class DriverTrackingCadencePolicy {
 
   Duration next({required bool activeDelivery}) =>
       activeDelivery ? active : idle;
+
+  Duration retryDelay(int consecutiveFailures) {
+    final failures = consecutiveFailures.clamp(1, 4);
+    final multiplier = 1 << (failures - 1);
+    final baseMs = retry.inMilliseconds * multiplier;
+    final jitterMs = ((failures * 137) % 751);
+    return Duration(milliseconds: baseMs + jitterMs);
+  }
 }
 
 abstract interface class DriverTrackingScheduler {
@@ -325,6 +338,8 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
   bool _terminalAssignment = false;
   String? _assignmentStatus;
   bool _appInForeground = true;
+  int _consecutiveFailures = 0;
+  DateTime? _backgroundRetryNotBefore;
   StreamSubscription<DriverLocationSample>? _backgroundSubscription;
 
   bool get isStarted => _started;
@@ -393,6 +408,8 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
     _activeDelivery = false;
     _terminalAssignment = false;
     _assignmentStatus = null;
+    _consecutiveFailures = 0;
+    _backgroundRetryNotBefore = null;
     scheduler.cancel();
     _stopBackgroundStream();
     if (clearQueue) {
@@ -423,6 +440,7 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
       final receipt = await _flush();
       if (!_canRun) return;
 
+      _consecutiveFailures = 0;
       _applyReceipt(receipt);
       nextDelay = cadence.next(activeDelivery: _activeDelivery);
     } on DriverSessionExpiredException catch (error, stack) {
@@ -437,7 +455,8 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
         error: error,
         stack: stack,
       );
-      nextDelay = cadence.retry;
+      _consecutiveFailures++;
+      nextDelay = cadence.retryDelay(_consecutiveFailures);
     } finally {
       _cycleRunning = false;
       if (_canRun && _appInForeground) {
@@ -540,12 +559,24 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
   Future<void> _handleBackgroundSample(DriverLocationSample sample) async {
     if (!_canRun || _appInForeground || !_activeDelivery) return;
     _enqueue(sample);
+
+    final retryNotBefore = _backgroundRetryNotBefore;
+    if (retryNotBefore != null && DateTime.now().isBefore(retryNotBefore)) {
+      // During a connectivity outage only the freshest heartbeat is useful.
+      final latest = _queue.last;
+      _queue
+        ..clear()
+        ..add(latest);
+      return;
+    }
     if (_backgroundFlushRunning) return;
 
     _backgroundFlushRunning = true;
     try {
       final receipt = await _flush();
       if (!_canRun) return;
+      _consecutiveFailures = 0;
+      _backgroundRetryNotBefore = null;
       _applyReceipt(receipt);
     } on DriverSessionExpiredException catch (error, stack) {
       _handleSessionFailure('session_expired', error, stack);
@@ -557,6 +588,9 @@ class DriverLocationTrackingService implements DriverLocationTrackingController 
         error: error,
         stack: stack,
       );
+      _consecutiveFailures++;
+      _backgroundRetryNotBefore =
+          DateTime.now().add(cadence.retryDelay(_consecutiveFailures));
     } finally {
       _backgroundFlushRunning = false;
     }

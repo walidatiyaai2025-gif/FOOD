@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.55",
+  "current_version": "1.0.56",
   "releases": [
     {
       "version": "1.0.40",
@@ -170,6 +170,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "c8eced85c3e6a68fc7227cdd0081600b2735b5ef3d5762bb70d209ec6cf32207",
       "note": "Owner-approved post-#921 synchronized distribution with FOODEX reference login, single-screen Business Dashboard, Top Products/More/Orders visual convergence, discoverable Wholesale Business Dashboard access, and authoritative backend/session data preserved."
+    },
+    {
+      "version": "1.0.56",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.56.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "4533e9bcd17476bbc7f4300bc34bdde627d9fc8a325bc5904f7b726805374dd4",
+      "note": "Synchronized 1.0.56 distribution after green #924 / PR #925 integration: Catalog Products UI redesign, Finance-first Customer 360 with audited credit limit and map address picker, B2B Orders modal/i18n cleanup, Operations grid cleanup, integrated reliability hardening, and Customer/Driver release identities at 1.0.56+56."
     }
   ]
 }

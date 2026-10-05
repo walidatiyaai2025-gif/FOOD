@@ -1,31 +1,33 @@
-# FOODEX 1.0.55 Release Notes
+# FOODEX 1.0.56 Release Notes
 
-Status: owner-approved post-#921 synchronized Dashboard/Customer/Driver distribution.
+Status: owner-approved Dashboard update after green #924 / PR #925 integration.
 
 ## Release identity
 
-- Dashboard: `1.0.55`
-- Customer app: `1.0.55+55`
-- Driver app: `1.0.55+55`
-- Customer runtime/footer identity: `1.0.55`
-- Driver runtime/footer identity: `1.0.55`
-- Driver diagnostics current identity: `1.0.55`
-- Driver diagnostics build identity: `55`
+- Dashboard: `1.0.56`
+- Customer app: `1.0.56+56`
+- Driver app: `1.0.56+56`
+- Customer runtime/footer identity: `1.0.56`
+- Driver runtime/footer identity: `1.0.56`
+- Driver diagnostics current identity: `1.0.56`
+- Driver diagnostics build identity: `56`
 
 ## Included changes
 
-- Promote the owner-approved Customer visual and functional convergence from #920 / PR #921: FOODEX reference login, single-screen Business Dashboard, compact Top Products, discoverable Wholesale Business Dashboard shortcut, redesigned More surface, and refreshed Orders/footer composition.
-- Keep all business values, permissions, account/store entitlement, finance metrics, orders and navigation authoritative to the existing backend/API/session state with no hardcoded production business data.
-- Preserve Arabic/English RTL/LTR behavior, Remember Me and biometric sign-in, exact Wholesale store context, Retail/Wholesale isolation, and the validated five-destination Customer navigation contract.
-- Preserve the existing production activation policy while synchronizing Dashboard, Customer and Driver release identities at 1.0.55 / mobile build 55.
+- Catalog Products UI redesign: compact one-row product grid, contextual action menu, store-configured currency, and preserved backend business rules.
+- Customer 360 redesign: Finance-first tabs, secure editable Wholesale Credit Limit backed by `b2b_accounts.credit_limit`, audited updates, and automatic propagation through the existing account-summary/ledger calculations.
+- Customer address editing: map picker replaces manual latitude/longitude entry; selecting or moving a pin stores coordinates automatically through the existing address contract.
+- B2B Orders UX: prominent Create Order button opens the existing multi-product creation flow in a modal; Arabic status/payment labels are localized while authoritative quote, stock, pricing and order rules remain unchanged.
+- Operations Orders cleanup: driver actions are removed from the orders grid while driver business logic remains available in its dedicated management surfaces.
+- Reliability fixes integrated with #924: Inspector/CSRF error normalization, bounded Customer/Driver retries and backoff, invoice PDF authorization/runtime hardening, preview unavailable-state handling, live polling cooldowns, and B2B finance query optimization.
 
 ## Dashboard update bundle
 
-- Target version: `1.0.55`
+- Target version: `1.0.56`
 - Minimum current version: `1.0.6`
 - Contains migrations: `true`
 - Requires full redeploy: `false`
-- SHA-256: `c8eced85c3e6a68fc7227cdd0081600b2735b5ef3d5762bb70d209ec6cf32207`
+- SHA-256: `4533e9bcd17476bbc7f4300bc34bdde627d9fc8a325bc5904f7b726805374dd4`
 
 ## Explicit non-activation statement
 

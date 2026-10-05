@@ -85,8 +85,19 @@ class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen> {
 
   void _showError(Object error) {
     if (!mounted) return;
+    var message = context.tr(customerAccountErrorKey(error));
+    if (error is B2cAccountException && error.fieldErrors.isNotEmpty) {
+      final details = error.fieldErrors.entries
+          .expand((entry) => entry.value.map((value) => '${entry.key}: $value'))
+          .join('\n');
+      if (details.trim().isNotEmpty) message = details;
+    } else if (error is B2cAccountException &&
+        error.serverMessage != null &&
+        error.serverMessage!.trim().isNotEmpty) {
+      message = error.serverMessage!.trim();
+    }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.tr(customerAccountErrorKey(error)))),
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -169,7 +180,7 @@ class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen> {
                 latitude = point.latitude;
                 longitude = point.longitude;
                 accuracy = point.accuracyMeters;
-                source = 'gps';
+                source = 'current_location';
               });
             } catch (error) {
               setDialogState(() {
@@ -192,7 +203,7 @@ class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen> {
                 latitude = selected.latitude;
                 longitude = selected.longitude;
                 accuracy = null;
-                source = 'map';
+                source = 'map_pin';
                 dialogError = null;
               });
             } catch (error) {

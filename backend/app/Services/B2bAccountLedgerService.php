@@ -26,14 +26,17 @@ final class B2bAccountLedgerService
     ];
 
     /** @return array<string,mixed> */
-    public function summary(B2bCustomer $customer, ?int $storeId = null): array
-    {
+    public function summary(
+        B2bCustomer $customer,
+        ?int $storeId = null,
+        ?Collection $preloadedTransactions = null,
+    ): array {
         $account = B2bAccount::query()
             ->where('b2b_customer_id', $customer->getKey())
             ->where('status', 'active')
             ->firstOrFail();
 
-        $transactions = $this->transactions($customer, $storeId);
+        $transactions = $preloadedTransactions ?? $this->transactions($customer, $storeId);
         $transactionCurrencies = $transactions
             ->pluck('currency')
             ->filter(fn (mixed $currency): bool => is_string($currency) && $currency !== '')
@@ -125,7 +128,7 @@ final class B2bAccountLedgerService
 
         $periodDebits = round((float) $rows->sum('debit'), 3);
         $periodCredits = round((float) $rows->sum('credit'), 3);
-        $summary = $this->summary($customer, $storeId);
+        $summary = $this->summary($customer, $storeId, $all);
 
         return [
             ...$summary,
@@ -395,15 +398,34 @@ final class B2bAccountLedgerService
             ->whereNotIn('status', ['cancelled', 'void', 'voided'])
             ->get(['id', 'total', 'due_at']);
 
+        if ($invoices->isEmpty()) {
+            return [0.0, 0.0];
+        }
+
+        $invoiceIds = $invoices->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $paidByInvoice = DB::table('payments')
+            ->whereIn('invoice_id', $invoiceIds)
+            ->where('status', 'paid')
+            ->groupBy('invoice_id')
+            ->selectRaw('invoice_id, COALESCE(SUM(amount), 0) as paid')
+            ->pluck('paid', 'invoice_id');
+
+        $ledgerByInvoice = DB::table('customer_account_ledger_entries')
+            ->whereIn('invoice_id', $invoiceIds)
+            ->groupBy('invoice_id')
+            ->selectRaw('invoice_id, COALESCE(SUM(debit), 0) as debits, COALESCE(SUM(credit), 0) as credits')
+            ->get()
+            ->keyBy('invoice_id');
+
         $open = 0.0;
         $overdue = 0.0;
         foreach ($invoices as $invoice) {
-            $model = Invoice::query()->find((int) $invoice->id);
-            if (($model instanceof Invoice) === false) {
-                continue;
-            }
-            $amounts = $this->invoiceAmounts($model);
-            $remaining = (float) $amounts['outstanding_amount'];
+            $ledger = $ledgerByInvoice->get($invoice->id);
+            $paid = (float) ($paidByInvoice[$invoice->id] ?? 0);
+            $debits = (float) ($ledger->debits ?? 0);
+            $credits = (float) ($ledger->credits ?? 0);
+            $remaining = round(max((float) $invoice->total + $debits - $paid - $credits, 0), 3);
+
             $open += $remaining;
             if ($remaining > 0 && $invoice->due_at !== null && CarbonImmutable::parse($invoice->due_at)->isPast()) {
                 $overdue += $remaining;

@@ -80,8 +80,7 @@
     const mutationHeaders = () => {
         const xsrf = currentXsrfToken();
         return {
-            'X-CSRF-TOKEN': csrf,
-            ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {}),
+            ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {'X-CSRF-TOKEN': csrf}),
             'Accept':'application/json',
             'X-Requested-With':'XMLHttpRequest',
         };
@@ -89,6 +88,7 @@
     let latestId = 0;
     let initialized = false;
     let timer = null;
+    let consecutiveFailures = 0;
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
@@ -134,7 +134,11 @@
                     'X-FOODEX-BACKGROUND':'1',
                 },
             });
-            if (!response.ok) throw new Error('live-feed-' + response.status);
+            if (!response.ok) {
+                const error = new Error('live-feed-' + response.status);
+                error.status = response.status;
+                throw error;
+            }
             const payload = await response.json();
             const items = Array.isArray(payload.data) ? payload.data : [];
             setCount(payload.meta?.unread_count ?? 0);
@@ -154,12 +158,16 @@
             }
 
             latestId = Math.max(latestId, Number(payload.meta?.latest_id ?? 0));
+            consecutiveFailures = 0;
             schedule();
-        } catch (_) {
+        } catch (error) {
             root.classList.add('foodex-live-offline');
             state.hidden = false;
             state.textContent = @json(app()->getLocale()==='ar' ? 'تعذر الاتصال اللحظي. ستتم إعادة المحاولة تلقائياً.' : 'Live connection unavailable. Retrying automatically.');
-            schedule(8000);
+            consecutiveFailures = Math.min(consecutiveFailures + 1, 4);
+            const maintenanceDelay = error?.status === 503 ? 30000 : 0;
+            const retryDelay = Math.max(maintenanceDelay, Math.min(60000, 8000 * (2 ** (consecutiveFailures - 1))));
+            schedule(retryDelay);
         }
     }
 

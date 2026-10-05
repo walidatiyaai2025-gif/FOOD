@@ -15,6 +15,35 @@
         'failed' => ['out_for_delivery','cancelled'],
         default => [],
     };
+    $isArAction = app()->getLocale()==='ar';
+    $stateLabels = [
+        'pending'=>$isArAction?'قيد الانتظار':'Pending',
+        'confirmed'=>$isArAction?'مؤكد':'Confirmed',
+        'preparing'=>$isArAction?'قيد التجهيز':'Preparing',
+        'ready'=>$isArAction?'جاهز':'Ready',
+        'assigned'=>$isArAction?'تم التعيين':'Assigned',
+        'picked_up'=>$isArAction?'تم الاستلام':'Picked up',
+        'out_for_delivery'=>$isArAction?'قيد التوصيل':'Out for delivery',
+        'in_transit'=>$isArAction?'في الطريق':'In transit',
+        'delivered'=>$isArAction?'تم التسليم':'Delivered',
+        'completed'=>$isArAction?'مكتمل':'Completed',
+        'failed'=>$isArAction?'تعذر التسليم':'Failed',
+        'cancelled'=>$isArAction?'ملغي':'Cancelled',
+        'refunded'=>$isArAction?'مسترد':'Refunded',
+        'unassigned'=>$isArAction?'غير معين':'Unassigned',
+    ];
+    $paymentLabels = [
+        'cash_on_delivery'=>$isArAction?'الدفع عند الاستلام':'Cash on delivery',
+        'cash'=>$isArAction?'نقدي':'Cash',
+        'card'=>$isArAction?'بطاقة':'Card',
+        'credit'=>$isArAction?'آجل / ائتمان':'Credit',
+        'account_credit'=>$isArAction?'رصيد الحساب':'Account credit',
+        'bank_transfer'=>$isArAction?'تحويل بنكي':'Bank transfer',
+        'paid'=>$isArAction?'مدفوع':'Paid',
+        'pending'=>$isArAction?'قيد الانتظار':'Pending',
+        'failed'=>$isArAction?'فشل':'Failed',
+        'refunded'=>$isArAction?'مسترد':'Refunded',
+    ];
 @endphp
 
 <div id="order-{{ $row['_id'] }}" style="display:grid;gap:8px;min-width:260px">
@@ -46,7 +75,7 @@
         @endif
         <select name="status" required>
             @foreach($statusTransitions as $state)
-                <option value="{{ $state }}">{{ $state }}</option>
+                <option value="{{ $state }}">{{ $stateLabels[$state] ?? $state }}</option>
             @endforeach
         </select>
         <input name="note" maxlength="1000" placeholder="{{ app()->getLocale()==='ar'?'ملاحظة الحالة':'Status note' }}">
@@ -75,7 +104,7 @@
         </form>
         @else
         <div style="display:grid;gap:7px;padding:9px;border:1px solid var(--foodex-border);border-radius:10px;background:#fbfcfd">
-            <strong>{{ app()->getLocale()==='ar'?'السائق الحالي':'Current driver' }}: {{ $row['driver'] }} · {{ $row['assignment_status'] }}</strong>
+            <strong>{{ app()->getLocale()==='ar'?'السائق الحالي':'Current driver' }}: {{ $row['driver'] }} · {{ $stateLabels[$row['assignment_status']] ?? $row['assignment_status'] }}</strong>
             <form method="post" action="{{ route($driverReassignRoute,['order'=>$row['_id']]) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
                 @csrf @method('PATCH')
                 @if(!$isB2bOrder)
@@ -112,16 +141,16 @@
                 <strong>{{ app()->getLocale()==='ar'?'البنود':'Items' }}</strong>
                 <ul style="margin:6px 0">
                     @foreach($row['_items'] as $item)
-                        <li>{{ $item['sku'] }} · {{ $item['name'] }} — {{ number_format($item['quantity'],3) }} × {{ number_format($item['unit_price'],3) }} = {{ number_format($item['line_total'],3) }} EGP</li>
+                        <li>{{ $item['sku'] }} · {{ $item['name'] }} — {{ number_format($item['quantity'],3) }} × {{ number_format($item['unit_price'],3) }} = {{ number_format($item['line_total'],3) }} {{ $row['_currency'] }}</li>
                     @endforeach
                 </ul>
             </div>
             <div>
-                {{ app()->getLocale()==='ar'?'الإجمالي الفرعي':'Subtotal' }}: {{ number_format($row['_subtotal'],3) }} EGP ·
-                {{ app()->getLocale()==='ar'?'الخصم':'Discount' }}: {{ number_format($row['_discount_total'],3) }} EGP ·
-                {{ app()->getLocale()==='ar'?'التوصيل':'Delivery' }}: {{ number_format($row['_delivery_total'],3) }} EGP ·
-                {{ app()->getLocale()==='ar'?'الضريبة':'Tax' }}: {{ number_format($row['_tax_total'] ?? 0,3) }} EGP ·
-                <strong>{{ app()->getLocale()==='ar'?'الإجمالي النهائي':'Grand total' }}: {{ number_format($row['_grand_total'],3) }} EGP</strong>
+                {{ app()->getLocale()==='ar'?'الإجمالي الفرعي':'Subtotal' }}: {{ number_format($row['_subtotal'],3) }} {{ $row['_currency'] }} ·
+                {{ app()->getLocale()==='ar'?'الخصم':'Discount' }}: {{ number_format($row['_discount_total'],3) }} {{ $row['_currency'] }} ·
+                {{ app()->getLocale()==='ar'?'التوصيل':'Delivery' }}: {{ number_format($row['_delivery_total'],3) }} {{ $row['_currency'] }} ·
+                {{ app()->getLocale()==='ar'?'الضريبة':'Tax' }}: {{ number_format($row['_tax_total'] ?? 0,3) }} {{ $row['_currency'] }} ·
+                <strong>{{ app()->getLocale()==='ar'?'الإجمالي النهائي':'Grand total' }}: {{ number_format($row['_grand_total'],3) }} {{ $row['_currency'] }}</strong>
             </div>
             @if($isB2bOrder && !empty($row['_settlement']))
                 @php($settlement = $row['_settlement'])
@@ -131,7 +160,7 @@
                         {{ app()->getLocale()==='ar'?'إجمالي الطلب':'Order total' }}:
                         <strong>{{ number_format($row['_grand_total'],3) }} {{ $settlement['currency'] }}</strong>
                         · {{ app()->getLocale()==='ar'?'طريقة المتبقي':'Remainder method' }}:
-                        <strong>{{ $settlement['remainder_method'] ?: '—' }}</strong>
+                        <strong>{{ $settlement['remainder_method'] ? ($paymentLabels[$settlement['remainder_method']] ?? str_replace('_',' ',$settlement['remainder_method'])) : '—' }}</strong>
                     </div>
                     <div>
                         {{ app()->getLocale()==='ar'?'رصيد العميل المتاح':'Customer credit balance' }}:
@@ -162,11 +191,11 @@
                 </div>
             @endif
             @if($row['_payment'])
-                <div>{{ app()->getLocale()==='ar'?'الدفع':'Payment' }}: {{ $row['_payment']['provider'] }} · {{ $row['_payment']['status'] }} · {{ number_format($row['_payment']['amount'],3) }} {{ $row['_payment']['currency'] }}</div>
+                <div>{{ app()->getLocale()==='ar'?'الدفع':'Payment' }}: {{ $paymentLabels[$row['_payment']['provider']] ?? str_replace('_',' ',$row['_payment']['provider']) }} · {{ $paymentLabels[$row['_payment']['status']] ?? $row['_payment']['status'] }} · {{ number_format($row['_payment']['amount'],3) }} {{ $row['_payment']['currency'] }}</div>
             @endif
             @if($row['_invoice'])
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <span>{{ app()->getLocale()==='ar'?'الفاتورة':'Invoice' }}: {{ $row['_invoice']['number'] }} · {{ $row['_invoice']['status'] }} · {{ number_format($row['_invoice']['total'],3) }} {{ $row['_invoice']['currency'] }}</span>
+                    <span>{{ app()->getLocale()==='ar'?'الفاتورة':'Invoice' }}: {{ $row['_invoice']['number'] }} · {{ $stateLabels[$row['_invoice']['status']] ?? $row['_invoice']['status'] }} · {{ number_format($row['_invoice']['total'],3) }} {{ $row['_invoice']['currency'] }}</span>
                     <a class="foodex-primary" target="_blank" rel="noopener" href="{{ route('admin.invoices.show',['invoice'=>$row['_invoice']['id']]) }}">{{ app()->getLocale()==='ar'?'عرض':'View' }}</a>
                     <a class="foodex-primary" href="{{ route('admin.invoices.download',['invoice'=>$row['_invoice']['id'],'locale'=>app()->getLocale()]) }}">PDF</a>
                     <a class="foodex-primary" target="_blank" rel="noopener" href="{{ route('admin.invoices.show',['invoice'=>$row['_invoice']['id'],'print'=>1]) }}">{{ app()->getLocale()==='ar'?'طباعة':'Print' }}</a>
@@ -180,7 +209,7 @@
                     <strong>{{ app()->getLocale()==='ar'?'سجل الحالات':'Status history' }}</strong>
                     <ul style="margin:6px 0">
                         @foreach($row['_history'] as $entry)
-                            <li>{{ $entry['from'] ?? '—' }} → {{ $entry['to'] }} · {{ $entry['created_at'] }}@if($entry['note']) · {{ $entry['note'] }}@endif</li>
+                            <li>{{ $entry['from'] ? ($stateLabels[$entry['from']] ?? $entry['from']) : '—' }} → {{ $stateLabels[$entry['to']] ?? $entry['to'] }} · {{ $entry['created_at'] }}@if($entry['note']) · {{ $entry['note'] }}@endif</li>
                         @endforeach
                     </ul>
                 </div>
@@ -191,7 +220,7 @@
                     <ul style="margin:6px 0">
                         @foreach($row['_driver_history'] as $entry)
                             <li>
-                                {{ $entry['from'] ?? '—' }} → {{ $entry['to'] ?? '—' }}
+                                {{ $entry['from'] ? ($stateLabels[$entry['from']] ?? $entry['from']) : '—' }} → {{ $entry['to'] ? ($stateLabels[$entry['to']] ?? $entry['to']) : '—' }}
                                 @if($entry['actor']) · {{ $entry['actor'] }}@endif
                                 @if($entry['created_at']) · {{ $entry['created_at'] }}@endif
                                 @if($entry['note']) · <strong>{{ $entry['note'] }}</strong>@endif
@@ -237,7 +266,7 @@
 
                     <select name="payment_method" required>
                         @foreach($moduleData['payment_methods'] as $method)
-                            <option value="{{ $method }}" @selected($row['_payment_method']===$method)>{{ $method }}</option>
+                            <option value="{{ $method }}" @selected($row['_payment_method']===$method)>{{ $paymentLabels[$method] ?? str_replace('_',' ',$method) }}</option>
                         @endforeach
                     </select>
 
@@ -260,7 +289,7 @@
                                         >
                                             {{ $product['sku'] }} · {{ $product['name'] }}
                                             @if(array_key_exists('price',$product))
-                                                · {{ number_format((float)$product['price'],3) }} EGP
+                                                · {{ number_format((float)$product['price'],3) }} {{ $row['_currency'] }}
                                             @endif
                                         </option>
                                     @endforeach

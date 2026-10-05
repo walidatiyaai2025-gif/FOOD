@@ -183,10 +183,21 @@ void main() {
     );
   });
 
-  test('missing Draft never falls back to Published', () async {
+  test('missing Draft is a controlled unavailable state and never falls back', () async {
     final context = _context(CustomerChannel.b2c, 7);
     final transport = CustomerPreviewReadHttpClient(
-      MockClient((_) async => http.Response('{}', 404)),
+      MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'data': null,
+            'state': 'draft_unavailable',
+            'mode': 'draft',
+            'read_only': true,
+          }),
+          200,
+          headers: const {'content-type': 'application/json'},
+        ),
+      ),
       credential: 'opaque-preview-secret',
       channel: CustomerChannel.b2c,
     );
@@ -205,7 +216,8 @@ void main() {
               'code',
               'preview_draft_unavailable',
             )
-            .having((error) => error.statusCode, 'statusCode', 404),
+            .having((error) => error.statusCode, 'statusCode', 200)
+            .having((error) => error.runtimeState, 'runtimeState', 'unavailable'),
       ),
     );
   });

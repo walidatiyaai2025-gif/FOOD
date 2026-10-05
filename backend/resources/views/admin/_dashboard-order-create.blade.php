@@ -6,11 +6,30 @@
     $isArOrder = app()->getLocale() === 'ar';
 @endphp
 
+@if($isB2bOrder)
+<div class="dashboard-order-create-launcher">
+    <button type="button" class="foodex-primary dashboard-order-create-button" data-dashboard-order-open>
+        <span aria-hidden="true">＋</span>
+        <span>{{ $isArOrder ? 'إنشاء طلب جديد' : 'Create new order' }}</span>
+    </button>
+</div>
+
+<div class="dashboard-order-modal" data-dashboard-order-modal data-open="0" aria-hidden="true">
+    <section class="dashboard-order-dialog foodex-card" role="dialog" aria-modal="true" aria-labelledby="dashboard-order-title">
+        <div class="dashboard-order-dialog-head">
+            <div>
+                <h2 id="dashboard-order-title">{{ $isArOrder ? 'إنشاء طلب جديد' : 'Create new order' }}</h2>
+                <p>{{ $isArOrder ? 'طلب متعدد المنتجات' : 'Multi-product order' }}</p>
+            </div>
+            <button type="button" class="dashboard-order-close" data-dashboard-order-close aria-label="{{ $isArOrder?'إغلاق':'Close' }}">×</button>
+        </div>
+@else
 <details class="foodex-card" open style="margin:16px 0">
     <summary style="cursor:pointer;font-weight:800">
         {{ $isArOrder ? 'إنشاء طلب جديد · متعدد المنتجات' : 'Create new order · Multi-line' }}
     </summary>
-    <form method="post"
+@endif
+        <form method="post"
           action="{{ route($orderStoreRoute) }}"
           class="workspace-inline-form module-inline-form js-dashboard-order-form"
           style="margin-top:14px"
@@ -48,9 +67,17 @@
             @endforeach
         </select>
 
-        <select name="payment_method" required>
+        @php($paymentLabels=[
+            'cash_on_delivery'=>$isArOrder?'الدفع عند الاستلام':'Cash on delivery',
+            'cash'=>$isArOrder?'نقدي':'Cash',
+            'card'=>$isArOrder?'بطاقة':'Card',
+            'credit'=>$isArOrder?'آجل / ائتمان':'Credit',
+            'account_credit'=>$isArOrder?'رصيد الحساب':'Account credit',
+            'bank_transfer'=>$isArOrder?'تحويل بنكي':'Bank transfer',
+        ])
+        <select name="payment_method" required aria-label="{{ $isArOrder?'طريقة الدفع':'Payment method' }}">
             @foreach($moduleData['payment_methods'] as $method)
-                <option value="{{ $method }}" @selected($method===config('checkout.default_payment_method'))>{{ $method }}</option>
+                <option value="{{ $method }}" @selected($method===config('checkout.default_payment_method'))>{{ $paymentLabels[$method] ?? ($isArOrder ? str_replace('_',' ',$method) : str_replace('_',' ',$method)) }}</option>
             @endforeach
         </select>
 
@@ -73,7 +100,7 @@
                         >
                             {{ $product['sku'] }} · {{ $product['name'] }}
                             @if(array_key_exists('price',$product))
-                                · {{ number_format((float)$product['price'],3) }} EGP
+                                · {{ number_format((float)$product['price'],3) }}
                             @endif
                         </option>
                     @endforeach
@@ -92,7 +119,28 @@
             <button class="foodex-primary js-submit-order" type="submit" disabled>{{ $isArOrder?'إنشاء الطلب':'Create order' }}</button>
         </div>
     </form>
+@if($isB2bOrder)
+    </section>
+</div>
+@else
 </details>
+@endif
+
+<style>
+.dashboard-order-create-launcher{display:flex;justify-content:flex-end;margin:16px 0}
+.dashboard-order-create-button{min-height:52px;padding:0 24px!important;font-size:1rem!important;font-weight:800!important;display:inline-flex!important;align-items:center;gap:9px;box-shadow:0 10px 24px rgba(21,138,58,.18)}
+.dashboard-order-create-button span:first-child{font-size:1.35rem;line-height:1}
+.dashboard-order-modal{position:fixed;inset:0;z-index:2000;display:none;place-items:center;padding:22px;background:rgba(15,23,42,.48);backdrop-filter:blur(2px)}
+.dashboard-order-modal[data-open="1"]{display:grid}
+.dashboard-order-dialog{width:min(980px,calc(100vw - 28px));max-height:92vh;padding:0!important;overflow:hidden;box-shadow:0 26px 80px rgba(15,23,42,.28)!important}
+.dashboard-order-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid var(--foodex-border);background:#fff}
+.dashboard-order-dialog-head h2{margin:0;font-size:1.2rem}.dashboard-order-dialog-head p{margin:4px 0 0;color:var(--foodex-muted);font-size:.88rem}
+.dashboard-order-close{width:38px;height:38px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-ink);font-size:24px;cursor:pointer}
+.dashboard-order-dialog .module-inline-form{margin:0!important;border:0!important;border-radius:0!important;max-height:calc(92vh - 78px);overflow:auto;padding:20px!important;background:#fff!important}
+.dashboard-order-dialog .module-inline-form>select,.dashboard-order-dialog .module-inline-form>input{min-height:44px}
+.dashboard-order-dialog .js-order-line{padding:10px;border:1px solid var(--foodex-border);border-radius:10px;background:#fbfcfd}
+@media(max-width:700px){.dashboard-order-modal{padding:8px}.dashboard-order-dialog{width:100%;max-height:96vh}.dashboard-order-dialog .module-inline-form{max-height:calc(96vh - 76px)}.dashboard-order-create-button{width:100%;justify-content:center}}
+</style>
 
 @once
 <script>
@@ -108,11 +156,34 @@ document.addEventListener('DOMContentLoaded', () => {
         tax: @json($isArOrder ? 'الضريبة' : 'Tax'),
         total: @json($isArOrder ? 'الإجمالي النهائي' : 'Grand total'),
         available: @json($isArOrder ? 'متاح' : 'available'),
+        duplicateProduct: @json($isArOrder ? 'لا يمكن إضافة نفس المنتج أكثر من مرة. عدّل الكمية في السطر الموجود.' : 'The same product cannot be added twice. Update the quantity on the existing line.'),
     };
 
     const money = (value) => Number(value || 0).toFixed(3);
     const quoteBox = (form) => form.querySelector('.js-order-quote');
     const submitButton = (form) => form.querySelector('.js-submit-order');
+
+    const modal = document.querySelector('[data-dashboard-order-modal]');
+    const openButton = document.querySelector('[data-dashboard-order-open]');
+    const closeButtons = modal ? modal.querySelectorAll('[data-dashboard-order-close]') : [];
+    const openModal = () => {
+        if (!modal) return;
+        modal.dataset.open = '1';
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        modal.querySelector('select, input, button')?.focus();
+    };
+    const closeModal = () => {
+        if (!modal) return;
+        modal.dataset.open = '0';
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        openButton?.focus();
+    };
+    openButton?.addEventListener('click', openModal);
+    closeButtons.forEach((button) => button.addEventListener('click', closeModal));
+    modal?.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal?.dataset.open === '1') closeModal(); });
 
     const markDirty = (form, message = labels.incomplete) => {
         form.dataset.quoteReady = '0';
@@ -186,6 +257,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (form.dataset.orderChannel === 'b2b' && !form.querySelector('.js-order-warehouse')?.value) return false;
 
         const lines = [...form.querySelectorAll('.js-order-line')];
+        const productIds = lines
+            .map((line) => line.querySelector('.js-order-product')?.value || '')
+            .filter(Boolean);
+        if (new Set(productIds).size !== productIds.length) return false;
+
         return lines.length > 0 && lines.every((line) => {
             const product = line.querySelector('.js-order-product')?.value;
             const quantity = Number(line.querySelector('input[type="number"]')?.value || 0);
@@ -205,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderQuote = (form, quote) => {
         const box = quoteBox(form);
         if (!box) return;
-        const currency = quote.currency || 'EGP';
+        const currency = quote.currency || '';
         const lines = (quote.items || []).map((line) => {
             const available = line.available_quantity === null || line.available_quantity === undefined
                 ? ''
@@ -231,6 +307,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const runQuote = async (form) => {
+        const selectedProductIds = [...form.querySelectorAll('.js-order-product')]
+            .map((select) => select.value)
+            .filter(Boolean);
+        if (new Set(selectedProductIds).size !== selectedProductIds.length) {
+            markDirty(form, labels.duplicateProduct);
+            return;
+        }
         if (!canQuote(form)) {
             markDirty(form);
             return;

@@ -137,6 +137,19 @@ class CustomerPreviewResolvedConfiguration {
       throw _fromStatus(response.statusCode, mode);
     }
 
+    if (decoded is Map && decoded['data'] == null) {
+      final state = decoded['state']?.toString();
+      if (state == 'draft_unavailable' || state == 'published_unavailable') {
+        throw CustomerPreviewConfigurationException(
+          state == 'draft_unavailable'
+              ? 'preview_draft_unavailable'
+              : 'preview_published_unavailable',
+          statusCode: response.statusCode,
+          runtimeState: 'unavailable',
+        );
+      }
+    }
+
     if (decoded is! Map || decoded['data'] is! Map) {
       throw const CustomerPreviewConfigurationException(
         'preview_configuration_response_invalid',

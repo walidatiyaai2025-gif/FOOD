@@ -232,7 +232,89 @@ A helper worker may take over CI only by following the same lease/handoff protoc
 
 ---
 
-## 9A. First-Run Green / Zero-Red worker contract
+## 9A. CI failure prevention and recurring-pattern promotion
+
+CI is a verification layer, not the first place a worker should discover predictable repository rules.
+
+Every worker MUST proactively avoid known recurring failure patterns before pushing code. A worker may not treat "tests pass" as sufficient if formatter, static-analysis, policy, preview, packaging, migration, runtime-parity, or other required gates are still capable of failing deterministically.
+
+### Mandatory pre-push prevention rules
+
+Before every push that changes executable code, workflows, migrations, tests, generated runtime assets, or release packaging, the worker MUST run or otherwise reproduce the relevant repository checks for the changed area whenever the required execution environment is available.
+
+At minimum:
+
+- **Branch / repository policy:** verify the branch name and task relationship comply with repository policy before the first implementation push. Issue-scoped branches such as `fix/<issue>-...`, `feat/<issue>-...`, or the repository-approved equivalent must be used. Do not weaken policy checks to make an invalid branch pass.
+- **Laravel / PHP formatting:** run the same Pint/lint contract used by CI. In particular, avoid recurring failures involving `braces_position`, quote style, import ordering, blank-line rules, PHPDoc formatting, unary/operator spacing, and compact/empty constructor bodies when the repository formatter expands them.
+- **Do not guess formatter output:** when Pint reports a style rule, reproduce the exact formatter result locally with `vendor/bin/pint <affected-path>` (or an equivalent isolated copy) and then verify with `vendor/bin/pint --test <affected-path>`. For promoted-property constructors with an empty body, preserve the formatter's exact multiline parameter layout and single-line empty body instead of manually toggling brace placement across pushes.
+- **Multiline PHP method signatures:** for multiline methods/functions with a declared return type, follow the repository's Pint-canonical brace placement exactly: the opening `{` belongs on the same line as the closing `): ReturnType {`. Do not apply the ordinary single-line method brace layout to a multiline signature.
+- **Backend tests:** run the focused affected tests and the required backend suite when practical. Passing tests does not waive lint or static-analysis requirements.
+- **Static analysis / typing:** run the repository's PHP static-analysis/type checks for backend changes. Do not silence a real type defect merely to satisfy the analyzer.
+- **PHP syntax / patch integrity:** validate modified PHP files after scripted or generated edits. Never leave literal escape text such as `\n` where an actual newline is required, and do not assume a mechanically generated patch is syntactically valid.
+- **Flutter:** for every affected Flutter app, run `flutter analyze` plus the relevant tests. Treat analyzer warnings/errors, stale endpoint assumptions, invalid documentation markup, and nullability/type drift as pre-push defects.
+- **APP-PREVIEW:** preview/runtime changes must satisfy branch-scope guards, backend security/contract acceptance, Customer/Driver runtime matrices, and embedded-vs-standalone parity where applicable. A successful visual render alone is not sufficient.
+- **UI Visual QA:** changed screens must open in the real runtime, resolve real dynamic data, avoid permanent loading/error states, and remain compatible with the repository's visual evidence selectors/contracts. Do not implement screenshot-only or mock-only behavior to satisfy visual gates.
+- **Database migrations:** migrations must be validated against the supported production database family, including forward migration and rollback when rollback is supported. Pay particular attention to MySQL/MariaDB index, foreign-key, and rollback differences.
+- **Required CI child jobs:** do not infer readiness from top-level green checks alone. Inspect the required gate's child jobs; one failed child means the PR is still red.
+- **Branch drift / exact-head validation:** before final merge, compare against current `main` and ensure required CI belongs to the exact current PR head. If `main` advanced in a way that changes validation relevance, update/revalidate the existing branch.
+- **Packaging / release artifacts:** APKs, update bundles, dashboards, and other release artifacts must be built from the exact final validated head. Do not deliver an artifact produced from an older SHA as if it represented the latest code.
+
+### Known recurring FOODEX failure patterns
+
+The following classes have already repeated in repository history and MUST be treated as known traps:
+
+1. repository-policy failure caused by a non-compliant branch name;
+2. Laravel Pint failures after otherwise-successful backend tests, especially braces position, single-quote style, import ordering, and constructor/body formatting; repeated manual brace-only fixes are themselves a known failure pattern and must be replaced by running Pint to generate the exact canonical form;
+3. PHP static-analysis/type failures after formatter fixes;
+4. syntax defects introduced by scripted/mechanical patches;
+5. Flutter analyzer failures caused by typing, documentation syntax, or stale assumptions;
+6. Flutter tests that encode obsolete endpoint/runtime assumptions;
+7. APP-PREVIEW acceptance branch-scope failures;
+8. APP-PREVIEW backend security/contract failures;
+9. Customer/Driver preview runtime or embedded/standalone parity failures;
+10. FOODEX UI Visual QA runtime-evidence failures;
+11. MySQL/MariaDB migration or rollback incompatibilities;
+12. Required CI appearing mostly green while a nested child job is red;
+13. PR branch drift after `main` advances;
+14. release/package artifacts being generated from a head other than the final validated SHA.
+
+A worker encountering one of these patterns should first apply the established prevention rule rather than rediscovering the failure through repeated CI pushes.
+
+### Recurring Failure Promotion Rule
+
+This repository follows a **learn-once, prevent-forever** policy.
+
+When a CI, build, test, lint, static-analysis, preview, packaging, migration, runtime, or repository-policy failure is observed repeatedly, the active worker MUST determine whether it represents a reusable repository pattern.
+
+A failure becomes a **Recurring Failure Pattern** when either:
+
+- substantially the same root cause is observed at least twice across repository history, PRs, branches, or workers; or
+- one occurrence exposes a deterministic repository constraint that is highly likely to affect future workers and can be prevented safely before push.
+
+When a failure qualifies, the worker owning the current task MUST, on the same existing branch/PR when scope permits:
+
+1. fix the actual current defect without weakening the required gate;
+2. document the root cause in this section or the most specific relevant policy section;
+3. add a concise prevention rule stating what future workers must do before push;
+4. add the exact local/preflight command or validation step when one exists;
+5. prefer adding or strengthening an automated preflight/check when the pattern can be caught deterministically and cheaply;
+6. avoid encoding one-off business data, IDs, credentials, environment secrets, or brittle task-specific values into the policy;
+7. preserve the existing One Task = One Branch = One PR rule while making the policy update.
+
+The purpose of promotion is prevention, not bypass. A recurring failure MUST NOT be "solved" by disabling, skipping, weakening, ignoring, or broadly exempting a required CI gate unless the repository owner explicitly changes that gate's requirement.
+
+### Worker completion check
+
+Before declaring a coding task complete, the worker must ask:
+
+> Did this task reveal a failure mode that another worker is likely to hit again?
+
+If yes, and the rule is not already captured, the worker must promote it under the Recurring Failure Promotion Rule before final completion.
+
+
+---
+
+## 9B. First-Run Green / Zero-Red worker contract
 
 FOODEX workers must treat remote CI as final verification, not the normal debugging loop.
 

@@ -104,7 +104,7 @@ class DashboardCustomer360Test extends TestCase
             ->assertOk()
             ->assertSee('Retail A · RETAIL-A')
             ->assertSee('Retail B · RETAIL-B')
-            ->assertSee('Wholesale account');
+            ->assertSee('Accounts & finance');
     }
 
     public function test_dual_role_retail_owner_resolves_canonical_wholesale_finance_without_duplicate_identity(): void
@@ -175,17 +175,73 @@ class DashboardCustomer360Test extends TestCase
         $this->actingAs($super)
             ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
             ->assertOk()
-            ->assertSee('Wholesale account & finance')
+            ->assertSee('Accounts & finance')
             ->assertSee('Retail Owner Store')
-            ->assertSee('Company owes you')
+            ->assertSee('Company owes customer')
             ->assertSee('50.000');
 
         $b2bAdmin = $this->globalAdmin('B2B_ADMIN');
         $this->actingAs($b2bAdmin)
             ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
             ->assertOk()
-            ->assertSee('Wholesale account & finance')
+            ->assertSee('Accounts & finance')
             ->assertDontSee('Retail Owner Store · RETAIL-OWNER');
+    }
+
+    public function test_super_admin_can_update_wholesale_credit_limit_and_api_summary_reflects_it(): void
+    {
+        $retailStoreId = $this->store('B2C', 'CREDIT-LIMIT-OWNER', 'Credit Limit Owner');
+        $retailStore = Store::query()->findOrFail($retailStoreId);
+        $owner = User::query()->create([
+            'name' => 'Credit Limit Owner',
+            'email' => 'credit-limit-owner@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        $tierId = (int) DB::table('b2b_price_tiers')->where('code', 'STANDARD')->value('id');
+        $domain = app(RetailWholesaleAccountService::class)->ensureForStore($retailStore, $tierId, $owner);
+        $platform = PlatformCustomer::query()->where('user_id', $owner->id)->firstOrFail();
+        $accountId = (int) DB::table('b2b_accounts')
+            ->where('b2b_customer_id', $domain->id)
+            ->value('id');
+
+        $super = $this->globalAdmin('SUPER_ADMIN');
+
+        $this->actingAs($super)
+            ->patch(route('admin.customer-360.credit-limit.update', ['platformCustomer' => $platform->id]), [
+                'credit_limit' => '12345.678',
+            ])
+            ->assertRedirect(route('admin.customer-360.show', ['platformCustomer' => $platform->id]).'#finance')
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseHas('b2b_accounts', [
+            'id' => $accountId,
+            'b2b_customer_id' => $domain->id,
+            'credit_limit' => '12345.678',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'customer360.credit_limit_updated',
+            'auditable_id' => $accountId,
+        ]);
+
+        Sanctum::actingAs($owner);
+        $this->getJson('/api/v1/b2b/account-summary?store_id='.app(WholesalePrincipal::class)->storeId())
+            ->assertOk()
+            ->assertJsonPath('data.credit_limit', 12345.678);
+
+        $this->actingAs($super)
+            ->patch(route('admin.customer-360.credit-limit.update', ['platformCustomer' => $platform->id]), [
+                'credit_limit' => '-1',
+            ])
+            ->assertSessionHasErrors('credit_limit');
+
+        $this->assertDatabaseHas('b2b_accounts', [
+            'id' => $accountId,
+            'credit_limit' => '12345.678',
+        ]);
     }
 
     public function test_retail_admin_can_fully_manage_visible_customer_addresses_only(): void
@@ -201,7 +257,7 @@ class DashboardCustomer360Test extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
             ->assertOk()
-            ->assertSee('Manage addresses')
+            ->assertSee('Customer addresses')
             ->assertSee('Add new address');
 
         $this->actingAs($admin)
@@ -322,7 +378,7 @@ class DashboardCustomer360Test extends TestCase
         $this->actingAs($this->globalAdmin('B2B_ADMIN'))
             ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
             ->assertOk()
-            ->assertSee('Wholesale account')
+            ->assertSee('Accounts & finance')
             ->assertDontSee('Retail A · RETAIL-A');
     }
 

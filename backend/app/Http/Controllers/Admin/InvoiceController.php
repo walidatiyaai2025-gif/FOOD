@@ -37,7 +37,13 @@ final class InvoiceController extends Controller
         $this->authorizeInvoice($user, $model, 'finance.view');
         $locale = (string) ($validated['locale'] ?? $user->locale ?? 'en');
 
-        return response($invoices->renderPdf($model, $locale), 200, [
+        try {
+            $content = $invoices->renderPdf($model, $locale);
+        } catch (\RuntimeException) {
+            abort(503, 'PDF generation is temporarily unavailable.');
+        }
+
+        return response($content, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$model->invoice_number.'.pdf"',
             'Cache-Control' => 'private, no-store',

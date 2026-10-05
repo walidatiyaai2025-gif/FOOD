@@ -216,10 +216,24 @@ final class StorefrontRevisionController extends Controller
         ]);
 
         $session = $sessions->resolve($token, $request);
-        $resolved = $revisions->resolveCurrentForPreview(
-            $session,
-            (string) $data['mode'],
+        $mode = (string) $data['mode'];
+        $current = $revisions->findCurrent(
+            (int) $session->store_id,
+            (string) $session->channel,
+            $mode,
         );
+
+        if ($current === null) {
+            return response()->json([
+                'data' => null,
+                'state' => $mode.'_unavailable',
+                'preview_session_id' => (string) $session->public_id,
+                'read_only' => true,
+                'mode' => $mode,
+            ]);
+        }
+
+        $resolved = $revisions->resolveForPreview($session, $current);
 
         return response()->json([
             'data' => [
@@ -227,7 +241,7 @@ final class StorefrontRevisionController extends Controller
                 'payload' => $resolved->payload,
                 'preview_session_id' => (string) $session->public_id,
                 'read_only' => true,
-                'mode' => (string) $data['mode'],
+                'mode' => $mode,
             ],
         ]);
     }

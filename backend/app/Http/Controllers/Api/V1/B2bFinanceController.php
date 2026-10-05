@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
+use App\Services\InvoiceService;
 use App\Services\ReportExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,9 @@ use Illuminate\Support\Carbon;
 
 class B2bFinanceController extends Controller
 {
-    public function __construct(private readonly B2bAccountLedgerService $ledger) {}
+    public function __construct(
+        private readonly B2bAccountLedgerService $ledger,
+    ) {}
 
     public function invoices(Request $request): JsonResponse
     {
@@ -126,6 +129,47 @@ class B2bFinanceController extends Controller
         ]);
     }
 
+    public function invoiceDownload(
+        Request $request,
+        Invoice $invoice,
+        InvoiceService $invoices,
+    ): Response {
+        $customer = $this->approvedCustomer($request);
+        $requestedStoreId = $this->storeId($request);
+        abort_unless(
+            (int) $invoice->b2b_customer_id === (int) $customer->getKey()
+                && ($requestedStoreId === null || (int) $invoice->store_id === $requestedStoreId),
+            404,
+        );
+
+        $validated = $request->validate([
+            'locale' => ['nullable', 'in:ar,en'],
+        ]);
+        $locale = (string) ($validated['locale'] ?? $request->user()->locale ?? 'en');
+        $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
+
+        app(AuditLogger::class)->record(
+            'b2b.finance.invoice_downloaded',
+            $request->user(),
+            $invoice,
+            null,
+            null,
+            $request,
+        );
+
+        try {
+            $content = $invoices->renderPdf($invoice, $locale);
+        } catch (\RuntimeException) {
+            abort(503, 'PDF generation is temporarily unavailable.');
+        }
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$invoice->invoice_number.'.pdf"',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
     public function summary(Request $request): JsonResponse
     {
         $customer = $this->approvedCustomer($request);
@@ -224,7 +268,11 @@ class B2bFinanceController extends Controller
         $format = (string) $filters['format'];
         $locale = (string) ($filters['locale'] ?? $request->user()->locale ?? 'en');
         $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
-        $export = $exports->build($report, $format, $locale);
+        try {
+            $export = $exports->build($report, $format, $locale);
+        } catch (\RuntimeException) {
+            abort(503, 'Document export is temporarily unavailable.');
+        }
 
         app(AuditLogger::class)->record('b2b.finance.statement_exported', $request->user(), $customer, null, [
             'format' => $format,
@@ -295,8 +343,8 @@ class B2bFinanceController extends Controller
                 'email' => $invoice->customer_email_snapshot,
                 'phone' => $invoice->customer_phone_snapshot,
             ],
-            'pdf_path' => '/api/v1/invoices/'.(int) $invoice->getKey().'/download?channel=b2b'
-                .($invoice->store_id === null ? '' : '&store_id='.(int) $invoice->store_id),
+            'pdf_path' => '/api/v1/b2b/invoices/'.(int) $invoice->getKey().'/download'
+                .($invoice->store_id === null ? '' : '?store_id='.(int) $invoice->store_id),
         ];
 
         if ($withItems) {
