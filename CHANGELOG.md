@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.56 - 2026-10-05
+
+- Publish the completed Catalog / Customer 360 / B2B Orders redesign and the #924 CI stabilization wave now merged through PR #925.
+- Ship compact single-row Catalog product management with contextual actions, store-configured currency display, and preserved catalog/pricing/inventory business logic.
+- Ship tabbed Customer 360 with Finance first, editable audited Wholesale credit limit, and map-based address location selection that stores coordinates automatically without exposing manual latitude/longitude inputs.
+- Ship the B2B Orders create-order modal, improved Arabic workflow/payment labels, and cleaner order operations while preserving authoritative quote, stock, pricing, finance, permissions and routing.
+- Include the associated reliability hardening for System Inspector, CSRF refresh, Customer/Driver retries and backoff, invoice PDF authorization/rendering, preview unavailable states, live polling cooldowns, and B2B finance query performance from the green #924 integration branch.
+- Dashboard update only: promote the Dashboard update identity from 1.0.55 to 1.0.56 without changing production minimum-supported mobile versions, force-update policy, Driver location enforcement, or Assistant activation.
+
 ## 1.0.55 - 2026-10-05
 
 - Promote the owner-approved Customer visual and functional convergence from #920 / PR #921: FOODEX reference login, single-screen Business Dashboard, compact Top Products, discoverable Wholesale Business Dashboard shortcut, redesigned More surface, and refreshed Orders/footer composition.
