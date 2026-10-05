@@ -425,7 +425,7 @@ Long text areas, maps, complex selectors and tables may span the full width.
 
 Avoid one-field-per-row forms on desktop unless the workflow genuinely benefits from it.
 
-### 4.9 Global usability and visual-density standard
+### 4.11 Global usability and visual-density standard
 
 In addition to FOODEX identity, every new screen must satisfy international UI/UX and usability principles:
 
@@ -448,7 +448,7 @@ In addition to FOODEX identity, every new screen must satisfy international UI/U
 
 The screen should communicate the most important task immediately without making the operator scan unnecessary content.
 
-### 4.11 Navigation and screen governance
+### 4.12 Navigation and screen governance
 
 A feature is not considered implemented merely because backend/API code exists.
 
@@ -473,7 +473,7 @@ Before creating any new screen, every worker must perform a **screen/route inven
 
 Duplicate screens for the same business purpose are forbidden.
 
-### 4.12 Server route organization
+### 4.13 Server route organization
 
 Server routes must be organized by business module/domain.
 
@@ -490,7 +490,7 @@ Requirements:
 
 The final route tree should make the platform understandable without reading implementation internals.
 
-### 4.13 Canonical screen ownership
+### 4.14 Canonical screen ownership
 
 Every substantial feature must identify one canonical screen/module that owns the complete experience.
 
@@ -504,7 +504,7 @@ Examples:
 
 Other pages should link to or summarize these modules rather than duplicating them.
 
-### 4.6 UI/UX release gate
+### 4.15 UI/UX release gate
 
 A feature is not complete if:
 
