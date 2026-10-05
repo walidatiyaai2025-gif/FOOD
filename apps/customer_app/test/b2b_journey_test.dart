@@ -1686,11 +1686,23 @@ void main() {
     expect(find.textContaining('Top Product'), findsOneWidget);
     expect(find.textContaining('144.5 KWD'), findsOneWidget);
     expect(find.textContaining('7.25 EGP'), findsOneWidget);
-    expect(find.textContaining('Case 12'), findsOneWidget);
+    expect(find.text('فترة الترتيب'), findsNothing);
+    expect(find.text('كل القنوات'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('b2b-top-product-availability-1')),
       findsOneWidget,
     );
+    final currentTab = tester.getRect(
+      find.byKey(const ValueKey('b2b-top-products-current-period')),
+    );
+    final allTab = tester.getRect(
+      find.byKey(const ValueKey('b2b-top-products-all-time')),
+    );
+    final previousTab = tester.getRect(
+      find.byKey(const ValueKey('b2b-top-products-previous-period')),
+    );
+    expect((currentTab.center.dy - allTab.center.dy).abs(), lessThan(1));
+    expect((allTab.center.dy - previousTab.center.dy).abs(), lessThan(1));
 
     await tester.tap(find.byKey(const ValueKey('b2b-top-products-sort')));
     await tester.pumpAndSettle();
