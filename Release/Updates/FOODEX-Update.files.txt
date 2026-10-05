@@ -166,6 +166,7 @@ backend/app/Services/OperationalTenantScope.php
 backend/app/Services/OrderDeliveryAddressSnapshotService.php
 backend/app/Services/OrderInventoryReservationService.php
 backend/app/Services/OrderLifecycleNotificationService.php
+backend/app/Services/PdfDocumentFactory.php
 backend/app/Services/PlatformCustomerService.php
 backend/app/Services/ProductAvailabilityService.php
 backend/app/Services/PushDeliveryService.php
