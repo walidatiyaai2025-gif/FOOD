@@ -378,7 +378,7 @@ class DashboardCustomer360Test extends TestCase
         $this->actingAs($this->globalAdmin('B2B_ADMIN'))
             ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
             ->assertOk()
-            ->assertSee('Wholesale account')
+            ->assertSee('Accounts & finance')
             ->assertDontSee('Retail A · RETAIL-A');
     }
 
