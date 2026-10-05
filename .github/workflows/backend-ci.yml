@@ -26,6 +26,14 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
       - name: Validate Composer manifest
         run: composer validate --strict --no-check-lock
 
@@ -72,6 +80,14 @@ jobs:
           extensions: mbstring, intl, pdo_sqlite, pdo_mysql
           coverage: none
           tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -190,6 +206,14 @@ jobs:
           extensions: mbstring, intl, pdo_mysql, redis, zip
           coverage: none
           tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
       - name: Install MySQL client tools
         run: sudo apt-get update && sudo apt-get install -y default-mysql-client
       - name: Wait for MySQL
