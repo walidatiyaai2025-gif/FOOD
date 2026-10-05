@@ -117,7 +117,6 @@
 
 <style>
 .dashboard-order-create-launcher{display:flex;justify-content:flex-end;margin:16px 0}
-html[dir="rtl"] .dashboard-order-create-launcher{justify-content:flex-start}
 .dashboard-order-create-button{min-height:52px;padding:0 24px!important;font-size:1rem!important;font-weight:800!important;display:inline-flex!important;align-items:center;gap:9px;box-shadow:0 10px 24px rgba(21,138,58,.18)}
 .dashboard-order-create-button span:first-child{font-size:1.35rem;line-height:1}
 .dashboard-order-modal{position:fixed;inset:0;z-index:2000;display:none;place-items:center;padding:22px;background:rgba(15,23,42,.48);backdrop-filter:blur(2px)}
