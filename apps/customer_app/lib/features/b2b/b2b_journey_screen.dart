@@ -4026,34 +4026,11 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                         );
                       },
                     ),
-                    const SizedBox(height: 12),
-                    Theme(
-                      data: Theme.of(context).copyWith(
-                        dividerColor: Colors.transparent,
-                      ),
-                      child: ExpansionTile(
-                        key: const ValueKey('b2b-more-account-details'),
-                        tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-                        childrenPadding: const EdgeInsets.only(top: 8),
-                        leading: const Icon(
-                          Icons.badge_outlined,
-                          color: deep,
-                        ),
-                        title: Text(
-                          ar ? 'بيانات الحساب الكاملة' : 'Full account details',
-                          style: const TextStyle(
-                            color: ink,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        children: [
-                          B2bBusinessAccountProfile(
-                            api: widget.api,
-                            endpoint: widget.profileEndpoint,
-                            addressesRoute: widget.addressesRoute,
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 18),
+                    B2bBusinessAccountProfile(
+                      api: widget.api,
+                      endpoint: widget.profileEndpoint,
+                      addressesRoute: widget.addressesRoute,
                     ),
                   ],
                 ),
