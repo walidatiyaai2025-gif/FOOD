@@ -103,7 +103,7 @@ final class TerritoryService
     }
 
     /**
-     * @param array<string,mixed> $geojson
+     * @param  array<string, mixed>  $geojson
      */
     public function addGeometry(
         ServiceTerritory $territory,
@@ -171,7 +171,7 @@ final class TerritoryService
         return $territory;
     }
 
-    /** @return Collection<int,ServiceTerritory> */
+    /** @return Collection<int, ServiceTerritory> */
     private function geometryCandidates(float $latitude, float $longitude, Carbon $moment): Collection
     {
         $territories = $this->effectiveTerritories($moment)
@@ -215,7 +215,7 @@ final class TerritoryService
     }
 
     /**
-     * @param array<string,mixed> $geojson
+     * @param  array<string, mixed>  $geojson
      */
     private function containsPoint(array $geojson, float $longitude, float $latitude): bool
     {
@@ -271,6 +271,7 @@ final class TerritoryService
             $pj = $ring[$j] ?? null;
             if (is_array($pi) === false || is_array($pj) === false || count($pi) < 2 || count($pj) < 2) {
                 $j = $i;
+
                 continue;
             }
 
@@ -320,8 +321,8 @@ final class TerritoryService
     }
 
     /**
-     * @param list<int> $candidateIds
-     * @return array<string,mixed>
+     * @param  list<int>  $candidateIds
+     * @return array<string, mixed>
      */
     private function persistResolution(
         string $addressType,
