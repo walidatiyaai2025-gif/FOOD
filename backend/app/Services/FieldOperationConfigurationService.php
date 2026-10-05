@@ -125,7 +125,7 @@ final class FieldOperationConfigurationService
                 'configuration_id' => $definition->getKey(),
                 'scope_type' => $scopeType,
                 'scope_key' => $scopeKey,
-                'revision_number' => ((int) ($latest?->revision_number ?? 0)) + 1,
+                'revision_number' => ((int) data_get($latest, 'revision_number', 0)) + 1,
                 'status' => self::STATUS_DRAFT,
                 'value' => ['value' => $value],
                 'reason' => $reason,
@@ -230,7 +230,7 @@ final class FieldOperationConfigurationService
                 'configuration_id' => $source->configuration_id,
                 'scope_type' => $source->scope_type,
                 'scope_key' => $source->scope_key,
-                'revision_number' => ((int) ($latest?->revision_number ?? 0)) + 1,
+                'revision_number' => ((int) data_get($latest, 'revision_number', 0)) + 1,
                 'status' => self::STATUS_PUBLISHED,
                 'value' => $source->value,
                 'reason' => $reason ?? 'rollback',
@@ -313,8 +313,8 @@ final class FieldOperationConfigurationService
             'scope_key' => (string) $winner->scope_key,
             'revision' => (int) $winner->revision_number,
             'revision_id' => (string) $winner->public_id,
-            'effective_from' => $winner->effective_from?->toIso8601String(),
-            'effective_until' => $winner->effective_until?->toIso8601String(),
+            'effective_from' => $this->isoDate($winner->effective_from),
+            'effective_until' => $this->isoDate($winner->effective_until),
             'failure_policy' => (string) $definition->failure_policy,
             'dependencies' => (array) ($definition->dependencies ?? []),
         ];
@@ -425,6 +425,17 @@ final class FieldOperationConfigurationService
         return [$start, $end];
     }
 
+    private function isoDate(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return $value instanceof Carbon
+            ? $value->toIso8601String()
+            : Carbon::parse((string) $value)->toIso8601String();
+    }
+
     /** @return array<string,mixed> */
     private function auditPayload(FieldOperationConfigurationRevision $revision): array
     {
@@ -435,8 +446,8 @@ final class FieldOperationConfigurationService
             'scope_key' => (string) $revision->scope_key,
             'revision_number' => (int) $revision->revision_number,
             'status' => (string) $revision->status,
-            'effective_from' => $revision->effective_from?->toIso8601String(),
-            'effective_until' => $revision->effective_until?->toIso8601String(),
+            'effective_from' => $this->isoDate($revision->effective_from),
+            'effective_until' => $this->isoDate($revision->effective_until),
             'source_revision_id' => $revision->source_revision_id,
         ];
     }
