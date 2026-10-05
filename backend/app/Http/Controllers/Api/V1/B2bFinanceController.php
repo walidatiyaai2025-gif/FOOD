@@ -21,9 +21,9 @@ use Illuminate\Support\Carbon;
 
 class B2bFinanceController extends Controller
 {
-    public function __construct(private readonly B2bAccountLedgerService $ledger)
-    {
-    }
+    public function __construct(
+        private readonly B2bAccountLedgerService $ledger,
+    ) {}
 
     public function invoices(Request $request): JsonResponse
     {
