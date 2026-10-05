@@ -2,6 +2,8 @@
 
 Status: Issue #943 production candidate — existing client UI/UX normalization and Dashboard map silent refresh.
 
+Release branch: `release/1.0.57-update`.
+
 ## Release identity
 
 - Dashboard: `1.0.57`
