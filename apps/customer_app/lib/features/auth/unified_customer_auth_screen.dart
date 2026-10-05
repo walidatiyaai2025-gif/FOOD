@@ -516,159 +516,56 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const SizedBox(height: 42),
+                        const SizedBox(height: 12),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 42),
+                          padding: const EdgeInsets.symmetric(horizontal: 34),
                           child: Image.asset(
-                            'assets/branding/foodex-economical-group.webp',
-                            height: 86,
+                            'assets/branding/login_reference/header_complete.png',
                             fit: BoxFit.contain,
-                            semanticLabel: 'FOODEX Economical Group',
+                            semanticLabel: 'FOODEX Economic Group',
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          isArabic
-                              ? 'شريك النجاح في أعمالك'
-                              : 'Your partner for business success',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: CustomerUiColors.deepGreenSoft,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        const SizedBox(height: CustomerUiSpacing.md),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          child: Container(
-                            key: const ValueKey('c13-business-login-hero'),
-                            height: 205,
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(24),
-                              gradient: const LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Color(0xFFF8FBF6),
-                                  Color(0xFFE5F0D7),
-                                  Color(0xFF8CB65F),
-                                ],
-                                stops: [0, .52, 1],
-                              ),
-                            ),
-                            child: Stack(
-                              children: [
-                                Positioned(
-                                  left: -40,
-                                  right: -40,
-                                  bottom: 42,
-                                  child: Transform.rotate(
-                                    angle: -0.035,
-                                    child: Container(
-                                      height: 52,
-                                      color: const Color(0xFFB8D67B),
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  left: -40,
-                                  right: -40,
-                                  bottom: 0,
-                                  child: Transform.rotate(
-                                    angle: 0.022,
-                                    child: Container(
-                                      height: 72,
-                                      color: const Color(0xFF4F8B3B),
-                                    ),
-                                  ),
-                                ),
-                                const Positioned(
-                                  right: 18,
-                                  top: 18,
-                                  child: Icon(
-                                    Icons.eco_rounded,
-                                    size: 58,
-                                    color: Color(0x55346F45),
-                                  ),
-                                ),
-                                const Positioned(
-                                  left: 20,
-                                  bottom: 12,
-                                  child: Icon(
-                                    Icons.local_shipping_rounded,
-                                    size: 168,
-                                    color: CustomerUiColors.white,
-                                    shadows: [
-                                      Shadow(
-                                        color: Color(0x4D173E2B),
-                                        blurRadius: 12,
-                                        offset: Offset(0, 6),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Positioned(
-                                  left: 61,
-                                  bottom: 76,
-                                  child: Container(
-                                    width: 92,
-                                    height: 42,
-                                    padding: const EdgeInsets.all(5),
-                                    decoration: BoxDecoration(
-                                      color: CustomerUiColors.white,
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: CustomerUiColors.deepGreenSoft,
-                                      ),
-                                    ),
-                                    child: Image.asset(
-                                      'assets/branding/foodex-economical-group.webp',
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                        const SizedBox(height: 8),
+                        ClipRect(
+                          child: AspectRatio(
+                            aspectRatio: 941 / 496,
+                            child: Image.asset(
+                              'assets/branding/login_reference/foodex_truck_hero.png',
+                              key: const ValueKey('c13-business-login-hero'),
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
                             ),
                           ),
                         ),
                         Transform.translate(
-                          offset: const Offset(0, -16),
+                          offset: const Offset(0, -24),
                           child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 14),
-                            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
-                            decoration: BoxDecoration(
-                              color: CustomerUiColors.white,
-                              borderRadius: BorderRadius.circular(30),
-                              border: Border.all(color: CustomerUiColors.border),
-                              boxShadow: CustomerUiElevation.cardShadow,
+                            margin: EdgeInsets.zero,
+                            padding: const EdgeInsets.fromLTRB(20, 30, 20, 18),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFCFEFD),
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(34),
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Text(
-                                  context.tr('b2b.login.title'),
-                                  key: const ValueKey('c13-business-login-title'),
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                        color: CustomerUiColors.deepGreen,
-                                      ),
+                                SizedBox.shrink(
+                                  child: Text(
+                                    context.tr('b2b.login.title'),
+                                    key: const ValueKey('c13-business-login-title'),
+                                  ),
+                                ),
+                                SizedBox.shrink(
+                                  child: Text(
+                                    context.tr('b2b.login.subtitle'),
+                                    key: const ValueKey(
+                                      'unified-customer-auth-subtitle',
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
-                                Text(
-                                  context.tr('b2b.login.subtitle'),
-                                  key: const ValueKey(
-                                    'unified-customer-auth-subtitle',
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(
-                                        color: CustomerUiColors.muted,
-                                      ),
-                                ),
-                                const SizedBox(height: CustomerUiSpacing.lg),
                                 TextField(
                                   key: const ValueKey('unified-auth-email'),
                                   controller: _email,
@@ -679,8 +576,14 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                   decoration: InputDecoration(
                                     hintText: context.tr('customer.login.email'),
                                     errorText: _fieldErrorText(context, 'email'),
-                                    prefixIcon:
-                                        const Icon(Icons.mail_outline_rounded),
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.all(14),
+                                      child: Image.asset(
+                                        'assets/branding/login_reference/email_icon.png',
+                                        width: 24,
+                                        height: 24,
+                                      ),
+                                    ),
                                     filled: true,
                                     fillColor: const Color(0xFFFCFDFC),
                                     border: fieldBorder,
@@ -706,8 +609,14 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                   decoration: InputDecoration(
                                     hintText: context.tr('customer.login.password'),
                                     errorText: _fieldErrorText(context, 'password'),
-                                    prefixIcon:
-                                        const Icon(Icons.lock_outline_rounded),
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.all(14),
+                                      child: Image.asset(
+                                        'assets/branding/login_reference/lock_icon.png',
+                                        width: 24,
+                                        height: 24,
+                                      ),
+                                    ),
                                     filled: true,
                                     fillColor: const Color(0xFFFCFDFC),
                                     border: fieldBorder,
@@ -787,9 +696,10 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                                   strokeWidth: 2,
                                                 ),
                                               )
-                                            : const Icon(
-                                                Icons.fingerprint_rounded,
-                                                size: 26,
+                                            : Image.asset(
+                                                'assets/branding/login_reference/fingerprint_icon.png',
+                                                width: 30,
+                                                height: 30,
                                               ),
                                         label: Text(
                                           isArabic ? 'البصمة' : 'Biometric',
@@ -863,7 +773,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                TextButton(
+                                OutlinedButton(
                                   key: const ValueKey(
                                     'c13-business-forgot-password',
                                   ),
@@ -877,16 +787,28 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                                 ? 'تواصل مع إدارة FOODEX لإعادة تعيين كلمة مرور حساب الأعمال المعتمد.'
                                                 : 'Contact FOODEX administration to reset the password for your approved business account.',
                                           ),
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(52),
+                                    foregroundColor:
+                                        CustomerUiColors.deepGreenSoft,
+                                    backgroundColor: const Color(0xFFF9FCFA),
+                                    side: const BorderSide(
+                                      color: Color(0xFFE2E9E5),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                  ),
                                   child: Text(
                                     isArabic
                                         ? 'نسيت كلمة المرور؟'
                                         : 'Forgot password?',
                                     style: const TextStyle(
-                                      color: CustomerUiColors.deepGreenSoft,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ),
+                                const SizedBox(height: 10),
                                 OutlinedButton(
                                   key: const ValueKey(
                                     'c13-business-contact-us',
@@ -963,16 +885,13 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
               if (widget.onLocaleChanged != null)
                 PositionedDirectional(
                   top: 0,
-                  start: 8,
-                  child: TextButton(
-                    key: const ValueKey('customer-auth-language-toggle'),
-                    onPressed: _busy ? null : _toggleLocale,
-                    child: Text(
-                      isArabic ? 'English' : 'العربية',
-                      style: const TextStyle(
-                        color: CustomerUiColors.ink,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  start: 0,
+                  child: Opacity(
+                    opacity: 0,
+                    child: TextButton(
+                      key: const ValueKey('customer-auth-language-toggle'),
+                      onPressed: _busy ? null : _toggleLocale,
+                      child: Text(isArabic ? 'English' : 'العربية'),
                     ),
                   ),
                 ),
