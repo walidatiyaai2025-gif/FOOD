@@ -164,3 +164,17 @@ A PR is ready only when required evidence belongs to its current head SHA.
 If main advances in a way that can affect the task, the existing branch must be updated/revalidated before merge.
 
 Packaging, APKs, preview runtimes and update bundles must come from the final validated head.
+
+## Post-merge main parity
+
+Green PR checks are not sufficient if additional deterministic workflows run only after a push to `main`.
+
+Before merge readiness, workers must reproduce the deterministic preconditions of applicable main-push workflows. For deployable FOODEX changes, run:
+
+```bash
+bash scripts/validate-premerge-release-version.sh <base-sha> <head-sha>
+```
+
+Deployable changes under `backend/`, `apps/customer_app/`, or `apps/driver_app/` require a `VERSION` bump relative to the PR base, and Customer/Driver mobile version identities must remain synchronized with `VERSION`.
+
+Any post-merge failure that was predictable from the PR diff must be converted into a pre-merge check so it cannot recur as a main-only surprise.
