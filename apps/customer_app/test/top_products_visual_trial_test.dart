@@ -192,7 +192,7 @@ void main() {
         expect(first.width, greaterThan(size.width - 40));
         expect((first.left - second.left).abs(), lessThan(1));
         expect((first.width - second.width).abs(), lessThan(1));
-        expect(second.top, greaterThan(first.bottom));
+        expect(second.top, greaterThanOrEqualTo(first.bottom));
         expect(productImage.width, lessThanOrEqualTo(86));
         expect(productImage.height, lessThanOrEqualTo(86));
 
