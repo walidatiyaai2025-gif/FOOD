@@ -6,6 +6,7 @@ use App\Models\RoutingDecisionTrace;
 use App\Models\User;
 use App\Services\FieldOperationConfigurationService;
 use App\Services\RoutingPolicyService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -41,7 +42,7 @@ class RoutingPolicyServiceTest extends TestCase
         ], from: '2026-10-10T00:00:00Z');
         $service->publish($user, $draft);
 
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         try {
             $service->route('default', 'order', '1', [], '2026-10-09T00:00:00Z');
         } finally {
