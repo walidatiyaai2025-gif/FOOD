@@ -14,7 +14,9 @@ use Illuminate\Validation\ValidationException;
 final class FieldOperationConfigurationService
 {
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_PUBLISHED = 'published';
+
     public const STATUS_ARCHIVED = 'archived';
 
     /**
