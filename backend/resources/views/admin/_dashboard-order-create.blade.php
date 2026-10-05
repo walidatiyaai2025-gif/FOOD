@@ -6,6 +6,7 @@
     $isArOrder = app()->getLocale() === 'ar';
 @endphp
 
+@if($isB2bOrder)
 <div class="dashboard-order-create-launcher">
     <button type="button" class="foodex-primary dashboard-order-create-button" data-dashboard-order-open>
         <span aria-hidden="true">＋</span>
@@ -22,6 +23,12 @@
             </div>
             <button type="button" class="dashboard-order-close" data-dashboard-order-close aria-label="{{ $isArOrder?'إغلاق':'Close' }}">×</button>
         </div>
+@else
+<details class="foodex-card" open style="margin:16px 0">
+    <summary style="cursor:pointer;font-weight:800">
+        {{ $isArOrder ? 'إنشاء طلب جديد · متعدد المنتجات' : 'Create new order · Multi-line' }}
+    </summary>
+@endif
         <form method="post"
           action="{{ route($orderStoreRoute) }}"
           class="workspace-inline-form module-inline-form js-dashboard-order-form"
@@ -112,8 +119,12 @@
             <button class="foodex-primary js-submit-order" type="submit" disabled>{{ $isArOrder?'إنشاء الطلب':'Create order' }}</button>
         </div>
     </form>
+@if($isB2bOrder)
     </section>
 </div>
+@else
+</details>
+@endif
 
 <style>
 .dashboard-order-create-launcher{display:flex;justify-content:flex-end;margin:16px 0}
