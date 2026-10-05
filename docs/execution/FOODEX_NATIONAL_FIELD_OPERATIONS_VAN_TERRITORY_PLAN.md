@@ -3112,6 +3112,469 @@ Examples:
 
 ---
 
+## 40G. Modular operation, kill switches and editable operating modes
+
+The Van / Field Operations platform must be modular by design.
+
+No major subsystem may become a hidden hard dependency that prevents unrelated FOOD operations from continuing.
+
+### 40G.1 Core principle
+
+Every major capability must have:
+
+- an explicit enable/disable state;
+- an operating mode where applicable;
+- a safe fallback;
+- dependency declaration;
+- effective dates when appropriate;
+- audit;
+- permission-controlled administration;
+- clear runtime status.
+
+Disabling a capability must not corrupt data or silently change historical records.
+
+### 40G.2 Routing operating modes
+
+Routing must support at minimum:
+
+```text
+MANUAL
+AUTOMATIC
+HYBRID
+```
+
+#### MANUAL
+
+The system may still:
+
+- resolve customer/address/territory;
+- calculate serviceability;
+- show eligible Vans;
+- show capacity/availability;
+- show routing recommendations;
+
+but it must not automatically assign the final Van/route.
+
+New work enters a clear queue such as:
+
+**Awaiting Manual Dispatch / في انتظار التوجيه اليدوي**
+
+Authorized dispatcher selects:
+
+- service date;
+- warehouse;
+- Van;
+- route;
+- stop sequence if needed.
+
+#### AUTOMATIC
+
+The active published routing policy automatically determines the assignment when all required conditions are satisfied.
+
+If automation cannot make a safe decision, the order goes to an exception/manual queue.
+
+It must never guess unsafe routing data.
+
+#### HYBRID
+
+Automation proposes or assigns routine work while configured exceptions require dispatcher confirmation.
+
+Examples:
+
+- ordinary Zone order -> automatic;
+- high-value order -> approval;
+- unmapped address -> manual;
+- capacity overflow -> manual/backup policy;
+- VIP/customer override -> configured handling;
+- urgent delivery -> manual confirmation.
+
+The exact hybrid rules are configuration-driven.
+
+### 40G.3 Routing mode scope
+
+Routing mode must be configurable at appropriate scopes rather than one global hardcoded switch only.
+
+Supported scope model should allow overrides such as:
+
+- platform;
+- country;
+- governorate/region;
+- territory;
+- warehouse/hub;
+- store/channel;
+- service date/shift;
+- Van pool.
+
+Use deterministic precedence so the effective mode is explainable.
+
+Example:
+
+```text
+Platform = AUTOMATIC
+Alexandria = AUTOMATIC
+Territory A = MANUAL
+Friday shift = MANUAL
+```
+
+Orders in Territory A follow Manual mode without forcing all Egypt operations to Manual.
+
+### 40G.4 Routing configuration must be editable
+
+Admin must be able to manage without code deployment:
+
+- routing mode;
+- rule priority;
+- territory mapping;
+- service calendars;
+- primary Van;
+- backup Van/pool;
+- warehouse/hub;
+- capacity thresholds;
+- cutoffs;
+- order eligibility;
+- fallback actions;
+- manual-review conditions;
+- route-lock behavior;
+- reassignment policy;
+- route-deviation thresholds;
+- stale GPS thresholds;
+- service windows;
+- customer/address overrides.
+
+All values must be validated before publish.
+
+### 40G.5 Routing engine disable behavior
+
+If automatic routing is disabled:
+
+- Customer App checkout still works when serviceability rules permit;
+- Van App field order capture still works;
+- Dashboard order creation still works;
+- order/invoice/payment creation does not fail merely because auto-routing is off;
+- the order receives a clear routing state such as `awaiting_dispatch`;
+- Warehouse preparation can be configured either to wait for dispatch or proceed to a generic preparation queue;
+- Dashboard exposes unassigned/routing-pending work clearly.
+
+No unrelated commerce path should return a generic failure because automatic routing is disabled.
+
+### 40G.6 Independent subsystem switches
+
+Provide controlled activation for major modules such as:
+
+- Van App access;
+- field customer visits;
+- field order capture;
+- Van warehouse pickup;
+- Van route execution;
+- automatic routing;
+- manual routing;
+- live Van tracking;
+- live Driver tracking;
+- Zone map overlays;
+- collection at delivery;
+- customer-level collection;
+- partial collection;
+- Driver wallet;
+- Van wallet;
+- remittance submission;
+- remittance approval workflow;
+- customer collection notifications;
+- route deviation warnings;
+- shift close;
+- direct Van stock sales when introduced later.
+
+Not every switch needs to be a single global boolean; some are policies/modes/scoped configuration.
+
+### 40G.7 Feature dependency registry
+
+Each configurable subsystem must declare dependencies explicitly.
+
+Example:
+
+```text
+Van field order capture
+  requires: Van authentication + customer scope + pricing/order API
+  does not require: automatic routing
+  does not require: live GPS
+
+Van delivery
+  requires: assignment/route + delivery lifecycle
+  does not require: collection when collection policy says none
+
+Collection
+  requires: payment/collection service
+  does not require: remittance availability
+
+Remittance
+  requires: custody ledger
+  does not require: automatic routing
+```
+
+This dependency registry must be repository-visible and reflected in runtime validation.
+
+### 40G.8 Fail-open vs fail-closed classification
+
+Every feature/config dependency must declare its safe failure behavior.
+
+Examples:
+
+**Fail closed**
+- financial posting;
+- credit authorization;
+- unauthorized customer access;
+- duplicate collection;
+- invalid currency;
+- unsafe invoice mutation.
+
+**Degrade safely / continue**
+- automatic routing unavailable -> manual dispatch queue;
+- route optimization unavailable -> configured/manual sequence;
+- GPS unavailable -> delivery may continue if policy permits, with warning/audit;
+- live map unavailable -> list/grid operations still function;
+- push unavailable -> in-app/server state remains authoritative;
+- Preview unavailable -> production application continues.
+
+Workers must never invent this behavior ad hoc.
+
+### 40G.9 Configuration registry
+
+Use a coherent configuration/control-plane model rather than scattered constants.
+
+Configuration must support:
+
+- stable key/code;
+- value/type/schema;
+- scope;
+- status;
+- effective dates;
+- default;
+- validation;
+- published revision;
+- actor/time;
+- reason/comment;
+- audit diff.
+
+Sensitive secrets remain in appropriate protected secret/config storage and are not treated as ordinary editable business settings.
+
+### 40G.10 Draft, publish and rollback
+
+High-impact operational settings must use:
+
+```text
+Draft -> Validate/Simulate -> Publish -> Active -> Retire/Rollback
+```
+
+Examples:
+
+- routing mode;
+- routing rules;
+- territory geometry;
+- Van eligibility;
+- capacity policy;
+- service schedule;
+- collection policy.
+
+Admin must be able to review changes before activation.
+
+### 40G.11 Effective configuration preview
+
+Dashboard should expose:
+
+**Effective Configuration / الإعداد الفعلي**
+
+for a selected:
+
+- order;
+- customer/address;
+- territory;
+- Van;
+- date/shift.
+
+It should explain inherited/overridden settings, for example:
+
+```text
+Routing mode: MANUAL
+Source: Territory override
+Platform default: AUTOMATIC
+Effective from: 2026-10-10
+```
+
+This prevents hidden configuration surprises.
+
+### 40G.12 Emergency kill switches
+
+Provide permission-controlled emergency controls for operational incidents.
+
+Examples:
+
+- stop automatic routing;
+- stop new Van assignments;
+- stop field order capture;
+- stop cash collection;
+- stop remittance submission;
+- stop background location publishing;
+- disable one Van/user;
+- disable one territory;
+- disable one warehouse from new routing.
+
+Emergency controls must:
+
+- be audited;
+- show clear reason/status;
+- avoid deleting existing work;
+- define how in-progress work is handled;
+- support restoration.
+
+### 40G.13 In-progress work protection
+
+Changing configuration must distinguish:
+
+- new/unlocked work;
+- planned work;
+- locked route;
+- physically loaded inventory;
+- out-for-delivery work;
+- completed historical work.
+
+A policy change normally affects future/unlocked work.
+
+It must not silently reroute:
+
+- a physically loaded Van;
+- an already delivered order;
+- historical financial events.
+
+Changes to in-progress work require explicit operator action.
+
+### 40G.14 No fixed business constants
+
+Forbidden unless technically fundamental:
+
+- fixed Egypt-only country logic;
+- fixed governorate mappings;
+- fixed Van IDs;
+- fixed route IDs;
+- fixed service weekdays;
+- fixed collection limits;
+- fixed remittance methods;
+- fixed partial-payment thresholds;
+- fixed capacity thresholds;
+- fixed GPS stale intervals;
+- fixed proof requirements;
+- fixed automatic-routing precedence hidden in code.
+
+Use stable codes and configurable records/policies.
+
+Technical safety limits may exist in code when necessary to protect the system, but they must not encode changing business decisions.
+
+### 40G.15 Manual override everywhere it is operationally safe
+
+Where an automated result can safely be overridden, authorized admin/dispatcher should have an explicit override action.
+
+Override requires:
+
+- permission;
+- reason;
+- old value;
+- new value;
+- effective scope/time;
+- audit;
+- revalidation.
+
+Financial/security invariants cannot be overridden by generic admin configuration.
+
+### 40G.16 No-control-plane single point of failure
+
+If the configuration UI is temporarily unavailable:
+
+- last valid published configuration continues to operate;
+- apps do not switch to arbitrary defaults;
+- backend keeps authoritative cached/persisted effective config;
+- configuration editing failure does not stop current deliveries/collections unless safety requires it.
+
+### 40G.17 Configuration caching and invalidation
+
+For scale, effective configuration may be cached.
+
+Requirements:
+
+- version/revision-aware cache keys;
+- deterministic invalidation on publish;
+- safe fallback to authoritative persisted config;
+- no stale indefinite business policy;
+- observability for current config revision.
+
+### 40G.18 Permissions
+
+Separate permissions should exist for high-impact control-plane actions, such as:
+
+- view routing config;
+- edit draft;
+- publish routing config;
+- change operating mode;
+- emergency disable;
+- override assignment;
+- manage territory;
+- manage collection policy;
+- manage wallet/remittance policy.
+
+A user who can view operations must not automatically be able to alter national routing.
+
+### 40G.19 Audit and notifications
+
+High-impact changes should create an operational event/notification, including:
+
+- routing mode changed;
+- territory disabled;
+- automatic routing stopped;
+- collection disabled;
+- Van suspended;
+- warehouse excluded;
+- policy published/rolled back.
+
+The Dashboard should make current non-default/emergency states visible.
+
+### 40G.20 UI requirement
+
+Control-plane pages must make editable behavior understandable.
+
+Use:
+
+- FOODEX identity;
+- current status badge;
+- Draft/Published indication;
+- scope selector;
+- effective-date controls;
+- clear inherited/default value;
+- `⋮` row actions;
+- simulation/preview before publish;
+- pagination for large configuration sets;
+- change history.
+
+Avoid giant forms where all national routing settings are mixed without scope/context.
+
+### 40G.21 Acceptance scenarios
+
+At minimum prove:
+
+1. switch one Territory from Automatic to Manual without affecting other Territories;
+2. create a Customer App order while auto-routing is disabled and receive an Awaiting Dispatch state;
+3. manually assign that order and continue warehouse/delivery normally;
+4. re-enable Automatic and route future eligible work automatically;
+5. Hybrid mode auto-routes ordinary orders but sends configured exceptions to manual review;
+6. disable live Van tracking without disabling Van order/delivery functions;
+7. disable collection while still allowing prepaid/no-collection delivery;
+8. disable remittance submission without corrupting existing custody balances;
+9. suspend one Van without disabling the territory;
+10. change a routing rule through Draft -> Simulation -> Publish;
+11. rollback to a previous routing policy;
+12. locked/loaded work is not silently changed by a new routing policy;
+13. effective-config UI explains why a specific order is Manual/Automatic;
+14. emergency switch action is audited;
+15. last published configuration remains active if the Dashboard config editor is unavailable.
+
+---
+
 ## 41. Proposed execution waves
 
 This master plan should become an umbrella after owner approval.
@@ -3119,6 +3582,10 @@ This master plan should become an umbrella after owner approval.
 Do not implement the whole platform in one branch.
 
 ### Wave 0 — Engineering acceleration and operational foundation
+- configuration registry + modular feature-control foundation;
+- manual/automatic/hybrid routing mode framework;
+- scoped feature flags / kill switches / dependency registry;
+- effective-configuration resolver and audit;
 - shared Flutter packages;
 - contract-first APIs / generated-model validation;
 - canonical Dashboard management-grid component;
@@ -3208,31 +3675,32 @@ Wave 0 must land before broad parallel feature implementation so later workers c
 
 After approval, create an umbrella Issue and child Issues. Suggested lanes:
 
-1. Wave-0 shared mobile/design/API foundation.
-2. Wave-0 CI/scaffolding/simulators/worker-template foundation.
-3. Geography + Service Territory model.
-4. Address-quality/unmapped-address operations.
-5. Routing policy/version/simulation engine.
-6. Territory Dashboard + map editor.
-7. Van/vehicle + assignment management.
-8. Route planning + capacity + exception engine.
-9. Shared Collection/Custody/Remittance backend.
-10. Driver App wallet + Collect & Deliver.
-11. Van App foundation/auth/design system.
-12. Van customer/visit/order capture.
-13. Warehouse load manifest/pickup/return.
-14. Van route/delivery.
-15. Shift close + route return/reconciliation.
-16. Van wallet/remittance integration.
-17. Unified live fleet location backend.
-18. Unified Driver + Van live map.
-19. Device/session supportability + Runtime Inspector parity.
-20. Customer App collection/receipt integration.
-21. Customer 360/Order Support integration.
-22. Finance collections/remittance/reconciliation Dashboard.
-23. Reporting/aging/risk.
-24. Pilot activation/readiness controls.
-25. Integrated national E2E/security/UI/release gate.
+1. Wave-0 configuration registry, feature controls, dependency/fallback framework.
+2. Wave-0 shared mobile/design/API foundation.
+3. Wave-0 CI/scaffolding/simulators/worker-template foundation.
+4. Geography + Service Territory model.
+5. Address-quality/unmapped-address operations.
+6. Routing policy/version/simulation engine.
+7. Territory Dashboard + map editor.
+8. Van/vehicle + assignment management.
+9. Route planning + capacity + exception engine.
+10. Shared Collection/Custody/Remittance backend.
+11. Driver App wallet + Collect & Deliver.
+12. Van App foundation/auth/design system.
+13. Van customer/visit/order capture.
+14. Warehouse load manifest/pickup/return.
+15. Van route/delivery.
+16. Shift close + route return/reconciliation.
+17. Van wallet/remittance integration.
+18. Unified live fleet location backend.
+19. Unified Driver + Van live map.
+20. Device/session supportability + Runtime Inspector parity.
+21. Customer App collection/receipt integration.
+22. Customer 360/Order Support integration.
+23. Finance collections/remittance/reconciliation Dashboard.
+24. Reporting/aging/risk.
+25. Pilot activation/readiness controls.
+26. Integrated national E2E/security/UI/release gate.
 
 Each child follows `AGENTS.md`:
 - one Issue;
@@ -3278,6 +3746,11 @@ The final integrated acceptance must prove:
 26. Feature-train drift guard proves the final train contains the latest required production fixes.
 27. Pilot activation can be limited to selected Zones/Vans without code changes.
 28. FOODEX UI/UX, grid, pagination, Preview, release and handoff parity all pass on the final integrated head.
+29. Routing can be switched Manual/Automatic/Hybrid at a scoped level without code deployment.
+30. Disabling automatic routing does not block order creation; work enters an explicit manual-dispatch queue.
+31. Independent feature shutdown does not break unrelated application functions and every dependency has a documented fallback.
+32. Effective Configuration explains the active value, scope and source for a selected order/territory/Van.
+33. Emergency kill switches are permissioned, audited and preserve in-progress/historical integrity.
 
 ---
 
