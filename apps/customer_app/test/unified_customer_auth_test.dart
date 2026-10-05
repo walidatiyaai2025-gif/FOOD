@@ -237,6 +237,73 @@ void main() {
     expect(find.byKey(const ValueKey('unified-auth-email')), findsOneWidget);
   });
 
+  testWidgets(
+      'business entry shows reference login controls and persists remember biometric choice',
+      (tester) async {
+    final storage = _MemorySecureStore();
+    final sessions = SecureCustomerSessionStore(storage: storage);
+    CustomerAuthPreferences? completedPreferences;
+
+    await tester.pumpWidget(
+      _testApp(
+        locale: const Locale('ar'),
+        child: UnifiedCustomerAuthScreen(
+          nextRoute: CustomerRoutePaths.b2bDashboard,
+          actionApi: const _SuccessfulActionApi(),
+          onAuthenticated: (_, preferences) async {
+            completedPreferences = preferences;
+          },
+          sessionStore: sessions,
+          biometricAuthenticator:
+              const _FakeBiometric(available: true, result: true),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('c13-business-login-hero')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('customer-auth-remember-me')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('customer-auth-biometric-login')),
+      findsOneWidget,
+    );
+    expect(find.text('نسيت كلمة المرور؟'), findsOneWidget);
+    expect(find.text('تواصل معنا'), findsOneWidget);
+    expect(find.text('الإصدار 1.0.54'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('customer-auth-remember-me')),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('customer-auth-biometric-login')),
+    );
+    await tester.pump();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-email')),
+      'business@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'secret-pass',
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('unified-auth-submit')),
+    );
+    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    await tester.pumpAndSettle();
+
+    expect(completedPreferences?.rememberMe, isTrue);
+    expect(completedPreferences?.biometricEnabled, isTrue);
+  });
+
   testWidgets('Arabic auth surface remains RTL and customer-only',
       (tester) async {
     await tester.pumpWidget(
