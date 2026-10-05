@@ -39,8 +39,7 @@ final class FleetLocationService
             $values = [
                 'vehicle_id' => $attributes['vehicle_id'] ?? ($attributes['van_id'] ?? null),
                 'assignment_id' => $attributes['assignment_id'] ?? null,
-                'route_key' => $attributes['route_key'] ?? null,
-                'store_id' => $attributes['store_id'] ?? null,
+                                'store_id' => $attributes['store_id'] ?? null,
                 'channel' => $attributes['channel'] ?? null,
                 'latitude' => $attributes['latitude'],
                 'longitude' => $attributes['longitude'],
@@ -49,8 +48,9 @@ final class FleetLocationService
                 'heading' => $attributes['heading'] ?? null,
                 'captured_at' => $capturedAt,
                 'received_at' => now(),
-                'source_app' => $attributes['source_app'] ?? null,
+                'source_app' => $attributes['source_app'] ?? 'unknown',
                 'app_version' => $attributes['app_version'] ?? null,
+                'is_mocked' => $attributes['is_mocked'] ?? null,
             ];
 
             if ($current instanceof FleetCurrentLocation) {
