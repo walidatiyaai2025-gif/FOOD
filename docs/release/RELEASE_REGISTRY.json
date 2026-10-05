@@ -180,7 +180,7 @@
       "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
-      "dashboard_update_sha256": "4e55e484b470a7a783f3baf4f93862efd4746a566294e2810d527cbf2b858d19",
+      "dashboard_update_sha256": "4533e9bcd17476bbc7f4300bc34bdde627d9fc8a325bc5904f7b726805374dd4",
       "note": "Synchronized 1.0.56 distribution after green #924 / PR #925 integration: Catalog Products UI redesign, Finance-first Customer 360 with audited credit limit and map address picker, B2B Orders modal/i18n cleanup, Operations grid cleanup, integrated reliability hardening, and Customer/Driver release identities at 1.0.56+56."
     }
   ]
