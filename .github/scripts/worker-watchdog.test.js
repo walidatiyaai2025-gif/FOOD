@@ -144,7 +144,7 @@ test('owner mission queue state is deterministic', () => {
 });
 
 test('ten-minute owner mission lease becomes takeover eligible', () => {
-  assert.deepEqual(classify({ nowMs: NOW, managed: true, workerState: { state: 'WORKING', blocker: 'none' }, hasOpenPr: false, hasBranch: true, latestActivityMs: Date.parse('2026-10-01T05:50:00Z'), ciRunning: false, ciConclusion: null, mergeable: null }), { status: 'handoff-ready', reason: 'stale-lease' });
+  assert.deepEqual(classifyOwnerMission({ nowMs: NOW, managed: true, workerState: { state: 'WORKING', blocker: 'none' }, hasOpenPr: false, hasBranch: true, latestActivityMs: Date.parse('2026-10-01T05:50:00Z'), ciRunning: false, ciConclusion: null, mergeable: null }), { status: 'handoff-ready', reason: 'stale-lease' });
 });
 
 test('dependency blocker is explicit and non-claimable', () => {
