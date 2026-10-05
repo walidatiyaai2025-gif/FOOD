@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tax: @json($isArOrder ? 'الضريبة' : 'Tax'),
         total: @json($isArOrder ? 'الإجمالي النهائي' : 'Grand total'),
         available: @json($isArOrder ? 'متاح' : 'available'),
+        duplicateProduct: @json($isArOrder ? 'لا يمكن إضافة نفس المنتج أكثر من مرة. عدّل الكمية في السطر الموجود.' : 'The same product cannot be added twice. Update the quantity on the existing line.'),
     };
 
     const money = (value) => Number(value || 0).toFixed(3);
@@ -256,6 +257,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (form.dataset.orderChannel === 'b2b' && !form.querySelector('.js-order-warehouse')?.value) return false;
 
         const lines = [...form.querySelectorAll('.js-order-line')];
+        const productIds = lines
+            .map((line) => line.querySelector('.js-order-product')?.value || '')
+            .filter(Boolean);
+        if (new Set(productIds).size !== productIds.length) return false;
+
         return lines.length > 0 && lines.every((line) => {
             const product = line.querySelector('.js-order-product')?.value;
             const quantity = Number(line.querySelector('input[type="number"]')?.value || 0);
@@ -301,6 +307,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const runQuote = async (form) => {
+        const selectedProductIds = [...form.querySelectorAll('.js-order-product')]
+            .map((select) => select.value)
+            .filter(Boolean);
+        if (new Set(selectedProductIds).size !== selectedProductIds.length) {
+            markDirty(form, labels.duplicateProduct);
+            return;
+        }
         if (!canQuote(form)) {
             markDirty(form);
             return;
