@@ -355,6 +355,21 @@ class _WholesaleHomeDesignScreenState
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
+                      onBusinessDashboard:
+                          widget.session.isAuthenticated &&
+                                  widget.session
+                                      .allowsChannel(CustomerChannel.b2b)
+                              ? () => Navigator.of(context).pushNamed(
+                                    Uri(
+                                      path: CustomerRoutePaths.b2bDashboard,
+                                      queryParameters: <String, String>{
+                                        'channel': 'wholesale',
+                                        if (storeId > 0)
+                                          'store_id': storeId.toString(),
+                                      },
+                                    ).toString(),
+                                  )
+                              : null,
                       onCart: () => Navigator.of(context).pushNamed(
                         '/b2b/cart?store=' + storeId.toString(),
                       ),
@@ -396,6 +411,7 @@ class _WholesaleHeader extends StatelessWidget {
     required this.title,
     required this.onCart,
     required this.palette,
+    this.onBusinessDashboard,
     this.logoUrl,
     this.address,
   });
@@ -404,6 +420,7 @@ class _WholesaleHeader extends StatelessWidget {
   final String? logoUrl;
   final String? address;
   final VoidCallback onCart;
+  final VoidCallback? onBusinessDashboard;
   final FoodexPalette palette;
 
   @override
@@ -412,6 +429,13 @@ class _WholesaleHeader extends StatelessWidget {
         color: palette.primaryDark,
         child: Row(
           children: [
+            if (onBusinessDashboard != null) ...[
+              _BusinessDashboardHeaderButton(
+                onTap: onBusinessDashboard!,
+                palette: palette,
+              ),
+              const SizedBox(width: 8),
+            ],
             if (logoUrl != null && logoUrl!.trim().isNotEmpty) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -478,6 +502,76 @@ class _WholesaleHeader extends StatelessWidget {
               onTap: onCart,
             ),
           ],
+        ),
+      );
+}
+
+class _BusinessDashboardHeaderButton extends StatelessWidget {
+  const _BusinessDashboardHeaderButton({
+    required this.onTap,
+    required this.palette,
+  });
+
+  final VoidCallback onTap;
+  final FoodexPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          key: const ValueKey('wholesale-business-dashboard-button'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Ink(
+            width: 82,
+            height: 62,
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [
+                  Color.lerp(palette.accent, Colors.white, .18)!,
+                  Color.lerp(palette.accent, Colors.white, .42)!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: Colors.white.withOpacity(.30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(.10),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.grid_view_rounded,
+                  size: 23,
+                  color: palette.primaryDark,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  context.tr('b2b.dashboard.title'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: palette.primaryDark,
+                    fontSize: 10,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
 }
