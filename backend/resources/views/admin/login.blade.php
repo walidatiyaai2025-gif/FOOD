@@ -106,19 +106,6 @@
         }
     };
 
-    let submitting = false;
-    form.addEventListener('submit', async (event) => {
-        if (submitting) return;
-        event.preventDefault();
-
-        // Refresh immediately before credential POST. This closes the stale-tab
-        // race that previously surfaced as POST /admin/*/login HTTP 419 after
-        // another tab regenerated the web session/CSRF token.
-        await refreshToken();
-        submitting = true;
-        HTMLFormElement.prototype.submit.call(form);
-    });
-
     window.addEventListener('pageshow', (event) => {
         if (event.persisted) refreshToken();
     });
