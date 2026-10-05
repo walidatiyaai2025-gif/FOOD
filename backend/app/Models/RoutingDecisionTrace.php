@@ -14,6 +14,7 @@ class RoutingDecisionTrace extends Model
             'input_snapshot' => 'array',
             'result' => 'array',
             'evaluated_rules' => 'array',
+            'mode_resolution' => 'array',
             'decided_at' => 'datetime',
         ];
     }
