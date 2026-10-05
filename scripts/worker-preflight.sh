@@ -35,7 +35,12 @@ while IFS='=' read -r key value; do
   area["$key"]="$value"
 done < <(bash ./scripts/detect-changed-areas.sh "$base" WORKTREE)
 
-changed_files="$(git diff --name-only "$base")"
+changed_files="$(
+  {
+    git diff --name-only "$base"
+    git ls-files --others --exclude-standard
+  } | sort -u
+)"
 
 if grep -qx 'backend/composer.lock' <<<"$changed_files" && ! grep -qx 'backend/composer.json' <<<"$changed_files"; then
   echo "backend/composer.lock changed without backend/composer.json; verify dependency drift before push." >&2
