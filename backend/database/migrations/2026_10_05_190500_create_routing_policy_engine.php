@@ -47,6 +47,8 @@ return new class extends Migration {
             $table->json('input_snapshot');
             $table->json('result');
             $table->json('evaluated_rules');
+            $table->string('routing_mode');
+            $table->json('mode_resolution');
             $table->timestamp('decided_at');
             $table->timestamps();
             $table->index(['subject_type', 'subject_key']);
