@@ -341,6 +341,7 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
           CustomerRetailDestination.orders,
           CustomerOrdersScreen(
             api: api,
+            initialChannel: 'b2c',
             onOpenOrder: (order) {
               final orderContext = CustomerCommerceContext(
                 channel: order.channel == 'b2b'
