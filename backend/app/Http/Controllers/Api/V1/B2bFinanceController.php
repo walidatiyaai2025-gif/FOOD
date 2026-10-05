@@ -155,7 +155,13 @@ class B2bFinanceController extends Controller
             $request,
         );
 
-        return response($invoices->renderPdf($invoice, $locale), 200, [
+        try {
+            $content = $invoices->renderPdf($invoice, $locale);
+        } catch (\RuntimeException) {
+            abort(503, 'PDF generation is temporarily unavailable.');
+        }
+
+        return response($content, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$invoice->invoice_number.'.pdf"',
             'Cache-Control' => 'private, no-store',
