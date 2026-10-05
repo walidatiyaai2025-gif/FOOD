@@ -7,6 +7,7 @@ use App\Models\RoutingPolicy;
 use App\Services\RoutingPolicyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class RoutingPolicyController extends Controller
 {
@@ -45,9 +46,32 @@ class RoutingPolicyController extends Controller
 
     public function simulate(Request $request, RoutingPolicy $routingPolicy, RoutingPolicyService $service): JsonResponse
     {
-        $data = $request->validate(['input' => ['required', 'array']]);
+        $data = $request->validate([
+            'input' => ['nullable', 'array'],
+            'inputs' => ['nullable', 'array'],
+            'inputs.*' => ['array'],
+            'scope' => ['sometimes', 'array'],
+            'scope.*' => ['string'],
+            'at' => ['nullable', 'date'],
+        ]);
 
-        return response()->json(['data' => $service->simulate($routingPolicy, $data['input'])]);
+        $hasSingle = array_key_exists('input', $data) && is_array($data['input']);
+        $hasBatch = array_key_exists('inputs', $data) && is_array($data['inputs']);
+
+        if ($hasSingle === $hasBatch) {
+            throw ValidationException::withMessages([
+                'input' => ['Provide exactly one of input or inputs.'],
+            ]);
+        }
+
+        $scope = $data['scope'] ?? [];
+        $at = $data['at'] ?? null;
+
+        $result = $hasBatch
+            ? $service->simulateBatch($routingPolicy, $data['inputs'], $scope, $at)
+            : $service->simulate($routingPolicy, $data['input'], $scope, $at);
+
+        return response()->json(['data' => $result]);
     }
 
     public function rollback(Request $request, RoutingPolicy $routingPolicy, RoutingPolicyService $service): JsonResponse
