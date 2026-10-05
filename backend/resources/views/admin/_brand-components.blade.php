@@ -520,7 +520,7 @@ html[dir=rtl] .foodex-action-popover a,html[dir=rtl] .foodex-action-popover butt
 </style>
 <script id="foodex-grid-action-menu-runtime">
 (() => {
-    const ACTION_HEADERS = new Set(['actions','action','إجراءات','الاجراءات','الإجراءات']);
+    const ACTION_HEADERS = new Set(['actions','action','إجراءات','الاجراءات','الإجراءات','management','الإدارة','الادارة','edit','تعديل']);
     const isArabicUi = () => document.documentElement.lang.toLowerCase().startsWith('ar');
     const cleanText = (value) => String(value || '').replace(/\s+/g,' ').trim().toLowerCase();
     const hasEditableControls = (form) => [...form.querySelectorAll('input,select,textarea')].some((field) => {
@@ -566,8 +566,9 @@ html[dir=rtl] .foodex-action-popover a,html[dir=rtl] .foodex-action-popover butt
     };
     const enhanceActionCell = (cell) => {
         if (!cell || cell.dataset.foodexActionEnhanced === '1') return;
-        const original = [...cell.children];
-        if (!original.length) return;
+        const interactive = [...cell.querySelectorAll('form,a[href],button')];
+        if (!interactive.length) return;
+
         cell.dataset.foodexActionEnhanced = '1';
         cell.classList.add('foodex-action-cell');
 
@@ -583,25 +584,46 @@ html[dir=rtl] .foodex-action-popover a,html[dir=rtl] .foodex-action-popover butt
         popover.setAttribute('role', 'menu');
         document.body.appendChild(popover);
 
-        original.forEach((node) => {
-            if (node.tagName === 'FORM' && hasEditableControls(node)) {
-                node.remove();
+        const forms = [...cell.querySelectorAll('form')];
+        forms.forEach((form) => {
+            if (hasEditableControls(form)) {
+                form.remove();
                 const edit = document.createElement('button');
                 edit.type = 'button';
                 edit.className = 'foodex-action-edit-trigger';
-                const submitLabel = cleanText(node.querySelector('button[type=submit],button:not([type])')?.textContent);
+                const submitButton = form.querySelector('button[type=submit],button:not([type])');
+                const submitLabel = cleanText(submitButton?.textContent);
                 edit.textContent = submitLabel && !['save','حفظ'].includes(submitLabel)
-                    ? (node.querySelector('button[type=submit],button:not([type])')?.textContent.trim() || (isArabicUi() ? 'تعديل' : 'Edit'))
+                    ? (submitButton?.textContent.trim() || (isArabicUi() ? 'تعديل' : 'Edit'))
                     : (isArabicUi() ? 'تعديل' : 'Edit');
                 edit.addEventListener('click', () => {
                     closePopovers();
-                    openEditModal(node, isArabicUi() ? 'تعديل البيانات' : 'Edit details');
+                    openEditModal(form, isArabicUi() ? 'تعديل البيانات' : 'Edit details');
                 });
                 popover.appendChild(edit);
-                return;
+            } else {
+                form.remove();
+                popover.appendChild(form);
             }
-            popover.appendChild(node);
         });
+
+        [...cell.querySelectorAll('a[href],button')].forEach((control) => {
+            if (control.closest('form')) return;
+            control.remove();
+            popover.appendChild(control);
+        });
+
+        // Remove wrappers that became empty after their controls/forms moved.
+        [...cell.querySelectorAll('div,span')].reverse().forEach((wrapper) => {
+            if (!wrapper.textContent.trim() && !wrapper.querySelector('img,svg')) wrapper.remove();
+        });
+
+        if (!popover.children.length) {
+            popover.remove();
+            cell.dataset.foodexActionEnhanced = '0';
+            cell.classList.remove('foodex-action-cell');
+            return;
+        }
 
         cell.appendChild(trigger);
         trigger.addEventListener('click', (event) => {
@@ -620,7 +642,15 @@ html[dir=rtl] .foodex-action-popover a,html[dir=rtl] .foodex-action-popover butt
             if (table.dataset.foodexActionGridEnhanced === '1') return;
             const headers = [...table.querySelectorAll('thead tr:first-child th')];
             if (!headers.length) return;
-            const actionIndex = headers.findIndex((th) => ACTION_HEADERS.has(cleanText(th.textContent)));
+            let actionIndex = headers.findIndex((th) => ACTION_HEADERS.has(cleanText(th.textContent)));
+            if (actionIndex < 0) {
+                const lastIndex = headers.length - 1;
+                const lastHeaderBlank = cleanText(headers[lastIndex]?.textContent) === '';
+                const hasLastColumnActions = [...table.querySelectorAll('tbody tr')].some((row) =>
+                    !!row.children[lastIndex]?.querySelector('form,a[href],button')
+                );
+                if (lastHeaderBlank && hasLastColumnActions) actionIndex = lastIndex;
+            }
             if (actionIndex < 0) return;
             table.dataset.foodexActionGridEnhanced = '1';
             headers[actionIndex].classList.add('foodex-action-cell');
