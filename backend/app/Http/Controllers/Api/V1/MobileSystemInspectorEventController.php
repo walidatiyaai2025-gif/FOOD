@@ -18,7 +18,7 @@ final class MobileSystemInspectorEventController extends Controller
         abort_unless($user instanceof User, 401);
 
         $data = $request->validate([
-            'app' => ['required', Rule::in(['customer', 'driver'])],
+            'app' => ['required', Rule::in(['customer', 'driver', 'van'])],
             'category' => ['required', 'string', 'max:120'],
             'severity' => ['nullable', Rule::in(['warning', 'error'])],
             'message' => ['required', 'string', 'max:2000'],
@@ -68,6 +68,12 @@ final class MobileSystemInspectorEventController extends Controller
             return;
         }
 
+        if ($app === 'van') {
+            abort_unless($user->hasPermission('van.login'), 403);
+
+            return;
+        }
+
         $allowed = DB::table('platform_customers')
             ->where('user_id', $user->id)
             ->where('is_active', true)
@@ -93,6 +99,12 @@ final class MobileSystemInspectorEventController extends Controller
                 ->exists();
 
             abort_unless($allowed, 403);
+
+            return $storeId;
+        }
+
+        if ($app === 'van') {
+            abort_unless($user->hasPermission('van.login') && $user->hasPermission('stores.view'), 403);
 
             return $storeId;
         }
