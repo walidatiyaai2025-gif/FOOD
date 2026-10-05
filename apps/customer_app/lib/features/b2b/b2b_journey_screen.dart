@@ -2080,7 +2080,7 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                             _metricLine(
                               Icons.monetization_on_outlined,
                               "${context.tr('b2b.top_products.current_price')}: "
-                              "${_amountWithCurrency(currentPrice, currentCurrency)}",
+                              '${_amountWithCurrency(currentPrice, currentCurrency)}',
                             ),
                         ],
                       ),
