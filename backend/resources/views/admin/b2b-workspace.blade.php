@@ -335,6 +335,22 @@
       $labels=app()->getLocale()==='ar'
       ? ['number'=>'رقم الطلب','client'=>'العميل','store'=>'الفرع','status'=>'الحالة','amount'=>'الإجمالي','created'=>'الإنشاء','code'=>'الكود','name'=>'الاسم','products'=>'المنتجات','orders'=>'الطلبات','company'=>'الشركة','email'=>'البريد','phone'=>'الهاتف','tax_number'=>'الرقم الضريبي','sku'=>'رمز المنتج','price'=>'السعر','available'=>'المتاح','actions'=>'إجراءات','availability'=>'التوفر','active'=>'نشط','assignments'=>'التعيينات','driver'=>'السائق','assignment_status'=>'حالة التعيين','tier'=>'شريحة السعر','product'=>'المنتج','unit_price'=>'سعر الوحدة','minimum_quantity'=>'الحد الأدنى','revenue'=>'الإيراد','average'=>'متوسط الطلب','setting'=>'الإعداد','value'=>'القيمة','warehouse'=>'المخزن','quantity'=>'الكمية','reserved'=>'المحجوز','invoice'=>'الفاتورة','paid'=>'المدفوع','balance'=>'الرصيد','issued_at'=>'تاريخ الإصدار','due'=>'الاستحقاق']
       : ['number'=>'Order','client'=>'Client','store'=>'Store','status'=>'Status','amount'=>'Amount','created'=>'Created','code'=>'Code','name'=>'Name','products'=>'Products','orders'=>'Orders','company'=>'Company','email'=>'Email','phone'=>'Phone','tax_number'=>'Tax number','sku'=>'SKU','price'=>'Price','available'=>'Available','actions'=>'Actions','availability'=>'Availability','active'=>'Active','assignments'=>'Assignments','driver'=>'Driver','assignment_status'=>'Assignment status','tier'=>'Price tier','product'=>'Product','unit_price'=>'Unit price','minimum_quantity'=>'Minimum quantity','revenue'=>'Revenue','average'=>'Average order','setting'=>'Setting','value'=>'Value','warehouse'=>'Warehouse','quantity'=>'Quantity','reserved'=>'Reserved','invoice'=>'Invoice','paid'=>'Paid','balance'=>'Balance','issued_at'=>'Issued','due'=>'Due'];
+      $orderStateLabels=[
+        'pending'=>app()->getLocale()==='ar'?'قيد الانتظار':'Pending',
+        'confirmed'=>app()->getLocale()==='ar'?'مؤكد':'Confirmed',
+        'preparing'=>app()->getLocale()==='ar'?'قيد التجهيز':'Preparing',
+        'ready'=>app()->getLocale()==='ar'?'جاهز':'Ready',
+        'assigned'=>app()->getLocale()==='ar'?'تم التعيين':'Assigned',
+        'picked_up'=>app()->getLocale()==='ar'?'تم الاستلام':'Picked up',
+        'out_for_delivery'=>app()->getLocale()==='ar'?'قيد التوصيل':'Out for delivery',
+        'in_transit'=>app()->getLocale()==='ar'?'في الطريق':'In transit',
+        'delivered'=>app()->getLocale()==='ar'?'تم التسليم':'Delivered',
+        'completed'=>app()->getLocale()==='ar'?'مكتمل':'Completed',
+        'failed'=>app()->getLocale()==='ar'?'تعذر التسليم':'Failed',
+        'cancelled'=>app()->getLocale()==='ar'?'ملغي':'Cancelled',
+        'refunded'=>app()->getLocale()==='ar'?'مسترد':'Refunded',
+        'unassigned'=>app()->getLocale()==='ar'?'غير معين':'Unassigned',
+      ];
     @endphp
     @if(session('status'))<div class="panel" style="border-color:#b7dfc4;background:var(--foodex-green-soft);color:var(--foodex-green-dark)">{{ session('status') }}</div>@endif
     @if($errors->any())<div class="panel" style="border-color:#ffd0a6;background:var(--foodex-orange-soft)"><strong>{{ app()->getLocale()==='ar'?'تعذر تنفيذ العملية':'Action could not be completed' }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
@@ -534,7 +550,8 @@
       <div class="table-wrap"><table class="data foodex-table"><thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column]??$column }}</th>@endforeach</tr></thead><tbody>
       @foreach($moduleData['rows'] as $row)<tr>@foreach($moduleData['columns'] as $column)<td>
         @if(in_array($column,['status','availability','active'],true) && is_bool($row[$column]))<span class="state {{ $row[$column]?'':'off' }}">{{ $row[$column]?(app()->getLocale()==='ar'?'نشط':'Active'):(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span>
-        @elseif($column==='status')<span class="badge {{ $row[$column] }}">{{ $row[$column] }}</span>
+        @elseif($column==='status')<span class="badge {{ $row[$column] }}">{{ $orderStateLabels[$row[$column]] ?? $row[$column] }}</span>
+        @elseif($column==='assignment_status'){{ $orderStateLabels[$row[$column]] ?? $row[$column] }}
         @elseif($column==='actions' && in_array($module,['reports','finance'],true) && is_array($row['actions'] ?? null))
           <div class="links">@foreach($row['actions'] as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach</div>
         @elseif($column==='actions' && $module==='clients' && $user->hasPermission('b2b.accounts.manage'))
