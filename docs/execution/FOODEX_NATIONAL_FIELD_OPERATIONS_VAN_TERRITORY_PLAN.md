@@ -1940,6 +1940,396 @@ Minimum automated/acceptance coverage must include:
 
 ---
 
+## 40A. Van App operational parity with the existing FOODEX application control plane
+
+The Van App is not complete if only `apps/van_app` is created. It must be integrated everywhere FOOD currently manages, previews, distributes, diagnoses and versions Customer/Driver applications.
+
+### 40A.1 Applications sidebar
+
+The Dashboard **Applications** group must expose the Van application in the same first-class way as Customer and Driver.
+
+The target Applications area must include at minimum:
+
+- App Preview / Review;
+- Customer App download;
+- Driver App download;
+- **Van App download**.
+
+The Van entry must use the canonical sidebar, permission, localization and icon system.
+
+Expected route/asset direction:
+
+- route equivalent to `admin.mobile-apps.van.download`;
+- versioned asset such as `FOODEX-Van.apk`;
+- current authoritative FOODEX version resolution;
+- no fixed release version inside the UI.
+
+If Applications later becomes a richer Application Center, Customer/Driver/Van remain peer first-class products.
+
+### 40A.2 Mobile Settings
+
+The current Mobile Settings control plane must support:
+
+- `customer`;
+- `driver`;
+- **`van`**.
+
+Van settings must use the same environment model:
+
+- development;
+- staging;
+- production.
+
+Van runtime configuration must support all applicable current contracts:
+
+- display name;
+- Android package ID;
+- iOS bundle ID if/when shipped;
+- published version/build;
+- minimum supported version;
+- recommended version;
+- force update;
+- maintenance mode;
+- AR/EN maintenance messages;
+- distribution/store URLs;
+- push configuration compatibility;
+- runtime/diagnostic metadata.
+
+Where an existing Driver-only setting is actually fleet-generic, refactor toward a shared Driver/Van policy rather than creating an unrelated duplicate setting.
+
+Location heartbeat/freshness is a primary example.
+
+### 40A.3 App Versions and release identity
+
+Van must enter the same release identity contract as the existing apps.
+
+When Van becomes distributable, release validation must synchronize at minimum:
+
+- root `VERSION`;
+- Customer package/runtime identity;
+- Driver package/runtime identity;
+- Van package/runtime identity;
+- Dashboard App Versions;
+- CHANGELOG/update notes;
+- release registry;
+- Dashboard update/distribution manifest;
+- APK artifacts/checksums.
+
+A FOODEX release must not contain Customer/Driver artifacts from one SHA and Van from another while presenting them as one release.
+
+### 40A.4 System Update and distribution
+
+Where System Update or release bundles contain mobile/runtime metadata or downloadable application artifacts, Van must participate under the same release rules.
+
+Van must not rely on a manual APK uploaded outside the repository release contract.
+
+### 40A.5 App Preview / Review
+
+The current Preview architecture must extend from:
+
+- Customer;
+- Driver;
+
+to:
+
+- Customer;
+- Driver;
+- **Van**.
+
+Van Preview must reuse the real Van runtime/contracts wherever technically possible.
+
+Van Preview context should support:
+
+- selected Van user;
+- territory;
+- Van/vehicle assignment;
+- warehouse;
+- route;
+- service date/shift;
+- route stops;
+- customer visit state;
+- load manifest;
+- delivery state;
+- safe wallet/collection summary;
+- AR/EN;
+- supported device profile.
+
+Preview must not implement a fake alternative field-sales lifecycle.
+
+### 40A.6 Preview parity rule
+
+Any Dashboard-managed behavior that changes Van App must preserve Preview parity in the same owning PR after the Van Preview foundation exists.
+
+Incomplete states include:
+
+- Van standalone app behaves differently from Preview;
+- Preview uses hardcoded fixture logic as live state;
+- Preview silently falls behind the production contract.
+
+### 40A.7 Runtime Inspector
+
+The mobile Runtime Inspector contract must recognize Van as a first-class source.
+
+Target app mapping:
+
+- `customer` -> `customer_app`;
+- `driver` -> `driver_app`;
+- **`van` -> `van_app`**.
+
+Unknown Van events must never fall through and be misclassified as Customer events.
+
+Safe diagnostic context may include:
+
+- category;
+- app version/build;
+- platform/OS;
+- current route/screen;
+- channel/store;
+- order id;
+- invoice id;
+- Van assignment id;
+- Van/vehicle id where safe;
+- field route id;
+- route-stop id;
+- territory id;
+- customer-visit id;
+- load-manifest id;
+- collection/remittance reference where safe;
+- retry/attempt;
+- correlation id;
+- sanitized metadata.
+
+Existing Inspector redaction rules remain mandatory.
+
+Never export:
+
+- auth tokens;
+- passwords/secrets;
+- raw sensitive request/response bodies;
+- customer email/phone/civil identifiers;
+- precise customer address;
+- precise GPS coordinates.
+
+Location failures should be diagnosable by category/freshness/route/actor context without leaking precise coordinates into Inspector exports.
+
+### 40A.8 Van runtime diagnostic categories
+
+Van runtime must make at least these classes diagnosable:
+
+- authentication/session;
+- route load;
+- territory resolution;
+- manifest load/pickup;
+- field order capture/quote;
+- customer visit;
+- delivery transition;
+- collection posting;
+- wallet/remittance;
+- live-location heartbeat;
+- stale GPS;
+- push/notification;
+- offline outbox/sync;
+- version/schema mismatch.
+
+### 40A.9 Correlation
+
+Van mobile events and APIs should preserve correlation identifiers so an operator can trace:
+
+Van action -> API request -> backend error -> order/route/collection context.
+
+### 40A.10 Inspector Dashboard
+
+System Inspector must support a `van_app` source filter and render Van context in the same FOODEX Inspector UX.
+
+Do not create a separate Van-only troubleshooting application.
+
+### 40A.11 Production diagnostics acceptance
+
+Van production readiness must prove:
+
+- mobile Inspector submission;
+- sanitization;
+- duplicate suppression;
+- application/version identity;
+- useful safe route/order/manifest context;
+- export/triage through the existing FOOD workflow.
+
+---
+
+## 40B. Persistent handoff and AUTO-HANDOFF execution contract
+
+This program must be runnable from a short repository-owner prompt without reconstructing chat context.
+
+### 40B.1 Coordination umbrella
+
+After owner approval:
+
+1. create one coordination-only umbrella Issue;
+2. create/reuse atomic child Issues;
+3. link this document as the authoritative plan;
+4. record dependencies, ownership fences and completion criteria;
+5. do not implement directly on the umbrella.
+
+### 40B.2 Short mission command
+
+The intended execution command is:
+
+```text
+FOOD #<VAN_UMBRELLA> AUTO-HANDOFF
+```
+
+That one command must be enough.
+
+Workers reconstruct current state from GitHub, not chat.
+
+### 40B.3 Mission behavior
+
+On receiving the mission command, a worker must:
+
+1. fetch umbrella and this plan;
+2. reconstruct child Issues/branches/PRs/HEAD/CI;
+3. respect valid active ownership;
+4. reuse every existing branch/PR;
+5. take over red/handoff-ready work under `AGENTS.md`;
+6. start only dependency-unblocked, non-conflicting work;
+7. own CI on the same PR;
+8. merge completed child work into the Van integration target when permitted;
+9. update umbrella state;
+10. continue to the next safe lane;
+11. stop only at mission completion or a genuine external/human gate.
+
+### 40B.4 Machine-readable worker state
+
+Every active atomic Issue maintains:
+
+```text
+<!-- foodex-worker-state:v1 -->
+STATE: WORKING
+OWNER: worker-name-or-role
+BRANCH: feat/<issue>-stable-name
+PR: #<pr>
+HEAD: <sha>
+HEARTBEAT: <UTC timestamp>
+BLOCKER: none
+NEXT_ACTION: <exact next repository action>
+```
+
+Handoff records:
+
+- Issue;
+- branch;
+- PR;
+- current HEAD;
+- completed scope;
+- remaining scope;
+- CI state;
+- exact failing job/test;
+- next action;
+- real external blocker if any.
+
+### 40B.5 No duplicate work
+
+Forbidden:
+
+- replacement `v2` / `retry` / `final` branches;
+- duplicate PR for an existing atomic task;
+- duplicate Van App foundation;
+- duplicate routing engine;
+- duplicate Collection/Wallet engine;
+- duplicate fleet-location system;
+- fake Preview-only business implementation.
+
+### 40B.6 Dependency-aware worker pool
+
+The umbrella must define safe concurrency by wave.
+
+Shared foundation owners land first when they block dependent work, especially:
+
+- routing contracts;
+- collection/custody contracts;
+- fleet-location contract;
+- Van app bootstrap/design-system foundation;
+- app/version/Inspector/shared control-plane parity.
+
+### 40B.7 First-run-green expectation
+
+Each child Issue follows FOOD preflight discipline:
+
+- branch/repository policy;
+- syntax/diff integrity;
+- formatter/lint;
+- static analysis;
+- Flutter analyze/tests;
+- focused backend tests;
+- migration validation;
+- runtime/visual QA;
+- exact-head CI;
+- final artifacts from validated SHA.
+
+### 40B.8 Van-specific CI coverage
+
+Before mission completion, CI/preflight must treat Van as a normal deployable app:
+
+- Van Flutter analyze;
+- Van unit/widget tests;
+- Android compile/package check;
+- version identity;
+- Runtime Inspector contract;
+- Preview parity where applicable;
+- release artifact validation.
+
+### 40B.9 Handoff Definition of Ready
+
+A child may become `worker:ready` only when:
+
+- dependencies are merged;
+- no active lane owns conflicting files;
+- exact acceptance is written;
+- branch name is fixed;
+- expected tests are named;
+- API/design authorities are named;
+- no duplicate implementation exists.
+
+### 40B.10 Handoff Definition of Done
+
+A lane is complete only when:
+
+- acceptance passes;
+- exact-head CI is green;
+- PR is integrated into the correct target;
+- Issue contains branch/PR/SHA/evidence;
+- umbrella checkpoint is refreshed;
+- the next safe lane is promoted.
+
+---
+
+## 40C. Van control-plane parity completion checklist
+
+The final Van integration gate cannot close until all applicable checks pass:
+
+- [ ] standalone `apps/van_app` exists;
+- [ ] Van appears under Dashboard Applications;
+- [ ] versioned Van APK download exists;
+- [ ] Van is supported in Mobile Settings;
+- [ ] Van is supported in App Versions/release identity;
+- [ ] Van participates in System Update/distribution rules;
+- [ ] Van is supported by App Preview/Review;
+- [ ] Van Preview uses real/shared runtime contracts;
+- [ ] Runtime Inspector accepts `van_app`;
+- [ ] Inspector filters/rendering include Van;
+- [ ] sensitive Van/GPS data is redacted;
+- [ ] push registration/notifications are supported;
+- [ ] maintenance/force-update works;
+- [ ] Van live location joins the unified fleet map;
+- [ ] release scripts/preflight validate Van;
+- [ ] final artifacts come from one validated integrated SHA;
+- [ ] AR/EN and RTL/LTR pass;
+- [ ] UI/UX matches FOODEX identity;
+- [ ] runtime loading/empty/error/offline/stale states are implemented;
+- [ ] repository-visible handoff state can fully resume work without chat history.
+
+---
+
 ## 40D. Isolated Van / Field Operations feature-train policy
 
 The National Field Operations program must **not** destabilize or delay the current FOODEX production line.
