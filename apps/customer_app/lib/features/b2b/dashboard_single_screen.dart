@@ -169,77 +169,110 @@ class DashboardMetricCard extends StatelessWidget {
   final bool compact;
 
   @override
-  Widget build(BuildContext context) {
-    final symbol = Container(
-      width: compact ? 24 : 28,
-      height: compact ? 24 : 28,
-      decoration: BoxDecoration(
-        color: CustomerUiColors.mint,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Icon(
-        icon,
-        size: compact ? 18 : 21,
-        color: CustomerUiColors.deepGreen,
-      ),
-    );
-    final amount = Text(
-      value,
-      textDirection: TextDirection.ltr,
-      maxLines: 1,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-        fontSize: compact ? 14 : 17,
-        height: 1.2,
-        fontWeight: FontWeight.w800,
-      ),
-    );
-    return Material(
-      color: CustomerUiColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: CustomerUiColors.border, width: .5),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.all(compact ? 6 : 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (compact)
-                Row(
-                  children: [
-                    symbol,
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: amount,
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final tight = constraints.maxHeight < 56;
+      final symbolSize = tight ? 18.0 : (compact ? 24.0 : 28.0);
+      final iconSize = tight ? 14.0 : (compact ? 18.0 : 21.0);
+      final amountSize = tight ? 11.0 : (compact ? 14.0 : 17.0);
+      final labelSize = tight ? 9.0 : 12.0;
+
+      final symbol = Container(
+        width: symbolSize,
+        height: symbolSize,
+        decoration: BoxDecoration(
+          color: CustomerUiColors.mint,
+          borderRadius: BorderRadius.circular(tight ? 7 : 10),
+        ),
+        child: Icon(
+          icon,
+          size: iconSize,
+          color: CustomerUiColors.deepGreen,
+        ),
+      );
+      final amount = Text(
+        value,
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontSize: amountSize,
+          height: 1,
+          fontWeight: FontWeight.w800,
+        ),
+      );
+      final metricLabel = Text(
+        label,
+        maxLines: tight ? 1 : 2,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontSize: labelSize,
+          height: 1,
+          color: CustomerUiColors.muted,
+        ),
+      );
+
+      return Material(
+        color: CustomerUiColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: CustomerUiColors.border, width: .5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: tight
+                ? const EdgeInsets.symmetric(horizontal: 5, vertical: 2)
+                : EdgeInsets.all(compact ? 6 : 8),
+            child: tight
+                ? Row(
+                    children: [
+                      symbol,
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            amount,
+                            const SizedBox(height: 1),
+                            metricLabel,
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                )
-              else ...[
-                symbol,
-                const SizedBox(height: 4),
-                amount,
-              ],
-              const SizedBox(height: 3),
-              Text(
-                label,
-                maxLines: 2,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontSize: 12,
-                  height: 1.15,
-                  color: CustomerUiColors.muted,
-                ),
-              ),
-            ],
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (compact)
+                        Row(
+                          children: [
+                            symbol,
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: amount,
+                              ),
+                            ),
+                          ],
+                        )
+                      else ...[
+                        symbol,
+                        const SizedBox(height: 4),
+                        amount,
+                      ],
+                      const SizedBox(height: 3),
+                      metricLabel,
+                    ],
+                  ),
           ),
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
 }
