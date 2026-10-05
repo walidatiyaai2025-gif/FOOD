@@ -13,6 +13,14 @@ jobs:
         with:
           fetch-depth: 0
       - run: ./scripts/validate-repo.sh
+
+      - name: Syntax-check First-Run Green scripts
+        shell: bash
+        run: |
+          bash -n scripts/worker-preflight.sh
+          bash -n scripts/detect-changed-areas.sh
+          test -s docs/worker-rules/FIRST_RUN_GREEN.md
+          test -s docs/worker-rules/CI_FAILURE_PATTERNS.md
       - name: Validate Worker Watchdog policy logic
         run: node --test .github/scripts/worker-watchdog.test.js
 
