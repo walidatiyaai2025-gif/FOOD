@@ -235,7 +235,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      Directionality.of(tester.element(find.text('Business dashboard'))),
+      Directionality.of(tester.element(find.text('FOODEX Business'))),
       TextDirection.ltr,
     );
     expect(find.text('Credit to you 20.000 KWD'), findsOneWidget);

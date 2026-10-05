@@ -19,6 +19,7 @@ import '../customer_account/customer_notification_center_screen.dart';
 import '../customer_orders/customer_order_screens.dart';
 import '../storefront/storefront_design_system.dart';
 import 'business_account_profile.dart';
+import 'dashboard_single_screen.dart';
 import '../customer_orders/customer_orders_api.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
@@ -147,6 +148,46 @@ class B2bJourneyScreen extends StatelessWidget {
         CustomerFooterDestination.invoices,
       _ => CustomerFooterDestination.account,
     };
+
+    if (hasRemoteState && definition.pattern == CustomerRoutePaths.b2bDashboard) {
+      final hasDock = commerceContext?.isWholesale == true;
+      return withFooter(
+        Scaffold(
+          backgroundColor: CustomerUiColors.mint,
+          appBar: AppBar(
+            title: Text(context.tr('b2b.app.title')),
+            centerTitle: true,
+            toolbarHeight: 48,
+            backgroundColor: CustomerUiColors.deepGreen,
+            foregroundColor: CustomerUiColors.white,
+            actions: [
+              IconButton(
+                key: const ValueKey('b2b-dashboard-notifications'),
+                tooltip: context.tr('customer.nav.notifications'),
+                onPressed: () => Navigator.of(context).pushNamed(
+                  _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
+                ),
+                icon: const Icon(Icons.notifications_none_rounded),
+              ),
+            ],
+          ),
+          body: SafeArea(
+            top: false,
+            child: Padding(
+              // The existing app-level version/logout footer overlays routes.
+              // Wholesale's persistent dock already reserves that space.
+              padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
+              child: _B2bDashboardRemoteState(
+                api: api!,
+                endpoint: _endpoint()!,
+                storefrontApi: storefrontApi,
+              ),
+            ),
+          ),
+        ),
+        destination,
+      );
+    }
 
     return withFooter(
       Scaffold(
@@ -704,86 +745,136 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     required String value,
     required IconData icon,
     required String route,
-  }) {
-    return Material(
-      key: ValueKey('b2b-dashboard-$keyName'),
-      color: CustomerUiColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(CustomerUiRadii.md),
-        side: const BorderSide(color: CustomerUiColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => Navigator.of(context).pushNamed(_scopedRoute(route)),
-        child: Padding(
-          padding: const EdgeInsets.all(CustomerUiSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  }) => DashboardMetricCard(
+    key: ValueKey('b2b-dashboard-$keyName'),
+    label: label,
+    value: value,
+    icon: icon,
+    compact: const ['invoice-count', 'order-count', 'active-orders', 'purchases-month', 'payments-month'].contains(keyName),
+    onTap: () => Navigator.of(context).pushNamed(_scopedRoute(route)),
+  );
+
+  Widget _identity(BuildContext context, Map<Object?, Object?> customer,
+      Map<Object?, Object?> account, String? generatedAt, bool stale) => Material(
+    key: const ValueKey('b2b-dashboard-identity'),
+    color: CustomerUiColors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: const BorderSide(color: CustomerUiColors.border),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const Icon(Icons.business_rounded, size: 22, color: CustomerUiColors.deepGreen),
+            const SizedBox(width: 4),
+            Expanded(child: Text(account['company_name']?.toString() ?? '—',
+              maxLines: 2, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13, height: 1.15, fontWeight: FontWeight.w800))),
+          ]),
+          const SizedBox(height: 3),
+          Text(customer['name']?.toString() ?? '—', maxLines: 1,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, height: 1.15, color: CustomerUiColors.muted)),
+          if ((customer['email']?.toString() ?? '').isNotEmpty)
+            Text(customer['email'].toString(), textDirection: TextDirection.ltr, textAlign: TextAlign.right, maxLines: 1,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.2, color: CustomerUiColors.muted)),
+          const Spacer(),
+          Text('${context.tr('b2b.dashboard.last_updated')}:',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.15, color: CustomerUiColors.muted)),
+          Text(generatedAt ?? '—',
+            key: const ValueKey('b2b-dashboard-last-updated'),
+            textDirection: TextDirection.ltr, maxLines: 2,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.15, color: CustomerUiColors.muted)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: CustomerUiColors.mint,
-                  borderRadius: BorderRadius.circular(CustomerUiRadii.sm),
+              if (stale) Expanded(child: Text(context.tr('b2b.dashboard.stale'),
+                key: const ValueKey('b2b-dashboard-stale'), maxLines: 2,
+                style: const TextStyle(fontSize: 11, height: 1.1, color: CustomerUiColors.warning))),
+              if (widget.storefrontApi != null)
+                IconButton(
+                  key: const ValueKey('b2b-dashboard-shopping'),
+                  tooltip: context.tr('customer.nav.shopping'),
+                  constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                  padding: EdgeInsets.zero,
+                  onPressed: _openingWholesale ? null : _openPrincipalWholesale,
+                  icon: const Icon(Icons.storefront_rounded, size: 22),
+                  style: IconButton.styleFrom(backgroundColor: CustomerUiColors.lime, foregroundColor: CustomerUiColors.deepGreen),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(CustomerUiSpacing.xs),
-                  child: Icon(
-                    icon,
-                    size: 20,
-                    color: CustomerUiColors.deepGreen,
-                  ),
-                ),
-              ),
-              const SizedBox(height: CustomerUiSpacing.sm),
-              Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: CustomerUiColors.ink,
-                    ),
-              ),
-              const SizedBox(height: CustomerUiSpacing.xxs),
-              Text(
-                label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: CustomerUiColors.muted,
-                    ),
+              const SizedBox(width: 4),
+              IconButton(
+                key: const ValueKey('b2b-dashboard-refresh'),
+                tooltip: context.tr('b2b.dashboard.refresh'),
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                padding: EdgeInsets.zero,
+                onPressed: _reload,
+                icon: const Icon(Icons.refresh_rounded, size: 22),
+                style: IconButton.styleFrom(backgroundColor: CustomerUiColors.lime, foregroundColor: CustomerUiColors.deepGreen),
               ),
             ],
           ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _balance(BuildContext context, String directionLabel, double? balance,
+      Object? credit, String currency) => Material(
+    key: const ValueKey('b2b-dashboard-balance-hero'),
+    color: CustomerUiColors.deepGreen,
+    borderRadius: BorderRadius.circular(16),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => Navigator.of(context).pushNamed(_scopedRoute(CustomerRoutePaths.b2bAccountStatement)),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Row(children: [
+              const Icon(Icons.account_balance_wallet_outlined, color: CustomerUiColors.lime, size: 22),
+              const SizedBox(width: 5),
+              Expanded(child: Text(context.tr('b2b.dashboard.balance'), maxLines: 2,
+                style: const TextStyle(color: CustomerUiColors.white, fontSize: 13, height: 1.2))),
+            ]),
+            Text('$directionLabel ${_money(balance?.abs(), currency)}', textDirection: TextDirection.ltr, maxLines: 2,
+              style: const TextStyle(color: CustomerUiColors.white, fontSize: 17, height: 1.2, fontWeight: FontWeight.w800)),
+            Text(context.tr('b2b.dashboard.available_credit'), maxLines: 2,
+              style: const TextStyle(color: CustomerUiColors.mintStrong, fontSize: 12, height: 1.15)),
+            Text(_money(credit, currency), textDirection: TextDirection.ltr, maxLines: 2,
+              style: const TextStyle(color: CustomerUiColors.lime, fontSize: 16, height: 1.2, fontWeight: FontWeight.w800)),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 
-  Widget _metricGrid(
-    BuildContext context, {
-    required String keyName,
-    required List<Widget> metrics,
-  }) =>
-      LayoutBuilder(
-        key: ValueKey('b2b-dashboard-$keyName-grid'),
-        builder: (context, constraints) {
-          const gap = CustomerUiSpacing.sm;
-          final tileWidth = (constraints.maxWidth - gap) / 2;
-          return Wrap(
-            spacing: gap,
-            runSpacing: gap,
-            children: metrics
-                .map(
-                  (metric) => SizedBox(
-                    width: tileWidth,
-                    child: metric,
-                  ),
-                )
-                .toList(growable: false),
-          );
-        },
-      );
+  Widget _offers(BuildContext context) => Material(
+    key: const ValueKey('b2b-dashboard-offers'),
+    color: CustomerUiColors.limeSoft,
+    borderRadius: BorderRadius.circular(16),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => Navigator.of(context).pushNamed(_scopedRoute(CustomerRoutePaths.b2bTopProducts)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Row(children: [
+          const CircleAvatar(radius: 18, backgroundColor: CustomerUiColors.white, foregroundColor: CustomerUiColors.deepGreen, child: Icon(Icons.local_offer_outlined, size: 24)),
+          const SizedBox(width: 8),
+          Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(context.tr('b2b.dashboard.offers'), maxLines: 1,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 14, height: 1.2, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 2),
+            Text(context.tr('b2b.dashboard.offers_cta'), maxLines: 1,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, height: 1.2)),
+          ])),
+          Icon(Directionality.of(context) == TextDirection.rtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded, color: CustomerUiColors.deepGreen),
+        ]),
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => FutureBuilder<Object?>(
@@ -835,15 +926,16 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               data['currency']?.toString() ??
               '';
           final rawBalance =
-              double.tryParse(finance['balance']?.toString() ?? '') ?? 0;
+              double.tryParse(finance['balance']?.toString() ?? '');
           final balanceDirection =
-              finance['balance_direction']?.toString() ?? 'settled';
+              finance['balance_direction']?.toString();
           final directionLabel = switch (balanceDirection) {
             'customer_owes_company' =>
               context.tr('b2b.dashboard.balance.you_owe'),
             'company_owes_customer' =>
               context.tr('b2b.dashboard.balance.credit'),
-            _ => context.tr('b2b.dashboard.balance.settled'),
+            'settled' => context.tr('b2b.dashboard.balance.settled'),
+            _ => '—',
           };
           final generatedAt = freshness['generated_at']?.toString();
           final generatedDate =
@@ -896,9 +988,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               keyName: 'purchases-month',
               label: context.tr('b2b.dashboard.purchases_month'),
               value: _money(
-                operations['purchases_this_month'] ??
-                    data['purchases_total'] ??
-                    data['purchase_total'],
+                operations['purchases_this_month'],
                 currency,
               ),
               icon: Icons.shopping_bag_outlined,
@@ -916,7 +1006,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               context,
               keyName: 'invoice-count',
               label: context.tr('b2b.dashboard.invoice_count'),
-              value: operations['invoice_count']?.toString() ?? '0',
+              value: operations['invoice_count']?.toString() ?? '—',
               icon: Icons.description_outlined,
               route: CustomerRoutePaths.b2bInvoices,
             ),
@@ -924,7 +1014,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               context,
               keyName: 'order-count',
               label: context.tr('b2b.dashboard.order_count'),
-              value: operations['order_count']?.toString() ?? '0',
+              value: operations['order_count']?.toString() ?? '—',
               icon: Icons.inventory_2_outlined,
               route: CustomerRoutePaths.b2bOrders,
             ),
@@ -932,290 +1022,37 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               context,
               keyName: 'active-orders',
               label: context.tr('b2b.dashboard.active_orders'),
-              value: operations['active_orders']?.toString() ?? '0',
+              value: operations['active_orders']?.toString() ?? '—',
               icon: Icons.local_shipping_outlined,
               route: CustomerRoutePaths.b2bOrders,
             ),
           ];
 
-          return Column(
-            key: const ValueKey('b2b-dashboard-data'),
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Material(
-                key: const ValueKey('b2b-dashboard-identity'),
-                color: CustomerUiColors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-                  side: const BorderSide(color: CustomerUiColors.border),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(CustomerUiSpacing.md),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const CircleAvatar(
-                        radius: 24,
-                        backgroundColor: CustomerUiColors.mint,
-                        foregroundColor: CustomerUiColors.deepGreen,
-                        child: Icon(Icons.business_rounded),
-                      ),
-                      const SizedBox(width: CustomerUiSpacing.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              account['company_name']?.toString() ?? '—',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: CustomerUiColors.ink,
-                                  ),
-                            ),
-                            const SizedBox(height: CustomerUiSpacing.xxs),
-                            Text(
-                              customer['name']?.toString() ?? '—',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: CustomerUiColors.muted),
-                            ),
-                            if ((customer['email']?.toString() ?? '')
-                                .isNotEmpty)
-                              Text(
-                                customer['email'].toString(),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(color: CustomerUiColors.muted),
-                              ),
-                            const SizedBox(height: CustomerUiSpacing.sm),
-                            Text(
-                              "${context.tr('b2b.dashboard.last_updated')}: ${generatedAt ?? '—'}",
-                              key: const ValueKey(
-                                'b2b-dashboard-last-updated',
-                              ),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: CustomerUiColors.muted),
-                            ),
-                            if (stale) ...[
-                              const SizedBox(height: CustomerUiSpacing.xxs),
-                              Text(
-                                context.tr('b2b.dashboard.stale'),
-                                key: const ValueKey('b2b-dashboard-stale'),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: CustomerUiColors.warning,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      if (widget.storefrontApi != null) ...[
-                        IconButton.filledTonal(
-                          key: const ValueKey('b2b-dashboard-shopping'),
-                          tooltip: context.tr('customer.nav.shopping'),
-                          onPressed:
-                              _openingWholesale ? null : _openPrincipalWholesale,
-                          icon: const Icon(Icons.storefront_rounded),
-                        ),
-                        const SizedBox(width: CustomerUiSpacing.xs),
-                      ],
-                      IconButton.filledTonal(
-                        key: const ValueKey('b2b-dashboard-refresh'),
-                        tooltip: context.tr('b2b.dashboard.refresh'),
-                        onPressed: _reload,
-                        icon: const Icon(Icons.refresh_rounded),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: CustomerUiSpacing.md),
-              Material(
-                key: const ValueKey('b2b-dashboard-balance-hero'),
-                color: CustomerUiColors.deepGreen,
-                borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => Navigator.of(context).pushNamed(
-                    _scopedRoute(CustomerRoutePaths.b2bAccountStatement),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(CustomerUiSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.account_balance_wallet_outlined,
-                              color: CustomerUiColors.lime,
-                            ),
-                            const SizedBox(width: CustomerUiSpacing.xs),
-                            Text(
-                              context.tr('b2b.dashboard.balance'),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: CustomerUiColors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: CustomerUiSpacing.sm),
-                        Text(
-                          '$directionLabel ${_money(rawBalance.abs(), currency)}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                color: CustomerUiColors.white,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        const SizedBox(height: CustomerUiSpacing.md),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                context.tr(
-                                  'b2b.dashboard.available_credit',
-                                ),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: CustomerUiColors.mintStrong,
-                                    ),
-                              ),
-                            ),
-                            Text(
-                              _money(
-                                finance['available_credit_line'],
-                                currency,
-                              ),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    color: CustomerUiColors.lime,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: CustomerUiSpacing.xl),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.account_balance_outlined,
-                    size: 20,
-                    color: CustomerUiColors.deepGreen,
-                  ),
-                  const SizedBox(width: CustomerUiSpacing.xs),
-                  Text(
-                    context.tr('b2b.dashboard.finance'),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: CustomerUiSpacing.sm),
-              _metricGrid(
-                context,
-                keyName: 'finance',
+          return DashboardSingleScreen(
+            identity: _identity(context, customer, account, generatedAt, stale),
+            balance: _balance(context, directionLabel, rawBalance, finance['available_credit_line'], currency),
+            finance: DashboardPanel(
+              title: context.tr('b2b.dashboard.finance'),
+              icon: Icons.account_balance_outlined,
+              child: DashboardMetricGrid(
+                key: const ValueKey('b2b-dashboard-finance-grid'),
                 metrics: financeMetrics,
               ),
-              const SizedBox(height: CustomerUiSpacing.xl),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.insights_rounded,
-                    size: 20,
-                    color: CustomerUiColors.deepGreen,
-                  ),
-                  const SizedBox(width: CustomerUiSpacing.xs),
-                  Text(
-                    context.tr('b2b.dashboard.operations'),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                ],
+            ),
+            monthly: DashboardPanel(
+              title: context.tr('b2b.dashboard.monthly'),
+              icon: Icons.calendar_today_outlined,
+              child: DashboardMetricGrid(columns: 1, metrics: operationMetrics.take(2).toList()),
+            ),
+            activity: DashboardPanel(
+              title: context.tr('b2b.dashboard.operations'),
+              icon: Icons.insights_rounded,
+              child: DashboardMetricGrid(
+                key: const ValueKey('b2b-dashboard-operations-grid'),
+                metrics: operationMetrics.skip(2).toList(),
               ),
-              const SizedBox(height: CustomerUiSpacing.sm),
-              _metricGrid(
-                context,
-                keyName: 'operations',
-                metrics: operationMetrics,
-              ),
-              const SizedBox(height: CustomerUiSpacing.xl),
-              Material(
-                key: const ValueKey('b2b-dashboard-offers'),
-                color: CustomerUiColors.limeSoft,
-                borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => Navigator.of(context).pushNamed(
-                    _scopedRoute(CustomerRoutePaths.b2bTopProducts),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(CustomerUiSpacing.md),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          backgroundColor: CustomerUiColors.white,
-                          foregroundColor: CustomerUiColors.deepGreen,
-                          child: Icon(Icons.local_offer_outlined),
-                        ),
-                        const SizedBox(width: CustomerUiSpacing.sm),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                context.tr('b2b.dashboard.offers'),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w800),
-                              ),
-                              const SizedBox(height: CustomerUiSpacing.xxs),
-                              Text(
-                                context.tr('b2b.dashboard.offers_cta'),
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.chevron_right_rounded,
-                          color: CustomerUiColors.deepGreen,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
+            offers: _offers(context),
           );
         },
       );
