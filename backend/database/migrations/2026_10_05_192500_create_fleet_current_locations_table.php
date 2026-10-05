@@ -14,6 +14,7 @@ return new class extends Migration
             $table->unsignedBigInteger('actor_id');
             $table->unsignedBigInteger('vehicle_id')->nullable();
             $table->unsignedBigInteger('assignment_id')->nullable();
+            $table->string('route_key', 128)->nullable();
             $table->unsignedBigInteger('store_id')->nullable();
             $table->string('channel', 16)->nullable();
             $table->decimal('latitude', 10, 7);
