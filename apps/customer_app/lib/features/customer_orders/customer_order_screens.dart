@@ -62,6 +62,18 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
   }
 
   @override
+  void didUpdateWidget(covariant CustomerOrdersScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialChannel == widget.initialChannel) return;
+
+    final nextIndex = _channels.indexOf(widget.initialChannel.toLowerCase());
+    if (nextIndex < 0 || nextIndex == _tabController.index) return;
+
+    _tabController.index = nextIndex;
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
