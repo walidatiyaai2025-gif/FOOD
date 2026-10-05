@@ -280,13 +280,13 @@ final class FieldOperationConfigurationService
         }
 
         $winner = $candidates
-            ->filter(fn (FieldOperationConfigurationRevision $revision): bool =>
-                array_key_exists((string) $revision->scope_type, $requested)
-                && $requested[(string) $revision->scope_type] === (string) $revision->scope_key
-            )
-            ->sortByDesc(fn (FieldOperationConfigurationRevision $revision): int =>
-                self::SCOPE_PRIORITY[(string) $revision->scope_type] ?? -1
-            )
+            ->filter(function (FieldOperationConfigurationRevision $revision) use ($requested): bool {
+                return array_key_exists((string) $revision->scope_type, $requested)
+                    && $requested[(string) $revision->scope_type] === (string) $revision->scope_key;
+            })
+            ->sortByDesc(function (FieldOperationConfigurationRevision $revision): int {
+                return self::SCOPE_PRIORITY[(string) $revision->scope_type] ?? -1;
+            })
             ->first();
 
         if (! $winner instanceof FieldOperationConfigurationRevision) {
