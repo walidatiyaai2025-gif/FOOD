@@ -139,6 +139,7 @@ function classify({
   ciRunning,
   ciConclusion,
   mergeable,
+  staleMinutes = STALE_MINUTES,
 }) {
   if (!managed) return { status: 'ignored', reason: 'not-managed' };
 
@@ -180,7 +181,7 @@ function classify({
     return { status: 'ready', reason: 'unclaimed' };
   }
 
-  const stale = minutesSince(nowMs, latestActivityMs) >= STALE_MINUTES;
+  const stale = minutesSince(nowMs, latestActivityMs) >= staleMinutes;
   if (!stale) {
     return { status: 'active', reason: 'fresh-lease' };
   }
@@ -207,6 +208,34 @@ function queueState(outcome) {
   if (outcome.status === 'handoff-ready' && outcome.reason === 'merge-ready-stale') return 'MERGE_READY';
   if (outcome.status === 'handoff-ready') return 'TAKEOVER';
   return 'TAKEOVER';
+}
+
+function classifyOwnerMission(args) {
+  return classify({ ...args, staleMinutes: OWNER_PULSE_STALE_MINUTES });
+}
+
+function missionQueueState(outcome, { dependencyBlocked = false } = {}) {
+  if (dependencyBlocked) return 'BLOCKED_DEP';
+  if (!outcome) return null;
+
+  if (outcome.status === 'ready') return 'READY';
+  if (outcome.status === 'active') return 'ACTIVE_PEER';
+  if (outcome.status === 'waiting-ci') return 'WAITING_CI';
+  if (outcome.status === 'human-gate') return 'HUMAN_GATE';
+
+  if (outcome.status === 'handoff-ready') {
+    if ((outcome.reason || '').startsWith('ci-')) return 'CI_FIX';
+    if (outcome.reason === 'merge-ready-stale' || outcome.reason === 'ready-to-merge') return 'MERGE_READY';
+    return 'TAKEOVER';
+  }
+
+  return null;
+}
+
+function noWorkCurrentlyAvailable(states) {
+  if (!Array.isArray(states) || states.length === 0) return false;
+  const nonClaimable = new Set(['ACTIVE_PEER', 'WAITING_CI', 'BLOCKED_DEP', 'HUMAN_GATE', 'COMPLETE']);
+  return states.every(state => nonClaimable.has(state));
 }
 
 function statusLabel(status) {
@@ -584,15 +613,19 @@ module.exports = {
   DEPENDENCY_BLOCKERS,
   HUMAN_BLOCKERS,
   MANAGED_MARKER,
+  OWNER_PULSE_STALE_MINUTES,
   RED_CI_CONCLUSIONS,
   STALE_MINUTES,
   STATE_MARKER,
   branchFromText,
   classify,
+  classifyOwnerMission,
   executionActivityMillis,
   handoffComment,
   linkedIssueNumbers,
+  missionQueueState,
   minutesSince,
+  noWorkCurrentlyAvailable,
   parseWorkerState,
   queueState,
   run,
