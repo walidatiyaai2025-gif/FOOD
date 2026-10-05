@@ -13,6 +13,7 @@ const {
   handoffComment,
   linkedIssueNumbers,
   parseWorkerState,
+  queueState,
   statusLabel,
   summarizeCheckRuns,
   summarizeCommitStatuses,
@@ -125,6 +126,25 @@ test('fresh explicit machine heartbeat keeps lease active', () => {
     }),
     { status: 'active', reason: 'fresh-lease' },
   );
+});
+
+test('owner mission queue state is deterministic', () => {
+  assert.equal(queueState({ status: 'ready', reason: 'unclaimed' }), 'READY');
+  assert.equal(queueState({ status: 'active', reason: 'fresh-lease' }), 'ACTIVE_PEER');
+  assert.equal(queueState({ status: 'waiting-ci', reason: 'ci-running' }), 'WAITING_CI');
+  assert.equal(queueState({ status: 'handoff-ready', reason: 'ci-failure' }), 'CI_FIX');
+  assert.equal(queueState({ status: 'handoff-ready', reason: 'merge-ready-stale' }), 'MERGE_READY');
+  assert.equal(queueState({ status: 'handoff-ready', reason: 'stale-lease' }), 'TAKEOVER');
+  assert.equal(queueState({ status: 'blocked-dep', reason: 'dependency' }), 'BLOCKED_DEP');
+  assert.equal(queueState({ status: 'human-gate', reason: 'approval' }), 'HUMAN_GATE');
+});
+
+test('ten-minute owner mission lease becomes takeover eligible', () => {
+  assert.deepEqual(classify({ nowMs: NOW, managed: true, workerState: { state: 'WORKING', blocker: 'none' }, hasOpenPr: false, hasBranch: true, latestActivityMs: Date.parse('2026-10-01T05:50:00Z'), ciRunning: false, ciConclusion: null, mergeable: null }), { status: 'handoff-ready', reason: 'stale-lease' });
+});
+
+test('dependency blocker is explicit and non-claimable', () => {
+  assert.deepEqual(classify({ nowMs: NOW, managed: true, workerState: { state: 'BLOCKED_DEP', blocker: 'dependency' }, hasOpenPr: false, hasBranch: true, latestActivityMs: Date.parse('2026-10-01T04:00:00Z'), ciRunning: false, ciConclusion: null, mergeable: null }), { status: 'blocked-dep', reason: 'dependency' });
 });
 
 test('fresh worker lease remains active', () => {
