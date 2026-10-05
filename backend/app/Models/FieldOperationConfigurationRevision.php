@@ -23,7 +23,7 @@ class FieldOperationConfigurationRevision extends Model
     protected function casts(): array
     {
         return [
-            'value' => 'json',
+            'value' => 'array',
             'effective_from' => 'datetime',
             'effective_until' => 'datetime',
             'published_at' => 'datetime',
