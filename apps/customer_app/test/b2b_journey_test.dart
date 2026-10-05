@@ -367,6 +367,48 @@ void main() {
   });
 
   testWidgets(
+      'Wholesale header shows Business dashboard shortcut only for signed-in B2B users',
+      (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+        b2bApi: _FakeB2bApi(const <String, Object?>{}),
+        storefrontApi: _FakeWholesaleStorefrontApi(),
+        actionApi: _FakeCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final shortcut = find.byKey(
+      const ValueKey('wholesale-business-dashboard-button'),
+    );
+    expect(shortcut, findsOneWidget);
+
+    await tester.tap(shortcut);
+    await tester.pumpAndSettle();
+
+    expect(find.text('ملخص المشتريات والفواتير والرصيد'), findsOneWidget);
+  });
+
+  testWidgets('Wholesale header hides Business dashboard shortcut for guests',
+      (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+        storefrontApi: _FakeWholesaleStorefrontApi(),
+        actionApi: _FakeCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('wholesale-business-dashboard-button')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
       'Wholesale storefront CTA opens canonical Screen 10 with store context',
       (tester) async {
     final storefront = _FakeWholesaleStorefrontApi();
