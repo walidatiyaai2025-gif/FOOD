@@ -279,7 +279,7 @@ final class TerritoryService
             $xj = (float) $pj[0];
             $yj = (float) $pj[1];
 
-            $crosses = (($yi > $y) !== ($yj > $y))
+            $crosses = (($yi > $y) === ($yj <= $y))
                 && ($x < (($xj - $xi) * ($y - $yi) / (($yj - $yi) ?: PHP_FLOAT_EPSILON)) + $xi);
 
             if ($crosses) {
