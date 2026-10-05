@@ -333,6 +333,28 @@ If deployable code changed, `VERSION` must be bumped relative to the PR base and
 
 A post-merge-only red workflow that could have been predicted on the PR is a prevention failure and must be promoted into pre-merge validation.
 
+
+### Release identity synchronization rule
+
+Release/version work is an atomic identity update, not a sequence of independent edits.
+
+When a release branch or task changes `VERSION`, the worker MUST synchronize every repository-owned release identity in the same coherent change before pushing. At minimum, the worker must validate:
+
+- root `VERSION`;
+- Customer `pubspec.yaml` version/build identity;
+- Driver `pubspec.yaml` version/build identity;
+- Customer visible/runtime `_appVersion` identity;
+- Driver visible/runtime `_appVersion` identity;
+- release notes title/identity;
+- CHANGELOG release entry;
+- any diagnostics/version-policy identity explicitly covered by release tooling.
+
+A partial version bump is a known FOODEX failure pattern. Do not push a release branch with only `VERSION`/pubspec bumped while runtime/UI identities still point to the previous release.
+
+For release-related changes, run `bash scripts/release-readiness.sh` before push in addition to the normal worker preflight.
+
+Release validation scripts must emit the name of the failed invariant whenever practical; silent `test`/exit failures materially slow diagnosis and should be replaced with actionable errors when touched.
+
 ---
 
 ## 10. External blockers vs repository blockers
