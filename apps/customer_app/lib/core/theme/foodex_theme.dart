@@ -128,10 +128,11 @@ abstract final class FoodexTheme {
         elevation: CustomerUiElevation.flat,
         scrolledUnderElevation: CustomerUiElevation.flat,
         centerTitle: false,
-        toolbarHeight: 64,
+        toolbarHeight: 58,
+        titleSpacing: CustomerUiSpacing.md,
         titleTextStyle: primaryTextTheme.titleLarge?.copyWith(
           color: CustomerUiColors.white,
-          fontSize: 19,
+          fontSize: 18,
           fontWeight: FontWeight.w800,
         ),
         iconTheme: const IconThemeData(color: CustomerUiColors.white),
@@ -204,7 +205,7 @@ abstract final class FoodexTheme {
         labelStyle: textTheme.labelLarge,
         padding: const EdgeInsets.symmetric(
           horizontal: CustomerUiSpacing.xs,
-          vertical: CustomerUiSpacing.xs,
+          vertical: CustomerUiSpacing.xxs,
         ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
