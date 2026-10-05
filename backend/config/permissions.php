@@ -3,6 +3,8 @@
 return [
     'abilities' => [
         'platform.manage' => 'Manage platform-wide settings and permissions',
+        'field_ops.manage' => 'Manage field operations control-plane configuration',
+        'territories.manage' => 'Manage geography, service territories and address resolution',
         'security.view' => 'View users, roles and the effective permission matrix',
         'roles.manage' => 'Create, edit, clone, activate and delete delegated roles',
         'users.view' => 'View users and their effective access',
