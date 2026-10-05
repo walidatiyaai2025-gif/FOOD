@@ -1940,6 +1940,318 @@ Minimum automated/acceptance coverage must include:
 
 ---
 
+## 40D. Isolated Van / Field Operations feature-train policy
+
+The National Field Operations program must **not** destabilize or delay the current FOODEX production line.
+
+### 40D.1 Dedicated integration branch
+
+After owner approval and creation of the implementation umbrella, create one dedicated long-lived integration branch:
+
+```text
+feat/van-field-operations-integration
+```
+
+This branch is the only integration target for the new Van / Territory / Routing / Collections program until final convergence.
+
+It is a **feature-train integration target**, not an atomic worker branch.
+
+Do not implement atomic Issues directly on it except through the explicit final/integration lane that owns train composition.
+
+### 40D.2 Child branch target
+
+Atomic implementation Issues under the Van umbrella create/reuse their normal Issue-scoped branches, for example:
+
+```text
+feat/<issue>-territory-engine
+feat/<issue>-van-app-foundation
+feat/<issue>-collection-custody-ledger
+feat/<issue>-fleet-map-van-parity
+```
+
+Their PR target is:
+
+```text
+feat/van-field-operations-integration
+```
+
+not `main`.
+
+This keeps the entire new program isolated from production until the owner-approved final integration.
+
+### 40D.3 Production main remains free
+
+`main` remains the authoritative production/release branch for the currently published FOOD platform.
+
+During Van development:
+
+- production bugs continue to be fixed from `main`;
+- urgent Customer App bugs continue to be fixed from `main`;
+- urgent Driver App bugs continue to be fixed from `main`;
+- Dashboard production bugs continue to be fixed from `main`;
+- security/hotfix/release work continues normally;
+- these fixes do **not** wait for Van work.
+
+The Van feature train must never block a production hotfix.
+
+### 40D.4 Production precedence
+
+If a production Issue and a Van Issue need the same file:
+
+1. production/main work wins;
+2. production fix lands on `main` first;
+3. Van lane pauses only the conflicting file/scope if necessary;
+4. Van integration branch absorbs the production fix;
+5. Van lane rebases/merges the updated integration baseline and continues.
+
+Do not delay a production release merely to avoid an integration conflict.
+
+### 40D.5 Main-to-train synchronization
+
+The Van integration branch must regularly absorb `main`.
+
+Required checkpoints:
+
+- before starting a dependency-critical wave;
+- after any production hotfix touching shared files;
+- before merging a Van child PR that depends on recently changed platform behavior;
+- before integrated E2E;
+- immediately before final Van-to-main PR.
+
+Preferred direction during development:
+
+```text
+main -> feat/van-field-operations-integration
+```
+
+Do not routinely merge the Van train back into `main`.
+
+### 40D.6 Integration ownership
+
+Absorbing `main` into the feature train must be coordinated.
+
+Use one integration/composition owner at a time.
+
+That owner is responsible for:
+
+- updating the integration branch;
+- resolving cross-lane conflicts;
+- running integration smoke tests;
+- documenting absorbed `main` SHA;
+- recording any adaptation work required by Van child lanes.
+
+Atomic workers should not independently perform competing train-wide merges.
+
+### 40D.7 Production bug discovered while testing Van
+
+If Van testing reveals a defect that also reproduces on the current production/main product:
+
+- classify it as a **platform/production bug**;
+- create/reuse the appropriate production Issue;
+- fix it on a normal main-targeting production branch;
+- merge it into `main`;
+- then absorb that fix into the Van integration train.
+
+Do **not** hide a production defect inside the Van-only branch.
+
+This ensures the current published product receives the fix immediately.
+
+### 40D.8 Van-only defect
+
+If a defect exists only because of the new Van/Field Operations work:
+
+- fix it on the existing owning Van child Issue/branch/PR;
+- keep it inside the integration train;
+- do not create an unrelated main hotfix.
+
+### 40D.9 Shared-platform enhancement discovered by Van work
+
+If Van requires a generic platform enhancement that is safe and independently useful for current production:
+
+classify it explicitly as either:
+
+**A. Production-safe platform prerequisite**
+- may be implemented as its own main-targeting Issue;
+- must preserve current Customer/Driver/Dashboard behavior;
+- lands on `main`;
+- is then absorbed by the Van train.
+
+or:
+
+**B. Van-specific prerequisite**
+- stays inside the Van train.
+
+Workers must not move code to `main` merely because it is technically shared; production value/risk must be explicit.
+
+### 40D.10 Release identity fence
+
+Van child branches and the Van integration train must not publish normal production release identity merely to test the train.
+
+Until final release lane:
+
+- do not promote a production `VERSION` solely for an internal Van child;
+- do not overwrite current Customer/Driver production artifact links with Van-train artifacts;
+- do not register an incomplete Van train as a released FOODEX version;
+- do not mark Van APK as production published.
+
+Internal CI/test artifacts may be produced, but must be clearly non-production and tied to exact SHA.
+
+### 40D.11 Dedicated test artifacts
+
+The train may produce test-only artifacts such as:
+
+- Van APK from integration head;
+- test Dashboard package;
+- preview build;
+- staging fixtures.
+
+Every artifact must clearly identify:
+
+- integration branch;
+- exact commit SHA;
+- non-production status.
+
+A test artifact from an old SHA is not valid evidence for a newer train head.
+
+### 40D.12 Final convergence lane
+
+Create one explicit final integration/release Issue after all Van child lanes and the integrated E2E gate pass.
+
+That lane owns the only normal PR:
+
+```text
+feat/van-field-operations-integration -> main
+```
+
+Before that PR:
+
+1. absorb latest `main`;
+2. resolve all drift/conflicts;
+3. run full backend/Flutter/migration/security/UI/runtime tests;
+4. run Customer regression;
+5. run Driver regression;
+6. run Dashboard regression;
+7. run Van integrated E2E;
+8. validate System Inspector/Preview/release parity;
+9. validate production-like database migration;
+10. prove no current production feature regressed.
+
+Only after the final train is green should the owner-approved release be promoted.
+
+### 40D.13 One-time release principle
+
+The goal is:
+
+**Build isolated -> stabilize isolated -> continuously absorb production fixes -> final integrated validation -> merge once to main -> publish once.**
+
+Avoid partially publishing half of the Van platform unless the owner explicitly splits a production-safe prerequisite.
+
+### 40D.14 Rollback safety
+
+The final release must have a documented rollback/disable strategy.
+
+Prefer configuration/feature activation controls so the new subsystem can be disabled without corrupting:
+
+- existing Customer commerce;
+- Driver delivery;
+- current Dashboard;
+- current finance.
+
+Database migrations must be backward-safe to the extent supported by FOOD deployment policy.
+
+### 40D.15 Feature activation
+
+Even after code merges to `main`, production activation should be explicit.
+
+Recommended controls:
+
+- Van App availability;
+- territory routing activation;
+- Van live tracking;
+- Van collection capability;
+- field order capture;
+- auto-routing vs manual-routing mode.
+
+The first production release may ship code with selected modules disabled until operational configuration is ready.
+
+### 40D.16 Handoff behavior under isolation
+
+The mission command:
+
+```text
+FOOD #<VAN_UMBRELLA> AUTO-HANDOFF
+```
+
+must understand the isolation rule automatically:
+
+- Van child PRs target the dedicated integration branch;
+- production Issues target `main`;
+- production defects always get precedence;
+- workers must absorb relevant `main` changes into the train;
+- no Van worker may merge directly to `main` before the final convergence lane.
+
+### 40D.17 CI topology
+
+Van child CI validates against the current Van integration base.
+
+The integration branch should also have train-level CI covering:
+
+- backend;
+- Customer regression where shared code changed;
+- Driver regression where shared code changed;
+- Van analyze/tests/build;
+- migrations;
+- routing;
+- collection ledger;
+- live fleet;
+- Preview;
+- Runtime Inspector;
+- UI/UX acceptance.
+
+Final main PR repeats release-critical checks against the latest main baseline.
+
+### 40D.18 Conflict prevention
+
+To minimize feature-train pain:
+
+- keep child Issues small;
+- define file ownership fences;
+- land shared contracts before dependent UI lanes;
+- avoid multiple child lanes editing central navigation/version/inspector files simultaneously;
+- assign shared control-plane changes to one dedicated parity lane;
+- rebase/absorb train changes before modifying a shared file.
+
+### 40D.19 Train health checkpoint
+
+The Van umbrella should always expose:
+
+- current integration branch head;
+- latest absorbed main SHA;
+- open child PRs;
+- child CI state;
+- train CI state;
+- known conflicts;
+- next merge-ready lane;
+- production fixes waiting to be absorbed.
+
+This makes handoff safe even when several workers are active.
+
+### 40D.20 Completion condition
+
+The Van program is not ready for main until:
+
+- every required child Issue is complete;
+- all child PRs are integrated into the feature train;
+- latest production `main` is absorbed;
+- no unresolved production fix is missing from the train;
+- integrated E2E passes;
+- Customer/Driver/Dashboard regressions pass;
+- Van Preview/Inspector/release parity passes;
+- final production migration/release validation passes;
+- owner approves final promotion.
+
+---
+
 ## 41. Proposed execution waves
 
 This master plan should become an umbrella after owner approval.
