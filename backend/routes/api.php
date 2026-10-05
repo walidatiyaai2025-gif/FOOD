@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\StorefrontRevisionController;
 use App\Http\Controllers\Api\V1\TranslationController;
+use App\Http\Controllers\Api\V1\VanRegistryController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -180,6 +181,9 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/admin/security/users/{user}/status', [SecurityController::class, 'updateUserStatus']);
         Route::get('/admin/reports/dashboard', [AdminReportController::class, 'dashboard']);
         Route::get('/admin/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed']);
+        Route::post('/admin/field-operations/vans', [VanRegistryController::class, 'store']);
+        Route::post('/admin/field-operations/vans/{van}/assignments', [VanRegistryController::class, 'assign'])->whereNumber('van');
+        Route::post('/admin/field-operations/vans/{van}/suspend', [VanRegistryController::class, 'suspend'])->whereNumber('van');
         Route::get('/admin/reports/{report}', [ManagementReportController::class, 'show'])
             ->whereIn('report', ['orders', 'products', 'customers', 'operations']);
         Route::get('/admin/b2b/accounts', [B2bAccountController::class, 'index']);
