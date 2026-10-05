@@ -192,7 +192,7 @@
       "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
-      "dashboard_update_sha256": "ae1481abaab54131791cbb87879b963ee53bb31a01e4190ec3b181214aa640e7",
+      "dashboard_update_sha256": "436314b368e7e9d38223268231a24e8317c3a8f974afdfd25e9610ff448d09d7",
       "note": "FOODEX 1.0.57 production release for Issue #943 / PR #946: in-place Customer client UI/UX normalization, localized display cleanup, and Dashboard Driver map silent-refresh stabilization with last-success preservation, duplicate-refresh suppression, cleanup, and synchronized Customer/Driver release identity 1.0.57+57."
     }
   ]
