@@ -63,6 +63,13 @@
         let latestRows = [];
         let fitted = false;
         let refreshing = false;
+        let consecutiveFailures = 0;
+        let pollTimer = null;
+        const pollMs = Math.max(1000, Number(root.dataset.pollMs || 5000));
+        const scheduleRefresh = (delay = pollMs) => {
+            window.clearTimeout(pollTimer);
+            pollTimer = window.setTimeout(refresh, delay);
+        };
 
         const inputValue = role => find(role)?.value || '';
         const values = () => ({
@@ -182,6 +189,8 @@
 
         const refresh = async () => {
             if (refreshing) return;
+            window.clearTimeout(pollTimer);
+            pollTimer = null;
             refreshing = true;
 
             const state = find('state');
@@ -192,13 +201,14 @@
             let failure = ['feed-network', 'networkFailed'];
             try {
                 const response = await fetch(queryUrl(),{
-                    headers:{Accept:'application/json'},
+                    headers:{Accept:'application/json','X-FOODEX-BACKGROUND':'1'},
                     credentials:'same-origin',
                     signal: controller.signal
                 });
                 if (!response.ok) {
                     failure = response.status === 401 ? ['feed-401', 'sessionExpired']
                         : response.status === 403 ? ['feed-403', 'forbidden']
+                        : response.status === 503 ? ['feed-maintenance', 'serverFailed']
                         : response.status >= 500 ? ['feed-server', 'serverFailed']
                         : ['feed-http', 'failed'];
                     throw new Error('tracking-feed');
@@ -218,6 +228,7 @@
                 failure = ['map-render', 'mapFailed'];
                 render();
 
+                consecutiveFailures = 0;
                 const error = find('error');
                 if (error) error.hidden = true;
                 delete root.dataset.liveMapError;
@@ -231,10 +242,16 @@
                 latestRows = [];
                 layer.clearLayers();
                 markers.clear();
+                consecutiveFailures = Math.min(consecutiveFailures + 1, 4);
                 fail(...(controller.signal.aborted ? ['feed-timeout', 'timeout'] : failure));
             } finally {
                 window.clearTimeout(timeout);
                 refreshing = false;
+                const maintenance = root.dataset.liveMapError === 'feed-maintenance';
+                const retryDelay = consecutiveFailures === 0
+                    ? pollMs
+                    : Math.max(maintenance ? 30000 : 0, Math.min(60000, pollMs * (2 ** consecutiveFailures)));
+                scheduleRefresh(retryDelay);
             }
         };
 
@@ -273,7 +290,5 @@
         };
 
         refresh();
-        const pollMs = Math.max(1000, Number(root.dataset.pollMs || 5000));
-        window.setInterval(refresh,pollMs);
     });
 })();
