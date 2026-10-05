@@ -244,13 +244,13 @@ The canonical operating contract is documented in:
 Before the first push of executable changes, every worker MUST run:
 
 ```bash
-./scripts/worker-preflight.sh --fast
+bash ./scripts/worker-preflight.sh --fast
 ```
 
 Before declaring a PR ready for final merge validation, the worker SHOULD run, whenever the required local toolchain/environment is available:
 
 ```bash
-./scripts/worker-preflight.sh --full
+bash ./scripts/worker-preflight.sh --full
 ```
 
 The worker must not push merely to discover deterministic formatter, syntax, analyzer, static-analysis, branch-policy, or focused-test failures that the preflight can reproduce locally.
