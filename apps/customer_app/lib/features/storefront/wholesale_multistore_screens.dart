@@ -357,8 +357,9 @@ class _WholesaleHomeDesignScreenState
                       palette: palette,
                       onBusinessDashboard:
                           widget.session.isAuthenticated &&
-                                  widget.session
-                                      .allowsChannel(CustomerChannel.b2b)
+                                  (widget.session
+                                          .allowsChannel(CustomerChannel.b2b) ||
+                                      widget.session.b2bRetailStoreId != null)
                               ? () => Navigator.of(context).pushNamed(
                                     Uri(
                                       path: CustomerRoutePaths.b2bDashboard,
