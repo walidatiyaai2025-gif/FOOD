@@ -23,4 +23,6 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | Dependency/lockfile accidental drift | diff preflight | Reject unrelated lockfile changes and implicit upgrades. |
 | Flaky time/random/order test | deterministic test setup | Freeze clock/seed/state; do not rerun-until-green. |
 
+| Main push fails after green PR because deployable code changed without VERSION bump | `scripts/validate-premerge-release-version.sh` | Mirror main-push release/version preconditions before merge; bump VERSION and synchronize Customer/Driver identities. |
+
 When a new pattern qualifies under the Recurring Failure Promotion Rule, add it here with its cheapest reliable early detector.
