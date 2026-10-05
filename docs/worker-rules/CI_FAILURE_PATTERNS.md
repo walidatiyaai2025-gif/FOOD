@@ -6,6 +6,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | --- | --- | --- |
 | Invalid Issue branch name | repository preflight | Validate branch before first edit/push. |
 | PHP/Pint style drift | `composer lint` | Run formatter-generated canonical output before full tests. |
+| Worker preflight exits before changed-area lint because `changed_files` is referenced before initialization | `bash -n scripts/worker-preflight.sh` + fast preflight smoke | Initialize diff-derived variables before release routing; keep `set -u` enabled so ordering bugs fail locally, not in remote CI. |
 | Multiline PHP brace/signature mismatch | Pint on affected file | Use repository/Pint canonical signature layout; do not guess braces. |
 | PHP syntax damage from scripted edits | `php -l` changed files | Syntax-check every mechanically edited PHP file. |
 | PHP static type drift | `composer analyse` | Run PHPStan before the full Laravel suite. |
