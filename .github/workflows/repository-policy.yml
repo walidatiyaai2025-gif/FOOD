@@ -23,4 +23,4 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           branch="${{ github.head_ref }}"
-          [[ "$branch" == "feat/assistant-v1-integration" || "$branch" =~ ^((feat|fix|chore|docs|refactor|test|ci)/[0-9]+-[a-z0-9-]+|release/([0-9]+|[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+)$ ]]
+          [[ "$branch" == "feat/assistant-v1-integration" || "$branch" == "feat/catalog-products-ui-redesign" || "$branch" =~ ^((feat|fix|chore|docs|refactor|test|ci)/[0-9]+-[a-z0-9-]+|release/([0-9]+|[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+)$ ]]
