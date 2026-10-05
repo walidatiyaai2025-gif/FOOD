@@ -87,6 +87,7 @@ final class SystemInspectorController extends Controller
                 'timeout',
                 'intentional_abort',
                 'validation_rejection',
+                'domain_rejection',
                 'authorization_rejection',
                 'maintenance',
                 'external_service_failure',
