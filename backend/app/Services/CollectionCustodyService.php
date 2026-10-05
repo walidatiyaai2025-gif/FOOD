@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 final class CollectionCustodyService
 {
     /**
-     * @param list<array{invoice_id:int,amount:float|int}> $allocations
+     * @param  list<array{invoice_id: int, amount: float|int}>  $allocations
      */
     public function collect(
         CollectionAccount $account,
