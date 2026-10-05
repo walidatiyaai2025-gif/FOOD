@@ -10,6 +10,7 @@ use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\InvoiceService;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\ReportExportService;
@@ -123,6 +124,41 @@ class B2bFinanceController extends Controller
             'data' => $this->invoicePayload($invoice, true),
             'account' => $this->ledger->summary($customer, $invoiceStoreId),
             'generated_at' => now()->toAtomString(),
+        ]);
+    }
+
+    public function invoiceDownload(
+        Request $request,
+        Invoice $invoice,
+        InvoiceService $invoices,
+    ): Response {
+        $customer = $this->approvedCustomer($request);
+        $requestedStoreId = $this->storeId($request);
+        abort_unless(
+            (int) $invoice->b2b_customer_id === (int) $customer->getKey()
+                && ($requestedStoreId === null || (int) $invoice->store_id === $requestedStoreId),
+            404,
+        );
+
+        $validated = $request->validate([
+            'locale' => ['nullable', 'in:ar,en'],
+        ]);
+        $locale = (string) ($validated['locale'] ?? $request->user()->locale ?? 'en');
+        $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
+
+        app(AuditLogger::class)->record(
+            'b2b.finance.invoice_downloaded',
+            $request->user(),
+            $invoice,
+            null,
+            null,
+            $request,
+        );
+
+        return response($invoices->renderPdf($invoice, $locale), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$invoice->invoice_number.'.pdf"',
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 
@@ -295,8 +331,8 @@ class B2bFinanceController extends Controller
                 'email' => $invoice->customer_email_snapshot,
                 'phone' => $invoice->customer_phone_snapshot,
             ],
-            'pdf_path' => '/api/v1/invoices/'.(int) $invoice->getKey().'/download?channel=b2b'
-                .($invoice->store_id === null ? '' : '&store_id='.(int) $invoice->store_id),
+            'pdf_path' => '/api/v1/b2b/invoices/'.(int) $invoice->getKey().'/download'
+                .($invoice->store_id === null ? '' : '?store_id='.(int) $invoice->store_id),
         ];
 
         if ($withItems) {
