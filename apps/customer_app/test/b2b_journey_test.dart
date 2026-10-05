@@ -388,7 +388,10 @@ void main() {
     await tester.tap(shortcut);
     await tester.pumpAndSettle();
 
-    expect(find.text('ملخص المشتريات والفواتير والرصيد'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-dashboard-notifications')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Wholesale header hides Business dashboard shortcut for guests',
