@@ -40,7 +40,12 @@ final class FieldOperationConfigurationService
         'address' => 110,
     ];
 
-    public function __construct(private readonly AuditLogger $audit) {}
+    private readonly AuditLogger $audit;
+
+    public function __construct(AuditLogger $audit)
+    {
+        $this->audit = $audit;
+    }
 
     /**
      * Register or update definition metadata. Runtime values are never changed
