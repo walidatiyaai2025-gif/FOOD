@@ -26,7 +26,7 @@ jobs:
       - name: Prevent post-merge main release failures
         if: github.event_name == 'pull_request'
         shell: bash
-        run: bash scripts/validate-premerge-release-version.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+        run: bash scripts/validate-premerge-release-version.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" "${{ github.event.pull_request.base.ref }}"
 
       - name: Validate Worker Watchdog policy logic
         run: node --test .github/scripts/worker-watchdog.test.js
