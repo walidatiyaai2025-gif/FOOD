@@ -277,13 +277,18 @@ void main() {
     expect(find.text('تواصل معنا'), findsOneWidget);
     expect(find.text('الإصدار 1.0.54'), findsOneWidget);
 
-    await tester.tap(
-      find.byKey(const ValueKey('customer-auth-remember-me')),
-    );
+    final rememberMe =
+        find.byKey(const ValueKey('customer-auth-remember-me'));
+    await tester.ensureVisible(rememberMe);
+    await tester.pumpAndSettle();
+    await tester.tap(rememberMe);
     await tester.pump();
-    await tester.tap(
-      find.byKey(const ValueKey('customer-auth-biometric-login')),
-    );
+
+    final biometric =
+        find.byKey(const ValueKey('customer-auth-biometric-login'));
+    await tester.ensureVisible(biometric);
+    await tester.pumpAndSettle();
+    await tester.tap(biometric);
     await tester.pump();
 
     await tester.enterText(
