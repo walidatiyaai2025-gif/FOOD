@@ -27,18 +27,35 @@ else
 fi
 
 echo "FOODEX preflight mode=$mode branch=$branch base=$base head=$(git rev-parse HEAD)"
-git diff --check "$base" HEAD
+git diff --check "$base"
 ./scripts/validate-repo.sh
 
 declare -A area
 while IFS='=' read -r key value; do
   area["$key"]="$value"
-done < <(bash ./scripts/detect-changed-areas.sh "$base" HEAD)
+done < <(bash ./scripts/detect-changed-areas.sh "$base" WORKTREE)
+
+changed_files="$(git diff --name-only "$base")"
+
+if grep -qx 'backend/composer.lock' <<<"$changed_files" && ! grep -qx 'backend/composer.json' <<<"$changed_files"; then
+  echo "backend/composer.lock changed without backend/composer.json; verify dependency drift before push." >&2
+  exit 1
+fi
+
+if grep -qx 'apps/customer_app/pubspec.lock' <<<"$changed_files" && ! grep -qx 'apps/customer_app/pubspec.yaml' <<<"$changed_files"; then
+  echo "Customer pubspec.lock changed without pubspec.yaml; verify dependency drift before push." >&2
+  exit 1
+fi
+
+if grep -qx 'apps/driver_app/pubspec.lock' <<<"$changed_files" && ! grep -qx 'apps/driver_app/pubspec.yaml' <<<"$changed_files"; then
+  echo "Driver pubspec.lock changed without pubspec.yaml; verify dependency drift before push." >&2
+  exit 1
+fi
 
 changed_php=()
 while IFS= read -r path; do
   [[ "$path" == *.php ]] && changed_php+=("$path")
-done < <(git diff --name-only "$base" HEAD)
+done < <(git diff --name-only "$base")
 
 if [[ "${area[backend]:-false}" == "true" ]]; then
   command -v php >/dev/null || { echo "PHP is required for backend preflight." >&2; exit 1; }
