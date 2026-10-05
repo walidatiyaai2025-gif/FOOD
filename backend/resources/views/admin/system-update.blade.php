@@ -57,7 +57,7 @@
         <h2>Validated update package</h2>
         <p>The package is verified and backed up before maintenance mode or release extraction begins.</p>
 
-        <form method="post" action="{{ route('admin.system-update.store') }}" enctype="multipart/form-data">
+        <form method="post" action="{{ route('admin.system-update.store') }}" enctype="multipart/form-data" data-csrf-refresh-url="{{ route('admin.csrf-token') }}">
             @csrf
             <label>ZIP package
                 <input type="file" name="package" accept=".zip,application/zip" required>
@@ -103,5 +103,34 @@
         </table>
     </section>
 </main>
+<script>
+(() => {
+    const form = document.querySelector('form[data-csrf-refresh-url]');
+    if (!form) return;
+    form.addEventListener('submit', async (event) => {
+        if (form.dataset.csrfFresh === '1') return;
+        event.preventDefault();
+        const submit = form.querySelector('button[type="submit"], input[type="submit"]');
+        if (submit) submit.disabled = true;
+        try {
+            const response = await fetch(form.dataset.csrfRefreshUrl, {
+                credentials: 'same-origin',
+                headers: {'Accept':'application/json','X-Requested-With':'XMLHttpRequest'},
+                cache: 'no-store',
+            });
+            if (response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                const token = form.querySelector('input[name="_token"]');
+                if (token && payload.token) token.value = payload.token;
+            }
+            form.dataset.csrfFresh = '1';
+            form.submit();
+        } catch (_) {
+            form.dataset.csrfFresh = '1';
+            form.submit();
+        }
+    });
+})();
+</script>
 </body>
 </html>
