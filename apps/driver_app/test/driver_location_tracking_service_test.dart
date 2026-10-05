@@ -327,11 +327,11 @@ void main() {
 
     await scheduler.fire();
     expect(service.queuedSamples, 1);
-    expect(scheduler.delay, const Duration(seconds: 10));
+    expect(scheduler.delay, const Duration(milliseconds: 10137));
 
     await scheduler.fire();
     expect(service.queuedSamples, 2);
-    expect(scheduler.delay, const Duration(seconds: 10));
+    expect(scheduler.delay, const Duration(milliseconds: 20274));
 
     await scheduler.fire();
 
@@ -482,6 +482,24 @@ void main() {
     expect(payload['heading'], 90);
     expect(payload['is_mocked'], isFalse);
 
+    client.close();
+  });
+
+  test('HTTP heartbeat client times out stalled requests', () async {
+    final client = HttpDriverLocationHeartbeatClient(
+      baseUrl: 'https://foodex.example',
+      token: 'driver-secret-token',
+      requestTimeout: const Duration(milliseconds: 5),
+      client: MockClient((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await expectLater(
+      client.send(_sample(1)),
+      throwsA(isA<TimeoutException>()),
+    );
     client.close();
   });
 
