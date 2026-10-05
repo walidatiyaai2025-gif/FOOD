@@ -323,6 +323,16 @@ Required checks and deliverable artifacts must belong to the current PR head SHA
 If `main` advances in a way that can affect the task, revalidate the same branch before merge.
 
 
+### Post-merge main parity rule
+
+A PR must not be considered merge-ready only because its pull-request checks are green.
+
+Workers MUST identify workflows that run on `push` to `main` for the changed area and reproduce their deterministic preconditions before merge. In particular, deployable changes under `backend/`, `apps/customer_app/`, or `apps/driver_app/` must satisfy the same release-version contract that `FOODEX Trial Distribution Bundle` enforces after merge.
+
+If deployable code changed, `VERSION` must be bumped relative to the PR base and Customer/Driver mobile version identities must remain synchronized with `VERSION`. This is enforced locally and in PR CI by `scripts/validate-premerge-release-version.sh`.
+
+A post-merge-only red workflow that could have been predicted on the PR is a prevention failure and must be promoted into pre-merge validation.
+
 ---
 
 ## 10. External blockers vs repository blockers
