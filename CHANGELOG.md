@@ -6,7 +6,7 @@
 - Keep Arabic RTL and English LTR first-class, move remaining More/Profile labels into the existing localization resources, and render Dashboard timestamps through Flutter localization rather than raw ISO-derived text.
 - Preserve store/backend-driven currency and all authoritative order, invoice, finance, pricing, permissions and API contracts while reducing overflow risk through controlled max-lines, ellipsis and compact responsive sizing.
 - Make the Dashboard Driver map refresh silently after its initial load: keep the mounted map and last successful markers visible, suppress duplicate refreshes, preserve successful content on background failure, reserve status space to prevent layout shift, and dispose polling/network work when leaving the page.
-- Add live-map regression coverage for silent refresh, preserved last-success content, duplicate-request suppression and page-leave cleanup; synchronize Dashboard, Customer and Driver identities at 1.0.57 / mobile build 1.0.57+57.
+- Add live-map regression coverage for silent refresh, preserved last-success content, duplicate-request suppression and page-leave cleanup; synchronize Dashboard, Customer and Driver identities at 1.0.57 / mobile build 1.0.57+57 and publish through the existing cumulative Dashboard update mechanism.
 
 ## 1.0.56 - 2026-10-05
 
