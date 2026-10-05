@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AdminReportController;
+use App\Http\Controllers\Api\V1\AddressQualityController;
 use App\Http\Controllers\Api\V1\AppPreviewInvalidationController;
 use App\Http\Controllers\Api\V1\AppPreviewSessionController;
 use App\Http\Controllers\Api\V1\AppVersionController;
@@ -179,6 +180,11 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/admin/security/users/{user}/roles', [SecurityController::class, 'updateUserRoles']);
         Route::patch('/admin/security/users/{user}/status', [SecurityController::class, 'updateUserStatus']);
         Route::get('/admin/reports/dashboard', [AdminReportController::class, 'dashboard']);
+        Route::get('/admin/field-operations/address-quality', [AddressQualityController::class, 'index']);
+        Route::get('/admin/field-operations/address-quality/{review}', [AddressQualityController::class, 'show'])->whereNumber('review');
+        Route::post('/admin/field-operations/address-quality/{review}/confirm', [AddressQualityController::class, 'confirm'])->whereNumber('review');
+        Route::post('/admin/field-operations/address-quality/{review}/reject', [AddressQualityController::class, 'reject'])->whereNumber('review');
+        Route::post('/admin/field-operations/address-quality/{review}/reopen', [AddressQualityController::class, 'reopen'])->whereNumber('review');
         Route::get('/admin/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed']);
         Route::get('/admin/reports/{report}', [ManagementReportController::class, 'show'])
             ->whereIn('report', ['orders', 'products', 'customers', 'operations']);
