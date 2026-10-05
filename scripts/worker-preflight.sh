@@ -33,7 +33,7 @@ git diff --check "$base" HEAD
 declare -A area
 while IFS='=' read -r key value; do
   area["$key"]="$value"
-done < <(./scripts/detect-changed-areas.sh "$base" HEAD)
+done < <(bash ./scripts/detect-changed-areas.sh "$base" HEAD)
 
 changed_php=()
 while IFS= read -r path; do
