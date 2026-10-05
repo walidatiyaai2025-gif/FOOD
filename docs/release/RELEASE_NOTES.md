@@ -1,34 +1,35 @@
-# FOODEX 1.0.52 Release Notes
+# FOODEX 1.0.54 Release Notes
 
-Status: final operational-completion distribution after umbrella #828 and integrated gate #841.
+Status: final C13 synchronized distribution after umbrella #858 and integrated gate #873 / PR #917.
 
 ## Release identity
 
-- Dashboard: `1.0.52`
-- Customer app: `1.0.52+52`
-- Driver app: `1.0.52+52`
-- Customer runtime/footer identity: `1.0.52`
-- Driver runtime/footer identity: `1.0.52`
-- Driver diagnostics current identity: `1.0.52`
-- Driver diagnostics build identity: `52`
-- Published `1.0.51` remains immutable and is not reused.
+- Dashboard: `1.0.54`
+- Customer app: `1.0.54+54`
+- Driver app: `1.0.54+54`
+- Customer runtime/footer identity: `1.0.54`
+- Driver runtime/footer identity: `1.0.54`
+- Driver diagnostics current identity: `1.0.54`
+- Driver diagnostics build identity: `54`
+- `1.0.53` was not promoted, registered or published and remains skipped.
 
 ## Included changes
 
-- Publish the completed FOODEX operational-completion wave #828 after the final integrated #841 gate: gated Add Store and New Order popup wizards, central stable-code operational lookups, and the admin login default to the B2B dashboard.
-- Ship the cumulative Catalog ZIP sample/preview/import flow for Products, Categories, Brands and images, plus server-authoritative OUT_OF_STOCK enforcement across API, Dashboard and Customer purchasing surfaces.
-- Converge order lifecycle/status tabs and preserve Delivered history while removing completed work from active Driver queues; add complete Driver pickup/delivery details, Failed Delivery / تعذر التوصيل, and lifecycle-aware live Home card refresh.
-- Publish Customer launch notification-campaign popups with authoritative eligibility/frequency/store-channel scoping, and Finance invoice From/To/customer filters with matching PDF and Excel exports.
-- Publish current authoritative Customer and Driver App Review/Preview parity with visible freshness/stale/disconnected state and no fake live-data fallback.
-- Preserve B2B/B2C/store isolation, AR/EN + RTL/LTR behavior and the green final integrated release gate; synchronize Dashboard, Customer and Driver release identities at 1.0.52 / mobile build 1.0.52+52 without changing production force-update or minimum-version policy.
+- Publish the final accepted C13 Customer journey after #858 and final integrated gate #873 / PR #917, covering the canonical 13-screen Arabic/English visual and operational matrix.
+- Preserve authentication-first B2B launch: Login -> Dashboard, with the four-item Shopping / My Orders / Invoices / More navigation model.
+- Preserve principal Wholesale recovery from Dashboard/Shopping and Retail -> principal Wholesale switching without logout, with authoritative tenant/store/account isolation.
+- Preserve authoritative purchasing power, account balance direction (عليك / لك), credit limit and available credit across Dashboard, statement, checkout and invoice surfaces.
+- Preserve Customer-Service approval/rejection, Driver assignment/collection instructions, exact Customer/Driver invoice PDF authorization, and independent delivery/payment lifecycle state.
+- Preserve centralized sanitized Customer/Driver/API runtime diagnostics in the Dashboard System Inspector.
+- Synchronize Dashboard, Customer and Driver identities at 1.0.54 / mobile build 54 without changing production minimum-version, force-update, Driver fresh-location enforcement or Assistant activation settings.
 
 ## Dashboard update bundle
 
-- Target version: `1.0.52`
+- Target version: `1.0.54`
 - Minimum current version: `1.0.6`
-- Contains migrations: generated manifest is authoritative.
+- Contains migrations: `true`
 - Requires full redeploy: `false`
-- SHA-256: `214d3551ed09551c07530880232e622955771139566187ca1eb134ecd21391cf`.
+- SHA-256: `fe01ff66fb993d2c56abb89aafcfae9ba7f8afd5fcdf2e81cfaec5ec7ed4edee`
 
 ## Explicit non-activation statement
 
