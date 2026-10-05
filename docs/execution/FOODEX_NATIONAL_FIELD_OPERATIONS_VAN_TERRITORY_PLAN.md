@@ -2658,11 +2658,485 @@ The Van program is not ready for main until:
 
 ---
 
+## 40E. Wave 0 — Development acceleration foundation
+
+Wave 0 is mandatory before large functional implementation begins. Its purpose is to make later workers faster, more consistent and less likely to create duplicate infrastructure.
+
+### 40E.1 Shared Flutter packages
+
+Create/reuse shared packages for cross-application concerns where duplication would otherwise occur.
+
+Target responsibilities may include:
+
+- FOODEX design system;
+- API transport/base client;
+- authentication/session primitives;
+- localization/RTL helpers;
+- money/currency formatting;
+- runtime inspector client;
+- push/notification primitives;
+- live-location heartbeat client;
+- network/offline state;
+- common loading/empty/error/stale states;
+- safe retry/idempotency helpers.
+
+The mobile applications remain independent products:
+
+- Customer App;
+- Driver App;
+- Van App.
+
+Shared packages must not collapse their navigation or business journeys into one app.
+
+### 40E.2 Contract-first APIs and generated models
+
+For new Van/territory/routing/collection contracts:
+
+1. define request/response schemas first;
+2. keep backend contracts authoritative;
+3. generate or mechanically validate Dart models/clients where practical;
+4. fail CI on schema/client drift.
+
+Do not repeatedly hand-code the same JSON contract in multiple applications.
+
+### 40E.3 Reusable Dashboard management-grid component
+
+Extract/reuse a canonical FOODEX management-grid pattern based on Catalog Management.
+
+It should provide a consistent implementation path for:
+
+- search;
+- server pagination;
+- status badges;
+- responsive columns;
+- empty/loading/error states;
+- selection/focus hooks;
+- row-level `⋮` actions;
+- destructive-action confirmation;
+- AR/EN direction.
+
+New field-operations pages should consume this pattern rather than recreating table behavior independently.
+
+### 40E.4 Van application bootstrap
+
+Provide one approved Van scaffold before feature teams expand the app:
+
+- package/application identity;
+- environments;
+- API base configuration;
+- auth/session;
+- FOODEX theme;
+- AR/EN;
+- navigation shell;
+- Runtime Inspector;
+- push bootstrap;
+- location bootstrap;
+- offline/network state;
+- app version/runtime identity;
+- CI/build target.
+
+Later workers extend the scaffold; they do not create alternative Van shells.
+
+### 40E.5 Feature scaffolding
+
+Provide templates/generators or documented skeletons for common units such as:
+
+- backend controller/request/service/test;
+- API DTO/schema;
+- Flutter repository/state/screen/test;
+- Dashboard index/filter/grid/modal;
+- permissions/translations;
+- inspector context;
+- issue/PR acceptance block.
+
+The goal is consistency and speed, not generated business logic.
+
+### 40E.6 Routing simulator
+
+Provide a deterministic routing test harness that can run:
+
+- one address/order;
+- a batch;
+- historical fixtures;
+- future service date;
+- capacity scenarios;
+- primary/backup failure;
+- overrides;
+- policy-version comparison.
+
+It must expose the same decision trace as production routing without mutating production records.
+
+### 40E.7 GPS / fleet simulator
+
+Provide a non-production test utility capable of simulating:
+
+- Driver heartbeat;
+- Van heartbeat;
+- movement along a route;
+- stale signal;
+- offline actor;
+- route deviation;
+- actor recovery;
+- concurrent Driver/Van map activity.
+
+This allows live-map workers to test without physical vehicles.
+
+### 40E.8 Financial scenario fixtures
+
+Create deterministic fixtures for:
+
+- full collection;
+- partial collection;
+- customer credit;
+- deposit before delivery;
+- old-debt collection;
+- multi-invoice allocation;
+- reversal;
+- refund boundary;
+- pending/approved/rejected remittance;
+- duplicate retry;
+- concurrent collection;
+- mixed currency rejection.
+
+Financial fixtures must use the real services/contracts, not mock alternate accounting logic.
+
+### 40E.9 Egypt pilot/demo dataset
+
+Provide a reproducible, non-production seed/profile containing representative:
+
+- governorates/areas;
+- service Zones;
+- warehouses;
+- Vans;
+- Van users;
+- Drivers;
+- customers with multiple addresses;
+- routes;
+- orders;
+- collections.
+
+Demo data must be explicitly non-production and safe to clear/reseed.
+
+### 40E.10 Selective CI and affected-area matrix
+
+Extend repository change detection so CI understands at minimum:
+
+- backend field-operations;
+- `apps/van_app`;
+- shared Flutter packages;
+- Driver shared changes;
+- Customer shared changes;
+- Dashboard field operations;
+- routing;
+- finance/collections;
+- live fleet;
+- Preview/Inspector;
+- release identity.
+
+Child PRs should run the cheapest sufficient deterministic checks first.
+
+Train-level/final gates still run the broad integrated suite.
+
+### 40E.11 Train drift guard
+
+Add train health validation that reports:
+
+- integration HEAD;
+- latest absorbed `main` SHA;
+- commits behind/ahead;
+- shared files changed on `main`;
+- likely conflict areas;
+- whether a mandatory sync checkpoint is due.
+
+Do not allow the feature train to drift silently for long periods.
+
+### 40E.12 Worker Issue templates
+
+Van umbrella child Issues must be generated from a standard template containing:
+
+- Parent umbrella;
+- exact integration target;
+- dependencies;
+- owned files/subsystem;
+- files/scopes not owned;
+- source-of-truth docs;
+- UI reference;
+- API contracts;
+- acceptance criteria;
+- required tests;
+- CI expectations;
+- handoff state block;
+- production-vs-Van defect classification rule.
+
+### 40E.13 Architecture ownership map
+
+Maintain one repository-visible map identifying the authoritative owner/lane for shared domains, including:
+
+- routing;
+- territory;
+- live location;
+- Van bootstrap;
+- shared Flutter;
+- collection/custody;
+- remittance;
+- mobile control-plane parity;
+- Runtime Inspector;
+- Preview;
+- release identity.
+
+Workers must check this map before editing shared files.
+
+---
+
+## 40F. Additional real-world operational foundations
+
+### 40F.1 Mobile device/session management
+
+Van operations require supportability at device level.
+
+Dashboard should expose safe operational device/session information such as:
+
+- Van user;
+- current device registration;
+- app version/build;
+- platform/OS;
+- last login;
+- last API activity;
+- last successful sync;
+- last location heartbeat time;
+- notification registration state;
+- location-permission/heartbeat health where technically available without exposing sensitive device data;
+- active/revoked session state.
+
+Authorized admin actions may include:
+
+- revoke session/device;
+- invalidate push token;
+- require re-authentication.
+
+Do not expose secrets or device identifiers beyond what is operationally necessary.
+
+### 40F.2 Address data-quality and mapping queue
+
+National routing depends on good address data.
+
+Provide an admin workflow for:
+
+- unmapped addresses;
+- missing coordinates;
+- low-confidence mapping;
+- overlapping-Zone conflict;
+- manual pin correction;
+- territory assignment;
+- bulk import/export/review;
+- duplicate/near-duplicate address review;
+- map-based correction.
+
+Routing must distinguish:
+
+- customer-entered coordinates;
+- admin-confirmed coordinates;
+- imported coordinates;
+- manually overridden territory.
+
+### 40F.3 Shift lifecycle and end-of-day reconciliation
+
+Driver and especially Van operations need explicit operational shift closure.
+
+A shift may track:
+
+- actor;
+- Van/vehicle;
+- date/start/end;
+- route;
+- load manifest;
+- loaded orders;
+- delivered;
+- failed;
+- returns;
+- expected collections;
+- actual collections;
+- current custody;
+- pending remittance;
+- warehouse-return status;
+- unresolved exceptions.
+
+End-of-day close must not silently mark unresolved discrepancies as complete.
+
+Possible final states:
+
+- reconciled;
+- closed_with_approved_exception;
+- blocked_pending_return;
+- blocked_pending_remittance;
+- blocked_financial_mismatch.
+
+### 40F.4 Configurable proof-of-service contract
+
+Delivery/collection proof must be policy-driven.
+
+Supported proof types should be extensible and may include:
+
+- customer OTP;
+- signature;
+- photo;
+- receipt acknowledgment;
+- note/reason;
+- GPS presence confirmation using safe backend validation without exporting precise coordinates to diagnostics.
+
+Policy can depend on:
+
+- channel;
+- territory;
+- customer;
+- order value;
+- payment type;
+- delivery/collection action;
+- risk rule.
+
+Do not hardcode one proof method for all customers.
+
+### 40F.5 Route deviation and GPS health
+
+Live fleet operations should detect operational exceptions without making routing unusably rigid.
+
+Configurable signals may include:
+
+- no heartbeat for configured duration;
+- GPS unavailable;
+- low accuracy;
+- actor far from planned route;
+- unexpected prolonged stop;
+- missed service window.
+
+Default response should be operational warning/exception unless a specific policy requires stronger enforcement.
+
+Thresholds must be admin-configurable.
+
+### 40F.6 Dispatcher control and manual mode
+
+Auto-routing must never remove operational control.
+
+Admin/dispatcher can:
+
+- assign manually;
+- reassign before route lock;
+- override after route lock with reason/permission;
+- switch a territory/period to manual routing;
+- suspend one Van;
+- remove one Van from eligibility;
+- force backup pool;
+- temporarily change service schedule.
+
+All actions are effective-dated/audited where appropriate.
+
+### 40F.7 Pilot rollout and staged activation
+
+Architecture targets national scale, but production activation is staged.
+
+The system must support activation by:
+
+- country;
+- governorate;
+- territory;
+- warehouse;
+- Van pool;
+- selected Van;
+- feature/capability.
+
+Recommended rollout model:
+
+```text
+Internal test
+  -> selected pilot Zones
+  -> one governorate/operational cluster
+  -> additional governorates
+  -> national expansion
+```
+
+The pilot uses the same production architecture; it is not a temporary alternate implementation.
+
+### 40F.8 Operational readiness checklist per Zone
+
+Before activating a Zone, validate:
+
+- geometry approved;
+- addresses mapped;
+- warehouse configured;
+- service calendar configured;
+- eligible Van pool configured;
+- primary/fallback behavior configured;
+- route/collection policy published;
+- users/devices ready;
+- mobile versions compatible;
+- live location healthy;
+- finance/remittance policy ready;
+- support/operations permissions ready.
+
+### 40F.9 Data migration/import readiness
+
+Existing nationwide customers may require bulk onboarding.
+
+Plan must support controlled import/reconciliation for:
+
+- addresses;
+- coordinates;
+- territory mapping;
+- customer-Van legacy hints if any;
+- existing outstanding financial balances;
+- Van master data;
+- operational users.
+
+Imports must be previewed, validated, idempotent where feasible and auditable.
+
+### 40F.10 Disaster and continuity operations
+
+Operational design must support controlled fallback when:
+
+- maps provider unavailable;
+- GPS degraded;
+- push unavailable;
+- route engine unavailable;
+- mobile network degraded;
+- one warehouse offline.
+
+Fallbacks must preserve financial and order integrity.
+
+Examples:
+
+- cached assigned route;
+- manual dispatch;
+- bounded offline drafts;
+- server-confirmed financial posting later;
+- explicit stale state rather than fake-live state.
+
+---
+
 ## 41. Proposed execution waves
 
 This master plan should become an umbrella after owner approval.
 
 Do not implement the whole platform in one branch.
+
+### Wave 0 — Engineering acceleration and operational foundation
+- shared Flutter packages;
+- contract-first APIs / generated-model validation;
+- canonical Dashboard management-grid component;
+- Van application scaffold;
+- feature scaffolds/templates;
+- routing simulator;
+- GPS/fleet simulator;
+- financial fixtures;
+- Egypt demo/pilot dataset;
+- selective CI/affected-area matrix;
+- train drift guard;
+- worker Issue templates;
+- architecture ownership map;
+- device/session foundation;
+- address-quality workflow;
+- shift-close/proof/route-health foundations.
+
+Wave 0 must land before broad parallel feature implementation so later workers consume one approved foundation instead of creating local variants.
 
 ### Wave A — Shared foundations
 - geography/territory;
@@ -2734,25 +3208,31 @@ Do not implement the whole platform in one branch.
 
 After approval, create an umbrella Issue and child Issues. Suggested lanes:
 
-1. Geography + Service Territory model.
-2. Routing policy/version/simulation engine.
-3. Territory Dashboard + map editor.
-4. Van/vehicle + assignment management.
-5. Route planning + capacity + exception engine.
-6. Shared Collection/Custody/Remittance backend.
-7. Driver App wallet + Collect & Deliver.
-8. Van App foundation/auth/design system.
-9. Van customer/visit/order capture.
-10. Warehouse load manifest/pickup/return.
-11. Van route/delivery.
-12. Van wallet/remittance integration.
-13. Unified live fleet location backend.
-14. Unified Driver + Van live map.
-15. Customer App collection/receipt integration.
-16. Customer 360/Order Support integration.
-17. Finance collections/remittance/reconciliation Dashboard.
-18. Reporting/aging/risk.
-19. Integrated national E2E/security/UI gate.
+1. Wave-0 shared mobile/design/API foundation.
+2. Wave-0 CI/scaffolding/simulators/worker-template foundation.
+3. Geography + Service Territory model.
+4. Address-quality/unmapped-address operations.
+5. Routing policy/version/simulation engine.
+6. Territory Dashboard + map editor.
+7. Van/vehicle + assignment management.
+8. Route planning + capacity + exception engine.
+9. Shared Collection/Custody/Remittance backend.
+10. Driver App wallet + Collect & Deliver.
+11. Van App foundation/auth/design system.
+12. Van customer/visit/order capture.
+13. Warehouse load manifest/pickup/return.
+14. Van route/delivery.
+15. Shift close + route return/reconciliation.
+16. Van wallet/remittance integration.
+17. Unified live fleet location backend.
+18. Unified Driver + Van live map.
+19. Device/session supportability + Runtime Inspector parity.
+20. Customer App collection/receipt integration.
+21. Customer 360/Order Support integration.
+22. Finance collections/remittance/reconciliation Dashboard.
+23. Reporting/aging/risk.
+24. Pilot activation/readiness controls.
+25. Integrated national E2E/security/UI/release gate.
 
 Each child follows `AGENTS.md`:
 - one Issue;
@@ -2790,6 +3270,14 @@ The final integrated acceptance must prove:
 18. Customer 360, Order detail, reports and audit show one consistent financial/operational truth.
 19. Admin changes routing policy in the Dashboard, simulates it, publishes it, and future unlocked work follows the new rule without code deployment.
 20. Historical locked orders retain their original routing/audit truth.
+21. Van/Driver shift close reconciles delivery, returns, collections and custody or produces an explicit unresolved exception.
+22. Unmapped/low-quality customer addresses appear in an actionable admin queue rather than silently misrouting.
+23. Runtime Inspector can trace Van failures safely without exposing sensitive location/customer data.
+24. Device/session state is supportable and an authorized admin can revoke a lost/invalid field session.
+25. Routing/GPS/financial simulators and deterministic fixtures reproduce core scenarios without physical field hardware.
+26. Feature-train drift guard proves the final train contains the latest required production fixes.
+27. Pilot activation can be limited to selected Zones/Vans without code changes.
+28. FOODEX UI/UX, grid, pagination, Preview, release and handoff parity all pass on the final integrated head.
 
 ---
 
@@ -2807,18 +3295,23 @@ The architecture must leave room for these future features without forcing them 
 
 ---
 
-## 45. Owner-review checklist
+## 45. Implementation defaults and configuration rule
 
-Before implementation Issues are generated, confirm:
+Implementation must not block waiting for product decisions that can safely be represented as configuration.
 
-- standalone Van App scope;
-- initial Egypt geography hierarchy;
-- policy for B2C partial collection;
-- initial remittance methods;
-- initial route scheduling model;
-- whether route optimization starts manual/rule-based or includes an optimization engine in phase one;
-- initial live-location publish interval/retention/privacy policy;
-- whether Van load capacity uses weight, volume, order count or a subset initially;
-- whether direct Van stock sales remains future-only.
+Use these defaults unless an existing FOOD authority already defines a stricter contract:
 
-Everything else in this document should be treated as the proposed platform baseline.
+- Van App remains standalone.
+- Egypt is the initial configured market.
+- Routing begins deterministic/rule-based with full manual dispatcher override; advanced optimization may be added later without replacing the routing contract.
+- B2C partial collection is disabled by default unless a published policy enables it.
+- Remittance methods come from configurable lookup/policy data.
+- Live-location publish interval, stale threshold and retention are configuration-driven.
+- Van capacity supports extensible dimensions; initial active dimensions are selected from configured operational data rather than fixed in code.
+- Direct Van Stock Sales remains future-only until separately activated.
+- Pilot activation is territory/Van controlled.
+- Any missing value that materially affects financial/security integrity must fail closed or enter an exception queue rather than be guessed.
+
+Workers should implement the configuration surface and safe default behavior rather than asking the owner to hardcode operating choices that the Dashboard can own.
+
+Everything in this document is the proposed implementation baseline for the Van/Field Operations feature train.
