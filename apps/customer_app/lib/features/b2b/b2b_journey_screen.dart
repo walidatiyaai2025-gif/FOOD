@@ -788,7 +788,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
           Tooltip(
             message: '${context.tr('b2b.dashboard.last_updated')}: ${generatedAt ?? '—'}',
             child: Text(
-              '${context.tr('b2b.dashboard.last_updated')}: ${_shortTimestamp(generatedAt)}',
+              '${context.tr('b2b.dashboard.last_updated')}: \u2066${_shortTimestamp(generatedAt)}\u2069',
               key: const ValueKey('b2b-dashboard-last-updated'),
               maxLines: 2,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.1, color: CustomerUiColors.muted),

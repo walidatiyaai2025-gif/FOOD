@@ -840,7 +840,7 @@ class AppTranslations extends InheritedWidget {
     'b2b.dashboard.invoice_count': 'Invoice count',
     'b2b.dashboard.order_count': 'Order count',
     'b2b.dashboard.active_orders': 'Active orders',
-    'b2b.dashboard.offers': 'Offers and products for your account',
+    'b2b.dashboard.offers': 'Your offers and products',
     'b2b.dashboard.offers_cta': 'Browse your top purchased products',
     'b2b.purchase_reports.title': 'Purchase reports',
     'b2b.purchase_reports.subtitle': 'Business account reports from the server',

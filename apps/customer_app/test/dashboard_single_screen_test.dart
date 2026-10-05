@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -53,6 +54,7 @@ class DashboardApi implements B2bApi {
   Future<Object?> get(String path) async {
     calls++;
     lastPath = path;
+    if (response is Future<Object?>) return await (response as Future<Object?>);
     if (response is Exception) throw response!;
     return response;
   }
@@ -167,6 +169,20 @@ void main() {
           expect(tester.takeException(), isNull);
           if (!before) {
             expect(find.byType(Scrollable), findsNothing);
+            for (final element
+                in find
+                    .descendant(
+                      of: find.byKey(const ValueKey('b2b-dashboard-data')),
+                      matching: find.byType(RichText),
+                    )
+                    .evaluate()) {
+              final paragraph = element.renderObject! as RenderParagraph;
+              expect(
+                paragraph.didExceedMaxLines,
+                isFalse,
+                reason: paragraph.text.toPlainText(),
+              );
+            }
             final promo = tester.getRect(
               find.byKey(const ValueKey('b2b-dashboard-offers')),
             );
@@ -316,8 +332,14 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('0'), findsNothing);
         expect(find.textContaining('0.000'), findsNothing);
-        api.response = const B2bApiException('http_503', statusCode: 503);
+        final failedResponse = Completer<Object?>();
+        api.response = failedResponse.future;
         await tester.tap(find.byKey(const ValueKey('b2b-dashboard-refresh')));
+        await tester.pump();
+        // Complete after the loading state is attached, as a real HTTP request does.
+        failedResponse.completeError(
+          const B2bApiException('http_503', statusCode: 503),
+        );
         await tester.pumpAndSettle();
         expect(find.byKey(const ValueKey('b2b-error')), findsOneWidget);
         api.response = dashboardResponse(second: true);
