@@ -105,7 +105,7 @@ class SystemInspectorTest extends TestCase
         $this->assertIsString($partial);
         $this->assertStringContainsString("...(xsrfToken ? {'X-XSRF-TOKEN':xsrfToken} : {'X-CSRF-TOKEN':csrfToken})", $partial);
         $this->assertStringContainsString("error?.name === 'AbortError'", $partial);
-        $this->assertStringContainsString("!intentionalAbort", $partial);
+        $this->assertStringContainsString('!intentionalAbort', $partial);
         $this->assertStringContainsString("'maintenance'", $partial);
         $this->assertStringContainsString("'validation_rejection'", $partial);
         $this->assertStringContainsString("'domain_rejection'", $partial);
