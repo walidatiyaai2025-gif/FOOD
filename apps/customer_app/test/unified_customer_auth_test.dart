@@ -402,9 +402,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.byKey(const ValueKey('c13-saved-biometric-logout')),
-    );
+    final logout =
+        find.byKey(const ValueKey('c13-saved-biometric-logout'));
+    await tester.ensureVisible(logout);
+    await tester.pumpAndSettle();
+    await tester.tap(logout);
     await tester.pumpAndSettle();
 
     expect(logoutCalled, isTrue);
