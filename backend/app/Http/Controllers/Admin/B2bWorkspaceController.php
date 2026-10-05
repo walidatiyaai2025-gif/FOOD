@@ -1498,6 +1498,7 @@ class B2bWorkspaceController extends Controller
                     '_delivery_total' => (float) $row->delivery_total,
                     '_tax_total' => (float) ($row->tax_total ?? 0),
                     '_grand_total' => (float) $row->grand_total,
+                    '_currency' => (string) $row->currency,
                     '_payment_method' => $row->payment_method,
                     '_coupon_code' => is_array($pricingSnapshot) ? data_get($pricingSnapshot, 'coupon.code') : null,
                     '_customer_note' => $row->customer_note,
@@ -1568,7 +1569,7 @@ class B2bWorkspaceController extends Controller
                 ->map(fn ($row) => [
                     'id' => (int) $row->id,
                     'customer_id' => (int) $row->b2b_customer_id,
-                    'label' => 'Address #'.$row->id,
+                    'label' => $this->msg('عنوان #'.$row->id, 'Address #'.$row->id),
                 ])
                 ->all(),
             'drivers' => DB::table('drivers')

@@ -131,7 +131,14 @@ async function captureLocale(browser, locale) {
     page.waitForLoadState('networkidle'),
     customer360Link.click(),
   ]);
-  await page.locator('#addresses').scrollIntoViewIfNeeded();
+  const addressesTab = page.locator('[data-c360-tab="addresses"]');
+  if (await addressesTab.count() !== 1) {
+    throw new Error('Customer 360 addresses tab was not rendered.');
+  }
+  await addressesTab.click();
+  const addressesPanel = page.locator('[data-c360-panel="addresses"]');
+  await addressesPanel.waitFor({ state: 'visible' });
+  await addressesPanel.scrollIntoViewIfNeeded();
   await snap(
     page,
     `02_Web/B2C_Admin/12_customer_360_addresses__populated__${locale}.png`,

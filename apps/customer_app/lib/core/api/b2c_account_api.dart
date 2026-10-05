@@ -339,13 +339,37 @@ class HttpB2cAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
       );
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw B2cAccountException('http_${response.statusCode}');
+      final serverMessage = body is Map && body['message'] is String
+          ? (body['message'] as String).trim()
+          : null;
+      final fieldErrors = <String, List<String>>{};
+      if (body is Map && body['errors'] is Map) {
+        for (final entry in (body['errors'] as Map).entries) {
+          final value = entry.value;
+          fieldErrors[entry.key.toString()] = value is List
+              ? value.map((item) => item.toString()).toList(growable: false)
+              : <String>[value.toString()];
+        }
+      }
+      throw B2cAccountException(
+        'http_${response.statusCode}',
+        serverMessage: serverMessage == null || serverMessage.isEmpty
+            ? null
+            : serverMessage,
+        fieldErrors: fieldErrors,
+      );
     }
     return body;
   }
 }
 
 class B2cAccountException implements Exception {
-  const B2cAccountException(this.code);
+  const B2cAccountException(
+    this.code, {
+    this.serverMessage,
+    this.fieldErrors = const <String, List<String>>{},
+  });
   final String code;
+  final String? serverMessage;
+  final Map<String, List<String>> fieldErrors;
 }

@@ -89,7 +89,12 @@ class B2bFinanceTest extends TestCase
             ->assertJsonPath('data.items.0.tax_total', 1)
             ->assertJsonPath('data.payments.0.method', 'account')
             ->assertJsonPath('data.payments.0.reference', 'PAY-58')
-            ->assertJsonPath('data.payments.0.amount', 5);
+            ->assertJsonPath('data.payments.0.amount', 5)
+            ->assertJsonPath('data.pdf_path', '/api/v1/b2b/invoices/'.$invoice->id.'/download');
+
+        $pdf = $this->get('/api/v1/b2b/invoices/'.$invoice->id.'/download?locale=ar');
+        $pdf->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $pdf->getContent());
 
         $detail->assertJsonMissingPath('data.commercial_snapshot')
             ->assertJsonMissingPath('data.items.0.line_snapshot')
@@ -108,6 +113,7 @@ class B2bFinanceTest extends TestCase
         [$other] = $this->buyer('finance-other@example.test', 'active');
         Sanctum::actingAs($other);
         $this->getJson('/api/v1/b2b/invoices/'.$invoice->id)->assertNotFound();
+        $this->get('/api/v1/b2b/invoices/'.$invoice->id.'/download')->assertNotFound();
 
         [$pending] = $this->buyer('finance-pending@example.test', 'pending');
         Sanctum::actingAs($pending);

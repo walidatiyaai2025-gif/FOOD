@@ -94,7 +94,11 @@ class AppPreviewGuestConfigurationTest extends TestCase
                 'store_id' => $storeId,
                 'mode' => 'draft',
             ]))
-            ->assertNotFound();
+            ->assertOk()
+            ->assertJsonPath('data', null)
+            ->assertJsonPath('state', 'draft_unavailable')
+            ->assertJsonPath('mode', 'draft')
+            ->assertJsonPath('read_only', true);
 
         $this->actingAs($admin)
             ->getJson(route('admin.app-preview.storefront-configuration', [

@@ -374,12 +374,7 @@ final class StorefrontRevisionService
         $this->assertStoreChannel($storeId, $channel);
         abort_unless(in_array($mode, ['draft', 'published'], true), 422);
 
-        $revision = StorefrontRevision::query()
-            ->where('store_id', $storeId)
-            ->where('channel', $channel)
-            ->where('status', $mode)
-            ->latest('id')
-            ->first();
+        $revision = $this->findCurrent($storeId, $channel, $mode);
 
         abort_unless(
             $revision instanceof StorefrontRevision,
@@ -388,6 +383,28 @@ final class StorefrontRevisionService
                 ? 'No Draft storefront revision exists for this preview scope.'
                 : 'No Published storefront revision exists for this preview scope.',
         );
+
+        return $revision;
+    }
+
+    public function findCurrent(
+        int $storeId,
+        string $channel,
+        string $mode,
+    ): ?StorefrontRevision {
+        $this->assertStoreChannel($storeId, $channel);
+        abort_unless(in_array($mode, ['draft', 'published'], true), 422);
+
+        $revision = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', $channel)
+            ->where('status', $mode)
+            ->latest('id')
+            ->first();
+
+        if (! $revision instanceof StorefrontRevision) {
+            return null;
+        }
 
         $this->assertSupportedSchema($revision);
 

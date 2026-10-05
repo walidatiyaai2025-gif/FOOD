@@ -65,13 +65,6 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 @else
 <span class="badge {{ $row['status'] }}">{{ $isAr?'حالة نهائية':'Terminal' }}</span>
 @endif
-<form method="post" action="{{ route('admin.operations.orders.reassign',$row['id']) }}">@csrf @method('PATCH')
-<select name="driver_id" required><option value="">{{ $isAr?'اختر سائق':'Choose driver' }}</option>@foreach($drivers as $driver)@if((int)$driver->store_id===$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'])<option value="{{ $driver->id }}">{{ $driver->name ?? '#'.$driver->id }}</option>@endif @endforeach</select>
-<button class="btn secondary">{{ $isAr?'تعيين':'Assign' }}</button></form>
-@if($row['assignment_id'])
-<form method="post" action="{{ route('admin.operations.orders.remind',$row['id']) }}">@csrf<button class="foodex-primary">{{ $isAr?'تذكير السائق':'Remind driver' }}</button></form>
-<form method="post" action="{{ route('admin.operations.orders.unassign',$row['id']) }}">@csrf @method('DELETE')<button class="danger btn">{{ $isAr?'سحب':'Unassign' }}</button></form>
-@endif
 </div></td>
 </tr>
 @empty<tr><td colspan="11"><div class="foodex-empty-state">{{ $isAr?'لا توجد طلبات مطابقة.':'No matching orders.' }}</div></td></tr>@endforelse

@@ -117,7 +117,11 @@ class StorefrontPreviewConfigurationTest extends TestCase
 
         $this->withHeader('X-Foodex-Preview-Token', $token)
             ->getJson('/api/v1/app-preview/storefront-configuration?mode=draft')
-            ->assertNotFound();
+            ->assertOk()
+            ->assertJsonPath('data', null)
+            ->assertJsonPath('state', 'draft_unavailable')
+            ->assertJsonPath('mode', 'draft')
+            ->assertJsonPath('read_only', true);
 
         $this->withHeader('X-Foodex-Preview-Token', $token)
             ->getJson('/api/v1/app-preview/storefront-configuration?mode=published')

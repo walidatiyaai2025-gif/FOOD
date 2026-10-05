@@ -74,6 +74,46 @@ class SystemInspectorTest extends TestCase
         $this->assertStringNotContainsString('token=', (string) $event->url);
     }
 
+    public function test_client_failure_category_is_preserved_and_urls_are_secret_free(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'inspector-category@example.test');
+
+        $this->actingAs($admin)->postJson(route('admin.inspector.client-events'), [
+            'source' => 'fetch',
+            'severity' => 'warning',
+            'category' => 'validation_rejection',
+            'status' => 422,
+            'method' => 'PATCH',
+            'message' => 'Validation rejected.',
+            'url' => 'https://foodex.example.test/api/v1/profile?api_secret=compromised&token=hidden',
+            'response_url' => 'https://foodex.example.test/api/v1/profile?api_secret=compromised&token=hidden',
+        ])->assertAccepted();
+
+        $event = SystemInspectorEvent::query()->latest('id')->firstOrFail();
+        $this->assertSame('validation_rejection', $event->context['category'] ?? null);
+        $this->assertSame('https://foodex.example.test/api/v1/profile', $event->url);
+        $encoded = json_encode($event->context, JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('api_secret', $encoded);
+        $this->assertStringNotContainsString('compromised', $encoded);
+        $this->assertStringNotContainsString('token=hidden', $encoded);
+    }
+
+    public function test_admin_runtime_uses_current_xsrf_token_and_does_not_report_intentional_aborts(): void
+    {
+        $partial = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));
+
+        $this->assertIsString($partial);
+        $this->assertStringContainsString("...(xsrfToken ? {'X-XSRF-TOKEN':xsrfToken} : {'X-CSRF-TOKEN':csrfToken})", $partial);
+        $this->assertStringContainsString("error?.name === 'AbortError'", $partial);
+        $this->assertStringContainsString('!intentionalAbort', $partial);
+        $this->assertStringContainsString("'maintenance'", $partial);
+        $this->assertStringContainsString("'validation_rejection'", $partial);
+        $this->assertStringContainsString("'domain_rejection'", $partial);
+        $this->assertStringContainsString('inspectorSuppressedUntil = Date.now() + 60000', $partial);
+        $this->assertStringNotContainsString('google-analytics.com/mp/collect', $partial);
+        $this->assertStringNotContainsString('api_secret=', $partial);
+    }
+
     public function test_non_platform_admin_cannot_open_or_export_inspector(): void
     {
         $admin = $this->userWithRole('B2B_ADMIN', 'wholesale-admin@example.test');

@@ -53,7 +53,17 @@ final class AppPreviewConfigurationController extends Controller
         abort_unless($user->hasPermission('app_preview.view', $storeId), 403);
 
         $mode = (string) $data['mode'];
-        $revision = $revisions->resolveCurrent($storeId, $channel, $mode);
+        $revision = $revisions->findCurrent($storeId, $channel, $mode);
+
+        if ($revision === null) {
+            return response()->json([
+                'data' => null,
+                'state' => $mode.'_unavailable',
+                'read_only' => true,
+                'persona' => 'guest',
+                'mode' => $mode,
+            ]);
+        }
 
         return response()->json([
             'data' => [

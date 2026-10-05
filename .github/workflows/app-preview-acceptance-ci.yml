@@ -38,41 +38,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Reject overlap with active #564 / PR #570 implementation files
+      - name: Confirm retired #564 / PR #570 overlap guard
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ github.event.pull_request.number }}" == "570" && "${{ github.head_ref }}" == "feat/564-draft-first-storefront-editors" ]]; then
-            echo "PR #570 is the guarded #564 implementation PR; acceptance-branch overlap rejection is not applicable."
-            exit 0
-          fi
-          base="${{ github.event.pull_request.base.sha }}"
-          head="${{ github.event.pull_request.head.sha }}"
-          git diff --name-only "$base" "$head" > /tmp/app-preview-acceptance-files.txt
-          cat /tmp/app-preview-acceptance-files.txt
-          forbidden=(
-            backend/app/Http/Controllers/Admin/B2bWorkspaceController.php
-            backend/app/Http/Controllers/Admin/B2cWorkspaceController.php
-            backend/app/Http/Controllers/Admin/StorefrontDraftEditorController.php
-            backend/app/Services/StorefrontDraftEditorService.php
-            backend/app/Services/StorefrontRevisionService.php
-            backend/resources/views/admin/_storefront-builder.blade.php
-            backend/resources/views/admin/_wholesale-storefront-builder.blade.php
-            backend/resources/views/admin/b2c-workspace.blade.php
-            backend/routes/web.php
-            backend/tests/Feature/AdminBusinessManagementTest.php
-            backend/tests/Feature/AdminProfileNavigationBannerTest.php
-            backend/tests/Feature/RetailAdminProductionDefectsTest.php
-            backend/tests/Feature/StorefrontAdminBuilderTest.php
-            backend/tests/Feature/StorefrontRevisionTest.php
-            backend/tests/Feature/WholesaleStorefrontBuilderTest.php
-          )
-          for file in "${forbidden[@]}"; do
-            if grep -Fxq "$file" /tmp/app-preview-acceptance-files.txt; then
-              echo "::error::Final acceptance branch must not overlap active #564 / PR #570 file: $file"
-              exit 1
-            fi
-          done
+          echo "PR #570 has been merged; the temporary #564 overlap guard is retired."
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
 
   backend-preview:
     name: Backend preview security and contract acceptance

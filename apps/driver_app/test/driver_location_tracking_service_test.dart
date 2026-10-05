@@ -233,6 +233,51 @@ void main() {
     await source.close();
   });
 
+  test('background heartbeat backs off and keeps only the newest outage sample',
+      () async {
+    final scheduler = _FakeScheduler();
+    final source = _FakeBackgroundLocationSource([_sample(1)]);
+    final heartbeat = _FakeHeartbeatClient(
+      activeAssignments: <int?>[44, 44],
+    );
+    final service = DriverLocationTrackingService(
+      locationSource: source,
+      heartbeatClient: heartbeat,
+      scheduler: scheduler,
+      cadence: const DriverTrackingCadencePolicy(
+        retry: Duration(milliseconds: 1),
+      ),
+      inspector: DriverRuntimeInspector(maxEvents: 20),
+    );
+
+    service.start();
+    service.setGateReady(true);
+    await scheduler.fire();
+    service.setAppInForeground(false);
+    heartbeat.failuresRemaining = 1;
+
+    source.emit(_sample(2));
+    await Future<void>.delayed(Duration.zero);
+    expect(heartbeat.attempts.length, 2);
+    expect(service.queuedSamples, 1);
+
+    source.emit(_sample(3));
+    source.emit(_sample(4));
+    await Future<void>.delayed(Duration.zero);
+    expect(heartbeat.attempts.length, 2);
+    expect(service.queuedSamples, 1);
+
+    await Future<void>.delayed(const Duration(milliseconds: 160));
+    source.emit(_sample(5));
+    await Future<void>.delayed(Duration.zero);
+
+    expect(heartbeat.successful.last.capturedAt.second, 5);
+    expect(service.queuedSamples, 0);
+
+    service.dispose();
+    await source.close();
+  });
+
   test('terminal assignment status stops active tracking until new work arrives',
       () async {
     final scheduler = _FakeScheduler();
@@ -327,11 +372,11 @@ void main() {
 
     await scheduler.fire();
     expect(service.queuedSamples, 1);
-    expect(scheduler.delay, const Duration(seconds: 10));
+    expect(scheduler.delay, const Duration(milliseconds: 10137));
 
     await scheduler.fire();
     expect(service.queuedSamples, 2);
-    expect(scheduler.delay, const Duration(seconds: 10));
+    expect(scheduler.delay, const Duration(milliseconds: 20274));
 
     await scheduler.fire();
 
@@ -482,6 +527,24 @@ void main() {
     expect(payload['heading'], 90);
     expect(payload['is_mocked'], isFalse);
 
+    client.close();
+  });
+
+  test('HTTP heartbeat client times out stalled requests', () async {
+    final client = HttpDriverLocationHeartbeatClient(
+      baseUrl: 'https://foodex.example',
+      token: 'driver-secret-token',
+      requestTimeout: const Duration(milliseconds: 5),
+      client: MockClient((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await expectLater(
+      client.send(_sample(1)),
+      throwsA(isA<TimeoutException>()),
+    );
     client.close();
   });
 

@@ -187,24 +187,10 @@ final class ReportExportService
     /** @param array<string, mixed> $report */
     private function pdf(array $report, string $locale): string
     {
-        if (! class_exists(\TCPDF::class)) {
-            throw new RuntimeException('TCPDF is required for Unicode PDF exports.');
-        }
-
         $rtl = $locale === 'ar';
-        $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-        $pdf->setPDFVersion('1.4');
-        $pdf->SetCreator('FOODEX');
-        $pdf->SetAuthor('FOODEX');
+        $pdf = app(PdfDocumentFactory::class)->create($rtl, 10, 12, 10, 9);
         $pdf->SetTitle($rtl ? 'تقرير FOODEX' : 'FOODEX Report');
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
-        $pdf->SetMargins(10, 12, 10);
-        $pdf->SetAutoPageBreak(true, 12);
-        $pdf->SetCompression(true);
-        $pdf->setRTL($rtl);
         $pdf->AddPage();
-        $pdf->SetFont('dejavusans', '', 9);
 
         $align = $rtl ? 'right' : 'left';
         $dir = $rtl ? 'rtl' : 'ltr';

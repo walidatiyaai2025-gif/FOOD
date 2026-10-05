@@ -69,7 +69,11 @@ final class CustomerInvoiceController extends Controller
         $model = $this->owned($user)->whereKey($invoice)->firstOrFail();
         $this->assertRequestedContext($request, $model);
         $locale = (string) ($validated['locale'] ?? $user->locale ?? 'en');
-        $pdf = $invoices->renderPdf($model, $locale);
+        try {
+            $pdf = $invoices->renderPdf($model, $locale);
+        } catch (\RuntimeException) {
+            abort(503, 'PDF generation is temporarily unavailable.');
+        }
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
