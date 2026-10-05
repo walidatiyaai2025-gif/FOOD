@@ -121,6 +121,14 @@ test('background feed failure preserves the last successful map, counters and ti
     assert.equal(env.layer.clearCount,clearCount);
     assert.equal(view.parts.error.hidden,true);
     assert.equal(view.parts.state.textContent,i18n.serverFailed);
+
+    failing=false;
+    await view.foodexDriverLiveMap.refresh();
+    assert.equal(view.dataset.liveMapError,undefined);
+    assert.equal(view.parts.error.hidden,true);
+    assert.equal(view.parts.state.textContent,i18n.ready);
+    assert.equal(view.parts['count-online'].textContent,'1');
+    assert.ok(env.layer.clearCount > clearCount, 'successful recovery replaces the retained marker layer once');
 });
 test('background refresh is silent and overlapping refresh work is suppressed',async()=>{
     let call=0, release;
