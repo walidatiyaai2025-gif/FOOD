@@ -175,7 +175,9 @@ Before merge readiness, workers must reproduce the deterministic preconditions o
 bash scripts/validate-premerge-release-version.sh <base-sha> <head-sha>
 ```
 
-Deployable changes under `backend/`, `apps/customer_app/`, or `apps/driver_app/` require a `VERSION` bump relative to the PR base, and Customer/Driver mobile version identities must remain synchronized with `VERSION`.
+Deployable changes under `backend/`, `apps/customer_app/`, or `apps/driver_app/` require a `VERSION` bump relative to the PR base when the change is being merged into `main`, and Customer/Driver mobile version identities must remain synchronized with `VERSION`.
+
+Atomic child PRs that target a non-main integration train do not mint competing release identities. They keep the current registered release identity and defer the single synchronized version/package bump to the final integration-train PR that targets `main`. CI must use the actual PR base branch to distinguish those two cases; local or unknown-target validation remains conservative and requires the bump.
 
 Any post-merge failure that was predictable from the PR diff must be converted into a pre-merge check so it cannot recur as a main-only surprise.
 

@@ -3,6 +3,7 @@ set -euo pipefail
 
 base="${1:-}"
 head="${2:-HEAD}"
+target_ref="${3:-${GITHUB_BASE_REF:-main}}"
 
 if [[ -z "$base" ]]; then
   if git rev-parse --verify origin/main >/dev/null 2>&1; then
@@ -48,11 +49,17 @@ if grep -Eq '^(backend/|apps/customer_app/|apps/driver_app/)' <<<"$changed"; the
   runtime_changed=true
 fi
 
+target_branch="${GITHUB_BASE_REF:-}"
+
 if [[ "$runtime_changed" == "true" && "$current_version" == "$base_version" ]]; then
-  echo "Deployable FOODEX code changed without a VERSION bump." >&2
-  echo "This would pass PR-only checks but fail FOODEX Trial Distribution after merge to main." >&2
-  echo "Bump VERSION and keep Customer/Driver pubspec version identities synchronized before merge." >&2
-  exit 1
+  if [[ -n "$target_branch" && "$target_branch" != "main" ]]; then
+    echo "Deployable code targets non-main integration branch '$target_branch'; release identity bump is deferred to the final main-targeting integration PR."
+  else
+    echo "Deployable FOODEX code changed without a VERSION bump." >&2
+    echo "This would pass PR-only checks but fail FOODEX Trial Distribution after merge to main." >&2
+    echo "Bump VERSION and keep Customer/Driver pubspec version identities synchronized before merge." >&2
+    exit 1
+  fi
 fi
 
-echo "Pre-merge release version contract passed (runtime_changed=$runtime_changed, base=$base_version, candidate=$current_version)."
+echo "Pre-merge release version contract passed (runtime_changed=$runtime_changed, target=${target_branch:-local-or-unknown}, base=$base_version, candidate=$current_version)."
