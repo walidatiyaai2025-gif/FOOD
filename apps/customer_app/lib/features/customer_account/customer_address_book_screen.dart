@@ -169,7 +169,7 @@ class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen> {
                 latitude = point.latitude;
                 longitude = point.longitude;
                 accuracy = point.accuracyMeters;
-                source = 'gps';
+                source = 'current_location';
               });
             } catch (error) {
               setDialogState(() {
@@ -192,7 +192,7 @@ class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen> {
                 latitude = selected.latitude;
                 longitude = selected.longitude;
                 accuracy = null;
-                source = 'map';
+                source = 'map_pin';
                 dialogError = null;
               });
             } catch (error) {
