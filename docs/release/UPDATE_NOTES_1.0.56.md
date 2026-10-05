@@ -5,8 +5,12 @@ Status: owner-approved Dashboard update after green #924 / PR #925 integration.
 ## Release identity
 
 - Dashboard: `1.0.56`
-- Customer app: unchanged at `1.0.55+55`
-- Driver app: unchanged at `1.0.55+55`
+- Customer app: `1.0.56+56`
+- Driver app: `1.0.56+56`
+- Customer runtime/footer identity: `1.0.56`
+- Driver runtime/footer identity: `1.0.56`
+- Driver diagnostics current identity: `1.0.56`
+- Driver diagnostics build identity: `56`
 
 ## Included changes
 
@@ -28,7 +32,7 @@ Status: owner-approved Dashboard update after green #924 / PR #925 integration.
 ## Explicit non-activation statement
 
 This release does **not** automatically:
-- change production minimum-supported Customer/Driver AppVersion rows;
+- change production minimum-supported AppVersion rows;
 - enable force-update;
 - enable Driver fresh-location enforcement;
 - enable the Assistant in production.
