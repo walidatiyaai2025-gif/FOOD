@@ -131,7 +131,8 @@ class B2bFinanceController extends Controller
         Request $request,
         Invoice $invoice,
         InvoiceService $invoices,
-    ): Response {
+    ): Response
+    {
         $customer = $this->approvedCustomer($request);
         $requestedStoreId = $this->storeId($request);
         abort_unless(
