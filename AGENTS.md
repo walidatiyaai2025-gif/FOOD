@@ -229,6 +229,94 @@ A helper worker may take over CI only by following the same lease/handoff protoc
 
 **Red CI is immediate takeover-eligible.** If the latest branch head has a failed, timed-out, cancelled, action-required, startup-failed, or stale CI result, do not wait for the 30-minute stale lease timeout. Mark/treat the task as `CI_FIX` / `worker:handoff-ready` and continue the same Issue/branch/PR immediately.
 
+
+---
+
+## 9A. First-Run Green / Zero-Red worker contract
+
+FOODEX workers must treat remote CI as final verification, not the normal debugging loop.
+
+The canonical operating contract is documented in:
+
+- `docs/worker-rules/FIRST_RUN_GREEN.md`
+- `docs/worker-rules/CI_FAILURE_PATTERNS.md`
+
+Before the first push of executable changes, every worker MUST run:
+
+```bash
+./scripts/worker-preflight.sh --fast
+```
+
+Before declaring a PR ready for final merge validation, the worker SHOULD run, whenever the required local toolchain/environment is available:
+
+```bash
+./scripts/worker-preflight.sh --full
+```
+
+The worker must not push merely to discover deterministic formatter, syntax, analyzer, static-analysis, branch-policy, or focused-test failures that the preflight can reproduce locally.
+
+### Required failure ordering
+
+Workers and CI should detect cheap deterministic failures before expensive validation:
+
+1. branch/repository policy;
+2. diff integrity and syntax;
+3. formatter/lint;
+4. static analysis / Flutter analyzer;
+5. focused and subsystem tests;
+6. database/service acceptance;
+7. Android/iOS/preview compilation;
+8. runtime, visual and parity evidence;
+9. packaging/release validation;
+10. exact-head final required gate.
+
+A heavy build should not consume runner capacity when an earlier deterministic gate for the same affected area is already red.
+
+### Formatter canonical-output rule
+
+Do not guess formatter output.
+
+For PHP/Pint failures, run Pint on the affected file/path to obtain the canonical representation, then verify with `--test`. This specifically includes imports, quote style, PHPDoc, operator spacing, constructor bodies and multiline method signatures.
+
+For a multiline PHP method signature with a declared return type, preserve the Pint-canonical brace position rather than applying the single-line method style by intuition.
+
+### Changed-area validation
+
+Validation scope must come from the actual git diff. Customer-only changes should not trigger Driver work unless shared packages/contracts are affected, and Driver-only changes should not trigger Customer work unless shared dependencies require it.
+
+Shared/auth/tenant/pricing/ledger/migration/networking/preview/release changes are high-risk and may expand validation automatically.
+
+### Recurring Failure Promotion Rule
+
+FOODEX follows a **learn once, prevent forever** rule.
+
+A failure is promotion-worthy when:
+
+- substantially the same root cause has occurred at least twice; or
+- one occurrence reveals a deterministic repository constraint that future workers can safely detect before push.
+
+For every promoted failure, the worker must:
+
+1. fix the root cause on the existing task branch/PR;
+2. add/update the failure in `docs/worker-rules/CI_FAILURE_PATTERNS.md`;
+3. add the cheapest reliable local/preflight detector when practical;
+4. add a regression test when it represents application behavior;
+5. update this policy or the First-Run Green contract when worker behavior must change;
+6. never disable, weaken, skip or broadly exempt a required quality gate merely to remove red status.
+
+Repeated pushes with the same deterministic failure fingerprint are prohibited process behavior. Reproduce locally or obtain new evidence before the next push.
+
+### Flaky-test rule
+
+Never rerun a nondeterministic test until it happens to pass and call that a fix. Identify and remove the unstable dependency (clock, random seed, network, ordering, shared state, external service, etc.) or document a repository-owner-approved quarantine.
+
+### Exact-head evidence
+
+Required checks and deliverable artifacts must belong to the current PR head SHA. A build from an older SHA is not valid evidence for a newer head.
+
+If `main` advances in a way that can affect the task, revalidate the same branch before merge.
+
+
 ---
 
 ## 10. External blockers vs repository blockers
