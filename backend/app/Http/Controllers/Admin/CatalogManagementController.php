@@ -213,7 +213,7 @@ final class CatalogManagementController extends Controller
                             return trim($decoded);
                         }
 
-                        $raw = trim((string) $setting->value, " \\t\\n\\r\\0\\x0B\\\"");
+                        $raw = trim((string) $setting->value, " \"");
                         if ($raw !== '') {
                             return $raw;
                         }
