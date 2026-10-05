@@ -3,7 +3,7 @@
 const STATE_MARKER = '<!-- foodex-worker-state:v1 -->';
 const MANAGED_MARKER = '<!-- foodex-worker:managed -->';
 const WATCHDOG_MARKER = '<!-- foodex-watchdog:';
-const STALE_MINUTES = 30;
+const STALE_MINUTES = 10;
 
 const RED_CI_CONCLUSIONS = new Set([
   'failure',
@@ -32,6 +32,8 @@ const GATE_LABELS = [
   'gate:device',
   'gate:approval',
 ];
+
+const DEPENDENCY_BLOCKERS = new Set(['dep', 'dependency', 'blocked_dep']);
 
 const HUMAN_BLOCKERS = new Set([
   'deploy',
@@ -157,6 +159,10 @@ function classify({
     return { status: 'handoff-ready', reason: 'merge-conflict' };
   }
 
+  if (DEPENDENCY_BLOCKERS.has(blocker)) {
+    return { status: 'blocked-dep', reason: blocker };
+  }
+
   if (HUMAN_BLOCKERS.has(blocker)) {
     return {
       status: 'human-gate',
@@ -188,6 +194,19 @@ function classify({
   }
 
   return { status: 'handoff-ready', reason: 'stale-lease' };
+}
+
+function queueState(outcome) {
+  if (!outcome) return 'TAKEOVER';
+  if (outcome.status === 'ready') return 'READY';
+  if (outcome.status === 'active') return 'ACTIVE_PEER';
+  if (outcome.status === 'waiting-ci') return 'WAITING_CI';
+  if (outcome.status === 'blocked-dep') return 'BLOCKED_DEP';
+  if (outcome.status === 'human-gate') return 'HUMAN_GATE';
+  if (outcome.status === 'handoff-ready' && String(outcome.reason).startsWith('ci-')) return 'CI_FIX';
+  if (outcome.status === 'handoff-ready' && outcome.reason === 'merge-ready-stale') return 'MERGE_READY';
+  if (outcome.status === 'handoff-ready') return 'TAKEOVER';
+  return 'TAKEOVER';
 }
 
 function statusLabel(status) {
@@ -440,6 +459,7 @@ async function run({ github, context, core, nowMs = Date.now() }) {
   ]);
 
   const openIssues = issues.filter(issue => !issue.pull_request);
+  const queue = [];
   const prByIssue = new Map();
   for (const pr of pulls) {
     for (const issueNumber of linkedIssueNumbers(pr.body)) {
@@ -512,10 +532,17 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       mergeable,
     });
 
-    core.info(`#${issue.number}: ${outcome.status} (${outcome.reason})`);
+    const queueEntry = { issue: issue.number, state: queueState(outcome), reason: outcome.reason, branch, pr: linkedPr?.number || null, head: linkedPr?.head?.sha || workerState?.head || '' };
+    queue.push(queueEntry);
+    core.info(`#${issue.number}: ${queueEntry.state} (${outcome.reason})`);
 
     if (outcome.status === 'human-gate') {
       await replaceStatusLabels(github, owner, repo, issue, outcome.labels);
+      continue;
+    }
+
+    if (outcome.status === 'blocked-dep') {
+      await replaceStatusLabels(github, owner, repo, issue, []);
       continue;
     }
 
@@ -543,9 +570,18 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       }),
     });
   }
+
+  queue.sort((a, b) => a.issue - b.issue);
+  const claimable = queue.filter(entry => ['READY', 'TAKEOVER', 'CI_FIX', 'MERGE_READY'].includes(entry.state));
+  const ownerMissionState = claimable.length > 0 ? 'WORK_AVAILABLE' : 'NO WORK CURRENTLY AVAILABLE';
+  core.setOutput('owner_mission_state', ownerMissionState);
+  core.setOutput('queue_json', JSON.stringify(queue));
+  core.info(`${ownerMissionState}: ${queue.map(entry => `#${entry.issue}=${entry.state}`).join(', ')}`);
+  return { ownerMissionState, queue };
 }
 
 module.exports = {
+  DEPENDENCY_BLOCKERS,
   HUMAN_BLOCKERS,
   MANAGED_MARKER,
   RED_CI_CONCLUSIONS,
@@ -558,6 +594,7 @@ module.exports = {
   linkedIssueNumbers,
   minutesSince,
   parseWorkerState,
+  queueState,
   run,
   statusLabel,
   summarizeCheckRuns,
