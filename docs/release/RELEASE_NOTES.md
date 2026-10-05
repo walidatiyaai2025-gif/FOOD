@@ -1,35 +1,31 @@
-# FOODEX 1.0.54 Release Notes
+# FOODEX 1.0.55 Release Notes
 
-Status: final C13 synchronized distribution after umbrella #858 and integrated gate #873 / PR #917.
+Status: owner-approved post-#921 synchronized Dashboard/Customer/Driver distribution.
 
 ## Release identity
 
-- Dashboard: `1.0.54`
-- Customer app: `1.0.54+54`
-- Driver app: `1.0.54+54`
-- Customer runtime/footer identity: `1.0.54`
-- Driver runtime/footer identity: `1.0.54`
-- Driver diagnostics current identity: `1.0.54`
-- Driver diagnostics build identity: `54`
-- `1.0.53` was not promoted, registered or published and remains skipped.
+- Dashboard: `1.0.55`
+- Customer app: `1.0.55+55`
+- Driver app: `1.0.55+55`
+- Customer runtime/footer identity: `1.0.55`
+- Driver runtime/footer identity: `1.0.55`
+- Driver diagnostics current identity: `1.0.55`
+- Driver diagnostics build identity: `55`
 
 ## Included changes
 
-- Publish the final accepted C13 Customer journey after #858 and final integrated gate #873 / PR #917, covering the canonical 13-screen Arabic/English visual and operational matrix.
-- Preserve authentication-first B2B launch: Login -> Dashboard, with the four-item Shopping / My Orders / Invoices / More navigation model.
-- Preserve principal Wholesale recovery from Dashboard/Shopping and Retail -> principal Wholesale switching without logout, with authoritative tenant/store/account isolation.
-- Preserve authoritative purchasing power, account balance direction (عليك / لك), credit limit and available credit across Dashboard, statement, checkout and invoice surfaces.
-- Preserve Customer-Service approval/rejection, Driver assignment/collection instructions, exact Customer/Driver invoice PDF authorization, and independent delivery/payment lifecycle state.
-- Preserve centralized sanitized Customer/Driver/API runtime diagnostics in the Dashboard System Inspector.
-- Synchronize Dashboard, Customer and Driver identities at 1.0.54 / mobile build 54 without changing production minimum-version, force-update, Driver fresh-location enforcement or Assistant activation settings.
+- Promote the owner-approved Customer visual and functional convergence from #920 / PR #921: FOODEX reference login, single-screen Business Dashboard, compact Top Products, discoverable Wholesale Business Dashboard shortcut, redesigned More surface, and refreshed Orders/footer composition.
+- Keep all business values, permissions, account/store entitlement, finance metrics, orders and navigation authoritative to the existing backend/API/session state with no hardcoded production business data.
+- Preserve Arabic/English RTL/LTR behavior, Remember Me and biometric sign-in, exact Wholesale store context, Retail/Wholesale isolation, and the validated five-destination Customer navigation contract.
+- Preserve the existing production activation policy while synchronizing Dashboard, Customer and Driver release identities at 1.0.55 / mobile build 55.
 
 ## Dashboard update bundle
 
-- Target version: `1.0.54`
+- Target version: `1.0.55`
 - Minimum current version: `1.0.6`
 - Contains migrations: `true`
 - Requires full redeploy: `false`
-- SHA-256: `fe01ff66fb993d2c56abb89aafcfae9ba7f8afd5fcdf2e81cfaec5ec7ed4edee`
+- SHA-256: `d77dc785d8b3bd8b10919dc602642b24fd4233ecf03ab9157ccf15ce9c434748`
 
 ## Explicit non-activation statement
 
