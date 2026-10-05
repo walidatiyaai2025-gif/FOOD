@@ -289,7 +289,7 @@ final class FieldOperationConfigurationService
             })
             ->first();
 
-        if (! $winner instanceof FieldOperationConfigurationRevision) {
+        if (($winner instanceof FieldOperationConfigurationRevision) === false) {
             return [
                 'key' => (string) $definition->key,
                 'value' => data_get($definition->default_value, 'value'),
@@ -337,19 +337,19 @@ final class FieldOperationConfigurationService
             'string' => is_string($value),
             'integer' => is_int($value),
             'number' => is_int($value) || is_float($value),
-            'object' => is_array($value) && ! array_is_list($value),
+            'object' => is_array($value) && array_is_list($value) === false,
             'array' => is_array($value) && array_is_list($value),
             default => false,
         };
 
-        if (! $validType) {
+        if ($validType === false) {
             throw ValidationException::withMessages([
                 'value' => ["Configuration value must match type {$type}."],
             ]);
         }
 
         $allowed = $schema['allowed_values'] ?? null;
-        if (is_array($allowed) && ! in_array($value, $allowed, true)) {
+        if (is_array($allowed) && in_array($value, $allowed, true) === false) {
             throw ValidationException::withMessages([
                 'value' => ['Configuration value is not in the allowed set.'],
             ]);
@@ -381,28 +381,28 @@ final class FieldOperationConfigurationService
 
     private function assertScopeType(string $scopeType): void
     {
-        if (! array_key_exists($scopeType, self::SCOPE_PRIORITY)) {
+        if (array_key_exists($scopeType, self::SCOPE_PRIORITY) === false) {
             throw ValidationException::withMessages(['scope_type' => ['Unsupported configuration scope.']]);
         }
     }
 
     private function assertKey(string $key): void
     {
-        if (! preg_match('/^[a-z][a-z0-9_.-]{2,127}$/', $key)) {
+        if (preg_match('/^[a-z][a-z0-9_.-]{2,127}$/', $key) !== 1) {
             throw ValidationException::withMessages(['key' => ['Configuration keys must be stable lowercase codes.']]);
         }
     }
 
     private function assertValueType(string $type): void
     {
-        if (! in_array($type, ['boolean', 'string', 'integer', 'number', 'object', 'array'], true)) {
+        if (in_array($type, ['boolean', 'string', 'integer', 'number', 'object', 'array'], true) === false) {
             throw ValidationException::withMessages(['value_type' => ['Unsupported configuration value type.']]);
         }
     }
 
     private function assertFailurePolicy(string $policy): void
     {
-        if (! in_array($policy, ['fail_closed', 'degrade_safe'], true)) {
+        if (in_array($policy, ['fail_closed', 'degrade_safe'], true) === false) {
             throw ValidationException::withMessages(['failure_policy' => ['Failure policy must be fail_closed or degrade_safe.']]);
         }
     }
