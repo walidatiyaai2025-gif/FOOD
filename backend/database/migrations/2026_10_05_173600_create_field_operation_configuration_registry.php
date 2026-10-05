@@ -34,9 +34,10 @@ return new class extends Migration {
             $table->text('reason')->nullable();
             $table->timestamp('effective_from')->nullable();
             $table->timestamp('effective_until')->nullable();
-            $table->foreignId('source_revision_id')
-                ->nullable()
-                ->constrained('field_operation_configuration_revisions')
+            $table->foreignId('source_revision_id')->nullable();
+            $table->foreign('source_revision_id', 'field_ops_cfg_rev_source_fk')
+                ->references('id')
+                ->on('field_operation_configuration_revisions')
                 ->nullOnDelete();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('published_by')->nullable()->constrained('users')->nullOnDelete();
