@@ -110,10 +110,16 @@ class CustomerPersistentFooter extends StatelessWidget {
     final items = commerceContext.isWholesale
         ? <_FooterItem>[
             _FooterItem(
+              destination: CustomerFooterDestination.home,
+              label: context.tr('customer.nav.home'),
+              icon: Icons.home_outlined,
+              activeIcon: Icons.home_rounded,
+            ),
+            _FooterItem(
               destination: CustomerFooterDestination.products,
               label: context.tr('customer.nav.shopping'),
-              icon: Icons.storefront_outlined,
-              activeIcon: Icons.storefront_rounded,
+              icon: Icons.shopping_cart_outlined,
+              activeIcon: Icons.shopping_cart_rounded,
             ),
             _FooterItem(
               destination: CustomerFooterDestination.orders,
@@ -236,8 +242,12 @@ class CustomerPersistentFooter extends StatelessWidget {
 
     switch (destination) {
       case CustomerFooterDestination.home:
-      case CustomerFooterDestination.products:
         return CustomerRouteLocations.wholesaleHome(commerceContext);
+      case CustomerFooterDestination.products:
+        return Uri(
+          path: CustomerRoutePaths.b2bProducts,
+          queryParameters: commerceContext.toQueryParameters(),
+        ).toString();
       case CustomerFooterDestination.cart:
         return CustomerRouteLocations.wholesaleCart(commerceContext);
       case CustomerFooterDestination.orders:
@@ -303,23 +313,17 @@ class _FooterButton extends StatelessWidget {
               AnimatedContainer(
                 duration: duration,
                 curve: CustomerUiMotion.emphasisCurve,
-                width: active ? 52 : 46,
-                height: active ? 52 : 46,
+                width: active ? 58 : 46,
+                height: active ? 42 : 42,
                 decoration: BoxDecoration(
                   color: active
                       ? CustomerUiColors.limeSoft
                       : Colors.transparent,
-                  shape: BoxShape.circle,
-                  border: active
-                      ? Border.all(
-                          color: CustomerUiColors.lime,
-                          width: CustomerUiStroke.emphasis,
-                        )
-                      : null,
+                  borderRadius: BorderRadius.circular(24),
                 ),
                 child: Icon(
                   active ? item.activeIcon : item.icon,
-                  size: active ? 27 : 25,
+                  size: active ? 27 : 24,
                   color: active
                       ? CustomerUiColors.deepGreenStrong
                       : CustomerUiColors.muted,
