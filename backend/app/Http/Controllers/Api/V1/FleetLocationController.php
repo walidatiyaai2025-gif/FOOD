@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\FleetCurrentLocation;
+use App\Models\User;
 use App\Services\FleetLocationService;
+use App\Services\OperationalTenantScope;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -53,9 +55,10 @@ class FleetLocationController extends Controller
         return response()->json(['data' => $this->serialize($location, $service)]);
     }
 
-    public function feed(Request $request, FleetLocationService $service): JsonResponse
+    public function feed(Request $request, FleetLocationService $service, OperationalTenantScope $tenantScope): JsonResponse
     {
-        Gate::authorize('drivers.tracking.view');
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
         $data = $request->validate([
             'actor_type' => ['nullable', Rule::in(['driver', 'van'])],
@@ -68,10 +71,39 @@ class FleetLocationController extends Controller
             'west' => ['nullable', 'numeric', 'between:-180,180'],
         ]);
 
+        $channels = isset($data['channel']) ? [(string) $data['channel']] : ['b2b', 'b2c'];
+        $allowedStoresByChannel = [];
+
+        foreach ($channels as $channel) {
+            $storeIds = $tenantScope->allowedStoreIds($user, 'drivers.tracking.view', $channel);
+            if ($storeIds !== []) {
+                $allowedStoresByChannel[$channel] = $storeIds;
+            }
+        }
+
+        abort_if($allowedStoresByChannel === [], 403);
+
+        if (isset($data['store_id'])) {
+            $requestedStoreId = (int) $data['store_id'];
+            foreach ($allowedStoresByChannel as $channel => $storeIds) {
+                if (in_array($requestedStoreId, $storeIds, true)) {
+                    $allowedStoresByChannel[$channel] = [$requestedStoreId];
+                } else {
+                    unset($allowedStoresByChannel[$channel]);
+                }
+            }
+            abort_if($allowedStoresByChannel === [], 404);
+        }
+
         $rows = FleetCurrentLocation::query()
+            ->where(function ($query) use ($allowedStoresByChannel): void {
+                foreach ($allowedStoresByChannel as $channel => $storeIds) {
+                    $query->orWhere(function ($scope) use ($channel, $storeIds): void {
+                        $scope->where('channel', $channel)->whereIn('store_id', $storeIds);
+                    });
+                }
+            })
             ->when(isset($data['actor_type']), fn ($query) => $query->where('actor_type', $data['actor_type']))
-            ->when(isset($data['store_id']), fn ($query) => $query->where('store_id', (int) $data['store_id']))
-            ->when(isset($data['channel']), fn ($query) => $query->where('channel', $data['channel']))
             ->when(isset($data['north']), fn ($query) => $query->where('latitude', '<=', (float) $data['north']))
             ->when(isset($data['south']), fn ($query) => $query->where('latitude', '>=', (float) $data['south']))
             ->when(isset($data['east']), fn ($query) => $query->where('longitude', '<=', (float) $data['east']))
