@@ -260,7 +260,7 @@ final class RoutingPolicyService
 
     private function assertMode(string $mode): void
     {
-        if (! in_array($mode, ['MANUAL', 'AUTOMATIC', 'HYBRID'], true)) {
+        if (in_array($mode, ['MANUAL', 'AUTOMATIC', 'HYBRID'], true) === false) {
             throw ValidationException::withMessages(['mode' => ['Unsupported routing mode.']]);
         }
     }
