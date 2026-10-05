@@ -244,7 +244,7 @@ final class TerritoryService
         }
 
         $outer = $polygon[0] ?? [];
-        if (! $this->pointInRing($outer, $x, $y)) {
+        if ($this->pointInRing($outer, $x, $y) === false) {
             return false;
         }
 
@@ -259,7 +259,7 @@ final class TerritoryService
 
     private function pointInRing(mixed $ring, float $x, float $y): bool
     {
-        if (! is_array($ring) || count($ring) < 4) {
+        if (is_array($ring) === false || count($ring) < 4) {
             return false;
         }
 
@@ -269,7 +269,7 @@ final class TerritoryService
         for ($i = 0, $count = count($ring); $i < $count; $i++) {
             $pi = $ring[$i] ?? null;
             $pj = $ring[$j] ?? null;
-            if (! is_array($pi) || ! is_array($pj) || count($pi) < 2 || count($pj) < 2) {
+            if (is_array($pi) === false || is_array($pj) === false || count($pi) < 2 || count($pj) < 2) {
                 $j = $i;
                 continue;
             }
@@ -283,7 +283,7 @@ final class TerritoryService
                 && ($x < (($xj - $xi) * ($y - $yi) / (($yj - $yi) ?: PHP_FLOAT_EPSILON)) + $xi);
 
             if ($crosses) {
-                $inside = ! $inside;
+                $inside = $inside === false;
             }
 
             $j = $i;
@@ -297,7 +297,7 @@ final class TerritoryService
     {
         $points = [];
         $walk = function (mixed $node) use (&$walk, &$points): void {
-            if (! is_array($node)) {
+            if (is_array($node) === false) {
                 return;
             }
 
