@@ -113,7 +113,7 @@ final class TerritoryService
         Carbon|string|null $effectiveUntil = null,
     ): TerritoryGeometry {
         $type = (string) ($geojson['type'] ?? '');
-        if (! in_array($type, ['Polygon', 'MultiPolygon'], true)) {
+        if (in_array($type, ['Polygon', 'MultiPolygon'], true) === false) {
             throw ValidationException::withMessages([
                 'geojson.type' => ['Only Polygon and MultiPolygon geometries are supported.'],
             ]);
@@ -162,7 +162,7 @@ final class TerritoryService
     {
         $territory = $this->effectiveTerritories($moment)->whereKey($id)->first();
 
-        if (! $territory instanceof ServiceTerritory) {
+        if (($territory instanceof ServiceTerritory) === false) {
             throw ValidationException::withMessages([
                 'territory_id' => ['Selected territory is not active for the requested effective time.'],
             ]);
@@ -239,7 +239,7 @@ final class TerritoryService
 
     private function pointInPolygon(mixed $polygon, float $x, float $y): bool
     {
-        if (! is_array($polygon) || $polygon === []) {
+        if (is_array($polygon) === false || $polygon === []) {
             return false;
         }
 
