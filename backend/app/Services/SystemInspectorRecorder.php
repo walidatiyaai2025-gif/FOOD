@@ -64,7 +64,7 @@ final class SystemInspectorRecorder
         $severity = ($payload['severity'] ?? null) === 'warning' ? 'warning' : 'error';
 
         $context = [];
-        foreach (['stack', 'filename', 'line', 'column', 'response_url'] as $key) {
+        foreach (['stack', 'filename', 'line', 'column', 'response_url', 'category'] as $key) {
             if (array_key_exists($key, $payload)) {
                 $context[$key] = $this->sanitizeContextValue($payload[$key], $key);
             }
