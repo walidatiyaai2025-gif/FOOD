@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\GeographyNode;
 use App\Models\ServiceTerritory;
-use App\Models\User;
 use App\Services\TerritoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
