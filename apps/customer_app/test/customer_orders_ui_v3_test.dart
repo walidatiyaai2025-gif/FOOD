@@ -37,7 +37,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('orders tabs keep V3 hierarchy under RTL and larger text',
+  testWidgets('orders keep compact reference hierarchy under RTL and larger text',
       (tester) async {
     final api = _FakeOrdersApi(
       responder: (channel, page) => Future.value(
@@ -57,19 +57,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('طلبات الجملة'), findsOneWidget);
-    expect(find.text('طلبات التجزئة'), findsOneWidget);
+    expect(find.text('طلباتي'), findsOneWidget);
     expect(find.text('WH-91'), findsOneWidget);
     expect(find.text('RT-92'), findsNothing);
-    expect(find.byIcon(Icons.warehouse_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.receipt_long_outlined), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byKey(const ValueKey('customer-orders-tab-b2c')));
+    await tester.drag(find.byType(TabBarView), const Offset(-320, 0));
     await tester.pumpAndSettle();
 
     expect(find.text('RT-92'), findsOneWidget);
     expect(find.text('WH-91'), findsNothing);
-    expect(find.byIcon(Icons.storefront_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.receipt_long_outlined), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -131,7 +130,7 @@ void main() {
     expect(find.text('RT-201'), findsNothing);
     expect(api.calls, contains('b2b:2'));
 
-    await tester.tap(find.byKey(const ValueKey('customer-orders-tab-b2c')));
+    await tester.drag(find.byType(TabBarView), const Offset(-320, 0));
     await tester.pumpAndSettle();
 
     expect(find.text('RT-201'), findsOneWidget);
@@ -190,12 +189,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('All (3)'), findsOneWidget);
-    expect(find.text('Delivered (1)'), findsOneWidget);
-    expect(find.text('Items: 1'), findsOneWidget);
+    expect(find.text('All'), findsOneWidget);
+    expect(find.text('Delivered'), findsOneWidget);
+    expect(find.text('Items: 1'), findsNothing);
     expect(
       find.byKey(const ValueKey('customer-order-reorder-301')),
-      findsOneWidget,
+      findsNothing,
     );
 
     await tester.tap(
@@ -204,6 +203,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(api.statusCalls, contains('b2b:delivered'));
+
+    await tester.longPress(find.byKey(const ValueKey('customer-order-301')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('customer-order-reorder-301')),
+      findsOneWidget,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey('customer-order-reorder-301')),
@@ -238,6 +244,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Order received'), findsOneWidget);
+    expect(find.textContaining('Pending customer-service approval'), findsNothing);
+
+    await tester.longPress(find.byKey(const ValueKey('customer-order-501')));
+    await tester.pumpAndSettle();
+
     expect(find.textContaining('Pending customer-service approval'), findsOneWidget);
     expect(find.textContaining('Account debt 70.000 KWD'), findsOneWidget);
     expect(find.textContaining('Balance applied: 30.000 KWD'), findsOneWidget);
@@ -274,13 +285,20 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.longPress(find.byKey(const ValueKey('customer-order-502')));
+    await tester.pumpAndSettle();
     expect(find.textContaining('Approval: Approved'), findsOneWidget);
     expect(find.textContaining('Due on delivery 15.500 KWD'), findsOneWidget);
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
 
     settled = true;
     await tester.tap(find.byKey(const ValueKey('customer-orders-refresh')));
     await tester.pumpAndSettle();
 
+    await tester.longPress(find.byKey(const ValueKey('customer-order-502')));
+    await tester.pumpAndSettle();
     expect(find.textContaining('Fully settled'), findsOneWidget);
     expect(find.textContaining('Due on delivery 15.500 KWD'), findsNothing);
   });
