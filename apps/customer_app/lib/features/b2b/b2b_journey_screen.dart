@@ -1651,7 +1651,7 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
     final hh = local.hour.toString().padLeft(2, '0');
     final mm = local.minute.toString().padLeft(2, '0');
     final ss = local.second.toString().padLeft(2, '0');
-    return _isoDate(local) + '  ' + hh + ':' + mm + ':' + ss;
+    return '${_isoDate(local)}  $hh:$mm:$ss';
   }
 
   Widget _periodTab({
@@ -1759,10 +1759,10 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
   Widget _filtersCard(BuildContext context) {
     final fromLabel = _from == null
         ? context.tr('b2b.top_products.from')
-        : context.tr('b2b.top_products.from') + ': ' + _isoDate(_from!);
+        : "${context.tr('b2b.top_products.from')}: ${_isoDate(_from!)}";
     final toLabel = _to == null
         ? context.tr('b2b.top_products.to')
-        : context.tr('b2b.top_products.to') + ': ' + _isoDate(_to!);
+        : "${context.tr('b2b.top_products.to')}: ${_isoDate(_to!)}";
 
     return Container(
       key: const ValueKey('b2b-top-products-filters'),
@@ -2063,35 +2063,24 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                           ),
                           _metricLine(
                             Icons.people_alt_outlined,
-                            context.tr('b2b.top_products.quantity') +
-                                ': ' +
-                                (quantity == null || quantity.isEmpty
-                                    ? '—'
-                                    : quantity),
+                            "${context.tr('b2b.top_products.quantity')}: "
+                            "${quantity == null || quantity.isEmpty ? '—' : quantity}",
                           ),
                           _metricLine(
                             Icons.shopping_basket_outlined,
-                            context.tr('b2b.top_products.spend') +
-                                ': ' +
-                                _amountWithCurrency(row['total'], currency),
+                            "${context.tr('b2b.top_products.spend')}: "
+                            "${_amountWithCurrency(row['total'], currency)}",
                           ),
                           _metricLine(
                             Icons.calendar_month_outlined,
-                            context.tr('b2b.top_products.last_purchase') +
-                                ': ' +
-                                _displayPurchaseDateTime(
-                                  row['last_purchased_at'],
-                                ),
+                            "${context.tr('b2b.top_products.last_purchase')}: "
+                            "${_displayPurchaseDateTime(row['last_purchased_at'])}",
                           ),
                           if (currentPrice != null)
                             _metricLine(
                               Icons.monetization_on_outlined,
-                              context.tr('b2b.top_products.current_price') +
-                                  ': ' +
-                                  _amountWithCurrency(
-                                    currentPrice,
-                                    currentCurrency,
-                                  ),
+                              "${context.tr('b2b.top_products.current_price')}: "
+                              "${_amountWithCurrency(currentPrice, currentCurrency)}",
                             ),
                         ],
                       ),
@@ -2267,9 +2256,7 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                         label: Text(context.tr('b2b.top_products.previous')),
                       ),
                       Text(
-                        context.tr('b2b.top_products.page') +
-                            ' ' +
-                            currentPage.toString(),
+                        "${context.tr('b2b.top_products.page')} $currentPage",
                         key: const ValueKey('b2b-top-products-page'),
                         style: const TextStyle(
                           color: CustomerUiColors.inkSoft,
@@ -2297,7 +2284,7 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
     final year = value.year.toString().padLeft(4, '0');
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
-    return year + '-' + month + '-' + day;
+    return '$year-$month-$day';
   }
 }
 
