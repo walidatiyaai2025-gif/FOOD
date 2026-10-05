@@ -10,9 +10,9 @@ use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\AuditLogger;
-use App\Services\InvoiceService;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
+use App\Services\InvoiceService;
 use App\Services\ReportExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -131,7 +131,8 @@ class B2bFinanceController extends Controller
         Request $request,
         Invoice $invoice,
         InvoiceService $invoices,
-    ): Response {
+    ): Response
+    {
         $customer = $this->approvedCustomer($request);
         $requestedStoreId = $this->storeId($request);
         abort_unless(
