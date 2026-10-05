@@ -213,24 +213,23 @@ final class CustomerDomainResolver
     /** @return array{0: B2bCustomer|B2cCustomer, 1: string} */
     public function profile(User $user, Request $request): array
     {
+        $requestedDomain = strtolower(trim((string) (
+            $request->input('customer_domain')
+            ?? $request->query('channel')
+            ?? $request->header('X-FOODEX-Customer-Domain', '')
+        )));
         $requestedStoreId = $this->requestedStoreId($request);
+
+        if ($requestedDomain === 'b2b') {
+            return [$this->b2bFromRequest($user, $request), 'b2b'];
+        }
+
         if ($requestedStoreId !== null) {
             return [$this->b2c($user, $requestedStoreId), 'b2c'];
         }
 
         $b2b = $this->existingB2b($user);
         $b2cStoreIds = $this->b2c->storeIdsForUser($user);
-        $requestedDomain = strtolower(trim((string) (
-            $request->input('customer_domain')
-            ?? $request->query('channel')
-            ?? $request->header('X-FOODEX-Customer-Domain', '')
-        )));
-
-        if ($requestedDomain === 'b2b') {
-            abort_unless($b2b instanceof B2bCustomer, 404);
-
-            return [$b2b, 'b2b'];
-        }
 
         if ($requestedDomain === 'b2c') {
             abort_if(count($b2cStoreIds) !== 1, 409, 'Select a retail store.');
@@ -363,6 +362,7 @@ final class CustomerDomainResolver
             $request->input('store_id'),
             $request->query('store'),
             $request->header('X-FOODEX-Store-ID'),
+            $request->header('X-FOODEX-Retail-Store-ID'),
         ] as $value) {
             if (is_numeric($value) && (int) $value > 0) {
                 return (int) $value;
