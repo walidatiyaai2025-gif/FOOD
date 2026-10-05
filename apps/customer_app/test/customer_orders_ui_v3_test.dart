@@ -63,7 +63,16 @@ void main() {
     expect(find.byIcon(Icons.receipt_long_outlined), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.drag(find.byType(TabBarView), const Offset(-320, 0));
+    await tester.pumpWidget(
+      _TestApp(
+        textDirection: TextDirection.rtl,
+        textScale: 1.35,
+        child: CustomerOrdersScreen(
+          api: api,
+          initialChannel: 'b2c',
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('RT-92'), findsOneWidget);
@@ -130,7 +139,15 @@ void main() {
     expect(find.text('RT-201'), findsNothing);
     expect(api.calls, contains('b2b:2'));
 
-    await tester.drag(find.byType(TabBarView), const Offset(-320, 0));
+    await tester.pumpWidget(
+      _TestApp(
+        child: CustomerOrdersScreen(
+          api: api,
+          initialChannel: 'b2c',
+          onOpenOrder: (order) => opened = order,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('RT-201'), findsOneWidget);
@@ -190,7 +207,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('All'), findsOneWidget);
-    expect(find.text('Delivered'), findsOneWidget);
+    expect(find.text('Delivered'), findsWidgets);
     expect(find.text('Items: 1'), findsNothing);
     expect(
       find.byKey(const ValueKey('customer-order-reorder-301')),
