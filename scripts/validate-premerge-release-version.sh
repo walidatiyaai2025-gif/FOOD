@@ -34,7 +34,17 @@ if [[ "${driver_identity%%+*}" != "$current_version" ]]; then
 fi
 
 runtime_changed=false
-if git diff --name-only "$base" "$head" | grep -Eq '^(backend/|apps/customer_app/|apps/driver_app/)'; then
+if [[ "$head" == "WORKTREE" ]]; then
+  changed="$(
+    {
+      git diff --name-only "$base"
+      git ls-files --others --exclude-standard
+    } | sort -u
+  )"
+else
+  changed="$(git diff --name-only "$base" "$head")"
+fi
+if grep -Eq '^(backend/|apps/customer_app/|apps/driver_app/)' <<<"$changed"; then
   runtime_changed=true
 fi
 
