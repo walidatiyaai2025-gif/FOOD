@@ -7,6 +7,28 @@ import 'package:http/http.dart' as http;
 import '../../../core/config/foodex_environment.dart';
 import '../commerce/retail_commerce_api.dart';
 
+class CustomerFlashSellingUnit {
+  const CustomerFlashSellingUnit({
+    required this.id,
+    required this.label,
+    required this.conversionFactor,
+    required this.flashPrice,
+  });
+
+  final int id;
+  final String label;
+  final double conversionFactor;
+  final double flashPrice;
+
+  factory CustomerFlashSellingUnit.fromMap(Map<String, dynamic> map) =>
+      CustomerFlashSellingUnit(
+        id: _int(map['id']),
+        label: map['label']?.toString() ?? map['name']?.toString() ?? '',
+        conversionFactor: _double(map['conversion_factor']),
+        flashPrice: _double(map['flash_price']),
+      );
+}
+
 class CustomerFlashOffer {
   const CustomerFlashOffer({
     required this.id,
@@ -20,6 +42,7 @@ class CustomerFlashOffer {
     required this.remainingAllocation,
     required this.remainingCustomerLimit,
     required this.eligible,
+    required this.sellingUnits,
     this.imageUrl,
   });
 
@@ -34,6 +57,7 @@ class CustomerFlashOffer {
   final int remainingAllocation;
   final int remainingCustomerLimit;
   final bool eligible;
+  final List<CustomerFlashSellingUnit> sellingUnits;
   final String? imageUrl;
 
   Duration remainingAt(DateTime localNow) {
@@ -56,6 +80,13 @@ class CustomerFlashOffer {
       remainingAllocation: _int(map['remaining_allocation']),
       remainingCustomerLimit: _int(map['remaining_customer_limit']),
       eligible: map['eligible'] != false,
+      sellingUnits: _list(map['selling_units'])
+          .whereType<Map>()
+          .map((row) => CustomerFlashSellingUnit.fromMap(
+                Map<String, dynamic>.from(row),
+              ))
+          .where((unit) => unit.id > 0)
+          .toList(growable: false),
       imageUrl: map['image_url']?.toString(),
     );
   }
@@ -102,6 +133,7 @@ abstract interface class CustomerFlashOffersApi {
     required int storeId,
     required int offerId,
     required int quantity,
+    int? sellingUnitId,
   });
   Future<RetailCheckoutOptions> checkoutOptions({required int storeId});
   Future<RetailCreatedOrder> confirm({
@@ -177,6 +209,7 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
     required int storeId,
     required int offerId,
     required int quantity,
+    int? sellingUnitId,
   }) async {
     if (token == null || token!.trim().isEmpty) {
       throw const RetailCommerceException('authentication_required');
@@ -192,6 +225,8 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
         'store_id': storeId,
         'channel': 'customer',
         'quantity': quantity,
+        if (sellingUnitId != null && sellingUnitId > 0)
+          'selling_unit_id': sellingUnitId,
       }),
     );
     final body = _decode(response);
@@ -301,6 +336,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   bool _busy = true;
   Timer? _ticker;
   DateTime _now = DateTime.now();
+  final Map<int, int> _selectedUnits = <int, int>{};
 
   bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
 
@@ -368,6 +404,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
         storeId: widget.storeId,
         offerId: offer.id,
         quantity: 1,
+        sellingUnitId: _selectedUnits[offer.id] ??
+            (offer.sellingUnits.isNotEmpty ? offer.sellingUnits.first.id : null),
       );
       if (!mounted) return;
       setState(() => _reservation = reservation);
@@ -481,6 +519,41 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                           const Spacer(),
                           Text(_duration(remaining)),
                         ],
+                      ),
+                      if (offer.sellingUnits.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<int>(
+                          value: _selectedUnits[offer.id] ??
+                              offer.sellingUnits.first.id,
+                          decoration: InputDecoration(
+                            labelText: _ar ? 'وحدة البيع' : 'Selling unit',
+                          ),
+                          items: offer.sellingUnits
+                              .map(
+                                (unit) => DropdownMenuItem<int>(
+                                  value: unit.id,
+                                  child: Text(
+                                    unit.label.isEmpty
+                                        ? (_ar ? 'وحدة' : 'Unit')
+                                        : unit.label,
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: _busy
+                              ? null
+                              : (value) {
+                                  if (value == null) return;
+                                  setState(() => _selectedUnits[offer.id] = value);
+                                },
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      Text(
+                        _ar
+                            ? 'المتبقي لك: ${offer.remainingCustomerLimit} · المتاح: ${offer.remainingAllocation}'
+                            : 'Your remaining limit: ${offer.remainingCustomerLimit} · Available: ${offer.remainingAllocation}',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 12),
                       FilledButton(
@@ -753,6 +826,9 @@ String _duration(Duration value) {
 
 int _int(Object? value) =>
     value is int ? value : int.tryParse(value?.toString() ?? '') ?? 0;
+
+List<Object?> _list(Object? value) =>
+    value is List ? List<Object?>.from(value) : const <Object?>[];
 
 double _double(Object? value) =>
     value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
