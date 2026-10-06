@@ -9,6 +9,7 @@ use App\Services\FlashOfferService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class FlashOfferBackendTest extends TestCase
@@ -145,7 +146,7 @@ class FlashOfferBackendTest extends TestCase
         [, $product] = $this->offer();
         DB::table('flash_offers')->update(['ends_at' => now()->subSecond(), 'status' => 'active']);
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
         $this->expectExceptionMessage('FLASH_NOT_ACTIVE');
 
         app(FlashOfferService::class)->reserve(
