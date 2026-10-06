@@ -209,7 +209,7 @@ class B2bJourneyScreen extends StatelessWidget {
             context.tr('b2b.app.title'),
             style: const TextStyle(
               color: CustomerUiColors.white,
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -843,11 +843,17 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     onTap: () => Navigator.of(context).pushNamed(_scopedRoute(route)),
   );
 
-  String _shortTimestamp(String? raw) {
+  String _shortTimestamp(BuildContext context, String? raw) {
     final date = raw == null ? null : DateTime.tryParse(raw);
     if (date == null) return raw ?? '—';
-    final rendered = date.toIso8601String();
-    return '${rendered.substring(0, 10)} ${rendered.substring(11, 16)}';
+    final local = date.toLocal();
+    final localizations = MaterialLocalizations.of(context);
+    final dateLabel = localizations.formatCompactDate(local);
+    final timeLabel = localizations.formatTimeOfDay(
+      TimeOfDay.fromDateTime(local),
+      alwaysUse24HourFormat: true,
+    );
+    return '$dateLabel $timeLabel';
   }
 
   Widget _identity(BuildContext context, Map<Object?, Object?> customer,
@@ -879,7 +885,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
           Tooltip(
             message: '${context.tr('b2b.dashboard.last_updated')}: ${generatedAt ?? '—'}',
             child: Text(
-              '${context.tr('b2b.dashboard.last_updated')}: \u2066${_shortTimestamp(generatedAt)}\u2069',
+              '${context.tr('b2b.dashboard.last_updated')}: \u2066${_shortTimestamp(context, generatedAt)}\u2069',
               key: const ValueKey('b2b-dashboard-last-updated'),
               maxLines: 2,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.1, color: CustomerUiColors.muted),
@@ -2531,7 +2537,7 @@ class _PurchaseReportRemoteStateState
                 Card(
                   key: const ValueKey('b2b-purchases-empty'),
                   child: Padding(
-                    padding: const EdgeInsets.all(18),
+                    padding: const EdgeInsets.all(14),
                     child: Text(context.tr('b2b.purchase_reports.empty')),
                   ),
                 ),
@@ -3890,7 +3896,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
               if (widget.onLocaleChanged != null)
                 ListTile(
                   leading: const Icon(Icons.language_rounded),
-                  title: Text(ar ? 'اللغة' : 'Language'),
+                  title: Text(context.tr('b2b.profile.language')),
                   trailing: SegmentedButton<String>(
                     segments: const [
                       ButtonSegment(value: 'ar', label: Text('ع')),
@@ -3905,7 +3911,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                 ),
               ListTile(
                 leading: const Icon(Icons.support_agent_outlined),
-                title: Text(ar ? 'المساعدة والدعم' : 'Help & support'),
+                title: Text(context.tr('b2b.profile.support')),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -3916,7 +3922,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                 ListTile(
                   key: const ValueKey('b2b-more-security-action'),
                   leading: const Icon(Icons.security_outlined),
-                  title: Text(ar ? 'الأمان وتسجيل الدخول' : 'Security & sign-in'),
+                  title: Text(context.tr('b2b.profile.security')),
                   trailing: const Icon(Icons.logout_rounded),
                   onTap: () async {
                     Navigator.pop(sheetContext);
@@ -3934,19 +3940,19 @@ class _B2bMorePageState extends State<_B2bMorePage> {
   Widget build(BuildContext context) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     final items = <_MoreItem>[
-      _MoreItem(Icons.apartment_rounded, ar ? 'بيانات الشركة' : 'Company details', _showProfile),
-      _MoreItem(Icons.account_balance_wallet_rounded, ar ? 'الحساب المالي' : 'Financial account', () => _open(widget.dashboardRoute)),
-      _MoreItem(Icons.shopping_bag_outlined, ar ? 'طلباتي' : 'My orders', () => _open(widget.ordersRoute)),
-      _MoreItem(Icons.receipt_long_rounded, ar ? 'الفواتير' : 'Invoices', () => _open(widget.invoicesRoute), warm: true),
-      _MoreItem(Icons.credit_card_rounded, ar ? 'كشف الحساب' : 'Account statement', () => _open(widget.statementRoute)),
-      _MoreItem(Icons.bar_chart_rounded, ar ? 'تقرير المشتريات' : 'Purchases report', () => _open(widget.purchasesRoute)),
-      _MoreItem(Icons.notifications_rounded, ar ? 'الإشعارات' : 'Notifications', () => _open(widget.notificationsRoute), warm: true),
-      _MoreItem(Icons.location_on_rounded, ar ? 'العناوين' : 'Addresses', () => _open(widget.addressesRoute)),
-      _MoreItem(Icons.settings_rounded, ar ? 'الإعدادات' : 'Settings', _showSettings),
-      _MoreItem(Icons.language_rounded, ar ? 'اللغة' : 'Language', _showSettings),
-      _MoreItem(Icons.support_agent_rounded, ar ? 'المساعدة والدعم' : 'Help & support', () => _open(CustomerRoutePaths.diagnostics)),
+      _MoreItem(Icons.apartment_rounded, context.tr('b2b.profile.company'), _showProfile),
+      _MoreItem(Icons.account_balance_wallet_rounded, context.tr('b2b.profile.financial'), () => _open(widget.dashboardRoute)),
+      _MoreItem(Icons.shopping_bag_outlined, context.tr('b2b.profile.orders'), () => _open(widget.ordersRoute)),
+      _MoreItem(Icons.receipt_long_rounded, context.tr('b2b.finance.invoices'), () => _open(widget.invoicesRoute), warm: true),
+      _MoreItem(Icons.credit_card_rounded, context.tr('b2b.finance.statement'), () => _open(widget.statementRoute)),
+      _MoreItem(Icons.bar_chart_rounded, context.tr('b2b.profile.purchases_report'), () => _open(widget.purchasesRoute)),
+      _MoreItem(Icons.notifications_rounded, context.tr('b2b.profile.notifications'), () => _open(widget.notificationsRoute), warm: true),
+      _MoreItem(Icons.location_on_rounded, context.tr('b2b.profile.addresses'), () => _open(widget.addressesRoute)),
+      _MoreItem(Icons.settings_rounded, context.tr('b2b.profile.settings'), _showSettings),
+      _MoreItem(Icons.language_rounded, context.tr('b2b.profile.language'), _showSettings),
+      _MoreItem(Icons.support_agent_rounded, context.tr('b2b.profile.support'), () => _open(CustomerRoutePaths.diagnostics)),
       if (widget.onLogout != null)
-        _MoreItem(Icons.shield_rounded, ar ? 'الأمان وتسجيل الدخول' : 'Security & sign-in', _showSettings),
+        _MoreItem(Icons.shield_rounded, context.tr('b2b.profile.security'), _showSettings),
     ];
 
     return Directionality(
@@ -3957,7 +3963,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
         body: Column(
           children: [
             _MoreHeader(
-              title: ar ? 'فودكس للأعمال' : 'FOODEX Business',
+              title: context.tr('b2b.app.title'),
               cart: cart,
               notifications: notifications,
               cartCount: _cartCount,
@@ -3975,22 +3981,24 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                     Align(
                       alignment: ar ? Alignment.centerRight : Alignment.centerLeft,
                       child: _BusinessTile(
-                        label: ar ? 'لوحة الأعمال' : 'Business dashboard',
+                        label: context.tr('b2b.dashboard.title'),
                         onTap: () => _open(widget.dashboardRoute),
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      ar ? 'حساب الأعمال' : 'Business account',
+                      context.tr('b2b.profile.title'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: ink,
-                        fontSize: 27,
+                        fontSize: 22,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      ar ? 'كل أدوات حسابك في مكان واحد' : 'All your account tools in one place',
+                      context.tr('b2b.profile.hub_subtitle'),
                       style: const TextStyle(
                         color: muted,
                         fontSize: 14,
@@ -4020,7 +4028,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                             for (final item in items)
                               SizedBox(
                                 width: width,
-                                height: 128,
+                                height: 112,
                                 child: _MoreCard(item: item),
                               ),
                           ],
@@ -4051,9 +4059,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                         key: const ValueKey('b2b-profile-security-action'),
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.security_outlined),
-                        title: Text(
-                          ar ? 'الأمان وتسجيل الدخول' : 'Security & sign-in',
-                        ),
+                        title: Text(context.tr('b2b.profile.security')),
                         trailing: const Icon(Icons.chevron_left_rounded),
                         onTap: _showSettings,
                       ),
@@ -4061,7 +4067,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                         key: const ValueKey('b2b-profile-logout'),
                         onPressed: widget.onLogout,
                         icon: const Icon(Icons.logout_rounded),
-                        label: Text(ar ? 'تسجيل الخروج' : 'Sign out'),
+                        label: Text(context.tr('customer.logout')),
                       ),
                     ],
                   ],
@@ -4177,7 +4183,7 @@ class _MoreHeader extends StatelessWidget {
                     onPressed: () => Navigator.of(context).maybePop(),
                     icon: const Icon(Icons.arrow_forward_rounded),
                     color: Colors.white,
-                    iconSize: 30,
+                    iconSize: 26,
                   ),
                 ),
               ],
@@ -5151,8 +5157,8 @@ class _B2bAccountStatementRemoteStateState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(14),
@@ -5162,7 +5168,7 @@ class _B2bAccountStatementRemoteStateState
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -5175,7 +5181,9 @@ class _B2bAccountStatementRemoteStateState
                       Text(
                         '$direction · ${_money(closing.abs(), currency)}',
                         key: const ValueKey('b2b-statement-closing-value'),
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w900,
                             ),
                       ),
@@ -5330,7 +5338,7 @@ class _B2bAccountStatementRemoteStateState
       );
 
   Widget _summaryCard(String keyName, String label, String value) => SizedBox(
-        width: 190,
+        width: 172,
         child: Card(
           key: ValueKey('b2b-statement-summary-$keyName'),
           child: Padding(
@@ -5342,7 +5350,9 @@ class _B2bAccountStatementRemoteStateState
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                 ),

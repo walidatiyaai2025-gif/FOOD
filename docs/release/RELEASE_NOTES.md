@@ -1,33 +1,37 @@
-# FOODEX 1.0.56 Release Notes
+# FOODEX 1.0.57 Release Notes
 
-Status: owner-approved Dashboard update after green #924 / PR #925 integration.
+Status: Issue #943 release package generated and verified — existing client UI/UX normalization and Dashboard map silent refresh.
+
+Release branch: `release/1.0.57-update`.
 
 ## Release identity
 
-- Dashboard: `1.0.56`
-- Customer app: `1.0.56+56`
-- Driver app: `1.0.56+56`
-- Customer runtime/footer identity: `1.0.56`
-- Driver runtime/footer identity: `1.0.56`
-- Driver diagnostics current identity: `1.0.56`
-- Driver diagnostics build identity: `56`
+- Dashboard: `1.0.57`
+- Customer app: `1.0.57+57`
+- Driver app: `1.0.57+57`
+- Customer runtime/footer identity: `1.0.57`
+- Driver runtime/footer identity: `1.0.57`
+- Driver diagnostics current identity: `1.0.57`
+- Driver diagnostics build identity: `57`
 
 ## Included changes
 
-- Catalog Products UI redesign: compact one-row product grid, contextual action menu, store-configured currency, and preserved backend business rules.
-- Customer 360 redesign: Finance-first tabs, secure editable Wholesale Credit Limit backed by `b2b_accounts.credit_limit`, audited updates, and automatic propagation through the existing account-summary/ledger calculations.
-- Customer address editing: map picker replaces manual latitude/longitude entry; selecting or moving a pin stores coordinates automatically through the existing address contract.
-- B2B Orders UX: prominent Create Order button opens the existing multi-product creation flow in a modal; Arabic status/payment labels are localized while authoritative quote, stock, pricing and order rules remain unchanged.
-- Operations Orders cleanup: driver actions are removed from the orders grid while driver business logic remains available in its dedicated management surfaces.
-- Reliability fixes integrated with #924: Inspector/CSRF error normalization, bounded Customer/Driver retries and backoff, invoice PDF authorization/runtime hardening, preview unavailable-state handling, live polling cooldowns, and B2B finance query optimization.
+- Normalize existing Customer UI typography, spacing, badges, headers, order cards, finance/statement density and contextual loading/error surfaces without creating new screens, routes or flows.
+- Preserve Arabic RTL and English LTR behavior, use the existing localization resources for the More/Profile labels touched by this release, and localize Dashboard date/time display.
+- Keep all product/order/invoice/finance values and currency authoritative to existing backend/store data; no business values are hardcoded.
+- Keep the Dashboard Driver map mounted during background refreshes, retain the last successful markers on refresh failure, suppress overlapping refresh work, reserve stable status space, and clean up polling/network activity on page leave.
+- Add regression coverage for silent map refresh, last-success preservation, duplicate-refresh suppression and disposal.
 
 ## Dashboard update bundle
 
-- Target version: `1.0.56`
+- Package: `Release/Updates/FOODEX-Update.zip`
+- Actions artifact: `FOODEX-Update-1.0.57`
+- Target version: `1.0.57`
 - Minimum current version: `1.0.6`
 - Contains migrations: `true`
 - Requires full redeploy: `false`
-- SHA-256: `4533e9bcd17476bbc7f4300bc34bdde627d9fc8a325bc5904f7b726805374dd4`
+- SHA-256: `ae1481abaab54131791cbb87879b963ee53bb31a01e4190ec3b181214aa640e7`
+- Generated through the repository's existing `release/1.0.57-update` cumulative Dashboard update workflow.
 
 ## Explicit non-activation statement
 

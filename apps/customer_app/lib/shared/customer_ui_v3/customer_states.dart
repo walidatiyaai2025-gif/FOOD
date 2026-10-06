@@ -119,7 +119,7 @@ class CustomerStateView extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(CustomerUiSpacing.xl),
+        padding: const EdgeInsets.all(CustomerUiSpacing.md),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: Column(
@@ -131,15 +131,17 @@ class CustomerStateView extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: SizedBox.square(
-                  dimension: 68,
-                  child: Icon(stateIcon, color: stateColor, size: 32),
+                  dimension: 52,
+                  child: Icon(stateIcon, color: stateColor, size: 24),
                 ),
               ),
-              const SizedBox(height: CustomerUiSpacing.md),
+              const SizedBox(height: CustomerUiSpacing.sm),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
               if (message?.trim().isNotEmpty == true) ...[
                 const SizedBox(height: CustomerUiSpacing.xs),
@@ -152,7 +154,7 @@ class CustomerStateView extends StatelessWidget {
                 ),
               ],
               if (actionLabel?.trim().isNotEmpty == true && onAction != null) ...[
-                const SizedBox(height: CustomerUiSpacing.lg),
+                const SizedBox(height: CustomerUiSpacing.md),
                 OutlinedButton(
                   onPressed: onAction,
                   child: Text(actionLabel!),
