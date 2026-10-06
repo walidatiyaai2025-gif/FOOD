@@ -591,6 +591,47 @@ class OrderController extends Controller
             ->orderByDesc('id')
             ->first();
 
+        $invoiceAmounts = $invoice instanceof Invoice
+            ? app(B2bAccountLedgerService::class)->invoiceAmounts($invoice)
+            : null;
+
+        $collectionReceipts = $invoice instanceof Invoice
+            ? DB::table('collection_allocations')
+                ->join(
+                    'collection_transactions',
+                    'collection_transactions.id',
+                    '=',
+                    'collection_allocations.collection_transaction_id',
+                )
+                ->where('collection_allocations.invoice_id', $invoice->getKey())
+                ->where('collection_transactions.type', 'collection')
+                ->where('collection_transactions.status', 'posted')
+                ->orderByDesc('collection_transactions.created_at')
+                ->orderByDesc('collection_transactions.id')
+                ->get([
+                    'collection_transactions.id',
+                    'collection_transactions.payment_id',
+                    'collection_transactions.status',
+                    'collection_transactions.source',
+                    'collection_transactions.created_at as collected_at',
+                    'collection_allocations.amount as allocated_amount',
+                    'collection_allocations.currency',
+                ])
+                ->map(static fn (object $receipt): array => [
+                    'id' => (int) $receipt->id,
+                    'payment_id' => $receipt->payment_id === null ? null : (int) $receipt->payment_id,
+                    'status' => (string) $receipt->status,
+                    'amount' => (float) $receipt->allocated_amount,
+                    'currency' => (string) $receipt->currency,
+                    'source' => (string) $receipt->source,
+                    'collected_at' => $receipt->collected_at === null
+                        ? null
+                        : CarbonImmutable::parse((string) $receipt->collected_at)->toAtomString(),
+                ])
+                ->values()
+                ->all()
+            : [];
+
         $tracking = null;
         if ($includeTimeline) {
             $tracking = DB::table('driver_assignments')
@@ -672,10 +713,15 @@ class OrderController extends Controller
                 'id' => (int) $invoice->getKey(),
                 'invoice_number' => (string) $invoice->invoice_number,
                 'status' => (string) $invoice->status,
+                'total' => (float) $invoiceAmounts['invoice_total'],
+                'paid_amount' => (float) $invoiceAmounts['paid_amount'],
+                'outstanding_amount' => (float) $invoiceAmounts['outstanding_amount'],
+                'credit_amount' => (float) $invoiceAmounts['credit_amount'],
                 'issued_at' => $invoice->issued_at === null
                     ? null
                     : CarbonImmutable::parse((string) $invoice->issued_at)->toAtomString(),
             ] : null,
+            'collection_receipts' => $collectionReceipts,
             'tracking' => $tracking === null ? null : [
                 'assignment_id' => (int) $tracking->id,
                 'driver_id' => (int) $tracking->driver_id,
