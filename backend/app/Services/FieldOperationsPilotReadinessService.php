@@ -60,7 +60,6 @@ final class FieldOperationsPilotReadinessService
         ];
     }
 
-    /** @param array<string,string|int> $scope */
     public function activate(User $actor, string $scopeType, string $scopeKey, ?string $reason = null, ?Request $request = null): array
     {
         $scope = [$scopeType => $scopeKey];
