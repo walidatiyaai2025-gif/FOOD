@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "release/**"
     paths:
       - ".github/workflows/trial-distribution.yml"
       - "VERSION"
@@ -23,7 +24,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: foodex-trial-distribution-main
+  group: foodex-trial-distribution-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
