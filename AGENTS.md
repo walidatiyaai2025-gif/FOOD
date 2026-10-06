@@ -25,13 +25,14 @@ Core invariants include:
 - Add/Create actions use clear FOODEX primary buttons and Modal/Drawer/Wizard workflows.
 - Manage/Edit/View actions open the exact record directly rather than redirecting to a generic list.
 - Dashboard action buttons use FOODEX green with white text; default Bootstrap-looking action buttons are not acceptable.
-- Data grids follow the Orders-grid interaction model with useful row data and clear row actions.
+- Data grids follow the Orders-grid interaction model with useful row data; row actions use one compact FOODEX-green three-dots (ellipsis) menu containing the available actions.
 - Business users must never be asked to type internal database IDs, keys, technical codes, or raw JSON when a Lookup, Enum, or Builder is appropriate.
 - Every Lookup must read from its authoritative Master Data source/page; do not hard-code managed Master Data into dropdowns.
 - Geography/Territories are map-first for business users; raw GeoJSON/keys remain advanced/internal.
 - Administration opens as an icon/card Admin Hub rather than a long nested link list.
 - Customer, Driver and Van are three first-class FOODEX applications; app-level capabilities require parity evaluation across all three.
 - Arabic/English, responsive behavior and shared FOODEX components are acceptance requirements.
+- Customer / Driver / Van mobile layouts are data-first and compact: title + subtitle must consume only a minimal footprint (target ~1% of usable page area), Start/End filters + action stay on one line, order numbers never wrap, screens use the available viewport, and list/grid rows remain compact.
 
 A worker must classify every business-facing field before implementation as Lookup, Enum, Builder, legitimate free input, or advanced technical input. Raw IDs/keys/JSON are never the default UI simply because the backend accepts them.
 
