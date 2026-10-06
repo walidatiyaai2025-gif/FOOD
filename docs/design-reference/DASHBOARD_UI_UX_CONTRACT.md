@@ -372,3 +372,71 @@ For every Customer / Driver / Van screen, review must explicitly verify:
 - Arabic and English layouts preserve the same density and behavior.
 
 A mobile feature is incomplete if it wastes large parts of the viewport on headers, filters, padding or oversized rows.
+
+
+---
+
+## 15. Remember Me + Biometric unlock contract - Customer / Driver / Van
+
+This capability is mandatory to evaluate and implement consistently across all three FOODEX mobile applications:
+
+1. Customer
+2. Driver
+3. Van
+
+### 15.1 User experience
+
+After a successful username/password sign-in, the user may opt in to:
+
+- **Remember Me**: keep the authenticated session available on the device according to the product/session policy.
+- **Biometric Unlock**: use the device biometric mechanism (fingerprint / face / platform-supported biometric) to reopen the app without entering username and password every time.
+
+The user must be able to enable or disable these options from the login/profile/security experience.
+
+### 15.2 Security model
+
+Biometrics must unlock a securely stored session/credential artifact. The application must **not** store the user's plaintext password for biometric sign-in.
+
+Use platform secure storage / keystore / keychain mechanisms for persistent secrets or refresh/session tokens.
+
+Biometric authentication is device-local confirmation; backend authorization, tenant/store/channel permissions and session validity remain authoritative.
+
+### 15.3 Fallback and invalidation
+
+Require full username/password sign-in again when appropriate, including when:
+
+- the remembered session/token expires or is revoked;
+- the user explicitly signs out;
+- account/security policy requires reauthentication;
+- secure storage cannot be read;
+- device biometric enrollment/security state changes in a way that invalidates stored access;
+- the backend rejects the stored session.
+
+The login screen must always provide a normal credential fallback.
+
+### 15.4 Logout / account safety
+
+A full Sign Out must clear the remembered authenticated session and any local biometric unlock material associated with that account, unless product policy explicitly distinguishes a safe remembered account identifier from authentication material.
+
+Do not let biometric UI bypass server-side authorization or disabled-account checks.
+
+### 15.5 Three-app parity gate
+
+Any change to login/session/Remember Me/biometric behavior must be reviewed for **Customer + Driver + Van** in the same implementation plan.
+
+If platform support or a business role creates a justified difference, document the exception explicitly.
+
+### 15.6 Acceptance checks
+
+For each of Customer, Driver and Van verify:
+
+- first login with username/password works;
+- Remember Me is opt-in and behaves according to session policy;
+- biometric opt-in is available after successful authentication;
+- biometric unlock opens the authenticated experience without requesting credentials again while the session is valid;
+- failed/cancelled biometric returns safely to login/unlock state;
+- expired/revoked session falls back to full login;
+- Sign Out removes authentication material;
+- no plaintext password is persisted;
+- Android/iOS behavior is validated where the app supports those platforms;
+- Arabic/English labels and accessibility are covered.
