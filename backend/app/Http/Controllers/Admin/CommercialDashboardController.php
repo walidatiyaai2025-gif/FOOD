@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\DB;
 
 final class CommercialDashboardController extends Controller
 {
-    public function __construct(private readonly AdminNavigation $navigation) {}
+    public function __construct(
+        private readonly AdminNavigation $navigation,
+    ) {}
 
     public function salesControl(Request $request): View
     {
@@ -76,12 +78,8 @@ final class CommercialDashboardController extends Controller
     private function hasApiContract(string $needle): bool
     {
         return collect(app('router')->getRoutes()->getRoutes())
-            ->contains(function (IlluminateRoute $route) use ($needle): bool {
-                $uri = strtolower($route->uri());
-
-                return str_starts_with($uri, 'api/')
-                    && str_contains($uri, $needle);
-            });
+            ->contains(fn (IlluminateRoute $route): bool => str_starts_with(strtolower($route->uri()), 'api/')
+                && str_contains(strtolower($route->uri()), $needle));
     }
 
     /**
