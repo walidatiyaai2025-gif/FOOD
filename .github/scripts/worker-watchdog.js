@@ -55,6 +55,14 @@ const LABELS = {
   'gate:approval': ['B60205', 'Requires explicit human approval before proceeding'],
 };
 
+function isRateLimitError(error) {
+  if (!error || error.status !== 403) return false;
+  const headers = error.response?.headers || {};
+  const remaining = headers['x-ratelimit-remaining'] ?? headers['X-RateLimit-Remaining'];
+  const message = String(error.response?.data?.message || error.message || '').toLowerCase();
+  return String(remaining) === '0' || message.includes('rate limit exceeded');
+}
+
 function parseWorkerState(text) {
   if (!text || !text.includes(STATE_MARKER)) return null;
   const after = text.slice(text.lastIndexOf(STATE_MARKER) + STATE_MARKER.length);
@@ -432,12 +440,25 @@ async function workflowState(github, owner, repo, pr) {
 
 async function run({ github, context, core, nowMs = Date.now() }) {
   const { owner, repo } = context.repo;
-  await ensureLabels(github, owner, repo, core);
 
-  const [issues, pulls] = await Promise.all([
-    github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 }),
-    github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 }),
-  ]);
+  let issues;
+  let pulls;
+  try {
+    await ensureLabels(github, owner, repo, core);
+    [issues, pulls] = await Promise.all([
+      github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 }),
+      github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 }),
+    ]);
+  } catch (error) {
+    if (!isRateLimitError(error)) throw error;
+
+    const reset = error.response?.headers?.['x-ratelimit-reset'];
+    const resetText = reset
+      ? new Date(Number(reset) * 1000).toISOString()
+      : 'unknown';
+    core.warning(`Worker Watchdog deferred: GitHub API rate limit exhausted; reset=${resetText}. Repository state was not modified.`);
+    return { deferred: true, reason: 'github-api-rate-limit', reset: resetText };
+  }
 
   const openIssues = issues.filter(issue => !issue.pull_request);
   const prByIssue = new Map();
@@ -555,6 +576,7 @@ module.exports = {
   classify,
   executionActivityMillis,
   handoffComment,
+  isRateLimitError,
   linkedIssueNumbers,
   minutesSince,
   parseWorkerState,
