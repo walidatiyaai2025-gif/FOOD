@@ -138,7 +138,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'FOODEX Van',
+      title: widget.locale.languageCode == 'ar' ? 'فودكس للفان' : 'FOODEX Van',
       theme: FoodexVanTheme.light(),
       locale: widget.locale,
       supportedLocales: const [Locale('ar'), Locale('en')],
