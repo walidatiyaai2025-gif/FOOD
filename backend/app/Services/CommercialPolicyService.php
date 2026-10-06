@@ -462,7 +462,7 @@ final class CommercialPolicyService
     /**
      * Write selling-unit facts into an order line so later configuration changes cannot alter history.
      *
-     * @param array<string,mixed> $sellingUnit
+     * @param  array<string,mixed>  $sellingUnit
      */
     public function snapshotOrderItem(int $orderItemId, array $sellingUnit): void
     {
@@ -567,8 +567,8 @@ final class CommercialPolicyService
     }
 
     /**
-     * @param list<object> $result
-     * @param list<object> $variants
+     * @param  list<object>  $result
+     * @param  list<object>  $variants
      */
     private function appendRuleVariants(array &$result, array $variants, string $channel): void
     {
@@ -686,8 +686,8 @@ final class CommercialPolicyService
     }
 
     /**
-     * @param array<string,float|null> $limits
-     * @param array<string,float> $usage
+     * @param  array<string,float|null>  $limits
+     * @param  array<string,float>  $usage
      * @return list<string>
      */
     private function quotaReasons(float $quantity, array $limits, array $usage): array
@@ -697,16 +697,16 @@ final class CommercialPolicyService
         if ($limits['max_per_order'] !== null && $quantity > $limits['max_per_order']) {
             $reasons[] = 'MAX_PER_ORDER_EXCEEDED';
         }
-        if ($limits['max_per_day'] !== null && $usage['day'] + $quantity > $limits['max_per_day']) {
+        if ($limits['max_per_day'] !== null && $limits['max_per_day'] < $usage['day'] + $quantity) {
             $reasons[] = 'MAX_PER_DAY_EXCEEDED';
         }
-        if ($limits['max_per_week'] !== null && $usage['week'] + $quantity > $limits['max_per_week']) {
+        if ($limits['max_per_week'] !== null && $limits['max_per_week'] < $usage['week'] + $quantity) {
             $reasons[] = 'MAX_PER_WEEK_EXCEEDED';
         }
-        if ($limits['max_per_month'] !== null && $usage['month'] + $quantity > $limits['max_per_month']) {
+        if ($limits['max_per_month'] !== null && $limits['max_per_month'] < $usage['month'] + $quantity) {
             $reasons[] = 'MAX_PER_MONTH_EXCEEDED';
         }
-        if ($limits['max_lifetime'] !== null && $usage['lifetime'] + $quantity > $limits['max_lifetime']) {
+        if ($limits['max_lifetime'] !== null && $limits['max_lifetime'] < $usage['lifetime'] + $quantity) {
             $reasons[] = 'MAX_LIFETIME_EXCEEDED';
         }
 
