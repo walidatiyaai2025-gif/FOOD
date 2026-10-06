@@ -1,9 +1,12 @@
 @php
     $ar = app()->getLocale() === 'ar';
     $isSuper = $user->hasRole('SUPER_ADMIN');
-    $canManageVan = $isSuper || $user->hasPermission('drivers.b2b.manage') || $user->hasPermission('field_ops.manage');
+    $canManageVan = $isSuper || $user->hasPermission('drivers.b2b.manage');
     $canManageTerritories = $isSuper || $user->hasPermission('territories.manage') || $user->hasPermission('field_ops.manage');
-    $canManageAddress = $isSuper || $user->hasPermission('customers.edit') || $user->hasPermission('field_ops.manage');
+    $canManageAddress = $isSuper || $user->hasPermission('customers.edit');
+    $overviewVisibility = $overviewVisibility ?? [];
+    $canCatalog = $isSuper || $user->hasPermission('catalog.view');
+    $canPromotions = $isSuper || $user->hasPermission('promotions.view');
     $titles = [
         'overview' => [$ar ? 'مركز عمليات الفان' : 'Van & Field Operations', $ar ? 'لوحة تحكم تشغيلية تجمع الأسطول والزيارات والمناطق والتحصيل في مكان واحد.' : 'Operational control center for fleet, visits, territories and field finance.'],
         'fleet' => [$ar ? 'خريطة الأسطول الحية' : 'Live Fleet Map', $ar ? 'الموقع الحالي للفانات وحالة آخر اتصال والإسناد والمسار.' : 'Current Van positions, heartbeat health, assignment and route context.'],
@@ -92,21 +95,28 @@
                     @foreach(['online'=>$ar?'متصل':'Online','stale'=>$ar?'متأخر':'Stale','offline'=>$ar?'غير متصل':'Offline'] as $key=>$label)
                         <div class="control-row"><span>{{ $label }}</span><strong>{{ (int)($s['location_health'][$key] ?? 0) }}</strong></div>
                     @endforeach
-                    <div class="fieldops-actions"><a class="foodex-action-primary" href="{{ route('admin.field-operations.fleet') }}">{{ $ar?'فتح الخريطة':'Open live map' }}</a></div>
+                    @if($overviewVisibility['tracking'] ?? false)<div class="fieldops-actions"><a class="foodex-action-primary" href="{{ route('admin.field-operations.fleet') }}">{{ $ar?'فتح الخريطة':'Open live map' }}</a></div>@endif
                 </article>
                 <article class="fieldops-card">
                     <h2>{{ $ar?'التحصيلات تحت العهدة':'Outstanding field custody' }}</h2>
                     <strong style="font-size:1.8rem">{{ number_format((float)($s['outstanding_collections'] ?? 0),3) }}</strong>
                     <p class="fieldops-muted">{{ $ar?'القيمة الإجمالية الحالية في سجل عهدة تحصيل الفانات.':'Current aggregate amount in Van collection custody ledger.' }}</p>
-                    <a href="{{ route('admin.field-operations.finance') }}">{{ $ar?'فتح المالية':'Open finance' }}</a>
+                    @if($overviewVisibility['finance'] ?? false)<a href="{{ route('admin.field-operations.finance') }}">{{ $ar?'فتح المالية':'Open finance' }}</a>@endif
                 </article>
                 <article class="fieldops-card">
                     <h2>{{ $ar?'اختصارات التشغيل':'Operational shortcuts' }}</h2>
                     <div class="fieldops-section-nav">
-                        <a href="{{ route('admin.field-operations.vans') }}">{{ $ar?'الفانات':'Vans' }}</a>
-                        <a href="{{ route('admin.field-operations.assignments') }}">{{ $ar?'الإسنادات':'Assignments' }}</a>
-                        <a href="{{ route('admin.field-operations.visits') }}">{{ $ar?'الزيارات':'Visits' }}</a>
-                        <a href="{{ route('admin.field-operations.territories') }}">{{ $ar?'المناطق':'Territories' }}</a>
+                        @if($overviewVisibility['drivers'] ?? false)<a href="{{ route('admin.field-operations.vans') }}">{{ $ar?'الفانات':'Vans' }}</a><a href="{{ route('admin.field-operations.assignments') }}">{{ $ar?'الإسنادات':'Assignments' }}</a>@endif
+                        @if($overviewVisibility['visits'] ?? false)<a href="{{ route('admin.field-operations.visits') }}">{{ $ar?'الزيارات':'Visits' }}</a>@endif
+                        @if($overviewVisibility['territories'] ?? false)<a href="{{ route('admin.field-operations.territories') }}">{{ $ar?'المناطق':'Territories' }}</a>@endif
+                    </div>
+                </article>
+                <article class="fieldops-card">
+                    <h2>{{ $ar?'التحكم التجاري المرتبط بالفان':'Van commercial controls' }}</h2>
+                    <p class="fieldops-muted">{{ $ar?'تظل القواعد والعروض في صفحاتها التجارية الأصلية؛ هذه اختصارات سياقية فقط لمنع تكرار روابط القائمة.' : 'Rules and offers remain in their canonical commercial pages; these are contextual shortcuts so the sidebar is not duplicated.' }}</p>
+                    <div class="fieldops-section-nav">
+                        @if(($featureFlags['commercial_rules_enabled'] ?? false) && $canCatalog)<a href="{{ route('admin.commercial.sales-control') }}">{{ $ar?'قواعد البيع والحصص':'Sales rules & quotas' }}</a>@endif
+                        @if(($featureFlags['van_offers_enabled'] ?? false) && ($featureFlags['flash_offers_enabled'] ?? false) && $canPromotions)<a href="{{ route('admin.commercial.flash-offers') }}">{{ $ar?'عروض الفان وFlash':'Van & Flash Offers' }}</a>@endif
                     </div>
                 </article>
             </section>
