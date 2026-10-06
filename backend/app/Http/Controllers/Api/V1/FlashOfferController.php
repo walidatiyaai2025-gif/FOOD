@@ -117,8 +117,8 @@ final class FlashOfferController extends Controller
             'body_ar' => $offer->body_ar,
             'body_en' => $offer->body_en,
             'status' => (string) $offer->status,
-            'starts_at' => $offer->starts_at?->toAtomString(),
-            'ends_at' => $offer->ends_at?->toAtomString(),
+            'starts_at' => $offer->startsAt()->toAtomString(),
+            'ends_at' => $offer->endsAt()->toAtomString(),
             'priority' => (int) $offer->priority,
             'reservation_seconds' => (int) $offer->reservation_seconds,
             'popup_frequency' => (string) $offer->popup_frequency,
@@ -149,8 +149,8 @@ final class FlashOfferController extends Controller
             'unit_price' => (float) $reservation->unit_price,
             'status' => (string) $reservation->status,
             'server_time' => now()->toAtomString(),
-            'expires_at' => $reservation->expires_at?->toAtomString(),
-            'confirmed_at' => $reservation->confirmed_at?->toAtomString(),
+            'expires_at' => $reservation->expiresAt()->toAtomString(),
+            'confirmed_at' => $reservation->confirmedAt()?->toAtomString(),
             'order_id' => $reservation->order_id === null ? null : (int) $reservation->order_id,
         ];
     }
