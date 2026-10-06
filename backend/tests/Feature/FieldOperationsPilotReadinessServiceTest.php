@@ -8,6 +8,7 @@ use App\Services\FieldOperationsPilotReadinessService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class FieldOperationsPilotReadinessServiceTest extends TestCase
@@ -59,7 +60,7 @@ class FieldOperationsPilotReadinessServiceTest extends TestCase
     {
         $actor = User::factory()->create();
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         app(FieldOperationsPilotReadinessService::class)
             ->activate($actor, 'territory', '77', 'pilot start');
