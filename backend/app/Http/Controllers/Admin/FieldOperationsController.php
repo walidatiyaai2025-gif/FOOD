@@ -132,7 +132,7 @@ final class FieldOperationsController extends Controller
         OperationalTenantScope $scope,
     ): JsonResponse {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.tracking.view', 'field_ops.manage']);
+        $this->authorizeAny($user, ['drivers.tracking.view']);
         $request->merge(['actor_type' => 'van']);
 
         return $fleet->feed($request, $service, $scope);
@@ -281,7 +281,7 @@ final class FieldOperationsController extends Controller
     public function storeVisit(Request $request): RedirectResponse
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.b2b.manage']);
+        $this->authorizeAll($user, ['drivers.b2b.manage', 'customers.view']);
 
         $data = $request->validate([
             'assignment_id' => ['required', 'integer', 'exists:van_assignments,id'],
@@ -334,7 +334,7 @@ final class FieldOperationsController extends Controller
     public function transitionVisit(Request $request, VanVisit $visit): RedirectResponse
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.b2b.manage']);
+        $this->authorizeAll($user, ['drivers.b2b.manage', 'customers.view']);
 
         $data = $request->validate([
             'status' => ['required', 'string'],
