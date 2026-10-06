@@ -1,12 +1,15 @@
-## 1.0.58 - Van Full Install
-
-- Consolidate the #936 national Van field-operations train into a clean-environment release candidate.
-- Add FOODEX Van Android identity `com.foodex.van`, Firebase client wiring, FCM token lifecycle and Dashboard-managed Van push targeting.
-- Add isolated first-install configuration for `https://vanfoodex.50sols.com` and `solscool_vanfoodex`.
-- Extend the distribution bundle to publish `FOODEX-Van.apk` together with the full Laravel Setup ZIP and synchronized Customer/Driver APKs.
-- Preserve Firebase service-account credentials, database passwords and production signing material outside Git.
-
 # Changelog
+
+## 1.0.58 - 2026-10-06
+
+- Consolidate the complete FOODEX Van field-operations release and #983 commercial program into the single canonical branch `release/1.0.58-van-complete`, without merging to `main`.
+- Ship the canonical commercial policy engine with OPEN/RESTRICTED/CLOSED states, channel/schedule restrictions, independent selling units, base-unit authoritative inventory, quotas, break-pack rules, atomic reservations, audited overrides and Customer > group > channel/default precedence.
+- Ship Flash Offers end-to-end with server-authoritative time, allocation/reservation expiry and release, idempotency, non-stackable defaults, Customer popup/push/Buy Now, audience targeting, Van push-only online behavior, feature flags and kill switches.
+- Ship Van selected-customer commercial rules, quota/restriction reasons, explicit override, commercial offers and Flash online-only while preserving restricted inventory count/transfer/return/reconciliation operations.
+- Ship Dashboard Product Sales Control, Flash management, popup/product-card/notification preview and Flash analytics; preserve cross-channel order/invoice/finance/warehouse snapshots and notification/deep-link dedupe.
+- Ship Store Submission Readiness for Customer and Driver/Van Android/iOS, reviewer credential masking, legal/support/account-deletion surfaces, managed Driver/Van deactivation semantics, configurable version/footer visibility and deterministic PASS/WARN/BLOCKED audits.
+- Target the clean production installation at `https://vanfoodex.50sols.com` with database identity `solscool_vanfoodex`; generate a fresh Laravel Setup ZIP with production Composer dependencies and validate it from an empty MySQL/Redis environment.
+- Keep credentials, database passwords, private signing keys, Firebase service-account secrets and production store signing material outside Git.
 
 ## 1.0.57 - 2026-10-05
 

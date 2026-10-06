@@ -1,13 +1,20 @@
 # FOODEX 1.0.58 Release Notes
 
-Status: repository-controlled Store Submission Readiness release for Issue #990. This does not claim Apple App Store or Google Play approval/publication.
+Status: canonical FOODEX Van 1.0.58 release candidate with #983/#991 commercial/Flash verification and #990 store-submission readiness. Apple/Google console/signing actions remain external.
 
 ## Release identity
 
 - Dashboard: `1.0.58`
 - Customer: `1.0.58+58`
 - Driver/Van: `1.0.58+58`
-- Production API: `https://foodex.50sols.com`
+- Production API: `https://vanfoodex.50sols.com`
+
+## Commercial and Van consolidation
+
+- Canonical commercial policy, selling units, quotas, break-pack enforcement, explicit overrides and feature flags.
+- Flash lifecycle, audience targeting, Customer popup/push/Buy Now, Van push-only online behavior, reservation expiry/release and server-authoritative time.
+- Dashboard Product Sales Control, Flash management, Preview and Analytics, plus cross-channel finance/warehouse/order snapshots.
+- Complete Van field-operations lineage including collections, remittance and reconciliation.
 
 ## Store-submission readiness
 
@@ -31,4 +38,4 @@ Status: repository-controlled Store Submission Readiness release for Issue #990.
 
 ## Merge safety
 
-PR #994 remains unmerged. No auto-merge or merge to `main` is authorized by #990.
+The canonical branch remains `release/1.0.58-van-complete`. No auto-merge or merge to `main` is authorized.

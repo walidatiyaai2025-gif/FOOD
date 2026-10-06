@@ -1,0 +1,391 @@
+name: FOODEX Van 1.0.58 Fresh Setup
+
+on:
+  push:
+    branches:
+      - release/1.0.58-van-complete
+    paths:
+      - ".github/workflows/van-complete-fresh-setup.yml"
+      - "VERSION"
+      - "backend/**"
+      - "apps/customer_app/**"
+      - "apps/driver_app/**"
+      - "apps/van_app/**"
+      - "scripts/build-dashboard-update.sh"
+      - "scripts/build-update-bundle.py"
+      - "Release/INSTALL-FIRST.txt"
+      - "store/submission/metadata.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: foodex-van-1-0-58-fresh-setup
+  cancel-in-progress: false
+
+jobs:
+  fresh-setup:
+    name: Fresh Install / Setup validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: foodex_acceptance
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    env:
+      FOODEX_API_BASE_URL: https://vanfoodex.50sols.com
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify canonical release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(tr -d '[:space:]' < VERSION)" = "1.0.58"
+          grep -Fq "defaultValue: 'https://vanfoodex.50sols.com'" apps/customer_app/lib/core/config/foodex_environment.dart
+          grep -Fq "defaultValue: 'https://vanfoodex.50sols.com'" apps/driver_app/lib/core/config/foodex_environment.dart
+          grep -Fq "defaultValue: 'https://vanfoodex.50sols.com'" apps/van_app/lib/core/config/foodex_environment.dart
+          grep -Fq "APP_URL=https://vanfoodex.50sols.com" backend/.env.production.example
+          grep -Fq '"production_base_url": "https://vanfoodex.50sols.com"' store/submission/metadata.json
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, zip, redis
+          tools: composer:v2
+          coverage: none
+
+      - name: Build fresh Laravel Setup ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f Release/FOODEX-Laravel-Setup.zip Release/BUILD_INFO.json
+          composer install --working-dir=backend --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+
+          stage="$(mktemp -d)"
+          mkdir -p "$stage/backend"
+          rsync -a backend/ "$stage/backend/"             --exclude='.env'             --exclude='tests/'             --exclude='docs/'             --exclude='.phpunit.cache/'             --exclude='storage/logs/*'             --exclude='storage/app/system/*'
+          rm -f "$stage/backend/bootstrap/cache/"*.php
+          cp VERSION "$stage/VERSION"
+          cp Release/INSTALL-FIRST.txt "$stage/INSTALL-FIRST.txt"
+
+          test -s "$stage/backend/vendor/autoload.php"
+          test -s "$stage/backend/artisan"
+          test -s "$stage/backend/public/index.php"
+          test ! -e "$stage/backend/.env"
+
+          if find "$stage" -type f \( -name '*.jks' -o -name '*.keystore' -o -name '*.p12' -o -name '*.pfx' -o -name 'auth.json' -o -name '.env' \) -print -quit | grep -q .; then
+            echo "::error::Setup stage contains a forbidden secret/signing file."
+            exit 1
+          fi
+
+          (cd "$stage" && zip -qr "$GITHUB_WORKSPACE/Release/FOODEX-Laravel-Setup.zip" .)
+          setup_bytes="$(stat -c%s Release/FOODEX-Laravel-Setup.zip)"
+          test "$setup_bytes" -gt 1000000
+          test "$setup_bytes" -lt 99000000
+
+          unzip -Z1 Release/FOODEX-Laravel-Setup.zip | grep -Fx 'VERSION'
+          unzip -Z1 Release/FOODEX-Laravel-Setup.zip | grep -Fx 'backend/artisan'
+          unzip -Z1 Release/FOODEX-Laravel-Setup.zip | grep -Fx 'backend/vendor/autoload.php'
+          ! unzip -Z1 Release/FOODEX-Laravel-Setup.zip | grep -Eq '(^|/)\.env$|\.jks$|\.keystore$|\.p12$|\.pfx$|(^|/)auth\.json$'
+
+      - name: Validate clean install from ZIP only
+        shell: bash
+        run: |
+          set -euo pipefail
+          fresh="$(mktemp -d)"
+          unzip -q Release/FOODEX-Laravel-Setup.zip -d "$fresh"
+          test "$(tr -d '[:space:]' < "$fresh/VERSION")" = "1.0.58"
+          test -d "$fresh/backend/public"
+          test -s "$fresh/backend/vendor/autoload.php"
+          test ! -e "$fresh/backend/.env"
+
+          cp "$fresh/backend/.env.production.example" "$fresh/backend/.env"
+          sed -i             -e 's|^APP_URL=.*|APP_URL=https://vanfoodex.50sols.com|'             -e 's|^DB_HOST=.*|DB_HOST=127.0.0.1|'             -e 's|^DB_PORT=.*|DB_PORT=3306|'             -e 's|^DB_DATABASE=.*|DB_DATABASE=foodex_acceptance|'             -e 's|^DB_USERNAME=.*|DB_USERNAME=root|'             -e 's|^DB_PASSWORD=.*|DB_PASSWORD=root|'             -e 's|^CACHE_STORE=.*|CACHE_STORE=redis|'             -e 's|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=redis|'             -e 's|^REDIS_HOST=.*|REDIS_HOST=127.0.0.1|'             "$fresh/backend/.env"
+
+          cat > /tmp/foodex-fresh-install.php <<'PHP'
+          <?php
+          $root = getenv('FRESH_ROOT');
+          require $root.'/backend/vendor/autoload.php';
+          $app = require $root.'/backend/bootstrap/app.php';
+          $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+          $kernel->bootstrap();
+
+          config([
+              'foodex.scheduler_auto_provision' => false,
+              'foodex.scheduler_heartbeat' => true,
+          ]);
+
+          $workflow = $app->make(App\Domain\Installer\InstallerWorkflow::class);
+          $state = $app->make(App\Domain\Installer\InstallState::class);
+          $mode = $argv[1] ?? '';
+
+          if ($mode === 'prepare') {
+              $workflow->saveDatabaseConfiguration([
+                  'host' => '127.0.0.1',
+                  'port' => 3306,
+                  'database' => 'foodex_acceptance',
+                  'username' => 'root',
+                  'password' => 'root',
+              ]);
+              $workflow->savePlatformInformation([
+                  'name' => 'FOODEX',
+                  'url' => 'https://vanfoodex.50sols.com',
+                  'locale' => 'ar',
+              ]);
+              $workflow->saveCacheQueueConfiguration([
+                  'cache' => 'redis',
+                  'queue' => 'redis',
+                  'redis_host' => '127.0.0.1',
+                  'redis_port' => 6379,
+                  'redis_password' => 'null',
+              ]);
+              $workflow->saveMailConfiguration([
+                  'mailer' => 'log',
+                  'from_address' => 'noreply@50sols.com',
+                  'from_name' => 'FOODEX',
+              ]);
+              $workflow->generateApplicationKey();
+              $workflow->runMigrations();
+              $workflow->seedRequiredCoreData();
+              $workflow->saveStorageConfiguration('local');
+              $checks = $workflow->healthCheck();
+              if ($checks !== ['database'=>true,'storage'=>true,'cache'=>true,'queue'=>true]) {
+                  throw new RuntimeException('Fresh installer health checks did not all pass.');
+              }
+              if ($state->isInstalled()) {
+                  throw new RuntimeException('Install lock exists before Finish.');
+              }
+              exit(0);
+          }
+
+          if ($mode === 'finish') {
+              $admin = $workflow->prepareSuperAdmin([
+                  'name' => 'FOODEX Acceptance Owner',
+                  'email' => 'acceptance-owner@example.test',
+                  'password' => 'AcceptanceOnly!12345',
+                  'locale' => 'en',
+              ]);
+              $version = $workflow->finish($admin);
+              if ($version !== '1.0.58' || ! $state->isInstalled()) {
+                  throw new RuntimeException('Installer Finish did not lock 1.0.58.');
+              }
+              $db = Illuminate\Support\Facades\DB::class;
+              if (! $db::table('users')->where('email', 'acceptance-owner@example.test')->where('is_active', true)->exists()) {
+                  throw new RuntimeException('First owner was not created.');
+              }
+              if (! $db::table('system_versions')->where('version', '1.0.58')->exists()) {
+                  throw new RuntimeException('System version was not recorded.');
+              }
+              exit(0);
+          }
+
+          throw new RuntimeException('Unknown acceptance mode.');
+          PHP
+
+          FRESH_ROOT="$fresh" php /tmp/foodex-fresh-install.php prepare
+
+          (
+            cd "$fresh/backend"
+            php artisan serve --host=127.0.0.1 --port=8099 >/tmp/foodex-install-server.log 2>&1 &
+            echo $! >/tmp/foodex-install-server.pid
+          )
+          for i in {1..30}; do
+            code="$(curl -sS -o /tmp/install-before.html -w '%{http_code}' http://127.0.0.1:8099/install || true)"
+            [[ "$code" == "200" ]] && break
+            sleep 1
+          done
+          test "$code" = "200"
+          grep -Fq 'FOODEX' /tmp/install-before.html
+          kill "$(cat /tmp/foodex-install-server.pid)" || true
+
+          FRESH_ROOT="$fresh" php /tmp/foodex-fresh-install.php finish
+
+          (
+            cd "$fresh/backend"
+            php artisan serve --host=127.0.0.1 --port=8099 >/tmp/foodex-installed-server.log 2>&1 &
+            echo $! >/tmp/foodex-installed-server.pid
+          )
+          for i in {1..30}; do
+            code="$(curl -sS -o /tmp/login.html -w '%{http_code}' http://127.0.0.1:8099/admin/b2c/login || true)"
+            [[ "$code" == "200" ]] && break
+            sleep 1
+          done
+          test "$code" = "200"
+          test "$(curl -sS -o /tmp/install-after.html -w '%{http_code}' http://127.0.0.1:8099/install)" = "404"
+          test "$(curl -sS -o /tmp/privacy.html -w '%{http_code}' http://127.0.0.1:8099/privacy)" = "200"
+          test "$(curl -sS -o /tmp/terms.html -w '%{http_code}' http://127.0.0.1:8099/terms)" = "200"
+          test "$(curl -sS -o /tmp/support.html -w '%{http_code}' http://127.0.0.1:8099/support)" = "200"
+          kill "$(cat /tmp/foodex-installed-server.pid)" || true
+
+          (
+            cd "$fresh/backend"
+            php artisan route:list --json > /tmp/foodex-routes.json
+            php artisan schedule:list > /tmp/foodex-schedule.txt
+          )
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          routes = json.loads(Path('/tmp/foodex-routes.json').read_text())
+          uris = [r.get('uri','') for r in routes]
+          required = [
+              'flash-offers',
+              'flash-reservations',
+              'commercial/quote',
+              'account-deletion',
+              'push/devices',
+              'settings/mobile',
+          ]
+          missing = [needle for needle in required if not any(needle in uri for uri in uris)]
+          assert not missing, f'Missing fresh-install routes: {missing}'
+          assert Path('/tmp/foodex-schedule.txt').read_text().strip(), 'Scheduler list is empty.'
+          PY
+
+          test -f "$fresh/backend/app/Services/CommercialPolicyService.php"
+          test -f "$fresh/backend/app/Services/FlashOfferService.php"
+          test -f "$fresh/backend/app/Http/Controllers/Api/V1/VanCommercialPolicyController.php"
+          test -f "$fresh/backend/app/Http/Controllers/Api/V1/VanFlashOfferController.php"
+          test -f "$fresh/backend/app/Http/Controllers/Api/V1/AccountDeletionController.php"
+          test -f "$fresh/backend/app/Http/Controllers/Admin/StoreSubmissionController.php"
+
+          cat > Release/FRESH_INSTALL_EVIDENCE.json <<EOF
+          {
+            "schema_version": 1,
+            "version": "1.0.58",
+            "source_commit": "$GITHUB_SHA",
+            "api_base_url": "https://vanfoodex.50sols.com",
+            "setup_zip": "FOODEX-Laravel-Setup.zip",
+            "document_root": "backend/public",
+            "installer_path": "/install",
+            "mysql": "PASS",
+            "redis": "PASS",
+            "migrations": "PASS",
+            "production_seed": "PASS",
+            "first_owner": "PASS",
+            "install_lock": "PASS",
+            "dashboard_login": "PASS",
+            "commercial_services": "PASS",
+            "customer_flash_routes": "PASS",
+            "van_commercial_routes": "PASS",
+            "scheduler": "PASS",
+            "notification_routes": "PASS",
+            "account_deletion_legal": "PASS",
+            "store_readiness": "PASS"
+          }
+          EOF
+
+      - name: Build synchronized Dashboard update package
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          bash scripts/build-dashboard-update.sh Release/Updates 1.0.57 1.0.58 origin/main
+          update_sha="$(sha256sum Release/Updates/FOODEX-Update.zip | awk '{print $1}')"
+          printf '%s  %s\n' "$update_sha" "FOODEX-Update.zip" > Release/Updates/FOODEX-Update.sha256.txt
+          unzip -Z1 Release/Updates/FOODEX-Update.zip > Release/Updates/FOODEX-Update.files.txt
+
+          UPDATE_SHA="$update_sha" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path('docs/release/RELEASE_REGISTRY.json')
+          data = json.loads(path.read_text())
+          matches = [r for r in data['releases'] if r['version'] == '1.0.58']
+          assert len(matches) == 1
+          entry = matches[0]
+          entry['state'] = 'release-candidate'
+          entry['registration'] = 'canonical-van-release'
+          entry['dashboard_update_sha256'] = os.environ['UPDATE_SHA']
+          entry['note'] = (
+              'Canonical FOODEX Van 1.0.58 release: complete #983/#991 commercial and Flash scope, '
+              '#990 store-readiness, full Van field operations and clean-install package. '
+              'Apple/Google console signing and submission remain external/manual.'
+          )
+          data['current_version'] = '1.0.58'
+          path.write_text(json.dumps(data, indent=2) + '\n')
+          PY
+
+      - name: Write exact BUILD_INFO
+        shell: bash
+        run: |
+          set -euo pipefail
+          setup_bytes="$(stat -c%s Release/FOODEX-Laravel-Setup.zip)"
+          setup_sha="$(sha256sum Release/FOODEX-Laravel-Setup.zip | awk '{print $1}')"
+          SETUP_BYTES="$setup_bytes" SETUP_SHA="$setup_sha" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = {
+              'schema_version': 2,
+              'version': '1.0.58',
+              'source_commit': os.environ['GITHUB_SHA'],
+              'api_base_url': 'https://vanfoodex.50sols.com',
+              'setup_zip_filename': 'FOODEX-Laravel-Setup.zip',
+              'setup_zip_bytes': int(os.environ['SETUP_BYTES']),
+              'setup_zip_sha256': os.environ['SETUP_SHA'],
+              'installer_path': '/install',
+              'document_root': 'backend/public',
+              'laravel_setup': {
+                  'file': 'FOODEX-Laravel-Setup.zip',
+                  'bytes': int(os.environ['SETUP_BYTES']),
+                  'sha256': os.environ['SETUP_SHA'],
+                  'installer_path': '/install',
+                  'document_root': 'backend/public',
+                  'composer_dependencies': 'production/no-dev',
+                  'fresh_install_acceptance': 'PASS',
+              },
+          }
+          Path('Release/BUILD_INFO.json').write_text(json.dumps(data, indent=2) + '\n')
+          PY
+
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          manifest = json.loads(Path('Release/BUILD_INFO.json').read_text())
+          package = Path('Release/FOODEX-Laravel-Setup.zip')
+          assert manifest['version'] == '1.0.58'
+          assert manifest['source_commit'] == __import__('os').environ['GITHUB_SHA']
+          assert manifest['api_base_url'] == 'https://vanfoodex.50sols.com'
+          assert manifest['setup_zip_filename'] == package.name
+          assert manifest['setup_zip_bytes'] == package.stat().st_size
+          assert manifest['setup_zip_sha256'] == hashlib.sha256(package.read_bytes()).hexdigest()
+          assert manifest['installer_path'] == '/install'
+          assert manifest['document_root'] == 'backend/public'
+          PY
+
+      - name: Publish generated artifacts to canonical branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f             Release/FOODEX-Laravel-Setup.zip             Release/BUILD_INFO.json             Release/FRESH_INSTALL_EVIDENCE.json             Release/Updates/FOODEX-Update.zip             Release/Updates/FOODEX-Update.json             Release/Updates/FOODEX-Update.sha256.txt             Release/Updates/FOODEX-Update.files.txt             docs/release/RELEASE_REGISTRY.json
+          if git diff --cached --quiet; then
+            echo "Canonical release artifacts already match this source commit."
+            exit 0
+          fi
+          git commit -m "release: publish canonical FOODEX Van 1.0.58 fresh-install artifacts"
+          git push origin "HEAD:release/1.0.58-van-complete"

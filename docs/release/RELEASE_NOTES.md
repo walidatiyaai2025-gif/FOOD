@@ -1,8 +1,8 @@
 # FOODEX 1.0.58 Release Notes
 
-Status: Issue #990 store-submission readiness implementation — repository-controlled work only. This does not claim Apple App Store or Google Play approval/publication.
+Status: canonical FOODEX Van 1.0.58 consolidation — #983/#991 verified scope plus #990 store-submission readiness. Repository-controlled release; Apple/Google console/signing actions remain external.
 
-Release branch: `feat/983-store-submission-readiness`
+Release branch: `release/1.0.58-van-complete`
 
 ## Release identity
 
@@ -14,7 +14,11 @@ Release branch: `feat/983-store-submission-readiness`
 - Driver diagnostics current identity: `1.0.58`
 - Driver diagnostics build identity: `58`
 
+- Production API: `https://vanfoodex.50sols.com`
+
 ## Included changes
+
+- Include the canonical commercial policy engine, break-pack rules, feature flags, Flash lifecycle/audience targeting, Dashboard preview/analytics, Customer Flash checkout and Van online-only Flash/commercial enforcement from #983/#991.
 
 - Extend the existing Mobile Store & Push Settings Center with four independent publishing lanes: Customer Android, Customer iOS, Driver/Van Android and Driver/Van iOS.
 - Track package/bundle identifiers, version policy, store/legal URLs, bilingual release notes, descriptions, category/keywords, reviewer notes, asset/privacy checklists, submission status, and PASS/WARN/BLOCKED readiness without creating a competing settings subsystem.
