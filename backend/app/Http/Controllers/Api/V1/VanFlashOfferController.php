@@ -19,6 +19,23 @@ use Illuminate\Validation\ValidationException;
 
 final class VanFlashOfferController extends Controller
 {
+    public function index(
+        Request $request,
+        string $type,
+        int $customer,
+        FlashOfferService $flash,
+    ): JsonResponse {
+        $actor = $this->actor($request);
+        $storeId = $this->assertCustomerScope($request, $actor, $type, $customer);
+        $customerUserId = $this->customerUserId($type, $customer);
+        $offers = $flash->activeOffers($storeId, 'van', $customerUserId);
+
+        return response()->json([
+            'server_time' => now()->toAtomString(),
+            'data' => $offers->map(fn (FlashOffer $offer): array => $this->offerPayload($offer))->values(),
+        ]);
+    }
+
     public function reserve(
         Request $request,
         string $type,
@@ -231,6 +248,33 @@ final class VanFlashOfferController extends Controller
         }
 
         return (int) $userId;
+    }
+
+    /** @return array<string,mixed> */
+    private function offerPayload(FlashOffer $offer): array
+    {
+        return [
+            'id' => (int) $offer->getKey(),
+            'store_id' => (int) $offer->store_id,
+            'title_ar' => (string) $offer->title_ar,
+            'title_en' => (string) $offer->title_en,
+            'body_ar' => $offer->body_ar,
+            'body_en' => $offer->body_en,
+            'status' => (string) $offer->status,
+            'starts_at' => $offer->startsAt()->toAtomString(),
+            'ends_at' => $offer->endsAt()->toAtomString(),
+            'priority' => (int) $offer->priority,
+            'reservation_seconds' => (int) $offer->reservation_seconds,
+            'products' => $offer->products->map(static fn (FlashOfferProduct $product): array => [
+                'id' => (int) $product->getKey(),
+                'product_id' => (int) $product->product_id,
+                'selling_unit_id' => $product->selling_unit_id === null ? null : (int) $product->selling_unit_id,
+                'selling_unit_code' => $product->selling_unit_code,
+                'conversion_factor' => (float) $product->conversion_factor,
+                'flash_price' => (float) $product->flash_price,
+                'allocation_base' => $product->allocation_base === null ? null : (float) $product->allocation_base,
+            ])->values(),
+        ];
     }
 
     /** @return array<string,mixed> */

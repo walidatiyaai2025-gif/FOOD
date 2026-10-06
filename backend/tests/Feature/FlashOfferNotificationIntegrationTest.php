@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\FlashOffer;
+use App\Models\Notification;
+use App\Models\User;
 use App\Services\FlashOfferNotificationDispatcher;
+use App\Services\NotificationAudience;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +15,14 @@ use Tests\TestCase;
 class FlashOfferNotificationIntegrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        foreach (['flash_offers_enabled', 'customer_flash_popup_enabled', 'van_offers_enabled'] as $flag) {
+            $this->flag($flag, true);
+        }
+    }
 
     public function test_flash_start_reuses_notification_stack_with_customer_popup_and_van_push_only(): void
     {
@@ -126,4 +137,81 @@ class FlashOfferNotificationIntegrationTest extends TestCase
         $this->assertSame(0, app(FlashOfferNotificationDispatcher::class)->dispatchDue());
         $this->assertDatabaseMissing('notifications', ['type' => 'flash_offer.started']);
     }
+    public function test_targeted_flash_push_filters_users_and_popup_flag_is_backend_authoritative(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'FLASH-TARGET',
+            'name' => 'Flash Target Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $target = User::factory()->create(['is_active' => true]);
+        $outsider = User::factory()->create(['is_active' => true]);
+        $customerId = (int) DB::table('customers')->insertGetId([
+            'user_id' => $target->id,
+            'type' => 'b2c',
+            'name' => 'Target Customer',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('customers')->insert([
+            'user_id' => $outsider->id,
+            'type' => 'b2c',
+            'name' => 'Outsider Customer',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->flag('customer_flash_popup_enabled', false);
+
+        $offer = FlashOffer::query()->create([
+            'store_id' => $storeId,
+            'name' => 'Targeted notification',
+            'title_ar' => 'مستهدف',
+            'title_en' => 'Targeted',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addHour(),
+            'timezone' => 'Asia/Kuwait',
+            'channels' => ['customer'],
+            'audience_customer_ids' => [$customerId],
+            'allocation_mode' => 'shared',
+            'reservation_seconds' => 300,
+            'retry_count' => 0,
+            'cooldown_seconds' => 0,
+            'priority' => 10,
+            'popup_frequency' => 'once_per_session',
+            'counts_toward_normal_quota' => true,
+            'stackable' => false,
+            'kill_switch' => false,
+        ]);
+
+        $this->assertSame(1, app(FlashOfferNotificationDispatcher::class)->dispatchDue());
+        $notification = Notification::query()
+            ->where('dedupe_key', 'flash-offer:'.$offer->id.':start:customer')
+            ->firstOrFail();
+        $data = (array) $notification->data;
+
+        $this->assertFalse((bool) ($data['popup'] ?? true));
+        $this->assertSame([$target->id], array_values($data['eligible_user_ids'] ?? []));
+        $this->assertTrue(app(NotificationAudience::class)->apply(Notification::query(), $target)->whereKey($notification->id)->exists());
+        $this->assertFalse(app(NotificationAudience::class)->apply(Notification::query(), $outsider)->whereKey($notification->id)->exists());
+    }
+
+    private function flag(string $key, bool $enabled): void
+    {
+        DB::table('settings')->updateOrInsert(
+            ['store_id' => null, 'key' => $key],
+            [
+                'value' => json_encode($enabled, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+    }
+
 }

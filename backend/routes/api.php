@@ -179,6 +179,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/wallet', [VanCollectionController::class, 'wallet']);
             Route::post('/remittances', [VanCollectionController::class, 'remit']);
             Route::post('/customers/{type}/{customer}/commercial/quote', [VanCommercialPolicyController::class, 'quote'])->whereNumber('customer')->middleware('throttle:120,1');
+            Route::get('/customers/{type}/{customer}/flash-offers', [VanFlashOfferController::class, 'index'])->whereNumber('customer')->middleware('throttle:120,1');
             Route::post('/customers/{type}/{customer}/flash-offers/products/{offerProduct}/reserve', [VanFlashOfferController::class, 'reserve'])->where(['customer' => '[0-9]+', 'offerProduct' => '[0-9]+'])->middleware('throttle:60,1');
             Route::get('/customers/{type}/{customer}/flash-reservations/{reservation}', [VanFlashOfferController::class, 'show']);
             Route::post('/customers/{type}/{customer}/flash-reservations/{reservation}/confirm', [VanFlashOfferController::class, 'confirm'])->middleware('throttle:60,1');
@@ -277,6 +278,7 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/profile/favorites/{product}', [CustomerProfileController::class, 'removeFavorite']);
 
         Route::get('/flash-offers', [FlashOfferController::class, 'index'])->middleware('throttle:120,1');
+        Route::post('/flash-offers/{offer}/events', [FlashOfferController::class, 'event'])->whereNumber('offer')->middleware('throttle:240,1');
         Route::post('/flash-offers/products/{offerProduct}/reserve', [FlashOfferController::class, 'reserve'])->whereNumber('offerProduct')->middleware('throttle:60,1');
         Route::get('/flash-reservations/active', [FlashOfferController::class, 'activeReservation'])->middleware('throttle:120,1');
         Route::get('/flash-reservations/{reservation}', [FlashOfferController::class, 'showReservation']);

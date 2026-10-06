@@ -42,7 +42,11 @@ final class FlashOfferController extends Controller
             $legacyCustomerId = $customers->legacyId($customer);
         }
 
-        $offers = $flash->activeOffers($storeId, $channel);
+        $offers = $flash->activeOffers(
+            $storeId,
+            $channel,
+            $channel === 'customer' ? (int) $user->getKey() : null,
+        );
 
         return response()->json([
             'server_time' => now()->toAtomString(),
@@ -56,6 +60,28 @@ final class FlashOfferController extends Controller
                 ))
                 ->values(),
         ]);
+    }
+
+    public function event(
+        Request $request,
+        FlashOffer $offer,
+        FlashOfferService $flash,
+    ): JsonResponse {
+        $user = $this->user($request);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+            'event' => ['required', Rule::in(['impression', 'open', 'buy_now_click'])],
+        ]);
+        abort_unless((int) $offer->store_id === (int) $data['store_id'], 404);
+
+        $flash->trackInteraction(
+            $offer,
+            (int) $user->getKey(),
+            'customer',
+            (string) $data['event'],
+        );
+
+        return response()->json(['accepted' => true], 202);
     }
 
     public function reserve(

@@ -10,10 +10,18 @@ use Throwable;
 
 final class FlashOfferNotificationDispatcher
 {
-    public function __construct(private readonly PushDeliveryService $push) {}
+    public function __construct(
+        private readonly PushDeliveryService $push,
+        private readonly CommercialFeatureFlags $flags,
+        private readonly FlashOfferAudienceService $audience,
+    ) {}
 
     public function dispatchDue(int $limit = 100): int
     {
+        if (! $this->flags->flashOffersEnabled()) {
+            return 0;
+        }
+
         $offerIds = FlashOffer::query()
             ->whereIn('status', ['scheduled', 'active'])
             ->where('kill_switch', false)
@@ -35,7 +43,8 @@ final class FlashOfferNotificationDispatcher
             }
 
             foreach (['customer', 'van'] as $channel) {
-                if (! in_array($channel, (array) $offer->channels, true)) {
+                if (($channel === 'van' && ! $this->flags->vanOffersEnabled())
+                    || ! in_array($channel, (array) $offer->channels, true)) {
                     continue;
                 }
 
@@ -62,6 +71,11 @@ final class FlashOfferNotificationDispatcher
                 || now()->lt($offer->startsAt())
                 || ! now()->lt($offer->endsAt())
                 || ! in_array($channel, (array) $offer->channels, true)) {
+                return null;
+            }
+
+            $eligibleUserIds = $this->audience->notificationUserIds($offer, $channel);
+            if (is_array($eligibleUserIds) && $eligibleUserIds === []) {
                 return null;
             }
 
@@ -107,10 +121,11 @@ final class FlashOfferNotificationDispatcher
                     'flash_offer_id' => $offerId,
                     'store_id' => (int) $offer->store_id,
                     'deep_link' => '/offers/flash/'.$offerId,
-                    'popup' => $isCustomer,
+                    'popup' => $isCustomer && $this->flags->customerFlashPopupEnabled(),
                     'popup_frequency' => $isCustomer ? (string) $offer->popup_frequency : 'never',
                     'server_time' => now()->toAtomString(),
                     'ends_at' => $offer->endsAt()->toAtomString(),
+                    ...($eligibleUserIds === null ? [] : ['eligible_user_ids' => $eligibleUserIds]),
                 ],
             ]);
 

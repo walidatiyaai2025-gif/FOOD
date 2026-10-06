@@ -12,9 +12,19 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class FlashOfferService
 {
+    public function __construct(
+        private readonly CommercialFeatureFlags $flags,
+        private readonly FlashOfferAudienceService $audience,
+    ) {}
+
     /** @return Collection<int, FlashOffer> */
-    public function activeOffers(int $storeId, string $channel): Collection
+    public function activeOffers(int $storeId, string $channel, ?int $audienceUserId = null): Collection
     {
+        if (! $this->flags->flashOffersEnabled()
+            || ($channel === 'van' && ! $this->flags->vanOffersEnabled())) {
+            return collect();
+        }
+
         $this->expireDue();
 
         return FlashOffer::query()
@@ -27,7 +37,8 @@ final class FlashOfferService
             ->orderByDesc('priority')
             ->orderBy('id')
             ->get()
-            ->filter(fn (FlashOffer $offer): bool => in_array($channel, (array) $offer->channels, true))
+            ->filter(fn (FlashOffer $offer): bool => in_array($channel, (array) $offer->channels, true)
+                && ($audienceUserId === null || $this->audience->isEligible($offer, $audienceUserId)))
             ->values();
     }
 
@@ -75,7 +86,7 @@ final class FlashOfferService
                 throw new HttpException(404, 'Flash offer was not found.');
             }
 
-            $this->assertReservable($offer, $channel);
+            $this->assertReservable($offer, $channel, $userId);
 
             $baseQuantity = round($sellingQuantity * (float) $offerProduct->conversion_factor, 3);
             if ($baseQuantity <= 0) {
@@ -114,6 +125,24 @@ final class FlashOfferService
 
             return $reservation;
         }, 3);
+    }
+
+    public function trackInteraction(
+        FlashOffer $offer,
+        int $userId,
+        string $channel,
+        string $event,
+    ): void {
+        if (! in_array($event, ['impression', 'open', 'buy_now_click'], true)) {
+            throw new HttpException(422, 'FLASH_ANALYTICS_EVENT_INVALID');
+        }
+
+        $this->assertFeatureAndAudience($offer, $channel, $userId);
+        if ($offer->startsAt()->isFuture() || ! $offer->endsAt()->isFuture()) {
+            throw new HttpException(409, 'FLASH_NOT_ACTIVE');
+        }
+
+        $this->event($offer, null, $userId, $event, $channel);
     }
 
     public function expireReservationIfDue(string $reservationId, int $userId): bool
@@ -246,9 +275,25 @@ final class FlashOfferService
         return $expired;
     }
 
-    private function assertReservable(FlashOffer $offer, string $channel): void
+    private function assertReservable(FlashOffer $offer, string $channel, int $userId): void
     {
+        $this->assertFeatureAndAudience($offer, $channel, $userId);
+
         if ($offer->kill_switch) {
+            throw new HttpException(409, 'FLASH_NOT_ACTIVE');
+        }
+
+        if (! in_array($offer->status, ['scheduled', 'active'], true)
+            || $offer->startsAt()->isFuture()
+            || ! $offer->endsAt()->isFuture()) {
+            throw new HttpException(409, 'FLASH_NOT_ACTIVE');
+        }
+    }
+
+    private function assertFeatureAndAudience(FlashOffer $offer, string $channel, int $userId): void
+    {
+        if (! $this->flags->flashOffersEnabled()
+            || ($channel === 'van' && ! $this->flags->vanOffersEnabled())) {
             throw new HttpException(409, 'FLASH_NOT_ACTIVE');
         }
 
@@ -256,10 +301,8 @@ final class FlashOfferService
             throw new HttpException(403, 'CHANNEL_NOT_ALLOWED');
         }
 
-        if (! in_array($offer->status, ['scheduled', 'active'], true)
-            || $offer->startsAt()->isFuture()
-            || ! $offer->endsAt()->isFuture()) {
-            throw new HttpException(409, 'FLASH_NOT_ACTIVE');
+        if (! $this->audience->isEligible($offer, $userId)) {
+            throw new HttpException(403, 'CUSTOMER_NOT_ELIGIBLE');
         }
     }
 

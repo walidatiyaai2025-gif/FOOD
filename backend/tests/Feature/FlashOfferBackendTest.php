@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\FlashOffer;
 use App\Models\FlashOfferProduct;
 use App\Models\User;
+use App\Models\VanVisit;
 use App\Services\FlashOfferService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -110,6 +111,15 @@ class FlashOfferBackendTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        foreach ([
+            'commercial_rules_enabled',
+            'flash_offers_enabled',
+            'customer_flash_popup_enabled',
+            'van_offers_enabled',
+        ] as $flag) {
+            $this->flag($flag, true);
+        }
     }
 
     public function test_reservation_is_atomic_idempotent_and_releases_stock(): void
@@ -326,6 +336,115 @@ class FlashOfferBackendTest extends TestCase
 
         $this->assertDatabaseHas('flash_reservations', ['id' => $reservation->id, 'status' => 'expired']);
         $this->assertSame(0.0, (float) DB::table('inventories')->where('id', $this->inventoryId)->value('reserved_quantity'));
+    }
+
+    public function test_flash_flag_defaults_off_and_blocks_new_reservations(): void
+    {
+        DB::table('settings')->whereNull('store_id')->where('key', 'flash_offers_enabled')->delete();
+        [, $product] = $this->offer();
+
+        $this->assertCount(0, app(FlashOfferService::class)->activeOffers($this->storeId, 'customer', $this->user->id));
+
+        try {
+            app(FlashOfferService::class)->reserve($this->user->id, $product->id, 1, 'customer', 'flag-off');
+            $this->fail('Flash reservation must be blocked while the canonical flag is disabled.');
+        } catch (HttpException $exception) {
+            $this->assertSame('FLASH_NOT_ACTIVE', $exception->getMessage());
+        }
+    }
+
+    public function test_flash_audience_customer_group_region_and_route_is_applied_to_feed_and_reservation(): void
+    {
+        $legacy = Customer::query()->create([
+            'user_id' => $this->user->id,
+            'type' => 'b2c',
+            'name' => 'Eligible Flash Customer',
+        ]);
+        $domain = B2cCustomer::query()->create([
+            'legacy_customer_id' => $legacy->id,
+            'store_id' => $this->storeId,
+            'user_id' => $this->user->id,
+            'name' => 'Eligible Flash Customer',
+        ]);
+        DB::table('addresses')->insert([
+            'customer_id' => $legacy->id,
+            'label' => 'Home',
+            'line1' => 'Audience Street',
+            'city' => 'Kuwait City',
+            'area' => 'Salmiya',
+            'country_code' => 'KW',
+            'governorate' => 'Hawalli',
+            'is_default' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $groupId = (int) DB::table('commercial_customer_groups')->insertGetId([
+            'store_id' => $this->storeId,
+            'name' => 'Audience Group',
+            'priority' => 5,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('commercial_customer_group_members')->insert([
+            'customer_group_id' => $groupId,
+            'customer_id' => $legacy->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $actor = User::factory()->create(['is_active' => true]);
+        VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2c',
+            'customer_id' => $domain->id,
+            'store_id' => $this->storeId,
+            'status' => 'planned',
+            'idempotency_key' => 'audience-route-visit',
+            'metadata' => ['route_code' => 'ROUTE-7'],
+        ]);
+
+        $outsider = User::factory()->create(['is_active' => true]);
+        Customer::query()->create([
+            'user_id' => $outsider->id,
+            'type' => 'b2c',
+            'name' => 'Outsider',
+        ]);
+
+        [$offer, $product] = $this->offer();
+        $offer->update([
+            'audience_customer_ids' => [$legacy->id],
+            'audience_customer_group_ids' => [$groupId],
+            'audience_regions' => ['Hawalli'],
+            'audience_routes' => ['ROUTE-7'],
+        ]);
+
+        $service = app(FlashOfferService::class);
+        $this->assertCount(1, $service->activeOffers($this->storeId, 'customer', $this->user->id));
+        $this->assertCount(0, $service->activeOffers($this->storeId, 'customer', $outsider->id));
+
+        $reservation = $service->reserve($this->user->id, $product->id, 1, 'customer', 'audience-ok');
+        $this->assertSame($this->user->id, (int) $reservation->user_id);
+        $service->release($reservation->id, $this->user->id);
+
+        try {
+            $service->reserve($outsider->id, $product->id, 1, 'customer', 'audience-denied');
+            $this->fail('Out-of-audience customer must be denied.');
+        } catch (HttpException $exception) {
+            $this->assertSame('CUSTOMER_NOT_ELIGIBLE', $exception->getMessage());
+        }
+    }
+
+    private function flag(string $key, bool $enabled): void
+    {
+        DB::table('settings')->updateOrInsert(
+            ['store_id' => null, 'key' => $key],
+            [
+                'value' => json_encode($enabled, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
     }
 
     /** @return array{FlashOffer,FlashOfferProduct} */
