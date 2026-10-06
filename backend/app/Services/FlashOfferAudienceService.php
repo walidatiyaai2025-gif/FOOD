@@ -82,8 +82,9 @@ final class FlashOfferAudienceService
             ->all();
     }
 
-    /** @param list<int> $ids
-     *  @return list<int>
+    /**
+     * @param  list<int>  $ids
+     * @return list<int>
      */
     private function usersForGroups(array $ids): array
     {

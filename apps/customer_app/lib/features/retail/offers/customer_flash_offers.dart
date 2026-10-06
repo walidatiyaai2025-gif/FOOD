@@ -443,8 +443,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   }
 
   Future<void> _trackEvent(int offerId, String event) async {
-    final analytics = widget.api;
-    if (analytics is! CustomerFlashOffersAnalyticsApi) return;
+    if (widget.api is! CustomerFlashOffersAnalyticsApi) return;
+    final analytics = widget.api as CustomerFlashOffersAnalyticsApi;
     try {
       await analytics.trackEvent(
         storeId: widget.storeId,
