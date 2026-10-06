@@ -285,6 +285,7 @@ class _VanWalletPageState extends State<VanWalletPage> {
                     '${customer.type.toUpperCase()} · '
                     '${_t('Store', 'المتجر')} #${customer.storeId}',
                   ),
+                  onTap: _submitting ? null : () => _collect(customer),
                   trailing: FilledButton(
                     onPressed: _submitting ? null : () => _collect(customer),
                     child: Text(_t('Collect', 'تحصيل')),
