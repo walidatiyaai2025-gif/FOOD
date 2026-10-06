@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/config/foodex_environment.dart';
+import 'core/config/mobile_runtime_visibility.dart';
 import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/location/driver_location_gate_service.dart';
 import 'core/push/firebase_push_service.dart';
@@ -63,6 +64,7 @@ class _FoodexDriverBootstrap extends StatefulWidget {
 
 class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
   DriverFirebasePushService? _pushService;
+  bool _showPersistentFooter = true;
   late final HttpDriverVersionPolicyClient _versionPolicyClient =
       HttpDriverVersionPolicyClient(
         baseUrl: FoodexEnvironment.apiBaseUrl,
@@ -74,6 +76,18 @@ class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_bootstrapPush());
+      unawaited(_loadRuntimeVisibility());
+    });
+  }
+
+  Future<void> _loadRuntimeVisibility() async {
+    final visibility = await MobileRuntimeVisibility.fetch(
+      baseUrl: FoodexEnvironment.apiBaseUrl,
+      locale: 'ar',
+    );
+    if (!mounted) return;
+    setState(() {
+      _showPersistentFooter = visibility.showPersistentFooter;
     });
   }
 
@@ -99,6 +113,7 @@ class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
       pushService: _pushService,
       locationGateService: const GeolocatorDriverLocationGateService(),
       versionPolicyClient: _versionPolicyClient,
+      showPersistentFooter: _showPersistentFooter,
     );
   }
 }
