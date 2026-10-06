@@ -207,10 +207,16 @@ def check_backend_catalog_parity(errors: list[str]) -> None:
 
 
 def parse_added_lines(base: str, head: str) -> list[tuple[str, int, str]]:
-    patch = run(
-        "git", "diff", "--unified=0", "--no-color", base, head, "--",
-        "apps", "backend/resources/views", "backend/lang",
-    )
+    if head == "WORKTREE":
+        patch = run(
+            "git", "diff", "--unified=0", "--no-color", base, "--",
+            "apps", "backend/resources/views", "backend/lang",
+        )
+    else:
+        patch = run(
+            "git", "diff", "--unified=0", "--no-color", base, head, "--",
+            "apps", "backend/resources/views", "backend/lang",
+        )
     result: list[tuple[str, int, str]] = []
     current = ""
     new_line = 0
@@ -232,6 +238,23 @@ def parse_added_lines(base: str, head: str) -> list[tuple[str, int, str]]:
         else:
             if current and raw and not raw.startswith("\\"):
                 new_line += 1
+    if head == "WORKTREE":
+        untracked = run(
+            "git", "ls-files", "--others", "--exclude-standard", "--",
+            "apps", "backend/resources/views", "backend/lang",
+        )
+        for relative in (line.strip() for line in untracked.splitlines()):
+            if not relative:
+                continue
+            file_path = ROOT / relative
+            if not file_path.is_file():
+                continue
+            try:
+                text = file_path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
+            result.extend((relative, index, line) for index, line in enumerate(text.splitlines(), start=1))
+
     return result
 
 
