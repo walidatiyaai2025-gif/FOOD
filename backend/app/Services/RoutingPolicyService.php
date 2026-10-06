@@ -23,7 +23,7 @@ final class RoutingPolicyService
         private readonly FieldOperationConfigurationService $configurationService,
     ) {}
 
-    /** @param  array<int,array{name:string,conditions:array<string,mixed>,actions:array<string,mixed>,enabled?:bool}>  $rules */
+    /** @param  array<int,array{name:string,conditions?:array<string,mixed>,actions?:array<string,mixed>,enabled?:bool}>  $rules */
     public function createDraft(User $actor, string $code, string $mode, array $rules, ?string $reason = null, mixed $from = null, mixed $until = null): RoutingPolicy
     {
         $mode = strtoupper($mode);
@@ -40,7 +40,7 @@ final class RoutingPolicyService
             $policy = RoutingPolicy::query()->create([
                 'public_id' => (string) Str::uuid(),
                 'code' => $code,
-                'version' => ((int) ($latest?->version ?? 0)) + 1,
+                'version' => ((int) ($latest->version ?? 0)) + 1,
                 'status' => self::DRAFT,
                 'mode' => $mode,
                 'effective_from' => $start,
