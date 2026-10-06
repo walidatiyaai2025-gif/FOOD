@@ -42,6 +42,25 @@ class VanControlPlaneParityTest extends TestCase
             'display_name' => 'FOODEX Van',
         ]);
 
+        $this->actingAs($admin)->put('/admin/settings/mobile/push', [
+            'app' => 'van',
+            'platform' => 'android',
+            'environment' => 'production',
+            'enabled' => '0',
+            'default_sound' => 'default',
+            'default_channel' => 'foodex_van_high_priority',
+            'default_icon' => 'ic_notification',
+            'default_category' => 'operations',
+        ])->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('push_provider_settings', [
+            'app' => 'van',
+            'platform' => 'android',
+            'environment' => 'production',
+            'default_channel' => 'foodex_van_high_priority',
+        ]);
+
         $this->getJson('/api/v1/mobile/runtime?app=van&environment=production&locale=en')
             ->assertOk()
             ->assertJsonPath('data.app', 'van')
