@@ -502,7 +502,7 @@ class _CollectionDialogState extends State<_CollectionDialog> {
           children: [
             DropdownButtonFormField<int>(
               key: const Key('van-collection-invoice'),
-              value: _invoice.id,
+              initialValue: _invoice.id,
               decoration: InputDecoration(
                 labelText: _t('Invoice', 'الفاتورة'),
               ),
