@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Api\V1\DriverLocationController;
+use App\Http\Controllers\Api\V1\FleetLocationController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
@@ -188,6 +189,9 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/admin/field-operations/address-quality/{review}/reject', [AddressQualityController::class, 'reject'])->whereNumber('review');
         Route::post('/admin/field-operations/address-quality/{review}/reopen', [AddressQualityController::class, 'reopen'])->whereNumber('review');
         Route::get('/admin/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed']);
+        Route::get('/admin/field-operations/fleet/feed', [FleetLocationController::class, 'feed']);
+        Route::post('/admin/field-operations/fleet/van-heartbeat', [FleetLocationController::class, 'vanHeartbeat'])
+            ->middleware('throttle:120,1');
         Route::prefix('admin/field-operations/routing-policies')->group(function (): void {
             Route::post('/', [RoutingPolicyController::class, 'store']);
             Route::post('/{routingPolicy}/publish', [RoutingPolicyController::class, 'publish'])->whereNumber('routingPolicy');

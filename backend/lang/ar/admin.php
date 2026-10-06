@@ -28,6 +28,7 @@ return [
     'mobile_apps' => [
         'customer_download' => 'تحميل تطبيق العميل APK',
         'driver_download' => 'تحميل تطبيق السائق APK',
+        'van_download' => 'تحميل تطبيق سيارة البيع APK',
     ],
     'app_versions' => 'إصدارات التطبيقات',
     'app_preview' => 'معاينة التطبيقات',
@@ -38,6 +39,7 @@ return [
         'application' => 'التطبيق',
         'customer' => 'تطبيق العميل',
         'driver' => 'تطبيق السائق',
+        'van' => 'تطبيق سيارة البيع',
         'channel' => 'القناة',
         'wholesale' => 'الجملة / B2B',
         'retail' => 'التجزئة / B2C',
@@ -77,6 +79,7 @@ return [
         'platform_version' => 'إصدار المنصة',
         'customer_runtime' => 'عقد Runtime العميل',
         'driver_runtime' => 'عقد Runtime السائق',
+        'van_runtime' => 'عقد Runtime سيارة البيع',
         'not_connected' => 'غير مربوط',
         'inspector' => 'فاحص المعاينة',
         'inspector_description' => 'بيانات تشغيل منقحة فقط. لا يتم تصدير رموز الدخول أو البيانات الشخصية أو أجسام الطلبات أو التخزين أو الإحداثيات الدقيقة.',
