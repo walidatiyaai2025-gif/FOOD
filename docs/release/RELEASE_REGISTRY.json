@@ -204,7 +204,7 @@
       "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
-      "dashboard_update_sha256": "b4acc156c42502c2955c021e9c6c864a5f68ef9d230cb312d25df10bcd19be42",
+      "dashboard_update_sha256": "a791e0a769d014c72591cfb8af663ff95c2a3eff98f4206acf1a6c70d67090e5",
       "note": "Issue #990 repository-controlled Store Submission Readiness release. Apple/Google console access, production signing/provisioning, final store asset upload and final privacy declarations remain external/manual."
     }
   ]
