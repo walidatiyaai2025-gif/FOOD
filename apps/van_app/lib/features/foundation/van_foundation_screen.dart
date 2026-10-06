@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
+import '../wallet/van_wallet_contract.dart';
+import '../wallet/van_wallet_page.dart';
 
 class VanFoundationScreen extends StatelessWidget {
   const VanFoundationScreen({
     super.key,
     required this.session,
     required this.onLogout,
+    required this.walletRepository,
   });
 
   final VanSession session;
   final Future<void> Function() onLogout;
+  final VanWalletRepository walletRepository;
 
   String _text(BuildContext context, String en, String ar) =>
       Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
@@ -80,14 +84,9 @@ class VanFoundationScreen extends StatelessWidget {
                 'تعيد الزيارات والطلبات استخدام واجهات العملاء والتجارة المعتمدة.',
               ),
             ),
-            _FoundationState(
-              icon: Icons.account_balance_wallet_outlined,
-              title: tabs[3],
-              subtitle: _text(
-                context,
-                'Collections and remittances reuse the shared custody domain.',
-                'تستخدم التحصيلات والتوريدات نطاق العهدة المالي المشترك.',
-              ),
+            VanWalletPage(
+              repository: walletRepository,
+              onSessionExpired: onLogout,
             ),
           ],
         ),
