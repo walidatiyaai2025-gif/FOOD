@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/auth/van_session.dart';
@@ -23,12 +25,15 @@ class VanOffersPage extends StatefulWidget {
   State<VanOffersPage> createState() => _VanOffersPageState();
 }
 
-class _VanOffersPageState extends State<VanOffersPage> {
+class _VanOffersPageState extends State<VanOffersPage>
+    with WidgetsBindingObserver {
   List<VanCustomerScope> _customers = const [];
   VanCustomerScope? _selectedCustomer;
   VanCommercialOfferFeed? _feed;
   final Map<int, String> _overrideReasons = <int, String>{};
   bool _loading = true;
+  bool _refreshing = false;
+  bool _stale = false;
   Object? _error;
 
   bool get _canOverride =>
@@ -41,7 +46,24 @@ class _VanOffersPageState extends State<VanOffersPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadCustomers();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || _loading || _refreshing) return;
+    if (_selectedCustomer == null) {
+      unawaited(_loadCustomers());
+      return;
+    }
+    unawaited(_loadOffers(background: true));
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _loadCustomers() async {
@@ -71,7 +93,7 @@ class _VanOffersPageState extends State<VanOffersPage> {
     }
   }
 
-  Future<void> _loadOffers() async {
+  Future<void> _loadOffers({bool background = false}) async {
     final customer = _selectedCustomer;
     if (customer == null) {
       if (mounted) setState(() => _feed = null);
@@ -79,22 +101,40 @@ class _VanOffersPageState extends State<VanOffersPage> {
     }
 
     setState(() {
-      _loading = true;
+      if (background && _feed != null) {
+        _refreshing = true;
+      } else {
+        _loading = true;
+      }
       _error = null;
       _overrideReasons.clear();
     });
     try {
       final feed = await widget.commercialRepository.offersFor(customer);
       if (!mounted) return;
-      setState(() => _feed = feed);
+      setState(() {
+        _feed = feed;
+        _stale = false;
+      });
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
       return;
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = error);
+      setState(() {
+        if (background && _feed != null) {
+          _stale = true;
+        } else {
+          _error = error;
+        }
+      });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _refreshing = false;
+        });
+      }
     }
   }
 
@@ -212,24 +252,42 @@ class _VanOffersPageState extends State<VanOffersPage> {
       onRefresh: _loadOffers,
       child: ListView(
         key: const Key('van-offers-page'),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         children: [
           Text(
             _text('Offers', 'العروض'),
-            style: Theme.of(context).textTheme.headlineSmall,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 2),
           Text(
             _text(
               'Normal and Flash offers are server-driven for the selected customer/store. Flash sales never fall back to offline validation.',
               'العروض العادية وFlash تعتمد على الخادم حسب العميل والمتجر المحددين. بيع Flash لا يستخدم تحققًا محليًا عند انقطاع الاتصال.',
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context)
                 .textTheme
-                .bodyMedium
+                .bodySmall
                 ?.copyWith(color: FoodexVanTokens.muted),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          if (_refreshing) ...[
+            const LinearProgressIndicator(key: Key('van-offers-refreshing')),
+            const SizedBox(height: 6),
+          ],
+          if (_stale) ...[
+            _messageCard(
+              _text(
+                'Connection is unavailable. Showing the last server response until refresh succeeds.',
+                'الاتصال غير متاح. يتم عرض آخر استجابة من الخادم حتى ينجح التحديث.',
+              ),
+              key: const Key('van-offers-stale-banner'),
+            ),
+            const SizedBox(height: 8),
+          ],
           if (_customers.isEmpty)
             _messageCard(
               _text(
@@ -400,15 +458,20 @@ class _VanOffersPageState extends State<VanOffersPage> {
     );
   }
 
-  Widget _messageCard(String message, {Widget? action}) {
+  Widget _messageCard(
+    String message, {
+    Widget? action,
+    Key? key,
+  }) {
     return DecoratedBox(
+      key: key,
       decoration: BoxDecoration(
         color: FoodexVanTokens.surface,
         border: Border.all(color: FoodexVanTokens.border),
         borderRadius: BorderRadius.circular(FoodexVanTokens.cardRadius),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(12),
         child: Row(
           children: [
             Expanded(child: Text(message)),
