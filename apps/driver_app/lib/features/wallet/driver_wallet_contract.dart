@@ -115,6 +115,7 @@ abstract interface class DriverCollectionRepository {
   Future<DriverCollectionResult> collect(
     int assignmentId, {
     required double amount,
+    required String idempotencyKey,
   });
 }
 
@@ -128,5 +129,6 @@ abstract interface class DriverWalletRepository
     required String method,
     String? reference,
     String? note,
+    required String idempotencyKey,
   });
 }
