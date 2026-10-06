@@ -235,6 +235,15 @@ jobs:
               }
 
               $now = now();
+              $b2bStoreTypeId = (int) $db::table('store_types')->where('code', 'B2B')->value('id');
+              $b2bStoreId = (int) $db::table('stores')->insertGetId([
+                  'store_type_id' => $b2bStoreTypeId,
+                  'code' => 'FRESH-VAN-B2B',
+                  'name' => 'Fresh Van B2B Operation',
+                  'is_active' => true,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
               $storeTypeId = (int) $db::table('store_types')->where('code', 'B2C')->value('id');
               $storeId = (int) $db::table('stores')->insertGetId([
                   'store_type_id' => $storeTypeId,
@@ -457,7 +466,7 @@ jobs:
           eval "$(python3 - <<'PY'
           import json, shlex
           data=json.load(open('/tmp/foodex-fresh-fixture.json'))
-          for key in ['store_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token']:
+          for key in ['store_id','b2b_store_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token']:
               print(f"{key.upper()}={shlex.quote(str(data[key]))}")
           flags=data['flags']
           assert all(flags.get(k) is True for k in [
