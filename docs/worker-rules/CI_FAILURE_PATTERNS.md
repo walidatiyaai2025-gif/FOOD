@@ -28,4 +28,6 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | Partial release identity sync: VERSION/pubspec updated but Customer/Driver runtime `_appVersion` remains previous release | `bash scripts/release-readiness.sh` | Treat version bump as atomic; synchronize root, mobile build, visible/runtime, notes and changelog identities before push. |
 | Release readiness exits silently with no invariant name | named assertion output in release readiness | Release validators must print the exact failed invariant/value pair so workers can fix first-pass failures quickly. |
 
+| Worker Watchdog API-rate-limit storm from broad event scans / duplicate workflow_run triggers | Watchdog event-target unit tests + GitHub rate-limit classification | Reconcile only the event-owned Issue/PR outside scheduled sweeps; listen to the aggregate Required CI Gate once; suppress watchdog-authored comment recursion; treat exhausted installation quota as deferred infrastructure pressure, never branch CI red. |
+
 When a new pattern qualifies under the Recurring Failure Promotion Rule, add it here with its cheapest reliable early detector.
