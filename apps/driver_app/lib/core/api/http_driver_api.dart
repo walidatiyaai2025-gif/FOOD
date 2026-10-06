@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../features/delivery/completion/driver_completion_contract.dart';
 import '../../features/delivery/driver_assignment_contract.dart';
+import '../../features/wallet/driver_wallet_contract.dart';
 import '../auth/driver_session.dart';
 import '../diagnostics/driver_runtime_inspector.dart';
 
@@ -122,7 +123,8 @@ class HttpDriverAssignmentRepository
     implements
         DriverProofAssignmentRepository,
         DriverInvoiceDocumentRepository,
-        DriverFailureReasonCatalog {
+        DriverFailureReasonCatalog,
+        DriverWalletRepository {
   HttpDriverAssignmentRepository(
     String baseUrl,
     this.token, {
@@ -452,6 +454,103 @@ class HttpDriverAssignmentRepository
       throw const DriverOfflineException();
     }
     _ensureSuccess(response);
+  }
+
+  @override
+  Future<DriverCollectionResult> collect(
+    int assignmentId, {
+    required double amount,
+    required String idempotencyKey,
+  }) async {
+    final response = await _request(
+      () => _client.post(
+        _endpoint('driver/assignments/$assignmentId/collections'),
+        headers: {
+          ..._headers,
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: jsonEncode({'amount': amount}),
+      ),
+    );
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic> || decoded['data'] is! Map) {
+      throw const DriverApiException('Invalid collection response.');
+    }
+    final data = Map<String, dynamic>.from(decoded['data'] as Map);
+    final receiptRaw = data['receipt'];
+    final settlementRaw = data['settlement'];
+    if (receiptRaw is! Map || settlementRaw is! Map) {
+      throw const DriverApiException('Invalid collection response.');
+    }
+    final settlement = Map<String, dynamic>.from(settlementRaw);
+    return DriverCollectionResult(
+      receipt: DriverCollectionReceipt.fromJson(
+        Map<String, dynamic>.from(receiptRaw),
+      ),
+      remainingAmount:
+          (settlement['amount_to_collect_now'] as num?)?.toDouble() ?? 0,
+      currency: (settlement['currency'] ?? '').toString(),
+    );
+  }
+
+  @override
+  Future<List<DriverWalletAccount>> wallet() async {
+    final response = await _request(
+      () => _client.get(
+        _endpoint('driver/wallet'),
+        headers: _headers,
+      ),
+    );
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic> || decoded['data'] is! List) {
+      throw const DriverApiException('Invalid wallet response.');
+    }
+    return (decoded['data'] as List)
+        .whereType<Map>()
+        .map(
+          (row) => DriverWalletAccount.fromJson(
+            Map<String, dynamic>.from(row),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<DriverRemittance> submitRemittance({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    String? reference,
+    String? note,
+    required String idempotencyKey,
+  }) async {
+    final response = await _request(
+      () => _client.post(
+        _endpoint('driver/wallet/remittances'),
+        headers: {
+          ..._headers,
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: jsonEncode({
+          'collection_account_id': collectionAccountId,
+          'amount': amount,
+          'method': method,
+          if (reference != null && reference.trim().isNotEmpty)
+            'reference': reference.trim(),
+          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        }),
+      ),
+    );
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic> || decoded['data'] is! Map) {
+      throw const DriverApiException('Invalid remittance response.');
+    }
+    final data = Map<String, dynamic>.from(decoded['data'] as Map);
+    final raw = data['remittance'];
+    if (raw is! Map) {
+      throw const DriverApiException('Invalid remittance response.');
+    }
+    return DriverRemittance.fromJson(Map<String, dynamic>.from(raw));
   }
 
   Future<http.Response> _request(
