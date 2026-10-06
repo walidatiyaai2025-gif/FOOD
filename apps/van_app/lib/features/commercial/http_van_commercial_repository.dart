@@ -15,6 +15,9 @@ class HttpVanCommercialRepository implements VanCommercialRepository {
         'flash-offers?store_id=${customer.storeId}&channel=van',
       ),
     );
+    final normalDecoded = _map(
+      await api.getJson('stores/${customer.storeId}/offers?per_page=100'),
+    );
 
     final serverTime = DateTime.tryParse(_string(decoded['server_time']));
     if (serverTime == null) {
@@ -27,9 +30,60 @@ class HttpVanCommercialRepository implements VanCommercialRepository {
         .where((offer) => offer.storeId == customer.storeId)
         .toList(growable: false);
 
+    final normalOffers = _list(normalDecoded['data'])
+        .map((value) => _map(value))
+        .map(
+          (data) => VanNormalOffer(
+            id: _requiredInt(data['id']),
+            name: _string(data['name']),
+            type: _string(data['type']),
+            value: _double(data['value']),
+          ),
+        )
+        .toList(growable: false);
+
     return VanCommercialOfferFeed(
       serverTime: serverTime.toUtc(),
       offers: offers,
+      normalOffers: normalOffers,
+    );
+  }
+
+  @override
+  Future<VanCommercialQuote> quoteForCustomer({
+    required VanCustomerScope customer,
+    required int productId,
+    required String sellingUnitCode,
+    required double quantity,
+    String? overrideReason,
+  }) async {
+    final decoded = _map(
+      await api.postJson(
+        'van/customers/${customer.type}/${customer.id}/commercial/quote',
+        body: {
+          'store_id': customer.storeId,
+          'product_id': productId,
+          'selling_unit_code': sellingUnitCode,
+          'quantity': quantity,
+          if (overrideReason != null && overrideReason.trim().isNotEmpty)
+            'override_reason': overrideReason.trim(),
+        },
+      ),
+    );
+    final data = _map(decoded['data']);
+    final decision = _map(data['decision']);
+    return VanCommercialQuote(
+      allowed: data['effective_allowed'] == true,
+      status: _string(decision['status']),
+      reasonCodes: _list(decision['reason_codes'])
+          .map((value) => _string(value))
+          .where((value) => value.isNotEmpty)
+          .toList(growable: false),
+      sellingUnit: _sellingUnit(_map(data['selling_unit'])),
+      sellingUnits: _list(data['selling_units'])
+          .map((value) => _sellingUnit(_map(value)))
+          .toList(growable: false),
+      overrideApplied: data['override_applied'] == true,
     );
   }
 
@@ -67,6 +121,18 @@ class HttpVanCommercialRepository implements VanCommercialRepository {
       products: _list(data['products'])
           .map((value) => _product(_map(value)))
           .toList(growable: false),
+    );
+  }
+
+  VanSellingUnit _sellingUnit(Map<String, dynamic> data) {
+    return VanSellingUnit(
+      code: _string(data['code']),
+      name: _string(data['name']),
+      conversionFactor: _requiredDouble(data['conversion_factor']),
+      price: _double(data['price']),
+      sku: _nullableString(data['sku']),
+      barcode: _nullableString(data['barcode']),
+      isBase: data['is_base'] == true,
     );
   }
 
