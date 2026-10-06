@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountDeletionController;
 use App\Http\Controllers\Api\V1\AdminReportController;
 use App\Http\Controllers\Api\V1\AppPreviewInvalidationController;
 use App\Http\Controllers\Api\V1\AppPreviewSessionController;
@@ -168,6 +169,9 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/b2b/product-mappings/{sourceProduct}', [RetailWholesaleProductMappingController::class, 'upsert']);
         Route::post('/push/devices', [PushDeviceController::class, 'store']);
         Route::delete('/push/devices/{device}', [PushDeviceController::class, 'destroy']);
+        Route::get('/account-deletion', [AccountDeletionController::class, 'show']);
+        Route::post('/account-deletion', [AccountDeletionController::class, 'store'])
+            ->middleware('throttle:6,1');
         Route::get('/admin/security/permissions', [SecurityController::class, 'permissions']);
         Route::get('/admin/security/roles', [SecurityController::class, 'roles']);
         Route::post('/admin/security/roles', [SecurityController::class, 'storeRole']);
