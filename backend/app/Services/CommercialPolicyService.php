@@ -229,6 +229,59 @@ final class CommercialPolicyService
     }
 
     /**
+     * Stable selling-unit contract for Customer/Van/Dashboard clients.
+     *
+     * @return list<array{code:string,name:string,conversion_factor:float,price:float|null,sku:string|null,barcode:string|null,is_base:bool}>
+     */
+    public function sellingUnits(int $productId): array
+    {
+        $units = DB::table('product_selling_units')
+            ->where('product_id', $productId)
+            ->where('is_active', true)
+            ->orderByDesc('is_base')
+            ->orderBy('id')
+            ->get();
+
+        if ($units->isEmpty()) {
+            $base = DB::table('products')
+                ->join('units', 'units.id', '=', 'products.unit_id')
+                ->where('products.id', $productId)
+                ->first([
+                    'units.code',
+                    'units.name',
+                    'products.sku',
+                ]);
+
+            if ($base === null) {
+                return [];
+            }
+
+            return [[
+                'code' => (string) $base->code,
+                'name' => (string) $base->name,
+                'conversion_factor' => 1.0,
+                'price' => null,
+                'sku' => $base->sku === null ? null : (string) $base->sku,
+                'barcode' => null,
+                'is_base' => true,
+            ]];
+        }
+
+        return $units
+            ->map(fn (object $unit): array => [
+                'code' => (string) $unit->code,
+                'name' => (string) $unit->name,
+                'conversion_factor' => (float) $unit->conversion_factor,
+                'price' => $this->number($unit->price),
+                'sku' => $unit->sku === null ? null : (string) $unit->sku,
+                'barcode' => $unit->barcode === null ? null : (string) $unit->barcode,
+                'is_base' => (bool) $unit->is_base,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * Atomic authoritative quota reservation at order confirmation.
      *
      * @return array{reservation_token:string,base_quantity:float,decision:array<string,mixed>,selling_unit:array<string,mixed>}
