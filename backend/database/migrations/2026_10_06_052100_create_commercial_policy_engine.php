@@ -138,40 +138,27 @@ return new class extends Migration
             $table->string('selling_unit_barcode_snapshot')->nullable();
         });
 
-        DB::table('products')
+        $products = DB::table('products')
             ->join('units', 'units.id', '=', 'products.unit_id')
             ->orderBy('products.id')
-            ->select([
-                'products.id as product_id',
-                'products.sku as product_sku',
-                'units.id as unit_id',
-                'units.code as unit_code',
-                'units.name as unit_name',
-            ])
-            ->chunkById(250, function ($products): void {
-                $now = now();
-                $rows = [];
-                foreach ($products as $product) {
-                    $rows[] = [
-                        'product_id' => $product->product_id,
-                        'unit_id' => $product->unit_id,
-                        'code' => $product->unit_code,
-                        'name' => $product->unit_name,
-                        'conversion_factor' => 1,
-                        'price' => null,
-                        'sku' => $product->product_sku,
-                        'barcode' => null,
-                        'is_base' => true,
-                        'is_active' => true,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
-                }
+            ->cursor();
 
-                if ($rows !== []) {
-                    DB::table('product_selling_units')->insert($rows);
-                }
-            }, 'products.id', 'product_id');
+        foreach ($products as $product) {
+            DB::table('product_selling_units')->insert([
+                'product_id' => $product->id,
+                'unit_id' => $product->unit_id,
+                'code' => $product->code,
+                'name' => $product->name,
+                'conversion_factor' => 1,
+                'price' => null,
+                'sku' => $product->sku,
+                'barcode' => null,
+                'is_base' => true,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     public function down(): void
