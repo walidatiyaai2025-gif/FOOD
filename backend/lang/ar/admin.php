@@ -79,6 +79,7 @@ return [
         'platform_version' => 'إصدار المنصة',
         'customer_runtime' => 'عقد Runtime العميل',
         'driver_runtime' => 'عقد Runtime السائق',
+        'van_runtime' => 'عقد Runtime سيارة البيع',
         'not_connected' => 'غير مربوط',
         'inspector' => 'فاحص المعاينة',
         'inspector_description' => 'بيانات تشغيل منقحة فقط. لا يتم تصدير رموز الدخول أو البيانات الشخصية أو أجسام الطلبات أو التخزين أو الإحداثيات الدقيقة.',
