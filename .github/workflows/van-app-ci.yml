@@ -1,0 +1,40 @@
+name: Van App CI
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  fast:
+    name: Van Flutter fast-fail
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    defaults:
+      run:
+        working-directory: apps/van_app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze first
+        run: flutter analyze
+
+      - name: Run Van tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t tests < <(find test -type f -name '*_test.dart' -print)
+          if (("${#tests[@]}" > 0)); then
+            flutter test "${tests[@]}"
+          fi

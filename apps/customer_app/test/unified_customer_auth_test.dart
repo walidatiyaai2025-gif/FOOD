@@ -364,9 +364,11 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('customer-auth-biometric-login')),
-    );
+    final biometricLogin =
+        find.byKey(const ValueKey('customer-auth-biometric-login'));
+    await tester.ensureVisible(biometricLogin);
+    await tester.pumpAndSettle();
+    await tester.tap(biometricLogin);
     await tester.pumpAndSettle();
 
     expect(completedToken, 'saved-token');
