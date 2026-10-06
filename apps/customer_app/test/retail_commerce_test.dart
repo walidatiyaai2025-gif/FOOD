@@ -12,6 +12,26 @@ import 'package:foodex_customer_app/shared/customer_ui_v3/customer_ui_v3.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+Future<void> _simulateAppResume(WidgetTester tester) async {
+  final state = tester.binding.lifecycleState;
+
+  if (state == AppLifecycleState.paused) {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump();
+  } else if (state == AppLifecycleState.detached) {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+  }
+
+  if (tester.binding.lifecycleState != AppLifecycleState.inactive) {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+  }
+
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   test('checkout options come from authenticated backend contract', () async {
     final api = HttpRetailCheckoutOptionsApi(
@@ -199,14 +219,7 @@ void main() {
     final beforeResume = api.loadCartCalls;
     expect(beforeResume, 1);
 
-    tester.binding.handleAppLifecycleStateChanged(
-      AppLifecycleState.inactive,
-    );
-    await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(
-      AppLifecycleState.resumed,
-    );
-    await tester.pumpAndSettle();
+    await _simulateAppResume(tester);
 
     expect(api.loadCartCalls, beforeResume + 1);
     expect(tester.takeException(), isNull);
@@ -340,10 +353,7 @@ void main() {
 
     expect(api.checkoutOptionsCalls, 1);
 
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pumpAndSettle();
+    await _simulateAppResume(tester);
 
     expect(api.checkoutOptionsCalls, 2);
     expect(tester.takeException(), isNull);
