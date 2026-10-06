@@ -3,17 +3,17 @@
   "available": true,
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.58",
-  "minimum_current_version": "1.0.6",
-  "sha256": "6a3f18719a278e45dad4456d2561064939163e752b73991dd2396476b71101d4",
+  "minimum_current_version": "1.0.57",
+  "sha256": "0488239176037bef739db668590c71cc67de1f551923aefc93b3eff2de8762fa",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "FOODEX 1.0.58: Van full-install release plus #983 commercial controls, Flash Offers, cross-channel integration and store-submission readiness. Repository-controlled validation is synchronized to the 1.0.58 package; Apple/Google console approval and production signing remain external/manual.",
+  "release_notes": "release(1.0.58): lock Van endpoint and fresh-install generation",
   "dashboard_fields": {
     "target_version": "1.0.58",
-    "minimum_current_version": "1.0.6",
-    "sha256": "6a3f18719a278e45dad4456d2561064939163e752b73991dd2396476b71101d4",
+    "minimum_current_version": "1.0.57",
+    "sha256": "0488239176037bef739db668590c71cc67de1f551923aefc93b3eff2de8762fa",
     "contains_migrations": true,
-    "release_notes": "FOODEX 1.0.58: Van full-install release plus #983 commercial controls, Flash Offers, cross-channel integration and store-submission readiness. Repository-controlled validation is synchronized to the 1.0.58 package; Apple/Google console approval and production signing remain external/manual."
+    "release_notes": "release(1.0.58): lock Van endpoint and fresh-install generation"
   }
 }

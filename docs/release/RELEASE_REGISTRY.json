@@ -197,15 +197,15 @@
     },
     {
       "version": "1.0.58",
-      "state": "published",
-      "registration": "generated-release",
+      "state": "release-candidate",
+      "registration": "canonical-van-release",
       "release_notes": "docs/release/UPDATE_NOTES_1.0.58.md",
       "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
       "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
-      "dashboard_update_sha256": "6a3f18719a278e45dad4456d2561064939163e752b73991dd2396476b71101d4",
-      "note": "Issue #990 repository-controlled Store Submission Readiness release. Apple/Google console access, production signing/provisioning, final store asset upload and final privacy declarations remain external/manual."
+      "dashboard_update_sha256": "0488239176037bef739db668590c71cc67de1f551923aefc93b3eff2de8762fa",
+      "note": "Canonical FOODEX Van 1.0.58 release: complete #983/#991 commercial and Flash scope, #990 store-readiness, full Van field operations and clean-install package. Apple/Google console signing and submission remain external/manual."
     }
   ]
 }

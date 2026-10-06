@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "version": "1.0.58",
+  "source_commit": "a55add43c0e8c93fbfb665ed4dfaabc424a1f5b8",
+  "api_base_url": "https://vanfoodex.50sols.com",
+  "setup_zip": "FOODEX-Laravel-Setup.zip",
+  "document_root": "backend/public",
+  "installer_path": "/install",
+  "mysql": "PASS",
+  "redis": "PASS",
+  "migrations": "PASS",
+  "production_seed": "PASS",
+  "first_owner": "PASS",
+  "install_lock": "PASS",
+  "dashboard_login": "PASS",
+  "commercial_services": "PASS",
+  "customer_flash_routes": "PASS",
+  "van_commercial_routes": "PASS",
+  "scheduler": "PASS",
+  "notification_routes": "PASS",
+  "account_deletion_legal": "PASS",
+  "store_readiness": "PASS"
+}

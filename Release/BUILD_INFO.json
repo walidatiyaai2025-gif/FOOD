@@ -1,0 +1,20 @@
+{
+  "schema_version": 2,
+  "version": "1.0.58",
+  "source_commit": "a55add43c0e8c93fbfb665ed4dfaabc424a1f5b8",
+  "api_base_url": "https://vanfoodex.50sols.com",
+  "setup_zip_filename": "FOODEX-Laravel-Setup.zip",
+  "setup_zip_bytes": 24743800,
+  "setup_zip_sha256": "b0b414e08cac437339d115d7690404e3ae7ab010e14bd71acf7693ecaea5b423",
+  "installer_path": "/install",
+  "document_root": "backend/public",
+  "laravel_setup": {
+    "file": "FOODEX-Laravel-Setup.zip",
+    "bytes": 24743800,
+    "sha256": "b0b414e08cac437339d115d7690404e3ae7ab010e14bd71acf7693ecaea5b423",
+    "installer_path": "/install",
+    "document_root": "backend/public",
+    "composer_dependencies": "production/no-dev",
+    "fresh_install_acceptance": "PASS"
+  }
+}
