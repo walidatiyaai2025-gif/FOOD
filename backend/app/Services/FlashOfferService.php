@@ -116,8 +116,31 @@ final class FlashOfferService
         }, 3);
     }
 
+    public function expireReservationIfDue(string $reservationId, int $userId): bool
+    {
+        return DB::transaction(function () use ($reservationId, $userId): bool {
+            $reservation = FlashReservation::query()->whereKey($reservationId)->lockForUpdate()->first();
+
+            if (! $reservation instanceof FlashReservation || (int) $reservation->user_id !== $userId) {
+                throw new HttpException(404, 'Flash reservation was not found.');
+            }
+
+            if ($reservation->status !== 'active' || $reservation->expiresAt()->isFuture()) {
+                return false;
+            }
+
+            $this->releaseLocked($reservation, 'expired');
+
+            return true;
+        }, 3);
+    }
+
     public function confirm(string $reservationId, int $userId, ?int $orderId = null): FlashReservation
     {
+        if ($this->expireReservationIfDue($reservationId, $userId)) {
+            throw new HttpException(409, 'FLASH_RESERVATION_EXPIRED');
+        }
+
         return DB::transaction(function () use ($reservationId, $userId, $orderId): FlashReservation {
             $reservation = FlashReservation::query()->whereKey($reservationId)->lockForUpdate()->first();
 
@@ -134,7 +157,6 @@ final class FlashOfferService
             }
 
             if ($reservation->expiresAt()->isPast()) {
-                $this->releaseLocked($reservation, 'expired');
                 throw new HttpException(409, 'FLASH_RESERVATION_EXPIRED');
             }
 

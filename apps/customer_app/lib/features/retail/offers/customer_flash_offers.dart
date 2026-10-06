@@ -103,7 +103,7 @@ class CustomerFlashReservation {
     required this.status,
   });
 
-  final int id;
+  final String id;
   final int offerId;
   final DateTime expiresAt;
   final DateTime serverTime;
@@ -122,7 +122,7 @@ class CustomerFlashReservation {
 
   factory CustomerFlashReservation.fromMap(Map<String, dynamic> map) =>
       CustomerFlashReservation(
-        id: _int(map['id']),
+        id: map['id']?.toString() ?? '',
         offerId: _int(map['offer_id']),
         expiresAt: _date(map['expires_at']),
         serverTime: _date(map['server_time']),
@@ -142,12 +142,12 @@ abstract interface class CustomerFlashOffersApi {
   Future<RetailCheckoutOptions> checkoutOptions({required int storeId});
   Future<RetailCreatedOrder> confirm({
     required int storeId,
-    required int reservationId,
+    required String reservationId,
     required int addressId,
     required String paymentMethod,
     required String idempotencyKey,
   });
-  Future<void> release({required int reservationId});
+  Future<void> release({required String reservationId});
 }
 
 class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
@@ -172,7 +172,7 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   @override
   Future<List<CustomerFlashOffer>> activeOffers({required int storeId}) async {
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/v1/flash-offers/active').replace(
+      Uri.parse('$baseUrl/api/v1/flash-offers').replace(
         queryParameters: {'store_id': '$storeId', 'channel': 'customer'},
       ),
       headers: {..._headers, 'X-FOODEX-Store-ID': '$storeId'},
@@ -205,7 +205,9 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
     final reservation = CustomerFlashReservation.fromMap(
       Map<String, dynamic>.from(data),
     );
-    return reservation.id > 0 && reservation.active ? reservation : null;
+    return reservation.id.trim().isNotEmpty && reservation.active
+        ? reservation
+        : null;
   }
 
   @override
@@ -218,8 +220,12 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
     if (token == null || token!.trim().isEmpty) {
       throw const RetailCommerceException('authentication_required');
     }
+    final offerProductId = sellingUnitId ?? offerId;
+    if (offerProductId <= 0) {
+      throw const RetailCommerceException('invalid_flash_offer_product');
+    }
     final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/flash-offers/$offerId/reservations'),
+      Uri.parse('$baseUrl/api/v1/flash-offers/products/$offerProductId/reserve'),
       headers: {
         ..._headers,
         'Content-Type': 'application/json',
@@ -229,8 +235,8 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
         'store_id': storeId,
         'channel': 'customer',
         'quantity': quantity,
-        if (sellingUnitId != null && sellingUnitId > 0)
-          'selling_unit_id': sellingUnitId,
+        'idempotency_key':
+            'customer-flash-$offerProductId-${DateTime.now().microsecondsSinceEpoch}',
       }),
     );
     final body = _decode(response);
@@ -256,7 +262,7 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   @override
   Future<RetailCreatedOrder> confirm({
     required int storeId,
-    required int reservationId,
+    required String reservationId,
     required int addressId,
     required String paymentMethod,
     required String idempotencyKey,
@@ -282,7 +288,7 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   }
 
   @override
-  Future<void> release({required int reservationId}) async {
+  Future<void> release({required String reservationId}) async {
     if (reservationId <= 0) return;
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/flash-reservations/$reservationId/release'),

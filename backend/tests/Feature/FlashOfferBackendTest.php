@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Address;
+use App\Models\B2cCustomer;
+use App\Models\Customer;
 use App\Models\FlashOffer;
 use App\Models\FlashOfferProduct;
 use App\Models\User;
@@ -9,6 +12,7 @@ use App\Services\FlashOfferService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\Sanctum;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
@@ -156,6 +160,172 @@ class FlashOfferBackendTest extends TestCase
             'customer',
             'idem-ended',
         );
+    }
+
+    public function test_customer_flash_contract_converts_reservation_to_order_invoice_quota_and_order_inventory_reservation(): void
+    {
+        [$offer, $offerProduct] = $this->offer();
+        $legacyCustomer = Customer::query()->create([
+            'user_id' => $this->user->id,
+            'type' => 'b2c',
+            'name' => 'Flash Customer',
+            'email' => $this->user->email,
+        ]);
+        $domainCustomer = B2cCustomer::query()->create([
+            'legacy_customer_id' => $legacyCustomer->id,
+            'store_id' => $this->storeId,
+            'user_id' => $this->user->id,
+            'name' => 'Flash Customer',
+            'email' => $this->user->email,
+        ]);
+        $address = Address::query()->create([
+            'customer_id' => $legacyCustomer->id,
+            'b2c_customer_id' => $domainCustomer->id,
+            'label' => 'Home',
+            'line1' => 'Flash Street 1',
+            'city' => 'Kuwait City',
+            'country_code' => 'KW',
+            'is_default' => true,
+        ]);
+
+        Sanctum::actingAs($this->user);
+
+        $this->withHeaders([
+            'X-FOODEX-Store-ID' => (string) $this->storeId,
+            'X-FOODEX-Customer-Domain' => 'b2c',
+        ])->getJson('/api/v1/flash-offers?store_id='.$this->storeId.'&channel=customer')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $offer->id)
+            ->assertJsonPath('data.0.selling_units.0.id', $offerProduct->id)
+            ->assertJsonPath('data.0.flash_price', 7)
+            ->assertJsonPath('data.0.normal_price', 10)
+            ->assertJsonPath('data.0.eligible', true);
+
+        $reserve = $this->withHeaders([
+            'X-FOODEX-Store-ID' => (string) $this->storeId,
+            'X-FOODEX-Customer-Domain' => 'b2c',
+        ])->postJson('/api/v1/flash-offers/products/'.$offerProduct->id.'/reserve', [
+            'store_id' => $this->storeId,
+            'channel' => 'customer',
+            'quantity' => 1,
+            'idempotency_key' => 'customer-flash-reserve-0001',
+        ])->assertCreated()
+            ->assertJsonPath('offer_id', $offer->id)
+            ->assertJsonPath('reserved_base_quantity', 10);
+
+        $reservationId = (string) $reserve->json('id');
+        $this->assertNotSame('', $reservationId);
+
+        $this->withHeaders([
+            'X-FOODEX-Store-ID' => (string) $this->storeId,
+            'X-FOODEX-Customer-Domain' => 'b2c',
+        ])->getJson('/api/v1/flash-reservations/active?store_id='.$this->storeId.'&channel=customer')
+            ->assertOk()
+            ->assertJsonPath('data.id', $reservationId);
+
+        $confirmHeaders = [
+            'Idempotency-Key' => 'customer-flash-checkout-0001',
+            'X-FOODEX-Store-ID' => (string) $this->storeId,
+            'X-FOODEX-Customer-Domain' => 'b2c',
+        ];
+        $confirmPayload = [
+            'store_id' => $this->storeId,
+            'channel' => 'customer',
+            'address_id' => $address->id,
+            'payment_method' => 'cash_on_delivery',
+        ];
+
+        $checkout = $this->withHeaders($confirmHeaders)
+            ->postJson('/api/v1/flash-reservations/'.$reservationId.'/confirm', $confirmPayload)
+            ->assertCreated()
+            ->assertJsonPath('store_id', $this->storeId)
+            ->assertJsonPath('status', 'pending');
+
+        $orderId = (int) $checkout->json('id');
+        $this->assertGreaterThan(0, $orderId);
+
+        $this->assertDatabaseHas('flash_reservations', [
+            'id' => $reservationId,
+            'status' => 'confirmed',
+            'order_id' => $orderId,
+        ]);
+        $this->assertDatabaseHas('orders', [
+            'id' => $orderId,
+            'b2c_customer_id' => $domainCustomer->id,
+            'checkout_idempotency_key' => 'customer-flash-checkout-0001',
+            'subtotal' => 10,
+            'discount_total' => 3,
+        ]);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $orderId,
+            'product_id' => $this->productId,
+            'selling_unit_code_snapshot' => 'CARTON',
+            'selling_unit_quantity' => 1,
+            'base_quantity' => 10,
+            'conversion_factor_snapshot' => 10,
+            'unit_price' => 7,
+        ]);
+        $this->assertDatabaseHas('commercial_quota_reservations', [
+            'order_id' => $orderId,
+            'product_id' => $this->productId,
+            'customer_id' => $legacyCustomer->id,
+            'base_quantity' => 10,
+            'status' => 'RESERVED',
+        ]);
+        $this->assertDatabaseHas('stock_movements', [
+            'reference_type' => 'order',
+            'reference_id' => $orderId,
+            'type' => 'reserve',
+            'quantity' => 10,
+            'reason' => 'flash_checkout_claim',
+        ]);
+        $this->assertSame(10.0, (float) DB::table('inventories')->where('id', $this->inventoryId)->value('reserved_quantity'));
+
+        $invoiceId = (int) DB::table('invoices')->where('order_id', $orderId)->value('id');
+        $this->assertGreaterThan(0, $invoiceId);
+        $this->assertDatabaseHas('invoice_items', [
+            'invoice_id' => $invoiceId,
+            'product_id' => $this->productId,
+            'quantity' => 1,
+            'quantity_conversion_factor' => 10,
+            'unit_price' => 7,
+        ]);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $orderId,
+            'invoice_id' => $invoiceId,
+            'provider' => 'cash_on_delivery',
+            'status' => 'pending',
+        ]);
+
+        $pricing = json_decode((string) DB::table('orders')->where('id', $orderId)->value('pricing_snapshot'), true);
+        $this->assertSame('flash_offer_v1', $pricing['source']);
+        $this->assertSame($offer->id, $pricing['flash_offer']['id']);
+        $this->assertSame($reservationId, $pricing['flash_offer']['reservation_id']);
+
+        $this->withHeaders($confirmHeaders)
+            ->postJson('/api/v1/flash-reservations/'.$reservationId.'/confirm', $confirmPayload)
+            ->assertOk()
+            ->assertJsonPath('id', $orderId);
+        $this->assertSame(1, DB::table('orders')->where('b2c_customer_id', $domainCustomer->id)->count());
+    }
+
+    public function test_confirming_expired_reservation_commits_expiry_and_releases_inventory(): void
+    {
+        [, $product] = $this->offer(reservationSeconds: 30);
+        $service = app(FlashOfferService::class);
+        $reservation = $service->reserve($this->user->id, $product->id, 1, 'customer', 'confirm-expired-1');
+        DB::table('flash_reservations')->where('id', $reservation->id)->update(['expires_at' => now()->subSecond()]);
+
+        try {
+            $service->confirm($reservation->id, $this->user->id);
+            $this->fail('Expired Flash reservation confirmation must fail.');
+        } catch (HttpException $exception) {
+            $this->assertSame(409, $exception->getStatusCode());
+            $this->assertSame('FLASH_RESERVATION_EXPIRED', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas('flash_reservations', ['id' => $reservation->id, 'status' => 'expired']);
+        $this->assertSame(0.0, (float) DB::table('inventories')->where('id', $this->inventoryId)->value('reserved_quantity'));
     }
 
     /** @return array{FlashOffer,FlashOfferProduct} */

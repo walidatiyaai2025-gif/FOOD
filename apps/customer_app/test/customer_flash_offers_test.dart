@@ -80,6 +80,7 @@ void main() {
       });
 
       expect(reservation.active, isTrue);
+      expect(reservation.id, '9');
       expect(reservation.offerId, 44);
       expect(
         reservation.remainingAfter(const Duration(minutes: 2)),

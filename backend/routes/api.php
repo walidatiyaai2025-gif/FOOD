@@ -278,6 +278,7 @@ Route::prefix('v1')->group(function (): void {
 
         Route::get('/flash-offers', [FlashOfferController::class, 'index'])->middleware('throttle:120,1');
         Route::post('/flash-offers/products/{offerProduct}/reserve', [FlashOfferController::class, 'reserve'])->whereNumber('offerProduct')->middleware('throttle:60,1');
+        Route::get('/flash-reservations/active', [FlashOfferController::class, 'activeReservation'])->middleware('throttle:120,1');
         Route::get('/flash-reservations/{reservation}', [FlashOfferController::class, 'showReservation']);
         Route::post('/flash-reservations/{reservation}/confirm', [FlashOfferController::class, 'confirm'])->middleware('throttle:60,1');
         Route::post('/flash-reservations/{reservation}/release', [FlashOfferController::class, 'release'])->middleware('throttle:60,1');

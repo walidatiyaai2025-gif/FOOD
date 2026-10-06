@@ -329,6 +329,29 @@ final class CommerceQuoteService
     }
 
     /**
+     * Totals for a server-authoritative direct purchase whose merchandise price
+     * has already been resolved by another canonical pricing flow (for example Flash).
+     *
+     * @return array{currency:string,delivery_total:float,tax_rate:float,tax_total:float,grand_total:float}
+     */
+    public function directPurchaseTotals(int $storeId, float $netMerchandiseSubtotal): array
+    {
+        $subtotal = round(max(0.0, $netMerchandiseSubtotal), 3);
+        $deliveryTotal = $this->deliveryFee($storeId);
+        $taxRate = $this->taxRate($storeId);
+        $taxableAmount = max(0.0, $subtotal + $deliveryTotal);
+        $taxTotal = round($taxableAmount * ($taxRate / 100), 3);
+
+        return [
+            'currency' => $this->currency($storeId),
+            'delivery_total' => $deliveryTotal,
+            'tax_rate' => $taxRate,
+            'tax_total' => $taxTotal,
+            'grand_total' => round($taxableAmount + $taxTotal, 3),
+        ];
+    }
+
+    /**
      * @param  array{account:B2bAccount|null,tier:B2bPriceTier|null}  $b2bContext
      * @return array<string, mixed>
      */
