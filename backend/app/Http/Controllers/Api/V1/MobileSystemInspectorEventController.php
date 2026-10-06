@@ -18,7 +18,7 @@ final class MobileSystemInspectorEventController extends Controller
         abort_unless($user instanceof User, 401);
 
         $data = $request->validate([
-            'app' => ['required', Rule::in(['customer', 'driver'])],
+            'app' => ['required', Rule::in(['customer', 'driver', 'van'])],
             'category' => ['required', 'string', 'max:120'],
             'severity' => ['nullable', Rule::in(['warning', 'error'])],
             'message' => ['required', 'string', 'max:2000'],
@@ -32,6 +32,11 @@ final class MobileSystemInspectorEventController extends Controller
             'order_id' => ['nullable', 'integer', 'min:1'],
             'invoice_id' => ['nullable', 'integer', 'min:1'],
             'assignment_id' => ['nullable', 'integer', 'min:1'],
+            'route_id' => ['nullable', 'integer', 'min:1'],
+            'manifest_id' => ['nullable', 'integer', 'min:1'],
+            'visit_id' => ['nullable', 'integer', 'min:1'],
+            'collection_id' => ['nullable', 'integer', 'min:1'],
+            'remittance_id' => ['nullable', 'integer', 'min:1'],
             'method' => ['nullable', 'string', 'max:12'],
             'path' => ['nullable', 'string', 'max:4096'],
             'status' => ['nullable', 'integer', 'between:400,599'],
@@ -68,6 +73,12 @@ final class MobileSystemInspectorEventController extends Controller
             return;
         }
 
+        if ($app === 'van') {
+            abort_unless($user->hasPermission('van.login'), 403);
+
+            return;
+        }
+
         $allowed = DB::table('platform_customers')
             ->where('user_id', $user->id)
             ->where('is_active', true)
@@ -93,6 +104,16 @@ final class MobileSystemInspectorEventController extends Controller
                 ->exists();
 
             abort_unless($allowed, 403);
+
+            return $storeId;
+        }
+
+        if ($app === 'van') {
+            abort_unless(
+                $user->hasPermission('van.login')
+                && $user->hasPermission('stores.view', $storeId),
+                403,
+            );
 
             return $storeId;
         }

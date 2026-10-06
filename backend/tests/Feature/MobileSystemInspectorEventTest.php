@@ -145,6 +145,57 @@ class MobileSystemInspectorEventTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_van_runtime_event_is_first_class_and_sanitizes_sensitive_location_context(): void
+    {
+        $admin = $this->superAdmin('central-inspector-van@example.test');
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/v1/runtime-inspector/events', [
+            'app' => 'van',
+            'category' => 'location_failure',
+            'severity' => 'error',
+            'message' => 'Van sync failed latitude=29.375859 longitude=47.977405',
+            'app_version' => '1.0.57',
+            'app_build' => '57',
+            'platform' => 'android',
+            'route_id' => 55,
+            'manifest_id' => 56,
+            'visit_id' => 66,
+            'collection_id' => 67,
+            'remittance_id' => 68,
+            'metadata' => [
+                'latitude' => 29.375859,
+                'longitude' => 47.977405,
+                'access_token' => 'van-secret',
+                'sync_state' => 'pending',
+            ],
+        ])->assertAccepted();
+
+        $event = SystemInspectorEvent::query()->where('source', 'van_app')->firstOrFail();
+        $this->assertSame('1.0.57', $event->context['app_version']);
+        $this->assertSame(55, $event->context['route_id']);
+        $this->assertSame(56, $event->context['manifest_id']);
+        $this->assertSame(66, $event->context['visit_id']);
+        $this->assertSame(67, $event->context['collection_id']);
+        $this->assertSame(68, $event->context['remittance_id']);
+        $encoded = json_encode($event->context, JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('29.375859', $encoded);
+        $this->assertStringNotContainsString('47.977405', $encoded);
+        $this->assertStringNotContainsString('van-secret', $encoded);
+    }
+
+    public function test_customer_cannot_submit_van_runtime_events(): void
+    {
+        [$customer] = $this->retailCustomer('inspector-not-van@example.test');
+        Sanctum::actingAs($customer);
+
+        $this->postJson('/api/v1/runtime-inspector/events', [
+            'app' => 'van',
+            'category' => 'runtime_error',
+            'message' => 'Not a Van operator',
+        ])->assertForbidden();
+    }
+
     public function test_non_driver_cannot_submit_driver_events(): void
     {
         [$customer] = $this->retailCustomer('inspector-not-driver@example.test');
