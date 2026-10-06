@@ -10,6 +10,8 @@ import 'core/theme/foodex_van_theme.dart';
 import 'core/push/firebase_push_service.dart';
 import 'features/auth/van_login_screen.dart';
 import 'features/foundation/van_foundation_screen.dart';
+import 'features/commercial/http_van_commercial_repository.dart';
+import 'features/commercial/van_commercial_contract.dart';
 import 'features/wallet/http_van_wallet_repository.dart';
 import 'features/wallet/van_wallet_contract.dart';
 
@@ -21,6 +23,7 @@ class FoodexVanApp extends StatefulWidget {
     this.sessionStore,
     this.initialSession,
     this.walletRepository,
+    this.commercialRepository,
     this.pushService,
   });
 
@@ -29,6 +32,7 @@ class FoodexVanApp extends StatefulWidget {
   final VanSessionStore? sessionStore;
   final VanSession? initialSession;
   final VanWalletRepository? walletRepository;
+  final VanCommercialRepository? commercialRepository;
   final VanFirebasePushService? pushService;
 
   @override
@@ -152,16 +156,22 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
                   repository: _authRepository,
                   onAuthenticated: _authenticated,
                 )
-              : VanFoundationScreen(
-                  session: _session!,
-                  onLogout: _logout,
-                  walletRepository: widget.walletRepository ??
-                      HttpVanWalletRepository(
-                        VanApiClient(
-                          FoodexEnvironment.apiBaseUrl,
-                          _session!.token,
-                        ),
-                      ),
+              : Builder(
+                  builder: (context) {
+                    final api = VanApiClient(
+                      FoodexEnvironment.apiBaseUrl,
+                      _session!.token,
+                    );
+                    final walletRepository = widget.walletRepository ??
+                        HttpVanWalletRepository(api);
+                    return VanFoundationScreen(
+                      session: _session!,
+                      onLogout: _logout,
+                      walletRepository: walletRepository,
+                      commercialRepository: widget.commercialRepository ??
+                          HttpVanCommercialRepository(api),
+                    );
+                  },
                 ),
     );
   }
