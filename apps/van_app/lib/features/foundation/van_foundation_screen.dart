@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../wallet/van_wallet_contract.dart';
+import '../commercial/van_commercial_contract.dart';
+import '../commercial/van_offers_page.dart';
 import '../wallet/van_wallet_page.dart';
 
 class VanFoundationScreen extends StatelessWidget {
@@ -11,11 +13,13 @@ class VanFoundationScreen extends StatelessWidget {
     required this.session,
     required this.onLogout,
     required this.walletRepository,
+    required this.commercialRepository,
   });
 
   final VanSession session;
   final Future<void> Function() onLogout;
   final VanWalletRepository walletRepository;
+  final VanCommercialRepository commercialRepository;
 
   String _text(BuildContext context, String en, String ar) =>
       Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
@@ -24,11 +28,11 @@ class VanFoundationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final arabic = Localizations.localeOf(context).languageCode == 'ar';
     final tabs = arabic
-        ? const ['نظرة عامة', 'المسارات', 'الزيارات', 'المحفظة']
-        : const ['Overview', 'Routes', 'Visits', 'Wallet'];
+        ? const ['نظرة عامة', 'المسارات', 'الزيارات', 'العروض', 'المحفظة']
+        : const ['Overview', 'Routes', 'Visits', 'Offers', 'Wallet'];
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('FOODEX Van'),
@@ -83,6 +87,11 @@ class VanFoundationScreen extends StatelessWidget {
                 'Field visits and order capture reuse canonical customer and commerce APIs.',
                 'تعيد الزيارات والطلبات استخدام واجهات العملاء والتجارة المعتمدة.',
               ),
+            ),
+            VanOffersPage(
+              commercialRepository: commercialRepository,
+              customerRepository: walletRepository,
+              onSessionExpired: onLogout,
             ),
             VanWalletPage(
               repository: walletRepository,
