@@ -4,7 +4,6 @@ import importlib.util
 import unittest
 from pathlib import Path
 
-
 SCRIPT = Path(__file__).resolve().parents[1] / "localization-quality-gate.py"
 spec = importlib.util.spec_from_file_location("localization_quality_gate", SCRIPT)
 module = importlib.util.module_from_spec(spec)
@@ -31,7 +30,15 @@ class LocalizationQualityGateTest(unittest.TestCase):
         )
         self.assertTrue(any("raw user-facing literal" in error for error in errors))
 
-    def test_dart_translation_usage_is_not_rejected_as_dynamic_enum(self):
+    def test_inline_bilingual_resolver_is_allowed(self):
+        errors = []
+        module.scan_added_lines(
+            [("apps/van_app/lib/features/orders/orders_page.dart", 10, "Text(_text('Open orders', 'الطلبات المفتوحة')),")],
+            errors,
+        )
+        self.assertEqual([], errors)
+
+    def test_translation_usage_is_not_rejected_as_dynamic_enum(self):
         errors = []
         module.scan_added_lines(
             [("apps/driver_app/lib/features/orders/orders_page.dart", 10, "Text(context.tr(order.statusKey)),")],
@@ -45,7 +52,23 @@ class LocalizationQualityGateTest(unittest.TestCase):
             [("apps/van_app/lib/features/orders/orders_page.dart", 25, "Text(order.status),")],
             errors,
         )
-        self.assertTrue(any("enum/status-like data" in error for error in errors))
+        self.assertTrue(any("enum/status" in error for error in errors))
+
+    def test_direct_payment_method_render_is_rejected(self):
+        errors = []
+        module.scan_added_lines(
+            [("apps/customer_app/lib/features/orders/page.dart", 31, "Text(order.paymentMethod),")],
+            errors,
+        )
+        self.assertTrue(any("payment" in error for error in errors))
+
+    def test_direct_language_specific_name_is_rejected(self):
+        errors = []
+        module.scan_added_lines(
+            [("apps/customer_app/lib/features/products/page.dart", 44, "Text(product.nameEn),")],
+            errors,
+        )
+        self.assertTrue(any("language-specific" in error for error in errors))
 
     def test_blade_raw_text_is_rejected(self):
         errors = []
@@ -59,6 +82,14 @@ class LocalizationQualityGateTest(unittest.TestCase):
         errors = []
         module.scan_added_lines(
             [("backend/resources/views/admin/orders.blade.php", 7, "<button>{{ __('orders.open') }}</button>")],
+            errors,
+        )
+        self.assertEqual([], errors)
+
+    def test_explicit_technical_exception_marker_is_allowed(self):
+        errors = []
+        module.scan_added_lines(
+            [("apps/driver_app/lib/features/debug/page.dart", 10, "Text('Protocol HTTP 200'), // localization-gate: allow technical protocol")],
             errors,
         )
         self.assertEqual([], errors)
