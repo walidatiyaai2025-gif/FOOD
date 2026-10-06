@@ -80,8 +80,8 @@ void main() {
       ),
     );
 
-    expect(
-      () => repository.reserveFlashForCustomer(
+    await expectLater(
+      repository.reserveFlashForCustomer(
         customer: customer,
         offerProductId: 51,
         quantity: 1,
