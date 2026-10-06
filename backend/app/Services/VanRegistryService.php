@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Van;
 use App\Models\VanAssignment;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -124,7 +125,7 @@ final class VanRegistryService
         });
     }
 
-    /** @return \Illuminate\Database\Eloquent\Collection<int,VanAssignment> */
+    /** @return Collection<int, VanAssignment> */
     public function effectiveAssignments(Carbon|string|null $at = null)
     {
         $moment = $at instanceof Carbon ? $at : ($at === null ? now() : Carbon::parse($at));
