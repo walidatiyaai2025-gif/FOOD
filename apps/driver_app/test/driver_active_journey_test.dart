@@ -151,8 +151,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(repo.listCount, 1);
 
-    await tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    await tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
 
     expect(repo.listCount, 2);

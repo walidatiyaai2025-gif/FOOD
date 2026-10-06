@@ -57,8 +57,8 @@ void main() {
     expect(repository.walletCalls, 1);
     expect(find.text('10.000 KWD'), findsOneWidget);
 
-    await tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    await tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
 
     expect(repository.walletCalls, 2);
