@@ -164,7 +164,9 @@ At execution time #1021 must:
 10. verify no `.env`, private key, signing file or other secret is packaged;
 11. publish the immutable GitHub Release/tag and download/hash-verify its assets;
 12. refresh the generated distribution branch with exactly the same final Setup/APK/manifest bytes;
-13. keep all repository-controlled build/setup failures on this same branch/PR until green.
+13. publish a generated-artifact-only commit back to `release/1021-uiux-v42-final-real-build` so that this final branch itself contains the owner-downloadable final `Release/FOODEX-Laravel-Setup.zip` and synchronized generated Release artifacts;
+14. verify the Setup ZIP SHA-256 is identical on the final branch, GitHub Release and generated distribution branch;
+15. keep all repository-controlled build/setup failures on this same branch/PR until green.
 
 If the initial VERSION-promotion workflow fails after the version has already been bumped, repair on the same branch and use supported manual workflow dispatch for that same version rather than incrementing another version just to retrigger automation.
 
