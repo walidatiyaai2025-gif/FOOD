@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\FlashOfferNotificationDispatcher;
 use App\Services\FlashOfferService;
 use App\Services\NotificationCampaignDispatcher;
 use Illuminate\Support\Facades\Artisan;
@@ -15,6 +16,15 @@ Artisan::command('foodex:dispatch-scheduled-notifications', function (): void {
 });
 
 Schedule::command('foodex:dispatch-scheduled-notifications')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+Artisan::command('foodex:dispatch-flash-offer-notifications', function (): void {
+    $count = app(FlashOfferNotificationDispatcher::class)->dispatchDue();
+    $this->info("Dispatched {$count} Flash offer notification channel(s).");
+});
+
+Schedule::command('foodex:dispatch-flash-offer-notifications')
     ->everyMinute()
     ->withoutOverlapping();
 
