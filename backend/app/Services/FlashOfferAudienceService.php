@@ -136,6 +136,7 @@ final class FlashOfferAudienceService
         $users = [];
 
         foreach (VanVisit::query()->where('store_id', $offer->store_id)->get() as $visit) {
+            // Read through Eloquent's attribute API so the cast input remains safely typed.
             $rawMetadata = $visit->getAttribute('metadata');
             $metadata = is_array($rawMetadata) ? $rawMetadata : [];
             $routeValues = array_values(array_filter(array_map(
