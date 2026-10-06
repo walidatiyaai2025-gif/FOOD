@@ -242,6 +242,19 @@ class HttpB2cAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
   }
 
   @override
+  Future<Object?> accountDeletionStatus() async {
+    _requireToken();
+    return _get('/api/v1/account-deletion');
+  }
+
+  Future<Object?> requestAccountDeletion(String password) async {
+    _requireToken();
+    return _write('POST', '/api/v1/account-deletion', {
+      'password': password,
+      'confirmation': true,
+    });
+  }
+
   Future<Object?> notifications({String locale = 'ar'}) async {
     _requireToken();
     final uri = Uri.parse('$baseUrl/api/v1/notifications').replace(
