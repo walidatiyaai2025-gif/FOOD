@@ -95,7 +95,7 @@ jobs:
           echo "Localization comparison: $base..$head"
 
       - name: Test localization gate
-        run: python3 -m unittest scripts.tests.test_localization_quality_gate
+        run: python3 -m unittest discover -s scripts/tests -p 'test_localization_quality_gate.py'
 
       - name: Enforce AR/EN localization contract
         run: |
