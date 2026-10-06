@@ -62,7 +62,7 @@ jobs:
             driver=true
           fi
 
-          if grep -Eq '^(\.github/workflows/release-validation\.yml|\.github/workflows/app-preview-acceptance-ci\.yml|scripts/release-readiness\.sh|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\.md$)' changed-files.txt; then
+          if grep -Eq '^(\.github/workflows/(release-validation|trial-distribution)\.yml|\.github/workflows/app-preview-acceptance-ci\.yml|scripts/(release-readiness\.sh|write-trial-bundle-manifest\.py|validate_release_artifact_contract\.py)|scripts/tests/test_release_artifact_contract\.py|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\.md$)' changed-files.txt; then
             backend=true
             customer=true
             driver=true
@@ -132,6 +132,9 @@ jobs:
 
       - name: Validate mobile artifact packaging
         run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_artifact.py'
+
+      - name: Validate synchronized release artifact contract
+        run: python3 -m unittest discover -s scripts/tests -p 'test_release_artifact_contract.py'
 
       - name: Test mobile UX v4.2 guard
         run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_ux_contract_guard.py'

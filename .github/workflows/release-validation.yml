@@ -5,6 +5,10 @@ on:
     paths:
       - 'docs/release/**'
       - 'scripts/release-readiness.sh'
+      - 'scripts/write-trial-bundle-manifest.py'
+      - 'scripts/validate_release_artifact_contract.py'
+      - 'scripts/tests/test_release_artifact_contract.py'
+      - '.github/workflows/trial-distribution.yml'
       - '.github/workflows/release-validation.yml'
 
 permissions:
@@ -17,3 +21,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate release evidence
         run: bash ./scripts/release-readiness.sh
+      - name: Validate synchronized release artifact contract tests
+        run: python3 -m unittest discover -s scripts/tests -p 'test_release_artifact_contract.py'

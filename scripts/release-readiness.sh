@@ -25,11 +25,18 @@ release_version="$(tr -d '\r\n' < VERSION)"
 
 customer_version="$(awk '/^version:/ {print $2; exit}' apps/customer_app/pubspec.yaml)"
 driver_version="$(awk '/^version:/ {print $2; exit}' apps/driver_app/pubspec.yaml)"
-test "$customer_version" = "$driver_version"
+van_version="$(awk '/^version:/ {print $2; exit}' apps/van_app/pubspec.yaml)"
+if [[ "$customer_version" != "$driver_version" || "$customer_version" != "$van_version" ]]; then
+  echo "::error::Mobile release identity mismatch: Customer=$customer_version Driver=$driver_version Van=$van_version"
+  exit 1
+fi
 mobile_release_version="${customer_version%%+*}"
 [[ "$mobile_release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
-test "$release_version" = "$mobile_release_version"
+if [[ "$release_version" != "$mobile_release_version" ]]; then
+  echo "::error::VERSION mismatch: repository=$release_version mobile=$mobile_release_version"
+  exit 1
+fi
 
 customer_ui_version="$(awk -F"'" '/static const _appVersion =/ {print $2; exit}' apps/customer_app/lib/app.dart)"
 driver_ui_version="$(awk -F"'" '/static const _appVersion =/ {print $2; exit}' apps/driver_app/lib/app.dart)"
