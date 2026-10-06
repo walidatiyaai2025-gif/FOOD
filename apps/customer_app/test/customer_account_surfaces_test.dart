@@ -224,7 +224,7 @@ void main() {
 
       expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
       expect(find.byType(CustomerAccountAvatar), findsOneWidget);
-      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(3));
+      // Compact v4.2 density keeps all four account shortcuts visible on a 360px viewport.\n      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(4));
 
       await tester.drag(
         find.byType(ListView),
