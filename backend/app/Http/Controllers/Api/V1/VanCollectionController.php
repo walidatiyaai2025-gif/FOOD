@@ -72,16 +72,7 @@ final class VanCollectionController extends Controller
             ->whereIn('status', ['issued', 'reissued'])
             ->firstOrFail();
 
-        $outstanding = $this->outstandingAmount($invoice, $type, $ledger);
-        abort_if($outstanding <= 0.0001, 409, 'This invoice does not have an outstanding collectible balance.');
-
         $amount = round((float) $data['amount'], 3);
-        if ($amount > $outstanding + 0.0005) {
-            throw ValidationException::withMessages([
-                'amount' => ['Collected amount cannot exceed the authoritative invoice outstanding balance.'],
-            ]);
-        }
-
         $currency = strtoupper(trim((string) $invoice->currency));
         abort_if($currency === '', 409, 'Invoice currency is unavailable.');
 
@@ -96,17 +87,49 @@ final class VanCollectionController extends Controller
         );
         abort_unless((string) $account->status === 'active', 409, 'Van collection account is not active.');
 
+        $operationKey = sprintf(
+            'van:%d:%s:%d:invoice:%d:collection:%s',
+            (int) $actor->getKey(),
+            $type,
+            $customer,
+            (int) $invoice->getKey(),
+            $idempotencyKey,
+        );
+
+        $existing = CollectionTransaction::query()
+            ->where('idempotency_key', $operationKey)
+            ->where('collection_account_id', $account->getKey())
+            ->first();
+        if ($existing instanceof CollectionTransaction) {
+            if (abs((float) $existing->amount - $amount) > 0.0005) {
+                throw ValidationException::withMessages([
+                    'idempotency_key' => ['Idempotency-Key was already used with a different collection amount.'],
+                ]);
+            }
+
+            return response()->json([
+                'data' => [
+                    'receipt' => $this->receiptPayload($existing),
+                    'invoice_id' => (int) $invoice->getKey(),
+                    'remaining_outstanding' => $this->outstandingAmount($invoice->fresh(), $type, $ledger),
+                    'wallet' => $this->walletSummary($account, $custody),
+                ],
+            ]);
+        }
+
+        $outstanding = $this->outstandingAmount($invoice, $type, $ledger);
+        abort_if($outstanding <= 0.0001, 409, 'This invoice does not have an outstanding collectible balance.');
+
+        if ($amount > $outstanding + 0.0005) {
+            throw ValidationException::withMessages([
+                'amount' => ['Collected amount cannot exceed the authoritative invoice outstanding balance.'],
+            ]);
+        }
+
         $transaction = $custody->collect(
             $account,
             $actor,
-            sprintf(
-                'van:%d:%s:%d:invoice:%d:collection:%s',
-                (int) $actor->getKey(),
-                $type,
-                $customer,
-                (int) $invoice->getKey(),
-                $idempotencyKey,
-            ),
+            $operationKey,
             $amount,
             $currency,
             'van_app',
@@ -198,33 +221,50 @@ final class VanCollectionController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
+        $amount = round((float) $data['amount'], 3);
+        $method = trim((string) $data['method']);
+        $operationKey = sprintf(
+            'van:%d:remittance:%s',
+            (int) $actor->getKey(),
+            $idempotencyKey,
+        );
+
+        $existing = Remittance::query()
+            ->where('idempotency_key', $operationKey)
+            ->where('collection_account_id', $account->getKey())
+            ->first();
+        if ($existing instanceof Remittance) {
+            if (
+                abs((float) $existing->amount - $amount) > 0.0005
+                || (string) $existing->method !== $method
+            ) {
+                throw ValidationException::withMessages([
+                    'idempotency_key' => ['Idempotency-Key was already used with different remittance details.'],
+                ]);
+            }
+
+            return response()->json([
+                'data' => [
+                    'remittance' => $this->remittancePayload($existing),
+                    'wallet' => $this->walletSummary($account, $custody),
+                ],
+            ]);
+        }
+
         $remittance = $custody->submitRemittance(
             $account,
             $actor,
-            sprintf(
-                'van:%d:remittance:%s',
-                (int) $actor->getKey(),
-                $idempotencyKey,
-            ),
-            round((float) $data['amount'], 3),
+            $operationKey,
+            $amount,
             (string) $account->currency,
-            (string) $data['method'],
+            $method,
             isset($data['reference']) ? (string) $data['reference'] : null,
             isset($data['note']) ? (string) $data['note'] : null,
         );
 
         return response()->json([
             'data' => [
-                'remittance' => [
-                    'id' => (int) $remittance->getKey(),
-                    'amount' => (float) $remittance->amount,
-                    'currency' => (string) $remittance->currency,
-                    'method' => (string) $remittance->method,
-                    'reference' => $remittance->reference,
-                    'status' => (string) $remittance->status,
-                    'note' => $remittance->note,
-                    'created_at' => (string) $remittance->created_at,
-                ],
+                'remittance' => $this->remittancePayload($remittance),
                 'wallet' => $this->walletSummary($account, $custody),
             ],
         ], 201);
@@ -360,6 +400,21 @@ final class VanCollectionController extends Controller
             'status' => (string) $transaction->status,
             'source' => (string) $transaction->source,
             'created_at' => (string) $transaction->created_at,
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private function remittancePayload(Remittance $remittance): array
+    {
+        return [
+            'id' => (int) $remittance->getKey(),
+            'amount' => (float) $remittance->amount,
+            'currency' => (string) $remittance->currency,
+            'method' => (string) $remittance->method,
+            'reference' => $remittance->reference,
+            'status' => (string) $remittance->status,
+            'note' => $remittance->note,
+            'created_at' => (string) $remittance->created_at,
         ];
     }
 
