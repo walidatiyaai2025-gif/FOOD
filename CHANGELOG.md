@@ -1,12 +1,12 @@
 # Changelog
 
-## Unreleased - Store submission readiness
+## 1.0.58 - 2026-10-06
 
 - Extend the existing Mobile Store & Push Settings Center for Customer/Driver Android/iOS store-submission metadata, readiness, reviewer instructions, legal URLs and operational submission status without duplicating release infrastructure.
 - Add encrypted write-only reviewer accounts, server-side reviewer readiness tests, production public Privacy/Terms/Support/Account Deletion routes, and a verified Customer deletion/anonymization workflow that preserves required order/invoice/finance records while keeping Driver/Van operational retention semantics separate.
 - Make the persistent mobile version footer Dashboard-configurable with zero reserved footer space when hidden, while preserving the installed binary version as authoritative and retaining diagnostics access.
 - Add canonical permission/privacy/store metadata, deterministic PASS/WARN/BLOCKED readiness auditing, explicit non-debug Android release-signing guards, and Customer/Driver release AAB validation evidence.
-- Keep the currently published Dashboard, Customer and Driver binary identity at 1.0.57 / mobile build 1.0.57+57 while adding submission-readiness controls. A future production version/build bump remains an explicit release action. Actual Apple/Google console access, production signing/provisioning, store asset upload and final privacy declarations remain EXTERNAL MANUAL.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.58 / mobile build 1.0.58+58 for the repository-controlled store-readiness release. Actual Apple/Google console access, production signing/provisioning, store asset upload and final privacy declarations remain EXTERNAL MANUAL.
 - Keep PR #994 unmerged; no auto-merge or merge to main is authorized by #990.
 
 ## 1.0.57 - 2026-10-05
