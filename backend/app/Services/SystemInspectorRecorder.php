@@ -95,14 +95,19 @@ final class SystemInspectorRecorder
     /** @param array<string,mixed> $payload */
     public function recordMobile(array $payload, Request $request, ?int $authorizedStoreId = null): void
     {
-        $app = ($payload['app'] ?? null) === 'driver' ? 'driver' : 'customer';
-        $source = $app === 'driver' ? 'driver_app' : 'customer_app';
+        $app = match ($payload['app'] ?? null) {
+            'driver' => 'driver',
+            'van' => 'van',
+            default => 'customer',
+        };
+        $source = $app.'_app';
         $severity = ($payload['severity'] ?? null) === 'warning' ? 'warning' : 'error';
 
         $context = [];
         foreach ([
             'category', 'app_version', 'app_build', 'platform', 'os_version', 'current_route', 'channel',
-            'order_id', 'invoice_id', 'assignment_id', 'retry', 'attempt', 'stack', 'metadata',
+            'order_id', 'invoice_id', 'assignment_id', 'route_id', 'manifest_id', 'visit_id', 'collection_id',
+            'remittance_id', 'retry', 'attempt', 'stack', 'metadata',
         ] as $key) {
             if (array_key_exists($key, $payload)) {
                 $context[$key] = $this->sanitizeContextValue($payload[$key], $key);
