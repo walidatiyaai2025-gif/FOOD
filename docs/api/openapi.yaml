@@ -2622,6 +2622,40 @@ components:
         available_quantity:
           type: [number, "null"]
           minimum: 0
+        availability_state:
+          type: string
+        commercial_status:
+          type: string
+          description: Server-authoritative OPEN / RESTRICTED / CLOSED policy state when the product is resolvable.
+        commercial_reason_codes:
+          type: array
+          items:
+            type: string
+        commercial_limits:
+          type: object
+          additionalProperties:
+            type: [number, "null"]
+        selling_units:
+          type: array
+          items:
+            type: object
+            required: [code, name, conversion_factor, is_base]
+            properties:
+              code:
+                type: string
+              name:
+                type: string
+              conversion_factor:
+                type: number
+                exclusiveMinimum: 0
+              price:
+                type: [number, "null"]
+              sku:
+                type: [string, "null"]
+              barcode:
+                type: [string, "null"]
+              is_base:
+                type: boolean
         minimum_order_quantity:
           type: [number, "null"]
         ordering_increment:
