@@ -61,9 +61,19 @@ jobs:
             echo "No release intent: normal main merge with unchanged VERSION=$current_version."
           fi
 
-  build:
+  localization-quality:
     needs: detect-release-intent
     if: needs.detect-release-intent.outputs.release_intent == 'true'
+    uses: ./.github/workflows/localization-quality-gate.yml
+    with:
+      base_sha: ${{ github.event.before }}
+      head_sha: ${{ github.sha }}
+
+  build:
+    needs:
+      - detect-release-intent
+      - localization-quality
+    if: needs.detect-release-intent.outputs.release_intent == 'true' && needs.localization-quality.result == 'success'
     name: Build tester distribution
     runs-on: ubuntu-latest
     timeout-minutes: 55
