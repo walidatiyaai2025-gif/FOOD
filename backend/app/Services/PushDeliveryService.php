@@ -126,6 +126,10 @@ final class PushDeliveryService
                 fn ($query) => $query->where('app', 'driver'),
             )
             ->when(
+                $notification->audience === 'van',
+                fn ($query) => $query->where('app', 'van'),
+            )
+            ->when(
                 $notification->audience === 'user',
                 fn ($query) => $query->where('user_id', $notification->user_id),
             )
