@@ -66,8 +66,9 @@ final class FlashOfferAudienceService
         return array_values(array_unique(array_filter($actors, static fn (int $id): bool => $id > 0)));
     }
 
-    /** @param list<int> $ids
-     *  @return list<int>
+    /**
+     * @param  list<int>  $ids
+     * @return list<int>
      */
     private function usersForCustomers(array $ids): array
     {
@@ -97,8 +98,9 @@ final class FlashOfferAudienceService
             ->all();
     }
 
-    /** @param list<string> $regions
-     *  @return list<int>
+    /**
+     * @param  list<string>  $regions
+     * @return list<int>
      */
     private function usersForRegions(array $regions): array
     {
@@ -123,8 +125,9 @@ final class FlashOfferAudienceService
         return $customerIds === [] ? [] : $this->usersForCustomers($customerIds);
     }
 
-    /** @param list<string> $routes
-     *  @return list<int>
+    /**
+     * @param  list<string>  $routes
+     * @return list<int>
      */
     private function usersForRoutes(FlashOffer $offer, array $routes): array
     {

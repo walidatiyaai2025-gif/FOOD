@@ -78,7 +78,7 @@ final class CommercialFeatureFlags
         return (bool) $value;
     }
 
-    /** @return array<string,bool> */
+    /** @return array<string, bool> */
     public function snapshot(): array
     {
         return [
@@ -89,8 +89,9 @@ final class CommercialFeatureFlags
         ];
     }
 
-    /** @param array<string,bool> $flags
-     *  @return array<string,bool>
+    /**
+     * @param  array<string, bool>  $flags
+     * @return array<string, bool>
      */
     public function persist(array $flags): array
     {

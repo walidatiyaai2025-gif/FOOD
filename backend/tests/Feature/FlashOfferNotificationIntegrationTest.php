@@ -137,6 +137,7 @@ class FlashOfferNotificationIntegrationTest extends TestCase
         $this->assertSame(0, app(FlashOfferNotificationDispatcher::class)->dispatchDue());
         $this->assertDatabaseMissing('notifications', ['type' => 'flash_offer.started']);
     }
+
     public function test_targeted_flash_push_filters_users_and_popup_flag_is_backend_authoritative(): void
     {
         $this->seed(CoreReferenceSeeder::class);
@@ -213,5 +214,4 @@ class FlashOfferNotificationIntegrationTest extends TestCase
             ],
         );
     }
-
 }
