@@ -89,6 +89,7 @@ class VanFoundationScreen extends StatelessWidget {
               ),
             ),
             VanOffersPage(
+              session: session,
               commercialRepository: commercialRepository,
               customerRepository: walletRepository,
               onSessionExpired: onLogout,
