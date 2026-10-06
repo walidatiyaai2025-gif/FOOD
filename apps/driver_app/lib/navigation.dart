@@ -12,6 +12,8 @@ import 'features/notifications/driver_notification_page.dart';
 import 'features/delivery/driver_assignment_contract.dart';
 import 'features/delivery/driver_journey_runtime.dart';
 import 'features/notifications/notification_feed.dart';
+import 'features/wallet/driver_wallet_contract.dart';
+import 'features/wallet/driver_wallet_page.dart';
 
 export 'core/auth/driver_session.dart' show DriverChannel;
 
@@ -20,9 +22,11 @@ abstract final class DriverRoutes {
   static const b2cHome = '/driver/b2c/home';
   static const b2cDeliveries = '/driver/b2c/deliveries';
   static const b2cNotifications = '/driver/b2c/notifications';
+  static const b2cWallet = '/driver/b2c/wallet';
   static const b2bHome = '/driver/b2b/home';
   static const b2bDeliveries = '/driver/b2b/deliveries';
   static const b2bNotifications = '/driver/b2b/notifications';
+  static const b2bWallet = '/driver/b2b/wallet';
 
   static bool belongsTo(String route, DriverChannel channel) {
     final prefix =
@@ -90,6 +94,16 @@ class DriverNavigator {
           ),
           settings,
         );
+      case DriverRoutes.b2cWallet:
+      case DriverRoutes.b2bWallet:
+        final walletRepository = repository;
+        if (walletRepository is! DriverWalletRepository) {
+          return _page(const _DriverRouteNotFound(), settings);
+        }
+        return _page(
+          DriverWalletPage(repository: walletRepository),
+          settings,
+        );
       case DriverRoutes.b2cNotifications:
       case DriverRoutes.b2bNotifications:
         final notifications = notificationRepository;
@@ -136,12 +150,18 @@ class DriverNavigator {
     final notifications = channel == DriverChannel.b2c
         ? DriverRoutes.b2cNotifications
         : DriverRoutes.b2bNotifications;
+    final wallet = repository is DriverWalletRepository
+        ? (channel == DriverChannel.b2c
+            ? DriverRoutes.b2cWallet
+            : DriverRoutes.b2bWallet)
+        : null;
 
     return _DriverHomePage(
       homeRoute: home,
       deliveriesRoute: deliveries,
       driverName: driverName,
       notificationsRoute: notifications,
+      walletRoute: wallet,
       channel: channel,
       repository: repository,
       onSessionExpired: onSessionExpired,
@@ -161,6 +181,7 @@ class _DriverHomePage extends StatefulWidget {
     required this.deliveriesRoute,
     required this.driverName,
     required this.notificationsRoute,
+    this.walletRoute,
     required this.channel,
     required this.repository,
     this.onSessionExpired,
@@ -172,6 +193,7 @@ class _DriverHomePage extends StatefulWidget {
   final String deliveriesRoute;
   final String driverName;
   final String notificationsRoute;
+  final String? walletRoute;
   final DriverChannel channel;
   final DriverAssignmentRepository repository;
   final VoidCallback? onSessionExpired;
@@ -493,6 +515,31 @@ class _DriverHomePageState extends State<_DriverHomePage>
                         ),
                       ],
                     ),
+                    if (widget.walletRoute != null) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          key: const Key('driver-open-wallet'),
+                          onPressed: () => Navigator.of(context)
+                              .pushNamed(widget.walletRoute!),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white54),
+                            minimumSize: const Size(0, 48),
+                          ),
+                          icon: const Icon(
+                            Icons.account_balance_wallet_outlined,
+                            size: 19,
+                          ),
+                          label: Text(
+                            context.tr('driver.home.open_wallet'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
