@@ -24,6 +24,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | New mobile app path is absent from Required CI changed-area detection | `required-ci-gate` may look green while app analyzer/tests never run | Wire every first-class mobile app into a dedicated reusable CI workflow and the Required CI detector/gate before the lane can be considered complete. |
 | Main branch drift | exact-head/base comparison | Revalidate against current main before readiness/merge. |
 | Stale release artifact | SHA manifest/checksum | Artifacts must identify and match final validated head SHA. |
+| Unpublished release-train candidate bumps `VERSION` ahead of the published append-only registry and feature PR Repository Policy rejects the mismatch | `node .github/scripts/release-registry.js validate` with `GITHUB_BASE_REF` set | Validate candidate VERSION against the immutable base registry when the PR does not mutate published registry history; only the dedicated release flow may append/register generated artifacts. |
 | Repeated identical CI failure across pushes | failure fingerprint | Reproduce locally before another push; promote rule/check. |
 | Dependency/lockfile accidental drift | diff preflight | Reject unrelated lockfile changes and implicit upgrades. |
 | Flaky time/random/order test | deterministic test setup | Freeze clock/seed/state; do not rerun-until-green. |
