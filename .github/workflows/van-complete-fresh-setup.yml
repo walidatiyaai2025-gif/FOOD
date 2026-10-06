@@ -583,10 +583,11 @@ jobs:
 
           async function captureLocale(lang) {
             await page.goto(base + '/admin/profile');
-            const localeForm = page.locator('form[action$="/admin/profile/locale"]');
-            await localeForm.locator('select[name="locale"]').selectOption(lang);
+            const localeForm = page.locator('form[action$="/admin/profile/locale"]').filter({
+              has: page.locator('input[name="locale"][value="'+lang+'"]')
+            });
             await Promise.all([
-              page.waitForLoadState('networkidle'),
+              page.waitForNavigation({waitUntil:'networkidle'}),
               localeForm.locator('button[type="submit"]').click(),
             ]);
 
