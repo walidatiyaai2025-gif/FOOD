@@ -8,9 +8,13 @@ class _FakeNotifications implements DriverNotificationRepository {
 
   final List<DriverNotification> items;
   final List<int> marked = <int>[];
+  int listCount = 0;
 
   @override
-  Future<List<DriverNotification>> list({required String locale}) async => items;
+  Future<List<DriverNotification>> list({required String locale}) async {
+    listCount += 1;
+    return items;
+  }
 
   @override
   Future<void> markRead(int notificationId) async {
@@ -19,6 +23,36 @@ class _FakeNotifications implements DriverNotificationRepository {
 }
 
 void main() {
+  testWidgets('notifications refresh when Driver app resumes', (tester) async {
+    final repository = _FakeNotifications(const [
+      DriverNotification(
+        id: 70,
+        title: 'New assignment',
+        body: 'Open assignment',
+        readAt: null,
+        data: {'assignment_id': 700},
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: DriverNotificationPage(
+          repository: repository,
+          onOpenAssignment: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(repository.listCount, 1);
+
+    await tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(repository.listCount, 2);
+  });
+
   testWidgets('active assignment notification marks read and opens assignment',
       (tester) async {
     final repository = _FakeNotifications(const [
