@@ -56,7 +56,12 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAny($user, ['field_ops.manage', 'drivers.b2b.view', 'drivers.tracking.view', 'customers.view', 'territories.manage', 'finance.view']);
 
-        $canTrack = $user->hasRole('SUPER_ADMIN') || $user->hasPermission('drivers.tracking.view');
+        $isSuper = $user->hasRole('SUPER_ADMIN');
+        $canTrack = $isSuper || $user->hasPermission('drivers.tracking.view');
+        $canDrivers = $isSuper || $user->hasPermission('drivers.b2b.view');
+        $canVisits = $canDrivers && ($isSuper || $user->hasPermission('customers.view'));
+        $canTerritories = $isSuper || $user->hasPermission('territories.manage') || $user->hasPermission('field_ops.manage');
+        $canAddress = $isSuper || $user->hasPermission('customers.view');
         $locationHealth = ['online' => 0, 'stale' => 0, 'offline' => 0];
         if ($canTrack) {
             $locations = FleetCurrentLocation::query()->where('actor_type', 'van')->get();
@@ -69,7 +74,7 @@ final class FieldOperationsController extends Controller
             }
         }
 
-        $canFinance = $user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.view');
+        $canFinance = $isSuper || $user->hasPermission('finance.view');
         $outstanding = $canFinance
             ? (float) DB::table('custody_ledger_entries')
                 ->join('collection_accounts', 'collection_accounts.id', '=', 'custody_ledger_entries.collection_account_id')
@@ -79,25 +84,33 @@ final class FieldOperationsController extends Controller
 
         return $this->render($request, 'overview', [
             'summary' => [
-                'active_vans' => Van::query()->where('status', 'active')->count(),
-                'suspended_vans' => Van::query()->where('status', 'suspended')->count(),
-                'assigned_vans' => VanAssignment::query()->where('status', 'active')->distinct()->count('van_id'),
-                'unassigned_vans' => Van::query()->whereDoesntHave('assignments', fn ($q) => $q->where('status', 'active'))->count(),
-                'operators' => VanAssignment::query()->where('status', 'active')->whereNotNull('representative_user_id')->distinct()->count('representative_user_id'),
-                'customers_served' => ($user->hasRole('SUPER_ADMIN') || $user->hasPermission('customers.view'))
+                'active_vans' => $canDrivers ? Van::query()->where('status', 'active')->count() : 0,
+                'suspended_vans' => $canDrivers ? Van::query()->where('status', 'suspended')->count() : 0,
+                'assigned_vans' => $canDrivers ? VanAssignment::query()->where('status', 'active')->distinct()->count('van_id') : 0,
+                'unassigned_vans' => $canDrivers ? Van::query()->whereDoesntHave('assignments', fn ($q) => $q->where('status', 'active'))->count() : 0,
+                'operators' => $canDrivers ? VanAssignment::query()->where('status', 'active')->whereNotNull('representative_user_id')->distinct()->count('representative_user_id') : 0,
+                'customers_served' => $canVisits
                     ? DB::query()->fromSub(
                         VanVisit::query()->select(['customer_type', 'customer_id'])->distinct(),
                         'served_customers',
                     )->count()
                     : 0,
-                'active_visits' => VanVisit::query()->whereIn('status', ['planned', 'started'])->count(),
-                'completed_visits' => VanVisit::query()->whereIn('status', ['completed_with_order', 'completed_no_order', 'customer_unavailable', 'closed'])->count(),
-                'no_order_visits' => VanVisit::query()->where('status', 'completed_no_order')->count(),
+                'active_visits' => $canVisits ? VanVisit::query()->whereIn('status', ['planned', 'started'])->count() : 0,
+                'completed_visits' => $canVisits ? VanVisit::query()->whereIn('status', ['completed_with_order', 'completed_no_order', 'customer_unavailable', 'closed'])->count() : 0,
+                'no_order_visits' => $canVisits ? VanVisit::query()->where('status', 'completed_no_order')->count() : 0,
                 'outstanding_collections' => $outstanding,
-                'territories' => ServiceTerritory::query()->where('status', 'active')->count(),
-                'unresolved_addresses' => AddressQualityReview::query()->where('status', 'unmapped')->count(),
+                'territories' => $canTerritories ? ServiceTerritory::query()->where('status', 'active')->count() : 0,
+                'unresolved_addresses' => $canAddress ? AddressQualityReview::query()->where('status', 'unmapped')->count() : 0,
                 'location_health' => $locationHealth,
                 'pending_remittances' => $canFinance ? Remittance::query()->where('status', 'pending')->count() : 0,
+            ],
+            'overviewVisibility' => [
+                'drivers' => $canDrivers,
+                'visits' => $canVisits,
+                'tracking' => $canTrack,
+                'territories' => $canTerritories,
+                'address' => $canAddress,
+                'finance' => $canFinance,
             ],
         ]);
     }
@@ -128,7 +141,7 @@ final class FieldOperationsController extends Controller
     public function vans(Request $request): View
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.b2b.view', 'field_ops.manage']);
+        $this->authorizeAny($user, ['drivers.b2b.view']);
 
         $vans = Van::query()->with(['assignments' => fn ($q) => $q->orderByDesc('effective_from')])->orderBy('code')->paginate(25);
         $locations = FleetCurrentLocation::query()
@@ -143,7 +156,7 @@ final class FieldOperationsController extends Controller
     public function storeVan(Request $request): RedirectResponse
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.b2b.manage', 'field_ops.manage']);
+        $this->authorizeAny($user, ['drivers.b2b.manage']);
 
         $data = $request->validate([
             'code' => ['required', 'string', 'max:100', 'unique:vans,code'],
@@ -163,7 +176,7 @@ final class FieldOperationsController extends Controller
     public function suspendVan(Request $request, Van $van): RedirectResponse
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.b2b.manage', 'field_ops.manage']);
+        $this->authorizeAny($user, ['drivers.b2b.manage']);
 
         $data = $request->validate([
             'transfer_target_van_id' => ['nullable', 'integer', 'exists:vans,id'],
@@ -180,7 +193,7 @@ final class FieldOperationsController extends Controller
     public function assignments(Request $request): View
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.b2b.view', 'field_ops.manage']);
+        $this->authorizeAny($user, ['drivers.b2b.view']);
 
         $assignments = VanAssignment::query()->with('van')->orderByDesc('effective_from')->paginate(25);
         $vans = Van::query()->where('status', 'active')->orderBy('code')->get();
@@ -195,7 +208,7 @@ final class FieldOperationsController extends Controller
     public function storeAssignment(Request $request, Van $van): RedirectResponse
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.b2b.manage', 'field_ops.manage']);
+        $this->authorizeAny($user, ['drivers.b2b.manage']);
 
         $data = $request->validate([
             'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
@@ -217,7 +230,7 @@ final class FieldOperationsController extends Controller
     public function customers(Request $request): View
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['customers.view', 'drivers.b2b.view', 'field_ops.manage']);
+        $this->authorizeAll($user, ['customers.view', 'drivers.b2b.view']);
 
         $latestIds = DB::table('van_visits')
             ->selectRaw('MAX(id) AS id')
@@ -252,7 +265,7 @@ final class FieldOperationsController extends Controller
     public function visits(Request $request): View
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.b2b.view', 'customers.view', 'field_ops.manage']);
+        $this->authorizeAll($user, ['drivers.b2b.view', 'customers.view']);
 
         $visits = VanVisit::query()->with(['actor', 'noOrderReason'])->orderByDesc('created_at')->paginate(30);
         $visits->setCollection($visits->getCollection()->map(function (VanVisit $visit): VanVisit {
@@ -268,7 +281,7 @@ final class FieldOperationsController extends Controller
     public function storeVisit(Request $request): RedirectResponse
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.b2b.manage', 'field_ops.manage']);
+        $this->authorizeAny($user, ['drivers.b2b.manage']);
 
         $data = $request->validate([
             'assignment_id' => ['required', 'integer', 'exists:van_assignments,id'],
@@ -321,7 +334,7 @@ final class FieldOperationsController extends Controller
     public function transitionVisit(Request $request, VanVisit $visit): RedirectResponse
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.b2b.manage', 'field_ops.manage']);
+        $this->authorizeAny($user, ['drivers.b2b.manage']);
 
         $data = $request->validate([
             'status' => ['required', 'string'],
@@ -413,7 +426,7 @@ final class FieldOperationsController extends Controller
     public function addressQuality(Request $request): View
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['customers.view', 'field_ops.manage']);
+        $this->authorizeAny($user, ['customers.view']);
 
         $filters = $request->validate([
             'status' => ['nullable', Rule::in(['unmapped', 'confirmed', 'rejected'])],
@@ -435,7 +448,7 @@ final class FieldOperationsController extends Controller
     public function addressAction(Request $request, AddressQualityReview $review, string $action): RedirectResponse
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['customers.edit', 'field_ops.manage']);
+        $this->authorizeAny($user, ['customers.edit']);
 
         $data = $request->validate([
             'territory_key' => [$action === 'confirm' ? 'required' : 'nullable', 'string', 'max:150'],
@@ -521,7 +534,7 @@ final class FieldOperationsController extends Controller
     public function finance(Request $request): View
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['finance.view', 'field_ops.manage']);
+        $this->authorizeAny($user, ['finance.view']);
 
         $filters = $request->validate([
             'ops_tab' => ['nullable', 'string', 'in:wallets,collections,remittances,reconciliation'],
@@ -540,7 +553,7 @@ final class FieldOperationsController extends Controller
     public function reviewRemittance(Request $request, Remittance $remittance, string $action): RedirectResponse
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['finance.manage', 'field_ops.manage']);
+        $this->authorizeAny($user, ['finance.manage']);
 
         $account = DB::table('collection_accounts')->where('id', $remittance->collection_account_id)->first();
         abort_unless($account !== null && in_array((int) $account->store_id, $this->b2bStoreIds($user), true), 404);
@@ -594,6 +607,19 @@ final class FieldOperationsController extends Controller
         }
 
         abort(403);
+    }
+
+    private function authorizeAll(User $user, array $permissions): void
+    {
+        if ($user->hasRole('SUPER_ADMIN')) {
+            return;
+        }
+
+        foreach ($permissions as $permission) {
+            if (! $user->hasPermission($permission)) {
+                abort(403);
+            }
+        }
     }
 
     private function customerDisplay(string $type, int $id): string
