@@ -30,11 +30,11 @@ class MobileAppDownloadTest extends TestCase
         $this->assertIsArray($applications);
         $this->assertSame('admin.nav_groups.applications', $applications['label']);
         $this->assertSame(
-            ['app_preview', 'mobile_customer_download', 'mobile_driver_download'],
+            ['app_preview', 'mobile_customer_download', 'mobile_driver_download', 'mobile_van_download'],
             collect($applications['children'])->pluck('key')->values()->all(),
         );
         $this->assertSame(
-            ['admin.app-preview.index', 'admin.mobile-apps.customer.download', 'admin.mobile-apps.driver.download'],
+            ['admin.app-preview.index', 'admin.mobile-apps.customer.download', 'admin.mobile-apps.driver.download', 'admin.mobile-apps.van.download'],
             collect($applications['children'])->pluck('route')->values()->all(),
         );
     }
