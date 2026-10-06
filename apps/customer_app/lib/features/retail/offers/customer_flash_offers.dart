@@ -379,7 +379,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
 
   Future<void> _openCheckout(CustomerFlashReservation reservation) async {
     await Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      MaterialPageRoute<RetailCreatedOrder?>(
         builder: (_) => CustomerFlashCheckoutScreen(
           storeId: widget.storeId,
           reservation: reservation,
@@ -446,6 +446,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                 reservation: _reservation!,
                 remaining: _reservation!.remainingAt(_now),
                 isArabic: _ar,
+                onContinue: () => _openCheckout(_reservation!),
               ),
             if (_busy) const LinearProgressIndicator(),
             if (_error != null)
@@ -578,11 +579,13 @@ class _ActiveReservationBanner extends StatelessWidget {
     required this.reservation,
     required this.remaining,
     required this.isArabic,
+    required this.onContinue,
   });
 
   final CustomerFlashReservation reservation;
   final Duration remaining;
   final bool isArabic;
+  final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -592,6 +595,8 @@ class _ActiveReservationBanner extends StatelessWidget {
           subtitle: Text(
             '${isArabic ? 'الوقت المتبقي' : 'Time remaining'}: ${_duration(remaining)}',
           ),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: onContinue,
         ),
       );
 }
