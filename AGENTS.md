@@ -1218,5 +1218,7 @@ When the repository owner says `حرك مشروع FOOD`, `اشتغل على مش
 
 For #1001, only #1012 may declare the plan fully converged and close the umbrella.
 
+#1012 must not close #1001 until the canonical `FOODEX Van 1.0.58 Fresh Setup` workflow has built `Release/FOODEX-Laravel-Setup.zip` from the exact final integrated implementation source SHA, passed clean-install validation from the ZIP only, and published the synchronized Setup/evidence/update artifacts back to `release/1.0.58-van-complete`. `Release/BUILD_INFO.json.source_commit` and `Release/FRESH_INSTALL_EVIDENCE.json.source_commit` must equal that implementation source SHA. If Setup-delivered business code changes afterwards, the Setup is stale and the workflow must rebuild/revalidate it before Mission completion.
+
 If the machine-readable registry ever disagrees with live Issue/branch/PR state, **live GitHub state wins**. The registry locates the mission; it is not a cached status database.
 
