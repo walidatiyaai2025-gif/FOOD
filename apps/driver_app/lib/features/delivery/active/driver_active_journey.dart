@@ -324,6 +324,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       });
       return;
     }
+    final collectionRepository = repository as DriverCollectionRepository;
 
     final amountController = TextEditingController(
       text: settlement.amountToCollectNow.toStringAsFixed(3),
@@ -374,7 +375,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
     });
 
     try {
-      final result = await repository.collect(
+      final result = await collectionRepository.collect(
         assignment.id,
         amount: amount,
         idempotencyKey:
