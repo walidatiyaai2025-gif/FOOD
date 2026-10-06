@@ -1,48 +1,93 @@
 import 'package:flutter/material.dart';
 
+import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 
 class VanFoundationScreen extends StatelessWidget {
-  const VanFoundationScreen({super.key});
+  const VanFoundationScreen({
+    super.key,
+    required this.session,
+    required this.onLogout,
+  });
+
+  final VanSession session;
+  final Future<void> Function() onLogout;
+
+  String _text(BuildContext context, String en, String ar) =>
+      Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
 
   @override
   Widget build(BuildContext context) {
+    final arabic = Localizations.localeOf(context).languageCode == 'ar';
+    final tabs = arabic
+        ? const ['نظرة عامة', 'المسارات', 'الزيارات', 'المحفظة']
+        : const ['Overview', 'Routes', 'Visits', 'Wallet'];
+
     return DefaultTabController(
       length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('FOODEX Van'),
-          bottom: const TabBar(
+          actions: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  session.name,
+                  key: const Key('van-session-name'),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+            IconButton(
+              key: const Key('van-logout'),
+              tooltip: _text(context, 'Sign out', 'تسجيل الخروج'),
+              onPressed: onLogout,
+              icon: const Icon(Icons.logout),
+            ),
+          ],
+          bottom: TabBar(
             isScrollable: true,
-            tabs: [
-              Tab(text: 'Overview'),
-              Tab(text: 'Routes'),
-              Tab(text: 'Visits'),
-              Tab(text: 'Wallet'),
-            ],
+            tabs: tabs.map((label) => Tab(text: label)).toList(growable: false),
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
             _FoundationState(
               icon: Icons.local_shipping_outlined,
-              title: 'Van foundation ready',
-              subtitle: 'Operational modules plug into this shell without duplicating business domains.',
+              title: _text(context, 'Van foundation ready', 'تطبيق سيارة البيع جاهز'),
+              subtitle: _text(
+                context,
+                'Operational modules plug into this authenticated shell without duplicating business domains.',
+                'تعمل الوحدات التشغيلية داخل جلسة مصادق عليها دون تكرار منطق الأعمال.',
+              ),
             ),
             _FoundationState(
               icon: Icons.route_outlined,
-              title: 'Routes',
-              subtitle: 'Routing remains backend-authoritative and configuration-driven.',
+              title: tabs[1],
+              subtitle: _text(
+                context,
+                'Routing remains backend-authoritative and configuration-driven.',
+                'تظل سياسات المسارات معتمدة من الخادم وقابلة للتهيئة.',
+              ),
             ),
             _FoundationState(
               icon: Icons.people_outline,
-              title: 'Visits',
-              subtitle: 'Field visits and order capture will reuse canonical customer and commerce APIs.',
+              title: tabs[2],
+              subtitle: _text(
+                context,
+                'Field visits and order capture reuse canonical customer and commerce APIs.',
+                'تعيد الزيارات والطلبات استخدام واجهات العملاء والتجارة المعتمدة.',
+              ),
             ),
             _FoundationState(
               icon: Icons.account_balance_wallet_outlined,
-              title: 'Wallet',
-              subtitle: 'Collections and remittances will reuse the shared custody domain.',
+              title: tabs[3],
+              subtitle: _text(
+                context,
+                'Collections and remittances reuse the shared custody domain.',
+                'تستخدم التحصيلات والتوريدات نطاق العهدة المالي المشترك.',
+              ),
             ),
           ],
         ),
