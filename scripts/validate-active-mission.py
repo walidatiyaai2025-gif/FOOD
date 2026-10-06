@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = ROOT / "docs/execution/ACTIVE_FOOD_MISSION.json"
 BRANCH_RE = re.compile(
-    r"^(?P<prefix>feat|fix|chore|docs|refactor|test|ci)/(?P<issue>[0-9]+)-[a-z0-9-]+$"
+    r"^(?P<prefix>feat|fix|chore|docs|refactor|test|ci|release)/(?P<issue>[0-9]+)-[a-z0-9-]+$"
 )
 
 
