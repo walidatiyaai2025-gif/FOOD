@@ -94,6 +94,51 @@ test('published entries are immutable and a release appends exactly one higher v
 });
 
 
+
+test('release branch validation may accept only its current final release-candidate entry', () => {
+  const { root, registry } = fixture('1.0.58');
+  registry.releases[0].state = 'release-candidate';
+
+  assert.throws(
+    () => validateRegistry(root, registry),
+    /must be registered as published/,
+  );
+  assert.doesNotThrow(() => validateRegistry(
+    root,
+    registry,
+    null,
+    { allowReleaseCandidate: true },
+  ));
+});
+
+test('release-candidate exception never permits historical candidate entries', () => {
+  const { root, registry } = fixture('1.0.57');
+  const first = registry.releases[0];
+  first.state = 'release-candidate';
+
+  fs.writeFileSync(path.join(root, 'docs/release/UPDATE_NOTES_1.0.58.md'), '# notes\n');
+  const packagePath = path.join(root, 'Release/Updates/FOODEX-Update.zip');
+  const digest = crypto.createHash('sha256').update(fs.readFileSync(packagePath)).digest('hex');
+  registry.current_version = '1.0.58';
+  registry.releases.push({
+    ...first,
+    version: '1.0.58',
+    state: 'published',
+    release_notes: 'docs/release/UPDATE_NOTES_1.0.58.md',
+    dashboard_update_sha256: digest,
+  });
+  fs.writeFileSync(path.join(root, 'VERSION'), '1.0.58\n');
+  fs.writeFileSync(
+    path.join(root, 'Release/Updates/FOODEX-Update.json'),
+    JSON.stringify({ package: 'FOODEX-Update.zip', target_version: '1.0.58', sha256: digest }),
+  );
+
+  assert.throws(
+    () => validateRegistry(root, registry, null, { allowReleaseCandidate: true }),
+    /Release 1.0.57 must be registered as published/,
+  );
+});
+
 test('unpublished PR candidate may advance VERSION while published registry stays immutable', () => {
   const { root, registry } = fixture('1.0.57');
   fs.writeFileSync(path.join(root, 'VERSION'), '1.0.58\n');
