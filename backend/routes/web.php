@@ -129,6 +129,7 @@ Route::prefix('admin')
             Route::get('/fleet-map', [FieldOperationsController::class, 'fleet'])->name('fleet');
             Route::get('/fleet-map/feed', [FieldOperationsController::class, 'fleetFeed'])->name('fleet.feed');
             Route::get('/vans', [FieldOperationsController::class, 'vans'])->name('vans');
+            Route::get('/vans/{van}', [FieldOperationsController::class, 'showVan'])->whereNumber('van')->name('vans.show');
             Route::post('/vans', [FieldOperationsController::class, 'storeVan'])->name('vans.store');
             Route::post('/vans/{van}/suspend', [FieldOperationsController::class, 'suspendVan'])->whereNumber('van')->name('vans.suspend');
             Route::get('/assignments', [FieldOperationsController::class, 'assignments'])->name('assignments');
