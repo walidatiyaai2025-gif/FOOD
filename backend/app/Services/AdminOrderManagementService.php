@@ -22,6 +22,7 @@ final class AdminOrderManagementService
 {
     public function __construct(
         private readonly CommerceQuoteService $quotes,
+        private readonly CommercialPolicyService $commercialPolicy,
         private readonly OrderInventoryReservationService $reservations,
         private readonly AuditLogger $audit,
         private readonly DashboardOperationalNotifier $notifier,
@@ -173,7 +174,26 @@ final class AdminOrderManagementService
                 OrderItem::query()->create([
                     'order_id' => $order->getKey(),
                     ...$line,
+                    'selling_unit_quantity' => $line['quantity'],
+                    'base_quantity' => $line['quantity'],
+                    'conversion_factor_snapshot' => 1,
                 ]);
+
+                try {
+                    $this->commercialPolicy->reserveBaseQuantityForOrder(
+                        (int) $order->getKey(),
+                        $legacyCustomerId,
+                        (int) $line['product_id'],
+                        (float) $line['quantity'],
+                        'admin',
+                    );
+                } catch (\DomainException $exception) {
+                    throw ValidationException::withMessages([
+                        'items' => [
+                            'Commercial policy rejected product '.$line['product_id'].': '.$exception->getMessage(),
+                        ],
+                    ]);
+                }
             }
 
             $this->reservations->reserve(
@@ -358,6 +378,7 @@ final class AdminOrderManagementService
             // Release this order's own reservations before repricing availability.
             // Any failure rolls this transaction back and restores the original reservation state.
             $this->reservations->release($locked, $actor, 'dashboard_order_edited');
+            $this->commercialPolicy->releaseOrderReservations((int) $locked->getKey());
 
             $quote = $this->quotes->quote(
                 $channel,
@@ -407,7 +428,26 @@ final class AdminOrderManagementService
                 OrderItem::query()->create([
                     'order_id' => $locked->getKey(),
                     ...$line,
+                    'selling_unit_quantity' => $line['quantity'],
+                    'base_quantity' => $line['quantity'],
+                    'conversion_factor_snapshot' => 1,
                 ]);
+
+                try {
+                    $this->commercialPolicy->reserveBaseQuantityForOrder(
+                        (int) $locked->getKey(),
+                        $legacyCustomerId,
+                        (int) $line['product_id'],
+                        (float) $line['quantity'],
+                        'admin',
+                    );
+                } catch (\DomainException $exception) {
+                    throw ValidationException::withMessages([
+                        'items' => [
+                            'Commercial policy rejected product '.$line['product_id'].': '.$exception->getMessage(),
+                        ],
+                    ]);
+                }
             }
 
             $this->reservations->reserve(
