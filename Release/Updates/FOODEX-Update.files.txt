@@ -354,6 +354,7 @@ backend/app/Services/StorefrontRevisionService.php
 backend/app/Services/SystemInspectorRecorder.php
 backend/app/Services/TerritoryService.php
 backend/app/Services/TranslationCatalog.php
+backend/app/Services/VanCustomerCollectionContextService.php
 backend/app/Services/VanRegistryService.php
 backend/app/Services/VanVisitLifecycleService.php
 backend/app/Services/WholesalePrincipal.php
