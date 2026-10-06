@@ -11,9 +11,11 @@ on:
   pull_request_target:
     types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, closed]
   workflow_run:
+    # Required CI Gate already aggregates Repository Policy and the business
+    # validation matrix. Listening to both doubled watchdog invocations for the
+    # same PR head and amplified GitHub API pressure.
     workflows:
       - "FOODEX Required CI Gate"
-      - "Repository Policy"
     types: [completed]
 
 permissions:
@@ -37,7 +39,10 @@ concurrency:
 jobs:
   watchdog:
     name: Detect stale workers and external gates
-    if: ${{ github.event_name != 'issue_comment' || !contains(github.event.comment.body, '<!-- foodex-watchdog:') }}
+    # Ignore watchdog-authored comments. Also ignore workflow_run events that
+    # are not PR-originated (notably main push/schedule runs); those have no
+    # worker lease to reconcile and previously caused repeated full scans.
+    if: ${{ (github.event_name != 'issue_comment' || !contains(github.event.comment.body, '<!-- foodex-watchdog:')) && (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'pull_request') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
