@@ -22,7 +22,7 @@ permissions:
 
 concurrency:
   group: foodex-van-1-0-58-fresh-setup
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   fresh-setup:
