@@ -54,8 +54,8 @@ final class RoutingPolicyService
                 $policy->rules()->create([
                     'position' => $i + 1,
                     'name' => (string) $rule['name'],
-                    'conditions' => $rule['conditions'] ?? [],
-                    'actions' => $rule['actions'] ?? [],
+                    'conditions' => $rule['conditions'],
+                    'actions' => $rule['actions'],
                     'enabled' => $rule['enabled'] ?? true,
                 ]);
             }
