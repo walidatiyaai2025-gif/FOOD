@@ -1,0 +1,16 @@
+<?php
+
+namespace App\Models;
+
+/**
+ * Static-analysis metadata for RoutingPolicyRule.
+ *
+ * Runtime values are array-cast by RoutingPolicyRule::casts().
+ *
+ * @property array<string, mixed> $conditions
+ * @property array<string, mixed> $actions
+ * @property bool $enabled
+ */
+class RoutingPolicyRule
+{
+}
