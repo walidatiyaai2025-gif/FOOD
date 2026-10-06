@@ -114,7 +114,7 @@ final class VanRegistryService
                 $assignment->forceFill([
                     'status' => 'ended',
                     'effective_until' => now(),
-                    'transferred_to_van_id' => $loaded > 0 ? $transferTarget?->id : null,
+                    'transferred_to_van_id' => $loaded > 0 ? $transferTarget->id : null,
                     'transfer_reason' => $loaded > 0 ? $reason : null,
                 ])->save();
             }
