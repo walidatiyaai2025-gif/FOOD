@@ -198,11 +198,16 @@ final class TerritoryService
 
         return $territories
             ->filter(fn (ServiceTerritory $territory): bool => $territory->geometries
-                ->contains(fn (TerritoryGeometry $geometry): bool => $this->containsPoint(
-                    (array) $geometry->geojson,
-                    $longitude,
-                    $latitude,
-                )))
+                ->contains(function ($geometry) use ($longitude, $latitude): bool {
+                    if (($geometry instanceof TerritoryGeometry) === false) {
+                        return false;
+                    }
+
+                    /** @var array<string, mixed> $geojson */
+                    $geojson = $geometry->getAttribute('geojson');
+
+                    return $this->containsPoint($geojson, $longitude, $latitude);
+                }))
             ->values();
     }
 
