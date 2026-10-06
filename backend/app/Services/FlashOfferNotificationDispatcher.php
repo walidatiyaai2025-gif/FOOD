@@ -73,6 +73,10 @@ final class FlashOfferNotificationDispatcher
 
             if ($event !== null) {
                 $metadata = is_string($event->metadata) ? json_decode($event->metadata, true) : null;
+                if (is_array($metadata) && ($metadata['delivery_state'] ?? null) === 'dispatched') {
+                    return null;
+                }
+
                 $notificationId = is_array($metadata) ? (int) ($metadata['notification_id'] ?? 0) : 0;
                 $notification = $notificationId > 0 ? Notification::query()->find($notificationId) : null;
 
