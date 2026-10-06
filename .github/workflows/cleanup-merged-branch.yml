@@ -3,6 +3,10 @@ name: Cleanup Obsolete Branches
 on:
   pull_request:
     types: [closed]
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cleanup-merged-branch.yml"
   schedule:
     # Hourly sweep catches old/superseded branches whose close event was missed
     # or whose immediate deletion failed.
@@ -30,8 +34,7 @@ jobs:
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.merged == true &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.base.ref == github.event.repository.default_branch
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Delete safely merged branch
@@ -48,6 +51,7 @@ jobs:
               'staging',
               'production',
               'prod',
+              'release/1.0.58-van-complete',
               'release/221-generated-trial-bundle',
             ]);
             const keepPrefixes = []; // release/* branches are temporary; normal safety guards decide retention.
@@ -111,7 +115,8 @@ jobs:
     name: Scheduled safe branch garbage collection
     if: >-
       github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Sweep obsolete branches
@@ -158,6 +163,7 @@ jobs:
               'staging',
               'production',
               'prod',
+              'release/1.0.58-van-complete',
               'release/221-generated-trial-bundle',
             ]);
             const keepPrefixes = []; // release/* branches are temporary; normal safety guards decide retention.
@@ -200,7 +206,7 @@ jobs:
 
             const mergedCompletionByIssue = new Map();
             for (const pr of closedPulls) {
-              if (!pr.merged_at || pr.base.ref !== defaultBranch) continue;
+              if (!pr.merged_at) continue;
               for (const issueNumber of closingIssueNumbers(pr.body)) {
                 if (!mergedCompletionByIssue.has(issueNumber)) {
                   mergedCompletionByIssue.set(issueNumber, pr.number);
@@ -270,6 +276,21 @@ jobs:
                 continue;
               }
 
+              // A branch whose exact current HEAD was merged by a PR is safe
+              // regardless of whether the PR targeted main or an integration/release branch.
+              // Open PRs and active Issue worker state were already protected above.
+              let safeReason = null;
+              const exactMerged = closedPulls.find(
+                pr =>
+                  pr.merged_at &&
+                  pr.head.repo?.full_name === `${owner}/${repo}` &&
+                  pr.head.ref === name &&
+                  pr.head.sha === branch.commit.sha,
+              );
+              if (exactMerged) {
+                safeReason = `exact-merged-pr#${exactMerged.number}-into-${exactMerged.base.ref}`;
+              }
+
               let commit;
               try {
                 ({ data: commit } = await github.rest.repos.getCommit({
@@ -289,12 +310,10 @@ jobs:
                 null;
               const ageMs = committedAt ? now - Date.parse(committedAt) : 0;
 
-              if (!committedAt || ageMs < graceMs) {
+              if (!safeReason && (!committedAt || ageMs < graceMs)) {
                 kept.push([name, `grace-period(<${GRACE_HOURS}h)`]);
                 continue;
               }
-
-              let safeReason = null;
 
               // Fast path: branch has no commits that are not already reachable
               // from the default branch.
@@ -310,23 +329,6 @@ jobs:
                 }
               } catch (error) {
                 core.warning(`Compare failed for ${name}: ${error.message}`);
-              }
-
-              // Squash/rebase merges may leave the original branch commits outside
-              // main's ancestry. In that case, accept an exact current HEAD that
-              // was merged into the default branch.
-              if (!safeReason) {
-                const exactMerged = closedPulls.find(
-                  pr =>
-                    pr.merged_at &&
-                    pr.base.ref === defaultBranch &&
-                    pr.head.repo?.full_name === `${owner}/${repo}` &&
-                    pr.head.ref === name &&
-                    pr.head.sha === branch.commit.sha,
-                );
-                if (exactMerged) {
-                  safeReason = `exact-merged-pr#${exactMerged.number}`;
-                }
               }
 
               // A closed-unmerged branch is also obsolete when its exact PR head
@@ -424,6 +426,6 @@ jobs:
                 'never delete branches with open PRs',
                 'never delete branches referenced by open Issue worker/handoff state',
                 `wait at least ${GRACE_HOURS} hours`,
-                'delete only if fully contained in default, exact current HEAD was merged, or a closed-unmerged PR was superseded by another merged PR that completed the same Issue',
+                'delete only if fully contained in default, exact current HEAD was merged into any repository base branch, or a closed-unmerged PR was superseded by another merged PR that completed the same Issue',
               ])
               .write();
