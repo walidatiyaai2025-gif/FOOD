@@ -9,6 +9,7 @@ use App\Models\StoreReviewerAccount;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -121,6 +122,48 @@ class StoreSubmissionReadinessTest extends TestCase
         $customer = Customer::query()->where('user_id', $user->id)->firstOrFail();
         $this->assertNull($customer->phone);
         $this->assertStringStartsWith('deleted+', (string) $customer->email);
+    }
+
+    public function test_driver_van_account_uses_managed_deactivation_instead_of_customer_self_deletion(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Driver Reviewer',
+            'email' => 'driver-reviewer@example.test',
+            'password' => 'driver-reviewer-123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        DB::table('drivers')->insert([
+            'user_id' => $user->id,
+            'driver_type' => 'delivery',
+            'is_available' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/v1/account-deletion', [
+            'password' => 'driver-reviewer-123',
+            'confirmation' => true,
+        ])->assertSuccessful();
+
+        $this->assertSame('OPERATIONAL_REVIEW_REQUIRED', $response->json('data.status'));
+        $this->assertDatabaseHas('account_deletion_requests', [
+            'user_id' => $user->id,
+            'app' => 'driver',
+            'status' => 'OPERATIONAL_REVIEW_REQUIRED',
+        ]);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'is_active' => 1,
+        ]);
+        $this->assertDatabaseHas('drivers', [
+            'user_id' => $user->id,
+            'is_active' => 1,
+        ]);
     }
 
     public function test_wrong_password_cannot_request_account_deletion(): void
