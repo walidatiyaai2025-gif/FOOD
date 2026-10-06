@@ -18,6 +18,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | UI visual runtime failure | runtime health smoke | Verify route/data/console health before screenshot capture. |
 | MySQL/MariaDB migration rollback mismatch | DB acceptance | Validate forward/rollback behavior on supported DB engine. |
 | Nested Required CI child red while top-level checks look green | required gate child inspection | Read all applicable child jobs; one red means not ready. |
+| New mobile app path is absent from Required CI changed-area detection | `required-ci-gate` may look green while app analyzer/tests never run | Wire every first-class mobile app into a dedicated reusable CI workflow and the Required CI detector/gate before the lane can be considered complete. |
 | Main branch drift | exact-head/base comparison | Revalidate against current main before readiness/merge. |
 | Stale release artifact | SHA manifest/checksum | Artifacts must identify and match final validated head SHA. |
 | Repeated identical CI failure across pushes | failure fingerprint | Reproduce locally before another push; promote rule/check. |
