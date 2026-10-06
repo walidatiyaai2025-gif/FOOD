@@ -9,12 +9,10 @@ use App\Models\Invoice;
 use App\Models\Remittance;
 use App\Models\User;
 use App\Models\VanVisit;
-use App\Services\B2bAccountLedgerService;
+use App\Services\VanCustomerCollectionContextService;
 use App\Services\CollectionCustodyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class VanCollectionController extends Controller
@@ -23,27 +21,13 @@ final class VanCollectionController extends Controller
         Request $request,
         string $type,
         int $customer,
-        B2bAccountLedgerService $ledger,
+        VanCustomerCollectionContextService $context,
     ): JsonResponse {
         $actor = $this->actor($request);
-        $storeId = $this->customerStoreId($request, $actor, $type, $customer);
-        $invoices = $this->openInvoices($type, $customer, $storeId, $ledger);
+        $storeId = $this->customerStoreId($request, $actor, $type, $customer, $context);
 
         return response()->json([
-            'data' => [
-                'customer_type' => $type,
-                'customer_id' => $customer,
-                'store_id' => $storeId,
-                'invoices' => $invoices,
-                'outstanding_total_by_currency' => $invoices
-                    ->groupBy('currency')
-                    ->map(
-                        fn (Collection $rows): float => round(
-                            (float) $rows->sum('outstanding_amount'),
-                            3,
-                        ),
-                    ),
-            ],
+            'data' => $context->context($type, $customer, $storeId),
         ]);
     }
 
@@ -52,10 +36,10 @@ final class VanCollectionController extends Controller
         string $type,
         int $customer,
         CollectionCustodyService $custody,
-        B2bAccountLedgerService $ledger,
+        VanCustomerCollectionContextService $context,
     ): JsonResponse {
         $actor = $this->actor($request);
-        $storeId = $this->customerStoreId($request, $actor, $type, $customer);
+        $storeId = $this->customerStoreId($request, $actor, $type, $customer, $context);
         $idempotencyKey = $this->idempotencyKey($request);
 
         $data = $request->validate([
@@ -63,7 +47,7 @@ final class VanCollectionController extends Controller
             'amount' => ['required', 'numeric', 'gt:0'],
         ]);
 
-        $column = $this->customerColumn($type);
+        $column = $context->customerColumn($type);
         $invoice = Invoice::query()
             ->whereKey((int) $data['invoice_id'])
             ->where($column, $customer)
@@ -111,13 +95,13 @@ final class VanCollectionController extends Controller
                 'data' => [
                     'receipt' => $this->receiptPayload($existing),
                     'invoice_id' => (int) $invoice->getKey(),
-                    'remaining_outstanding' => $this->outstandingAmount($invoice->fresh(), $type, $ledger),
+                    'remaining_outstanding' => $context->outstandingAmount($invoice->fresh(), $type),
                     'wallet' => $this->walletSummary($account, $custody),
                 ],
             ]);
         }
 
-        $outstanding = $this->outstandingAmount($invoice, $type, $ledger);
+        $outstanding = $context->outstandingAmount($invoice, $type);
         abort_if($outstanding <= 0.0001, 409, 'This invoice does not have an outstanding collectible balance.');
 
         if ($amount > $outstanding + 0.0005) {
@@ -139,7 +123,7 @@ final class VanCollectionController extends Controller
             ]],
         );
 
-        $remaining = $this->outstandingAmount($invoice->fresh(), $type, $ledger);
+        $remaining = $context->outstandingAmount($invoice->fresh(), $type);
 
         return response()->json([
             'data' => [
@@ -278,9 +262,14 @@ final class VanCollectionController extends Controller
         return $actor;
     }
 
-    private function customerStoreId(Request $request, User $actor, string $type, int $customer): int
-    {
-        $this->customerColumn($type);
+    private function customerStoreId(
+        Request $request,
+        User $actor,
+        string $type,
+        int $customer,
+        VanCustomerCollectionContextService $context,
+    ): int {
+        $context->customerColumn($type);
 
         $storeIds = VanVisit::query()
             ->where('actor_user_id', $actor->getKey())
@@ -310,65 +299,6 @@ final class VanCollectionController extends Controller
         abort_unless($storeIds->contains($storeId), 404);
 
         return $storeId;
-    }
-
-    private function customerColumn(string $type): string
-    {
-        return match ($type) {
-            'b2b' => 'b2b_customer_id',
-            'b2c' => 'b2c_customer_id',
-            default => abort(404),
-        };
-    }
-
-    /** @return Collection<int,array{id:int,number:string,currency:uppercase-string,total:float,outstanding_amount:float,due_at:string|null}> */
-    private function openInvoices(
-        string $type,
-        int $customer,
-        int $storeId,
-        B2bAccountLedgerService $ledger,
-    ): Collection {
-        $column = $this->customerColumn($type);
-
-        return Invoice::query()
-            ->where($column, $customer)
-            ->where('store_id', $storeId)
-            ->where('channel', $type)
-            ->whereIn('status', ['issued', 'reissued'])
-            ->orderBy('due_at')
-            ->orderBy('id')
-            ->get()
-            ->map(function (Invoice $invoice) use ($type, $ledger): array {
-                $outstanding = $this->outstandingAmount($invoice, $type, $ledger);
-
-                return [
-                    'id' => (int) $invoice->getKey(),
-                    'number' => (string) $invoice->invoice_number,
-                    'currency' => strtoupper((string) $invoice->currency),
-                    'total' => round((float) $invoice->total, 3),
-                    'outstanding_amount' => $outstanding,
-                    'due_at' => $invoice->due_at === null ? null : (string) $invoice->due_at,
-                ];
-            })
-            ->filter(fn (array $invoice): bool => (float) $invoice['outstanding_amount'] > 0.0001)
-            ->values();
-    }
-
-    private function outstandingAmount(
-        Invoice $invoice,
-        string $type,
-        B2bAccountLedgerService $ledger,
-    ): float {
-        if ($type === 'b2b') {
-            return round((float) $ledger->invoiceAmounts($invoice)['outstanding_amount'], 3);
-        }
-
-        $paid = (float) DB::table('payments')
-            ->where('invoice_id', $invoice->getKey())
-            ->whereIn('status', ['paid', 'captured'])
-            ->sum('amount');
-
-        return round(max((float) $invoice->total - $paid, 0), 3);
     }
 
     private function idempotencyKey(Request $request): string
