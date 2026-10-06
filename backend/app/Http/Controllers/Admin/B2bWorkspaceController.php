@@ -82,7 +82,6 @@ class B2bWorkspaceController extends Controller
     ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View|Response
-
     {
         $user = $this->actor($request);
         abort_unless(array_key_exists($module, self::MODULE_PERMISSIONS), 404);
@@ -191,7 +190,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
-
     {
         $actor = $this->actor($request);
         $storeId = $this->principal->storeId();
@@ -203,7 +201,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $warehouseId = $request->integer('warehouse_id');
@@ -226,7 +223,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function updateOrder(Request $request, int $order, AdminOrderManagementService $orders): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $model = Order::query()
@@ -331,7 +327,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function storeDriver(Request $request): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -369,7 +364,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function resetDriverPassword(Request $request, int $driver): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -406,7 +400,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function savePriceRule(Request $request, B2bPricingController $pricing): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $storeId = $this->principal->storeId();
@@ -448,7 +441,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function storeCategory(Request $request): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -484,7 +476,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function storeProduct(Request $request): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -547,7 +538,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function updateProduct(Request $request, Product $product): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $owner = DB::table('products')
@@ -621,7 +611,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function storeWarehouse(Request $request): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -651,7 +640,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function ensureInventory(Request $request): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -681,7 +669,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function adjustInventory(Request $request, int $inventory): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -732,7 +719,6 @@ class B2bWorkspaceController extends Controller
     }
 
     public function saveSetting(Request $request): RedirectResponse
-
     {
         $actor = $this->actor($request);
         $data = $request->validate([
@@ -813,7 +799,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function reportModuleData(User $user, array $storeIds): array
-
     {
         $storeId = (int) ($storeIds[0] ?? $this->principal->storeId());
         $data = $this->reports->run($user, 'orders', ['store_id' => $storeId, 'channel' => 'b2b']);
@@ -928,7 +913,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function settingsModuleData(User $user, array $storeIds): array
-
     {
         $actions = [];
         if ($user->hasPermission('lookups.view')) {
@@ -964,7 +948,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function financeModuleData(array $storeIds, User $user, Request $request): array
-
     {
         $filters = $request->validate($this->financeFilterRules());
         $opsFilters = $request->validate($this->fieldOperationsFinanceFilterRules());
@@ -977,7 +960,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function inventoryModuleData(array $storeIds): array
-
     {
         $rows = DB::table('inventories')
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
@@ -1037,7 +1019,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function productModuleData(array $storeIds, User $user): array
-
     {
         $rows = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -1127,7 +1108,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function moduleData(string $module, array $storeIds, User $user, Request $request): array
-
     {
         return match ($module) {
             'dashboard' => [
@@ -1345,7 +1325,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function orderModuleData(array $storeIds): array
-
     {
         $customers = DB::table('b2b_customers')
             ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
@@ -1744,7 +1723,7 @@ class B2bWorkspaceController extends Controller
             'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        if (!isset($data['from']) && !isset($data['to']) && isset($data['date'])) {
+        if (! isset($data['from']) && ! isset($data['to']) && isset($data['date'])) {
             return [$data['date'], $data['date']];
         }
 
@@ -1769,7 +1748,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function actor(Request $request): User
-
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
@@ -1779,7 +1757,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function canOpenModule(User $user, string $module): bool
-
     {
         $permission = self::MODULE_PERMISSIONS[$module] ?? null;
 
@@ -1787,7 +1764,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function authorizeModule(User $user, string $module): void
-
     {
         $permission = self::MODULE_PERMISSIONS[$module] ?? null;
         if ($permission !== null) {
@@ -1796,7 +1772,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function displaySettingValue(mixed $value): string
-
     {
         if ($value === null) {
             return '-';
@@ -1811,7 +1786,6 @@ class B2bWorkspaceController extends Controller
     }
 
     private function msg(string $ar, string $en): string
-
     {
         return app()->getLocale() === 'ar' ? $ar : $en;
     }
