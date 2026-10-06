@@ -13,9 +13,11 @@ use Illuminate\Support\Facades\DB;
 
 final class CommercialDashboardController extends Controller
 {
-    public function __construct(
-        private readonly AdminNavigation $navigation,
-    ) {
+    private readonly AdminNavigation $navigation;
+
+    public function __construct(AdminNavigation $navigation)
+    {
+        $this->navigation = $navigation;
     }
 
     public function salesControl(Request $request): View
