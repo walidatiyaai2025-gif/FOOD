@@ -24,7 +24,7 @@ jobs:
           test -s docs/worker-rules/FIRST_RUN_GREEN.md
           test -s docs/worker-rules/CI_FAILURE_PATTERNS.md
       - name: Prevent post-merge main release failures
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.base_ref == 'main'
         shell: bash
         run: bash scripts/validate-premerge-release-version.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
 
