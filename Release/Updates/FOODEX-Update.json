@@ -4,16 +4,16 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.58",
   "minimum_current_version": "1.0.57",
-  "sha256": "59d22e84d529c234100d158fd18a5f6968811ef27480f45b1751b6c7eda8bebe",
+  "sha256": "ad55c34c65f484b9f502d59d734a2df3a4df529fc9f474a82432087a463c5636",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "#1005 — Van UI/UX v4.2 live field compliance",
+  "release_notes": "#1003 — Customer UI/UX v4.2 compliance",
   "dashboard_fields": {
     "target_version": "1.0.58",
     "minimum_current_version": "1.0.57",
-    "sha256": "59d22e84d529c234100d158fd18a5f6968811ef27480f45b1751b6c7eda8bebe",
+    "sha256": "ad55c34c65f484b9f502d59d734a2df3a4df529fc9f474a82432087a463c5636",
     "contains_migrations": true,
-    "release_notes": "#1005 — Van UI/UX v4.2 live field compliance"
+    "release_notes": "#1003 — Customer UI/UX v4.2 compliance"
   }
 }
