@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.56",
+  "current_version": "1.0.57",
   "releases": [
     {
       "version": "1.0.40",
@@ -182,6 +182,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "4533e9bcd17476bbc7f4300bc34bdde627d9fc8a325bc5904f7b726805374dd4",
       "note": "Synchronized 1.0.56 distribution after green #924 / PR #925 integration: Catalog Products UI redesign, Finance-first Customer 360 with audited credit limit and map address picker, B2B Orders modal/i18n cleanup, Operations grid cleanup, integrated reliability hardening, and Customer/Driver release identities at 1.0.56+56."
+    },
+    {
+      "version": "1.0.57",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.57.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "8acc4231570c9297fb8ac64bf3e03e1428c299f98e3d780d6cca3c644933a91d",
+      "note": "FOODEX 1.0.57 production release for Issue #943 / PR #946: in-place Customer client UI/UX normalization, localized display cleanup, and Dashboard Driver map silent-refresh stabilization with last-success preservation, duplicate-refresh suppression, cleanup, and synchronized Customer/Driver release identity 1.0.57+57."
     }
   ]
 }

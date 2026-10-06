@@ -125,21 +125,25 @@ class CustomerBadge extends StatelessWidget {
         ),
     };
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
-      ),
-      child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(10, 6, 10, 6),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: foreground,
-                fontSize: 12,
-              ),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 160),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+        ),
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(9, 4, 9, 4),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: foreground,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
         ),
       ),
     );

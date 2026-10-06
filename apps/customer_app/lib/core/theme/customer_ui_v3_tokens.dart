@@ -94,46 +94,17 @@ abstract final class CustomerUiTypography {
         : base.apply(fontFamily: fontFamily);
 
     return themed.copyWith(
-      headlineLarge: themed.headlineLarge?.copyWith(
-        fontSize: 30,
-        height: 1.20,
-        fontWeight: FontWeight.w800,
-      ),
-      headlineMedium: themed.headlineMedium?.copyWith(
-        fontSize: 24,
-        height: 1.24,
-        fontWeight: FontWeight.w800,
-      ),
-      headlineSmall: themed.headlineSmall?.copyWith(
-        fontSize: 21,
-        height: 1.28,
-        fontWeight: FontWeight.w800,
-      ),
-      titleLarge: themed.titleLarge?.copyWith(
-        fontSize: 19,
-        height: 1.30,
-        fontWeight: FontWeight.w800,
-      ),
-      titleMedium: themed.titleMedium?.copyWith(
-        fontSize: 16,
-        height: 1.35,
-        fontWeight: FontWeight.w700,
-      ),
-      bodyLarge: themed.bodyLarge?.copyWith(
-        fontSize: 16,
-        height: 1.55,
-        fontWeight: FontWeight.w500,
-      ),
-      bodyMedium: themed.bodyMedium?.copyWith(
-        fontSize: 14,
-        height: 1.55,
-        fontWeight: FontWeight.w500,
-      ),
-      labelLarge: themed.labelLarge?.copyWith(
-        fontSize: 14,
-        height: 1.25,
-        fontWeight: FontWeight.w700,
-      ),
+      headlineLarge: themed.headlineLarge?.copyWith(fontSize: 26, height: 1.18, fontWeight: FontWeight.w800),
+      headlineMedium: themed.headlineMedium?.copyWith(fontSize: 22, height: 1.22, fontWeight: FontWeight.w800),
+      headlineSmall: themed.headlineSmall?.copyWith(fontSize: 20, height: 1.24, fontWeight: FontWeight.w800),
+      titleLarge: themed.titleLarge?.copyWith(fontSize: 18, height: 1.28, fontWeight: FontWeight.w800),
+      titleMedium: themed.titleMedium?.copyWith(fontSize: 15, height: 1.32, fontWeight: FontWeight.w700),
+      titleSmall: themed.titleSmall?.copyWith(fontSize: 14, height: 1.30, fontWeight: FontWeight.w700),
+      bodyLarge: themed.bodyLarge?.copyWith(fontSize: 15, height: 1.48, fontWeight: FontWeight.w500),
+      bodyMedium: themed.bodyMedium?.copyWith(fontSize: 14, height: 1.45, fontWeight: FontWeight.w500),
+      bodySmall: themed.bodySmall?.copyWith(fontSize: 12, height: 1.38, fontWeight: FontWeight.w500),
+      labelLarge: themed.labelLarge?.copyWith(fontSize: 13, height: 1.22, fontWeight: FontWeight.w700),
+      labelMedium: themed.labelMedium?.copyWith(fontSize: 12, height: 1.20, fontWeight: FontWeight.w700),
     ).apply(
       bodyColor: CustomerUiColors.ink,
       displayColor: CustomerUiColors.ink,
