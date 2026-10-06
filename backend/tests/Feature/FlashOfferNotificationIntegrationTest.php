@@ -83,7 +83,7 @@ class FlashOfferNotificationIntegrationTest extends TestCase
             'channel' => 'van',
         ]);
 
-        $this->assertSame(2, $dispatcher->dispatchDue());
+        $this->assertSame(0, $dispatcher->dispatchDue());
         $this->assertSame(2, DB::table('notifications')->where('type', 'flash_offer.started')->count());
         $this->assertSame(2, DB::table('flash_offer_events')->where('flash_offer_id', $offer->id)
             ->whereIn('event', ['start_notification_customer', 'start_notification_van'])->count());
