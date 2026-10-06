@@ -563,6 +563,11 @@ class OrderController extends Controller
                             : url('/'.ltrim($imagePath, '/')))
                         : null,
                     'quantity' => (float) $item->quantity,
+                    'selling_unit_code' => $item->selling_unit_code_snapshot,
+                    'selling_unit_name' => $item->selling_unit_name_snapshot,
+                    'selling_unit_quantity' => $item->selling_unit_quantity === null ? null : (float) $item->selling_unit_quantity,
+                    'base_quantity' => $item->base_quantity === null ? null : (float) $item->base_quantity,
+                    'conversion_factor' => $item->conversion_factor_snapshot === null ? null : (float) $item->conversion_factor_snapshot,
                     'quantity_conversion_factor' => (float) ($item->quantity_conversion_factor ?? 1),
                     'pack_size' => (float) ($item->quantity_conversion_factor ?? 1),
                     'unit_price' => (float) $item->unit_price,
