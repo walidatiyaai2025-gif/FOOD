@@ -1,6 +1,8 @@
 @php
     $ar = app()->getLocale() === 'ar';
     $scope = ['store_id' => $storeId] + ($supportAccess ? ['support_access' => 1] : []);
+    $featureFlags = $featureFlags ?? [];
+    $canManageFeatureFlags = (bool) ($canManageFeatureFlags ?? false);
 @endphp
 <!doctype html>
 <html lang="{{ app()->getLocale() }}" dir="{{ $ar ? 'rtl' : 'ltr' }}">
@@ -47,6 +49,40 @@
         </span>
     </section>
 
+    <section class="commercial-card" data-commercial-feature-flags>
+        <h2>{{ $ar ? 'مفاتيح التفعيل التجارية' : 'Commercial Feature Flags' }}</h2>
+        <p class="muted">{{ $ar ? 'المفاتيح تُقرأ وتُفرض من الخادم. الإعداد الافتراضي الآمن عند غيابها هو OFF.' : 'Flags are read and enforced server-side. The backward-compatible safe default when absent is OFF.' }}</p>
+        @if($canManageFeatureFlags)
+            <form method="post" action="{{ route('admin.commercial.feature-flags.save', $scope) }}" class="control-list">
+                @csrf @method('put')
+                @foreach([
+                    'commercial_rules_enabled' => 'Commercial rules',
+                    'flash_offers_enabled' => 'Flash offers',
+                    'customer_flash_popup_enabled' => 'Customer Flash popup',
+                    'van_offers_enabled' => 'Van offers',
+                ] as $flagKey => $flagLabel)
+                    <label>
+                        <input type="hidden" name="{{ $flagKey }}" value="0">
+                        <input type="checkbox" name="{{ $flagKey }}" value="1" @checked((bool)($featureFlags[$flagKey] ?? false))>
+                        {{ $flagLabel }}
+                    </label>
+                @endforeach
+                <button type="submit" class="foodex-primary">{{ $ar ? 'حفظ مفاتيح التفعيل' : 'Save Feature Flags' }}</button>
+            </form>
+        @else
+            <div class="commercial-grid">
+                @foreach([
+                    'commercial_rules_enabled' => 'Commercial rules',
+                    'flash_offers_enabled' => 'Flash offers',
+                    'customer_flash_popup_enabled' => 'Customer Flash popup',
+                    'van_offers_enabled' => 'Van offers',
+                ] as $flagKey => $flagLabel)
+                    <div><strong>{{ $flagLabel }}</strong>: {{ ($featureFlags[$flagKey] ?? false) ? 'ON' : 'OFF' }}</div>
+                @endforeach
+            </div>
+        @endif
+    </section>
+
     @if($section === 'sales-control')
         <header>
             <h1>{{ $ar ? 'Product Sales Control' : 'Product Sales Control' }}</h1>
@@ -76,6 +112,18 @@
                         @csrf @method('put')
                         <div class="control-row"><label>Status</label><select name="status">@foreach(['OPEN','RESTRICTED','CLOSED'] as $status)<option value="{{ $status }}" @selected(($policy->status ?? 'OPEN')===$status)>{{ $status }}</option>@endforeach</select></div>
                         <div class="control-row"><label>Channels JSON</label><input name="channels_json" value="{{ $policy->channels ?? '[&quot;customer&quot;,&quot;van&quot;,&quot;admin&quot;,&quot;api&quot;]' }}"></div>
+                        <div class="commercial-grid">
+                            <label>Break-pack policy
+                                <select name="break_pack_policy">
+                                    @foreach(['mixed','full-pack-only','loose-only','one-unit-type'] as $mode)
+                                        <option value="{{ $mode }}" @selected(($policy->break_pack_policy ?? 'mixed') === $mode)>{{ $mode }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <label>One-unit-type code
+                                <input name="break_pack_unit_code" value="{{ $policy->break_pack_unit_code ?? '' }}" placeholder="e.g. CARTON">
+                            </label>
+                        </div>
                         <div class="control-row"><label>Timezone</label><input name="business_timezone" value="{{ $policy->business_timezone ?? 'Asia/Kuwait' }}"><label>Week starts</label><input type="number" min="0" max="6" name="week_starts_on" value="{{ $policy->week_starts_on ?? 1 }}"></div>
                         <div class="commercial-grid">
                             @foreach(['default_max_per_order'=>'Per order','default_max_per_day'=>'Day','default_max_per_week'=>'Week','default_max_per_month'=>'Month','default_max_lifetime'=>'Lifetime'] as $field=>$label)
@@ -110,6 +158,13 @@
                 <div class="commercial-grid"><label>Body AR<textarea name="body_ar"></textarea></label><label>Body EN<textarea name="body_en"></textarea></label></div>
                 <div class="commercial-grid"><label>Starts<input type="datetime-local" name="starts_at" required></label><label>Ends<input type="datetime-local" name="ends_at" required></label><label>Timezone<input name="timezone" value="Asia/Kuwait" required></label></div>
                 <label>Channels JSON<input name="channels_json" value='["customer","van"]' required></label>
+                <div class="commercial-grid">
+                    <label>Audience customer IDs JSON<textarea name="audience_customer_ids_json" rows="3">[]</textarea></label>
+                    <label>Audience customer-group IDs JSON<textarea name="audience_customer_group_ids_json" rows="3">[]</textarea></label>
+                    <label>Audience regions JSON<textarea name="audience_regions_json" rows="3">[]</textarea></label>
+                    <label>Audience routes JSON<textarea name="audience_routes_json" rows="3">[]</textarea></label>
+                </div>
+                <p class="muted">{{ $ar ? 'عند تحديد أكثر من بُعد جمهور، يجب أن يطابق العميل جميع الأبعاد المحددة. اترك [] للجمهور المفتوح.' : 'When multiple audience dimensions are configured, the customer must match all configured dimensions. Use [] for an unrestricted dimension.' }}</p>
                 <div class="commercial-grid"><label>Allocation mode<select name="allocation_mode"><option value="shared">shared</option><option value="reserved">reserved</option></select></label><label>Total allocation base<input type="number" step="0.001" name="total_allocation_base"></label><label>Per-customer base limit<input type="number" step="0.001" name="per_customer_limit_base"></label></div>
                 <div class="commercial-grid"><label>Reservation seconds<input type="number" name="reservation_seconds" value="300" min="30"></label><label>Retry count<input type="number" name="retry_count" value="0" min="0"></label><label>Cooldown seconds<input type="number" name="cooldown_seconds" value="0" min="0"></label><label>Priority<input type="number" name="priority" value="0"></label></div>
                 <label>Popup frequency<input name="popup_frequency" value="once_per_session"></label>
@@ -126,10 +181,14 @@
             @forelse($flashOffers as $offer)
                 <div class="control-row">
                     <span>#{{ $offer->id }} · {{ $offer->name }} · <strong>{{ $offer->status }}</strong> · {{ $offer->starts_at }} → {{ $offer->ends_at }}</span>
-                    <form method="post" action="{{ route('admin.commercial.flash-offers.action', ['offer'=>$offer->id] + $scope) }}">@csrf
-                        <select name="action">@foreach(['schedule','activate','pause','resume','end','cancel','kill_on','kill_off'] as $action)<option>{{ $action }}</option>@endforeach</select>
-                        <button type="submit">{{ $ar?'تنفيذ':'Apply' }}</button>
-                    </form>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                        <a href="{{ route('admin.commercial.flash-offers.preview', ['offer'=>$offer->id] + $scope) }}">{{ $ar ? 'معاينة' : 'Preview' }}</a>
+                        <a href="{{ route('admin.commercial.flash-offers.analytics', ['offer'=>$offer->id] + $scope) }}">{{ $ar ? 'التحليلات' : 'Analytics' }}</a>
+                        <form method="post" action="{{ route('admin.commercial.flash-offers.action', ['offer'=>$offer->id] + $scope) }}">@csrf
+                            <select name="action">@foreach(['schedule','activate','pause','resume','end','cancel','kill_on','kill_off'] as $action)<option>{{ $action }}</option>@endforeach</select>
+                            <button type="submit">{{ $ar?'تنفيذ':'Apply' }}</button>
+                        </form>
+                    </div>
                 </div>
             @empty
                 <p class="muted">{{ $ar?'لا توجد Flash Offers.':'No Flash Offers yet.' }}</p>
