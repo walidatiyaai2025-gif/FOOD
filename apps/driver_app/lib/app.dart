@@ -337,8 +337,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
       _seenPushAlerts.remove(_seenPushAlerts.first);
     }
 
-    final message =
-        alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
+    final message = alert.body.isEmpty
+        ? alert.title
+        : '${alert.title}\n${alert.body}'; // localization-gate: allow — server-localized push payload.
     final context = _messengerKey.currentContext;
     final actionable =
         !alert.open.accessRevoked && alert.open.assignmentId != null;
