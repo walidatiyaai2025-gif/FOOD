@@ -272,7 +272,7 @@ class _VanWalletPageState extends State<VanWalletPage>
               'الأرصدة تأتي من سجل العهدة المالي المشترك.',
             ),
           ),
-          const SizedBox(height: 8)
+          const SizedBox(height: 8),
           if (_accounts.isEmpty)
             _InfoCard(
               icon: Icons.account_balance_wallet_outlined,
