@@ -16,11 +16,21 @@ void main() {
         'remaining_allocation': 12,
         'remaining_customer_limit': 2,
         'eligible': true,
+        'selling_units': [
+          {
+            'id': 3,
+            'label': 'Carton',
+            'conversion_factor': 10,
+            'flash_price': 7,
+          },
+        ],
       });
 
       expect(offer.id, 44);
       expect(offer.flashPrice, 7);
       expect(offer.remainingCustomerLimit, 2);
+      expect(offer.sellingUnits.single.id, 3);
+      expect(offer.sellingUnits.single.conversionFactor, 10);
       expect(
         offer.remainingAt(DateTime.parse('2026-10-06T08:00:30Z')),
         const Duration(minutes: 9, seconds: 30),
