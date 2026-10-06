@@ -1,20 +1,43 @@
 {
-  "schema_version": 2,
-  "version": "1.0.58",
-  "source_commit": "fbf7f90266057ed6b177a06836abc8490e7144dd",
+  "schema_version": 1,
+  "version": "1.0.59",
+  "source_commit": "21c75cda583b93350f9dff1b1aadafd603c68327",
+  "github_run_number": "310",
   "api_base_url": "https://vanfoodex.50sols.com",
-  "setup_zip_filename": "FOODEX-Laravel-Setup.zip",
-  "setup_zip_bytes": 24766888,
-  "setup_zip_sha256": "394083c05f8dd844cd0013ff03cbac75b4cebc84c0e3f5af5ae0518d967fbb13",
-  "installer_path": "/install",
-  "document_root": "backend/public",
+  "android_signing": "flutter-template-debug-key-test-only",
+  "production_store_ready": false,
+  "customer": {
+    "file": "FOODEX-Customer-1.0.59.apk",
+    "bytes": 79459683,
+    "sha256": "f9c895fe583ec27233fa9492655c902dfa3f7b99643e4591f6a6919a098d12dd",
+    "version": "1.0.59",
+    "build_number": 59,
+    "application_id": "com.fiftysolution.foodex.customer",
+    "firebase_configured": false
+  },
+  "driver": {
+    "file": "FOODEX-Driver-1.0.59.apk",
+    "bytes": 58572592,
+    "sha256": "b0456dcf41952bcfddf3e41a2ad25e1706d5ccf59f083975363c613756b9a8cf",
+    "version": "1.0.59",
+    "build_number": 59,
+    "application_id": "com.fiftysolution.foodex.driver",
+    "firebase_configured": false
+  },
+  "van": {
+    "file": "FOODEX-Van-1.0.59.apk",
+    "bytes": 54468387,
+    "sha256": "45e13d8e3eb3a452d9a57adeb71a8ec74215c3e00ba14da3f42f75bb47cf4798",
+    "version": "1.0.59",
+    "build_number": 59,
+    "application_id": "com.foodex.van",
+    "firebase_configured": true
+  },
   "laravel_setup": {
     "file": "FOODEX-Laravel-Setup.zip",
-    "bytes": 24766888,
-    "sha256": "394083c05f8dd844cd0013ff03cbac75b4cebc84c0e3f5af5ae0518d967fbb13",
+    "bytes": 24766885,
+    "sha256": "2b6c539f74b91cb285d776de43cc64ce0761ed342790da14b97d736b188f6c63",
     "installer_path": "/install",
-    "document_root": "backend/public",
-    "composer_dependencies": "production/no-dev",
-    "fresh_install_acceptance": "PASS"
+    "document_root": "backend/public"
   }
 }

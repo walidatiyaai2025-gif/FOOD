@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.58",
+  "target_version": "1.0.59",
   "minimum_current_version": "1.0.57",
-  "sha256": "5a0228afeb4b14ed0d2184d8e93ee4c0214e5079005c98bd5cb100d67e916517",
+  "sha256": "9bad78cdd8ff3c39af7d171e25fc892bd5ad5e9b973da8724ddeb3b0a784eca8",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "#1007 Unified Dashboard Live Tracking — Drivers + Vans",
+  "release_notes": "release(#1021): prevent terminal artifact rebuild loop",
   "dashboard_fields": {
-    "target_version": "1.0.58",
+    "target_version": "1.0.59",
     "minimum_current_version": "1.0.57",
-    "sha256": "5a0228afeb4b14ed0d2184d8e93ee4c0214e5079005c98bd5cb100d67e916517",
+    "sha256": "9bad78cdd8ff3c39af7d171e25fc892bd5ad5e9b973da8724ddeb3b0a784eca8",
     "contains_migrations": true,
-    "release_notes": "#1007 Unified Dashboard Live Tracking — Drivers + Vans"
+    "release_notes": "release(#1021): prevent terminal artifact rebuild loop"
   }
 }
