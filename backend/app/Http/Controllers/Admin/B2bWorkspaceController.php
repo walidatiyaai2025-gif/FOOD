@@ -82,6 +82,7 @@ class B2bWorkspaceController extends Controller
     ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View|Response
+
     {
         $user = $this->actor($request);
         abort_unless(array_key_exists($module, self::MODULE_PERMISSIONS), 404);
@@ -190,6 +191,7 @@ class B2bWorkspaceController extends Controller
     }
 
     public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
+
     {
         $actor = $this->actor($request);
         $storeId = $this->principal->storeId();
@@ -200,7 +202,9 @@ class B2bWorkspaceController extends Controller
         ]);
     }
 
-    public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse {
+    public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $warehouseId = $request->integer('warehouse_id');
         $warehouse = DB::table('warehouses')
@@ -221,7 +225,9 @@ class B2bWorkspaceController extends Controller
         ));
     }
 
-    public function updateOrder(Request $request, int $order, AdminOrderManagementService $orders): RedirectResponse {
+    public function updateOrder(Request $request, int $order, AdminOrderManagementService $orders): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $model = Order::query()
             ->whereKey($order)
@@ -324,7 +330,9 @@ class B2bWorkspaceController extends Controller
         ));
     }
 
-    public function storeDriver(Request $request): RedirectResponse {
+    public function storeDriver(Request $request): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -360,7 +368,9 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء سائق الجملة.', 'Wholesale driver created.'));
     }
 
-    public function resetDriverPassword(Request $request, int $driver): RedirectResponse {
+    public function resetDriverPassword(Request $request, int $driver): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $request->validate([
             'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
@@ -395,7 +405,9 @@ class B2bWorkspaceController extends Controller
         ));
     }
 
-    public function savePriceRule(Request $request, B2bPricingController $pricing): RedirectResponse {
+    public function savePriceRule(Request $request, B2bPricingController $pricing): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'b2b.pricing.manage', 'b2b');
@@ -435,7 +447,9 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم تحديث حالة حساب الجملة.', 'Wholesale account status updated.'));
     }
 
-    public function storeCategory(Request $request): RedirectResponse {
+    public function storeCategory(Request $request): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $request->validate([
             'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
@@ -469,7 +483,9 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء تصنيف الجملة.', 'Wholesale category created.'));
     }
 
-    public function storeProduct(Request $request): RedirectResponse {
+    public function storeProduct(Request $request): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $request->validate([
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
@@ -530,7 +546,9 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء منتج الجملة.', 'Wholesale product created.'));
     }
 
-    public function updateProduct(Request $request, Product $product): RedirectResponse {
+    public function updateProduct(Request $request, Product $product): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $owner = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -602,7 +620,9 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم تحديث منتج الجملة.', 'Wholesale product updated.'));
     }
 
-    public function storeWarehouse(Request $request): RedirectResponse {
+    public function storeWarehouse(Request $request): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $request->validate([
             'code' => ['required', 'string', 'max:80', 'unique:warehouses,code'],
@@ -630,7 +650,9 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء مخزن الجملة.', 'Wholesale warehouse created.'));
     }
 
-    public function ensureInventory(Request $request): RedirectResponse {
+    public function ensureInventory(Request $request): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $request->validate([
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
@@ -658,7 +680,9 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء/تحديث رصيد الجملة.', 'Wholesale inventory balance created/updated.'));
     }
 
-    public function adjustInventory(Request $request, int $inventory): RedirectResponse {
+    public function adjustInventory(Request $request, int $inventory): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $request->validate([
             'quantity_delta' => ['required', 'numeric', 'not_in:0'],
@@ -707,7 +731,9 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم تعديل مخزون الجملة.', 'Wholesale inventory adjusted.'));
     }
 
-    public function saveSetting(Request $request): RedirectResponse {
+    public function saveSetting(Request $request): RedirectResponse
+
+    {
         $actor = $this->actor($request);
         $data = $request->validate([
             'key' => ['required', 'string', 'max:255'],
@@ -787,6 +813,7 @@ class B2bWorkspaceController extends Controller
     }
 
     private function reportModuleData(User $user, array $storeIds): array
+
     {
         $storeId = (int) ($storeIds[0] ?? $this->principal->storeId());
         $data = $this->reports->run($user, 'orders', ['store_id' => $storeId, 'channel' => 'b2b']);
@@ -901,6 +928,7 @@ class B2bWorkspaceController extends Controller
     }
 
     private function settingsModuleData(User $user, array $storeIds): array
+
     {
         $actions = [];
         if ($user->hasPermission('lookups.view')) {
@@ -936,6 +964,7 @@ class B2bWorkspaceController extends Controller
     }
 
     private function financeModuleData(array $storeIds, User $user, Request $request): array
+
     {
         $filters = $request->validate($this->financeFilterRules());
         $opsFilters = $request->validate($this->fieldOperationsFinanceFilterRules());
@@ -948,6 +977,7 @@ class B2bWorkspaceController extends Controller
     }
 
     private function inventoryModuleData(array $storeIds): array
+
     {
         $rows = DB::table('inventories')
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
@@ -1007,6 +1037,7 @@ class B2bWorkspaceController extends Controller
     }
 
     private function productModuleData(array $storeIds, User $user): array
+
     {
         $rows = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -1096,6 +1127,7 @@ class B2bWorkspaceController extends Controller
     }
 
     private function moduleData(string $module, array $storeIds, User $user, Request $request): array
+
     {
         return match ($module) {
             'dashboard' => [
@@ -1198,583 +1230,3 @@ class B2bWorkspaceController extends Controller
                     ->whereNotNull('orders.b2b_customer_id')
                     ->whereNotIn('orders.status', ['delivered', 'cancelled'])
                     ->whereNotExists(function ($query): void {
-                        $query->selectRaw('1')
-                            ->from('driver_assignments')
-                            ->whereColumn('driver_assignments.order_id', 'orders.id')
-                            ->whereNotIn('driver_assignments.status', ['delivered', 'failed', 'unassigned']);
-                    })
-                    ->orderByDesc('orders.id')
-                    ->limit(100)
-                    ->get(['orders.id', 'orders.store_id', 'orders.order_number'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'number' => $row->order_number])
-                    ->all(),
-                'assignments_list' => DB::table('driver_assignments')
-                    ->join('orders', 'orders.id', '=', 'driver_assignments.order_id')
-                    ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
-                    ->join('users', 'users.id', '=', 'drivers.user_id')
-                    ->whereIn('driver_assignments.store_id', $storeIds)
-                    ->where('driver_assignments.assignment_type', 'b2b')
-                    ->where('orders.channel', 'b2b')
-                    ->orderByDesc('driver_assignments.id')
-                    ->limit(150)
-                    ->get([
-                        'driver_assignments.id',
-                        'driver_assignments.order_id',
-                        'driver_assignments.driver_id',
-                        'driver_assignments.store_id',
-                        'driver_assignments.status',
-                        'driver_assignments.assigned_at',
-                        'driver_assignments.completed_at',
-                        'orders.order_number',
-                        'users.name as driver_name',
-                    ])
-                    ->map(function ($row): array {
-                        $proof = DB::table('delivery_proofs')
-                            ->where('driver_assignment_id', $row->id)
-                            ->where(function ($query): void {
-                                $query->whereNotNull('file_path')
-                                    ->orWhereNotNull('reason_code')
-                                    ->orWhereNotNull('note');
-                            })
-                            ->orderByDesc('id')
-                            ->first(['id', 'proof_type', 'file_path', 'reason_code', 'note', 'captured_at']);
-
-                        return [
-                            'id' => (int) $row->id,
-                            'order_id' => (int) $row->order_id,
-                            'driver_id' => (int) $row->driver_id,
-                            'store_id' => (int) $row->store_id,
-                            'order' => $row->order_number,
-                            'driver' => $row->driver_name,
-                            'status' => $row->status,
-                            'assigned_at' => (string) $row->assigned_at,
-                            'completed_at' => $row->completed_at === null ? null : (string) $row->completed_at,
-                            'proof' => $proof === null ? null : [
-                                'id' => (int) $proof->id,
-                                'type' => (string) $proof->proof_type,
-                                'file_path' => $proof->file_path === null ? null : (string) $proof->file_path,
-                                'reason_code' => $proof->reason_code === null ? null : (string) $proof->reason_code,
-                                'note' => $proof->note === null ? null : (string) $proof->note,
-                                'captured_at' => $proof->captured_at === null ? null : (string) $proof->captured_at,
-                            ],
-                        ];
-                    })->all(),
-            ],
-            'pricing' => [
-                'columns' => ['tier', 'sku', 'product', 'unit_price', 'minimum_quantity', 'status'],
-                'rows' => DB::table('b2b_price_rules')
-                    ->join('b2b_price_tiers', 'b2b_price_tiers.id', '=', 'b2b_price_rules.price_tier_id')
-                    ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
-                    ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-                    ->whereIn('b2b_price_rules.store_id', $storeIds)
-                    ->whereColumn('catalogs.store_id', 'b2b_price_rules.store_id')
-                    ->where('catalogs.channel', 'b2b')
-                    ->where('catalogs.is_migration_quarantine', false)
-                    ->orderBy('products.name')
-                    ->limit(100)
-                    ->get([
-                        'b2b_price_tiers.name as tier',
-                        'products.sku',
-                        'products.name as product',
-                        'b2b_price_rules.unit_price',
-                        'b2b_price_rules.minimum_quantity',
-                        'b2b_price_rules.is_active as status',
-                    ])
-                    ->map(fn ($row) => [
-                        'tier' => $row->tier,
-                        'sku' => $row->sku,
-                        'product' => $row->product,
-                        'unit_price' => number_format((float) $row->unit_price, 3).' EGP',
-                        'minimum_quantity' => number_format((float) $row->minimum_quantity, 3),
-                        'status' => (bool) $row->status,
-                    ])->all(),
-                'tiers' => DB::table('b2b_price_tiers')
-                    ->orderBy('priority')
-                    ->get(['id', 'name'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name])
-                    ->all(),
-                'products' => DB::table('products')
-                    ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-                    ->whereIn('catalogs.store_id', $storeIds)
-                    ->where('catalogs.channel', 'b2b')
-                    ->where('catalogs.is_migration_quarantine', false)
-                    ->where('products.is_active', true)
-                    ->orderBy('products.name')
-                    ->get(['products.id', 'products.name', 'products.sku'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name, 'sku' => $row->sku])
-                    ->all(),
-            ],
-            'finance' => $this->financeModuleData($storeIds, $user, $request),
-            'reports' => $this->reportModuleData($user, $storeIds),
-            'storefront' => $this->storefrontModuleData($storeIds),
-            'settings' => $this->settingsModuleData($user, $storeIds),
-            default => ['columns' => [], 'rows' => []],
-        };
-    }
-
-    private function orderModuleData(array $storeIds): array
-    {
-        $customers = DB::table('b2b_customers')
-            ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
-            ->leftJoin('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'b2b_customers.id')
-            ->leftJoin('stores as retail_customer_store', 'retail_customer_store.id', '=', 'retail_wholesale_accounts.retail_store_id')
-            ->where('b2b_accounts.status', 'active')
-            ->where(function ($query): void {
-                $query->whereNotNull('b2b_accounts.price_tier_id')
-                    ->orWhereNotNull('retail_wholesale_accounts.retail_store_id');
-            })
-            ->orderByRaw('retail_customer_store.id IS NULL')
-            ->orderBy('b2b_accounts.company_name')
-            ->orderBy('b2b_customers.name')
-            ->get([
-                'b2b_customers.id',
-                'b2b_customers.name',
-                'b2b_accounts.company_name',
-                'b2b_accounts.price_tier_id',
-                'retail_wholesale_accounts.retail_store_id',
-                'retail_customer_store.name as retail_store_name',
-            ])
-            ->map(fn ($row) => [
-                'id' => (int) $row->id,
-                'name' => $row->retail_store_id === null
-                    ? trim(($row->company_name ? $row->company_name.' · ' : '').$row->name)
-                    : (app()->getLocale() === 'ar' ? 'التجزئة · ' : 'Retail · ').$row->retail_store_name,
-                'price_tier_id' => $row->price_tier_id === null ? null : (int) $row->price_tier_id,
-                'platform_fallback' => $row->retail_store_id !== null,
-            ])
-            ->all();
-
-        $warehouses = DB::table('warehouses')
-            ->whereIn('store_id', $storeIds)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'code'])
-            ->map(fn ($row) => [
-                'id' => (int) $row->id,
-                'name' => $row->name,
-                'code' => $row->code,
-            ])
-            ->all();
-
-        $warehouseIdsByProduct = DB::table('inventories')
-            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-            ->whereIn('warehouses.store_id', $storeIds)
-            ->where('warehouses.is_active', true)
-            ->get(['inventories.product_id', 'warehouses.id as warehouse_id'])
-            ->groupBy('product_id')
-            ->map(fn ($rows) => $rows->pluck('warehouse_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
-
-        $priceTierIdsByProduct = DB::table('b2b_price_rules')
-            ->whereIn('store_id', $storeIds)
-            ->where('is_active', true)
-            ->get(['product_id', 'price_tier_id'])
-            ->groupBy('product_id')
-            ->map(fn ($rows) => $rows->pluck('price_tier_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
-
-        $products = DB::table('products')
-            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-            ->join('store_products', function ($join): void {
-                $join->on('store_products.product_id', '=', 'products.id')
-                    ->on('store_products.store_id', '=', 'catalogs.store_id');
-            })
-            ->whereIn('catalogs.store_id', $storeIds)
-            ->where('catalogs.channel', 'b2b')
-            ->where('catalogs.is_migration_quarantine', false)
-            ->where('catalogs.is_active', true)
-            ->where('products.is_active', true)
-            ->where('store_products.is_active', true)
-            ->orderBy('products.name')
-            ->get(['products.id', 'catalogs.store_id', 'products.sku', 'products.name', 'store_products.price'])
-            ->map(fn ($row) => [
-                'id' => (int) $row->id,
-                'store_id' => (int) $row->store_id,
-                'sku' => $row->sku,
-                'name' => $row->name,
-                'warehouse_ids' => $warehouseIdsByProduct->get($row->id, []),
-                'price_tier_ids' => $priceTierIdsByProduct->get($row->id, []),
-                'has_fallback_price' => $row->price !== null,
-            ])
-            ->all();
-
-        $rows = DB::table('orders')
-            ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
-            ->leftJoin('warehouses', 'warehouses.id', '=', 'orders.warehouse_id')
-            ->whereIn('orders.store_id', $storeIds)
-            ->where('orders.channel', 'b2b')
-            ->whereNotNull('orders.b2b_customer_id')
-            ->orderByDesc('orders.created_at')
-            ->limit(100)
-            ->get([
-                'orders.id',
-                'orders.store_id',
-                'orders.warehouse_id',
-                'orders.b2b_customer_id',
-                'orders.address_id',
-                'orders.order_number as number',
-                'b2b_customers.name as client',
-                'warehouses.name as warehouse',
-                'orders.status',
-                'orders.currency',
-                'orders.subtotal',
-                'orders.discount_total',
-                'orders.delivery_total',
-                'orders.tax_total',
-                'orders.grand_total',
-                'orders.payment_method',
-                'orders.pricing_snapshot',
-                'orders.customer_note',
-                'orders.created_at as created',
-            ])
-            ->map(function ($row): array {
-                $items = DB::table('order_items')
-                    ->where('order_id', $row->id)
-                    ->orderBy('id')
-                    ->get(['product_id', 'sku_snapshot', 'name_snapshot', 'quantity', 'unit_price', 'line_total'])
-                    ->map(fn ($item) => [
-                        'product_id' => (int) $item->product_id,
-                        'sku' => $item->sku_snapshot,
-                        'name' => $item->name_snapshot,
-                        'quantity' => (float) $item->quantity,
-                        'unit_price' => (float) $item->unit_price,
-                        'line_total' => (float) $item->line_total,
-                    ])->all();
-
-                $activeAssignment = DB::table('driver_assignments')
-                    ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
-                    ->join('users', 'users.id', '=', 'drivers.user_id')
-                    ->where('driver_assignments.order_id', $row->id)
-                    ->where('driver_assignments.assignment_type', 'b2b')
-                    ->whereNotIn('driver_assignments.status', ['delivered', 'failed', 'unassigned'])
-                    ->orderByDesc('driver_assignments.id')
-                    ->first([
-                        'driver_assignments.id',
-                        'driver_assignments.driver_id',
-                        'driver_assignments.status',
-                        'users.name as driver_name',
-                    ]);
-
-                $payment = DB::table('payments')
-                    ->where('order_id', $row->id)
-                    ->orderByDesc('id')
-                    ->first(['provider', 'status', 'amount', 'currency', 'metadata']);
-
-                $history = DB::table('order_status_history')
-                    ->where('order_id', $row->id)
-                    ->where('store_id', $row->store_id)
-                    ->orderByDesc('id')
-                    ->limit(20)
-                    ->get(['from_status', 'to_status', 'note', 'created_at'])
-                    ->map(fn ($entry) => [
-                        'from' => $entry->from_status,
-                        'to' => $entry->to_status,
-                        'note' => $entry->note,
-                        'created_at' => (string) $entry->created_at,
-                    ])->all();
-
-                $driverHistory = DB::table('delivery_proofs')
-                    ->join('driver_assignments', 'driver_assignments.id', '=', 'delivery_proofs.driver_assignment_id')
-                    ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
-                    ->join('users', 'users.id', '=', 'drivers.user_id')
-                    ->where('driver_assignments.order_id', $row->id)
-                    ->where('driver_assignments.store_id', $row->store_id)
-                    ->where('driver_assignments.assignment_type', 'b2b')
-                    ->whereIn('delivery_proofs.proof_type', ['status_note', 'failure_note'])
-                    ->orderByDesc('delivery_proofs.id')
-                    ->limit(50)
-                    ->get([
-                        'delivery_proofs.from_status',
-                        'delivery_proofs.to_status',
-                        'delivery_proofs.note',
-                        'delivery_proofs.captured_at',
-                        'users.name as actor_name',
-                    ])
-                    ->map(fn ($entry) => [
-                        'from' => $entry->from_status,
-                        'to' => $entry->to_status,
-                        'note' => $entry->note,
-                        'actor' => $entry->actor_name,
-                        'created_at' => $entry->captured_at === null ? null : (string) $entry->captured_at,
-                    ])->all();
-
-                $invoice = DB::table('invoices')
-                    ->where('order_id', $row->id)
-                    ->orderByDesc('id')
-                    ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
-                $pricingSnapshot = json_decode((string) ($row->pricing_snapshot ?? ''), true);
-                $paymentMetadata = $payment === null
-                    ? []
-                    : (json_decode((string) ($payment->metadata ?? ''), true) ?: []);
-
-                $accountFinance = null;
-                if (
-                    DB::table('b2b_accounts')
-                        ->where('b2b_customer_id', $row->b2b_customer_id)
-                        ->where('status', 'active')
-                        ->exists()
-                ) {
-                    $customerModel = B2bCustomer::query()->find((int) $row->b2b_customer_id);
-                    if ($customerModel instanceof B2bCustomer) {
-                        $accountFinance = $this->accountLedger->summary(
-                            $customerModel,
-                            (int) $row->store_id,
-                        );
-                    }
-                }
-
-                $invoiceAmounts = null;
-                if ($invoice !== null && in_array((string) $invoice->status, ['issued', 'reissued'], true)) {
-                    $invoiceModel = Invoice::query()->find((int) $invoice->id);
-                    if ($invoiceModel instanceof Invoice) {
-                        $invoiceAmounts = $this->accountLedger->invoiceAmounts($invoiceModel);
-                    }
-                }
-
-                $balanceApplied = data_get($paymentMetadata, 'settlement.balance_applied')
-                    ?? data_get($paymentMetadata, 'balance_applied')
-                    ?? data_get($paymentMetadata, 'customer_balance_applied')
-                    ?? data_get($pricingSnapshot, 'settlement.balance_applied')
-                    ?? data_get($pricingSnapshot, 'balance_applied');
-                $remainingAfterBalance = data_get($paymentMetadata, 'settlement.remaining_amount')
-                    ?? data_get($paymentMetadata, 'remaining_amount')
-                    ?? data_get($paymentMetadata, 'remainder_amount')
-                    ?? data_get($pricingSnapshot, 'settlement.remaining_amount')
-                    ?? data_get($pricingSnapshot, 'remaining_amount');
-                $remainderMethod = data_get($paymentMetadata, 'settlement.remainder_method')
-                    ?? data_get($paymentMetadata, 'remainder_method')
-                    ?? data_get($pricingSnapshot, 'settlement.remainder_method')
-                    ?? $row->payment_method;
-
-                return [
-                    '_id' => (int) $row->id,
-                    '_store_id' => (int) $row->store_id,
-                    '_warehouse_id' => $row->warehouse_id === null ? null : (int) $row->warehouse_id,
-                    '_customer_id' => (int) $row->b2b_customer_id,
-                    '_address_id' => $row->address_id === null ? null : (int) $row->address_id,
-                    '_subtotal' => (float) $row->subtotal,
-                    '_discount_total' => (float) $row->discount_total,
-                    '_delivery_total' => (float) $row->delivery_total,
-                    '_tax_total' => (float) ($row->tax_total ?? 0),
-                    '_grand_total' => (float) $row->grand_total,
-                    '_currency' => (string) $row->currency,
-                    '_payment_method' => $row->payment_method,
-                    '_coupon_code' => is_array($pricingSnapshot) ? data_get($pricingSnapshot, 'coupon.code') : null,
-                    '_customer_note' => $row->customer_note,
-                    '_assignment_id' => $activeAssignment === null ? null : (int) $activeAssignment->id,
-                    '_driver_id' => $activeAssignment === null ? null : (int) $activeAssignment->driver_id,
-                    '_items' => $items,
-                    '_payment' => $payment === null ? null : [
-                        'provider' => $payment->provider,
-                        'status' => $payment->status,
-                        'amount' => (float) $payment->amount,
-                        'currency' => $payment->currency,
-                    ],
-                    '_settlement' => [
-                        'currency' => (string) ($accountFinance['currency'] ?? $row->currency),
-                        'customer_credit_balance' => isset($accountFinance['customer_credit_balance'])
-                            ? (float) $accountFinance['customer_credit_balance']
-                            : null,
-                        'aggregate_outstanding' => isset($accountFinance['outstanding_receivable'])
-                            ? (float) $accountFinance['outstanding_receivable']
-                            : null,
-                        'credit_limit' => isset($accountFinance['credit_limit'])
-                            ? (float) $accountFinance['credit_limit']
-                            : null,
-                        'available_credit_line' => isset($accountFinance['available_credit_line'])
-                            ? (float) $accountFinance['available_credit_line']
-                            : null,
-                        'balance_applied' => is_numeric($balanceApplied) ? (float) $balanceApplied : null,
-                        'remaining_after_balance' => is_numeric($remainingAfterBalance)
-                            ? (float) $remainingAfterBalance
-                            : null,
-                        'invoice_outstanding' => isset($invoiceAmounts['outstanding_amount'])
-                            ? (float) $invoiceAmounts['outstanding_amount']
-                            : null,
-                        'remainder_method' => is_string($remainderMethod) ? $remainderMethod : null,
-                    ],
-                    '_history' => $history,
-                    '_driver_history' => $driverHistory,
-                    '_invoice' => $invoice === null ? null : [
-                        'id' => (int) $invoice->id,
-                        'number' => $invoice->invoice_number,
-                        'status' => $invoice->status,
-                        'total' => (float) $invoice->total,
-                        'currency' => $invoice->currency,
-                    ],
-                    'number' => $row->number,
-                    'client' => $row->client,
-                    'warehouse' => $row->warehouse ?: $this->msg('طلب قديم - مخزن غير محدد', 'Legacy order - warehouse not set'),
-                    'driver' => $activeAssignment?->driver_name ?: $this->msg('غير معين', 'Unassigned'),
-                    'assignment_status' => $activeAssignment?->status ?: $this->msg('غير معين', 'Unassigned'),
-                    'status' => $row->status,
-                    'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
-                    'created' => (string) $row->created,
-                    'actions' => true,
-                ];
-            })
-            ->all();
-
-        return [
-            'columns' => ['number', 'client', 'warehouse', 'driver', 'assignment_status', 'status', 'amount', 'created', 'actions'],
-            'rows' => $rows,
-            'customers' => $customers,
-            'warehouses' => $warehouses,
-            'products' => $products,
-            'addresses' => DB::table('addresses')
-                ->whereIn('b2b_customer_id', collect($customers)->pluck('id')->all())
-                ->orderBy('id')
-                ->get(['id', 'b2b_customer_id'])
-                ->map(fn ($row) => [
-                    'id' => (int) $row->id,
-                    'customer_id' => (int) $row->b2b_customer_id,
-                    'label' => $this->msg('عنوان #'.$row->id, 'Address #'.$row->id),
-                ])
-                ->all(),
-            'drivers' => DB::table('drivers')
-                ->join('users', 'users.id', '=', 'drivers.user_id')
-                ->where('drivers.driver_type', 'b2b')
-                ->whereIn('drivers.store_id', $storeIds)
-                ->where('drivers.is_active', true)
-                ->orderBy('users.name')
-                ->get(['drivers.id', 'drivers.store_id', 'users.name'])
-                ->map(fn ($row) => [
-                    'id' => (int) $row->id,
-                    'store_id' => (int) $row->store_id,
-                    'name' => $row->name,
-                ])
-                ->all(),
-            'payment_methods' => array_values((array) config('checkout.payment_methods', ['cash_on_delivery'])),
-        ];
-    }
-
-    /** @param list<int> $storeIds */
-    private function financeExportResponse(Request $request, User $user, array $storeIds): Response
-    {
-        $validated = $request->validate([
-            ...$this->financeFilterRules(),
-            'export' => ['required', 'in:xlsx,pdf'],
-        ]);
-        $format = (string) $validated['export'];
-        unset($validated['export']);
-
-        $report = $this->financeInvoices->exportReport($storeIds, $validated, app()->getLocale());
-        $file = $this->reportExports->build($report, $format, app()->getLocale());
-        $filename = $this->reportExports->filename($report, $file['extension']);
-
-        $this->audit->record('b2b.finance.exported', $user, null, null, [
-            'format' => $format,
-            'store_ids' => $storeIds,
-            'filters' => $report['filters'],
-            'rows' => count((array) $report['rows']),
-        ], $request);
-
-        return response($file['content'], 200, [
-            'Content-Type' => $file['mime'],
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-            'Cache-Control' => 'private, no-store',
-        ]);
-    }
-
-    /** @return array<string, list<string>> */
-    private function financeFilterRules(): array
-    {
-        return [
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
-            'customer_id' => ['nullable', 'integer', 'min:1'],
-        ];
-    }
-
-    /** @return array<string,list<string>> */
-    private function fieldOperationsFinanceFilterRules(): array
-    {
-        return [
-            'ops_tab' => ['nullable', 'string', 'in:wallets,collections,remittances,reconciliation'],
-            'ops_q' => ['nullable', 'string', 'max:120'],
-            'ops_status' => ['nullable', 'string', 'max:32'],
-            'ops_per_page' => ['nullable', 'integer', 'min:10', 'max:100'],
-            'ops_page' => ['nullable', 'integer', 'min:1'],
-        ];
-    }
-
-    /** @return list<int> */
-    private function wholesaleStoreIds(User $user): array
-    {
-        return [$this->principal->storeId()];
-    }
-
-    /** @return array{0:?string,1:?string} */
-    private function dashboardRange(Request $request): array
-    {
-        $data = $request->validate([
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-            'date' => ['nullable', 'date_format:Y-m-d'],
-        ]);
-
-        if (!isset($data['from']) && !isset($data['to']) && isset($data['date'])) {
-            return [$data['date'], $data['date']];
-        }
-
-        $from = $data['from'] ?? null;
-        $to = $data['to'] ?? null;
-
-        if ($from !== null && $to !== null) {
-            $fromDay = CarbonImmutable::parse($from, 'Asia/Kuwait')->startOfDay();
-            $toDay = CarbonImmutable::parse($to, 'Asia/Kuwait')->startOfDay();
-
-            if ($toDay->lt($fromDay)) {
-                throw ValidationException::withMessages([
-                    'to' => [$this->msg(
-                        'تاريخ «إلى» يجب أن يكون مساويًا لتاريخ «من» أو بعده.',
-                        'The To date must be the same as or later than the From date.',
-                    )],
-                ]);
-            }
-        }
-
-        return [$from, $to];
-    }
-
-    private function actor(Request $request): User
-    {
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-        $this->tenantContext->wholesale($user);
-
-        return $user;
-    }
-
-    private function canOpenModule(User $user, string $module): bool
-    {
-        $permission = self::MODULE_PERMISSIONS[$module] ?? null;
-
-        return $permission === null || $user->hasPermission($permission);
-    }
-
-    private function authorizeModule(User $user, string $module): void
-    {
-        $permission = self::MODULE_PERMISSIONS[$module] ?? null;
-        if ($permission !== null) {
-            abort_unless($user->hasPermission($permission), 403);
-        }
-    }
-
-    private function displaySettingValue(mixed $value): string
-    {
-        if ($value === null) {
-            return '-';
-        }
-
-        $decoded = is_string($value) ? json_decode($value, true) : $value;
-        if (is_array($decoded)) {
-            return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '-';
-        }
-
-        return is_scalar($decoded) ? (string) $decoded : '-';
-    }
-
-    private function msg(string $ar, string $en): string
-    {
-        return app()->getLocale() === 'ar' ? $ar : $en;
-    }
-}
