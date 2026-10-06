@@ -52,7 +52,6 @@ final class FleetLocationService
                 'source_app' => $attributes['source_app'] ?? 'unknown',
                 'app_version' => $attributes['app_version'] ?? null,
                 'is_mocked' => $attributes['is_mocked'] ?? null,
-                'is_mocked' => $attributes['is_mocked'] ?? null,
             ];
 
             if ($current instanceof FleetCurrentLocation) {
