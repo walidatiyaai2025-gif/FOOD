@@ -25,9 +25,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ $pageTitle }} · FOODEX</title>
     @include('admin._brand-components')
-    @if($section === 'fleet')
+    @if(in_array($section, ['fleet','territories'], true))
         <link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
-        <link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">
+        @if($section === 'fleet')<link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">@endif
     @endif
     <style>
         .fieldops-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -45,6 +45,7 @@
         .fieldops-status{display:inline-flex;padding:4px 9px;border-radius:999px;background:var(--foodex-background);font-size:.78rem;font-weight:700}
         .fieldops-section-nav{display:flex;gap:8px;flex-wrap:wrap}
         .fieldops-section-nav a{padding:8px 11px;border:1px solid var(--foodex-border);border-radius:10px;text-decoration:none;background:#fff}
+        .fieldops-coverage-map{height:430px;min-height:320px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);overflow:hidden;background:#eef2f5}
         @media(max-width:767px){.fieldops-card{padding:13px}.fieldops-header{display:block}.fieldops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
     </style>
 </head>
@@ -268,18 +269,35 @@
             </section>
             @endif
             <section class="fieldops-card"><h2>{{ $ar?'التسلسل الجغرافي':'Geography hierarchy' }}</h2><div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ $ar?'النوع':'Type' }}</th><th>Code</th><th>{{ $ar?'الاسم':'Name' }}</th><th>{{ $ar?'الأصل':'Parent' }}</th></tr></thead><tbody>@forelse($nodes as $node)<tr><td>{{ $node->id }}</td><td>{{ $node->type }}</td><td>{{ $node->code }}</td><td>{{ $ar?$node->name_ar:$node->name_en }}</td><td>{{ $node->parent?->name_en ?: '—' }}</td></tr>@empty<tr><td colspan="5">{{ $ar?'لا توجد بيانات جغرافية.':'No geography nodes.' }}</td></tr>@endforelse</tbody></table></div></section>
-            <section class="fieldops-card"><h2>{{ $ar?'مناطق الخدمة والتغطية':'Service territories & coverage' }}</h2>
+            <section class="fieldops-card">
+                <h2>{{ $ar?'خريطة التغطية':'Coverage map' }}</h2>
+                <p class="fieldops-muted">{{ $ar?'تظهر كل هندسات المناطق الحالية. لإضافة تغطية، اختر المنطقة ثم انقر على الخريطة لرسم حدود المضلع؛ الإحداثيات الخام متاحة فقط كخيار متقدم.' : 'All current territory geometries are shown. To add coverage, select a territory then click the map to draw the polygon; raw coordinates remain an advanced option.' }}</p>
+                <div class="fieldops-coverage-map" id="fieldops-coverage-map" aria-label="{{ $ar?'خريطة مناطق الخدمة':'Service territory coverage map' }}"></div>
+                @if($canManageTerritories && $territories->isNotEmpty())
+                <form method="post" id="fieldops-coverage-form" class="fieldops-form" style="margin-top:14px">@csrf
+                    <div class="fieldops-form-grid">
+                        <label>{{ $ar?'منطقة الخدمة':'Service territory' }}
+                            <select id="fieldops-coverage-territory" required>
+                                <option value="">{{ $ar?'اختر المنطقة':'Select territory' }}</option>
+                                @foreach($territories as $territory)<option value="{{ $territory->id }}">{{ $ar?$territory->name_ar:$territory->name_en }} · {{ $territory->code }}</option>@endforeach
+                            </select>
+                        </label>
+                        <label>{{ $ar?'الرسم':'Drawing' }}
+                            <button type="button" id="fieldops-coverage-clear">{{ $ar?'مسح النقاط وإعادة الرسم':'Clear points & redraw' }}</button>
+                        </label>
+                    </div>
+                    <details>
+                        <summary>{{ $ar?'متقدم: GeoJSON':'Advanced: GeoJSON' }}</summary>
+                        <label style="margin-top:8px">GeoJSON<textarea id="fieldops-coverage-geojson" name="geojson" rows="5" required></textarea></label>
+                    </details>
+                    <button class="foodex-primary" type="submit">{{ $ar?'حفظ هندسة التغطية':'Save coverage geometry' }}</button>
+                </form>
+                @endif
+            </section>
+            <section class="fieldops-card"><h2>{{ $ar?'مناطق الخدمة':'Service territories' }}</h2>
                 @forelse($territories as $territory)
                     <article style="padding:14px 0;border-bottom:1px solid var(--foodex-border)">
                         <div class="fieldops-actions"><strong>{{ $ar?$territory->name_ar:$territory->name_en }} · {{ $territory->code }}</strong><span class="fieldops-status">{{ $territory->status }}</span><span>{{ $ar?'أشكال التغطية':'Geometries' }}: {{ $territory->geometries->count() }}</span></div>
-                        @if($canManageTerritories)
-                        <details style="margin-top:8px"><summary>{{ $ar?'إضافة/تحديث هندسة GeoJSON':'Add coverage GeoJSON' }}</summary>
-                            <form method="post" action="{{ route('admin.field-operations.territories.geometry.store',$territory) }}" class="fieldops-form" style="margin-top:10px">@csrf
-                                <label>GeoJSON<textarea name="geojson" rows="5" required>{"type":"Polygon","coordinates":[[[47.9,29.3],[48.0,29.3],[48.0,29.4],[47.9,29.4],[47.9,29.3]]]}</textarea></label>
-                                <button>{{ $ar?'حفظ التغطية':'Save coverage' }}</button>
-                            </form>
-                        </details>
-                        @endif
                     </article>
                 @empty<div class="foodex-ops-state">{{ $ar?'لا توجد مناطق خدمة.':'No service territories.' }}</div>@endforelse
             </section>
@@ -335,6 +353,48 @@
 </div>
 @if($section === 'fleet')
     @include('admin._driver-live-map-scripts')
+@elseif($section === 'territories')
+    <script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
+    <script>
+    (() => {
+        const node = document.getElementById('fieldops-coverage-map');
+        if (!node || !window.L) return;
+        const map = L.map(node).setView([29.3759,47.9774],10);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+        const existing = @json($territories->flatMap(fn($territory)=>$territory->geometries->map(fn($geometry)=>[
+            'type'=>'Feature',
+            'properties'=>['territory_id'=>$territory->id,'code'=>$territory->code,'name'=>$ar?$territory->name_ar:$territory->name_en],
+            'geometry'=>$geometry->geojson,
+        ]))->values());
+        const existingLayer = L.geoJSON({type:'FeatureCollection',features:existing},{
+            onEachFeature:(feature,layer)=>layer.bindPopup((feature.properties?.name||feature.properties?.code||'Territory'))
+        }).addTo(map);
+        if (existingLayer.getLayers().length) map.fitBounds(existingLayer.getBounds(),{padding:[24,24],maxZoom:13});
+
+        const form=document.getElementById('fieldops-coverage-form');
+        if (!form) return;
+        const select=document.getElementById('fieldops-coverage-territory');
+        const output=document.getElementById('fieldops-coverage-geojson');
+        const clear=document.getElementById('fieldops-coverage-clear');
+        const base=@json(url('/admin/field-operations/territories'));
+        let points=[];
+        let draft=L.layerGroup().addTo(map);
+        const redraw=()=>{
+            draft.clearLayers();
+            points.forEach(point=>L.circleMarker([point[1],point[0]],{radius:5}).addTo(draft));
+            if(points.length>=2)L.polyline(points.map(p=>[p[1],p[0]])).addTo(draft);
+            if(points.length>=3)L.polygon(points.map(p=>[p[1],p[0]])).addTo(draft);
+            if(points.length>=3){
+                const ring=[...points,points[0]];
+                output.value=JSON.stringify({type:'Polygon',coordinates:[ring]});
+            } else output.value='';
+        };
+        map.on('click',event=>{points.push([Number(event.latlng.lng.toFixed(7)),Number(event.latlng.lat.toFixed(7))]);redraw();});
+        clear.addEventListener('click',()=>{points=[];redraw();});
+        select.addEventListener('change',()=>{form.action=select.value ? base+'/'+select.value+'/geometry' : '';});
+        form.addEventListener('submit',event=>{if(!select.value||points.length<3){event.preventDefault();alert(@json($ar?'اختر منطقة وارسم ثلاث نقاط على الأقل.':'Select a territory and draw at least three points.'));}});
+    })();
+    </script>
 @endif
 </body>
 </html>
