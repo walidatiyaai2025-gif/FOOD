@@ -1,42 +1,49 @@
-# FOODEX 1.0.57 Release Notes
+# FOODEX 1.0.58 Van Full-Install Release Notes
 
-Status: Issue #943 release package generated and verified — existing client UI/UX normalization and Dashboard map silent refresh.
-
-Release branch: `release/1.0.57-update`.
+Status: Van national field-operations release candidate for a clean isolated environment.
 
 ## Release identity
 
-- Dashboard: `1.0.57`
-- Customer app: `1.0.57+57`
-- Driver app: `1.0.57+57`
-- Customer runtime/footer identity: `1.0.57`
-- Driver runtime/footer identity: `1.0.57`
-- Driver diagnostics current identity: `1.0.57`
-- Driver diagnostics build identity: `57`
+- Dashboard / backend: `1.0.58`
+- Customer app: `1.0.58+58`
+- Driver app: `1.0.58+58`
+- Van app: `1.0.58+58`
+- Environment origin: `https://vanfoodex.50sols.com`
+- Android Van application ID: `com.foodex.van`
 
-## Included changes
+## Environment
 
-- Normalize existing Customer UI typography, spacing, badges, headers, order cards, finance/statement density and contextual loading/error surfaces without creating new screens, routes or flows.
-- Preserve Arabic RTL and English LTR behavior, use the existing localization resources for the More/Profile labels touched by this release, and localize Dashboard date/time display.
-- Keep all product/order/invoice/finance values and currency authoritative to existing backend/store data; no business values are hardcoded.
-- Keep the Dashboard Driver map mounted during background refreshes, retain the last successful markers on refresh failure, suppress overlapping refresh work, reserve stable status space, and clean up polling/network activity on page leave.
-- Add regression coverage for silent map refresh, last-success preservation, duplicate-refresh suppression and disposal.
+This release is prepared as a full first-install deployment for the isolated Van environment.
 
-## Dashboard update bundle
+- Web/API origin: `https://vanfoodex.50sols.com`
+- Installer: `https://vanfoodex.50sols.com/install`
+- Default database: `solscool_vanfoodex`
+- Default database username: `solscool_vanfoodex`
+- Web document root: `backend/public`
 
-- Package: `Release/Updates/FOODEX-Update.zip`
-- Actions artifact: `FOODEX-Update-1.0.57`
-- Target version: `1.0.57`
-- Minimum current version: `1.0.6`
-- Contains migrations: `true`
-- Requires full redeploy: `false`
-- SHA-256: `ae1481abaab54131791cbb87879b963ee53bb31a01e4190ec3b181214aa640e7`
-- Generated through the repository's existing `release/1.0.57-update` cumulative Dashboard update workflow.
+Secrets are intentionally not committed. Database passwords, production signing keys and Firebase service-account credentials must be entered only in the deployment environment / Dashboard settings.
 
-## Explicit non-activation statement
+## Van scope
 
-This release does **not** automatically:
-- change production minimum-supported AppVersion rows;
-- enable force-update;
-- enable Driver fresh-location enforcement;
-- enable the Assistant in production.
+The release consolidates the #936 Van field-operations train, including territory/routing foundations, Van registry and assignments, shared collections/custody/remittance, fleet location, customer visits/orders, Van control-plane parity, finance reconciliation surfaces, Firebase/FCM device registration and Dashboard notification targeting.
+
+## Firebase / notifications
+
+- Van Android package: `com.foodex.van`
+- Van Firebase client configuration is bundled for Android.
+- Van devices register through the canonical `/api/v1/push/devices` endpoint as `app=van`.
+- Dashboard Mobile & Push Settings supports Van providers and test sends.
+- Notification and campaign targeting supports Van.
+- Server-side Firebase sending still requires the Firebase/Google Service Account JSON to be entered in Dashboard Mobile & Push Settings; that credential is not stored in Git.
+
+## Distribution artifacts
+
+The release workflow produces:
+
+- `FOODEX-Laravel-Setup.zip` — complete first-install backend package.
+- `FOODEX-Van.apk` — Van Android tester/acceptance APK connected to `https://vanfoodex.50sols.com`.
+- `FOODEX-Customer.apk` and `FOODEX-Driver.apk` — synchronized environment APKs.
+- `BUILD_INFO.json` — checksums, package IDs, version/build identity and API origin.
+- Dashboard Update Center assets for 1.0.58.
+
+Android APKs produced by this workflow remain test-signed until the production keystore is supplied.
