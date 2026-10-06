@@ -1,4 +1,5 @@
 import '../../core/api/http_van_api.dart';
+import '../../core/auth/van_session.dart';
 import 'van_commercial_contract.dart';
 import '../wallet/van_wallet_contract.dart';
 
