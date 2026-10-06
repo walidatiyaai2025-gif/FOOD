@@ -72,9 +72,9 @@ void main() {
 
     final feed = await repository.offersFor(customer);
 
-    expect(flashRequested.path, '/api/v1/flash-offers');
+    expect(flashRequested.path, '/api/v1/van/customers/b2c/44/flash-offers');
     expect(flashRequested.queryParameters['store_id'], '7');
-    expect(flashRequested.queryParameters['channel'], 'van');
+    expect(flashRequested.queryParameters.containsKey('channel'), isFalse);
     expect(feed.serverTime, DateTime.parse('2026-10-06T05:30:00Z'));
     expect(feed.offers, hasLength(1));
     expect(feed.offers.single.products.single.sellingUnitCode, 'CARTON');

@@ -150,7 +150,16 @@ abstract interface class CustomerFlashOffersApi {
   Future<void> release({required String reservationId});
 }
 
-class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
+abstract interface class CustomerFlashOffersAnalyticsApi {
+  Future<void> trackEvent({
+    required int storeId,
+    required int offerId,
+    required String event,
+  });
+}
+
+class HttpCustomerFlashOffersApi
+    implements CustomerFlashOffersApi, CustomerFlashOffersAnalyticsApi {
   HttpCustomerFlashOffersApi({
     required this.token,
     String? baseUrl,
@@ -298,6 +307,28 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
     _decode(response);
   }
 
+  @override
+  Future<void> trackEvent({
+    required int storeId,
+    required int offerId,
+    required String event,
+  }) async {
+    if (token == null || token!.trim().isEmpty) return;
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/v1/flash-offers/$offerId/events'),
+      headers: {
+        ..._headers,
+        'Content-Type': 'application/json',
+        'X-FOODEX-Store-ID': '$storeId',
+      },
+      body: jsonEncode({
+        'store_id': storeId,
+        'event': event,
+      }),
+    );
+    _decode(response);
+  }
+
   Object? _decode(http.Response response) {
     Object? body;
     if (response.body.isNotEmpty) {
@@ -347,6 +378,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   Timer? _ticker;
   final Stopwatch _serverClock = Stopwatch();
   final Map<int, int> _selectedUnits = <int, int>{};
+  final Set<int> _trackedImpressions = <int>{};
 
   bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
 
@@ -385,6 +417,11 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
         _offers = results[0] as List<CustomerFlashOffer>;
         _reservation = results[1] as CustomerFlashReservation?;
       });
+      for (final offer in _offers) {
+        if (_trackedImpressions.add(offer.id)) {
+          unawaited(_trackEvent(offer.id, 'impression'));
+        }
+      }
     } catch (error) {
       if (mounted) setState(() => _error = error);
     } finally {
@@ -405,11 +442,27 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
     if (mounted) await _load();
   }
 
+  Future<void> _trackEvent(int offerId, String event) async {
+    final analytics = widget.api;
+    if (analytics is! CustomerFlashOffersAnalyticsApi) return;
+    try {
+      await analytics.trackEvent(
+        storeId: widget.storeId,
+        offerId: offerId,
+        event: event,
+      );
+    } catch (_) {
+      // Analytics must never block browsing or checkout.
+    }
+  }
+
   Future<void> _buyNow(CustomerFlashOffer offer) async {
     if (!widget.isAuthenticated) {
       widget.onAuthenticationRequired();
       return;
     }
+    unawaited(_trackEvent(offer.id, 'open'));
+    unawaited(_trackEvent(offer.id, 'buy_now_click'));
     setState(() {
       _busy = true;
       _error = null;

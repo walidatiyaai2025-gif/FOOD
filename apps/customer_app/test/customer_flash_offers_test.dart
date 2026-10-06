@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/features/retail/offers/customer_flash_offers.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 void main() {
   group('CustomerFlashOffer', () {
@@ -88,4 +92,27 @@ void main() {
       );
     });
   });
+  test('customer analytics uses the canonical Flash event endpoint', () async {
+    late http.Request captured;
+    final api = HttpCustomerFlashOffersApi(
+      token: 'token',
+      baseUrl: 'https://foodex.example',
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response(jsonEncode({'accepted': true}), 202);
+      }),
+    );
+
+    await api.trackEvent(
+      storeId: 7,
+      offerId: 44,
+      event: 'buy_now_click',
+    );
+
+    expect(captured.url.path, '/api/v1/flash-offers/44/events');
+    final body = jsonDecode(captured.body) as Map<String, dynamic>;
+    expect(body['store_id'], 7);
+    expect(body['event'], 'buy_now_click');
+  });
+
 }
