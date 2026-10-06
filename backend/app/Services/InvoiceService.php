@@ -139,6 +139,19 @@ final class InvoiceService
                         'sku' => $item->sku_snapshot,
                         'name' => $item->name_snapshot,
                         'quantity' => (float) $item->quantity,
+                        'selling_unit_code' => $item->selling_unit_code_snapshot,
+                        'selling_unit_name' => $item->selling_unit_name_snapshot,
+                        'selling_unit_quantity' => $item->selling_unit_quantity === null
+                            ? (float) $item->quantity
+                            : (float) $item->selling_unit_quantity,
+                        'base_quantity' => $item->base_quantity === null
+                            ? (float) $item->quantity
+                            : (float) $item->base_quantity,
+                        'conversion_factor' => $item->conversion_factor_snapshot === null
+                            ? (float) ($item->quantity_conversion_factor ?? 1)
+                            : (float) $item->conversion_factor_snapshot,
+                        'selling_unit_sku' => $item->selling_unit_sku_snapshot,
+                        'selling_unit_barcode' => $item->selling_unit_barcode_snapshot,
                         'unit_price' => (float) $item->unit_price,
                         'line_discount_total' => (float) ($item->line_discount_total ?? 0),
                         'line_tax_total' => (float) ($item->line_tax_total ?? 0),
