@@ -72,15 +72,16 @@ jobs:
           set -euo pipefail
           keytool -genkeypair -v \
             -keystore "$RUNNER_TEMP/foodex-validation-release.jks" \
-            -storepass "validation-store-pass" \
-            -keypass "validation-key-pass" \
+            -storetype JKS \
+            -storepass "validation-release-pass" \
+            -keypass "validation-release-pass" \
             -alias "foodex-validation-release" \
             -keyalg RSA -keysize 2048 -validity 1 \
             -dname "CN=FOODEX CI Release Validation,O=FOODEX,C=KW"
           echo "FOODEX_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/foodex-validation-release.jks" >> "$GITHUB_ENV"
-          echo "FOODEX_ANDROID_KEYSTORE_PASSWORD=validation-store-pass" >> "$GITHUB_ENV"
+          echo "FOODEX_ANDROID_KEYSTORE_PASSWORD=validation-release-pass" >> "$GITHUB_ENV"
           echo "FOODEX_ANDROID_KEY_ALIAS=foodex-validation-release" >> "$GITHUB_ENV"
-          echo "FOODEX_ANDROID_KEY_PASSWORD=validation-key-pass" >> "$GITHUB_ENV"
+          echo "FOODEX_ANDROID_KEY_PASSWORD=validation-release-pass" >> "$GITHUB_ENV"
 
       - name: Enforce explicit non-debug release signing
         run: python3 ../../scripts/configure-android-store-signing.py --app-dir .
