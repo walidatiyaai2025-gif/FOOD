@@ -28,3 +28,13 @@
 - Recovery fix: use two deterministic server lifecycles. Pre-finish server validates `/install`, then is stopped and port 8099 must be released before Finish. After Finish, start a fresh server and wait for the dashboard login endpoint before any authenticated acceptance calls.
 - Application code remains untouched; this is test-harness lifecycle stabilization only.
 - Next action: require Fresh Setup GREEN on the new exact remote head before cleanup.
+
+## Root-cause correction from run 37464756717
+
+- Head `980c74d8ccb8f96890c5d0d186bf8786b9d0107b` used separate pre/post-Finish server lifecycles and still failed the same Field Operations request.
+- Laravel log proved the deterministic application defect: `Unclosed '[' does not match ')'` while compiling `backend/resources/views/admin/field-operations.blade.php`.
+- The server lifecycle stabilization remains useful, but it is not the remaining blocker.
+- Application fix prepared: precompute territory GeoJSON features in a normal Blade PHP block and serialize a simple variable, avoiding the nested closure/array expression inside `@json(...)`.
+- The same view also had an incomplete Customer relationship table change: the `Collection context` header existed without a matching cell. The prepared fix renders the canonical `collection_context` already supplied by `VanCustomerCollectionContextService`.
+- Because a setup-delivered Blade file changes, the next successful Fresh Setup run must regenerate/publish the Setup ZIP/artifacts before final cleanup.
+- Next action: validate the application-fix checkpoint end-to-end, then inspect the artifact publication commit before final cleanup.

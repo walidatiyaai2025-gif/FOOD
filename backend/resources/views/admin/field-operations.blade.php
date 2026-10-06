@@ -245,8 +245,30 @@
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ $ar?'العميل':'Customer' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الفان':'Van' }}</th><th>{{ $ar?'المشغل':'Operator' }}</th><th>{{ $ar?'المنطقة':'Territory' }}</th><th>{{ $ar?'المسار':'Route' }}</th><th>{{ $ar?'التحصيل':'Collection context' }}</th><th>{{ $ar?'آخر زيارة':'Latest visit' }}</th><th>{{ $ar?'الحالة':'Status' }}</th></tr></thead><tbody>
             @forelse($relationships as $visit)
                 @php($a = $visit->getRelation('servingAssignment'))
-                <tr><td>{{ $visit->customer_display }}</td><td>{{ strtoupper($visit->customer_type) }}</td><td>{{ $a?->van?->code ?: (($visit->metadata['van_id'] ?? null) ? '#'.$visit->metadata['van_id'] : '—') }}</td><td>{{ $visit->actor?->name ?: ('User #'.$visit->actor_user_id) }}</td><td>{{ $a?->territory_key ?: ($visit->metadata['territory_key'] ?? '—') }}</td><td>{{ $visit->metadata['route_key'] ?? ($visit->metadata['route_code'] ?? '—') }}</td><td>#{{ $visit->id }} · {{ $visit->updated_at }}</td><td>{{ $visit->status }}</td></tr>
-            @empty<tr><td colspan="8"><div class="foodex-ops-state">{{ $ar?'لا توجد علاقات زيارة/عملاء بعد.':'No customer/visit relationships yet.' }}</div></td></tr>@endforelse
+                @php($collectionContext = $visit->collection_context)
+                <tr>
+                    <td>{{ $visit->customer_display }}</td>
+                    <td>{{ strtoupper($visit->customer_type) }}</td>
+                    <td>{{ $a?->van?->code ?: (($visit->metadata['van_id'] ?? null) ? '#'.$visit->metadata['van_id'] : '—') }}</td>
+                    <td>{{ $visit->actor?->name ?: ('User #'.$visit->actor_user_id) }}</td>
+                    <td>{{ $a?->territory_key ?: ($visit->metadata['territory_key'] ?? '—') }}</td>
+                    <td>{{ $visit->metadata['route_key'] ?? ($visit->metadata['route_code'] ?? '—') }}</td>
+                    <td>
+                        @if(is_array($collectionContext))
+                            <div><strong>Store #{{ $collectionContext['store_id'] }}</strong></div>
+                            @forelse($collectionContext['outstanding_total_by_currency'] as $currency => $amount)
+                                <div class="fieldops-muted">{{ $currency }} {{ number_format((float) $amount, 3) }}</div>
+                            @empty
+                                <div class="fieldops-muted">{{ $ar?'لا يوجد رصيد مفتوح':'No open balance' }}</div>
+                            @endforelse
+                        @else
+                            —
+                        @endif
+                    </td>
+                    <td>#{{ $visit->id }} · {{ $visit->updated_at }}</td>
+                    <td>{{ $visit->status }}</td>
+                </tr>
+            @empty<tr><td colspan="9"><div class="foodex-ops-state">{{ $ar?'لا توجد علاقات زيارة/عملاء بعد.':'No customer/visit relationships yet.' }}</div></td></tr>@endforelse
             </tbody></table></div>{{ $relationships->links() }}
             <div class="fieldops-card"><a class="foodex-action-primary" href="{{ route('admin.field-operations.visits') }}">{{ $ar?'خطط زيارة لربط العميل بالإسناد التشغيلي':'Plan a visit to associate a customer with an operational assignment' }}</a></div>
 
@@ -400,6 +422,24 @@
 @if($section === 'fleet')
     @include('admin._driver-live-map-scripts')
 @elseif($section === 'territories')
+    @php
+        $existingTerritoryFeatures = $territories
+            ->flatMap(function ($territory) use ($ar) {
+                return $territory->geometries->map(function ($geometry) use ($territory, $ar) {
+                    return [
+                        'type' => 'Feature',
+                        'properties' => [
+                            'territory_id' => $territory->id,
+                            'code' => $territory->code,
+                            'name' => $ar ? $territory->name_ar : $territory->name_en,
+                        ],
+                        'geometry' => $geometry->geojson,
+                    ];
+                });
+            })
+            ->values()
+            ->all();
+    @endphp
     <script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
     <script>
     (() => {
@@ -407,11 +447,7 @@
         if (!node || !window.L) return;
         const map = L.map(node).setView([29.3759,47.9774],10);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-        const existing = @json($territories->flatMap(fn($territory)=>$territory->geometries->map(fn($geometry)=>[
-            'type'=>'Feature',
-            'properties'=>['territory_id'=>$territory->id,'code'=>$territory->code,'name'=>$ar?$territory->name_ar:$territory->name_en],
-            'geometry'=>$geometry->geojson,
-        ]))->values());
+        const existing = @json($existingTerritoryFeatures);
         const existingLayer = L.geoJSON({type:'FeatureCollection',features:existing},{
             onEachFeature:(feature,layer)=>layer.bindPopup((feature.properties?.name||feature.properties?.code||'Territory'))
         }).addTo(map);
