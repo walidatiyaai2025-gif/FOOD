@@ -17,6 +17,7 @@ use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
 use App\Services\StorefrontDraftEditorService;
 use App\Support\AdminNavigation;
+use App\Support\CommercialDashboardContract;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -569,8 +570,10 @@ class B2cWorkspaceController extends Controller
                     ['label' => app()->getLocale() === 'ar' ? 'إضافة / تعديل المنتجات' : 'Add / Edit Products', 'url' => route('admin.catalog.index', array_merge(['tab' => 'products'], $scopeParams))],
                     ['label' => app()->getLocale() === 'ar' ? 'إدارة التصنيفات' : 'Manage Categories', 'url' => route('admin.catalog.index', array_merge(['tab' => 'categories'], $scopeParams))],
                     ['label' => app()->getLocale() === 'ar' ? 'إدارة المخزون' : 'Manage Inventory', 'url' => route('admin.b2c.module', array_merge(['module' => 'inventory'], $scopeParams))],
+                    ['label' => app()->getLocale() === 'ar' ? 'التحكم في المبيعات' : 'Sales Control', 'url' => route('admin.commercial.sales-control', $scopeParams)],
                 ],
                 'columns' => ['sku', 'name', 'category', 'store', 'cost', 'price', 'status'],
+                'commercial' => CommercialDashboardContract::salesControlSurface(),
                 'rows' => DB::table('store_products')
                     ->join('products', 'products.id', '=', 'store_products.product_id')
                     ->join('stores', 'stores.id', '=', 'store_products.store_id')
@@ -602,7 +605,10 @@ class B2cWorkspaceController extends Controller
             'finance' => $this->financeModuleData($storeIds),
             'customers' => $this->customerModuleData($storeIds),
             'promotions' => [
-                'actions' => [],
+                'actions' => [
+                    ['label' => app()->getLocale() === 'ar' ? 'العروض السريعة' : 'Flash Offers', 'url' => route('admin.commercial.flash-offers', $scopeParams)],
+                ],
+                'commercial' => CommercialDashboardContract::flashOffersSurface(),
                 'columns' => ['name', 'store', 'type', 'value', 'period', 'status'],
                 'rows' => DB::table('promotions')
                     ->join('stores', 'stores.id', '=', 'promotions.store_id')

@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\AssistantSettingsController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
 use App\Http\Controllers\Admin\BusinessManagementController;
+use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
@@ -162,6 +163,8 @@ Route::prefix('admin')
         Route::get('/b2b/settings-permissions', [B2bWorkspaceController::class, 'show'])->defaults('module', 'settings')->name('b2b.settings-permissions');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
+        Route::get('/b2c/commercial/sales-control', [CommercialDashboardController::class, 'salesControl'])->name('commercial.sales-control');
+        Route::get('/b2c/commercial/flash-offers', [CommercialDashboardController::class, 'flashOffers'])->name('commercial.flash-offers');
         Route::post('/b2c/orders/quote', [B2cWorkspaceController::class, 'quoteOrder'])->name('b2c.orders.quote');
         Route::post('/b2c/orders', [B2cWorkspaceController::class, 'storeOrder'])->name('b2c.orders.store');
         Route::patch('/b2c/orders/{order}', [B2cWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2c.orders.update');
