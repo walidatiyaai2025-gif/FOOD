@@ -404,6 +404,10 @@ def main() -> int:
     check_dart_catalog_parity(errors)
     check_backend_catalog_parity(errors)
 
+    # Van currently uses the locale-aware `_text(en, ar)` resolver rather than a
+    # central catalog. Runtime parity is enforced by the Van localization test
+    # in the workflow; changed Van UI is still scanned for raw literals/enums.
+
     try:
         added = parse_added_lines(args.base, args.head)
     except RuntimeError as exc:
