@@ -744,7 +744,8 @@ class B2bWorkspaceController extends Controller
         Remittance $remittance,
         string $action,
         CollectionCustodyService $custody,
-    ): RedirectResponse {
+    ): RedirectResponse
+    {
         $actor = $this->actor($request);
         abort_unless(in_array($action, ['approve', 'reject', 'reconcile'], true), 404);
 
@@ -1716,7 +1717,7 @@ class B2bWorkspaceController extends Controller
             'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        if (! isset($data['from']) && ! isset($data['to']) && isset($data['date'])) {
+        if (!isset($data['from']) && !isset($data['to']) && isset($data['date'])) {
             return [$data['date'], $data['date']];
         }
 
