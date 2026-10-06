@@ -83,8 +83,6 @@ class AdminNavigation
                 $this->routeItemAny($user, 'field_ops_address_quality', 'admin.field_operations.address_quality', 'admin.field-operations.address-quality', ['customers.view']),
                 $this->routeItemAny($user, 'field_ops_routing', 'admin.field_operations.routing', 'admin.field-operations.routing', ['territories.manage', 'field_ops.manage']),
                 $this->routeItemAny($user, 'field_ops_finance', 'admin.field_operations.finance', 'admin.field-operations.finance', ['finance.view']),
-                $this->routeItemFlaggedAny($user, 'field_ops_commercial_rules', 'admin.field_operations.commercial_rules', 'admin.commercial.sales-control', ['catalog.view'], 'commercial_rules_enabled'),
-                $this->routeItemFlaggedAny($user, 'field_ops_van_offers', 'admin.field_operations.van_offers', 'admin.commercial.flash-offers', ['promotions.view'], 'van_offers_enabled'),
             ]),
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
                 $this->routeItem($user, 'commercial_flash_offers', 'admin.flash_offers', 'admin.commercial.flash-offers', 'promotions.view'),
@@ -337,22 +335,6 @@ class AdminNavigation
         }
 
         return null;
-    }
-
-    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
-    private function routeItemFlaggedAny(
-        User $user,
-        string $key,
-        string $label,
-        string $route,
-        array $permissions,
-        string $featureFlag,
-    ): ?array {
-        if (! app(\App\Services\CommercialFeatureFlags::class)->enabled($featureFlag)) {
-            return null;
-        }
-
-        return $this->routeItemAny($user, $key, $label, $route, $permissions);
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
