@@ -1,4 +1,20 @@
+## 1.0.58 - Van Full Install
+
+- Consolidate the #936 national Van field-operations train into a clean-environment release candidate.
+- Add FOODEX Van Android identity `com.foodex.van`, Firebase client wiring, FCM token lifecycle and Dashboard-managed Van push targeting.
+- Add isolated first-install configuration for `https://vanfoodex.50sols.com` and `solscool_vanfoodex`.
+- Extend the distribution bundle to publish `FOODEX-Van.apk` together with the full Laravel Setup ZIP and synchronized Customer/Driver APKs.
+- Preserve Firebase service-account credentials, database passwords and production signing material outside Git.
+
 # Changelog
+
+## 1.0.57 - 2026-10-05
+
+- Normalize the existing Customer client typography, spacing, badges, headers, order cards, financial summaries and contextual state surfaces in place without adding screens or changing routes/business behavior.
+- Keep Arabic RTL and English LTR first-class, move remaining More/Profile labels into the existing localization resources, and render Dashboard timestamps through Flutter localization rather than raw ISO-derived text.
+- Preserve store/backend-driven currency and all authoritative order, invoice, finance, pricing, permissions and API contracts while reducing overflow risk through controlled max-lines, ellipsis and compact responsive sizing.
+- Make the Dashboard Driver map refresh silently after its initial load: keep the mounted map and last successful markers visible, suppress duplicate refreshes, preserve successful content on background failure, reserve status space to prevent layout shift, and dispose polling/network work when leaving the page.
+- Add live-map regression coverage for silent refresh, preserved last-success content, duplicate-request suppression and page-leave cleanup; synchronize Dashboard, Customer and Driver identities at 1.0.57 / mobile build 1.0.57+57 and publish through the existing cumulative Dashboard update mechanism.
 
 ## 1.0.56 - 2026-10-05
 
@@ -464,3 +480,4 @@
 - PostgreSQL schema foundation.
 - OpenAPI/installer/updater foundations.
 - CI/tests/governance/design-reference indexing.
+
