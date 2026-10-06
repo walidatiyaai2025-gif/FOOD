@@ -14,6 +14,7 @@ class FieldOperationsAdminExposureTest extends TestCase
             'admin.field-operations.fleet',
             'admin.field-operations.fleet.feed',
             'admin.field-operations.vans',
+            'admin.field-operations.vans.show',
             'admin.field-operations.vans.store',
             'admin.field-operations.vans.suspend',
             'admin.field-operations.assignments',
@@ -98,6 +99,9 @@ class FieldOperationsAdminExposureTest extends TestCase
         $this->assertStringContainsString("data-field-operations-page=", $view);
         $this->assertStringContainsString("@include('admin._driver-live-map'", $view);
         $this->assertStringContainsString("@include('admin._field-operations-finance'", $view);
+        $this->assertStringContainsString("@elseif(\$section === 'van-detail')", $view);
+        $this->assertStringContainsString('Assignment history', $view);
+        $this->assertStringContainsString('Details & history', $view);
         $this->assertStringContainsString('fieldops-coverage-map', $view);
         $this->assertStringContainsString("type:'Polygon'", $view);
         $this->assertStringContainsString("featureFlags['commercial_rules_enabled']", $view);
