@@ -25,6 +25,7 @@
             <select name="app" required>
                 <option value="customer" @selected($selectedApp === 'customer')>{{ __('app_versions.customer') }}</option>
                 <option value="driver" @selected($selectedApp === 'driver')>{{ __('app_versions.driver') }}</option>
+                <option value="van" @selected($selectedApp === 'van')>{{ __('app_versions.van') }}</option>
             </select>
         </label>
         <label>{{ __('app_versions.platform') }}

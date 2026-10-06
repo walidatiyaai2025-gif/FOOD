@@ -5,6 +5,7 @@ return [
     'app' => 'Application',
     'customer' => 'Customer',
     'driver' => 'Driver',
+    'van' => 'Van',
     'platform' => 'Platform',
     'android' => 'Android',
     'ios' => 'iOS',

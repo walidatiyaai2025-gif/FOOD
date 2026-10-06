@@ -24,7 +24,7 @@ final class MobileSettingsController extends Controller
         $this->authorizeAny($request);
 
         $settings = MobileAppSetting::query()->orderBy('app')->orderBy('environment')->get();
-        $selectedApp = in_array((string) $request->query('app'), ['customer', 'driver'], true)
+        $selectedApp = in_array((string) $request->query('app'), ['customer', 'driver', 'van'], true)
             ? (string) $request->query('app')
             : 'customer';
         $selectedEnvironment = in_array((string) $request->query('environment'), ['development', 'staging', 'production'], true)
@@ -52,7 +52,7 @@ final class MobileSettingsController extends Controller
     {
         $actor = $this->authorize($request, 'mobile_settings.manage');
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'environment' => ['required', 'in:development,staging,production'],
             'display_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'android_package_id' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -199,7 +199,7 @@ final class MobileSettingsController extends Controller
     ): RedirectResponse {
         $actor = $this->authorize($request, 'push_settings.manage');
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'platform' => ['required', 'in:android,ios'],
             'environment' => ['required', 'in:development,staging,production'],
             'enabled' => ['nullable', 'boolean'],
@@ -266,7 +266,7 @@ final class MobileSettingsController extends Controller
     ): RedirectResponse {
         $actor = $this->authorize($request, 'push_settings.manage');
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'platform' => ['required', 'in:android,ios'],
             'environment' => ['required', 'in:development,staging,production'],
         ]);

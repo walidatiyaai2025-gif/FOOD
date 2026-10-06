@@ -115,6 +115,28 @@
         .foodex-page-header{flex-direction:column}
         .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{padding:var(--foodex-space-4)}
     }
+
+    /* Field Operations shared management primitives. Reuse these instead of page-local variants. */
+    .foodex-ops-shell{display:grid;gap:var(--foodex-space-5);min-width:0}
+    .foodex-ops-toolbar{display:grid;grid-template-columns:minmax(220px,2fr) repeat(auto-fit,minmax(160px,1fr));gap:var(--foodex-space-3);align-items:end}
+    .foodex-ops-grid{width:100%;border-collapse:separate;border-spacing:0;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);overflow:hidden}
+    .foodex-ops-grid th,.foodex-ops-grid td{padding:var(--foodex-table-cell-y) var(--foodex-table-cell-x);text-align:start;border-bottom:1px solid var(--foodex-border);vertical-align:middle}
+    .foodex-ops-grid th{background:#FAFBFC;color:var(--foodex-muted);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold);white-space:nowrap}
+    .foodex-ops-grid tbody tr:hover{background:#fbfcfd}
+    .foodex-ops-grid tbody tr:last-child td{border-bottom:0}
+    .foodex-ops-actions{position:relative;display:inline-block}
+    .foodex-ops-actions>summary{list-style:none;width:var(--foodex-touch-target);height:var(--foodex-touch-target);display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-ink);cursor:pointer;font-size:20px;line-height:1}
+    .foodex-ops-actions>summary::-webkit-details-marker{display:none}
+    .foodex-ops-actions>summary:hover,.foodex-ops-actions[open]>summary{background:var(--foodex-green-soft);border-color:#b7dfc4;color:var(--foodex-green-dark)}
+    .foodex-ops-menu{position:absolute;z-index:60;inset-inline-end:0;top:calc(100% + 6px);min-width:180px;padding:6px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-raised)}
+    .foodex-ops-menu a,.foodex-ops-menu button{width:100%;min-height:40px;display:flex;align-items:center;justify-content:flex-start;padding:0 var(--foodex-space-3);border:0;border-radius:8px;background:transparent;color:var(--foodex-ink);text-decoration:none;font:inherit;cursor:pointer}
+    .foodex-ops-menu a:hover,.foodex-ops-menu button:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+    .foodex-ops-menu .danger{color:var(--foodex-red)!important;background:transparent!important}
+    .foodex-ops-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--foodex-space-4)}
+    .foodex-ops-state{min-height:140px;display:grid;place-items:center;text-align:center;padding:var(--foodex-space-6);border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;color:var(--foodex-muted)}
+    @media(max-width:1023px){.foodex-ops-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:767px){.foodex-ops-toolbar,.foodex-ops-detail-grid{grid-template-columns:minmax(0,1fr)}.foodex-ops-grid .foodex-ops-hide-mobile{display:none}}
+
 </style>
 
 <script id="foodex-placeholder-audit">

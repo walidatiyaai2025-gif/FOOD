@@ -12,8 +12,8 @@ SPEC.loader.exec_module(MODULE)
 
 
 class MobileArtifactTest(unittest.TestCase):
-    def test_both_apps_and_platforms_produce_traceable_validation_evidence(self):
-        for app in ("customer", "driver"):
+    def test_supported_apps_and_platforms_produce_traceable_validation_evidence(self):
+        for app in ("customer", "driver", "van"):
             for platform, suffix in (("android", ".apk"), ("ios", ".zip")):
                 with self.subTest(app=app, platform=platform), tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)

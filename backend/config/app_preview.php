@@ -35,6 +35,11 @@ return [
             'contract_version' => env('FOODEX_DRIVER_PREVIEW_CONTRACT_VERSION', 'shared-flutter-v1'),
             'allowed_origin' => env('FOODEX_DRIVER_PREVIEW_ALLOWED_ORIGIN', $appOrigin),
         ],
+        'van' => [
+            'url' => env('FOODEX_VAN_PREVIEW_RUNTIME_URL', $appUrl.'/preview/van/'),
+            'contract_version' => env('FOODEX_VAN_PREVIEW_CONTRACT_VERSION', 'shared-flutter-v1'),
+            'allowed_origin' => env('FOODEX_VAN_PREVIEW_ALLOWED_ORIGIN', $appOrigin),
+        ],
     ],
 
     /*
