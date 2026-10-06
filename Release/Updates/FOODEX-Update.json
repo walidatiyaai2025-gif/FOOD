@@ -4,16 +4,16 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.58",
   "minimum_current_version": "1.0.57",
-  "sha256": "81f73c39c131666c73eaf45e0fc096e082adbdbf6a24e9a6564c29aa7e2671ee",
+  "sha256": "3d3c88be09e01256002f5abf6e999b45a8bdde4c98de36452f38c9e4eb1050ce",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "fix(ci): stabilize van locale visual capture",
+  "release_notes": "#1006 — Three-app biometric login parity",
   "dashboard_fields": {
     "target_version": "1.0.58",
     "minimum_current_version": "1.0.57",
-    "sha256": "81f73c39c131666c73eaf45e0fc096e082adbdbf6a24e9a6564c29aa7e2671ee",
+    "sha256": "3d3c88be09e01256002f5abf6e999b45a8bdde4c98de36452f38c9e4eb1050ce",
     "contains_migrations": true,
-    "release_notes": "fix(ci): stabilize van locale visual capture"
+    "release_notes": "#1006 — Three-app biometric login parity"
   }
 }
