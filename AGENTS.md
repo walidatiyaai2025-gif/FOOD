@@ -32,6 +32,7 @@ Core invariants include:
 - Administration opens as an icon/card Admin Hub rather than a long nested link list.
 - Customer, Driver and Van are three first-class FOODEX applications; app-level capabilities require parity evaluation across all three.
 - Arabic/English, responsive behavior and shared FOODEX components are acceptance requirements.
+- Every page/feature/function must comply with `docs/quality/LOCALIZATION_CONTRACT.md`: selected Arabic must not surface untranslated English system wording/data labels, and selected English must not surface untranslated Arabic system wording/data labels. New translation keys require AR/EN parity; raw status/state/channel/role/type values must be localized before display.
 - Customer / Driver / Van mobile layouts are data-first and compact: title + subtitle must consume only a minimal footprint (target ~1% of usable page area), Start/End filters + action stay on one line, order numbers never wrap, screens use the available viewport, and list/grid rows remain compact.
 - Customer / Driver / Van must evaluate and implement Remember Me + biometric unlock consistently; never persist plaintext passwords for biometric login.
 - The main Dashboard map is unified Live Tracking for both Drivers and Vans, with person markers for Drivers and vehicle markers for Vans.
