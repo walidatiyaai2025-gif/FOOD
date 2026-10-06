@@ -68,8 +68,8 @@ final class AccountDeletionController extends Controller
             'block_reason' => $request->block_reason,
             'retention' => $request->retention_context ?? [],
             'requested_at' => $request->created_at?->toAtomString(),
-            'anonymized_at' => $request->anonymized_at?->toAtomString(),
-            'completed_at' => $request->completed_at?->toAtomString(),
+            'anonymized_at' => $request->anonymizedAt()?->toAtomString(),
+            'completed_at' => $request->completedAt()?->toAtomString(),
         ];
     }
 }
